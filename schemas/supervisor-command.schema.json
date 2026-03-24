@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SupervisorCommand",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "command": {
+      "type": "string",
+      "enum": [
+        "start_pipeline",
+        "start_autoresearch",
+        "pause_autoresearch",
+        "resume_autoresearch",
+        "stop_autoresearch",
+        "reset_project",
+        "status"
+      ]
+    },
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "cli",
+        "telegram_control",
+        "openclaw",
+        "dashboard"
+      ]
+    },
+    "requested_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "command",
+    "source",
+    "requested_by",
+    "requested_at",
+    "payload"
+  ]
+}

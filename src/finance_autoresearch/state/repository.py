@@ -78,6 +78,8 @@ class StateRepository(Protocol):
 
     def get_latest_experiment(self) -> ExperimentRecord | None: ...
 
+    def list_experiments(self, *, limit: int = 50) -> list[ExperimentRecord]: ...
+
     def record_analysis(
         self,
         *,
@@ -101,6 +103,8 @@ class StateRepository(Protocol):
     ) -> OutboxMessage: ...
 
     def list_pending_outbox(self) -> list[OutboxMessage]: ...
+
+    def list_outbox(self, *, limit: int = 50) -> list[OutboxMessage]: ...
 
     def mark_outbox_sent(
         self,

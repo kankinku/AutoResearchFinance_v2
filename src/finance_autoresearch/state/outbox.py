@@ -76,6 +76,19 @@ class SQLiteOutbox:
         )
         return [self._row_to_message(row) for row in cursor.fetchall()]
 
+    def list_all(self, *, limit: int = 50) -> list[OutboxMessage]:
+        cursor = self._connection.execute(
+            """
+            SELECT id, project_id, event_type, payload_json, created_at, sent_at
+            FROM outbox_messages
+            WHERE project_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """,
+            (self._project_id, limit),
+        )
+        return [self._row_to_message(row) for row in cursor.fetchall()]
+
     def mark_sent(
         self,
         message_id: str,

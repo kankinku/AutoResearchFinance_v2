@@ -28,7 +28,7 @@ class SQLiteStateStore(StateRepository):
         self._db_path = db_path
         self._project_id = project_id
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(self._db_path)
+        self._connection = sqlite3.connect(self._db_path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
         self._initialize_schema()
@@ -322,6 +322,31 @@ class SQLiteStateStore(StateRepository):
             return None
         return self._row_to_experiment(row)
 
+    def list_experiments(self, *, limit: int = 50) -> list[ExperimentRecord]:
+        cursor = self._connection.execute(
+            """
+            SELECT
+                id,
+                project_id,
+                run_id,
+                iteration,
+                candidate_revision,
+                baseline_revision,
+                hypothesis,
+                mutation_summary,
+                backtest_metrics_json,
+                decision,
+                created_at,
+                updated_at
+            FROM experiment_history
+            WHERE project_id = ?
+            ORDER BY updated_at DESC, created_at DESC, id DESC
+            LIMIT ?
+            """,
+            (self._project_id, limit),
+        )
+        return [self._row_to_experiment(row) for row in cursor.fetchall()]
+
     def record_analysis(
         self,
         *,
@@ -405,6 +430,9 @@ class SQLiteStateStore(StateRepository):
 
     def list_pending_outbox(self):
         return self._outbox.list_pending()
+
+    def list_outbox(self, *, limit: int = 50):
+        return self._outbox.list_all(limit=limit)
 
     def mark_outbox_sent(self, message_id, *, sent_at=None):
         return self._outbox.mark_sent(message_id, sent_at=sent_at)

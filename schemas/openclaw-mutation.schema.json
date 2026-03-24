@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenClawStrategyReplacement",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "type": "string",
+      "const": "strategy_replacement"
+    },
+    "target_path": {
+      "type": "string",
+      "const": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py"
+    },
+    "hypothesis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "change_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "full_file_contents": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_effects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "kind",
+    "target_path",
+    "hypothesis",
+    "change_summary",
+    "full_file_contents",
+    "expected_effects"
+  ]
+}
