@@ -426,6 +426,13 @@ class SQLiteStateStore(StateRepository):
             return self._update_status(autoresearch_heartbeat_at=heartbeat_at)
         raise ValueError(f"Unknown worker: {worker}")
 
+    def clear_heartbeat(self, worker: WorkerName) -> ProjectStatus:
+        if worker == "pipeline":
+            return self._update_status(pipeline_heartbeat_at=None)
+        if worker == "autoresearch":
+            return self._update_status(autoresearch_heartbeat_at=None)
+        raise ValueError(f"Unknown worker: {worker}")
+
     def set_candidate_revision(self, revision: str | None) -> ProjectStatus:
         return self._update_status(candidate_revision=revision)
 
