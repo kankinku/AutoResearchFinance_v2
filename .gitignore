@@ -5,4 +5,5 @@ data/market/raw/
 data/market/canonical/
 .pytest_cache/
 __pycache__/
+*.egg-info/
 .env
