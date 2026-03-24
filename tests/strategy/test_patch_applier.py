@@ -48,15 +48,19 @@ def valid_strategy_source(*, extra_imports: str = "", extra_body: str = "") -> s
     ).lstrip()
 
 
-def make_context() -> object:
+def make_context(close_values: pd.Series | None = None) -> object:
     from finance_autoresearch.strategy.base_contract import (
         DEFAULT_INDICATORS,
         DEFAULT_REGIMES,
         StrategyContext,
     )
 
-    index = pd.RangeIndex(start=0, stop=260, step=1)
-    close = pd.Series(range(100, 360), index=index, dtype=float)
+    if close_values is None:
+        index = pd.RangeIndex(start=0, stop=260, step=1)
+        close = pd.Series(range(100, 360), index=index, dtype=float)
+    else:
+        close = pd.Series(close_values, dtype=float)
+        index = close.index
     return StrategyContext(
         open=close - 0.5,
         high=close + 1.0,
@@ -153,6 +157,36 @@ def test_patch_applier_rejects_missing_build_strategy(tmp_path: Path) -> None:
         apply_strategy_artifact(artifact, repository_root=tmp_path)
 
 
+def test_patch_applier_rejects_import_time_executable_statements(tmp_path: Path) -> None:
+    from finance_autoresearch.mutation.patch_applier import apply_strategy_artifact
+
+    artifact = make_artifact(
+        "\n".join(
+            [
+                "import pandas as pd",
+                "from finance_autoresearch.strategy.base_contract import StrategyContext, StrategyDefinition",
+                "BROKEN = 1 / 0",
+                "",
+                "def build_strategy(context: StrategyContext) -> StrategyDefinition:",
+                "    regime = pd.Series('bull', index=context.close.index, dtype='object')",
+                "    no_signal = context.close > (context.close + 1)",
+                "    return StrategyDefinition(",
+                "        long_entries=no_signal,",
+                "        long_exits=no_signal,",
+                "        short_entries=no_signal,",
+                "        short_exits=no_signal,",
+                "        regime=regime,",
+                "        params={'fast_window': 20},",
+                "        diagnostics={'regime': regime},",
+                "    )",
+            ]
+        )
+    )
+
+    with pytest.raises(ValueError, match="top-level"):
+        apply_strategy_artifact(artifact, repository_root=tmp_path)
+
+
 def test_patch_applier_rejects_files_longer_than_400_lines(tmp_path: Path) -> None:
     from finance_autoresearch.mutation.patch_applier import apply_strategy_artifact
 
@@ -207,3 +241,16 @@ def test_regime_classifier_returns_only_bull_or_bear() -> None:
     assert set(regime.unique()) == {"bull", "bear"}
     assert is_bull(close).equals(regime.eq("bull"))
     assert is_bear(close).equals(regime.eq("bear"))
+
+
+def test_baseline_strategy_does_not_trade_before_regime_window_is_valid() -> None:
+    importlib.invalidate_caches()
+    module = importlib.import_module(
+        "finance_autoresearch.strategy.mutable.strategy_candidate"
+    )
+    close = pd.Series(([100.0] * 210) + ([150.0] * 10) + ([50.0] * 10), dtype=float)
+
+    strategy = module.build_strategy(make_context(close))
+
+    assert not bool(strategy.long_entries.iloc[:200].any())
+    assert not bool(strategy.short_entries.iloc[:200].any())

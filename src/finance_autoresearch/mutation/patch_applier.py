@@ -81,6 +81,7 @@ def apply_strategy_artifact(
 
     _validate_imports(tree)
     _validate_calls(tree)
+    _validate_top_level_statements(tree)
     _require_top_level_build_strategy(tree)
     _validate_py_compile(validated_artifact.full_file_contents)
 
@@ -196,6 +197,36 @@ def _require_top_level_build_strategy(tree: ast.Module) -> None:
         if isinstance(node, ast.FunctionDef) and node.name == "build_strategy":
             return
     raise ValueError("strategy source must define a top-level build_strategy function")
+
+
+def _validate_top_level_statements(tree: ast.Module) -> None:
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom, ast.FunctionDef, ast.ClassDef)):
+            continue
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
+            continue
+        if isinstance(node, ast.Assign) and _is_safe_literal(node.value):
+            continue
+        if isinstance(node, ast.AnnAssign) and (
+            node.value is None or _is_safe_literal(node.value)
+        ):
+            continue
+        raise ValueError("top-level executable statements are not allowed")
+
+
+def _is_safe_literal(node: ast.AST) -> bool:
+    if isinstance(node, ast.Constant):
+        return True
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        return _is_safe_literal(node.operand)
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return all(_is_safe_literal(element) for element in node.elts)
+    if isinstance(node, ast.Dict):
+        return all(
+            (key is None or _is_safe_literal(key)) and _is_safe_literal(value)
+            for key, value in zip(node.keys, node.values)
+        )
+    return False
 
 
 def _validate_py_compile(source: str) -> None:

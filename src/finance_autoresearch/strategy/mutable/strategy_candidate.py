@@ -8,8 +8,9 @@ def build_strategy(context: StrategyContext) -> StrategyDefinition:
     slow_window = 50
 
     regime = context.regimes.classify_ema200_regime(context.close)
-    bull = context.regimes.is_bull(context.close)
-    bear = context.regimes.is_bear(context.close)
+    regime_valid = context.indicators.ema(context.close, 200).notna()
+    bull = context.regimes.is_bull(context.close) & regime_valid
+    bear = context.regimes.is_bear(context.close) & regime_valid
 
     fast_ema = context.indicators.ema(context.close, fast_window)
     slow_ema = context.indicators.ema(context.close, slow_window)
@@ -20,9 +21,9 @@ def build_strategy(context: StrategyContext) -> StrategyDefinition:
     crossed_below = fast_below_slow & ~fast_below_slow.shift(1, fill_value=False)
 
     long_entries = bull & crossed_above
-    long_exits = bear | crossed_below
+    long_exits = regime_valid & (bear | crossed_below)
     short_entries = bear & crossed_below
-    short_exits = bull | crossed_above
+    short_exits = regime_valid & (bull | crossed_above)
 
     return StrategyDefinition(
         long_entries=long_entries,
@@ -40,6 +41,7 @@ def build_strategy(context: StrategyContext) -> StrategyDefinition:
         diagnostics={
             "fast_ema": fast_ema,
             "slow_ema": slow_ema,
+            "regime_valid": regime_valid,
             "bull_bars": int(bull.sum()),
             "bear_bars": int(bear.sum()),
         },
