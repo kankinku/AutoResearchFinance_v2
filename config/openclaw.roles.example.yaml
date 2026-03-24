@@ -1,0 +1,16 @@
+project_id: finance
+gateway:
+  base_url: http://127.0.0.1:8765
+roles:
+  router:
+    agent_id: router
+    purpose: Route Supervisor control requests from OpenClaw.
+  research:
+    agent_id: research
+    purpose: Propose finance strategy mutations and hypotheses.
+  critic:
+    agent_id: critic
+    purpose: Analyze backtest outcomes and summarize weaknesses.
+  builder:
+    agent_id: builder
+    purpose: Optional patch sanity checker before strategy apply.

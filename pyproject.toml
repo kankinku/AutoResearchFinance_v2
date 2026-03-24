@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finance-autoresearch"
+version = "0.1.0"
+description = "Local-first finance autoresearch bootstrap package."
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "typer",
+    "sqlalchemy",
+    "pydantic",
+    "pydantic-settings",
+    "pandas",
+    "pyarrow",
+    "numpy",
+    "vectorbt",
+    "yfinance",
+    "python-telegram-bot",
+]
+
+[project.scripts]
+finance-autoresearch = "finance_autoresearch:main"
+
+[dependency-groups]
+test = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+]
+
+[tool.uv]
+default-groups = ["test"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
