@@ -1,0 +1,8 @@
+.worktrees/
+.omx/
+runtime/
+data/market/raw/
+data/market/canonical/
+.pytest_cache/
+__pycache__/
+.env
