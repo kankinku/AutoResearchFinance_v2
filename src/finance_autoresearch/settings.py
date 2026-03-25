@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,3 +40,25 @@ class Settings(BaseSettings):
     telegram_report_dry_run: bool = False
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = 8000
+
+    @field_validator(
+        "autoresearch_max_iterations",
+        "openclaw_mutate_handler_path",
+        "openclaw_analyze_handler_path",
+        "openclaw_mutate_response_json",
+        "openclaw_analyze_response_json",
+        "telegram_control_token",
+        "telegram_control_chat_id",
+        "telegram_report_token",
+        "telegram_report_chat_id",
+        mode="before",
+    )
+    @classmethod
+    def _empty_string_to_none(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return None
+            if stripped.startswith("<") and stripped.endswith(">"):
+                return None
+        return value

@@ -192,3 +192,7 @@ uv run python -m finance_autoresearch start_autoresearch
 - `schemas/openclaw-mutation.schema.json`
 
 The mutation schema is validated again by `patch_applier.py` before any strategy file is written.
+
+## OpenClaw control skills
+
+For installable OpenClaw `.skill` bundles that wrap `openclaw-control`, see [openclaw-skills.md](C:\Users\hanji\Desktop\Finance\AutoResearchFinance_v2\.worktrees\finance-autoresearch-v1\docs\openclaw-skills.md).

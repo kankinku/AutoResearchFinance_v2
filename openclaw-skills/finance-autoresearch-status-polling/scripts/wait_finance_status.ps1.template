@@ -1,0 +1,33 @@
+param(
+    [string]$ProjectId = "finance",
+    [string]$RequestedBy = "openclaw-skill-status-polling",
+    [string]$ProjectState,
+    [string]$PipelineState,
+    [string]$AutoresearchState,
+    [int]$TimeoutSeconds = 600,
+    [int]$PollIntervalSeconds = 5,
+    [switch]$StopOnTerminalFailure
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$repositoryRoot = "__REPOSITORY_ROOT__"
+$delegateScript = Join-Path $repositoryRoot "scripts\wait-finance-status.ps1"
+
+if (-not (Test-Path $delegateScript)) {
+    Write-Error "Delegate script not found: $delegateScript"
+    exit 1
+}
+
+& $delegateScript `
+    -ProjectId $ProjectId `
+    -RequestedBy $RequestedBy `
+    -ProjectState $ProjectState `
+    -PipelineState $PipelineState `
+    -AutoresearchState $AutoresearchState `
+    -TimeoutSeconds $TimeoutSeconds `
+    -PollIntervalSeconds $PollIntervalSeconds `
+    -StopOnTerminalFailure:$StopOnTerminalFailure `
+    -RepositoryRoot $repositoryRoot
+exit $LASTEXITCODE

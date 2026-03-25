@@ -1,0 +1,21 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$Command,
+    [string]$ProjectId = "finance",
+    [string]$RequestedBy = "openclaw-skill-control",
+    [string]$PayloadJson = "{}"
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$repositoryRoot = "__REPOSITORY_ROOT__"
+$delegateScript = Join-Path $repositoryRoot "scripts\invoke-openclaw-control.ps1"
+
+if (-not (Test-Path $delegateScript)) {
+    Write-Error "Delegate script not found: $delegateScript"
+    exit 1
+}
+
+& $delegateScript -Command $Command -ProjectId $ProjectId -RequestedBy $RequestedBy -PayloadJson $PayloadJson -RepositoryRoot $repositoryRoot
+exit $LASTEXITCODE
