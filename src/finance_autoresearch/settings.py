@@ -6,6 +6,8 @@ from typing import Any, Literal
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+ProgressMode = Literal["off", "simple", "standard"]
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -20,6 +22,7 @@ class Settings(BaseSettings):
     state_db_path: Path = Path("runtime/finance_autoresearch.db")
     market_pack_mode: Literal["download", "cached"] = "download"
     autoresearch_max_iterations: int | None = None
+    allow_invalid_seed_baseline: bool = False
     openclaw_roles_path: Path = Path("config/openclaw.roles.example.yaml")
     openclaw_gateway_url: str = "http://127.0.0.1:18789"
     openclaw_healthcheck_script: Path = Path("scripts/check-openclaw.ps1")
@@ -38,6 +41,10 @@ class Settings(BaseSettings):
     telegram_report_token: SecretStr | None = None
     telegram_report_chat_id: str | None = None
     telegram_report_dry_run: bool = False
+    telegram_progress_token: SecretStr | None = None
+    telegram_progress_chat_id: str | None = None
+    telegram_progress_dry_run: bool = False
+    telegram_progress_mode: ProgressMode = "off"
     dashboard_host: str = "127.0.0.1"
     dashboard_port: int = 8000
 
@@ -51,6 +58,8 @@ class Settings(BaseSettings):
         "telegram_control_chat_id",
         "telegram_report_token",
         "telegram_report_chat_id",
+        "telegram_progress_token",
+        "telegram_progress_chat_id",
         mode="before",
     )
     @classmethod

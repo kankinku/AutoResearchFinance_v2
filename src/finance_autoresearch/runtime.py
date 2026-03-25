@@ -242,6 +242,7 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
         harness=StrategyHarness(cache_root=workspace_root),
         evaluator=evaluate_backtest_results,
         analyzer=None,
+        allow_invalid_seed_baseline=resolved_settings.allow_invalid_seed_baseline,
     )
     supervisor = SupervisorService(
         state_store=store,
@@ -294,6 +295,11 @@ def build_subprocess_env(settings: Settings) -> dict[str, str]:
             "FINANCE_AUTORESEARCH_AUTORESEARCH_MAX_ITERATIONS",
             str(settings.autoresearch_max_iterations),
         )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_ALLOW_INVALID_SEED_BASELINE",
+        str(settings.allow_invalid_seed_baseline).lower(),
+    )
     _set_env_value(
         env,
         "FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH",
@@ -389,6 +395,27 @@ def build_subprocess_env(settings: Settings) -> dict[str, str]:
         env,
         "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN",
         str(settings.telegram_report_dry_run).lower(),
+    )
+    if settings.telegram_progress_token is not None:
+        _set_env_value(
+            env,
+            "FINANCE_AUTORESEARCH_TELEGRAM_PROGRESS_TOKEN",
+            settings.telegram_progress_token.get_secret_value(),
+        )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_TELEGRAM_PROGRESS_CHAT_ID",
+        settings.telegram_progress_chat_id,
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_TELEGRAM_PROGRESS_DRY_RUN",
+        str(settings.telegram_progress_dry_run).lower(),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_TELEGRAM_PROGRESS_MODE",
+        settings.telegram_progress_mode,
     )
     _set_env_value(env, "FINANCE_AUTORESEARCH_DASHBOARD_HOST", settings.dashboard_host)
     _set_env_value(

@@ -47,6 +47,7 @@ class AutoresearchRunner:
         analysis_agent_id: str = "critic",
         patch_applier=apply_strategy_artifact,
         lock_is_held=None,
+        allow_invalid_seed_baseline: bool = False,
     ) -> None:
         self._state_store = state_store
         self._repository_root = Path(repository_root)
@@ -60,6 +61,7 @@ class AutoresearchRunner:
         self._analysis_agent_id = analysis_agent_id
         self._patch_applier = patch_applier
         self._lock_is_held = lock_is_held or (lambda: True)
+        self._allow_invalid_seed_baseline = allow_invalid_seed_baseline
         self._heartbeat = WorkerHeartbeat(state_store=state_store, worker_name="autoresearch")
 
     def build_seed_validator(self):
@@ -74,7 +76,8 @@ class AutoresearchRunner:
         except Exception as exc:
             return SeedBaselineValidation(valid=False, message=str(exc))
 
-        if not bool(baseline_evaluation["guardrails_passed"]):
+        guardrails_passed = bool(baseline_evaluation["guardrails_passed"])
+        if not guardrails_passed and not self._allow_invalid_seed_baseline:
             return SeedBaselineValidation(
                 valid=False,
                 message="seed baseline guardrails failed",
@@ -82,7 +85,12 @@ class AutoresearchRunner:
 
         self._state_store.set_candidate_revision(baseline_revision)
         self._state_store.set_baseline_revision(baseline_revision)
-        return SeedBaselineValidation(valid=True, message="seed baseline validated")
+        if guardrails_passed:
+            return SeedBaselineValidation(valid=True, message="seed baseline validated")
+        return SeedBaselineValidation(
+            valid=True,
+            message="seed baseline guardrails bypassed by FINANCE_AUTORESEARCH_ALLOW_INVALID_SEED_BASELINE",
+        )
 
     def recover_startup_state(self) -> bool:
         status = self._state_store.get_status()
@@ -552,6 +560,12 @@ class AutoresearchRunner:
         self._state_store.set_current_stage(None)
         self._state_store.set_pending_command(None)
         self._heartbeat.clear()
+        self._progress_event(
+            "progress_success",
+            run_id=run_id,
+            iteration=self._latest_iteration_for_run(run_id),
+            message="autoresearch finished successfully",
+        )
         if run_id is not None:
             self._state_store.record_run(run_id=run_id, state="success")
 
@@ -600,3 +614,17 @@ class AutoresearchRunner:
         project_id = getattr(self._state_store, "_project_id", "project")
         resolved_db_path = Path(db_path)
         return resolved_db_path.with_name(f"{resolved_db_path.name}.{project_id}.supervisor.lock")
+
+    def _latest_iteration_for_run(self, run_id: str | None) -> int | None:
+        if run_id is None:
+            return None
+        latest = self._state_store.get_latest_experiment()
+        if latest is None or latest.run_id != run_id:
+            return None
+        return latest.iteration
+
+    def _progress_event(self, event_type: str, **payload: Any) -> None:
+        self._state_store.append_outbox_event(
+            event_type=event_type,
+            payload={key: value for key, value in payload.items() if value is not None},
+        )

@@ -102,7 +102,12 @@ class StateRepository(Protocol):
         created_at: datetime | None = None,
     ) -> OutboxMessage: ...
 
-    def list_pending_outbox(self) -> list[OutboxMessage]: ...
+    def list_pending_outbox(
+        self,
+        *,
+        event_type_prefix: str | None = None,
+        exclude_event_type_prefix: str | None = None,
+    ) -> list[OutboxMessage]: ...
 
     def list_outbox(self, *, limit: int = 50) -> list[OutboxMessage]: ...
 

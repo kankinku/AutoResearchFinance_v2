@@ -428,8 +428,24 @@ class SQLiteStateStore(StateRepository):
             created_at=created_at,
         )
 
-    def list_pending_outbox(self):
-        return self._outbox.list_pending()
+    def list_pending_outbox(
+        self,
+        *,
+        event_type_prefix: str | None = None,
+        exclude_event_type_prefix: str | None = None,
+    ):
+        messages = self._outbox.list_pending()
+        if event_type_prefix is not None:
+            messages = [
+                message for message in messages if message.event_type.startswith(event_type_prefix)
+            ]
+        if exclude_event_type_prefix is not None:
+            messages = [
+                message
+                for message in messages
+                if not message.event_type.startswith(exclude_event_type_prefix)
+            ]
+        return messages
 
     def list_outbox(self, *, limit: int = 50):
         return self._outbox.list_all(limit=limit)
