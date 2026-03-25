@@ -156,6 +156,7 @@ def test_openclaw_client_retries_transport_failure_once(
         timeout: int,
         cwd: Path | None,
         capture_output: bool,
+        env: dict[str, str] | None,
         text: bool,
     ) -> subprocess.CompletedProcess[str]:
         calls.append(command)
@@ -218,6 +219,7 @@ def test_openclaw_client_retries_timeout_once(
         timeout: int,
         cwd: Path | None,
         capture_output: bool,
+        env: dict[str, str] | None,
         text: bool,
     ) -> subprocess.CompletedProcess[str]:
         calls.append(command)
@@ -280,6 +282,7 @@ def test_openclaw_client_does_not_retry_schema_failure(
         timeout: int,
         cwd: Path | None,
         capture_output: bool,
+        env: dict[str, str] | None,
         text: bool,
     ) -> subprocess.CompletedProcess[str]:
         calls.append(command)
@@ -337,6 +340,7 @@ def test_openclaw_client_preserves_idempotency_key(
         timeout: int,
         cwd: Path | None,
         capture_output: bool,
+        env: dict[str, str] | None,
         text: bool,
     ) -> subprocess.CompletedProcess[str]:
         response_path = Path(command[-1])
@@ -366,3 +370,79 @@ def test_openclaw_client_preserves_idempotency_key(
     response = client.invoke(request)
 
     assert response.idempotency_key == request.idempotency_key
+
+
+def test_openclaw_client_passes_wrapper_env_to_subprocesses(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from finance_autoresearch.mutation.openclaw_client import OpenClawClient
+    from finance_autoresearch.mutation.prompt_builder import build_analysis_request
+
+    seen_envs: list[dict[str, str] | None] = []
+    request = build_analysis_request(
+        run_id="run-001",
+        iteration=7,
+        stage="analyze_candidate",
+        agent_id="critic",
+        context={"candidate_score": 1.4},
+    )
+
+    def fake_run(
+        command: list[str],
+        *,
+        check: bool,
+        timeout: int | None = None,
+        cwd: Path | None,
+        capture_output: bool,
+        env: dict[str, str] | None,
+        text: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        seen_envs.append(env)
+        if "-RolesPath" in command:
+            return subprocess.CompletedProcess(command, 0, "ok", "")
+        response_path = Path(command[-1])
+        response_path.write_text(
+            json.dumps(
+                make_success_response(
+                    task_kind="analysis",
+                    idempotency_key=request.idempotency_key,
+                    artifact=make_analysis_artifact(),
+                )
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(
+        "finance_autoresearch.mutation.openclaw_client.subprocess.run",
+        fake_run,
+    )
+
+    client = OpenClawClient(
+        mutate_script=tmp_path / "openclaw-mutate.ps1",
+        analyze_script=tmp_path / "openclaw-analyze.ps1",
+        healthcheck_script=tmp_path / "check-openclaw.ps1",
+        workspace_root=tmp_path,
+        wrapper_env={
+            "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH": "C:/mutate.ps1",
+            "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH": "C:/analyze.ps1",
+        },
+    )
+
+    health = client.check_health(roles_path=tmp_path / "roles.yaml", gateway_url=None)
+    response = client.invoke(request)
+
+    assert health.ok is True
+    assert response.ok is True
+    assert len(seen_envs) == 2
+    assert seen_envs[0] is not None
+    assert seen_envs[1] is not None
+    assert (
+        seen_envs[0]["FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH"]
+        == "C:/mutate.ps1"
+    )
+    assert (
+        seen_envs[1]["FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH"]
+        == "C:/analyze.ps1"
+    )

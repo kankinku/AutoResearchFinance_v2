@@ -5,23 +5,10 @@ import sys
 
 import typer
 
-from finance_autoresearch.integrations.cli import COMMANDS, dispatch_command
+from finance_autoresearch.integrations.cli import COMMANDS, build_command_payload
 from finance_autoresearch.integrations.openclaw_control import OpenClawControlAdapter
+from finance_autoresearch.runtime import build_runtime
 from finance_autoresearch.settings import Settings
-from finance_autoresearch.state.sqlite_store import SQLiteStateStore
-from finance_autoresearch.supervisor.service import SupervisorService
-
-
-def build_supervisor(settings: Settings | None = None) -> SupervisorService:
-    resolved_settings = settings or Settings()
-    store = SQLiteStateStore(
-        db_path=resolved_settings.state_db_path,
-        project_id=resolved_settings.project_id,
-    )
-    return SupervisorService(
-        state_store=store,
-        seed_validator=lambda _project_id: (False, "seed validator is not configured"),
-    )
 
 
 def create_app(settings: Settings | None = None) -> typer.Typer:
@@ -46,17 +33,18 @@ def create_app(settings: Settings | None = None) -> typer.Typer:
         )
 
     def _handle_cli_command(command: str) -> None:
-        supervisor = build_supervisor(resolved_settings)
+        runtime = build_runtime(resolved_settings)
         try:
-            response = dispatch_command(
-                supervisor=supervisor,
-                command=command,
-                source="cli",
-                requested_by="cli",
-                project_id=resolved_settings.project_id,
+            response = runtime.handle_command_payload(
+                build_command_payload(
+                    command=command,
+                    source="cli",
+                    requested_by="cli",
+                    project_id=resolved_settings.project_id,
+                )
             )
         finally:
-            supervisor._state_store.close()
+            runtime.close()
         typer.echo(json.dumps(response, sort_keys=True))
 
     def _make_cli_command(command: str):
@@ -70,20 +58,38 @@ def create_app(settings: Settings | None = None) -> typer.Typer:
 
     @app.command("openclaw-control")
     def openclaw_control() -> None:
-        supervisor = build_supervisor(resolved_settings)
+        runtime = build_runtime(resolved_settings)
         try:
             adapter = OpenClawControlAdapter(
-                supervisor=supervisor,
+                command_handler=runtime.handle_command_payload,
                 default_project_id=resolved_settings.project_id,
             )
             exit_code, stdout, stderr = adapter.run(sys.stdin.read())
         finally:
-            supervisor._state_store.close()
+            runtime.close()
         if stdout:
             typer.echo(stdout)
         if stderr:
             typer.echo(stderr, err=True)
         raise typer.Exit(code=exit_code)
+
+    @app.command("run-pipeline-worker", hidden=True)
+    def run_pipeline_worker() -> None:
+        runtime = build_runtime(resolved_settings)
+        try:
+            result = runtime.run_pipeline_worker()
+        finally:
+            runtime.close()
+        typer.echo(json.dumps(result, sort_keys=True))
+
+    @app.command("run-autoresearch-worker", hidden=True)
+    def run_autoresearch_worker(run_id: str) -> None:
+        runtime = build_runtime(resolved_settings)
+        try:
+            result = runtime.run_autoresearch_worker(run_id=run_id)
+        finally:
+            runtime.close()
+        typer.echo(json.dumps(result, sort_keys=True))
 
     return app
 

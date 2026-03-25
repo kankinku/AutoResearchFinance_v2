@@ -1,6 +1,3 @@
-Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
-
 param(
     [Parameter(Mandatory = $true)]
     [string]$AgentId,
@@ -10,9 +7,30 @@ param(
     [string]$ResponseJson
 )
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
 try {
     $request = Get-Content $RequestJson -Raw | ConvertFrom-Json
+    $handlerPath = $env:FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH
     $stubPath = $env:FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_RESPONSE_JSON
+
+    if ($handlerPath) {
+        if (-not (Test-Path $handlerPath)) {
+            Write-Error "[X] Mutation handler not found: $handlerPath"
+            exit 1
+        }
+
+        & $handlerPath -AgentId $AgentId -RequestJson $RequestJson -ResponseJson $ResponseJson
+        if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+        }
+        if (-not (Test-Path $ResponseJson)) {
+            Write-Error "[X] Mutation handler did not create a response file."
+            exit 1
+        }
+        exit 0
+    }
 
     if ($stubPath -and (Test-Path $stubPath)) {
         Copy-Item $stubPath $ResponseJson -Force

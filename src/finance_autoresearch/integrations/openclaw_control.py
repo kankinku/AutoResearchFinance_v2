@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
+from typing import Any
 
 from finance_autoresearch.supervisor.command_gate import CommandValidationError, normalize_command
 from finance_autoresearch.supervisor.service import SupervisorService
@@ -10,10 +12,15 @@ class OpenClawControlAdapter:
     def __init__(
         self,
         *,
-        supervisor: SupervisorService,
+        supervisor: SupervisorService | None = None,
+        command_handler: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
         default_project_id: str = "finance",
     ) -> None:
-        self._supervisor = supervisor
+        if command_handler is None:
+            if supervisor is None:
+                raise ValueError("either supervisor or command_handler must be provided")
+            command_handler = supervisor.handle
+        self._command_handler = command_handler
         self._default_project_id = default_project_id
 
     def run(self, stdin_text: str) -> tuple[int, str, str]:
@@ -33,5 +40,5 @@ class OpenClawControlAdapter:
         except CommandValidationError as exc:
             return 1, "", str(exc)
 
-        response = self._supervisor.handle(resolved_payload)
+        response = self._command_handler(resolved_payload)
         return 0, json.dumps(response, sort_keys=True), ""

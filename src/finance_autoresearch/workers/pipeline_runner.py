@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import shutil
+import subprocess
 
 from finance_autoresearch.backtest.data_loader import (
     MarketKey,
@@ -146,10 +148,46 @@ class PipelineRunner:
         self._state_store.get_status()
 
     def _default_openclaw_check(self) -> None:
-        if not self._settings.openclaw_gateway_url.strip():
-            raise ValueError("OpenClaw gateway URL is not configured")
-        if not self._settings.openclaw_roles_path.exists():
-            raise ValueError("OpenClaw roles file is missing")
+        script_path = Path(self._settings.openclaw_healthcheck_script)
+        roles_path = Path(self._settings.openclaw_roles_path)
+        if not script_path.exists():
+            raise ValueError(f"OpenClaw health check script is missing: {script_path}")
+        if not roles_path.exists():
+            raise ValueError(f"OpenClaw roles file is missing: {roles_path}")
+
+        result = subprocess.run(
+            [
+                "powershell",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(script_path),
+                "-RolesPath",
+                str(roles_path),
+                "-GatewayUrl",
+                self._settings.openclaw_gateway_url,
+            ],
+            check=False,
+            capture_output=True,
+            env=self._build_openclaw_env(),
+            text=True,
+        )
+        if result.returncode != 0:
+            message = (result.stderr or result.stdout).strip()
+            raise ValueError(message or "OpenClaw health check failed")
+
+    def _build_openclaw_env(self) -> dict[str, str]:
+        env = os.environ.copy()
+        optional_paths = {
+            "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH": self._settings.openclaw_mutate_handler_path,
+            "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH": self._settings.openclaw_analyze_handler_path,
+            "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_RESPONSE_JSON": self._settings.openclaw_mutate_response_json,
+            "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_RESPONSE_JSON": self._settings.openclaw_analyze_response_json,
+        }
+        for name, path_value in optional_paths.items():
+            if path_value is not None:
+                env[name] = str(Path(path_value).resolve())
+        return env
 
     def _fail(
         self,

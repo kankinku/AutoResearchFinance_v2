@@ -71,6 +71,7 @@ class OpenClawClient:
         healthcheck_script: Path | str | None = None,
         sleep_fn=time.sleep,
         workspace_root: Path | str | None = None,
+        wrapper_env: dict[str, str] | None = None,
     ) -> None:
         self._mutate_script = Path(mutate_script)
         self._analyze_script = Path(analyze_script)
@@ -79,6 +80,7 @@ class OpenClawClient:
         )
         self._sleep_fn = sleep_fn
         self._workspace_root = Path(workspace_root) if workspace_root is not None else None
+        self._wrapper_env = dict(wrapper_env) if wrapper_env is not None else None
 
     def mutate(
         self,
@@ -157,6 +159,7 @@ class OpenClawClient:
             check=False,
             capture_output=True,
             cwd=self._healthcheck_script.parent,
+            env=self._wrapper_env,
             text=True,
         )
         message = (result.stdout or result.stderr).strip()
@@ -180,6 +183,7 @@ class OpenClawClient:
                 timeout=self._timeout_seconds_for(request.task_kind),
                 cwd=self._script_for(request.task_kind).parent,
                 capture_output=True,
+                env=self._wrapper_env,
                 text=True,
             )
         except subprocess.TimeoutExpired:

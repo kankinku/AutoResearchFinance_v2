@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 from finance_autoresearch.integrations.cli import dispatch_command
+from finance_autoresearch.integrations.cli import build_command_payload
 from finance_autoresearch.supervisor.service import SupervisorService
 
 
@@ -21,10 +25,12 @@ class TelegramControlAdapter:
     def __init__(
         self,
         *,
-        supervisor: SupervisorService,
+        supervisor: SupervisorService | None = None,
+        command_handler: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
         default_project_id: str = "finance",
     ) -> None:
         self._supervisor = supervisor
+        self._command_handler = command_handler
         self._default_project_id = default_project_id
 
     def handle_text(self, command_text: str, *, user_id: str) -> dict[str, object]:
@@ -32,6 +38,19 @@ class TelegramControlAdapter:
         command = _COMMAND_ALIASES.get(normalized_text)
         if command is None:
             raise ValueError(f"unsupported Telegram control command: {command_text}")
+
+        if self._command_handler is not None:
+            return self._command_handler(
+                build_command_payload(
+                    command=command,
+                    source="telegram_control",
+                    requested_by=user_id,
+                    project_id=self._default_project_id,
+                )
+            )
+
+        if self._supervisor is None:
+            raise ValueError("either supervisor or command_handler must be provided")
 
         return dispatch_command(
             supervisor=self._supervisor,

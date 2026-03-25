@@ -474,7 +474,7 @@ class AutoresearchRunner:
         candidate_revision = iteration_context.candidate_revision or baseline_revision
         metrics_payload = {
             "score": candidate_evaluation["score"],
-            "metrics": candidate_evaluation.get("metrics", {}),
+            "metrics": self._json_safe(candidate_evaluation.get("metrics", {})),
             "guardrails_passed": candidate_evaluation["guardrails_passed"],
             "guardrail_failures": candidate_evaluation.get("guardrail_failures", []),
         }
@@ -502,6 +502,15 @@ class AutoresearchRunner:
             if decision == "keep"
             else None,
         }
+
+    def _json_safe(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {str(key): self._json_safe(inner) for key, inner in value.items()}
+        if isinstance(value, list):
+            return [self._json_safe(item) for item in value]
+        if isinstance(value, tuple):
+            return [self._json_safe(item) for item in value]
+        return value
 
     def _boundary_decision(self, *, in_iteration: bool) -> dict[str, Any] | None:
         if not bool(self._lock_is_held()):
