@@ -11,33 +11,76 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from finance_autoresearch.backtest.analyzer import analyze_backtest_results
+from finance_autoresearch.backtest.falsifier import falsify_candidate
+from finance_autoresearch.backtest.prescreener import prescreen_candidate
 from finance_autoresearch.backtest.data_loader import load_market_pack
 from finance_autoresearch.backtest.evaluator import evaluate_backtest_results
 from finance_autoresearch.backtest.harness import run_backtests
+from finance_autoresearch.brain import BrainSync, BrainWriter
 from finance_autoresearch.integrations.cli import build_command_payload
-from finance_autoresearch.integrations.telegram_report import TelegramReportAdapter
+from finance_autoresearch.integrations.telegram_report import (
+    TelegramProgressAdapter,
+    TelegramReportAdapter,
+)
 from finance_autoresearch.mutation.openclaw_client import OpenClawClient
-from finance_autoresearch.settings import Settings
+from finance_autoresearch.research.lesson_capture import LessonBuilder
+from finance_autoresearch.research.planner_memory import PlannerMemory
+from finance_autoresearch.research.planner_search import ResearchScheduler
+from finance_autoresearch.research.workspace_knowledge import WorkspaceKnowledgeLoader
+from finance_autoresearch.settings import Settings, load_settings
 from finance_autoresearch.state.sqlite_store import SQLiteStateStore
 from finance_autoresearch.supervisor.service import SupervisorService
 from finance_autoresearch.workers.autoresearch_runner import AutoresearchRunner
 from finance_autoresearch.workers.pipeline_runner import PipelineRunner
+from finance_autoresearch.search.candidate_frontier import select_candidate_frontier
+from finance_autoresearch.search.optuna_adapter import OptunaAdapter
+from finance_autoresearch.search.trial_manager import TrialManager
 
 
 CODE_ROOT = Path(__file__).resolve().parents[2]
 
 
 class StrategyHarness:
-    def __init__(self, *, cache_root: Path) -> None:
+    def __init__(
+        self,
+        *,
+        cache_root: Path,
+        market_pack_loader=load_market_pack,
+    ) -> None:
         self._cache_root = cache_root
+        self._market_pack_loader = market_pack_loader
+        self._market_pack: dict[str, Any] | None = None
 
     def __call__(self, strategy_path: Path) -> dict[str, Any]:
-        market_pack = load_market_pack(cache_root=self._cache_root)
+        market_pack = self._load_market_pack()
         strategy_module = load_strategy_module(strategy_path)
         try:
             return run_backtests(market_pack, strategy_module)
         finally:
             sys.modules.pop(strategy_module.__name__, None)
+
+    def smoke(self, strategy_path: Path) -> dict[str, Any]:
+        market_pack = self._load_market_pack()
+        strategy_module = load_strategy_module(strategy_path)
+        try:
+            return run_backtests(
+                market_pack,
+                strategy_module,
+                market_keys=(
+                    ("QQQ", "1d"),
+                    ("IWM", "2h"),
+                    ("BTC-USD", "1d"),
+                    ("BTC-USD", "2h"),
+                ),
+            )
+        finally:
+            sys.modules.pop(strategy_module.__name__, None)
+
+    def _load_market_pack(self) -> dict[str, Any]:
+        if self._market_pack is None:
+            self._market_pack = self._market_pack_loader(cache_root=self._cache_root)
+        return self._market_pack
 
 
 @dataclass(slots=True)
@@ -154,8 +197,28 @@ class ApplicationRuntime:
             run_id=run_id,
             max_iterations=self.settings.autoresearch_max_iterations,
         )
-        delivered = self.drain_report_outbox()
-        return {**result, "delivered_outbox_ids": delivered}
+        delivered_progress = self.drain_progress_outbox()
+        delivered_report = self.drain_report_outbox()
+        return {
+            **result,
+            "delivered_outbox_ids": [*delivered_progress, *delivered_report],
+        }
+
+    def drain_progress_outbox(self) -> list[str]:
+        if (
+            not self.settings.telegram_progress_chat_id
+            or self.settings.telegram_progress_mode == "off"
+        ):
+            return []
+        bot = build_progress_bot(self.settings)
+        return asyncio.run(
+            TelegramProgressAdapter(
+                store=self.store,
+                bot=bot,
+                chat_id=self.settings.telegram_progress_chat_id,
+                mode=self.settings.telegram_progress_mode,
+            ).drain_pending()
+        )
 
     def drain_report_outbox(self) -> list[str]:
         if not self.settings.telegram_report_chat_id:
@@ -166,6 +229,7 @@ class ApplicationRuntime:
                 store=self.store,
                 bot=bot,
                 chat_id=self.settings.telegram_report_chat_id,
+                exclude_event_type_prefix="progress_",
             ).drain_pending()
         )
 
@@ -193,10 +257,22 @@ class ApplicationRuntime:
 
 
 def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
-    resolved_settings = settings or Settings()
+    resolved_settings = settings or load_settings()
     workspace_root = resolved_settings.workspace_root.resolve()
+    state_db_path = _resolve_workspace_path(
+        resolved_settings.state_db_path,
+        workspace_root=workspace_root,
+    )
+    research_knowledge_root = _resolve_workspace_path(
+        resolved_settings.research_knowledge_root,
+        workspace_root=workspace_root,
+    )
+    research_brain_root = _resolve_workspace_path(
+        resolved_settings.research_brain_root,
+        workspace_root=workspace_root,
+    )
     store = SQLiteStateStore(
-        db_path=resolved_settings.state_db_path,
+        db_path=state_db_path,
         project_id=resolved_settings.project_id,
     )
     openclaw_client = OpenClawClient(
@@ -235,13 +311,70 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
         / "baseline"
         / "accepted_strategy_candidate.py",
     )
+    planner_memory = PlannerMemory(
+        state_store=store,
+        history_window=resolved_settings.planner_history_window,
+    )
+    brain_sync = (
+        BrainSync(
+            store=store,
+            writer=BrainWriter(root=research_brain_root),
+        )
+        if resolved_settings.research_brain_enabled
+        else None
+    )
     autoresearch_runner = AutoresearchRunner(
         state_store=store,
         repository_root=workspace_root,
         openclaw_client=openclaw_client,
+        progress_notifier=(
+            None
+            if (
+                not resolved_settings.telegram_progress_chat_id
+                or resolved_settings.telegram_progress_mode == "off"
+            )
+            else lambda: asyncio.run(
+                TelegramProgressAdapter(
+                    store=store,
+                    bot=build_progress_bot(resolved_settings),
+                    chat_id=resolved_settings.telegram_progress_chat_id,
+                    mode=resolved_settings.telegram_progress_mode,
+                ).drain_pending()
+            )
+        ),
         harness=StrategyHarness(cache_root=workspace_root),
         evaluator=evaluate_backtest_results,
-        analyzer=None,
+        analyzer=analyze_backtest_results,
+        falsifier=falsify_candidate if resolved_settings.falsifier_enabled else None,
+        prescreener=prescreen_candidate,
+        trial_manager=TrialManager(
+            optuna_adapter=OptunaAdapter(max_variants=resolved_settings.optuna_max_variants),
+            frontier_candidate_limit=resolved_settings.frontier_candidate_limit,
+            prescreen_max_candidates=resolved_settings.prescreen_max_candidates,
+        ),
+        candidate_frontier_selector=select_candidate_frontier,
+        knowledge_loader=WorkspaceKnowledgeLoader(
+            repository_root=workspace_root,
+            patterns=_build_knowledge_patterns(
+                workspace_root=workspace_root,
+                research_knowledge_root=research_knowledge_root,
+                factor_catalog_root=_resolve_workspace_path(
+                    resolved_settings.factor_catalog_root,
+                    workspace_root=workspace_root,
+                ),
+                factor_catalog_enabled=resolved_settings.factor_catalog_enabled,
+            ),
+            brain_root=research_brain_root,
+            max_linked_notes=resolved_settings.planner_max_linked_notes,
+            manual_notes_mode=resolved_settings.manual_brain_notes_mode,
+        ),
+        planner=ResearchScheduler(),
+        planner_memory=planner_memory,
+        lesson_builder=LessonBuilder(),
+        brain_sync=brain_sync,
+        brain_auto_export=resolved_settings.research_brain_auto_export,
+        genome_shadow_mode=resolved_settings.genome_shadow_mode,
+        frontier_promotion_limit=resolved_settings.frontier_promotion_limit,
         allow_invalid_seed_baseline=resolved_settings.allow_invalid_seed_baseline,
     )
     supervisor = SupervisorService(
@@ -271,23 +404,131 @@ def build_report_bot(settings: Settings) -> Any:
     return Bot(token=settings.telegram_report_token.get_secret_value())
 
 
+def build_progress_bot(settings: Settings) -> Any:
+    if settings.telegram_progress_dry_run:
+        return DryRunTelegramBot(delivered_messages=[])
+
+    if settings.telegram_progress_token is None:
+        raise ValueError("telegram progress token is not configured")
+
+    from telegram import Bot
+
+    return Bot(token=settings.telegram_progress_token.get_secret_value())
+
+
 def build_subprocess_env(settings: Settings) -> dict[str, str]:
     env = os.environ.copy()
+    workspace_root = settings.workspace_root.resolve()
     _set_env_value(env, "FINANCE_AUTORESEARCH_PROJECT_ID", settings.project_id)
     _set_env_value(
         env,
         "FINANCE_AUTORESEARCH_WORKSPACE_ROOT",
-        str(settings.workspace_root.resolve()),
+        str(workspace_root),
     )
     _set_env_value(
         env,
         "FINANCE_AUTORESEARCH_STATE_DB_PATH",
-        str(settings.state_db_path.resolve()),
+        str(
+            _resolve_workspace_path(
+                settings.state_db_path,
+                workspace_root=workspace_root,
+            )
+        ),
     )
     _set_env_value(
         env,
         "FINANCE_AUTORESEARCH_MARKET_PACK_MODE",
         settings.market_pack_mode,
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_RESEARCH_KNOWLEDGE_ROOT",
+        str(
+            _resolve_workspace_path(
+                settings.research_knowledge_root,
+                workspace_root=workspace_root,
+            )
+        ),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_RESEARCH_BRAIN_ROOT",
+        str(
+            _resolve_workspace_path(
+                settings.research_brain_root,
+                workspace_root=workspace_root,
+            )
+        ),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_RESEARCH_BRAIN_ENABLED",
+        str(settings.research_brain_enabled).lower(),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_RESEARCH_BRAIN_AUTO_EXPORT",
+        str(settings.research_brain_auto_export).lower(),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_GENOME_SHADOW_MODE",
+        str(settings.genome_shadow_mode).lower(),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_FALSIFIER_ENABLED",
+        str(settings.falsifier_enabled).lower(),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_PLANNER_HISTORY_WINDOW",
+        str(settings.planner_history_window),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_PLANNER_MAX_LINKED_NOTES",
+        str(settings.planner_max_linked_notes),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_PRESCREEN_MAX_CANDIDATES",
+        str(settings.prescreen_max_candidates),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_OPTUNA_MAX_VARIANTS",
+        str(settings.optuna_max_variants),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_FRONTIER_CANDIDATE_LIMIT",
+        str(settings.frontier_candidate_limit),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_FRONTIER_PROMOTION_LIMIT",
+        str(settings.frontier_promotion_limit),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_MANUAL_BRAIN_NOTES_MODE",
+        settings.manual_brain_notes_mode,
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_FACTOR_CATALOG_ENABLED",
+        str(settings.factor_catalog_enabled).lower(),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_FACTOR_CATALOG_ROOT",
+        str(
+            _resolve_workspace_path(
+                settings.factor_catalog_root,
+                workspace_root=workspace_root,
+            )
+        ),
     )
     if settings.autoresearch_max_iterations is not None:
         _set_env_value(
@@ -324,25 +565,45 @@ def build_subprocess_env(settings: Settings) -> dict[str, str]:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH",
-            str(settings.openclaw_mutate_handler_path.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_mutate_handler_path,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     if settings.openclaw_analyze_handler_path is not None:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH",
-            str(settings.openclaw_analyze_handler_path.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_analyze_handler_path,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     if settings.openclaw_mutate_response_json is not None:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_RESPONSE_JSON",
-            str(settings.openclaw_mutate_response_json.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_mutate_response_json,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     if settings.openclaw_analyze_response_json is not None:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_RESPONSE_JSON",
-            str(settings.openclaw_analyze_response_json.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_analyze_response_json,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     _set_env_value(
         env,
@@ -451,29 +712,50 @@ def resolve_code_asset_path(path: Path | str) -> Path:
 
 def build_openclaw_wrapper_env(settings: Settings) -> dict[str, str]:
     env = os.environ.copy()
+    workspace_root = settings.workspace_root.resolve()
     if settings.openclaw_mutate_handler_path is not None:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH",
-            str(settings.openclaw_mutate_handler_path.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_mutate_handler_path,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     if settings.openclaw_analyze_handler_path is not None:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH",
-            str(settings.openclaw_analyze_handler_path.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_analyze_handler_path,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     if settings.openclaw_mutate_response_json is not None:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_RESPONSE_JSON",
-            str(settings.openclaw_mutate_response_json.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_mutate_response_json,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     if settings.openclaw_analyze_response_json is not None:
         _set_env_value(
             env,
             "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_RESPONSE_JSON",
-            str(settings.openclaw_analyze_response_json.resolve()),
+            str(
+                _resolve_workspace_path(
+                    settings.openclaw_analyze_response_json,
+                    workspace_root=workspace_root,
+                )
+            ),
         )
     return env
 
@@ -501,6 +783,57 @@ def _build_market_pack_builder(
     if settings.market_pack_mode == "cached":
         return lambda: load_market_pack(cache_root=workspace_root)
     raise ValueError(f"unsupported market_pack_mode: {settings.market_pack_mode}")
+
+
+def _build_knowledge_patterns(
+    *,
+    workspace_root: Path,
+    research_knowledge_root: Path,
+    factor_catalog_root: Path,
+    factor_catalog_enabled: bool,
+) -> tuple[str, ...]:
+    pattern_root = _pattern_root_for_workspace_path(
+        research_knowledge_root,
+        workspace_root=workspace_root,
+    )
+    patterns = [
+        f"{pattern_root}/**/*.md",
+        f"{pattern_root}/**/*.txt",
+        f"{pattern_root}/**/*.json",
+        f"{pattern_root}/**/*.yaml",
+        f"{pattern_root}/**/*.yml",
+        "docs/superpowers/specs/**/*.md",
+        "docs/openclaw-setup.md",
+        "src/finance_autoresearch/strategy/mutable/strategy_candidate.py",
+        "runtime/baseline/accepted_strategy_candidate.py",
+    ]
+    if factor_catalog_enabled:
+        factor_root = _pattern_root_for_workspace_path(
+            factor_catalog_root,
+            workspace_root=workspace_root,
+        )
+        patterns.extend(
+            [
+                f"{factor_root}/**/*.md",
+                f"{factor_root}/**/*.txt",
+                f"{factor_root}/**/*.json",
+            ]
+        )
+    return tuple(patterns)
+
+
+def _pattern_root_for_workspace_path(path: Path, *, workspace_root: Path) -> str:
+    try:
+        return path.relative_to(workspace_root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _resolve_workspace_path(path: Path | str, *, workspace_root: Path) -> Path:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (workspace_root / candidate).resolve()
 
 
 def _set_env_value(env: dict[str, str], name: str, value: str | None) -> None:
