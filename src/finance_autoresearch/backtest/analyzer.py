@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from finance_autoresearch.localization import DEFAULT_LOCALIZER, OutputLocalizer
+
 
 def analyze_backtest_results(
     backtest_results: dict[str, Any],
     evaluation: dict[str, Any],
+    *,
+    localizer: OutputLocalizer | None = None,
 ) -> dict[str, Any]:
+    resolved_localizer = localizer or DEFAULT_LOCALIZER
     aggregate = evaluation["metrics"]["aggregate"]
     strengths: list[str] = []
     weaknesses: list[str] = []
@@ -16,42 +21,48 @@ def analyze_backtest_results(
 
     score = float(evaluation["score"])
     if score > 0.0:
-        strengths.append(f"Median out-of-sample Sharpe remained positive at {score:.2f}.")
+        strengths.append(resolved_localizer.log("analyzer.score_positive", score=score))
     else:
-        weaknesses.append(f"Median out-of-sample Sharpe was weak at {score:.2f}.")
+        weaknesses.append(resolved_localizer.log("analyzer.score_weak", score=score))
 
     if evaluation["guardrails_passed"]:
-        strengths.append("All fixed guardrails passed across the six combinations.")
+        strengths.append(resolved_localizer.log("analyzer.guardrails_passed"))
     else:
         weaknesses.extend(evaluation["guardrail_failures"])
         coverage_gaps.extend(evaluation["guardrail_failures"])
 
     if aggregate["mean_out_of_sample_total_return"] > 0.0:
-        strengths.append("Average out-of-sample total return stayed positive.")
+        strengths.append(resolved_localizer.log("analyzer.return_positive"))
     else:
-        weaknesses.append("Average out-of-sample total return was not positive.")
+        weaknesses.append(resolved_localizer.log("analyzer.return_not_positive"))
 
     if aggregate["worst_out_of_sample_max_drawdown"] > 0.25:
-        regime_observations.append("Worst-case drawdown remains materially elevated in at least one combination.")
-        next_hypothesis_hints.append("Tighten exits or reduce exposure in the weakest out-of-sample regime.")
+        regime_observations.append(resolved_localizer.log("analyzer.drawdown_elevated"))
+        next_hypothesis_hints.append(resolved_localizer.log("analyzer.tighten_exits"))
     else:
-        regime_observations.append("Worst-case drawdown remained contained relative to the fixed 0.35 cap.")
+        regime_observations.append(resolved_localizer.log("analyzer.drawdown_contained"))
 
     if aggregate["mean_out_of_sample_turnover"] > 10.0:
-        coverage_gaps.append("Turnover is close to the fixed cap and may need smoother entry filters.")
-        next_hypothesis_hints.append("Reduce churn with slower confirmation or regime-specific gating.")
+        coverage_gaps.append(resolved_localizer.log("analyzer.turnover_high"))
+        next_hypothesis_hints.append(resolved_localizer.log("analyzer.reduce_churn"))
     else:
-        strengths.append("Mean out-of-sample turnover stayed comfortably below the fixed cap.")
+        strengths.append(resolved_localizer.log("analyzer.turnover_below_cap"))
 
     if not next_hypothesis_hints:
-        next_hypothesis_hints.append("Stress the weaker symbol/timeframe pairs with more selective exits.")
+        next_hypothesis_hints.append(resolved_localizer.log("analyzer.default_hint"))
     if not coverage_gaps:
-        coverage_gaps.append("Investigate whether regime coverage is balanced across all symbols.")
+        coverage_gaps.append(resolved_localizer.log("analyzer.default_coverage_gap"))
 
-    summary = (
-        f"Score {score:.2f}; "
-        f"{'guardrails passed' if evaluation['guardrails_passed'] else 'guardrails failed'}; "
-        f"mean OOS return {aggregate['mean_out_of_sample_total_return']:.2%}."
+    guardrail_status_key = (
+        "analyzer.guardrails_status_passed"
+        if evaluation["guardrails_passed"]
+        else "analyzer.guardrails_status_failed"
+    )
+    summary = resolved_localizer.log(
+        "analyzer.summary",
+        score=score,
+        guardrail_status=resolved_localizer.log(guardrail_status_key),
+        mean_return=aggregate["mean_out_of_sample_total_return"],
     )
     return {
         "strengths": strengths,

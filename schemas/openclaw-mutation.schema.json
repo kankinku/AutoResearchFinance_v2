@@ -1,43 +1,171 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "OpenClawStrategyReplacement",
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "kind": {
-      "type": "string",
-      "const": "strategy_replacement"
+  "title": "OpenClawMutationArtifact",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "strategy_replacement"
+        },
+        "target_path": {
+          "type": "string",
+          "const": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py"
+        },
+        "hypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "full_file_contents": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_effects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "target_path",
+        "hypothesis",
+        "change_summary",
+        "full_file_contents",
+        "expected_effects"
+      ]
     },
-    "target_path": {
-      "type": "string",
-      "const": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py"
-    },
-    "hypothesis": {
-      "type": "string",
-      "minLength": 1
-    },
-    "change_summary": {
-      "type": "string",
-      "minLength": 1
-    },
-    "full_file_contents": {
-      "type": "string",
-      "minLength": 1
-    },
-    "expected_effects": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "strategy_genome_v1"
+        },
+        "target_path": {
+          "type": "string",
+          "const": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py"
+        },
+        "hypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_effects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "family_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "regime_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "indicator_specs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "entry_clauses": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "exit_clauses": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "risk_clauses": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "params": {
+          "type": "object"
+        },
+        "shadow_strategy_replacement": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "strategy_replacement"
+            },
+            "target_path": {
+              "type": "string",
+              "const": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py"
+            },
+            "hypothesis": {
+              "type": "string",
+              "minLength": 1
+            },
+            "change_summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "full_file_contents": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_effects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "target_path",
+            "hypothesis",
+            "change_summary",
+            "full_file_contents",
+            "expected_effects"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "target_path",
+        "hypothesis",
+        "change_summary",
+        "expected_effects",
+        "family_id",
+        "rationale",
+        "regime_policy",
+        "indicator_specs",
+        "entry_clauses",
+        "exit_clauses",
+        "risk_clauses",
+        "params"
+      ]
     }
-  },
-  "required": [
-    "kind",
-    "target_path",
-    "hypothesis",
-    "change_summary",
-    "full_file_contents",
-    "expected_effects"
   ]
 }

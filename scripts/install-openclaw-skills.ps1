@@ -19,20 +19,16 @@ function Resolve-AbsolutePath {
     return $resolved.Path
 }
 
-function Copy-RenderedSkillTree {
+function Copy-PackagedSkillTree {
     param(
         [string]$SourceDir,
-        [string]$DestinationDir,
-        [hashtable]$Replacements
+        [string]$DestinationDir
     )
 
     Copy-Item -Path $SourceDir -Destination $DestinationDir -Recurse -Force
     $files = Get-ChildItem -Path $DestinationDir -Recurse -File
     foreach ($file in $files) {
         $content = Get-Content -Path $file.FullName -Raw
-        foreach ($key in $Replacements.Keys) {
-            $content = $content.Replace($key, $Replacements[$key])
-        }
         Set-Content -Path $file.FullName -Value $content -Encoding utf8
         if ($file.FullName.EndsWith(".template")) {
             $renamedPath = $file.FullName.Substring(0, $file.FullName.Length - ".template".Length)
@@ -72,9 +68,7 @@ try {
             throw "Missing skill source: $sourceDir"
         }
 
-        Copy-RenderedSkillTree -SourceDir $sourceDir -DestinationDir $skillStagingDir -Replacements @{
-            "__REPOSITORY_ROOT__" = $repoRoot
-        }
+        Copy-PackagedSkillTree -SourceDir $sourceDir -DestinationDir $skillStagingDir
 
         if (Test-Path $skillPackage) {
             Remove-Item -Path $skillPackage -Force

@@ -65,14 +65,30 @@ class SQLiteOutbox:
         return event
 
     def list_pending(self) -> list[OutboxMessage]:
+        return self.list_pending_filtered()
+
+    def list_pending_filtered(
+        self,
+        *,
+        event_type_prefix: str | None = None,
+        exclude_event_type_prefix: str | None = None,
+    ) -> list[OutboxMessage]:
+        clauses = ["project_id = ?", "sent_at IS NULL"]
+        parameters: list[str] = [self._project_id]
+        if event_type_prefix is not None:
+            clauses.append("event_type LIKE ?")
+            parameters.append(f"{event_type_prefix}%")
+        if exclude_event_type_prefix is not None:
+            clauses.append("event_type NOT LIKE ?")
+            parameters.append(f"{exclude_event_type_prefix}%")
         cursor = self._connection.execute(
-            """
+            f"""
             SELECT id, project_id, event_type, payload_json, created_at, sent_at
             FROM outbox_messages
-            WHERE project_id = ? AND sent_at IS NULL
-            ORDER BY created_at ASC, id ASC
+            WHERE {' AND '.join(clauses)}
+            ORDER BY created_at ASC, rowid ASC
             """,
-            (self._project_id,),
+            tuple(parameters),
         )
         return [self._row_to_message(row) for row in cursor.fetchall()]
 
@@ -82,7 +98,7 @@ class SQLiteOutbox:
             SELECT id, project_id, event_type, payload_json, created_at, sent_at
             FROM outbox_messages
             WHERE project_id = ?
-            ORDER BY created_at DESC, id DESC
+            ORDER BY created_at DESC, rowid DESC
             LIMIT ?
             """,
             (self._project_id, limit),

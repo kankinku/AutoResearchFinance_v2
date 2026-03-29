@@ -50,6 +50,13 @@ class CandidateWorkspace:
         )
         return self.request_path
 
+    def reset_transport_files(self) -> None:
+        for path in (self.request_path, self.response_path):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                continue
+
     def read_response(self) -> dict[str, Any]:
         if not self.response_path.exists():
             raise FileNotFoundError("wrapper response file was not created")

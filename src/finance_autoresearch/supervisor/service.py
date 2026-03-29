@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 from uuid import uuid4
 
+from finance_autoresearch.localization import DEFAULT_LOCALIZER, OutputLocalizer
 from finance_autoresearch.state.repository import StateRepository
 
 from .command_gate import CommandValidationError, NormalizedCommand, normalize_command
@@ -25,17 +26,19 @@ class SupervisorService:
         seed_validator: SeedValidator | None = None,
         run_id_factory: Callable[[], str] | None = None,
         process_lock: ProcessLock | None = None,
+        localizer: OutputLocalizer | None = None,
     ) -> None:
         self._state_store = state_store
         self._seed_validator = seed_validator
         self._run_id_factory = run_id_factory or (lambda: str(uuid4()))
         self._process_lock = process_lock or ProcessLock.for_state_store(state_store)
+        self._localizer = localizer or DEFAULT_LOCALIZER
 
     def handle(self, raw_command: Mapping[str, Any] | dict[str, Any]) -> dict[str, Any]:
         with self._process_lock:
             status = self._state_store.get_status()
             try:
-                command = normalize_command(raw_command)
+                command = normalize_command(raw_command, localizer=self._localizer)
             except CommandValidationError as exc:
                 return self._build_response(
                     accepted=False,
@@ -48,7 +51,7 @@ class SupervisorService:
                 decision = TransitionDecision(
                     accepted=False,
                     status=status,
-                    message="command project_id does not match the supervisor store",
+                    message=self._localizer.log("supervisor.project_id_mismatch"),
                     run_id=status.active_run_id,
                 )
             else:
@@ -57,6 +60,7 @@ class SupervisorService:
                     status,
                     run_id_factory=self._run_id_factory,
                     seed_validation_factory=lambda: self._seed_validation_for(command),
+                    localizer=self._localizer,
                 )
 
             self._apply_status(status, decision.status)
@@ -96,7 +100,7 @@ class SupervisorService:
         if self._seed_validator is None:
             return SeedBaselineValidation(
                 valid=False,
-                message="seed validator is not configured",
+                message=self._localizer.log("seed.validator_missing"),
             )
 
         result = self._seed_validator(command.project_id)

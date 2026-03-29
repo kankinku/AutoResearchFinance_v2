@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
+
+os.environ.setdefault("FINANCE_AUTORESEARCH_ENV_FILE", "")
 
 
 @pytest.fixture

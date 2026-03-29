@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from finance_autoresearch.state.sqlite_store import SQLiteStateStore
+from tests.support import build_subprocess_env
 
 
 CODE_ROOT = Path(__file__).resolve().parents[2]
@@ -287,22 +288,25 @@ def test_python_module_start_pipeline_launches_worker_and_reaches_success(
     write_workspace_strategy(workspace_root, baseline_strategy_source())
     SQLiteStateStore(db_path=state_db_path, project_id="finance").close()
 
-    env = os.environ.copy()
-    env["FINANCE_AUTORESEARCH_PROJECT_ID"] = "finance"
-    env["FINANCE_AUTORESEARCH_WORKSPACE_ROOT"] = str(workspace_root)
-    env["FINANCE_AUTORESEARCH_STATE_DB_PATH"] = str(state_db_path)
-    env["FINANCE_AUTORESEARCH_MARKET_PACK_MODE"] = "cached"
-    env["FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH"] = str(
-        CODE_ROOT / "config" / "openclaw.roles.example.yaml"
+    env = build_subprocess_env(
+        {
+            "FINANCE_AUTORESEARCH_PROJECT_ID": "finance",
+            "FINANCE_AUTORESEARCH_WORKSPACE_ROOT": str(workspace_root),
+            "FINANCE_AUTORESEARCH_STATE_DB_PATH": str(state_db_path),
+            "FINANCE_AUTORESEARCH_MARKET_PACK_MODE": "cached",
+            "FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH": str(
+                CODE_ROOT / "config" / "openclaw.roles.example.yaml"
+            ),
+            "FINANCE_AUTORESEARCH_OPENCLAW_GATEWAY_URL": "http://127.0.0.1:18789",
+            "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH": str(mutation_handler),
+            "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH": str(analysis_handler),
+            "FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_TOKEN": "control-token",
+            "FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_CHAT_ID": "control-chat",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_TOKEN": "report-token",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_CHAT_ID": "report-chat",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN": "true",
+        }
     )
-    env["FINANCE_AUTORESEARCH_OPENCLAW_GATEWAY_URL"] = "http://127.0.0.1:18789"
-    env["FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH"] = str(mutation_handler)
-    env["FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH"] = str(analysis_handler)
-    env["FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_TOKEN"] = "control-token"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_CHAT_ID"] = "control-chat"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_TOKEN"] = "report-token"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_CHAT_ID"] = "report-chat"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN"] = "true"
 
     process = subprocess.run(
         [sys.executable, "-m", "finance_autoresearch", "start_pipeline"],
@@ -344,23 +348,26 @@ def test_python_module_start_autoresearch_launches_worker_and_rolls_back_candida
     baseline_source = baseline_path.read_text(encoding="utf-8")
     SQLiteStateStore(db_path=state_db_path, project_id="finance").close()
 
-    env = os.environ.copy()
-    env["FINANCE_AUTORESEARCH_PROJECT_ID"] = "finance"
-    env["FINANCE_AUTORESEARCH_WORKSPACE_ROOT"] = str(workspace_root)
-    env["FINANCE_AUTORESEARCH_STATE_DB_PATH"] = str(state_db_path)
-    env["FINANCE_AUTORESEARCH_MARKET_PACK_MODE"] = "cached"
-    env["FINANCE_AUTORESEARCH_AUTORESEARCH_MAX_ITERATIONS"] = "1"
-    env["FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH"] = str(
-        CODE_ROOT / "config" / "openclaw.roles.example.yaml"
+    env = build_subprocess_env(
+        {
+            "FINANCE_AUTORESEARCH_PROJECT_ID": "finance",
+            "FINANCE_AUTORESEARCH_WORKSPACE_ROOT": str(workspace_root),
+            "FINANCE_AUTORESEARCH_STATE_DB_PATH": str(state_db_path),
+            "FINANCE_AUTORESEARCH_MARKET_PACK_MODE": "cached",
+            "FINANCE_AUTORESEARCH_AUTORESEARCH_MAX_ITERATIONS": "1",
+            "FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH": str(
+                CODE_ROOT / "config" / "openclaw.roles.example.yaml"
+            ),
+            "FINANCE_AUTORESEARCH_OPENCLAW_GATEWAY_URL": "http://127.0.0.1:18789",
+            "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH": str(mutation_handler),
+            "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH": str(analysis_handler),
+            "FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_TOKEN": "control-token",
+            "FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_CHAT_ID": "control-chat",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_TOKEN": "report-token",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_CHAT_ID": "report-chat",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN": "true",
+        }
     )
-    env["FINANCE_AUTORESEARCH_OPENCLAW_GATEWAY_URL"] = "http://127.0.0.1:18789"
-    env["FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH"] = str(mutation_handler)
-    env["FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH"] = str(analysis_handler)
-    env["FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_TOKEN"] = "control-token"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_CHAT_ID"] = "control-chat"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_TOKEN"] = "report-token"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_CHAT_ID"] = "report-chat"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN"] = "true"
 
     pipeline = subprocess.run(
         [sys.executable, "-m", "finance_autoresearch", "start_pipeline"],

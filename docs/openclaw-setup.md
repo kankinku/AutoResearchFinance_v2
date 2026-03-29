@@ -14,6 +14,8 @@ uv run python -m finance_autoresearch openclaw-control < request.json
 
 The runtime loads `.env`, builds the supervisor, and forwards the same OpenClaw wrapper settings to worker subprocesses.
 
+`uv` is still the preferred manual entrypoint for local development, but the OpenClaw control skill wrappers are no longer `uv`-only. They can also fall back to an installed `finance-autoresearch` CLI or `python -m finance_autoresearch` when `uv` is unavailable.
+
 ## Required environment
 
 At minimum set:
@@ -22,6 +24,7 @@ At minimum set:
 FINANCE_AUTORESEARCH_WORKSPACE_ROOT=.
 FINANCE_AUTORESEARCH_STATE_DB_PATH=runtime/finance_autoresearch.db
 FINANCE_AUTORESEARCH_MARKET_PACK_MODE=download
+FINANCE_AUTORESEARCH_OUTPUT_LANGUAGE=en
 FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH=config/openclaw.roles.example.yaml
 FINANCE_AUTORESEARCH_OPENCLAW_GATEWAY_URL=http://127.0.0.1:18789
 FINANCE_AUTORESEARCH_OPENCLAW_HEALTHCHECK_SCRIPT=scripts/check-openclaw.ps1
@@ -35,6 +38,8 @@ For local dry runs you can also set:
 FINANCE_AUTORESEARCH_MARKET_PACK_MODE=cached
 FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN=true
 ```
+
+If you want separate language control for logs vs generated Markdown notes, see [output-language.md](C:\Users\hanji\Desktop\Finance\AutoResearchFinance_v2\.worktrees\finance-autoresearch-v1\docs\output-language.md).
 
 ## Required roles
 
@@ -82,10 +87,39 @@ The request file contains the runtime envelope:
   "idempotency_key": "run-001:7:mutate_strategy",
   "agent_id": "research",
   "target_path": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py",
-  "context": {},
-  "expected_schema": "strategy_replacement"
+  "context": {
+    "family": "replace_indicator",
+    "historical_risks": ["turbulence", "metadata"],
+    "allowed_indicator_pool": ["atr", "rolling_std", "rsi"],
+    "knowledge_evidence": [
+      {
+        "source_id": "knowledge/factors/2026-03-26-factor-catalog-draft.md",
+        "title": "Factor catalog draft",
+        "relevance_reason": "Factor catalog notes matched the current issue."
+      }
+    ],
+    "artifact_mode": "prefer_genome",
+    "artifact_capabilities": {
+      "strategy_genome_v1": {
+        "supports_true_regime_split": false,
+        "direction_mode": "mirrored_long_short",
+        "max_indicator_count": 4,
+        "max_new_conditions": 2
+      }
+    },
+    "allowed_artifact_kinds": ["strategy_genome_v1", "strategy_replacement"],
+    "genome_shadow_mode": true
+  },
+  "expected_schema": "mutation_artifact"
 }
 ```
+
+Important current note:
+
+- Mutation requests are dual-path.
+- The preferred path is `strategy_genome_v1`.
+- `strategy_replacement` remains a backward-compatible fallback.
+- If `artifact_mode = prefer_raw`, the wrapper should favor returning `strategy_replacement`.
 
 The response file must contain one envelope:
 
@@ -100,6 +134,72 @@ The response file must contain one envelope:
   "retryable": false
 }
 ```
+
+The mutation `artifact` can be either of these:
+
+1. Raw replacement:
+
+```json
+{
+  "kind": "strategy_replacement",
+  "target_path": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py",
+  "hypothesis": "Tighten the volatility gate.",
+  "change_summary": "Use a narrower ATR-aware entry path.",
+  "full_file_contents": "...python source...",
+  "expected_effects": ["Reduce churn during turbulence spikes."]
+}
+```
+
+2. Structured genome:
+
+```json
+{
+  "kind": "strategy_genome_v1",
+  "target_path": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py",
+  "hypothesis": "Prefer a structured volatility-aware EMA candidate.",
+  "change_summary": "Compile a genome artifact instead of taking raw source directly.",
+  "expected_effects": ["Prefer deterministic compiler output."],
+  "family_id": "replace_indicator",
+  "rationale": "Keep the mutation path structured while preserving a raw fallback.",
+  "regime_policy": "preserve_current_regime_model",
+  "indicator_specs": [],
+  "entry_clauses": [],
+  "exit_clauses": [],
+  "risk_clauses": [],
+  "params": {},
+  "shadow_strategy_replacement": {
+    "kind": "strategy_replacement",
+    "target_path": "src/finance_autoresearch/strategy/mutable/strategy_candidate.py",
+    "hypothesis": "Optional raw comparison path.",
+    "change_summary": "Shadow-only raw replacement for comparison.",
+    "full_file_contents": "...python source...",
+    "expected_effects": ["Do not execute directly when genome is accepted."]
+  }
+}
+```
+
+Current planner vocabulary that may appear in `historical_risks`, `knowledge_evidence`, or workspace refs includes:
+
+- factor words:
+  - `atr`
+  - `rolling_std`
+  - `rolling_corr`
+  - `rolling_rank`
+  - `rolling_quantile`
+- risk / regime words:
+  - `turbulence`
+  - `covariance`
+  - `vix`
+  - `regime`
+- metadata words:
+  - `metadata`
+  - `sector`
+  - `industry`
+  - `exchange`
+  - `country`
+  - `universe`
+
+Treat these as research hints, not as permission to widen scope beyond the single mutable strategy file.
 
 ## Handler mode
 
@@ -191,7 +291,13 @@ uv run python -m finance_autoresearch start_autoresearch
 - `schemas/supervisor-command.schema.json`
 - `schemas/openclaw-mutation.schema.json`
 
-The mutation schema is validated again by `patch_applier.py` before any strategy file is written.
+The mutation schema now covers:
+
+- `strategy_replacement`
+- `strategy_genome_v1`
+- optional `shadow_strategy_replacement` inside genome responses
+
+The artifact is validated again by `patch_applier.py` before any strategy file is written.
 
 ## OpenClaw control skills
 

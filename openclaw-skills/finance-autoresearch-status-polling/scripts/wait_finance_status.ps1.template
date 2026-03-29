@@ -6,28 +6,237 @@ param(
     [string]$AutoresearchState,
     [int]$TimeoutSeconds = 600,
     [int]$PollIntervalSeconds = 5,
-    [switch]$StopOnTerminalFailure
+    [switch]$StopOnTerminalFailure,
+    [string]$RepositoryRoot = ""
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$repositoryRoot = "__REPOSITORY_ROOT__"
-$delegateScript = Join-Path $repositoryRoot "scripts\wait-finance-status.ps1"
+function Test-FinanceAutoresearchRepository {
+    param([string]$CandidatePath)
 
-if (-not (Test-Path $delegateScript)) {
-    Write-Error "Delegate script not found: $delegateScript"
-    exit 1
+    if ([string]::IsNullOrWhiteSpace($CandidatePath)) {
+        return $false
+    }
+
+    try {
+        $resolved = (Resolve-Path -Path $CandidatePath -ErrorAction Stop).Path
+    }
+    catch {
+        return $false
+    }
+
+    $pyprojectPath = Join-Path $resolved "pyproject.toml"
+    $packagePath = Join-Path $resolved "src\finance_autoresearch\__init__.py"
+    return (Test-Path $pyprojectPath) -and (Test-Path $packagePath)
 }
 
-& $delegateScript `
-    -ProjectId $ProjectId `
-    -RequestedBy $RequestedBy `
-    -ProjectState $ProjectState `
-    -PipelineState $PipelineState `
-    -AutoresearchState $AutoresearchState `
-    -TimeoutSeconds $TimeoutSeconds `
-    -PollIntervalSeconds $PollIntervalSeconds `
-    -StopOnTerminalFailure:$StopOnTerminalFailure `
-    -RepositoryRoot $repositoryRoot
-exit $LASTEXITCODE
+function Find-FinanceAutoresearchRepository {
+    param([string]$ExplicitRepositoryRoot)
+
+    $candidates = New-Object System.Collections.Generic.List[string]
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitRepositoryRoot)) {
+        $candidates.Add($ExplicitRepositoryRoot) | Out-Null
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:FINANCE_AUTORESEARCH_REPOSITORY_ROOT)) {
+        $candidates.Add($env:FINANCE_AUTORESEARCH_REPOSITORY_ROOT) | Out-Null
+    }
+
+    $cursor = (Get-Location).Path
+    while (-not [string]::IsNullOrWhiteSpace($cursor)) {
+        $candidates.Add($cursor) | Out-Null
+        $parent = Split-Path -Path $cursor -Parent
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $cursor) {
+            break
+        }
+        $cursor = $parent
+    }
+
+    foreach ($candidate in $candidates) {
+        if (Test-FinanceAutoresearchRepository -CandidatePath $candidate) {
+            return (Resolve-Path -Path $candidate -ErrorAction Stop).Path
+        }
+    }
+
+    return $null
+}
+
+function Get-PreferredWorkingDirectory {
+    param([string]$ResolvedRepositoryRoot)
+
+    if (-not [string]::IsNullOrWhiteSpace($ResolvedRepositoryRoot)) {
+        return $ResolvedRepositoryRoot
+    }
+
+    return (Get-Location).Path
+}
+
+function Resolve-CommandInvocation {
+    param([string]$ResolvedRepositoryRoot)
+
+    $workingDirectory = Get-PreferredWorkingDirectory -ResolvedRepositoryRoot $ResolvedRepositoryRoot
+
+    if ($ResolvedRepositoryRoot -and (Get-Command uv -ErrorAction SilentlyContinue)) {
+        return [pscustomobject]@{
+            executable = "uv"
+            arguments = @("run", "python", "-m", "finance_autoresearch", "openclaw-control")
+            working_directory = $ResolvedRepositoryRoot
+            prepend_pythonpath = $false
+        }
+    }
+
+    if (Get-Command finance-autoresearch -ErrorAction SilentlyContinue) {
+        return [pscustomobject]@{
+            executable = "finance-autoresearch"
+            arguments = @("openclaw-control")
+            working_directory = $workingDirectory
+            prepend_pythonpath = $false
+        }
+    }
+
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        return [pscustomobject]@{
+            executable = "python"
+            arguments = @("-m", "finance_autoresearch", "openclaw-control")
+            working_directory = $workingDirectory
+            prepend_pythonpath = -not [string]::IsNullOrWhiteSpace($ResolvedRepositoryRoot)
+        }
+    }
+
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        return [pscustomobject]@{
+            executable = "py"
+            arguments = @("-m", "finance_autoresearch", "openclaw-control")
+            working_directory = $workingDirectory
+            prepend_pythonpath = -not [string]::IsNullOrWhiteSpace($ResolvedRepositoryRoot)
+        }
+    }
+
+    throw "Could not find a usable runner. Install the project as finance-autoresearch, or ensure uv/python/py is available."
+}
+
+function Invoke-StatusRequest {
+    param(
+        [string]$ActiveProjectId,
+        [string]$ActiveRequestedBy,
+        [string]$ResolvedRepositoryRoot
+    )
+
+    $request = [ordered]@{
+        command = "status"
+        project_id = $ActiveProjectId
+        source = "openclaw"
+        requested_by = $ActiveRequestedBy
+        requested_at = [DateTimeOffset]::UtcNow.ToString("o")
+        payload = [pscustomobject]@{}
+    }
+    $requestJson = $request | ConvertTo-Json -Depth 10 -Compress
+    $requestJsonPath = [System.IO.Path]::GetTempFileName()
+    $invocation = Resolve-CommandInvocation -ResolvedRepositoryRoot $ResolvedRepositoryRoot
+
+    $previousPythonPath = $env:PYTHONPATH
+    if ($invocation.prepend_pythonpath -and $ResolvedRepositoryRoot) {
+        $srcPath = Join-Path $ResolvedRepositoryRoot "src"
+        if ([string]::IsNullOrWhiteSpace($previousPythonPath)) {
+            $env:PYTHONPATH = $srcPath
+        }
+        else {
+            $env:PYTHONPATH = "$srcPath;$previousPythonPath"
+        }
+    }
+
+    Push-Location $invocation.working_directory
+    try {
+        Set-Content -Path $requestJsonPath -Value $requestJson -Encoding utf8
+        $rawResponse = & $invocation.executable @($invocation.arguments) "--request-json-path" $requestJsonPath
+        if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+        }
+        return $rawResponse
+    }
+    finally {
+        Pop-Location
+        Remove-Item -Path $requestJsonPath -ErrorAction SilentlyContinue
+        if ($null -eq $previousPythonPath) {
+            Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:PYTHONPATH = $previousPythonPath
+        }
+    }
+}
+
+function Test-StateMatch {
+    param(
+        [pscustomobject]$Status,
+        [string]$ExpectedProjectState,
+        [string]$ExpectedPipelineState,
+        [string]$ExpectedAutoresearchState
+    )
+
+    if ($ExpectedProjectState -and $Status.project_state -ne $ExpectedProjectState) {
+        return $false
+    }
+    if ($ExpectedPipelineState -and $Status.pipeline_state -ne $ExpectedPipelineState) {
+        return $false
+    }
+    if ($ExpectedAutoresearchState -and $Status.autoresearch_state -ne $ExpectedAutoresearchState) {
+        return $false
+    }
+    return $true
+}
+
+function Test-TerminalFailure {
+    param(
+        [pscustomobject]$Status,
+        [string]$ExpectedProjectState,
+        [string]$ExpectedPipelineState,
+        [string]$ExpectedAutoresearchState
+    )
+
+    if ($ExpectedProjectState -and $ExpectedProjectState -ne "degraded" -and $Status.project_state -eq "degraded") {
+        return $true
+    }
+    if ($ExpectedPipelineState -eq "success" -and $Status.pipeline_state -eq "failed") {
+        return $true
+    }
+    if ($ExpectedAutoresearchState -eq "success" -and $Status.autoresearch_state -in @("failed", "stale")) {
+        return $true
+    }
+    return $false
+}
+
+try {
+    $repoRoot = Find-FinanceAutoresearchRepository -ExplicitRepositoryRoot $RepositoryRoot
+    $deadline = [DateTimeOffset]::UtcNow.AddSeconds($TimeoutSeconds)
+    $effectiveStopOnFailure = $StopOnTerminalFailure.IsPresent
+
+    while ([DateTimeOffset]::UtcNow -lt $deadline) {
+        $rawStatus = Invoke-StatusRequest -ActiveProjectId $ProjectId -ActiveRequestedBy $RequestedBy -ResolvedRepositoryRoot $repoRoot
+        $status = $rawStatus | ConvertFrom-Json
+        if (-not $status.accepted) {
+            throw "status command was rejected: $($status.message)"
+        }
+
+        if (Test-StateMatch -Status $status -ExpectedProjectState $ProjectState -ExpectedPipelineState $PipelineState -ExpectedAutoresearchState $AutoresearchState) {
+            $status | ConvertTo-Json -Depth 10 -Compress
+            exit 0
+        }
+
+        if ($effectiveStopOnFailure -and (Test-TerminalFailure -Status $status -ExpectedProjectState $ProjectState -ExpectedPipelineState $PipelineState -ExpectedAutoresearchState $AutoresearchState)) {
+            $status | ConvertTo-Json -Depth 10 -Compress
+            exit 2
+        }
+
+        Start-Sleep -Seconds $PollIntervalSeconds
+    }
+
+    $timeoutStatus = Invoke-StatusRequest -ActiveProjectId $ProjectId -ActiveRequestedBy $RequestedBy -ResolvedRepositoryRoot $repoRoot
+    $timeoutStatus
+    exit 1
+}
+catch {
+    Write-Error $_
+    exit 1
+}

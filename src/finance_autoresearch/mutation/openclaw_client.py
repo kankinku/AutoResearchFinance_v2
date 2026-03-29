@@ -34,6 +34,21 @@ _REQUIRED_MUTATION_KEYS = {
     "full_file_contents",
     "expected_effects",
 }
+_REQUIRED_GENOME_KEYS = {
+    "kind",
+    "target_path",
+    "hypothesis",
+    "change_summary",
+    "expected_effects",
+    "family_id",
+    "rationale",
+    "regime_policy",
+    "indicator_specs",
+    "entry_clauses",
+    "exit_clauses",
+    "risk_clauses",
+    "params",
+}
 _REQUIRED_ANALYSIS_KEYS = {
     "strengths",
     "weaknesses",
@@ -51,7 +66,9 @@ class OpenClawResponse:
     task_kind: str
     idempotency_key: str
     artifact: dict[str, Any] | None
+    stage: str
     error_type: ErrorType | None
+    error_code: str | None
     message: str
     retryable: bool
 
@@ -173,6 +190,7 @@ class OpenClawClient:
             iteration=request.iteration,
             stage=request.stage,
         )
+        workspace.reset_transport_files()
         workspace.write_request(request)
         command = self._build_command(request=request, workspace=workspace)
 
@@ -187,47 +205,47 @@ class OpenClawClient:
                 text=True,
             )
         except subprocess.TimeoutExpired:
-            return OpenClawResponse(
-                ok=False,
-                task_kind=request.task_kind,
-                idempotency_key=request.idempotency_key,
-                artifact=None,
+            return self._failure(
+                request=request,
                 error_type="timeout",
+                error_code="wrapper_timeout",
                 message="wrapper timed out before producing a response envelope",
                 retryable=True,
             )
         except OSError as exc:
-            return OpenClawResponse(
-                ok=False,
-                task_kind=request.task_kind,
-                idempotency_key=request.idempotency_key,
-                artifact=None,
+            return self._failure(
+                request=request,
                 error_type="transport",
+                error_code="wrapper_launch_failed",
                 message=f"failed to launch wrapper process: {exc}",
                 retryable=True,
             )
 
         if result.returncode != 0:
-            return OpenClawResponse(
-                ok=False,
-                task_kind=request.task_kind,
-                idempotency_key=request.idempotency_key,
-                artifact=None,
+            return self._failure(
+                request=request,
                 error_type="transport",
-                message="wrapper exited without a valid response envelope",
+                error_code="wrapper_nonzero_exit",
+                message=self._build_process_failure_message(result=result),
                 retryable=True,
             )
 
         try:
             payload = workspace.read_response()
-        except (FileNotFoundError, ValueError):
-            return OpenClawResponse(
-                ok=False,
-                task_kind=request.task_kind,
-                idempotency_key=request.idempotency_key,
-                artifact=None,
+        except FileNotFoundError:
+            return self._failure(
+                request=request,
                 error_type="transport",
-                message="wrapper response envelope is missing or malformed",
+                error_code="wrapper_response_missing",
+                message="wrapper response envelope was not created",
+                retryable=True,
+            )
+        except ValueError as exc:
+            return self._failure(
+                request=request,
+                error_type="transport",
+                error_code="wrapper_response_malformed",
+                message=str(exc),
                 retryable=True,
             )
 
@@ -277,15 +295,17 @@ class OpenClawClient:
         request: OpenClawRequest,
         payload: dict[str, Any],
     ) -> OpenClawResponse:
-        if set(payload) != _REQUIRED_RESPONSE_KEYS:
-            return OpenClawResponse(
-                ok=False,
-                task_kind=request.task_kind,
-                idempotency_key=request.idempotency_key,
-                artifact=None,
-                error_type="transport",
+        if not _REQUIRED_RESPONSE_KEYS.issubset(payload):
+            return self._schema_failure(
+                request=request,
                 message="wrapper response envelope shape is invalid",
-                retryable=True,
+            )
+        if not isinstance(payload["idempotency_key"], str) or not isinstance(
+            payload["task_kind"], str
+        ):
+            return self._schema_failure(
+                request=request,
+                message="wrapper response idempotency_key and task_kind must be strings",
             )
 
         if payload["task_kind"] != request.task_kind:
@@ -317,7 +337,9 @@ class OpenClawClient:
                 task_kind=request.task_kind,
                 idempotency_key=request.idempotency_key,
                 artifact=artifact,
+                stage=request.stage,
                 error_type=None,
+                error_code=None,
                 message=str(payload["message"]),
                 retryable=False,
             )
@@ -338,6 +360,8 @@ class OpenClawClient:
             idempotency_key=request.idempotency_key,
             artifact=None,
             error_type=error_type,
+            stage=request.stage,
+            error_code=f"wrapper_reported_{error_type}",
             message=message,
             retryable=retryable,
         )
@@ -348,19 +372,65 @@ class OpenClawClient:
         artifact: dict[str, Any],
         expected_schema: ExpectedSchema,
     ) -> str | None:
-        if expected_schema == "strategy_replacement":
-            if set(artifact) != _REQUIRED_MUTATION_KEYS:
-                return "mutation artifact does not match the strategy_replacement schema"
-            if artifact.get("kind") != "strategy_replacement":
-                return "mutation artifact kind must be strategy_replacement"
-            effects = artifact.get("expected_effects")
-            if not isinstance(effects, list) or any(
-                not isinstance(effect, str) for effect in effects
-            ):
-                return "mutation artifact expected_effects must be a list of strings"
-            return None
+        if expected_schema == "mutation_artifact":
+            kind = artifact.get("kind")
+            if kind == "strategy_replacement":
+                if not _REQUIRED_MUTATION_KEYS.issubset(artifact):
+                    return "mutation artifact does not match the strategy_replacement schema"
+                if not all(
+                    isinstance(artifact.get(key), str)
+                    for key in (
+                        "target_path",
+                        "hypothesis",
+                        "change_summary",
+                        "full_file_contents",
+                    )
+                ):
+                    return "mutation artifact text fields must be strings"
+                effects = artifact.get("expected_effects")
+                if not isinstance(effects, list) or any(
+                    not isinstance(effect, str) for effect in effects
+                ):
+                    return "mutation artifact expected_effects must be a list of strings"
+                return None
+            if kind == "strategy_genome_v1":
+                if not _REQUIRED_GENOME_KEYS.issubset(artifact):
+                    return "mutation artifact does not match the strategy_genome_v1 schema"
+                for key in (
+                    "target_path",
+                    "hypothesis",
+                    "change_summary",
+                    "family_id",
+                    "rationale",
+                    "regime_policy",
+                ):
+                    if not isinstance(artifact.get(key), str):
+                        return f"mutation artifact {key} must be a string"
+                effects = artifact.get("expected_effects")
+                if not isinstance(effects, list) or any(
+                    not isinstance(effect, str) for effect in effects
+                ):
+                    return "mutation artifact expected_effects must be a list of strings"
+                for key in ("indicator_specs", "entry_clauses", "exit_clauses", "risk_clauses"):
+                    value = artifact.get(key)
+                    if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
+                        return f"mutation artifact {key} must be a list of objects"
+                if not isinstance(artifact.get("params"), dict):
+                    return "mutation artifact params must be an object"
+                shadow_raw = artifact.get("shadow_strategy_replacement")
+                if shadow_raw is not None:
+                    if not isinstance(shadow_raw, dict):
+                        return "mutation artifact shadow_strategy_replacement must be an object"
+                    shadow_error = self._validate_artifact_schema(
+                        artifact=shadow_raw,
+                        expected_schema="mutation_artifact",
+                    )
+                    if shadow_error is not None:
+                        return shadow_error
+                return None
+            return "mutation artifact kind must be strategy_replacement or strategy_genome_v1"
 
-        if set(artifact) != _REQUIRED_ANALYSIS_KEYS:
+        if not _REQUIRED_ANALYSIS_KEYS.issubset(artifact):
             return "analysis artifact does not match the analysis schema"
         for list_key in (
             "strengths",
@@ -390,6 +460,40 @@ class OpenClawClient:
             idempotency_key=request.idempotency_key,
             artifact=None,
             error_type="schema",
+            stage=request.stage,
+            error_code="wrapper_schema_invalid",
             message=message,
             retryable=False,
         )
+
+    def _failure(
+        self,
+        *,
+        request: OpenClawRequest,
+        error_type: ErrorType,
+        error_code: str,
+        message: str,
+        retryable: bool,
+    ) -> OpenClawResponse:
+        return OpenClawResponse(
+            ok=False,
+            task_kind=request.task_kind,
+            idempotency_key=request.idempotency_key,
+            artifact=None,
+            stage=request.stage,
+            error_type=error_type,
+            error_code=error_code,
+            message=message,
+            retryable=retryable,
+        )
+
+    def _build_process_failure_message(
+        self,
+        *,
+        result: subprocess.CompletedProcess[str],
+    ) -> str:
+        detail = (result.stderr or result.stdout).strip()
+        if not detail:
+            return f"wrapper exited with code {result.returncode} before producing a response envelope"
+        first_line = detail.splitlines()[0].strip()
+        return f"wrapper exited with code {result.returncode}: {first_line}"

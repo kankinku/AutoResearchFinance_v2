@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from finance_autoresearch.localization import DEFAULT_LOCALIZER, OutputLocalizer
 from finance_autoresearch.mutation.patch_applier import (
     MutationApplicationResult,
     apply_mutation_artifact,
@@ -96,6 +97,7 @@ class AutoresearchRunner:
         genome_shadow_mode: bool = True,
         frontier_promotion_limit: int = 2,
         allow_invalid_seed_baseline: bool = False,
+        localizer: OutputLocalizer | None = None,
     ) -> None:
         self._state_store = state_store
         self._repository_root = Path(repository_root)
@@ -125,6 +127,7 @@ class AutoresearchRunner:
         self._genome_shadow_mode = genome_shadow_mode
         self._frontier_promotion_limit = frontier_promotion_limit
         self._allow_invalid_seed_baseline = allow_invalid_seed_baseline
+        self._localizer = localizer or DEFAULT_LOCALIZER
         self._heartbeat = WorkerHeartbeat(state_store=state_store, worker_name="autoresearch")
 
     def build_seed_validator(self):
@@ -143,16 +146,19 @@ class AutoresearchRunner:
         if not guardrails_passed and not self._allow_invalid_seed_baseline:
             return SeedBaselineValidation(
                 valid=False,
-                message="seed baseline guardrails failed",
+                message=self._localizer.log("seed.guardrails_failed"),
             )
 
         self._state_store.set_candidate_revision(baseline_revision)
         self._state_store.set_baseline_revision(baseline_revision)
         if guardrails_passed:
-            return SeedBaselineValidation(valid=True, message="seed baseline validated")
+            return SeedBaselineValidation(
+                valid=True,
+                message=self._localizer.log("seed.validated"),
+            )
         return SeedBaselineValidation(
             valid=True,
-            message="seed baseline guardrails bypassed by FINANCE_AUTORESEARCH_ALLOW_INVALID_SEED_BASELINE",
+            message=self._localizer.log("seed.bypassed"),
         )
 
     def recover_startup_state(self) -> bool:
@@ -234,7 +240,10 @@ class AutoresearchRunner:
             iteration_context = IterationContext(
                 run_id=run_id,
                 iteration=iteration,
-                hypothesis=f"Iteration {iteration} hypothesis",
+                hypothesis=self._localizer.log(
+                    "autoresearch.iteration_hypothesis",
+                    iteration=iteration,
+                ),
                 mutation_summary="",
             )
             selected_knowledge: list[KnowledgeSnippet] = []
@@ -339,7 +348,9 @@ class AutoresearchRunner:
                     if bool(item.get("promoted"))
                 }
                 if not promoted_ids:
-                    raise ValueError("prescreen rejected every candidate")
+                    raise ValueError(
+                        self._localizer.log("autoresearch.prescreen_rejected_all")
+                    )
 
                 boundary = self._checkpoint_boundary(in_iteration=True)
                 if boundary is not None:
@@ -1329,7 +1340,10 @@ class AutoresearchRunner:
         if not bool(self._lock_is_held()):
             if in_iteration:
                 self._restore_baseline()
-            self._finish_failed(run_id=self._state_store.get_status().active_run_id, message="process lock lost")
+            self._finish_failed(
+                run_id=self._state_store.get_status().active_run_id,
+                message=self._localizer.log("autoresearch.process_lock_lost"),
+            )
             return {"decision": "lock_lost"}
 
         status = self._state_store.get_status()
@@ -1340,7 +1354,7 @@ class AutoresearchRunner:
                 "progress_stopped",
                 run_id=status.active_run_id,
                 iteration=self._latest_iteration_for_run(status.active_run_id),
-                message="autoresearch stopped by command",
+                message=self._localizer.log("autoresearch.stopped_by_command"),
             )
             self._finish_success(run_id=status.active_run_id)
             return {"decision": "stopped"}
@@ -1386,7 +1400,7 @@ class AutoresearchRunner:
             "progress_success",
             run_id=run_id,
             iteration=self._latest_iteration_for_run(run_id),
-            message="autoresearch finished successfully",
+            message=self._localizer.log("autoresearch.finished_successfully"),
         )
         if run_id is not None:
             self._state_store.record_run(run_id=run_id, state="success")
@@ -1420,7 +1434,11 @@ class AutoresearchRunner:
 
         ok = getattr(response, "ok", None)
         artifact = getattr(response, "artifact", None)
-        message = getattr(response, "message", "OpenClaw call failed")
+        message = getattr(
+            response,
+            "message",
+            self._localizer.log("autoresearch.openclaw_call_failed"),
+        )
         stage = getattr(response, "stage", None)
         error_code = getattr(response, "error_code", None)
         if ok is True and isinstance(artifact, dict):

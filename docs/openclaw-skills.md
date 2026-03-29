@@ -23,6 +23,26 @@ The skills delegate to these repository scripts:
 
 You can use these directly even without installing the OpenClaw skills.
 
+## Portability model
+
+The packaged `.skill` files no longer bake in an absolute repository path.
+
+Resolution order is:
+
+1. explicit `-RepositoryRoot`
+2. `FINANCE_AUTORESEARCH_REPOSITORY_ROOT`
+3. upward search from the current working directory for a valid repo root
+4. installed `finance-autoresearch` CLI or `python -m finance_autoresearch`
+
+Runner selection is:
+
+1. `uv run python -m finance_autoresearch openclaw-control` when a repo root is known and `uv` exists
+2. installed `finance-autoresearch openclaw-control`
+3. `python -m finance_autoresearch openclaw-control`
+4. `py -m finance_autoresearch openclaw-control`
+
+If the script falls back to `python` or `py` and a repo root is known, it temporarily prepends `<repo>\src` to `PYTHONPATH` so editable installation is not required.
+
 ## Install the skills
 
 Run:
@@ -61,6 +81,18 @@ Check supervisor status:
 powershell -ExecutionPolicy Bypass -File scripts/invoke-openclaw-control.ps1 -Command status
 ```
 
+If you are not running from the repository root, add:
+
+```powershell
+-RepositoryRoot "C:\path\to\finance-autoresearch"
+```
+
+or set:
+
+```powershell
+$env:FINANCE_AUTORESEARCH_REPOSITORY_ROOT = "C:\path\to\finance-autoresearch"
+```
+
 Start the pipeline:
 
 ```powershell
@@ -85,6 +117,24 @@ Start autoresearch:
 powershell -ExecutionPolicy Bypass -File scripts/invoke-openclaw-control.ps1 -Command start_autoresearch
 ```
 
+If a command needs a payload, you can either inline JSON:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/invoke-openclaw-control.ps1 `
+  -Command status `
+  -PayloadJson '{"note":"example"}'
+```
+
+or point to a JSON file:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/invoke-openclaw-control.ps1 `
+  -Command status `
+  -PayloadPath "C:\path\to\payload.json"
+```
+
+The payload must resolve to a JSON object. Omit it for commands that do not need one.
+
 Wait for autoresearch completion:
 
 ```powershell
@@ -108,6 +158,6 @@ powershell -ExecutionPolicy Bypass -File scripts/wait-finance-status.ps1 `
 
 ## Notes
 
-- The installed `.skill` files contain the absolute repository path at install time.
-- If you move the repository, run the install script again so the skill wrappers point to the new location.
+- The installed `.skill` files are portable across different checkout paths because they resolve the repository at runtime.
+- If you use source checkout mode instead of an installed package, the most reliable setup is to set `FINANCE_AUTORESEARCH_REPOSITORY_ROOT`.
 - These skills only control the supervisor. Mutation and analysis still use the existing OpenClaw wrapper contract in [openclaw-setup.md](C:\Users\hanji\Desktop\Finance\AutoResearchFinance_v2\.worktrees\finance-autoresearch-v1\docs\openclaw-setup.md).

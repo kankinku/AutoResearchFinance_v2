@@ -34,6 +34,58 @@ class IndicatorRegistry:
     def rolling_std(self, series: pd.Series, window: int) -> pd.Series:
         return indicator_registry.rolling_std(series, window)
 
+    def xaverage(self, series: pd.Series, window: int) -> pd.Series:
+        return indicator_registry.xaverage(series, window)
+
+    def macd(
+        self,
+        series: pd.Series,
+        fast_window: int = 12,
+        slow_window: int = 26,
+    ) -> pd.Series:
+        return indicator_registry.macd(
+            series,
+            fast_window=fast_window,
+            slow_window=slow_window,
+        )
+
+    def macd_signal(
+        self,
+        series: pd.Series,
+        fast_window: int = 12,
+        slow_window: int = 26,
+        signal_window: int = 9,
+    ) -> pd.Series:
+        return indicator_registry.macd_signal(
+            series,
+            fast_window=fast_window,
+            slow_window=slow_window,
+            signal_window=signal_window,
+        )
+
+    def macd_hist(
+        self,
+        series: pd.Series,
+        fast_window: int = 12,
+        slow_window: int = 26,
+        signal_window: int = 9,
+    ) -> pd.Series:
+        return indicator_registry.macd_hist(
+            series,
+            fast_window=fast_window,
+            slow_window=slow_window,
+            signal_window=signal_window,
+        )
+
+    def rolling_corr(self, left: pd.Series, right: pd.Series, window: int) -> pd.Series:
+        return indicator_registry.rolling_corr(left, right, window)
+
+    def simple_return(self, series: pd.Series) -> pd.Series:
+        return indicator_registry.simple_return(series)
+
+    def log_return(self, series: pd.Series) -> pd.Series:
+        return indicator_registry.log_return(series)
+
 
 @dataclass(slots=True, frozen=True)
 class RegimeRegistry:

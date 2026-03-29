@@ -34,9 +34,11 @@ SPLIT_WINDOWS = {
 def run_backtests(
     market_pack: MarketPack,
     strategy_module: object,
+    *,
+    market_keys: tuple[tuple[str, str], ...] = FIXED_MARKET_PACK_KEYS,
 ) -> dict[str, Any]:
     combinations: dict[tuple[str, str], dict[str, Any]] = {}
-    for symbol, timeframe in FIXED_MARKET_PACK_KEYS:
+    for symbol, timeframe in market_keys:
         frame = market_pack[(symbol, timeframe)].copy()
         frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
         frame = frame.sort_values("timestamp").reset_index(drop=True)

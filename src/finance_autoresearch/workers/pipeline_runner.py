@@ -7,13 +7,14 @@ from pathlib import Path
 import shutil
 import subprocess
 
+from finance_autoresearch.localization import DEFAULT_LOCALIZER, OutputLocalizer
 from finance_autoresearch.backtest.data_loader import (
     MarketKey,
     MarketPack,
     build_market_pack,
     validate_market_pack,
 )
-from finance_autoresearch.settings import Settings
+from finance_autoresearch.settings import Settings, load_settings
 from finance_autoresearch.state.repository import StateRepository
 
 DEFAULT_BASELINE_STRATEGY_PATH = Path(
@@ -48,9 +49,11 @@ class PipelineRunner:
         dashboard_check: Callable[[], object] | None = None,
         baseline_strategy_path: Path | str = DEFAULT_BASELINE_STRATEGY_PATH,
         baseline_snapshot_path: Path | str = DEFAULT_BASELINE_SNAPSHOT_PATH,
+        localizer: OutputLocalizer | None = None,
     ) -> None:
         self._state_store = state_store
-        self._settings = settings or Settings()
+        self._settings = settings or load_settings()
+        self._localizer = localizer or DEFAULT_LOCALIZER
         self._cache_root = Path(cache_root)
         resolved_strategy_path = Path(baseline_strategy_path)
         resolved_snapshot_path = Path(baseline_snapshot_path)
@@ -64,10 +67,14 @@ class PipelineRunner:
             lambda: ensure_accepted_baseline_snapshot(
                 baseline_strategy_path=resolved_strategy_path,
                 baseline_snapshot_path=resolved_snapshot_path,
+                localizer=self._localizer,
             )
         )
         self._baseline_strategy_validator = baseline_strategy_validator or (
-            lambda: validate_baseline_strategy(resolved_strategy_path)
+            lambda: validate_baseline_strategy(
+                resolved_strategy_path,
+                localizer=self._localizer,
+            )
         )
         self._openclaw_check = openclaw_check or self._default_openclaw_check
         self._telegram_control_check = telegram_control_check or (
@@ -75,6 +82,7 @@ class PipelineRunner:
                 token=self._settings.telegram_control_token,
                 chat_id=self._settings.telegram_control_chat_id,
                 surface_name="telegram control",
+                localizer=self._localizer,
             )
         )
         self._telegram_report_check = telegram_report_check or (
@@ -82,10 +90,11 @@ class PipelineRunner:
                 token=self._settings.telegram_report_token,
                 chat_id=self._settings.telegram_report_chat_id,
                 surface_name="telegram report",
+                localizer=self._localizer,
             )
         )
         self._dashboard_check = dashboard_check or (
-            lambda: validate_dashboard_configuration(self._settings)
+            lambda: validate_dashboard_configuration(self._settings, localizer=self._localizer)
         )
 
     def run(self) -> PipelineRunResult:
@@ -134,7 +143,7 @@ class PipelineRunner:
         return PipelineRunResult(
             succeeded=True,
             stage="completed",
-            message="pipeline completed",
+            message=self._localizer.log("pipeline.completed"),
             market_pack_keys=market_pack_keys,
         )
 
@@ -151,9 +160,19 @@ class PipelineRunner:
         script_path = Path(self._settings.openclaw_healthcheck_script)
         roles_path = Path(self._settings.openclaw_roles_path)
         if not script_path.exists():
-            raise ValueError(f"OpenClaw health check script is missing: {script_path}")
+            raise ValueError(
+                self._localizer.log(
+                    "pipeline.openclaw_script_missing",
+                    path=script_path,
+                )
+            )
         if not roles_path.exists():
-            raise ValueError(f"OpenClaw roles file is missing: {roles_path}")
+            raise ValueError(
+                self._localizer.log(
+                    "pipeline.openclaw_roles_missing",
+                    path=roles_path,
+                )
+            )
 
         result = subprocess.run(
             [
@@ -174,7 +193,9 @@ class PipelineRunner:
         )
         if result.returncode != 0:
             message = (result.stderr or result.stdout).strip()
-            raise ValueError(message or "OpenClaw health check failed")
+            raise ValueError(
+                message or self._localizer.log("pipeline.openclaw_health_check_failed")
+            )
 
     def _build_openclaw_env(self) -> dict[str, str]:
         env = os.environ.copy()
@@ -220,38 +241,58 @@ def ensure_accepted_baseline_snapshot(
     *,
     baseline_strategy_path: Path | str,
     baseline_snapshot_path: Path | str,
+    localizer: OutputLocalizer | None = None,
 ) -> Path:
+    resolved_localizer = localizer or DEFAULT_LOCALIZER
     strategy_path = validate_baseline_strategy(baseline_strategy_path)
     snapshot_path = Path(baseline_snapshot_path)
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
 
     if snapshot_path.exists():
         if snapshot_path.is_dir():
-            raise ValueError("accepted baseline snapshot must be a file")
+            raise ValueError(
+                resolved_localizer.log("pipeline.accepted_snapshot_must_be_file")
+            )
         if not snapshot_path.read_text(encoding="utf-8").strip():
-            raise ValueError("accepted baseline snapshot must not be empty")
+            raise ValueError(
+                resolved_localizer.log("pipeline.accepted_snapshot_not_empty")
+            )
         return snapshot_path
 
     shutil.copyfile(strategy_path, snapshot_path)
     return snapshot_path
 
 
-def validate_baseline_strategy(path: Path | str) -> Path:
+def validate_baseline_strategy(
+    path: Path | str,
+    *,
+    localizer: OutputLocalizer | None = None,
+) -> Path:
+    resolved_localizer = localizer or DEFAULT_LOCALIZER
     strategy_path = Path(path)
     if not strategy_path.exists():
-        raise ValueError("baseline strategy file is missing")
+        raise ValueError(resolved_localizer.log("pipeline.baseline_strategy_missing"))
     if not strategy_path.is_file():
-        raise ValueError("baseline strategy path must be a file")
+        raise ValueError(
+            resolved_localizer.log("pipeline.baseline_strategy_must_be_file")
+        )
     if not strategy_path.read_text(encoding="utf-8").strip():
-        raise ValueError("baseline strategy file must not be empty")
+        raise ValueError(
+            resolved_localizer.log("pipeline.baseline_strategy_not_empty")
+        )
     return strategy_path
 
 
-def validate_dashboard_configuration(settings: Settings) -> None:
+def validate_dashboard_configuration(
+    settings: Settings,
+    *,
+    localizer: OutputLocalizer | None = None,
+) -> None:
+    resolved_localizer = localizer or DEFAULT_LOCALIZER
     if not settings.dashboard_host.strip():
-        raise ValueError("dashboard host is not configured")
+        raise ValueError(resolved_localizer.log("pipeline.dashboard_host_not_configured"))
     if settings.dashboard_port <= 0 or settings.dashboard_port > 65_535:
-        raise ValueError("dashboard port must be between 1 and 65535")
+        raise ValueError(resolved_localizer.log("pipeline.dashboard_port_invalid"))
 
 
 def _validate_telegram_surface(
@@ -259,10 +300,17 @@ def _validate_telegram_surface(
     token,
     chat_id: str | None,
     surface_name: str,
+    localizer: OutputLocalizer | None = None,
 ) -> None:
+    resolved_localizer = localizer or DEFAULT_LOCALIZER
     token_value = token.get_secret_value() if token is not None else ""
     if not token_value.strip() or not (chat_id or "").strip():
-        raise ValueError(f"{surface_name} credentials are not configured")
+        raise ValueError(
+            resolved_localizer.log(
+                "pipeline.telegram_credentials_not_configured",
+                surface_name=surface_name,
+            )
+        )
 
 
 def _sorted_market_pack_keys(market_pack: MarketPack) -> tuple[MarketKey, ...]:

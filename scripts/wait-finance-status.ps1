@@ -13,10 +13,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-if (-not $RepositoryRoot) {
-    $RepositoryRoot = Join-Path $PSScriptRoot ".."
-}
-
 function Test-StateMatch {
     param(
         [pscustomobject]$Status,

@@ -56,6 +56,10 @@ def test_store_creates_required_tables(db_path: Path) -> None:
         "run_history",
         "experiment_history",
         "analysis_history",
+        "research_plan_history",
+        "knowledge_history",
+        "lesson_history",
+        "brain_note_registry",
         "outbox_messages",
     } <= table_names
 
@@ -322,6 +326,105 @@ def test_store_tracks_run_history_and_latest_records_by_timestamp(db_path: Path)
     assert latest_analysis.created_at == newer_timestamp
 
 
+def test_record_run_preserves_created_at_while_advancing_updated_at(db_path: Path) -> None:
+    started_at = datetime(2026, 3, 25, 4, 0, tzinfo=timezone.utc)
+    finished_at = datetime(2026, 3, 25, 4, 15, tzinfo=timezone.utc)
+
+    store = SQLiteStateStore(db_path=db_path, project_id="finance")
+    store.record_run(run_id="run-001", state="running", created_at=started_at)
+    updated = store.record_run(
+        run_id="run-001",
+        state="success",
+        created_at=finished_at,
+        updated_at=finished_at,
+    )
+    store.close()
+
+    reopened = SQLiteStateStore(db_path=db_path, project_id="finance")
+    try:
+        persisted = reopened.get_latest_run()
+    finally:
+        reopened.close()
+
+    assert updated.created_at == started_at
+    assert updated.updated_at == finished_at
+    assert persisted is not None
+    assert persisted.created_at == started_at
+    assert persisted.updated_at == finished_at
+    assert persisted.state == "success"
+
+
+def test_store_round_trips_latest_plan_knowledge_and_lesson_records(
+    db_path: Path,
+) -> None:
+    created_at = datetime(2026, 3, 25, 3, 0, tzinfo=timezone.utc)
+
+    first = SQLiteStateStore(db_path=db_path, project_id="finance")
+    plan = first.record_research_plan(
+        run_id="run-001",
+        iteration=3,
+        hypothesis="Relax one entry gate while preserving exits.",
+        summary="Simplify entries to recover trade count.",
+        plan_output={
+            "experiment_type": "simplify_filters",
+            "guardrails_to_watch": ["trade_count"],
+        },
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    knowledge = first.record_knowledge(
+        run_id="run-001",
+        iteration=3,
+        source_path="knowledge/indicators/rsi.md",
+        title="RSI Notes",
+        excerpt="RSI can be widened to recover trade count.",
+        metadata={"tags": ["knowledge-pack", "indicators", "rsi"]},
+        created_at=created_at,
+    )
+    lesson = first.record_lesson(
+        run_id="run-001",
+        iteration=3,
+        decision="rollback",
+        summary="The candidate improved one slice but failed guardrails.",
+        lesson_output={
+            "lessons": [
+                {
+                    "category": "guardrail",
+                    "statement": "Preserve exposure before chasing Sharpe.",
+                }
+            ]
+        },
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    first.close()
+
+    reopened = SQLiteStateStore(db_path=db_path, project_id="finance")
+    try:
+        latest_plan = reopened.get_latest_research_plan()
+        latest_lesson = reopened.get_latest_lesson()
+        knowledge_records = reopened.list_knowledge(limit=10)
+        analysis_records = reopened.list_analyses(limit=10)
+        run_records = reopened.list_runs(limit=10)
+    finally:
+        reopened.close()
+
+    assert latest_plan is not None
+    assert latest_plan.id == plan.id
+    assert latest_plan.hypothesis == "Relax one entry gate while preserving exits."
+    assert latest_plan.summary == "Simplify entries to recover trade count."
+    assert latest_plan.plan_output["experiment_type"] == "simplify_filters"
+    assert latest_lesson is not None
+    assert latest_lesson.id == lesson.id
+    assert latest_lesson.decision == "rollback"
+    assert latest_lesson.summary == "The candidate improved one slice but failed guardrails."
+    assert knowledge_records[0].id == knowledge.id
+    assert knowledge_records[0].source_path == "knowledge/indicators/rsi.md"
+    assert knowledge_records[0].metadata["tags"] == ["knowledge-pack", "indicators", "rsi"]
+    assert analysis_records == []
+    assert run_records == []
+
+
 def test_run_history_is_scoped_per_project(db_path: Path) -> None:
     finance_timestamp = datetime(2026, 3, 25, 2, 0, tzinfo=timezone.utc)
     sandbox_timestamp = datetime(2026, 3, 25, 2, 5, tzinfo=timezone.utc)
@@ -489,3 +592,146 @@ def test_outbox_events_can_be_appended_and_marked_sent(db_path: Path) -> None:
     assert sent_event.id == event.id
     assert sent_event.sent_at == sent_at
     assert still_pending == []
+
+
+def test_outbox_prefix_filters_are_applied_in_store_query(db_path: Path) -> None:
+    store = SQLiteStateStore(db_path=db_path, project_id="finance")
+    store.append_outbox_event(event_type="progress_success", payload={"id": 1})
+    store.append_outbox_event(event_type="candidate_kept", payload={"id": 2})
+    store.append_outbox_event(event_type="progress_update", payload={"id": 3})
+    store.close()
+
+    reopened = SQLiteStateStore(db_path=db_path, project_id="finance")
+    try:
+        progress_only = reopened.list_pending_outbox(event_type_prefix="progress_")
+        not_progress = reopened.list_pending_outbox(
+            exclude_event_type_prefix="progress_"
+        )
+    finally:
+        reopened.close()
+
+    assert sorted(message.event_type for message in progress_only) == [
+        "progress_success",
+        "progress_update",
+    ]
+    assert [message.event_type for message in not_progress] == ["candidate_kept"]
+
+
+def test_store_records_brain_notes_and_maps(db_path: Path) -> None:
+    created_at = datetime(2026, 3, 25, 5, 0, tzinfo=timezone.utc)
+
+    store = SQLiteStateStore(db_path=db_path, project_id="finance")
+    note = store.record_brain_note(
+        note_type="iteration",
+        path="01 Iterations/run-001-1.md",
+        title="Iteration 1",
+        generated=True,
+        run_id="run-001",
+        iteration=1,
+        revision="candidate-001",
+        metadata={"tags": ["brain", "iteration"]},
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    map_note = store.record_brain_note(
+        note_type="map",
+        path="90 Maps/Active Experiments.md",
+        title="Active Experiments",
+        generated=True,
+        metadata={"sections": ["Experiment"]},
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    store.close()
+
+    reopened = SQLiteStateStore(db_path=db_path, project_id="finance")
+    try:
+        notes = reopened.list_brain_notes(limit=10)
+        maps = reopened.list_brain_maps(limit=10)
+    finally:
+        reopened.close()
+
+    assert notes[0].id == note.id
+    assert notes[0].path == "01 Iterations/run-001-1.md"
+    assert notes[0].metadata["tags"] == ["brain", "iteration"]
+    assert maps[0].id == map_note.id
+    assert maps[0].note_type == "map"
+
+
+def test_store_records_trial_falsification_lesson_graph_and_family_memory(db_path: Path) -> None:
+    created_at = datetime(2026, 3, 25, 6, 0, tzinfo=timezone.utc)
+
+    store = SQLiteStateStore(db_path=db_path, project_id="finance")
+    trial = store.record_trial(
+        run_id="run-001",
+        iteration=2,
+        family="replace_indicator",
+        artifact_kind="strategy_genome_v1",
+        candidate_revision="candidate-002",
+        baseline_revision="baseline-001",
+        compile_status="compiled",
+        falsification_pass=False,
+        decision="rollback",
+        metadata={"shadow_match": False},
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    falsification = store.record_falsification(
+        run_id="run-001",
+        iteration=2,
+        candidate_revision="candidate-002",
+        passed=False,
+        checks={
+            "validation_stability": {"passed": False, "message": "validation diverged from oos"}
+        },
+        summary="validation diverged from oos",
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    lesson_graph = store.record_lesson_graph(
+        run_id="run-001",
+        iteration=2,
+        decision="rollback",
+        thesis="Simplify the indicator stack before widening exposure.",
+        mutation_delta="Compiled a structured crossover candidate.",
+        observed_outcome="Rolled back after falsification.",
+        failure_mode="validation_instability",
+        next_action="Try a simpler indicator swap.",
+        confidence="medium",
+        novelty_score=0.5,
+        knowledge_source_ids=("knowledge/indicators/rsi.md",),
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    family_memory = store.record_family_memory(
+        family="replace_indicator",
+        symbol_scope="QQQ",
+        timeframe_scope="1d",
+        regime_scope="bull",
+        outcome="rollback",
+        linked_run_id="run-001",
+        linked_iteration=2,
+        novelty_score=0.5,
+        created_at=created_at,
+        updated_at=created_at,
+    )
+    store.close()
+
+    reopened = SQLiteStateStore(db_path=db_path, project_id="finance")
+    try:
+        trials = reopened.list_trials(limit=10)
+        falsifications = reopened.list_falsifications(limit=10)
+        lesson_graphs = reopened.list_lesson_graph(limit=10)
+        family_memory_records = reopened.list_family_memory(limit=10)
+    finally:
+        reopened.close()
+
+    assert trials[0].id == trial.id
+    assert trials[0].artifact_kind == "strategy_genome_v1"
+    assert trials[0].falsification_pass is False
+    assert falsifications[0].id == falsification.id
+    assert falsifications[0].checks["validation_stability"]["passed"] is False
+    assert lesson_graphs[0].id == lesson_graph.id
+    assert lesson_graphs[0].failure_mode == "validation_instability"
+    assert family_memory_records[0].id == family_memory.id
+    assert family_memory_records[0].family == "replace_indicator"

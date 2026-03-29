@@ -54,6 +54,7 @@ def test_pipeline_runner_emits_outbox_events_and_resets_idle_state_on_success(
     baseline_strategy = tmp_path / "strategy_candidate.py"
     baseline_strategy.write_text("def build_strategy(context):\n    return context\n", encoding="utf-8")
     settings = Settings(
+        _env_file=None,
         telegram_control_token="control-token",
         telegram_control_chat_id="control-chat",
         telegram_report_token="report-token",
@@ -121,6 +122,7 @@ def test_pipeline_runner_requires_telegram_control_credentials_by_default(
     baseline_strategy = tmp_path / "strategy_candidate.py"
     baseline_strategy.write_text("def build_strategy(context):\n    return context\n", encoding="utf-8")
     settings = Settings(
+        _env_file=None,
         telegram_report_token="report-token",
         telegram_report_chat_id="report-chat",
         dashboard_host="127.0.0.1",

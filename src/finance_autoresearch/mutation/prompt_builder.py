@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 
 TaskKind = Literal["mutation", "analysis"]
-ExpectedSchema = Literal["strategy_replacement", "analysis_artifact"]
+ExpectedSchema = Literal["mutation_artifact", "analysis_artifact"]
 
 MUTABLE_STRATEGY_TARGET_PATH = (
     "src/finance_autoresearch/strategy/mutable/strategy_candidate.py"
@@ -60,7 +60,7 @@ def build_mutation_request(
         agent_id=agent_id,
         target_path=target_path,
         context=dict(context),
-        expected_schema="strategy_replacement",
+        expected_schema="mutation_artifact",
     )
 
 

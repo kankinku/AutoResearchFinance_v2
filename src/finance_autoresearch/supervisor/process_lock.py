@@ -109,10 +109,7 @@ class ProcessLock(AbstractContextManager[None]):
             if self._fd is not None:
                 os.close(self._fd)
                 self._fd = None
-                try:
-                    self._lock_path.unlink()  # type: ignore[union-attr]
-                except FileNotFoundError:
-                    pass
+                self._unlink_lock_file()
         finally:
             try:
                 self._thread_lock.release()
@@ -179,3 +176,19 @@ class ProcessLock(AbstractContextManager[None]):
             return exit_code.value == _STILL_ACTIVE
         finally:
             _CLOSE_HANDLE(handle)
+
+    def _unlink_lock_file(self) -> None:
+        if self._lock_path is None:
+            return
+
+        deadline = time.monotonic() + max(self._poll_interval_seconds * 10, 0.5)
+        while True:
+            try:
+                self._lock_path.unlink()
+                return
+            except FileNotFoundError:
+                return
+            except PermissionError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(self._poll_interval_seconds)

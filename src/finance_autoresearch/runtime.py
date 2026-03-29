@@ -28,6 +28,7 @@ from finance_autoresearch.research.lesson_capture import LessonBuilder
 from finance_autoresearch.research.planner_memory import PlannerMemory
 from finance_autoresearch.research.planner_search import ResearchScheduler
 from finance_autoresearch.research.workspace_knowledge import WorkspaceKnowledgeLoader
+from finance_autoresearch.localization import OutputLocalizer
 from finance_autoresearch.settings import Settings, load_settings
 from finance_autoresearch.state.sqlite_store import SQLiteStateStore
 from finance_autoresearch.supervisor.service import SupervisorService
@@ -210,26 +211,38 @@ class ApplicationRuntime:
             or self.settings.telegram_progress_mode == "off"
         ):
             return []
-        bot = build_progress_bot(self.settings)
+        localizer = OutputLocalizer(
+            output_language=self.settings.output_language,
+            docs_output_language=self.settings.docs_output_language,
+            log_output_language=self.settings.log_output_language,
+        )
+        bot = build_progress_bot(self.settings, localizer=localizer)
         return asyncio.run(
             TelegramProgressAdapter(
                 store=self.store,
                 bot=bot,
                 chat_id=self.settings.telegram_progress_chat_id,
                 mode=self.settings.telegram_progress_mode,
+                localizer=localizer,
             ).drain_pending()
         )
 
     def drain_report_outbox(self) -> list[str]:
         if not self.settings.telegram_report_chat_id:
             return []
-        bot = build_report_bot(self.settings)
+        localizer = OutputLocalizer(
+            output_language=self.settings.output_language,
+            docs_output_language=self.settings.docs_output_language,
+            log_output_language=self.settings.log_output_language,
+        )
+        bot = build_report_bot(self.settings, localizer=localizer)
         return asyncio.run(
             TelegramReportAdapter(
                 store=self.store,
                 bot=bot,
                 chat_id=self.settings.telegram_report_chat_id,
                 exclude_event_type_prefix="progress_",
+                localizer=localizer,
             ).drain_pending()
         )
 
@@ -251,13 +264,22 @@ class ApplicationRuntime:
             "pipeline_state": failed_status.pipeline_state,
             "autoresearch_state": failed_status.autoresearch_state,
             "pending_command": failed_status.pending_command,
-            "message": f"failed to launch worker for {command}: {message}",
+            "message": OutputLocalizer(
+                output_language=self.settings.output_language,
+                docs_output_language=self.settings.docs_output_language,
+                log_output_language=self.settings.log_output_language,
+            ).log("runtime.failed_to_launch_worker", command=command, message=message),
             "run_id": failed_status.active_run_id,
         }
 
 
 def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
     resolved_settings = settings or load_settings()
+    localizer = OutputLocalizer(
+        output_language=resolved_settings.output_language,
+        docs_output_language=resolved_settings.docs_output_language,
+        log_output_language=resolved_settings.log_output_language,
+    )
     workspace_root = resolved_settings.workspace_root.resolve()
     state_db_path = _resolve_workspace_path(
         resolved_settings.state_db_path,
@@ -291,6 +313,7 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
     pipeline_runner = PipelineRunner(
         state_store=store,
         settings=resolved_settings,
+        localizer=localizer,
         cache_root=workspace_root,
         market_pack_builder=_build_market_pack_builder(
             settings=resolved_settings,
@@ -299,6 +322,7 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
         openclaw_check=lambda: validate_openclaw_health(
             client=openclaw_client,
             settings=resolved_settings,
+            localizer=localizer,
         ),
         baseline_strategy_path=workspace_root
         / "src"
@@ -318,7 +342,8 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
     brain_sync = (
         BrainSync(
             store=store,
-            writer=BrainWriter(root=research_brain_root),
+            writer=BrainWriter(root=research_brain_root, localizer=localizer),
+            localizer=localizer,
         )
         if resolved_settings.research_brain_enabled
         else None
@@ -336,17 +361,26 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
             else lambda: asyncio.run(
                 TelegramProgressAdapter(
                     store=store,
-                    bot=build_progress_bot(resolved_settings),
+                    bot=build_progress_bot(resolved_settings, localizer=localizer),
                     chat_id=resolved_settings.telegram_progress_chat_id,
                     mode=resolved_settings.telegram_progress_mode,
+                    localizer=localizer,
                 ).drain_pending()
             )
         ),
         harness=StrategyHarness(cache_root=workspace_root),
         evaluator=evaluate_backtest_results,
-        analyzer=analyze_backtest_results,
-        falsifier=falsify_candidate if resolved_settings.falsifier_enabled else None,
-        prescreener=prescreen_candidate,
+        analyzer=lambda backtest_results, evaluation: analyze_backtest_results(
+            backtest_results,
+            evaluation,
+            localizer=localizer,
+        ),
+        falsifier=(
+            None
+            if not resolved_settings.falsifier_enabled
+            else lambda **kwargs: falsify_candidate(localizer=localizer, **kwargs)
+        ),
+        prescreener=lambda **kwargs: prescreen_candidate(**kwargs),
         trial_manager=TrialManager(
             optuna_adapter=OptunaAdapter(max_variants=resolved_settings.optuna_max_variants),
             frontier_candidate_limit=resolved_settings.frontier_candidate_limit,
@@ -376,10 +410,12 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
         genome_shadow_mode=resolved_settings.genome_shadow_mode,
         frontier_promotion_limit=resolved_settings.frontier_promotion_limit,
         allow_invalid_seed_baseline=resolved_settings.allow_invalid_seed_baseline,
+        localizer=localizer,
     )
     supervisor = SupervisorService(
         state_store=store,
         seed_validator=autoresearch_runner.build_seed_validator(),
+        localizer=localizer,
     )
     launcher = WorkerLauncher(settings=resolved_settings)
     return ApplicationRuntime(
@@ -392,24 +428,34 @@ def build_runtime(settings: Settings | None = None) -> ApplicationRuntime:
     )
 
 
-def build_report_bot(settings: Settings) -> Any:
+def build_report_bot(settings: Settings, *, localizer: OutputLocalizer | None = None) -> Any:
+    resolved_localizer = localizer or OutputLocalizer(
+        output_language=settings.output_language,
+        docs_output_language=settings.docs_output_language,
+        log_output_language=settings.log_output_language,
+    )
     if settings.telegram_report_dry_run:
         return DryRunTelegramBot(delivered_messages=[])
 
     if settings.telegram_report_token is None:
-        raise ValueError("telegram report token is not configured")
+        raise ValueError(resolved_localizer.log("runtime.telegram_report_token_missing"))
 
     from telegram import Bot
 
     return Bot(token=settings.telegram_report_token.get_secret_value())
 
 
-def build_progress_bot(settings: Settings) -> Any:
+def build_progress_bot(settings: Settings, *, localizer: OutputLocalizer | None = None) -> Any:
+    resolved_localizer = localizer or OutputLocalizer(
+        output_language=settings.output_language,
+        docs_output_language=settings.docs_output_language,
+        log_output_language=settings.log_output_language,
+    )
     if settings.telegram_progress_dry_run:
         return DryRunTelegramBot(delivered_messages=[])
 
     if settings.telegram_progress_token is None:
-        raise ValueError("telegram progress token is not configured")
+        raise ValueError(resolved_localizer.log("runtime.telegram_progress_token_missing"))
 
     from telegram import Bot
 
@@ -469,6 +515,21 @@ def build_subprocess_env(settings: Settings) -> dict[str, str]:
         env,
         "FINANCE_AUTORESEARCH_RESEARCH_BRAIN_AUTO_EXPORT",
         str(settings.research_brain_auto_export).lower(),
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_OUTPUT_LANGUAGE",
+        settings.output_language,
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_DOCS_OUTPUT_LANGUAGE",
+        settings.docs_output_language,
+    )
+    _set_env_value(
+        env,
+        "FINANCE_AUTORESEARCH_LOG_OUTPUT_LANGUAGE",
+        settings.log_output_language,
     )
     _set_env_value(
         env,
@@ -764,13 +825,21 @@ def validate_openclaw_health(
     *,
     client: OpenClawClient,
     settings: Settings,
+    localizer: OutputLocalizer | None = None,
 ) -> None:
+    resolved_localizer = localizer or OutputLocalizer(
+        output_language=settings.output_language,
+        docs_output_language=settings.docs_output_language,
+        log_output_language=settings.log_output_language,
+    )
     result = client.check_health(
         roles_path=resolve_code_asset_path(settings.openclaw_roles_path),
         gateway_url=settings.openclaw_gateway_url,
     )
     if not result.ok:
-        raise ValueError(result.message or "OpenClaw health check failed")
+        raise ValueError(
+            result.message or resolved_localizer.log("runtime.openclaw_health_check_failed")
+        )
 
 
 def _build_market_pack_builder(

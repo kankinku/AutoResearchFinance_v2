@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Callable
 
+from finance_autoresearch.localization import DEFAULT_LOCALIZER, OutputLocalizer
 from finance_autoresearch.state.models import ProjectStatus
 
 from .command_gate import NormalizedCommand
@@ -11,7 +12,7 @@ from .command_gate import NormalizedCommand
 @dataclass(slots=True, frozen=True)
 class SeedBaselineValidation:
     valid: bool
-    message: str = "seed baseline validated"
+    message: str = DEFAULT_LOCALIZER.log("seed.validated")
 
 
 @dataclass(slots=True, frozen=True)
@@ -29,13 +30,18 @@ def evaluate_transition(
     *,
     run_id_factory: Callable[[], str],
     seed_validation_factory: Callable[[], SeedBaselineValidation] | None = None,
+    localizer: OutputLocalizer | None = None,
 ) -> TransitionDecision:
+    resolved_localizer = localizer or DEFAULT_LOCALIZER
     if command.command == "status":
-        return _decision(True, status, "status retrieved")
+        return _decision(True, status, resolved_localizer.log("transition.status_retrieved"))
 
     if command.command == "start_pipeline":
         if status.project_state not in {"idle", "degraded"}:
-            return _reject(status, "start_pipeline is allowed only from idle or degraded")
+            return _reject(
+                status,
+                resolved_localizer.log("transition.start_pipeline_denied"),
+            )
 
         return _decision(
             True,
@@ -45,17 +51,20 @@ def evaluate_transition(
                 pipeline_state="running",
                 pending_command=None,
             ),
-            "pipeline started",
+            resolved_localizer.log("transition.pipeline_started"),
         )
 
     if command.command == "start_autoresearch":
         if status.autoresearch_state in {"running", "paused"} or status.active_run_id is not None:
-            return _reject(status, "start_autoresearch is already active")
+            return _reject(
+                status,
+                resolved_localizer.log("transition.start_autoresearch_active"),
+            )
 
         if status.project_state != "idle" or status.pipeline_state != "success":
             return _reject(
                 status,
-                "start_autoresearch requires an idle project with a successful pipeline",
+                resolved_localizer.log("transition.start_autoresearch_requires_pipeline"),
             )
 
         validation = (
@@ -87,39 +96,42 @@ def evaluate_transition(
                 current_stage=None,
                 pending_command=None,
             ),
-            "autoresearch started",
+            resolved_localizer.log("transition.autoresearch_started"),
             run_id=run_id,
             record_run_state="running",
         )
 
     if command.command == "pause_autoresearch":
         if status.autoresearch_state != "running":
-            return _reject(status, "pause_autoresearch is allowed only while autoresearch is running")
+            return _reject(
+                status,
+                resolved_localizer.log("transition.pause_denied"),
+            )
 
         return _decision(
             True,
             replace(status, project_state="paused", autoresearch_state="paused"),
-            "autoresearch paused",
+            resolved_localizer.log("transition.autoresearch_paused"),
         )
 
     if command.command == "resume_autoresearch":
         if status.project_state != "paused" or status.autoresearch_state != "paused":
             return _reject(
                 status,
-                "resume_autoresearch requires a paused project and paused autoresearch",
+                resolved_localizer.log("transition.resume_denied"),
             )
 
         return _decision(
             True,
             replace(status, project_state="active", autoresearch_state="running"),
-            "autoresearch resumed",
+            resolved_localizer.log("transition.autoresearch_resumed"),
         )
 
     if command.command == "stop_autoresearch":
         if status.autoresearch_state not in {"running", "paused"}:
             return _reject(
                 status,
-                "stop_autoresearch is allowed only while autoresearch is running or paused",
+                resolved_localizer.log("transition.stop_denied"),
             )
 
         if status.autoresearch_state == "paused":
@@ -133,19 +145,22 @@ def evaluate_transition(
                     current_stage=None,
                     pending_command=None,
                 ),
-                "autoresearch stopped",
+                resolved_localizer.log("transition.autoresearch_stopped"),
                 run_id=None,
             )
 
         return _decision(
             True,
             replace(status, pending_command="stop_autoresearch"),
-            "stop_autoresearch queued for the next stage boundary",
+            resolved_localizer.log("transition.stop_queued"),
         )
 
     if command.command == "reset_project":
         if status.project_state not in {"idle", "degraded"}:
-            return _reject(status, "reset_project is allowed only from idle or degraded")
+            return _reject(
+                status,
+                resolved_localizer.log("transition.reset_denied"),
+            )
 
         return _decision(
             True,
@@ -162,7 +177,7 @@ def evaluate_transition(
                 candidate_revision=None,
                 recovery_marker=None,
             ),
-            "project reset",
+            resolved_localizer.log("transition.project_reset"),
             run_id=None,
         )
 

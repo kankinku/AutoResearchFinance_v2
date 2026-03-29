@@ -7,6 +7,11 @@ description: Use when waiting for finance autoresearch pipeline or autoresearch 
 
 Use `scripts/wait_finance_status.ps1` whenever a command starts background work and you need to wait for a target state.
 
+If the repository is not your current working directory, either:
+
+- pass `-RepositoryRoot C:\path\to\finance-autoresearch`
+- or set `FINANCE_AUTORESEARCH_REPOSITORY_ROOT`
+
 ## Common waits
 
 Wait for pipeline completion:

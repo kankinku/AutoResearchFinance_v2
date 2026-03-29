@@ -13,12 +13,29 @@ import pandas as pd
 os.environ.setdefault("FINANCE_AUTORESEARCH_AUTORESEARCH_MAX_ITERATIONS", "1")
 
 from finance_autoresearch.state.sqlite_store import SQLiteStateStore
+from tests.support import build_subprocess_env
 
 
 CODE_ROOT = Path(__file__).resolve().parents[2]
 MUTABLE_TARGET_PATH = Path(
     "src/finance_autoresearch/strategy/mutable/strategy_candidate.py"
 )
+
+
+def windows_powershell_path() -> str:
+    system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+    return str(system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe")
+
+
+def build_python_only_path(existing_env: dict[str, str]) -> str:
+    python_dir = Path(sys.executable).resolve().parent
+    system_root = Path(existing_env.get("SystemRoot", os.environ.get("SystemRoot", r"C:\Windows")))
+    path_entries = [
+        str(python_dir),
+        str(system_root / "System32"),
+        str(system_root),
+    ]
+    return os.pathsep.join(path_entries)
 
 
 def make_market_frame(
@@ -253,24 +270,115 @@ def build_runtime_env(
     mutation_handler: Path,
     analysis_handler: Path,
 ) -> dict[str, str]:
-    env = os.environ.copy()
-    env["FINANCE_AUTORESEARCH_PROJECT_ID"] = "finance"
-    env["FINANCE_AUTORESEARCH_WORKSPACE_ROOT"] = str(workspace_root)
-    env["FINANCE_AUTORESEARCH_STATE_DB_PATH"] = str(state_db_path)
-    env["FINANCE_AUTORESEARCH_MARKET_PACK_MODE"] = "cached"
-    env["FINANCE_AUTORESEARCH_AUTORESEARCH_MAX_ITERATIONS"] = "1"
-    env["FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH"] = str(
-        CODE_ROOT / "config" / "openclaw.roles.example.yaml"
+    return build_subprocess_env(
+        {
+            "FINANCE_AUTORESEARCH_PROJECT_ID": "finance",
+            "FINANCE_AUTORESEARCH_WORKSPACE_ROOT": str(workspace_root),
+            "FINANCE_AUTORESEARCH_STATE_DB_PATH": str(state_db_path),
+            "FINANCE_AUTORESEARCH_MARKET_PACK_MODE": "cached",
+            "FINANCE_AUTORESEARCH_AUTORESEARCH_MAX_ITERATIONS": "1",
+            "FINANCE_AUTORESEARCH_OPENCLAW_ROLES_PATH": str(
+                CODE_ROOT / "config" / "openclaw.roles.example.yaml"
+            ),
+            "FINANCE_AUTORESEARCH_OPENCLAW_GATEWAY_URL": "http://127.0.0.1:18789",
+            "FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH": str(mutation_handler),
+            "FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH": str(analysis_handler),
+            "FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_TOKEN": "control-token",
+            "FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_CHAT_ID": "control-chat",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_TOKEN": "report-token",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_CHAT_ID": "report-chat",
+            "FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN": "true",
+        }
     )
-    env["FINANCE_AUTORESEARCH_OPENCLAW_GATEWAY_URL"] = "http://127.0.0.1:18789"
-    env["FINANCE_AUTORESEARCH_OPENCLAW_MUTATE_HANDLER_PATH"] = str(mutation_handler)
-    env["FINANCE_AUTORESEARCH_OPENCLAW_ANALYZE_HANDLER_PATH"] = str(analysis_handler)
-    env["FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_TOKEN"] = "control-token"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_CONTROL_CHAT_ID"] = "control-chat"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_TOKEN"] = "report-token"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_CHAT_ID"] = "report-chat"
-    env["FINANCE_AUTORESEARCH_TELEGRAM_REPORT_DRY_RUN"] = "true"
-    return env
+
+
+def test_repo_local_mutation_handler_writes_response_envelope(tmp_path: Path) -> None:
+    request_path = tmp_path / "request.json"
+    response_path = tmp_path / "response.json"
+    request_path.write_text(
+        json.dumps(
+            {
+                "task_kind": "mutation",
+                "idempotency_key": "manual-check:1:mutate_strategy",
+                "context": {"hypothesis": "manual smoke test"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    process = subprocess.run(
+        [
+            windows_powershell_path(),
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(CODE_ROOT / "scripts" / "openclaw-mutate-local-handler.ps1"),
+            "-AgentId",
+            "research",
+            "-RequestJson",
+            str(request_path),
+            "-ResponseJson",
+            str(response_path),
+        ],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+        timeout=10,
+        cwd=str(CODE_ROOT),
+    )
+
+    assert process.returncode == 0, process.stderr
+    payload = json.loads(response_path.read_text(encoding="utf-8-sig"))
+    assert payload["ok"] is True
+    assert payload["artifact"]["kind"] == "strategy_replacement"
+
+
+def test_repo_local_analysis_handler_writes_response_envelope(tmp_path: Path) -> None:
+    request_path = tmp_path / "request.json"
+    response_path = tmp_path / "response.json"
+    request_path.write_text(
+        json.dumps(
+            {
+                "task_kind": "analysis",
+                "idempotency_key": "manual-check:1:analyze_candidate",
+                "context": {
+                    "candidate_evaluation": {"score": 1.1},
+                    "baseline_evaluation": {"score": 1.0},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    process = subprocess.run(
+        [
+            windows_powershell_path(),
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(CODE_ROOT / "scripts" / "openclaw-analyze-local-handler.ps1"),
+            "-AgentId",
+            "critic",
+            "-RequestJson",
+            str(request_path),
+            "-ResponseJson",
+            str(response_path),
+        ],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+        timeout=10,
+        cwd=str(CODE_ROOT),
+    )
+
+    assert process.returncode == 0, process.stderr
+    payload = json.loads(response_path.read_text(encoding="utf-8-sig"))
+    assert payload["ok"] is True
+    assert "summary" in payload["artifact"]
 
 
 def test_openclaw_control_helper_and_wait_script_drive_pipeline(
@@ -407,7 +515,10 @@ def test_install_openclaw_skills_script_builds_installable_archives(
             "finance-autoresearch-control/scripts/invoke_finance_command.ps1"
         ).decode("utf-8")
         assert "__REPOSITORY_ROOT__" not in script_text
-        assert str(CODE_ROOT) in script_text
+        assert str(CODE_ROOT) not in script_text
+        assert "FINANCE_AUTORESEARCH_REPOSITORY_ROOT" in script_text
+        assert "finance-autoresearch" in script_text
+        assert "openclaw-control" in script_text
 
     with zipfile.ZipFile(status_package) as archive:
         names = set(archive.namelist())
@@ -416,3 +527,140 @@ def test_install_openclaw_skills_script_builds_installable_archives(
             "finance-autoresearch-status-polling/scripts/wait_finance_status.ps1"
             in names
         )
+        script_text = archive.read(
+            "finance-autoresearch-status-polling/scripts/wait_finance_status.ps1"
+        ).decode("utf-8")
+        assert "__REPOSITORY_ROOT__" not in script_text
+        assert str(CODE_ROOT) not in script_text
+        assert "FINANCE_AUTORESEARCH_REPOSITORY_ROOT" in script_text
+
+
+def test_packaged_openclaw_skills_run_without_baked_repo_root_or_uv(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    state_db_path = tmp_path / "runtime" / "state.db"
+    mutation_handler, analysis_handler = write_openclaw_handlers(tmp_path)
+    write_cached_market_pack(workspace_root)
+    write_workspace_strategy(workspace_root, baseline_strategy_source())
+    SQLiteStateStore(db_path=state_db_path, project_id="finance").close()
+
+    output_root = tmp_path / "dist"
+    openclaw_workspace = tmp_path / "openclaw-workspace"
+    install_process = subprocess.run(
+        [
+            "powershell",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(CODE_ROOT / "scripts" / "install-openclaw-skills.ps1"),
+            "-RepositoryRoot",
+            str(CODE_ROOT),
+            "-OutputRoot",
+            str(output_root),
+            "-OpenClawWorkspace",
+            str(openclaw_workspace),
+        ],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+        cwd=str(CODE_ROOT),
+    )
+    assert install_process.returncode == 0
+
+    control_extract_root = tmp_path / "control-extract"
+    status_extract_root = tmp_path / "status-extract"
+    with zipfile.ZipFile(output_root / "finance-autoresearch-control.skill") as archive:
+        archive.extractall(control_extract_root)
+    with zipfile.ZipFile(output_root / "finance-autoresearch-status-polling.skill") as archive:
+        archive.extractall(status_extract_root)
+
+    control_script = (
+        control_extract_root
+        / "finance-autoresearch-control"
+        / "scripts"
+        / "invoke_finance_command.ps1"
+    )
+    status_script = (
+        status_extract_root
+        / "finance-autoresearch-status-polling"
+        / "scripts"
+        / "wait_finance_status.ps1"
+    )
+
+    env = build_runtime_env(
+        workspace_root=workspace_root,
+        state_db_path=state_db_path,
+        mutation_handler=mutation_handler,
+        analysis_handler=analysis_handler,
+    )
+    env["FINANCE_AUTORESEARCH_REPOSITORY_ROOT"] = str(CODE_ROOT)
+    env["PATH"] = build_python_only_path(env)
+
+    status_process = subprocess.run(
+        [
+            windows_powershell_path(),
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(control_script),
+            "-Command",
+            "status",
+            "-ProjectId",
+            "finance",
+            "-RequestedBy",
+            "portable-skill-test",
+        ],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+        env=env,
+        cwd=str(tmp_path),
+    )
+
+    assert status_process.returncode == 0
+    status_response = json.loads(status_process.stdout)
+    assert status_response["accepted"] is True
+    assert status_response["project_state"] == "idle"
+    assert status_response["pipeline_state"] == "idle"
+    assert status_response["autoresearch_state"] == "idle"
+
+    wait_process = subprocess.run(
+        [
+            windows_powershell_path(),
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(status_script),
+            "-ProjectState",
+            "idle",
+            "-PipelineState",
+            "idle",
+            "-AutoresearchState",
+            "idle",
+            "-TimeoutSeconds",
+            "10",
+            "-PollIntervalSeconds",
+            "1",
+            "-RepositoryRoot",
+            str(CODE_ROOT),
+        ],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+        env=env,
+        cwd=str(tmp_path),
+    )
+
+    assert wait_process.returncode == 0
+    waited_status = json.loads(wait_process.stdout)
+    assert waited_status["accepted"] is True
+    assert waited_status["project_state"] == "idle"
+    assert waited_status["pipeline_state"] == "idle"
+    assert waited_status["autoresearch_state"] == "idle"

@@ -51,6 +51,26 @@ class RunRecord:
     project_id: str
     state: str
     created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class IterationHistoryRecord:
+    run_id: str
+    iteration: int
+    run: RunRecord | None
+    decision: str | None
+    experiment: ExperimentRecord | None
+    analysis: AnalysisRecord | None
+    research_plan: ResearchPlanRecord | None
+    lesson: LessonRecord | None
+    last_updated_at: datetime | None = None
+    trial: TrialRecord | None = None
+    falsification: FalsificationRecord | None = None
+    lesson_graph: LessonGraphRecord | None = None
+    family_memory: FamilyMemoryRecord | None = None
+    frontier: tuple[CandidateFrontierRecord, ...] = ()
+    linked_brain_notes: tuple[BrainNoteRecord, ...] = ()
 
 
 @dataclass(slots=True, frozen=True)
@@ -77,6 +97,144 @@ class AnalysisRecord:
     iteration: int
     analysis_output: dict[str, Any]
     summary: str
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class ResearchPlanRecord:
+    id: int
+    project_id: str
+    run_id: str
+    iteration: int
+    hypothesis: str
+    summary: str
+    plan_output: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class KnowledgeRecord:
+    id: int
+    project_id: str
+    run_id: str
+    iteration: int
+    source_path: str
+    title: str
+    excerpt: str
+    metadata: dict[str, Any]
+    created_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class LessonRecord:
+    id: int
+    project_id: str
+    run_id: str
+    iteration: int
+    decision: str
+    summary: str
+    lesson_output: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class BrainNoteRecord:
+    id: int
+    project_id: str
+    note_type: str
+    path: str
+    title: str
+    generated: bool
+    run_id: str | None
+    iteration: int | None
+    revision: str | None
+    metadata: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class TrialRecord:
+    id: int
+    project_id: str
+    run_id: str
+    iteration: int
+    family: str
+    artifact_kind: str
+    candidate_revision: str
+    baseline_revision: str
+    compile_status: str
+    falsification_pass: bool
+    decision: str
+    metadata: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class FalsificationRecord:
+    id: int
+    project_id: str
+    run_id: str
+    iteration: int
+    candidate_revision: str
+    passed: bool
+    checks: dict[str, Any]
+    summary: str
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class LessonGraphRecord:
+    id: int
+    project_id: str
+    run_id: str
+    iteration: int
+    decision: str
+    thesis: str
+    mutation_delta: str
+    observed_outcome: str
+    failure_mode: str
+    next_action: str
+    confidence: str
+    novelty_score: float
+    knowledge_source_ids: tuple[str, ...]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class FamilyMemoryRecord:
+    id: int
+    project_id: str
+    family: str
+    symbol_scope: str
+    timeframe_scope: str
+    regime_scope: str
+    outcome: str
+    linked_run_id: str
+    linked_iteration: int
+    novelty_score: float
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class CandidateFrontierRecord:
+    id: int
+    project_id: str
+    run_id: str
+    iteration: int
+    candidate_id: str
+    rank: int
+    promoted: bool
+    prescreen_reason: str
+    prescreen_score: float
+    metadata: dict[str, Any]
     created_at: datetime
     updated_at: datetime
 

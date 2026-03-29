@@ -1,0 +1,942 @@
+﻿[
+    {
+        "index":  1,
+        "started_at":  "2026-03-28T00:57:32.2526709+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "ad67511b-7e58-4f1c-a77a-42a932951787"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "ad67511b-7e58-4f1c-a77a-42a932951787",
+        "final_state":  "success",
+        "experiment_run_id":  "ad67511b-7e58-4f1c-a77a-42a932951787",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T00:57:32.2601821+09:00"
+    },
+    {
+        "index":  2,
+        "started_at":  "2026-03-28T00:58:09.1995437+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "a1667cd7-f4f0-4750-8efb-cc38552655ee"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "a1667cd7-f4f0-4750-8efb-cc38552655ee",
+        "final_state":  "success",
+        "experiment_run_id":  "a1667cd7-f4f0-4750-8efb-cc38552655ee",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T00:58:09.1995437+09:00"
+    },
+    {
+        "index":  3,
+        "started_at":  "2026-03-28T00:58:45.6863736+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "c0f0725e-90a3-4d08-b625-9d60d5b855f1"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "c0f0725e-90a3-4d08-b625-9d60d5b855f1",
+        "final_state":  "success",
+        "experiment_run_id":  "c0f0725e-90a3-4d08-b625-9d60d5b855f1",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T00:58:45.6863736+09:00"
+    },
+    {
+        "index":  4,
+        "started_at":  "2026-03-28T00:59:22.5513520+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "00fe42b5-b1af-4abd-9f1b-cab89ff28d5d"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "00fe42b5-b1af-4abd-9f1b-cab89ff28d5d",
+        "final_state":  "success",
+        "experiment_run_id":  "00fe42b5-b1af-4abd-9f1b-cab89ff28d5d",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T00:59:22.5513520+09:00"
+    },
+    {
+        "index":  5,
+        "started_at":  "2026-03-28T01:00:00.0247379+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "9232ddfc-8b85-4a37-917f-3cc3dd65f7ba"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "9232ddfc-8b85-4a37-917f-3cc3dd65f7ba",
+        "final_state":  "success",
+        "experiment_run_id":  "9232ddfc-8b85-4a37-917f-3cc3dd65f7ba",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:00:00.0247379+09:00"
+    },
+    {
+        "index":  6,
+        "started_at":  "2026-03-28T01:00:37.3672290+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "2d1cc194-1558-4eeb-bc13-0302c796c374"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "2d1cc194-1558-4eeb-bc13-0302c796c374",
+        "final_state":  "success",
+        "experiment_run_id":  "2d1cc194-1558-4eeb-bc13-0302c796c374",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:00:37.3672290+09:00"
+    },
+    {
+        "index":  7,
+        "started_at":  "2026-03-28T01:01:14.3263347+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "129ae9d5-d79a-4d7e-b012-7369cdbe55d7"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "129ae9d5-d79a-4d7e-b012-7369cdbe55d7",
+        "final_state":  "success",
+        "experiment_run_id":  "129ae9d5-d79a-4d7e-b012-7369cdbe55d7",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:01:14.3263347+09:00"
+    },
+    {
+        "index":  8,
+        "started_at":  "2026-03-28T01:01:50.9782833+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "f314e16c-377b-489c-8d0c-c5113bb42a77"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "f314e16c-377b-489c-8d0c-c5113bb42a77",
+        "final_state":  "success",
+        "experiment_run_id":  "f314e16c-377b-489c-8d0c-c5113bb42a77",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:01:50.9782833+09:00"
+    },
+    {
+        "index":  9,
+        "started_at":  "2026-03-28T01:02:28.2759922+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "99455361-463c-4a14-b6d1-eeba5d06bc7c"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "99455361-463c-4a14-b6d1-eeba5d06bc7c",
+        "final_state":  "success",
+        "experiment_run_id":  "99455361-463c-4a14-b6d1-eeba5d06bc7c",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:02:28.2759922+09:00"
+    },
+    {
+        "index":  10,
+        "started_at":  "2026-03-28T01:03:06.3620373+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "39b0e7af-629e-4d00-9971-fc5df68a5a08"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "39b0e7af-629e-4d00-9971-fc5df68a5a08",
+        "final_state":  "success",
+        "experiment_run_id":  "39b0e7af-629e-4d00-9971-fc5df68a5a08",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:03:06.3620373+09:00"
+    },
+    {
+        "index":  11,
+        "started_at":  "2026-03-28T01:03:44.8098738+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "d3fb72b8-3e57-49d4-9e12-ee62c3a7d2b1"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "d3fb72b8-3e57-49d4-9e12-ee62c3a7d2b1",
+        "final_state":  "success",
+        "experiment_run_id":  "d3fb72b8-3e57-49d4-9e12-ee62c3a7d2b1",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:03:44.8098738+09:00"
+    },
+    {
+        "index":  12,
+        "started_at":  "2026-03-28T01:04:20.4457670+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "c1f0970b-9165-47b2-8eb6-86f43f193794"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "c1f0970b-9165-47b2-8eb6-86f43f193794",
+        "final_state":  "success",
+        "experiment_run_id":  "c1f0970b-9165-47b2-8eb6-86f43f193794",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:04:20.4457670+09:00"
+    },
+    {
+        "index":  13,
+        "started_at":  "2026-03-28T01:04:57.6159508+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "7101d91e-7f70-4a20-978c-f2fef5fb5396"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "7101d91e-7f70-4a20-978c-f2fef5fb5396",
+        "final_state":  "success",
+        "experiment_run_id":  "7101d91e-7f70-4a20-978c-f2fef5fb5396",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:04:57.6159508+09:00"
+    },
+    {
+        "index":  14,
+        "started_at":  "2026-03-28T01:05:34.1941127+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "76420f48-735d-45a0-aed8-2e23587c4497"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "76420f48-735d-45a0-aed8-2e23587c4497",
+        "final_state":  "success",
+        "experiment_run_id":  "76420f48-735d-45a0-aed8-2e23587c4497",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:05:34.1951158+09:00"
+    },
+    {
+        "index":  15,
+        "started_at":  "2026-03-28T01:06:11.5015705+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "2cb63226-b69d-437c-b57d-71fe9f38620a"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "2cb63226-b69d-437c-b57d-71fe9f38620a",
+        "final_state":  "success",
+        "experiment_run_id":  "2cb63226-b69d-437c-b57d-71fe9f38620a",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:06:11.5015705+09:00"
+    },
+    {
+        "index":  16,
+        "started_at":  "2026-03-28T01:06:47.2625410+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "aeb0a8c1-402f-4e30-9526-608a5daf9663"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "aeb0a8c1-402f-4e30-9526-608a5daf9663",
+        "final_state":  "success",
+        "experiment_run_id":  "aeb0a8c1-402f-4e30-9526-608a5daf9663",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:06:47.2625410+09:00"
+    },
+    {
+        "index":  17,
+        "started_at":  "2026-03-28T01:07:24.1923288+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "601b8495-3b92-4294-9381-ee57a92ff096"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "601b8495-3b92-4294-9381-ee57a92ff096",
+        "final_state":  "success",
+        "experiment_run_id":  "601b8495-3b92-4294-9381-ee57a92ff096",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:07:24.1923288+09:00"
+    },
+    {
+        "index":  18,
+        "started_at":  "2026-03-28T01:08:00.8613568+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "73a0b7d9-456e-4f5d-bf2f-72a6b805dd8b"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "73a0b7d9-456e-4f5d-bf2f-72a6b805dd8b",
+        "final_state":  "success",
+        "experiment_run_id":  "73a0b7d9-456e-4f5d-bf2f-72a6b805dd8b",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:08:00.8613568+09:00"
+    },
+    {
+        "index":  19,
+        "started_at":  "2026-03-28T01:08:37.4435172+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "c1cfcc39-2401-4147-8399-ba8e25cb2edb"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "c1cfcc39-2401-4147-8399-ba8e25cb2edb",
+        "final_state":  "success",
+        "experiment_run_id":  "c1cfcc39-2401-4147-8399-ba8e25cb2edb",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:08:37.4435172+09:00"
+    },
+    {
+        "index":  20,
+        "started_at":  "2026-03-28T01:09:13.8080998+09:00",
+        "start_status":  {
+                             "accepted":  true,
+                             "autoresearch_state":  "success",
+                             "message":  "status retrieved",
+                             "pending_command":  null,
+                             "pipeline_state":  "success",
+                             "project_state":  "idle",
+                             "run_id":  null
+                         },
+        "start_response":  {
+                               "accepted":  true,
+                               "autoresearch_state":  "running",
+                               "message":  "autoresearch started",
+                               "pending_command":  null,
+                               "pipeline_state":  "success",
+                               "project_state":  "active",
+                               "run_id":  "0f7d1e6f-e3fa-4dcf-8d49-959358ab29ad"
+                           },
+        "wait":  {
+                     "exit_code":  0,
+                     "payload":  {
+                                     "accepted":  true,
+                                     "autoresearch_state":  "success",
+                                     "message":  "status retrieved",
+                                     "pending_command":  null,
+                                     "pipeline_state":  "success",
+                                     "project_state":  "idle",
+                                     "run_id":  null
+                                 }
+                 },
+        "latest_run_id":  "0f7d1e6f-e3fa-4dcf-8d49-959358ab29ad",
+        "final_state":  "success",
+        "experiment_run_id":  "0f7d1e6f-e3fa-4dcf-8d49-959358ab29ad",
+        "experiment_iteration":  1,
+        "decision":  "rollback",
+        "mutation_summary":  "prescreen rejected every candidate",
+        "score":  -0.316101023458949,
+        "guardrail_failures":  [
+                                   "prescreen rejected every candidate"
+                               ],
+        "analysis_summary":  "prescreen rejected every candidate",
+        "error":  "",
+        "captured_at":  "2026-03-28T01:09:13.8080998+09:00"
+    }
+]

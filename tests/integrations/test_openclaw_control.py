@@ -10,6 +10,7 @@ import pytest
 
 from finance_autoresearch.state.sqlite_store import SQLiteStateStore
 from finance_autoresearch.supervisor.service import SupervisorService
+from tests.support import build_subprocess_env
 
 
 def make_command(command: str, **overrides: object) -> dict[str, object]:
@@ -90,9 +91,12 @@ def test_python_module_openclaw_control_subprocess_exit_code_and_stdout(
     state_db_path = tmp_path / "state.db"
     SQLiteStateStore(db_path=state_db_path, project_id="finance").close()
 
-    env = os.environ.copy()
-    env["FINANCE_AUTORESEARCH_STATE_DB_PATH"] = str(state_db_path)
-    env["FINANCE_AUTORESEARCH_PROJECT_ID"] = "finance"
+    env = build_subprocess_env(
+        {
+            "FINANCE_AUTORESEARCH_STATE_DB_PATH": str(state_db_path),
+            "FINANCE_AUTORESEARCH_PROJECT_ID": "finance",
+        }
+    )
 
     process = subprocess.run(
         [sys.executable, "-m", "finance_autoresearch", "openclaw-control"],

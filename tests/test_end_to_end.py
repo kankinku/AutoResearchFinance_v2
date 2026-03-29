@@ -75,6 +75,12 @@ def test_pipeline_then_autoresearch_smoke_flow(repository_root: Path) -> None:
         project_id="finance",
     )
     try:
+        knowledge_dir = repository_root / "knowledge" / "indicators"
+        knowledge_dir.mkdir(parents=True, exist_ok=True)
+        (knowledge_dir / "rsi.md").write_text(
+            "# RSI Notes\nRSI can be relaxed to recover trade count while preserving exits.",
+            encoding="utf-8",
+        )
         write_strategy_candidate(repository_root, "baseline")
         pipeline = PipelineRunner(
             state_store=store,
@@ -152,6 +158,9 @@ def test_pipeline_then_autoresearch_smoke_flow(repository_root: Path) -> None:
 
         latest_experiment = store.get_latest_experiment()
         latest_analysis = store.get_latest_analysis()
+        latest_plan = store.get_latest_research_plan()
+        latest_lesson = store.get_latest_lesson()
+        latest_knowledge = store.list_knowledge(limit=10)
         final_state = store.get_status()
     finally:
         store.close()
@@ -164,6 +173,15 @@ def test_pipeline_then_autoresearch_smoke_flow(repository_root: Path) -> None:
     assert latest_experiment.decision == "keep"
     assert latest_analysis is not None
     assert latest_analysis.summary == "candidate improved"
+    assert latest_plan is not None
+    assert latest_plan.summary
+    assert latest_lesson is not None
+    assert latest_lesson.summary
+    assert latest_knowledge
+    assert any(
+        record.source_path == "knowledge/indicators/rsi.md"
+        for record in latest_knowledge
+    )
     assert delivered
     assert report_bot.messages
     assert status_response.status_code == 200

@@ -25,6 +25,11 @@ scripts/invoke_finance_command.ps1 -Command start_pipeline
 scripts/invoke_finance_command.ps1 -Command start_autoresearch
 ```
 
+If the repository is not your current working directory, either:
+
+- pass `-RepositoryRoot C:\path\to\finance-autoresearch`
+- or set `FINANCE_AUTORESEARCH_REPOSITORY_ROOT`
+
 ## Rules
 
 - Always check `status` before lifecycle changes if current state is unclear.
@@ -37,5 +42,7 @@ scripts/invoke_finance_command.ps1 -Command start_autoresearch
 - `-ProjectId`
 - `-RequestedBy`
 - `-PayloadJson`
+- `-PayloadPath`
+- `-RepositoryRoot`
 
-`PayloadJson` must be a JSON object string. Most supervisor commands use `{}`.
+Most supervisor commands use the default empty payload. If you need one, either pass `-PayloadJson '{"key":"value"}'` or point `-PayloadPath` at a JSON file containing an object.
