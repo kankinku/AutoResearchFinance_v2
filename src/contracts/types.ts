@@ -125,6 +125,8 @@ export const localCompatibilityIssueKindSchema = z.enum([
   "unsupported_pattern",
 ]);
 
+export const mutationAuthoritySchema = z.enum(["strategy_spec"]);
+
 export const executorRoleSchema = z.enum([
   "primary_local_backtest",
   "external_calibration",
@@ -937,6 +939,10 @@ export const candidateLedgerRecordSchema = z.object({
   studyTitle: z.string().nullable(),
   candidatePath: z.string().min(1),
   candidateHash: z.string().min(1),
+  contractVersion: z.string().nullable().default(null),
+  mutationAuthority: mutationAuthoritySchema.nullable().default(null),
+  specPath: z.string().nullable().default(null),
+  specHash: z.string().nullable().default(null),
   candidateSummary: z.string().min(1),
   nextMutationHints: z.array(z.string()),
   recordedAt: z.string().datetime().optional(),
@@ -1065,6 +1071,7 @@ export type ExecutorConfidenceLevel = z.infer<typeof executorConfidenceLevelSche
 export type LocalCompatibilityIssueKind = z.infer<
   typeof localCompatibilityIssueKindSchema
 >;
+export type MutationAuthority = z.infer<typeof mutationAuthoritySchema>;
 export type ExecutorRole = z.infer<typeof executorRoleSchema>;
 export type EvidenceAuthority = z.infer<typeof evidenceAuthoritySchema>;
 export type ExecutorCapability = z.infer<typeof executorCapabilitySchema>;

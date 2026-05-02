@@ -47,6 +47,10 @@ import {
 } from "../../state/jsonl-store.js";
 import { findActiveChampionRecord } from "../../state/autonomous-state.js";
 import { createCandidateId, sha256 } from "../../utils/fs.js";
+import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../../policy/autoresearch-contract.js";
 import { buildLocalConfidenceSummary } from "./divergence-update-phase.js";
 import {
   buildSchemaHardeningSummary,
@@ -2946,6 +2950,12 @@ async function persistGeneratedCandidate(input: {
     studyTitle: artifact.studyTitle,
     candidatePath: artifact.pinePath,
     candidateHash: artifact.pineHash,
+    contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+    mutationAuthority: artifact.specHash
+      ? STRATEGY_SPEC_MUTATION_AUTHORITY
+      : null,
+    specPath: artifact.specPath ?? null,
+    specHash: artifact.specHash ?? null,
     candidateSummary: artifact.candidateSummary,
     nextMutationHints: artifact.nextMutationHints,
   });

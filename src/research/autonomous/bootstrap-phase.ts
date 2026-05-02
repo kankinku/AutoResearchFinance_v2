@@ -11,7 +11,12 @@ import {
 } from "../../contracts/types.js";
 import { persistCandidateArtifact } from "../../mutation/candidate-store.js";
 import { inferConditionInventoryFromPine } from "../../mutation/parser.js";
-import { afStrategySpecFromPine } from "../../strategy-spec/to-af-config.js";
+import { renderAfStrategySpecToPine } from "../../strategy-spec/codegen-pine.js";
+import { parseAfStrategySpec } from "../../strategy-spec/schema.js";
+import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../../policy/autoresearch-contract.js";
 import { appendCandidateLedgerRecord } from "../../state/jsonl-store.js";
 import {
   findActiveChampionCandidateId,
@@ -21,8 +26,8 @@ import { fileExists, sha256 } from "../../utils/fs.js";
 
 const BOOTSTRAP_SEED_RELATIVE_PATH = [
   "strategies",
-  "candidates",
-  "cand-42ed2fa4.pine",
+  "specs",
+  "baseline.af-spec.json",
 ];
 
 export interface BootstrapCandidatePhaseResult {
@@ -64,15 +69,16 @@ export async function prepareBootstrapCandidate(input: {
   iteration: number;
   signal?: AbortSignal;
 }): Promise<BootstrapCandidatePhaseResult> {
-  const seedPath = path.join(input.projectRoot, ...BOOTSTRAP_SEED_RELATIVE_PATH);
-  if (!(await fileExists(seedPath))) {
-    throw new Error(`Bootstrap seed is missing: ${seedPath}`);
+  const seedSpecPath = path.join(input.projectRoot, ...BOOTSTRAP_SEED_RELATIVE_PATH);
+  if (!(await fileExists(seedSpecPath))) {
+    throw new Error(`Bootstrap seed spec is missing: ${seedSpecPath}`);
   }
 
-  const pineScript = await readFile(seedPath, "utf8");
+  const seedSpecJson = await readFile(seedSpecPath, "utf8");
+  const strategySpec = parseAfStrategySpec(JSON.parse(seedSpecJson));
+  const pineScript = renderAfStrategySpecToPine(strategySpec);
   throwIfAborted(input.signal);
   const inventory = inferConditionInventoryFromPine(pineScript);
-  const strategySpec = afStrategySpecFromPine(pineScript).spec;
   const parsedMutation: ParsedMutationResponse = {
     candidateSummary:
       "Bootstrap local-compatible AF seed used to establish the first fresh-root research baseline champion.",
@@ -105,6 +111,12 @@ export async function prepareBootstrapCandidate(input: {
     studyTitle: candidateArtifact.studyTitle,
     candidatePath: candidateArtifact.pinePath,
     candidateHash: candidateArtifact.pineHash,
+    contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+    mutationAuthority: candidateArtifact.specHash
+      ? STRATEGY_SPEC_MUTATION_AUTHORITY
+      : null,
+    specPath: candidateArtifact.specPath ?? null,
+    specHash: candidateArtifact.specHash ?? null,
     candidateSummary: candidateArtifact.candidateSummary,
     nextMutationHints: candidateArtifact.nextMutationHints,
   });
@@ -123,10 +135,10 @@ export async function prepareBootstrapCandidate(input: {
       promptHash: sha256(
         JSON.stringify({
           operation: "bootstrapSeed",
-          seedPath,
+          seedSpecPath,
         }),
       ),
-      responseHash: sha256(pineScript),
+      responseHash: sha256(seedSpecJson),
       responseSchemaVersion: "parsed-mutation-response/v1",
       parseStatus: "valid",
       inventorySource: parsedMutation.inventorySource,

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -67,6 +67,11 @@ import {
   readRepairAttemptRecords,
 } from "../../src/state/jsonl-store.js";
 import { createMockPineEvaluationExecutor } from "../../src/automation/tradingview/mock-driver.js";
+import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../../src/policy/autoresearch-contract.js";
+import { hashAfStrategySpec } from "../../src/strategy-spec/hash.js";
 
 function createRuntimeEnv(
   workspaceRoot: string,
@@ -122,6 +127,64 @@ function createStrongMetrics(): BacktestMetrics {
     percentProfitable: 61,
     totalTrades: 84,
     avgTradePercent: 0.55,
+  };
+}
+
+const testStrategySpec = {
+  version: "af-spec/v1" as const,
+  name: "AF Test Spec",
+  event: {
+    source: "event_floor" as const,
+    L1: 8,
+    L2: 12,
+    L3: 15,
+    confirmBars: 2,
+    eventFloorBars: 5,
+    eventWindowBars: 10,
+  },
+  regime: {
+    trendMode: "Balanced" as const,
+    useSupertrendFilter: true,
+    riskOffRsi: 44,
+    maxExtPct: 5.5,
+  },
+  entry: {
+    primaryTrigger: "bull_event",
+    cooldownBars: 1,
+    allowBearRebound: true,
+    applyFilterToB1: false,
+  },
+  slot: {
+    slotPct: 12,
+    maxSlots: 14,
+    useReplacement: true,
+    replaceMinRank: 3,
+    replaceIfPnlBelow: -4,
+  },
+  exit: {
+    weakRangeExit: true,
+    maxHoldBars: 18,
+    closeAllOnBearConfRiskOff: true,
+    resetOnL3: false,
+  },
+};
+
+async function writeTestSpecArtifact(
+  workspaceRoot: string,
+  candidateId: string,
+) {
+  const specPath = path.join(
+    workspaceRoot,
+    "strategies",
+    "specs",
+    `${candidateId}.json`,
+  );
+  await mkdir(path.dirname(specPath), { recursive: true });
+  await writeFile(specPath, `${JSON.stringify(testStrategySpec, null, 2)}\n`, "utf8");
+  return {
+    specPath,
+    specHash: hashAfStrategySpec(testStrategySpec),
+    strategySpec: testStrategySpec,
   };
 }
 
@@ -810,6 +873,10 @@ describe("autonomous tv-verified v4", () => {
       "cand-auto-calibration-followup",
       followupSource,
     );
+    const followupSpec = await writeTestSpecArtifact(
+      workspaceRoot,
+      "cand-auto-calibration-followup",
+    );
     const followup = await runLocalEvaluationPhase({
       workspaceRoot,
       stateRoot,
@@ -821,6 +888,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Auto calibration followup candidate",
         nextMutationHints: ["preserve low divergence family"],
         pineScript: followupSource,
+        strategySpec: followupSpec.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -839,6 +907,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: followupPath,
         pineHash: "auto-calibration-followup-hash",
+        specPath: followupSpec.specPath,
+        specHash: followupSpec.specHash,
         studyTitle: "Auto Calibration Followup",
         inventory: [
           {
@@ -1058,6 +1128,8 @@ describe("autonomous tv-verified v4", () => {
       "//@version=5\nstrategy('Duplicate Candidate', overlay=true)\nentrySignal = close > open\nif entrySignal\n    strategy.entry('L', strategy.long)\n";
     const candidatePathA = await writeCandidateFile(workspaceRoot, "cand-a", pineSource);
     const candidatePathB = await writeCandidateFile(workspaceRoot, "cand-b", pineSource);
+    const specA = await writeTestSpecArtifact(workspaceRoot, "cand-a");
+    const specB = await writeTestSpecArtifact(workspaceRoot, "cand-b");
 
     const first = await runLocalEvaluationPhase({
       workspaceRoot,
@@ -1070,6 +1142,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "First candidate",
         nextMutationHints: [],
         pineScript: pineSource,
+        strategySpec: specA.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -1088,6 +1161,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: candidatePathA,
         pineHash: "same-hash",
+        specPath: specA.specPath,
+        specHash: specA.specHash,
         studyTitle: "Duplicate Candidate",
         inventory: [
           {
@@ -1115,6 +1190,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Second candidate",
         nextMutationHints: [],
         pineScript: pineSource,
+        strategySpec: specB.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -1133,6 +1209,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: candidatePathB,
         pineHash: "same-hash",
+        specPath: specB.specPath,
+        specHash: specB.specHash,
         studyTitle: "Duplicate Candidate",
         inventory: [
           {
@@ -1187,6 +1265,7 @@ describe("autonomous tv-verified v4", () => {
       "cand-failure-memory",
       pineSource,
     );
+    const spec = await writeTestSpecArtifact(workspaceRoot, "cand-failure-memory");
 
     const result = await runLocalEvaluationPhase({
       workspaceRoot,
@@ -1199,6 +1278,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Failure memory candidate",
         nextMutationHints: [],
         pineScript: pineSource,
+        strategySpec: spec.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -1217,6 +1297,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: candidatePath,
         pineHash: "failure-memory-hash",
+        specPath: spec.specPath,
+        specHash: spec.specHash,
         studyTitle: "Failure Memory Candidate",
         inventory: [
           {
@@ -1430,6 +1512,7 @@ describe("autonomous tv-verified v4", () => {
 
     const runFailure = async (candidateId: string) => {
       const candidatePath = await writeCandidateFile(workspaceRoot, candidateId, pineSource);
+      const spec = await writeTestSpecArtifact(workspaceRoot, candidateId);
       const experiments = await readExperimentRecords(stateRoot);
       return runLocalEvaluationPhase({
         workspaceRoot,
@@ -1442,6 +1525,7 @@ describe("autonomous tv-verified v4", () => {
           candidateSummary: "Failure escalation candidate",
           nextMutationHints: [],
           pineScript: pineSource,
+          strategySpec: spec.strategySpec,
           inventory: [
             {
               conditionId: "entry-alpha",
@@ -1460,6 +1544,8 @@ describe("autonomous tv-verified v4", () => {
           branchId: "autonomous-main",
           pinePath: candidatePath,
           pineHash: `hash-${candidateId}`,
+          specPath: spec.specPath,
+          specHash: spec.specHash,
           studyTitle: "Failure Escalation Candidate",
           inventory: [
             {
@@ -2022,6 +2108,7 @@ describe("autonomous tv-verified v4", () => {
       "cand-failure-archive",
       pineSource,
     );
+    const spec = await writeTestSpecArtifact(workspaceRoot, "cand-failure-archive");
 
     const local = await runLocalEvaluationPhase({
       workspaceRoot,
@@ -2034,6 +2121,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Failure archive candidate",
         nextMutationHints: [],
         pineScript: pineSource,
+        strategySpec: spec.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -2052,6 +2140,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: candidatePath,
         pineHash: "failure-archive-hash",
+        specPath: spec.specPath,
+        specHash: spec.specHash,
         studyTitle: "Failure Archive Candidate",
         inventory: [
           {
@@ -2105,6 +2195,7 @@ describe("autonomous tv-verified v4", () => {
       "cand-tv-failure",
       pineSource,
     );
+    const spec = await writeTestSpecArtifact(workspaceRoot, "cand-tv-failure");
 
     const local = await runLocalEvaluationPhase({
       workspaceRoot,
@@ -2117,6 +2208,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Calibration candidate",
         nextMutationHints: [],
         pineScript: pineSource,
+        strategySpec: spec.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -2135,6 +2227,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: candidatePath,
         pineHash: "tv-failure-hash",
+        specPath: spec.specPath,
+        specHash: spec.specHash,
         studyTitle: "TV Failure Candidate",
         inventory: [
           {
@@ -2227,6 +2321,7 @@ describe("autonomous tv-verified v4", () => {
       "cand-tv-mock-recovered",
       pineSource,
     );
+    const spec = await writeTestSpecArtifact(workspaceRoot, "cand-tv-mock-recovered");
 
     const local = await runLocalEvaluationPhase({
       workspaceRoot,
@@ -2239,6 +2334,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Calibration candidate",
         nextMutationHints: [],
         pineScript: pineSource,
+        strategySpec: spec.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -2257,6 +2353,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: candidatePath,
         pineHash: "tv-mock-recovered-hash",
+        specPath: spec.specPath,
+        specHash: spec.specHash,
         studyTitle: "TV Mock Recovered Candidate",
         inventory: [
           {
@@ -2335,6 +2433,7 @@ describe("autonomous tv-verified v4", () => {
       "cand-confidence-seed",
       pineSource,
     );
+    const spec = await writeTestSpecArtifact(workspaceRoot, "cand-confidence-seed");
 
     const local = await runLocalEvaluationPhase({
       workspaceRoot,
@@ -2347,6 +2446,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Calibration seed candidate",
         nextMutationHints: [],
         pineScript: pineSource,
+        strategySpec: spec.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -2365,6 +2465,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: candidatePath,
         pineHash: "confidence-seed-hash",
+        specPath: spec.specPath,
+        specHash: spec.specHash,
         studyTitle: "Calibration Seed Candidate",
         inventory: [
           {
@@ -2464,6 +2566,10 @@ describe("autonomous tv-verified v4", () => {
       "cand-confidence-followup",
       nextSource,
     );
+    const followupSpec = await writeTestSpecArtifact(
+      workspaceRoot,
+      "cand-confidence-followup",
+    );
 
     const followup = await runLocalEvaluationPhase({
       workspaceRoot,
@@ -2476,6 +2582,7 @@ describe("autonomous tv-verified v4", () => {
         candidateSummary: "Calibration followup candidate",
         nextMutationHints: [],
         pineScript: nextSource,
+        strategySpec: followupSpec.strategySpec,
         inventory: [
           {
             conditionId: "entry-alpha",
@@ -2494,6 +2601,8 @@ describe("autonomous tv-verified v4", () => {
         branchId: "autonomous-main",
         pinePath: nextCandidatePath,
         pineHash: "confidence-followup-hash",
+        specPath: followupSpec.specPath,
+        specHash: followupSpec.specHash,
         studyTitle: "Calibration Followup Candidate",
         inventory: [
           {
@@ -2638,6 +2747,8 @@ describe("autonomous tv-verified v4", () => {
     const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
     await initializeWorkspace(workspaceRoot);
+    const steadySpecPath = "C:\\tmp\\steady-b.json";
+    const steadySpecHash = hashAfStrategySpec(testStrategySpec);
 
     const bootstrapChampion: Omit<ExperimentRecord, "recordedAt"> = {
       runId: "run-bootstrap",
@@ -2649,6 +2760,10 @@ describe("autonomous tv-verified v4", () => {
       baselineCandidateId: null,
       candidatePath: "C:\\tmp\\bootstrap-a.pine",
       candidateHash: "hash-bootstrap-a",
+      contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+      mutationAuthority: STRATEGY_SPEC_MUTATION_AUTHORITY,
+      specPath: "C:\\tmp\\bootstrap-a.json",
+      specHash: steadySpecHash,
       studyTitle: "Bootstrap A",
       candidateScore: 0.8615,
       decision: "local_candidate_eligible",
@@ -2720,6 +2835,8 @@ describe("autonomous tv-verified v4", () => {
       iteration: 2,
       candidateId: "steady-b",
       candidateHash: "hash-steady-b",
+      specPath: steadySpecPath,
+      specHash: steadySpecHash,
       candidateScore: 0.7361,
       autoSelectionScore: 0.7361,
       autoSelectionBreakdown: {

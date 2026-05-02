@@ -9,6 +9,10 @@ import {
 import { ensureCandidateStudyTitle } from "../automation/tradingview/pine-study.js";
 import { createCandidateId, ensureDir, sha256 } from "../utils/fs.js";
 import { assertEditableResearchPath } from "../policy/autoresearch-contract.js";
+import {
+  canonicalAfStrategySpecJson,
+  hashAfStrategySpec,
+} from "../strategy-spec/hash.js";
 
 export async function persistCandidateArtifact(input: {
   workspaceRoot: string;
@@ -40,8 +44,8 @@ export async function persistCandidateArtifact(input: {
       workspaceRoot: input.workspaceRoot,
       targetPath: specPath,
     });
-    const specJson = `${JSON.stringify(input.parsedMutation.strategySpec, null, 2)}\n`;
-    specHash = sha256(specJson);
+    const specJson = canonicalAfStrategySpecJson(input.parsedMutation.strategySpec);
+    specHash = hashAfStrategySpec(input.parsedMutation.strategySpec);
     await writeFile(specPath, specJson, "utf8");
   }
 

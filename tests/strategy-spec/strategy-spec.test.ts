@@ -6,7 +6,9 @@ import { describe, expect, test } from "vitest";
 
 import { parseAfStrategyConfig } from "../../src/automation/local-backtest/af-config.js";
 import { persistCandidateArtifact } from "../../src/mutation/candidate-store.js";
+import { AUTORESEARCH_CONTRACT_VERSION } from "../../src/policy/autoresearch-contract.js";
 import { renderAfStrategySpecToPine } from "../../src/strategy-spec/codegen-pine.js";
+import { hashAfStrategySpec } from "../../src/strategy-spec/hash.js";
 import { afStrategySpecToConfig, afStrategySpecFromPine } from "../../src/strategy-spec/to-af-config.js";
 import { validateAfStrategySpec } from "../../src/strategy-spec/validate.js";
 
@@ -65,6 +67,9 @@ describe("AF strategy spec v1", () => {
     const pine = renderAfStrategySpecToPine(spec);
     const parsed = parseAfStrategyConfig(pine);
 
+    expect(pine).toContain("// AF_SPEC_VERSION=af-spec/v1");
+    expect(pine).toContain(`// AF_SPEC_HASH=${hashAfStrategySpec(spec)}`);
+    expect(pine).toContain(`// AF_CONTRACT_VERSION=${AUTORESEARCH_CONTRACT_VERSION}`);
     expect(parsed.issues).toEqual([]);
     expect(parsed.config.slotPct).toBe(12);
     expect(parsed.config.maxSlots).toBe(14);
@@ -118,7 +123,7 @@ describe("AF strategy spec v1", () => {
     });
 
     expect(artifact.specPath).toBeTruthy();
-    expect(artifact.specHash).toBeTruthy();
+    expect(artifact.specHash).toBe(hashAfStrategySpec(spec));
     const persisted = JSON.parse(await readFile(artifact.specPath ?? "", "utf8")) as {
       version?: string;
       event?: { eventWindowBars?: number };

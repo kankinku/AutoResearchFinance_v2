@@ -28,6 +28,7 @@ import {
 } from "../../src/state/jsonl-store.js";
 import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
 import { sha256Json } from "../../src/utils/fs.js";
+import { hashAfStrategySpec } from "../../src/strategy-spec/hash.js";
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(
@@ -46,6 +47,56 @@ const tradingViewCapability: ExecutorCapability = {
   supportedStrategyFamilies: ["Pine"],
   confidenceLevel: "verification",
 };
+
+const testStrategySpec = {
+  version: "af-spec/v1" as const,
+  name: "AF CLI Test Spec",
+  event: {
+    source: "event_floor" as const,
+    L1: 8,
+    L2: 12,
+    L3: 15,
+    confirmBars: 2,
+    eventFloorBars: 5,
+    eventWindowBars: 10,
+  },
+  regime: {
+    trendMode: "Balanced" as const,
+    useSupertrendFilter: true,
+    riskOffRsi: 44,
+    maxExtPct: 5.5,
+  },
+  entry: {
+    primaryTrigger: "bull_event",
+    cooldownBars: 1,
+    allowBearRebound: true,
+    applyFilterToB1: false,
+  },
+  slot: {
+    slotPct: 12,
+    maxSlots: 14,
+    useReplacement: true,
+    replaceMinRank: 3,
+    replaceIfPnlBelow: -4,
+  },
+  exit: {
+    weakRangeExit: true,
+    maxHoldBars: 18,
+    closeAllOnBearConfRiskOff: true,
+    resetOnL3: false,
+  },
+};
+
+async function writeTestSpecArtifact(root: string, candidateId: string) {
+  const specPath = path.join(root, "strategies", "specs", `${candidateId}.json`);
+  await mkdir(path.dirname(specPath), { recursive: true });
+  await writeFile(specPath, `${JSON.stringify(testStrategySpec, null, 2)}\n`, "utf8");
+  return {
+    specPath,
+    specHash: hashAfStrategySpec(testStrategySpec),
+    strategySpec: testStrategySpec,
+  };
+}
 
 const localScreeningCapability: ExecutorCapability = {
   kind: "local-af-screening",
@@ -268,6 +319,7 @@ async function seedUnsupportedAutonomousCandidate(root: string, candidateId: str
     "//@version=5\nstrategy('Unsupported Autonomous Candidate', overlay=true)\nindicator('forbidden helper')\n";
   await mkdir(path.dirname(candidatePath), { recursive: true });
   await writeFile(candidatePath, pineSource, "utf8");
+  const spec = await writeTestSpecArtifact(root, candidateId);
 
   return runLocalEvaluationPhase({
     workspaceRoot: root,
@@ -314,6 +366,7 @@ async function seedUnsupportedAutonomousCandidate(root: string, candidateId: str
       candidateSummary: "Unsupported autonomous candidate",
       nextMutationHints: ["restore missing AF compatibility fields"],
       pineScript: pineSource,
+      strategySpec: spec.strategySpec,
       inventory: [
         {
           conditionId: "entry-alpha",
@@ -332,6 +385,8 @@ async function seedUnsupportedAutonomousCandidate(root: string, candidateId: str
       branchId: "autonomous-main",
       pinePath: candidatePath,
       pineHash: `${candidateId}-hash`,
+      specPath: spec.specPath,
+      specHash: spec.specHash,
       studyTitle: "Unsupported Autonomous Candidate",
       inventory: [
         {

@@ -112,6 +112,10 @@ import {
   readRepairAttemptRecords,
   resolveStatePaths,
 } from "../state/jsonl-store.js";
+import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../policy/autoresearch-contract.js";
 import { validateLedger, verifyDerivedViews } from "../state/ledger-validator.js";
 import {
   auditKnowledgeTree,
@@ -2780,6 +2784,12 @@ program
               studyTitle: repairArtifact.studyTitle,
               candidatePath: repairArtifact.pinePath,
               candidateHash: repairArtifact.pineHash,
+              contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+              mutationAuthority: repairArtifact.specHash
+                ? STRATEGY_SPEC_MUTATION_AUTHORITY
+                : null,
+              specPath: repairArtifact.specPath ?? null,
+              specHash: repairArtifact.specHash ?? null,
               candidateSummary: repairArtifact.candidateSummary,
               nextMutationHints: repairArtifact.nextMutationHints,
             });

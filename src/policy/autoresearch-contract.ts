@@ -2,6 +2,7 @@ import path from "node:path";
 
 export const AUTORESEARCH_CONTRACT_VERSION = "finance-autoresearch-contract/v1";
 export const MUTATION_AUTHORITY_MODE = "spec_only";
+export const STRATEGY_SPEC_MUTATION_AUTHORITY = "strategy_spec";
 
 export const EVALUATION_FIREWALL_PATHS = [
   "src/evaluation/",

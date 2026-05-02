@@ -13,6 +13,7 @@ import {
   recordMetaSchema,
   tradeRecordSchema,
   equitySummarySchema,
+  mutationAuthoritySchema,
 } from "./types.js";
 
 export const autonomousRecordKindSchema = z.enum([
@@ -187,6 +188,8 @@ export const verifiedPromotionEvidenceSchema = z.object({
 
 export const localEvaluationBlockingReasonKindSchema = z.enum([
   "local_unsupported",
+  "missing_strategy_spec",
+  "spec_hash_mismatch",
   "missing_required_function",
   "missing_required_input",
   "unsupported_strategy_family",
@@ -205,6 +208,7 @@ export const localEvaluationBlockingReasonSchema = z.object({
   evidence: z.record(z.string(), z.unknown()).optional(),
   suggestedRepairKind: z
     .enum([
+      "schema_repair",
       "local_compatibility_repair",
       "risk_logic_repair",
       "entry_frequency_repair",
@@ -239,6 +243,10 @@ export const autonomousExperimentSchema = z.object({
   branchId: z.string().min(1),
   candidatePath: z.string().min(1),
   candidateHash: z.string().min(1),
+  contractVersion: z.string().nullable().default(null),
+  mutationAuthority: mutationAuthoritySchema.nullable().default(null),
+  specPath: z.string().nullable().default(null),
+  specHash: z.string().nullable().default(null),
   studyTitle: z.string().nullable().default(null),
   candidateScore: z.number().nullable().default(null),
   decision: z.string().min(1),

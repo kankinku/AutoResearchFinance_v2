@@ -4,6 +4,10 @@ import {
   type AutonomousExperimentRecord,
   type HeadEventRecord,
 } from "../contracts/autonomous.js";
+import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../policy/autoresearch-contract.js";
 import { sha256Json } from "../utils/fs.js";
 
 export function parseAutonomousExperimentRecord(
@@ -59,8 +63,21 @@ export function isVerifiedPromotionEligible(input: {
   );
   const parityStatus = input.record.localTvParity?.status;
   const verifiedPromotion = input.record.verifiedPromotion;
+  const specAuthorityMatches =
+    matchingLocalRecord != null &&
+    input.record.contractVersion === AUTORESEARCH_CONTRACT_VERSION &&
+    matchingLocalRecord.contractVersion === AUTORESEARCH_CONTRACT_VERSION &&
+    input.record.mutationAuthority === STRATEGY_SPEC_MUTATION_AUTHORITY &&
+    matchingLocalRecord.mutationAuthority === STRATEGY_SPEC_MUTATION_AUTHORITY &&
+    typeof input.record.specHash === "string" &&
+    input.record.specHash.length > 0 &&
+    input.record.specHash === matchingLocalRecord.specHash &&
+    typeof input.record.specPath === "string" &&
+    input.record.specPath.length > 0 &&
+    input.record.specPath === matchingLocalRecord.specPath;
   return (
     matchingLocalRecord != null &&
+    specAuthorityMatches &&
     input.record.tvCalibrationStatus === "verified_match" &&
     parityStatus != null &&
     parityStatus !== "major_drift" &&
@@ -262,6 +279,9 @@ export function buildSelectionEvidenceHash(
   return sha256Json({
     candidateId: record.candidateId,
     candidateHash: record.candidateHash,
+    specHash: record.specHash,
+    contractVersion: record.contractVersion,
+    mutationAuthority: record.mutationAuthority,
     localFrontierScore: record.localFrontierScore ?? record.autoSelectionScore,
     verifiedPromotionScore: record.verifiedPromotionScore,
     autoSelectionScore: record.autoSelectionScore,

@@ -697,6 +697,10 @@ async function appendTvRecord(
       baselineCandidateId: null,
       candidatePath: input.localRecord.candidatePath,
       candidateHash: input.localRecord.candidateHash,
+      contractVersion: input.localRecord.contractVersion,
+      mutationAuthority: input.localRecord.mutationAuthority,
+      specPath: input.localRecord.specPath,
+      specHash: input.localRecord.specHash,
       studyTitle: input.localRecord.studyTitle,
       candidateScore:
         input.verifiedPromotion?.score ??

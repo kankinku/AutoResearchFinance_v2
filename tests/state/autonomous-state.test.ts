@@ -5,6 +5,10 @@ import {
   type AutonomousExperimentRecord,
 } from "../../src/contracts/autonomous.js";
 import { type ExperimentRecord } from "../../src/contracts/types.js";
+import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../../src/policy/autoresearch-contract.js";
 import { selectBestChampionCandidate } from "../../src/state/autonomous-state.js";
 
 function createLocalRecord(): AutonomousExperimentRecord {
@@ -18,6 +22,10 @@ function createLocalRecord(): AutonomousExperimentRecord {
     baselineCandidateId: null,
     candidatePath: "C:\\tmp\\cand-a.pine",
     candidateHash: "hash-a",
+    contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+    mutationAuthority: STRATEGY_SPEC_MUTATION_AUTHORITY,
+    specPath: "C:\\tmp\\cand-a.json",
+    specHash: "spec-hash-a",
     studyTitle: "Cand A",
     candidateScore: 2,
     decision: "local_candidate_eligible",
@@ -214,5 +222,16 @@ describe("autonomous champion selectors", () => {
 
     expect(selected?.candidateId).toBe("cand-a");
     expect(selected?.verifiedPromotionScore).toBe(0.72);
+  });
+
+  test("rejects verified records when the spec authority does not match local evidence", () => {
+    const selected = selectBestChampionCandidate(asExperimentRecords([
+      createLocalRecord(),
+      createTvRecord({
+        specHash: "different-spec-hash",
+      }),
+    ]));
+
+    expect(selected).toBeNull();
   });
 });

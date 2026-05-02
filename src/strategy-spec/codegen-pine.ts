@@ -1,8 +1,12 @@
 import { type AfStrategyConfig } from "../automation/local-backtest/af-config.js";
+import { AUTORESEARCH_CONTRACT_VERSION } from "../policy/autoresearch-contract.js";
+import { hashAfStrategySpec, normalizeAfStrategySpec } from "./hash.js";
 import { afStrategySpecToConfig } from "./to-af-config.js";
 
 export function renderAfStrategySpecToPine(input: unknown): string {
-  const config = afStrategySpecToConfig(input);
+  const spec = normalizeAfStrategySpec(input);
+  const config = afStrategySpecToConfig(spec);
+  const specHash = hashAfStrategySpec(spec);
   const optionalInputs = [
     renderOptionalIntInput("eventFloorBars", config.eventFloorBars),
     renderOptionalIntInput("eventWindowBars", config.eventWindowBars),
@@ -13,6 +17,9 @@ export function renderAfStrategySpecToPine(input: unknown): string {
 
   return [
     "//@version=5",
+    `// AF_SPEC_VERSION=${spec.version}`,
+    `// AF_SPEC_HASH=${specHash}`,
+    `// AF_CONTRACT_VERSION=${AUTORESEARCH_CONTRACT_VERSION}`,
     `strategy(${quote(config.studyTitle ?? "AF Spec v1")}, overlay=true, initial_capital=${config.initialCapital}, commission_type=strategy.commission.percent, commission_value=${config.commissionPercent}, pyramiding=${config.maxSlots})`,
     "",
     renderIntInput("L1", config.L1),

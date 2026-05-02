@@ -34,6 +34,10 @@ import { type ExperimentRecord } from "../../contracts/types.js";
 import { createCandidateId, fileExists, sha256 } from "../../utils/fs.js";
 import { autonomousExperimentSchema } from "../../contracts/autonomous.js";
 import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../../policy/autoresearch-contract.js";
+import {
   resolveLocalConfidenceSignal,
   resolveStructureFamilyHash,
 } from "./divergence-update-phase.js";
@@ -71,6 +75,8 @@ export async function runLocalEvaluationPhase(input: {
     branchId: string;
     pinePath: string;
     pineHash: string;
+    specPath?: string | null;
+    specHash?: string | null;
     studyTitle: string | null;
     inventory: ParsedMutationResponse["inventory"];
     candidateSummary: string;
@@ -90,6 +96,11 @@ export async function runLocalEvaluationPhase(input: {
 }): Promise<LocalEvaluationPhaseResult> {
   const pineScript = input.parsedMutation.pineScript;
   const candidatePathExists = await fileExists(input.candidateArtifact.pinePath);
+  const specAuthorityStatus = buildSpecAuthorityStatus({
+    strategySpec: input.parsedMutation.strategySpec,
+    specPath: input.candidateArtifact.specPath ?? null,
+    specHash: input.candidateArtifact.specHash ?? null,
+  });
   const chartTarget = {
     symbol: input.objective.symbol,
     timeframe: input.objective.timeframe,
@@ -145,6 +156,12 @@ export async function runLocalEvaluationPhase(input: {
     baselineCandidateId: null,
     candidatePath: input.candidateArtifact.pinePath,
     candidateHash: input.candidateArtifact.pineHash,
+    contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+    mutationAuthority: specAuthorityStatus.valid
+      ? STRATEGY_SPEC_MUTATION_AUTHORITY
+      : null,
+    specPath: input.candidateArtifact.specPath ?? null,
+    specHash: input.candidateArtifact.specHash ?? null,
     studyTitle: input.candidateArtifact.studyTitle,
     mutationBriefSummary: input.candidateArtifact.candidateSummary,
     conditionInventory: input.candidateArtifact.inventory,
@@ -169,9 +186,91 @@ export async function runLocalEvaluationPhase(input: {
       candidateHash: input.candidateArtifact.pineHash,
       baselineHash: null,
       artifactBundleHash: null,
-      pipelineVersion: "af-autonomous-local-first/v3",
+      pipelineVersion: "af-autonomous-spec-authority/v4",
     },
   };
+
+  if (!specAuthorityStatus.valid) {
+    const blockingReasons: LocalEvaluationBlockingReason[] = [
+      {
+        kind: "missing_strategy_spec",
+        message: specAuthorityStatus.message,
+        evidence: {
+          reason: specAuthorityStatus.reason,
+          hasStrategySpec: input.parsedMutation.strategySpec != null,
+          specPath: input.candidateArtifact.specPath ?? null,
+          specHash: input.candidateArtifact.specHash ?? null,
+        },
+        suggestedRepairKind: "schema_repair",
+      },
+    ];
+    const eligibility = buildEligibilityStatus({
+      autoSelectionEligible: false,
+      bootstrapEligible: false,
+      archiveEligible: false,
+      calibrationEligible: false,
+      blockingReasons,
+    });
+    const duplicateStatus = classifyDuplicateStatus({
+      candidateId: input.candidateArtifact.candidateId,
+      candidateHash: input.candidateArtifact.pineHash,
+      noveltyFingerprint: fingerprintResult.fingerprint,
+      references: scoringReferences,
+    });
+    const record = await appendLocalRecord(input.stateRoot, {
+      ...baseRecord,
+      decision: "local_spec_authority_missing",
+      status: "rejected",
+      candidateScore: null,
+      artifactValidation: undefined,
+      testerMetrics: undefined,
+      objectiveBreakdown: undefined,
+      splitEvaluation: null,
+      noveltyFingerprint: fingerprintResult.fingerprint,
+      duplicateStatus,
+      localFrontierScore: null,
+      autoSelectionScore: null,
+      autoSelectionBreakdown: null,
+      localCompatibility: buildLocalCompatibilityStatus({
+        compatible: false,
+        reason: specAuthorityStatus.message,
+        issues: [],
+      }),
+      eligibility,
+      artifactPaths: buildCandidateArtifactPaths(input.candidateArtifact),
+    });
+    const failureSignatureHash = sha256(
+      JSON.stringify({
+        problemKind: "mutation_generation_fail",
+        reason: specAuthorityStatus.reason,
+        structureFamily: structureFamilyHash,
+      }),
+    );
+    const problemEvent = await appendProblemEventRecord(input.stateRoot, {
+      problemEventId: createCandidateId("problem"),
+      runId: input.runId,
+      iteration: input.iteration,
+      candidateId: input.candidateArtifact.candidateId,
+      problemKind: "mutation_generation_fail",
+      diagnosis: specAuthorityStatus.message,
+      evidenceHash: sha256(
+        JSON.stringify({
+          reason: specAuthorityStatus.reason,
+          specPath: input.candidateArtifact.specPath ?? null,
+          specHash: input.candidateArtifact.specHash ?? null,
+        }),
+      ),
+      suggestedRepairKind: "schema_repair",
+      failureSignatureHash,
+      structureFamily: structureFamilyHash,
+    });
+    return {
+      record,
+      shouldArchive: false,
+      shouldQueueCalibration: false,
+      problemEvent,
+    };
+  }
 
   const compatibility =
     (await input.executor.assessCompatibility?.({
@@ -230,7 +329,7 @@ export async function runLocalEvaluationPhase(input: {
       autoSelectionBreakdown: null,
       localCompatibility,
       eligibility,
-      artifactPaths: { candidate: input.candidateArtifact.pinePath },
+      artifactPaths: buildCandidateArtifactPaths(input.candidateArtifact),
     });
     throwIfAborted(input.signal);
     const problemEvent = await appendProblemEventRecord(input.stateRoot, {
@@ -315,7 +414,7 @@ export async function runLocalEvaluationPhase(input: {
       autoSelectionBreakdown: null,
       localCompatibility,
       eligibility,
-      artifactPaths: { candidate: input.candidateArtifact.pinePath },
+      artifactPaths: buildCandidateArtifactPaths(input.candidateArtifact),
       compile,
     });
     throwIfAborted(input.signal);
@@ -389,7 +488,7 @@ export async function runLocalEvaluationPhase(input: {
       autoSelectionBreakdown: null,
       localCompatibility,
       eligibility,
-      artifactPaths: { candidate: input.candidateArtifact.pinePath },
+      artifactPaths: buildCandidateArtifactPaths(input.candidateArtifact),
       compile,
       apply,
     });
@@ -470,7 +569,7 @@ export async function runLocalEvaluationPhase(input: {
     config: fingerprintResult.config,
     candidatePathExists,
     candidateHashExists: Boolean(input.candidateArtifact.pineHash),
-    mutationProvenanceValid: provenanceValid,
+    mutationProvenanceValid: provenanceValid && specAuthorityStatus.valid,
     localConfidenceSignal: mapConfidenceSignal(localConfidenceSignal),
   });
   const conditionContributions =
@@ -587,7 +686,7 @@ export async function runLocalEvaluationPhase(input: {
     localCompatibility,
     eligibility,
     artifactPaths: {
-      candidate: input.candidateArtifact.pinePath,
+      ...buildCandidateArtifactPaths(input.candidateArtifact),
       ...artifactPaths,
     },
     compile,
@@ -654,6 +753,52 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   }
   const reason = signal.reason;
   throw reason instanceof Error ? reason : new Error("Autonomous phase was aborted.");
+}
+
+function buildSpecAuthorityStatus(input: {
+  strategySpec: unknown;
+  specPath: string | null;
+  specHash: string | null;
+}):
+  | { valid: true; reason: null; message: string }
+  | { valid: false; reason: string; message: string } {
+  if (input.strategySpec == null) {
+    return {
+      valid: false,
+      reason: "strategy_spec_missing",
+      message: "Autonomous local evaluation requires a strategySpec artifact.",
+    };
+  }
+  if (!input.specPath) {
+    return {
+      valid: false,
+      reason: "spec_path_missing",
+      message: "Autonomous local evaluation requires a persisted specPath.",
+    };
+  }
+  if (!input.specHash) {
+    return {
+      valid: false,
+      reason: "spec_hash_missing",
+      message: "Autonomous local evaluation requires a persisted specHash.",
+    };
+  }
+
+  return {
+    valid: true,
+    reason: null,
+    message: "Strategy spec artifact is present.",
+  };
+}
+
+function buildCandidateArtifactPaths(input: {
+  pinePath: string;
+  specPath?: string | null;
+}): Record<string, string> {
+  return {
+    candidate: input.pinePath,
+    ...(input.specPath ? { spec: input.specPath } : {}),
+  };
 }
 
 function resolveInheritedConfidenceSignal(input: {
