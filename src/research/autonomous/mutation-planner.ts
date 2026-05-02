@@ -20,6 +20,7 @@ import {
   type ProblemEventRecord,
   type RepairAttemptRecord,
   type RepairKind,
+  type AutonomousBranchRecord,
 } from "../../contracts/autonomous.js";
 import {
   getAfLocalCompatibilityContract,
@@ -222,6 +223,7 @@ export async function prepareAutonomousMutationPlan(input: {
   mutationBriefs?: MutationBriefRecord[];
   iterationRecords?: AutonomousIterationLearningRecord[];
   ignoreCalibrationGuidance?: boolean;
+  selectedBranch?: AutonomousBranchRecord | null;
 }): Promise<AutonomousMutationPlan> {
   const seedStrategy = await loadSeedStrategyReference(input.workspaceRoot);
   const localCompatibilityContract = getAfLocalCompatibilityContract();
@@ -474,6 +476,11 @@ export async function prepareAutonomousMutationPlan(input: {
     breakoutVariantDirective,
     candidateBehaviorChangeSummary,
     explorationBudget: DEFAULT_EXPLORATION_BUDGET,
+    branchKind: input.selectedBranch?.branchKind,
+    branchGoal: input.selectedBranch
+      ? buildSelectedBranchGoal(input.selectedBranch)
+      : undefined,
+    followUpRemaining: input.selectedBranch?.followUpRemaining,
     promotionDiagnostics,
     recentCompileErrors: [],
     recentCompileFailureClasses: [],
@@ -1113,6 +1120,21 @@ export async function repairAutonomousCandidateForProblemEvent(input: {
 
 function calculateMinimumOosTradeTarget(minimumTotalTrades: number): number {
   return Math.max(15, Math.ceil(minimumTotalTrades * 0.25));
+}
+
+function buildSelectedBranchGoal(branch: AutonomousBranchRecord): string {
+  switch (branch.branchKind) {
+    case "champion_exploit":
+      return "Exploit the active verified champion while preserving verified-promotion gates.";
+    case "frontier_exploit":
+      return "Exploit high-scoring local frontier candidates without bypassing TV verification.";
+    case "exploration_breakout":
+      return "Explore a materially distinct AF-compatible structure family.";
+    case "near_miss_repair":
+      return "Repair a near-miss candidate within the three-follow-up branch limit.";
+    case "adversarial_simplification":
+      return "Reduce complexity and filter count while preserving OOS viability.";
+  }
 }
 
 export function buildRepairBriefForProblemEvent(input: {

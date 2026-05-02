@@ -29,6 +29,7 @@ export interface KnowledgePaths {
   localConfidenceEventsPath: string;
   problemEventsPath: string;
   repairAttemptsPath: string;
+  branchesPath: string;
   leaderboardPath: string;
   lineagePath: string;
   frontierPath: string;
@@ -113,6 +114,7 @@ export function resolveKnowledgePaths(stateRoot: string): KnowledgePaths {
     ),
     problemEventsPath: path.join(ledgerDir, "problem-events.jsonl"),
     repairAttemptsPath: path.join(ledgerDir, "repair-attempts.jsonl"),
+    branchesPath: path.join(ledgerDir, "branches.jsonl"),
     leaderboardPath: path.join(viewsDir, "leaderboard.json"),
     lineagePath: path.join(viewsDir, "lineage.json"),
     frontierPath: path.join(viewsDir, "frontier.json"),

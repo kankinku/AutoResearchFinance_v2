@@ -20,6 +20,7 @@ vi.mock("../../src/evaluation/autonomous-scoring.js", async (importOriginal) => 
 import { loadObjectiveConfig } from "../../src/config/objective.js";
 import {
   autonomousExperimentSchema,
+  autonomousBranchRecordSchema,
   type ProblemEventRecord,
 } from "../../src/contracts/autonomous.js";
 import { type RuntimeEnvironment } from "../../src/cli/runtime-config.js";
@@ -1789,6 +1790,16 @@ describe("autonomous tv-verified v4", () => {
       headEvents: [],
       archiveEvents: [],
       calibrationEvents: [],
+      selectedBranch: autonomousBranchRecordSchema.parse({
+        branchId: "branch-test",
+        branchKind: "exploration_breakout",
+        budgetPct: 20,
+        parentCandidateId: null,
+        followUpRemaining: 0,
+        createdAt: "2026-05-03T00:00:00.000Z",
+        lastCandidateId: null,
+        status: "active",
+      }),
     });
 
     expect(plan.brief.explorationBudget).toEqual({
@@ -1798,6 +1809,9 @@ describe("autonomous tv-verified v4", () => {
       nearMissRepairPct: 5,
       simplificationPct: 5,
     });
+    expect(plan.brief.branchKind).toBe("exploration_breakout");
+    expect(plan.brief.branchGoal).toContain("distinct AF-compatible");
+    expect(plan.brief.followUpRemaining).toBe(0);
     expect(plan.brief.promotionDiagnostics?.conditionContribution[0]?.conditionId).toBe(
       "risk-off-filter",
     );

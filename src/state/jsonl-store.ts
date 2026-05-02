@@ -38,7 +38,9 @@ import {
   calibrationEventRecordSchema,
   headEventRecordSchema,
   localConfidenceEventRecordSchema,
+  autonomousBranchRecordSchema,
   type ArchiveEventRecord,
+  type AutonomousBranchRecord,
   type CalibrationEventRecord,
   type HeadEventRecord,
   type LocalConfidenceEventRecord,
@@ -76,6 +78,7 @@ export function resolveStatePaths(stateRoot: string): {
   localConfidenceEventsPath: string;
   problemEventsPath: string;
   repairAttemptsPath: string;
+  branchesPath: string;
   leaderboardPath: string;
   lineagePath: string;
   frontierPath: string;
@@ -123,6 +126,7 @@ export function resolveStatePaths(stateRoot: string): {
     localConfidenceEventsPath: knowledgePaths.localConfidenceEventsPath,
     problemEventsPath: knowledgePaths.problemEventsPath,
     repairAttemptsPath: knowledgePaths.repairAttemptsPath,
+    branchesPath: knowledgePaths.branchesPath,
     leaderboardPath: knowledgePaths.leaderboardPath,
     lineagePath: knowledgePaths.lineagePath,
     frontierPath: knowledgePaths.frontierPath,
@@ -823,6 +827,16 @@ export async function appendRepairAttemptRecord(
   return normalized;
 }
 
+export async function appendAutonomousBranchRecord(
+  stateRoot: string,
+  record: AutonomousBranchRecord,
+): Promise<AutonomousBranchRecord> {
+  await ensureStateRoot(stateRoot);
+  const normalized = autonomousBranchRecordSchema.parse(record);
+  await appendJsonlAtomic(resolveStatePaths(stateRoot).branchesPath, normalized);
+  return normalized;
+}
+
 export async function readExperimentRecords(stateRoot: string): Promise<ExperimentRecord[]> {
   await ensureStateRoot(stateRoot);
   return readJsonlStream<ExperimentRecord>(
@@ -981,6 +995,16 @@ export async function readRepairAttemptRecords(
   return readTypedJsonl(
     resolveStatePaths(stateRoot).repairAttemptsPath,
     repairAttemptRecordSchema,
+  );
+}
+
+export async function readAutonomousBranchRecords(
+  stateRoot: string,
+): Promise<AutonomousBranchRecord[]> {
+  await ensureStateRoot(stateRoot);
+  return readTypedJsonl(
+    resolveStatePaths(stateRoot).branchesPath,
+    autonomousBranchRecordSchema,
   );
 }
 

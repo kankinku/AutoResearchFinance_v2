@@ -3,11 +3,13 @@ import { type LocalCompatibilityIssue } from "../../contracts/types.js";
 import { type MutationLlmClient } from "../../mutation/llm-client.js";
 import {
   appendAutonomousIterationRecord,
+  appendAutonomousBranchRecord,
   appendIncidentRecord,
   appendProblemEventRecord,
   appendRunRecord,
   ensureStateRoot,
   readArchiveEventRecords,
+  readAutonomousBranchRecords,
   readCalibrationEventRecords,
   readExperimentRecords,
   readHeadEventRecords,
@@ -39,6 +41,10 @@ import {
 } from "./tv-calibration-phase.js";
 import { resolveTvHealthStatus } from "./tv-health-phase.js";
 import { runAutoSelectionPhase } from "./auto-selection-phase.js";
+import {
+  buildAutonomousBranchRecord,
+  selectNextAutonomousBranch,
+} from "./branch-scheduler.js";
 import { ensureQqqTwoHourContext } from "../market-context.js";
 import {
   initializeWorkspace,
@@ -151,6 +157,7 @@ export async function runAutonomousLoop(input: {
   const repairAttempts = await readRepairAttemptRecords(stateRoot);
   const mutationBriefs = await readMutationBriefRecords(stateRoot);
   const iterationRecords = await readRecentAutonomousIterationRecords(stateRoot);
+  const branchRecords = await readAutonomousBranchRecords(stateRoot);
   const iteration = previousExperiments.length + 1;
 
   await appendRunRecord(stateRoot, {
@@ -267,6 +274,15 @@ export async function runAutonomousLoop(input: {
   }
 
   try {
+    const selectedBranch = selectNextAutonomousBranch({
+      branches: branchRecords,
+      experiments: previousExperiments,
+    });
+    const selectedBranchRecord = buildAutonomousBranchRecord({
+      selection: selectedBranch,
+      parentCandidateId: null,
+      lastCandidateId: null,
+    });
     const plan = await prepareAutonomousMutationPlan({
       workspaceRoot: input.workspaceRoot,
       objective,
@@ -279,6 +295,7 @@ export async function runAutonomousLoop(input: {
       repairAttempts,
       mutationBriefs,
       iterationRecords,
+      selectedBranch: selectedBranchRecord,
       ignoreCalibrationGuidance:
         input.env.tvCalibrationMode !== "mock-recovered" &&
         (!input.env.autoProcessCalibration ||
@@ -301,6 +318,7 @@ export async function runAutonomousLoop(input: {
             llmClient: input.llmClient,
             plan,
             parentCandidateId: plan.parentCandidateId,
+            branchId: selectedBranch.branchId,
             mutationSchemaMode: input.env.mutationSchemaMode,
             signal,
             monitor: input.monitor,
@@ -413,6 +431,7 @@ export async function runAutonomousLoop(input: {
                 parsedMutation: mutation.parsedMutation,
                 compatibilityIssues,
                 problemEvent: localEvaluation.problemEvent,
+                branchId: selectedBranch.branchId,
                 mutationSchemaMode: input.env.mutationSchemaMode,
                 signal,
                 monitor: input.monitor,
@@ -440,6 +459,7 @@ export async function runAutonomousLoop(input: {
                 evaluation: localEvaluation.record,
               }),
               summary: `Requested ${localEvaluation.problemEvent.suggestedRepairKind} after ${localEvaluation.problemEvent.problemKind}.`,
+              branchId: selectedBranch.branchId,
               mutationSchemaMode: input.env.mutationSchemaMode,
               signal,
               monitor: input.monitor,
@@ -513,6 +533,14 @@ export async function runAutonomousLoop(input: {
       phaseTimeouts,
       signal: input.signal,
     });
+    await appendAutonomousBranchRecord(
+      stateRoot,
+      buildAutonomousBranchRecord({
+        selection: selectedBranch,
+        parentCandidateId: plan.parentCandidateId,
+        lastCandidateId: localEvaluation.record.candidateId,
+      }),
+    );
     await recordAutonomousIterationLearning({
       stateRoot,
       runId,

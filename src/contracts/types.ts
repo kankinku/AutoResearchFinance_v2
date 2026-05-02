@@ -738,6 +738,14 @@ export const explorationBudgetSchema = z.object({
   simplificationPct: z.number().min(0).max(100),
 });
 
+export const branchKindSchema = z.enum([
+  "champion_exploit",
+  "frontier_exploit",
+  "exploration_breakout",
+  "near_miss_repair",
+  "adversarial_simplification",
+]);
+
 export const foldFailureMapEntrySchema = z.object({
   candidateId: z.string().min(1),
   failedFolds: z.array(z.string()).default([]),
@@ -839,6 +847,9 @@ export const mutationBriefSchema = z.object({
       })
       .optional(),
   explorationBudget: explorationBudgetSchema.optional(),
+  branchKind: branchKindSchema.optional(),
+  branchGoal: z.string().min(1).optional(),
+  followUpRemaining: z.number().int().nonnegative().optional(),
   promotionDiagnostics: promotionDiagnosticsSchema.optional(),
   recentCompileErrors: z.array(z.string()).default([]),
   recentCompileFailureClasses: z.array(compileFailureClassSchema).default([]),
@@ -1241,6 +1252,7 @@ export type FallbackEvaluationCompatibility = z.infer<
 export type FallbackEvaluation = z.infer<typeof fallbackEvaluationSchema>;
 export type ConditionContribution = z.infer<typeof conditionContributionSchema>;
 export type ExplorationBudget = z.infer<typeof explorationBudgetSchema>;
+export type BranchKind = z.infer<typeof branchKindSchema>;
 export type FoldFailureMapEntry = z.infer<typeof foldFailureMapEntrySchema>;
 export type PromotionDiagnostics = z.infer<typeof promotionDiagnosticsSchema>;
 export type MutationBrief = z.infer<typeof mutationBriefSchema>;

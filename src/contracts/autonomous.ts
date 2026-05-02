@@ -14,6 +14,7 @@ import {
   tradeRecordSchema,
   equitySummarySchema,
   mutationAuthoritySchema,
+  branchKindSchema,
 } from "./types.js";
 
 export const autonomousRecordKindSchema = z.enum([
@@ -346,6 +347,23 @@ export const headAuthoritySchema = z.enum([
   "verified_promotion",
 ]);
 
+export const autonomousBranchStatusSchema = z.enum([
+  "active",
+  "exhausted",
+  "closed",
+]);
+
+export const autonomousBranchRecordSchema = z.object({
+  branchId: z.string().min(1),
+  branchKind: branchKindSchema,
+  budgetPct: z.number().min(0).max(100),
+  parentCandidateId: z.string().nullable().default(null),
+  followUpRemaining: z.number().int().nonnegative(),
+  createdAt: z.string().datetime(),
+  lastCandidateId: z.string().nullable().default(null),
+  status: autonomousBranchStatusSchema,
+});
+
 export const headEventRecordSchema = z.object({
   runId: z.string().min(1),
   iteration: z.number().int().positive(),
@@ -544,6 +562,8 @@ export type AutonomousEligibility = z.infer<typeof autonomousEligibilitySchema>;
 export type AutonomousExperimentRecord = z.infer<typeof autonomousExperimentSchema>;
 export type HeadEventRecord = z.infer<typeof headEventRecordSchema>;
 export type HeadAuthority = z.infer<typeof headAuthoritySchema>;
+export type AutonomousBranchStatus = z.infer<typeof autonomousBranchStatusSchema>;
+export type AutonomousBranchRecord = z.infer<typeof autonomousBranchRecordSchema>;
 export type ArchiveEventRecord = z.infer<typeof archiveEventRecordSchema>;
 export type CalibrationEventRecord = z.infer<typeof calibrationEventRecordSchema>;
 export type DivergenceSeverity = z.infer<typeof divergenceSeveritySchema>;
