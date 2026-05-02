@@ -54,8 +54,8 @@ const runtimeEnvironmentSchema = z.object({
   alphaXivSessionFilePath: z.string().optional(),
   tvCalibrationMode: z.enum(["live", "mock-recovered"]).default("live"),
   autonomousBootstrapMode: z.enum(["auto", "disabled"]).default("auto"),
-  autoProcessCalibration: z.boolean().default(false),
-  calibrationBudget: z.number().int().positive().default(1),
+  autoProcessCalibration: z.boolean().default(true),
+  calibrationBudget: z.number().int().positive().default(3),
   calibrationTimeoutMs: z.number().int().positive().default(30_000),
 });
 
@@ -82,7 +82,7 @@ function parsePromotionVerificationExecutor(
     return value;
   }
 
-  return "none";
+  return "tradingview-desktop-cdp";
 }
 
 export function loadRuntimeEnvironment(options?: {
@@ -198,9 +198,11 @@ export function loadRuntimeEnvironment(options?: {
         ? "disabled"
         : "auto",
     autoProcessCalibration:
-      process.env.AF_AUTO_PROCESS_CALIBRATION === "true" ? true : false,
+      process.env.AF_AUTO_PROCESS_CALIBRATION == null
+        ? true
+        : process.env.AF_AUTO_PROCESS_CALIBRATION === "true",
     calibrationBudget: Number.parseInt(
-      process.env.AF_CALIBRATION_BUDGET ?? "1",
+      process.env.AF_CALIBRATION_BUDGET ?? "3",
       10,
     ),
     calibrationTimeoutMs: Number.parseInt(

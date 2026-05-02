@@ -44,12 +44,40 @@ export function isAutoSelectionEligible(record: AutonomousExperimentRecord): boo
   );
 }
 
+export function isVerifiedPromotionEligible(input: {
+  record: AutonomousExperimentRecord;
+  localRecords: AutonomousExperimentRecord[];
+}): boolean {
+  if (input.record.recordKind !== "tv_verification") {
+    return false;
+  }
+  const matchingLocalRecord = input.localRecords.find(
+    (localRecord) =>
+      localRecord.recordKind === "local_evaluation" &&
+      localRecord.candidateId === input.record.candidateId &&
+      localRecord.candidateHash === input.record.candidateHash,
+  );
+  return (
+    matchingLocalRecord != null &&
+    input.record.tvCalibrationStatus === "verified_match" &&
+    input.record.localTvParity?.status !== "major_drift" &&
+    input.record.verifiedPromotion?.eligible === true &&
+    typeof input.record.verifiedPromotionScore === "number"
+  );
+}
+
 export function compareAutonomousChampion(
   left: AutonomousExperimentRecord,
   right: AutonomousExperimentRecord,
 ): number {
-  const leftScore = left.autoSelectionScore ?? Number.NEGATIVE_INFINITY;
-  const rightScore = right.autoSelectionScore ?? Number.NEGATIVE_INFINITY;
+  const leftScore =
+    left.localFrontierScore ??
+    left.autoSelectionScore ??
+    Number.NEGATIVE_INFINITY;
+  const rightScore =
+    right.localFrontierScore ??
+    right.autoSelectionScore ??
+    Number.NEGATIVE_INFINITY;
   if (leftScore !== rightScore) {
     return rightScore - leftScore;
   }
@@ -93,7 +121,52 @@ export function compareAutonomousChampion(
   return left.candidateId.localeCompare(right.candidateId);
 }
 
-export function selectBestAutonomousChampionCandidate(
+export function compareVerifiedPromotionCandidate(
+  left: AutonomousExperimentRecord,
+  right: AutonomousExperimentRecord,
+): number {
+  const leftScore =
+    left.verifiedPromotionScore ??
+    left.verifiedPromotion?.score ??
+    Number.NEGATIVE_INFINITY;
+  const rightScore =
+    right.verifiedPromotionScore ??
+    right.verifiedPromotion?.score ??
+    Number.NEGATIVE_INFINITY;
+  if (leftScore !== rightScore) {
+    return rightScore - leftScore;
+  }
+
+  const leftOosProfit =
+    left.walkForwardEvaluation?.medianOosPostFeeNetProfitPercent ??
+    Number.NEGATIVE_INFINITY;
+  const rightOosProfit =
+    right.walkForwardEvaluation?.medianOosPostFeeNetProfitPercent ??
+    Number.NEGATIVE_INFINITY;
+  if (leftOosProfit !== rightOosProfit) {
+    return rightOosProfit - leftOosProfit;
+  }
+
+  const leftDrawdown =
+    left.walkForwardEvaluation?.worstFoldDrawdownPercent ??
+    left.testerMetrics?.maxStrategyDrawdownPercent ??
+    Number.POSITIVE_INFINITY;
+  const rightDrawdown =
+    right.walkForwardEvaluation?.worstFoldDrawdownPercent ??
+    right.testerMetrics?.maxStrategyDrawdownPercent ??
+    Number.POSITIVE_INFINITY;
+  if (leftDrawdown !== rightDrawdown) {
+    return leftDrawdown - rightDrawdown;
+  }
+
+  if (left.iteration !== right.iteration) {
+    return right.iteration - left.iteration;
+  }
+
+  return left.candidateId.localeCompare(right.candidateId);
+}
+
+export function selectBestLocalFrontierCandidate(
   records: ExperimentRecord[],
 ): AutonomousExperimentRecord | null {
   const eligible = selectLocalEvaluationRecords(records).filter(isAutoSelectionEligible);
@@ -102,6 +175,32 @@ export function selectBestAutonomousChampionCandidate(
   }
 
   return [...eligible].sort(compareAutonomousChampion)[0] ?? null;
+}
+
+export function selectBestTvVerifiedCandidate(
+  records: ExperimentRecord[],
+): AutonomousExperimentRecord | null {
+  const localRecords = selectLocalEvaluationRecords(records);
+  const eligible = selectTvVerificationRecords(records).filter((record) =>
+    isVerifiedPromotionEligible({ record, localRecords }),
+  );
+  if (eligible.length === 0) {
+    return null;
+  }
+
+  return [...eligible].sort(compareVerifiedPromotionCandidate)[0] ?? null;
+}
+
+export function selectBestChampionCandidate(
+  records: ExperimentRecord[],
+): AutonomousExperimentRecord | null {
+  return selectBestTvVerifiedCandidate(records);
+}
+
+export function selectBestAutonomousChampionCandidate(
+  records: ExperimentRecord[],
+): AutonomousExperimentRecord | null {
+  return selectBestChampionCandidate(records);
 }
 
 export function findActiveChampionCandidateId(
@@ -131,10 +230,19 @@ export function findActiveChampionRecord(input: {
     return null;
   }
 
-  const localRecords = selectLocalEvaluationRecords(input.records)
+  const localRecords = selectLocalEvaluationRecords(input.records);
+  const tvRecords = selectTvVerificationRecords(input.records)
+    .filter((record) => record.candidateId === championId)
+    .filter((record) => isVerifiedPromotionEligible({ record, localRecords }))
+    .sort(compareVerifiedPromotionCandidate);
+  if (tvRecords[0]) {
+    return tvRecords[0];
+  }
+
+  const matchingLocalRecords = localRecords
     .filter((record) => record.candidateId === championId)
     .sort(compareAutonomousChampion);
-  return localRecords[0] ?? null;
+  return matchingLocalRecords[0] ?? null;
 }
 
 export function buildSelectionEvidenceHash(
@@ -147,8 +255,11 @@ export function buildSelectionEvidenceHash(
   return sha256Json({
     candidateId: record.candidateId,
     candidateHash: record.candidateHash,
+    localFrontierScore: record.localFrontierScore ?? record.autoSelectionScore,
+    verifiedPromotionScore: record.verifiedPromotionScore,
     autoSelectionScore: record.autoSelectionScore,
     autoSelectionBreakdown: record.autoSelectionBreakdown,
+    verifiedPromotion: record.verifiedPromotion,
     rejectionReasons: record.autoSelectionBreakdown?.rejectionReasons ?? [],
     previousChampionId: options?.previousChampionId ?? null,
     policyVersion: options?.policyVersion ?? record.selectionPolicyVersion,

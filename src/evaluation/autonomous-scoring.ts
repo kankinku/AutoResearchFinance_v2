@@ -4,6 +4,7 @@ import {
   type ArtifactBundle,
   type BacktestMetrics,
   type ExperimentRecord,
+  type LocalTvParitySummary,
   type ObjectiveConfig,
   type ObjectiveBreakdown,
   type ParsedMutationResponse,
@@ -14,12 +15,14 @@ import {
   type NoveltyFingerprint,
   type SplitEvaluation,
   type TvCalibrationStatus,
+  type WalkForwardEvaluation,
 } from "../contracts/autonomous.js";
 import {
   autoSelectionBreakdownSchema,
   duplicateStatusSchema,
   noveltyFingerprintSchema,
   splitEvaluationSchema,
+  verifiedPromotionEvidenceSchema,
 } from "../contracts/autonomous.js";
 import { loadLocalBacktestBars } from "../automation/local-backtest/context.js";
 import { parseAfStrategyConfig, type AfStrategyConfig } from "../automation/local-backtest/af-config.js";
@@ -27,8 +30,9 @@ import { simulateAfStrategy } from "../automation/local-backtest/af-simulator.js
 import { sha256Json } from "../utils/fs.js";
 
 const OBJECTIVE_POLICY_VERSION = "objective.qqq-120m/v1";
-export const AUTONOMOUS_SELECTION_POLICY_VERSION = "autonomous-local-first/v3-p0";
+export const AUTONOMOUS_SELECTION_POLICY_VERSION = "autonomous-tv-verified/v4";
 const CHRONOLOGICAL_SPLIT_RATIO = 0.7;
+const VERIFIED_PROMOTION_POLICY_VERSION = "verified-promotion/v1";
 
 export interface AutonomousScoringReferenceRecord {
   candidateId: string;
@@ -61,6 +65,10 @@ export function getObjectivePolicyVersion(): string {
 
 export function getAutonomousSelectionPolicyVersion(): string {
   return AUTONOMOUS_SELECTION_POLICY_VERSION;
+}
+
+export function getVerifiedPromotionPolicyVersion(): string {
+  return VERIFIED_PROMOTION_POLICY_VERSION;
 }
 
 export function buildNoveltyFingerprint(
@@ -354,6 +362,142 @@ export function buildAutoSelectionBreakdown(input: {
     eligible: rejectionReasons.length === 0,
     rejectionReasons,
   });
+}
+
+export function buildVerifiedPromotionScore(input: {
+  localMetrics: BacktestMetrics | null | undefined;
+  tvMetrics: BacktestMetrics | null | undefined;
+  localCandidateHash: string | null | undefined;
+  tvCandidateHash: string | null | undefined;
+  tvCalibrationStatus: TvCalibrationStatus;
+  localTvParity: LocalTvParitySummary | null | undefined;
+  walkForwardEvaluation: WalkForwardEvaluation | null | undefined;
+  config: AfStrategyConfig | null;
+  referenceExperiments: ExperimentRecord[];
+}) {
+  const rejectionReasons: string[] = [];
+  const parity = input.localTvParity ?? null;
+  const walkForward = input.walkForwardEvaluation ?? null;
+  const tvMetrics = input.tvMetrics ?? null;
+
+  if (input.tvCalibrationStatus !== "verified_match") {
+    rejectionReasons.push("tv_not_verified_match");
+  }
+  if (!input.localCandidateHash || !input.tvCandidateHash) {
+    rejectionReasons.push("candidate_hash_missing");
+  } else if (input.localCandidateHash !== input.tvCandidateHash) {
+    rejectionReasons.push("candidate_hash_mismatch");
+  }
+  if (!tvMetrics) {
+    rejectionReasons.push("tv_metrics_missing");
+  }
+  if (!parity || parity.status === "not_comparable") {
+    rejectionReasons.push("parity_not_comparable");
+  } else {
+    if (parity.status === "major_drift") {
+      rejectionReasons.push("local_tv_major_drift");
+    }
+    if (Math.abs(parity.tradeCountDelta ?? Number.POSITIVE_INFINITY) > 1) {
+      rejectionReasons.push("parity_trade_count_delta");
+    }
+    if (Math.abs(parity.netProfitPctDelta ?? Number.POSITIVE_INFINITY) > 2) {
+      rejectionReasons.push("parity_net_profit_delta");
+    }
+  }
+  if (!walkForward) {
+    rejectionReasons.push("walk_forward_missing");
+  } else if (!walkForward.passed) {
+    rejectionReasons.push(...walkForward.gateReasons.map((reason) => `walk_forward:${reason}`));
+  }
+
+  const tvPerformanceScore = normalizePositive(tvMetrics?.postFeeNetProfitPercent ?? 0, 30) * 0.3;
+  const walkForwardRobustnessScore =
+    normalizePositive(walkForward?.medianOosPostFeeNetProfitPercent ?? 0, 15) * 0.18 +
+    normalizePositive((walkForward?.medianOosProfitFactor ?? 1) - 1, 1) * 0.12;
+  const foldConsistencyScore =
+    walkForward && walkForward.foldCount > 0
+      ? (walkForward.positiveOosFoldCount / walkForward.foldCount) * 0.15
+      : 0;
+  const tradeDensityScore =
+    normalizePositive(walkForward?.totalOosTrades ?? 0, walkForward?.minimumTotalOosTrades ?? 60) * 0.1;
+  const parityScore =
+    parity?.status === "matched"
+      ? 0.1
+      : parity?.status === "minor_drift"
+        ? 0.04
+        : 0;
+  const simplicityScore = Math.max(0, 0.05 - computeComplexityPenalty(input.config) * 0.25);
+  const trialBudgetPenalty = computeTrialBudgetPenalty(input.referenceExperiments);
+  const complexityPenalty = computeComplexityPenalty(input.config);
+  const regimeConcentrationPenalty = 0;
+  const totalScore = roundScore(
+    tvPerformanceScore +
+      walkForwardRobustnessScore +
+      foldConsistencyScore +
+      tradeDensityScore +
+      parityScore +
+      simplicityScore -
+      trialBudgetPenalty -
+      regimeConcentrationPenalty -
+      complexityPenalty,
+  );
+  const minimumRequiredScore = computeMinimumVerifiedPromotionScore(
+    input.referenceExperiments,
+  );
+  if (totalScore < minimumRequiredScore) {
+    rejectionReasons.push("verified_score_below_threshold");
+  }
+
+  const eligible = rejectionReasons.length === 0;
+  return verifiedPromotionEvidenceSchema.parse({
+    eligible,
+    score: eligible ? totalScore : null,
+    scoreBreakdown: {
+      tvPerformanceScore: roundScore(tvPerformanceScore),
+      walkForwardRobustnessScore: roundScore(walkForwardRobustnessScore),
+      foldConsistencyScore: roundScore(foldConsistencyScore),
+      tradeDensityScore: roundScore(tradeDensityScore),
+      parityScore: roundScore(parityScore),
+      simplicityScore: roundScore(simplicityScore),
+      trialBudgetPenalty,
+      regimeConcentrationPenalty,
+      complexityPenalty,
+      totalScore,
+      minimumRequiredScore,
+    },
+    rejectionReasons,
+    localCandidateHash: input.localCandidateHash ?? null,
+    tvCandidateHash: input.tvCandidateHash ?? null,
+    localRecordKind: "local_evaluation",
+    tvRecordKind: "tv_verification",
+    policyVersion: VERIFIED_PROMOTION_POLICY_VERSION,
+  });
+}
+
+export function computeTrialBudgetPenalty(
+  referenceExperiments: ExperimentRecord[],
+): number {
+  const tried = referenceExperiments.filter((record) => record.candidateHash).length;
+  if (tried < 100) {
+    return 0;
+  }
+  if (tried < 1_000) {
+    return 0.04;
+  }
+  return 0.08;
+}
+
+export function computeMinimumVerifiedPromotionScore(
+  referenceExperiments: ExperimentRecord[],
+): number {
+  const tried = referenceExperiments.filter((record) => record.candidateHash).length;
+  if (tried < 100) {
+    return 0.62;
+  }
+  if (tried < 1_000) {
+    return 0.68;
+  }
+  return 0.74;
 }
 
 export function buildTvFailureDecision(input: {
@@ -679,6 +823,13 @@ function computeComplexityPenalty(config: AfStrategyConfig | null): number {
     (config.entryCooldownBars > 0 ? 0.01 : 0) +
     (config.confirmBars > 2 ? 0.01 : 0);
   return roundScore(Math.min(0.15, enabledFlags * 0.01 + parameterPenalty));
+}
+
+function normalizePositive(value: number, cap: number): number {
+  if (!Number.isFinite(value) || cap <= 0) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, value / cap));
 }
 
 function bucketNumber(value: number, cutoffs: number[]): string {

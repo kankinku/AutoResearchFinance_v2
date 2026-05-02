@@ -5,20 +5,28 @@ import {
   type CalibrationEventRecord,
   type AutonomousExperimentRecord,
   type LocalConfidenceEventRecord,
+  type VerifiedPromotionEvidence,
+  type WalkForwardEvaluation,
 } from "../../contracts/autonomous.js";
 import {
   type ObjectiveConfig,
   type ExperimentRecord,
   type BacktestMetrics,
 } from "../../contracts/types.js";
+import { parseAfStrategyConfig } from "../../automation/local-backtest/af-config.js";
 import { type PineEvaluationExecutor } from "../../automation/common/executor.js";
 import { validateArtifactBundle } from "../../evaluation/artifact-validation.js";
 import {
+  buildVerifiedPromotionScore,
   buildTvCalibrationStatus,
   buildTvFailureDecision,
   getAutonomousSelectionPolicyVersion,
   getObjectivePolicyVersion,
 } from "../../evaluation/autonomous-scoring.js";
+import {
+  buildWalkForwardEvaluationFromFoldMetrics,
+  evaluateWalkForward,
+} from "../../evaluation/walkforward.js";
 import {
   appendCalibrationEventRecord,
   appendExperimentRecord,
@@ -168,6 +176,21 @@ export async function processTvCalibrationQueue(input: {
           : parity.status === "minor_drift"
             ? 0.8
             : 0.6;
+      const tvCalibrationStatus = buildTvCalibrationStatus({
+        decision: "tv_verified",
+        parityMatched: parity.status === "matched",
+      });
+      const promotionEvidence = await buildTvPromotionEvidence({
+        workspaceRoot: input.workspaceRoot,
+        stateRoot: input.stateRoot,
+        objective: input.objective,
+        candidateSource,
+        localRecord,
+        tvMetrics: mockTvMetrics,
+        tvCalibrationStatus,
+        localTvParity: parity,
+        referenceExperiments: input.experiments,
+      });
       throwIfAborted(input.signal);
       const tvRecord = await appendTvRecord(input.stateRoot, {
         localRecord,
@@ -216,10 +239,9 @@ export async function processTvCalibrationQueue(input: {
         },
         localTvParity: parity,
         localConfidence: localConfidenceAfter,
-        tvCalibrationStatus: buildTvCalibrationStatus({
-          decision: "tv_verified",
-          parityMatched: parity.status === "matched",
-        }),
+        tvCalibrationStatus,
+        walkForwardEvaluation: promotionEvidence.walkForwardEvaluation,
+        verifiedPromotion: promotionEvidence.verifiedPromotion,
       });
       throwIfAborted(input.signal);
       const divergenceEvent = await appendDivergenceEvent({
@@ -397,6 +419,21 @@ export async function processTvCalibrationQueue(input: {
           : parity.status === "minor_drift"
             ? 0.8
             : 0.6;
+      const tvCalibrationStatus = buildTvCalibrationStatus({
+        decision: "tv_verified",
+        parityMatched: parity.status === "matched",
+      });
+      const promotionEvidence = await buildTvPromotionEvidence({
+        workspaceRoot: input.workspaceRoot,
+        stateRoot: input.stateRoot,
+        objective: input.objective,
+        candidateSource,
+        localRecord,
+        tvMetrics: artifactBundle.strategy ?? null,
+        tvCalibrationStatus,
+        localTvParity: parity,
+        referenceExperiments: input.experiments,
+      });
       throwIfAborted(input.signal);
       const tvRecord = await appendTvRecord(input.stateRoot, {
         localRecord,
@@ -411,10 +448,9 @@ export async function processTvCalibrationQueue(input: {
         artifactBundle,
         localTvParity: parity,
         localConfidence: localConfidenceAfter,
-        tvCalibrationStatus: buildTvCalibrationStatus({
-          decision: "tv_verified",
-          parityMatched: parity.status === "matched",
-        }),
+        tvCalibrationStatus,
+        walkForwardEvaluation: promotionEvidence.walkForwardEvaluation,
+        verifiedPromotion: promotionEvidence.verifiedPromotion,
       });
       throwIfAborted(input.signal);
       const divergenceEvent = await appendDivergenceEvent({
@@ -547,10 +583,56 @@ function buildMockRecoveredMetrics(
 
   return {
     ...localMetrics,
-    totalTrades: Math.max(0, localMetrics.totalTrades - 2),
+    totalTrades: Math.max(0, localMetrics.totalTrades - 1),
     postFeeNetProfitPercent: localMetrics.postFeeNetProfitPercent - 0.8,
     maxStrategyDrawdownPercent: localMetrics.maxStrategyDrawdownPercent + 0.7,
     profitFactor: Math.max(0, localMetrics.profitFactor - 0.05),
+  };
+}
+
+async function buildTvPromotionEvidence(input: {
+  workspaceRoot: string;
+  stateRoot: string;
+  objective: ObjectiveConfig;
+  candidateSource: string;
+  localRecord: AutonomousExperimentRecord;
+  tvMetrics: BacktestMetrics | null | undefined;
+  tvCalibrationStatus: AutonomousExperimentRecord["tvCalibrationStatus"];
+  localTvParity: AutonomousExperimentRecord["localTvParity"];
+  referenceExperiments: ExperimentRecord[];
+}): Promise<{
+  walkForwardEvaluation: WalkForwardEvaluation;
+  verifiedPromotion: VerifiedPromotionEvidence;
+}> {
+  const parsedConfig = parseAfStrategyConfig(input.candidateSource);
+  const config = parsedConfig.issues.length === 0 ? parsedConfig.config : null;
+  const walkForwardEvaluation = await evaluateWalkForward({
+    workspaceRoot: input.workspaceRoot,
+    stateRoot: input.stateRoot,
+    pineScript: input.candidateSource,
+    objective: input.objective,
+  }).catch(() =>
+    buildWalkForwardEvaluationFromFoldMetrics({
+      foldMetrics: [],
+      foldCount: 5,
+      embargoBars: 5,
+    }),
+  );
+  const verifiedPromotion = buildVerifiedPromotionScore({
+    localMetrics: input.localRecord.testerMetrics,
+    tvMetrics: input.tvMetrics,
+    localCandidateHash: input.localRecord.candidateHash,
+    tvCandidateHash: input.localRecord.candidateHash,
+    tvCalibrationStatus: input.tvCalibrationStatus,
+    localTvParity: input.localTvParity,
+    walkForwardEvaluation,
+    config,
+    referenceExperiments: input.referenceExperiments,
+  });
+
+  return {
+    walkForwardEvaluation,
+    verifiedPromotion,
   };
 }
 
@@ -578,6 +660,8 @@ async function appendTvRecord(
   localTvParity: Record<string, unknown> | null;
   localConfidence: number;
   tvCalibrationStatus: AutonomousExperimentRecord["tvCalibrationStatus"];
+  walkForwardEvaluation?: WalkForwardEvaluation | null;
+  verifiedPromotion?: VerifiedPromotionEvidence | null;
 },
 ) {
   const normalized = await appendExperimentRecord(
@@ -593,7 +677,10 @@ async function appendTvRecord(
       candidatePath: input.localRecord.candidatePath,
       candidateHash: input.localRecord.candidateHash,
       studyTitle: input.localRecord.studyTitle,
-      candidateScore: input.localRecord.autoSelectionScore,
+      candidateScore:
+        input.verifiedPromotion?.score ??
+        input.localRecord.localFrontierScore ??
+        input.localRecord.autoSelectionScore,
       decision: input.decision,
       status: input.status,
       compile: input.compile ?? undefined,
@@ -614,8 +701,16 @@ async function appendTvRecord(
       structureFamilyHash: input.localRecord.structureFamilyHash ?? null,
       fingerprintFamily: input.localRecord.fingerprintFamily ?? null,
       duplicateStatus: input.localRecord.duplicateStatus,
-      autoSelectionScore: input.localRecord.autoSelectionScore,
+      localFrontierScore:
+        input.localRecord.localFrontierScore ??
+        input.localRecord.autoSelectionScore,
+      autoSelectionScore:
+        input.verifiedPromotion?.score ??
+        input.localRecord.autoSelectionScore,
       autoSelectionBreakdown: input.localRecord.autoSelectionBreakdown,
+      walkForwardEvaluation: input.walkForwardEvaluation ?? undefined,
+      verifiedPromotionScore: input.verifiedPromotion?.score ?? null,
+      verifiedPromotion: input.verifiedPromotion ?? undefined,
       objectivePolicyVersion: getObjectivePolicyVersion(),
       selectionPolicyVersion: getAutonomousSelectionPolicyVersion(),
       localConfidence: input.localConfidence,

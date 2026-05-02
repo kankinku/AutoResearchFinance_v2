@@ -390,12 +390,12 @@ function createLocalMockExecutor(metrics: BacktestMetrics) {
   });
 }
 
-describe("autonomous local-first v3", () => {
+describe("autonomous tv-verified v4", () => {
   beforeEach(() => {
     mockedEvaluateLocalSplit.mockReset();
   });
 
-  test("runAutonomousLoop appends local evaluation records and auto-selects the first eligible champion", async () => {
+  test("runAutonomousLoop appends local evaluation records without promoting local-only candidates", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-loop-"));
     const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
@@ -440,7 +440,7 @@ describe("autonomous local-first v3", () => {
       entries: Array<{ candidateId: string; eligible: boolean }>;
     };
 
-    expect(result.activeChampionChanged).toBe(true);
+    expect(result.activeChampionChanged).toBe(false);
     expect(result.candidateId).toBeTruthy();
     expect(
       experiments.some(
@@ -449,19 +449,8 @@ describe("autonomous local-first v3", () => {
           record.candidateId === result.candidateId,
       ),
     ).toBe(true);
-    expect(headEvents.map((event) => event.eventKind)).toEqual([
-      "auto_selected_head",
-      "champion_updated",
-    ]);
-    expect(headEvents[0]).toEqual(
-      expect.objectContaining({
-        performanceScore: objectiveBreakdown.score,
-        objectiveScore: objectiveBreakdown.score,
-        diversityScore: expect.any(Number),
-        diversityContribution: expect.any(Number),
-      }),
-    );
-    expect(localLeaderboard.activeChampionCandidateId).toBe(result.candidateId);
+    expect(headEvents).toEqual([]);
+    expect(localLeaderboard.activeChampionCandidateId).toBeNull();
     expect(localLeaderboard.entries[0]?.candidateId).toBe(result.candidateId);
     expect(localLeaderboard.entries[0]?.eligible).toBe(true);
   });
@@ -2672,9 +2661,76 @@ describe("autonomous local-first v3", () => {
         candidateHash: "hash-steady-b",
       },
     };
+    const verifiedSteadyStateChallenger: Omit<ExperimentRecord, "recordedAt"> = {
+      ...steadyStateChallenger,
+      runId: "run-steady-tv",
+      recordKind: "tv_verification",
+      executorRole: "external_calibration",
+      evidenceAuthority: "external_tv",
+      evaluationMode: "tv_calibration",
+      decision: "tv_verified",
+      status: "verified",
+      localFrontierScore: 0.7361,
+      autoSelectionScore: 0.7361,
+      verifiedPromotionScore: 0.7361,
+      verifiedPromotion: {
+        eligible: true,
+        score: 0.7361,
+        scoreBreakdown: {
+          tvPerformanceScore: 0.3,
+          walkForwardRobustnessScore: 0.18,
+          foldConsistencyScore: 0.15,
+          tradeDensityScore: 0.1,
+          parityScore: 0.1,
+          simplicityScore: 0.0461,
+          trialBudgetPenalty: 0,
+          regimeConcentrationPenalty: 0,
+          complexityPenalty: 0.14,
+          totalScore: 0.7361,
+          minimumRequiredScore: 0.62,
+        },
+        rejectionReasons: [],
+        localCandidateHash: "hash-steady-b",
+        tvCandidateHash: "hash-steady-b",
+        localRecordKind: "local_evaluation",
+        tvRecordKind: "tv_verification",
+        policyVersion: "verified-promotion/v1",
+      },
+      walkForwardEvaluation: {
+        policyVersion: "walk-forward-oos/v1",
+        foldCount: 5,
+        requiredPositiveOosFolds: 4,
+        positiveOosFoldCount: 5,
+        minimumTradesPerFold: 12,
+        minimumTotalOosTrades: 60,
+        totalOosTrades: 75,
+        worstFoldDrawdownPercent: 11,
+        medianOosProfitFactor: 1.4,
+        medianOosPostFeeNetProfitPercent: 7,
+        embargoBars: 5,
+        passed: true,
+        gateReasons: [],
+        folds: [],
+      },
+      tvCalibrationStatus: "verified_match",
+      localTvParity: {
+        status: "matched",
+        tradeCountDelta: 0,
+        netProfitPctDelta: 0,
+        maxDrawdownPctDelta: 0,
+        profitFactorDelta: 0,
+        winRateDelta: 0,
+      },
+      recordMeta: {
+        ...(steadyStateChallenger.recordMeta ?? {}),
+        recordHash: "record-steady-b-tv",
+        candidateHash: "hash-steady-b",
+      },
+    };
 
     await appendExperimentRecord(stateRoot, bootstrapChampion);
     await appendExperimentRecord(stateRoot, steadyStateChallenger);
+    await appendExperimentRecord(stateRoot, verifiedSteadyStateChallenger);
     await appendHeadEventRecord(stateRoot, {
       runId: "head-bootstrap",
       iteration: 1,

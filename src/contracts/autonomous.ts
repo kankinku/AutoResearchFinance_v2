@@ -100,6 +100,37 @@ export const splitEvaluationSchema = z.object({
   gateReasons: z.array(z.string()).default([]),
 });
 
+export const walkForwardFoldSchema = z.object({
+  foldId: z.string().min(1),
+  index: z.number().int().nonnegative(),
+  trainStartTime: z.string().nullable().default(null),
+  trainEndTime: z.string().nullable().default(null),
+  testStartTime: z.string().nullable().default(null),
+  testEndTime: z.string().nullable().default(null),
+  embargoBars: z.number().int().nonnegative(),
+  metrics: backtestMetricsSchema.nullable().default(null),
+  objectiveBreakdown: objectiveBreakdownSchema.nullable().default(null),
+  passed: z.boolean(),
+  gateReasons: z.array(z.string()).default([]),
+});
+
+export const walkForwardEvaluationSchema = z.object({
+  policyVersion: z.string().min(1).default("walk-forward-oos/v1"),
+  foldCount: z.number().int().positive(),
+  requiredPositiveOosFolds: z.number().int().positive(),
+  positiveOosFoldCount: z.number().int().nonnegative(),
+  minimumTradesPerFold: z.number().int().positive(),
+  minimumTotalOosTrades: z.number().int().positive(),
+  totalOosTrades: z.number().int().nonnegative(),
+  worstFoldDrawdownPercent: z.number().nullable().default(null),
+  medianOosProfitFactor: z.number().nullable().default(null),
+  medianOosPostFeeNetProfitPercent: z.number().nullable().default(null),
+  embargoBars: z.number().int().nonnegative(),
+  passed: z.boolean(),
+  gateReasons: z.array(z.string()).default([]),
+  folds: z.array(walkForwardFoldSchema).default([]),
+});
+
 export const autoSelectionBreakdownSchema = z.object({
   performanceScore: z.number().optional(),
   baseObjectiveScore: z.number(),
@@ -116,6 +147,32 @@ export const autoSelectionBreakdownSchema = z.object({
   totalScore: z.number(),
   eligible: z.boolean(),
   rejectionReasons: z.array(z.string()).default([]),
+});
+
+export const verifiedPromotionScoreBreakdownSchema = z.object({
+  tvPerformanceScore: z.number(),
+  walkForwardRobustnessScore: z.number(),
+  foldConsistencyScore: z.number(),
+  tradeDensityScore: z.number(),
+  parityScore: z.number(),
+  simplicityScore: z.number(),
+  trialBudgetPenalty: z.number(),
+  regimeConcentrationPenalty: z.number().default(0),
+  complexityPenalty: z.number(),
+  totalScore: z.number(),
+  minimumRequiredScore: z.number(),
+});
+
+export const verifiedPromotionEvidenceSchema = z.object({
+  eligible: z.boolean(),
+  score: z.number().nullable().default(null),
+  scoreBreakdown: verifiedPromotionScoreBreakdownSchema.nullable().default(null),
+  rejectionReasons: z.array(z.string()).default([]),
+  localCandidateHash: z.string().nullable().default(null),
+  tvCandidateHash: z.string().nullable().default(null),
+  localRecordKind: z.literal("local_evaluation").nullable().default(null),
+  tvRecordKind: z.literal("tv_verification").nullable().default(null),
+  policyVersion: z.string().min(1).default("verified-promotion/v1"),
 });
 
 export const localEvaluationBlockingReasonKindSchema = z.enum([
@@ -191,8 +248,12 @@ export const autonomousExperimentSchema = z.object({
   structureFamilyHash: z.string().nullable().default(null),
   fingerprintFamily: z.string().nullable().default(null),
   duplicateStatus: duplicateStatusSchema.nullable().default(null),
+  localFrontierScore: z.number().nullable().default(null),
   autoSelectionScore: z.number().nullable().default(null),
   autoSelectionBreakdown: autoSelectionBreakdownSchema.nullable().default(null),
+  walkForwardEvaluation: walkForwardEvaluationSchema.nullable().default(null),
+  verifiedPromotionScore: z.number().nullable().default(null),
+  verifiedPromotion: verifiedPromotionEvidenceSchema.nullable().default(null),
   objectivePolicyVersion: z.string().min(1),
   selectionPolicyVersion: z.string().min(1),
   selectionPhase: autonomousSelectionPhaseSchema.default("steady_state"),
@@ -391,7 +452,15 @@ export type TvCalibrationStatus = z.infer<typeof tvCalibrationStatusSchema>;
 export type DuplicateStatus = z.infer<typeof duplicateStatusSchema>;
 export type NoveltyFingerprint = z.infer<typeof noveltyFingerprintSchema>;
 export type SplitEvaluation = z.infer<typeof splitEvaluationSchema>;
+export type WalkForwardFold = z.infer<typeof walkForwardFoldSchema>;
+export type WalkForwardEvaluation = z.infer<typeof walkForwardEvaluationSchema>;
 export type AutoSelectionBreakdown = z.infer<typeof autoSelectionBreakdownSchema>;
+export type VerifiedPromotionScoreBreakdown = z.infer<
+  typeof verifiedPromotionScoreBreakdownSchema
+>;
+export type VerifiedPromotionEvidence = z.infer<
+  typeof verifiedPromotionEvidenceSchema
+>;
 export type LocalEvaluationBlockingReason = z.infer<
   typeof localEvaluationBlockingReasonSchema
 >;
