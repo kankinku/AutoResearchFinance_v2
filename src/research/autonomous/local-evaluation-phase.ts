@@ -17,6 +17,7 @@ import { validateArtifactBundle } from "../../evaluation/artifact-validation.js"
 import {
   type AutonomousCalibrationSignal,
   buildAutoSelectionBreakdown,
+  buildParameterNeighborhoodFromStrategySpec,
   buildNoveltyFingerprint,
   classifyDuplicateStatus,
   evaluateLocalSplit,
@@ -118,6 +119,9 @@ export async function runLocalEvaluationPhase(input: {
       } satisfies AutonomousScoringReferenceRecord;
     });
   const fingerprintResult = buildNoveltyFingerprint(input.parsedMutation);
+  const parameterNeighborhood = buildParameterNeighborhoodFromStrategySpec(
+    input.parsedMutation.strategySpec,
+  );
   const structureFamilyHash = resolveStructureFamilyHash({
     noveltyFingerprint: fingerprintResult.fingerprint,
     candidateId: input.candidateArtifact.candidateId,
@@ -180,6 +184,7 @@ export async function runLocalEvaluationPhase(input: {
     localTvParity: null,
     structureFamilyHash,
     fingerprintFamily: fingerprintResult.fingerprint.fingerprintFamily,
+    parameterNeighborhood,
     recordMeta: {
       schemaVersion: "experiment/v3",
       recordHash: "",

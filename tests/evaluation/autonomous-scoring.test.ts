@@ -187,10 +187,17 @@ describe("verified promotion scoring", () => {
       walkForwardEvaluation: createWalkForwardPass(),
       config: null,
       referenceExperiments: [],
+      structureFamilyHash: "family-a",
+      fingerprintFamily: "fp-a",
+      parameterNeighborhood: "neighborhood-a",
     });
 
     expect(result.eligible).toBe(true);
     expect(result.score).toBeGreaterThanOrEqual(0.62);
+    expect(result.structureFamilyHash).toBe("family-a");
+    expect(result.fingerprintFamily).toBe("fp-a");
+    expect(result.parameterNeighborhood).toBe("neighborhood-a");
+    expect(result.trialLedgerStats?.parameterNeighborhoodTrials).toBe(0);
   });
 
   test("rejects promotion when sealed canary evidence has been exposed", () => {
@@ -222,5 +229,91 @@ describe("verified promotion scoring", () => {
     expect(computeMinimumVerifiedPromotionScore(createReferences(0))).toBe(0.62);
     expect(computeMinimumVerifiedPromotionScore(createReferences(100))).toBe(0.68);
     expect(computeMinimumVerifiedPromotionScore(createReferences(1_000))).toBe(0.74);
+  });
+
+  test("applies family-aware trial pressure to verified promotion evidence", () => {
+    const references = Array.from({ length: 100 }, (_, index) => ({
+      ...createReferences(1)[0],
+      iteration: index + 1,
+      candidateId: `family-${index}`,
+      candidateHash: `family-hash-${index}`,
+      structureFamilyHash: "family-a",
+      fingerprintFamily: "fp-a",
+      parameterNeighborhood: "neighborhood-a",
+    })) as ExperimentRecord[];
+
+    const result = buildVerifiedPromotionScore({
+      localMetrics: createMetrics(),
+      tvMetrics: createMetrics(),
+      localCandidateHash: "hash-a",
+      tvCandidateHash: "hash-a",
+      tvCalibrationStatus: "verified_match",
+      localTvParity: createMatchedParity(),
+      walkForwardEvaluation: createWalkForwardPass(),
+      config: null,
+      referenceExperiments: references,
+      structureFamilyHash: "family-a",
+      fingerprintFamily: "fp-a",
+      parameterNeighborhood: "neighborhood-a",
+    });
+
+    expect(result.trialLedgerStats?.totalCandidatesTried).toBe(100);
+    expect(result.trialLedgerStats?.familyTrials).toBe(100);
+    expect(result.trialLedgerStats?.fingerprintFamilyTrials).toBe(100);
+    expect(result.trialLedgerStats?.parameterNeighborhoodTrials).toBe(100);
+    expect(result.scoreBreakdown?.trialBudgetPenalty).toBeGreaterThan(0);
+    expect(result.scoreBreakdown?.minimumRequiredScore).toBeGreaterThan(0.68);
+  });
+
+  test("does not use novelty or diversity as verified champion score inputs", () => {
+    const lowNoveltyReferences = createReferences(10).map((record, index) => ({
+      ...record,
+      noveltyFingerprint: {
+        fingerprint: `low-${index}`,
+        fingerprintFamily: "low-family",
+        inventorySignature: "inventory",
+        structureSignature: "structure",
+        featureFlags: [],
+        configBuckets: {},
+        tokens: ["same"],
+      },
+    })) as ExperimentRecord[];
+    const highNoveltyReferences = createReferences(10).map((record, index) => ({
+      ...record,
+      noveltyFingerprint: {
+        fingerprint: `high-${index}`,
+        fingerprintFamily: `unique-family-${index}`,
+        inventorySignature: `inventory-${index}`,
+        structureSignature: `structure-${index}`,
+        featureFlags: [`flag-${index}`],
+        configBuckets: {},
+        tokens: [`unique-${index}`],
+      },
+    })) as ExperimentRecord[];
+
+    const baseInput = {
+      localMetrics: createMetrics(),
+      tvMetrics: createMetrics(),
+      localCandidateHash: "hash-a",
+      tvCandidateHash: "hash-a",
+      tvCalibrationStatus: "verified_match" as const,
+      localTvParity: createMatchedParity(),
+      walkForwardEvaluation: createWalkForwardPass(),
+      config: null,
+      structureFamilyHash: "family-a",
+      fingerprintFamily: "fp-a",
+      parameterNeighborhood: "neighborhood-a",
+    };
+
+    const lowNoveltyScore = buildVerifiedPromotionScore({
+      ...baseInput,
+      referenceExperiments: lowNoveltyReferences,
+    }).scoreBreakdown?.totalScore;
+    const highNoveltyScore = buildVerifiedPromotionScore({
+      ...baseInput,
+      referenceExperiments: highNoveltyReferences,
+    }).scoreBreakdown?.totalScore;
+
+    expect(highNoveltyScore).toBe(lowNoveltyScore);
   });
 });

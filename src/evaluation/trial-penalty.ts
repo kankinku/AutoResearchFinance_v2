@@ -1,4 +1,5 @@
 import { type ExperimentRecord } from "../contracts/types.js";
+import { parseAfStrategySpec } from "../strategy-spec/schema.js";
 
 export interface TrialLedgerStats {
   totalCandidatesTried: number;
@@ -104,13 +105,50 @@ export function computeMinimumVerifiedPromotionScoreFromStats(
         ? 0.68
         : 0.74;
   const familyAdjustment =
-    stats.familyTrials >= 50 || stats.fingerprintFamilyTrials >= 75 ? 0.03 : 0;
+    stats.familyTrials >= 50 ||
+    stats.fingerprintFamilyTrials >= 75 ||
+    stats.parameterNeighborhoodTrials >= 75
+      ? 0.03
+      : 0;
   const canaryAdjustment = stats.canaryExposureCount > 0 ? 0.05 : 0;
   return roundScore(base + familyAdjustment + canaryAdjustment);
 }
 
+export function buildParameterNeighborhoodFromSpec(input: unknown): string | null {
+  const parsed = parseAfStrategySpec(input);
+  const exitMode = [
+    parsed.exit.weakRangeExit ? "weak_exit" : "no_weak_exit",
+    parsed.exit.closeAllOnBearConfRiskOff ? "riskoff_close" : "no_riskoff_close",
+    parsed.exit.resetOnL3 ? "reset_l3" : "no_reset_l3",
+  ].join("+");
+
+  return [
+    `event:${parsed.event.source}`,
+    `levels:L1_${bucketNumber(parsed.event.L1, [7, 9, 12, 15])}`,
+    `L2_${bucketNumber(parsed.event.L2, [10, 12, 15, 18])}`,
+    `L3_${bucketNumber(parsed.event.L3, [12, 14, 18, 22])}`,
+    `trend:${parsed.regime.trendMode}`,
+    `slot:pct_${bucketNumber(parsed.slot.slotPct, [5, 10, 15, 20, 25])}`,
+    `max_${bucketNumber(parsed.slot.maxSlots, [6, 12, 18, 24])}`,
+    `exit:${exitMode}`,
+    `maxHold:${parsed.exit.maxHoldBars == null ? "none" : bucketNumber(parsed.exit.maxHoldBars, [12, 24, 48, 96])}`,
+  ].join("|");
+}
+
 function readParameterNeighborhood(record: ExperimentRecord): string | null {
   const raw = record as Record<string, unknown>;
+  if (typeof raw.parameterNeighborhood === "string" && raw.parameterNeighborhood.length > 0) {
+    return raw.parameterNeighborhood;
+  }
+
+  if (raw.strategySpec != null) {
+    try {
+      return buildParameterNeighborhoodFromSpec(raw.strategySpec);
+    } catch {
+      return null;
+    }
+  }
+
   const fingerprint = raw.noveltyFingerprint as
     | { configBuckets?: Record<string, string> }
     | undefined;
@@ -126,4 +164,13 @@ function readParameterNeighborhood(record: ExperimentRecord): string | null {
 
 function roundScore(value: number): number {
   return Math.round(value * 10_000) / 10_000;
+}
+
+function bucketNumber(value: number, cutoffs: number[]): string {
+  for (const cutoff of cutoffs) {
+    if (value <= cutoff) {
+      return `lte_${cutoff}`;
+    }
+  }
+  return `gt_${cutoffs[cutoffs.length - 1] ?? 0}`;
 }

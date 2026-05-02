@@ -31,6 +31,7 @@ import { afStrategySpecToConfig } from "../strategy-spec/to-af-config.js";
 import { sha256Json } from "../utils/fs.js";
 import {
   buildTrialLedgerStats,
+  buildParameterNeighborhoodFromSpec,
   computeMinimumVerifiedPromotionScoreFromStats,
   computeTrialBudgetPenaltyFromStats,
 } from "./trial-penalty.js";
@@ -416,6 +417,9 @@ export function buildVerifiedPromotionScore(input: {
   walkForwardEvaluation: WalkForwardEvaluation | null | undefined;
   config: AfStrategyConfig | null;
   referenceExperiments: ExperimentRecord[];
+  structureFamilyHash?: string | null;
+  fingerprintFamily?: string | null;
+  parameterNeighborhood?: string | null;
 }) {
   const rejectionReasons: string[] = [];
   const parity = input.localTvParity ?? null;
@@ -520,6 +524,9 @@ export function buildVerifiedPromotionScore(input: {
   const simplicityScore = Math.max(0, 0.05 - computeComplexityPenalty(input.config) * 0.25);
   const trialStats = buildTrialLedgerStats({
     referenceExperiments: input.referenceExperiments,
+    structureFamilyHash: input.structureFamilyHash,
+    fingerprintFamily: input.fingerprintFamily,
+    parameterNeighborhood: input.parameterNeighborhood,
   });
   const trialBudgetPenalty = computeTrialBudgetPenaltyFromStats(trialStats);
   const complexityPenalty = computeComplexityPenalty(input.config);
@@ -562,6 +569,10 @@ export function buildVerifiedPromotionScore(input: {
     rejectionReasons,
     localCandidateHash: input.localCandidateHash ?? null,
     tvCandidateHash: input.tvCandidateHash ?? null,
+    structureFamilyHash: input.structureFamilyHash ?? null,
+    fingerprintFamily: input.fingerprintFamily ?? null,
+    parameterNeighborhood: input.parameterNeighborhood ?? null,
+    trialLedgerStats: trialStats,
     localRecordKind: "local_evaluation",
     tvRecordKind: "tv_verification",
     policyVersion: VERIFIED_PROMOTION_POLICY_VERSION,
@@ -586,6 +597,14 @@ export function computeMinimumVerifiedPromotionScore(
       referenceExperiments,
     }),
   );
+}
+
+export function buildParameterNeighborhoodFromStrategySpec(input: unknown): string | null {
+  try {
+    return buildParameterNeighborhoodFromSpec(input);
+  } catch {
+    return null;
+  }
 }
 
 export function buildTvFailureDecision(input: {

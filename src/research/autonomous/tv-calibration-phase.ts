@@ -679,6 +679,9 @@ async function buildTvPromotionEvidence(input: {
     walkForwardEvaluation,
     config,
     referenceExperiments: input.referenceExperiments,
+    structureFamilyHash: input.localRecord.structureFamilyHash,
+    fingerprintFamily: input.localRecord.fingerprintFamily,
+    parameterNeighborhood: input.localRecord.parameterNeighborhood,
   });
 
   return {
@@ -755,6 +758,7 @@ async function appendTvRecord(
       noveltyFingerprint: input.localRecord.noveltyFingerprint,
       structureFamilyHash: input.localRecord.structureFamilyHash ?? null,
       fingerprintFamily: input.localRecord.fingerprintFamily ?? null,
+      parameterNeighborhood: input.localRecord.parameterNeighborhood ?? null,
       duplicateStatus: input.localRecord.duplicateStatus,
       localFrontierScore:
         input.localRecord.localFrontierScore ??

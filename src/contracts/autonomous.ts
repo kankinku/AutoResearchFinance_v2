@@ -204,6 +204,18 @@ export const verifiedPromotionScoreBreakdownSchema = z.object({
   minimumRequiredScore: z.number(),
 });
 
+export const trialLedgerStatsSchema = z.object({
+  totalCandidatesTried: z.number().int().nonnegative(),
+  totalLocalPass: z.number().int().nonnegative(),
+  totalTvVerified: z.number().int().nonnegative(),
+  totalPromotionCandidates: z.number().int().nonnegative(),
+  familyTrials: z.number().int().nonnegative(),
+  fingerprintFamilyTrials: z.number().int().nonnegative(),
+  parameterNeighborhoodTrials: z.number().int().nonnegative(),
+  oosExposureCount: z.number().int().nonnegative(),
+  canaryExposureCount: z.number().int().nonnegative(),
+});
+
 export const verifiedPromotionEvidenceSchema = z.object({
   eligible: z.boolean(),
   score: z.number().nullable().default(null),
@@ -211,6 +223,10 @@ export const verifiedPromotionEvidenceSchema = z.object({
   rejectionReasons: z.array(z.string()).default([]),
   localCandidateHash: z.string().nullable().default(null),
   tvCandidateHash: z.string().nullable().default(null),
+  structureFamilyHash: z.string().nullable().default(null),
+  fingerprintFamily: z.string().nullable().default(null),
+  parameterNeighborhood: z.string().nullable().default(null),
+  trialLedgerStats: trialLedgerStatsSchema.nullable().default(null),
   localRecordKind: z.literal("local_evaluation").nullable().default(null),
   tvRecordKind: z.literal("tv_verification").nullable().default(null),
   policyVersion: z.string().min(1).default("verified-promotion/v1"),
@@ -297,6 +313,7 @@ export const autonomousExperimentSchema = z.object({
   noveltyFingerprint: noveltyFingerprintSchema.nullable().default(null),
   structureFamilyHash: z.string().nullable().default(null),
   fingerprintFamily: z.string().nullable().default(null),
+  parameterNeighborhood: z.string().nullable().default(null),
   duplicateStatus: duplicateStatusSchema.nullable().default(null),
   localFrontierScore: z.number().nullable().default(null),
   autoSelectionScore: z.number().nullable().default(null),

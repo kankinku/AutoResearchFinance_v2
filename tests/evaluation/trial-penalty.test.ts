@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { type ExperimentRecord } from "../../src/contracts/types.js";
 import {
+  buildParameterNeighborhoodFromSpec,
   buildTrialLedgerStats,
   computeMinimumVerifiedPromotionScoreFromStats,
   computeTrialBudgetPenaltyFromStats,
@@ -33,6 +34,7 @@ describe("trial ledger penalty", () => {
         eligibility: { autoSelectionEligible: true },
         structureFamilyHash: "family-a",
         fingerprintFamily: "fp-a",
+        parameterNeighborhood: "event:af_exhaustion|levels:L1_lte_9|L2_lte_12|L3_lte_14|trend:Balanced|slot:pct_lte_15|max_lte_18|exit:weak_exit+riskoff_close+no_reset_l3|maxHold:none",
         splitEvaluation: { passed: true },
       }),
       createReference(1, {
@@ -41,6 +43,7 @@ describe("trial ledger penalty", () => {
         verifiedPromotion: { eligible: true },
         structureFamilyHash: "family-a",
         fingerprintFamily: "fp-a",
+        parameterNeighborhood: "event:af_exhaustion|levels:L1_lte_9|L2_lte_12|L3_lte_14|trend:Balanced|slot:pct_lte_15|max_lte_18|exit:weak_exit+riskoff_close+no_reset_l3|maxHold:none",
         walkForwardEvaluation: { passed: true },
       }),
       createReference(2, {
@@ -54,6 +57,7 @@ describe("trial ledger penalty", () => {
       referenceExperiments: references,
       structureFamilyHash: "family-a",
       fingerprintFamily: "fp-a",
+      parameterNeighborhood: "event:af_exhaustion|levels:L1_lte_9|L2_lte_12|L3_lte_14|trend:Balanced|slot:pct_lte_15|max_lte_18|exit:weak_exit+riskoff_close+no_reset_l3|maxHold:none",
     });
 
     expect(stats.totalCandidatesTried).toBe(3);
@@ -62,8 +66,54 @@ describe("trial ledger penalty", () => {
     expect(stats.totalPromotionCandidates).toBe(1);
     expect(stats.familyTrials).toBe(2);
     expect(stats.fingerprintFamilyTrials).toBe(2);
+    expect(stats.parameterNeighborhoodTrials).toBe(2);
     expect(stats.oosExposureCount).toBe(2);
     expect(stats.canaryExposureCount).toBe(1);
+  });
+
+  test("builds parameter neighborhoods from AF spec buckets", () => {
+    const neighborhood = buildParameterNeighborhoodFromSpec({
+      version: "af-spec/v1",
+      name: "Spec bucket test",
+      event: {
+        source: "event_floor",
+        L1: 8,
+        L2: 13,
+        L3: 19,
+        confirmBars: 2,
+        eventFloorBars: 6,
+        eventWindowBars: 18,
+      },
+      regime: {
+        trendMode: "Strict",
+        useSupertrendFilter: true,
+        riskOffRsi: 45,
+        maxExtPct: 6,
+      },
+      entry: {
+        primaryTrigger: "bull_event",
+        cooldownBars: 1,
+        allowBearRebound: true,
+        applyFilterToB1: false,
+      },
+      slot: {
+        slotPct: 17,
+        maxSlots: 20,
+        useReplacement: true,
+        replaceMinRank: 3,
+        replaceIfPnlBelow: -5,
+      },
+      exit: {
+        weakRangeExit: false,
+        maxHoldBars: 36,
+        closeAllOnBearConfRiskOff: true,
+        resetOnL3: true,
+      },
+    });
+
+    expect(neighborhood).toBe(
+      "event:event_floor|levels:L1_lte_9|L2_lte_15|L3_lte_22|trend:Strict|slot:pct_lte_20|max_lte_24|exit:no_weak_exit+riskoff_close+reset_l3|maxHold:lte_48",
+    );
   });
 
   test("raises thresholds and penalties as trial pressure grows", () => {
@@ -73,15 +123,23 @@ describe("trial ledger penalty", () => {
     });
     const medium = buildTrialLedgerStats({
       referenceExperiments: Array.from({ length: 100 }, (_, index) =>
-        createReference(index, { structureFamilyHash: "family-a" }),
+        createReference(index, {
+          structureFamilyHash: "family-a",
+          parameterNeighborhood: "neighborhood-a",
+        }),
       ),
       structureFamilyHash: "family-a",
+      parameterNeighborhood: "neighborhood-a",
     });
     const large = buildTrialLedgerStats({
       referenceExperiments: Array.from({ length: 1_000 }, (_, index) =>
-        createReference(index, { structureFamilyHash: "family-a" }),
+        createReference(index, {
+          structureFamilyHash: "family-a",
+          parameterNeighborhood: "neighborhood-a",
+        }),
       ),
       structureFamilyHash: "family-a",
+      parameterNeighborhood: "neighborhood-a",
     });
 
     expect(computeMinimumVerifiedPromotionScoreFromStats(small)).toBe(0.62);
