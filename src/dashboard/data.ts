@@ -51,6 +51,18 @@ export interface DashboardStatusPayload {
     summary: string;
     nextFocus: string[];
   };
+  verifiedAutoresearch: {
+    researchStageCounts: Record<string, number>;
+    quarantineCount: number;
+    verifiedPromotionCandidateId: string | null;
+    verifiedPromotionScore: number | null;
+    parityStatus: string | null;
+    parityStatusCounts: Record<string, number>;
+    walkForwardStatus: string | null;
+    walkForwardStatusCounts: Record<string, number>;
+    trialPressure: Record<string, unknown> | null;
+    branchBudget: Record<string, unknown> | null;
+  };
   failureMemory: {
     recentProblems: DashboardProblem[];
     recentRepairs: DashboardRepair[];
@@ -164,6 +176,7 @@ export async function buildDashboardStatus(
     explorationArchive,
     heartbeat,
     nodeMemory,
+    autonomousSummary,
     ledgerBytes,
     artifactBytes,
   ] = await Promise.all([
@@ -176,6 +189,7 @@ export async function buildDashboardStatus(
     readJsonSafe<ExplorationArchiveView>(paths.explorationArchivePath),
     readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "autonomous-loop-heartbeat.json")),
     readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "node-memory-telemetry.json")),
+    readJsonSafe<Record<string, unknown>>(paths.autonomousStateSummaryPath),
     getFileSize(paths.experimentsPath),
     getDirectorySize(path.join(input.stateRoot, "artifacts")),
   ]);
@@ -195,9 +209,7 @@ export async function buildDashboardStatus(
   const latest = [...recentCandidatePoints].reverse().find(
     (point) => point.metrics != null || point.score != null,
   ) ?? null;
-  const activeChampion = buildActiveChampion(
-    await readJsonSafe<Record<string, unknown>>(paths.autonomousStateSummaryPath),
-  );
+  const activeChampion = buildActiveChampion(autonomousSummary);
   const bestOverall = buildLeaderboardEntry(
     localLeaderboard?.entries?.[0],
   );
@@ -274,10 +286,28 @@ export async function buildDashboardStatus(
       : null,
     hypothesis: latestBrief ? toDashboardHypothesis(latestBrief) : null,
     improvement,
+    verifiedAutoresearch: buildVerifiedAutoresearchDashboard(autonomousSummary),
     failureMemory: {
       recentProblems,
       recentRepairs,
     },
+  };
+}
+
+function buildVerifiedAutoresearchDashboard(
+  summary: Record<string, unknown> | null,
+): DashboardStatusPayload["verifiedAutoresearch"] {
+  return {
+    researchStageCounts: recordNumberMap(summary?.researchStageCounts),
+    quarantineCount: numberValue(summary?.quarantineCount) ?? 0,
+    verifiedPromotionCandidateId: stringValue(summary?.verifiedPromotionCandidateId),
+    verifiedPromotionScore: numberValue(summary?.verifiedPromotionScore),
+    parityStatus: stringValue(summary?.parityStatus),
+    parityStatusCounts: recordNumberMap(summary?.parityStatusCounts),
+    walkForwardStatus: stringValue(summary?.walkForwardStatus),
+    walkForwardStatusCounts: recordNumberMap(summary?.walkForwardStatusCounts),
+    trialPressure: recordValue(summary?.trialPressure),
+    branchBudget: recordValue(summary?.branchBudget),
   };
 }
 
@@ -677,7 +707,7 @@ function buildImprovementStatus(input: {
       : "The loop is running, but there is not enough fresh local-evaluation evidence in the tail window.",
     nextFocus: [
       "Collect a few more local candidates.",
-      "Keep TradingView excluded from blocking decisions while local-first evidence accumulates.",
+      "Keep local candidates in frontier/calibration until verified promotion evidence arrives.",
     ],
   };
 }
@@ -714,6 +744,24 @@ function numberValue(value: unknown): number | null {
 
 function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function recordNumberMap(value: unknown): Record<string, number> {
+  const record = recordValue(value);
+  if (!record) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(record)
+      .map(([key, raw]) => [key, numberValue(raw)] as const)
+      .filter((entry): entry is readonly [string, number] => entry[1] != null),
+  );
 }
 
 function escapeForRegex(value: string): string {

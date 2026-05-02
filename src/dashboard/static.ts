@@ -290,7 +290,7 @@ export function renderDashboardHtml(): string {
 </head>
 <body>
   <div class="shell">
-    <aside class="rail"><span>AF LOCAL ONLY / QQQ 120M</span></aside>
+    <aside class="rail"><span>AF VERIFIED / QQQ 120M</span></aside>
     <main>
       <header>
         <div>
@@ -324,6 +324,22 @@ export function renderDashboardHtml(): string {
           <h2><span>Improvement State</span><span id="generatedAt">-</span></h2>
           <p class="copy" id="improvementSummary">-</p>
           <div class="feature-list" id="nextFocus"></div>
+        </div>
+      </section>
+
+      <section class="two-col">
+        <div class="panel">
+          <h2><span>Verified Promotion Contract</span><span id="verifiedCandidate">-</span></h2>
+          <table>
+            <tbody id="verifiedContractRows"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2><span>Branch Budget</span><span id="branchBudgetMeta">-</span></h2>
+          <table>
+            <thead><tr><th>Branch</th><th>Target</th><th>Actual</th><th>Deficit</th></tr></thead>
+            <tbody id="branchBudgetRows"></tbody>
+          </table>
         </div>
       </section>
 
@@ -532,6 +548,30 @@ export function renderDashboardHtml(): string {
       renderChipList("nextFocus", data.improvement.nextFocus);
       text("paths", data.project.workspaceRoot);
 
+      const verified = data.verifiedAutoresearch || {};
+      text("verifiedCandidate", verified.verifiedPromotionCandidateId ? shortId(verified.verifiedPromotionCandidateId) : "-");
+      renderRows("verifiedContractRows", [
+        row([{ value: "Verified score", className: "mono" }, { value: verified.verifiedPromotionScore === null || verified.verifiedPromotionScore === undefined ? "-" : fmt(verified.verifiedPromotionScore, 4), className: "mono" }]),
+        row([{ value: "Parity", className: "mono" }, { value: verified.parityStatus || "-", className: verified.parityStatus === "matched" ? "goodText" : "warnText" }]),
+        row([{ value: "Walk-forward", className: "mono" }, { value: verified.walkForwardStatus || "-", className: verified.walkForwardStatus === "passed" ? "goodText" : "warnText" }]),
+        row([{ value: "Quarantine", className: "mono" }, { value: String(verified.quarantineCount || 0), className: (verified.quarantineCount || 0) > 0 ? "badText" : "goodText" }]),
+        row([{ value: "Stages", className: "mono" }, { value: summarizeCounts(verified.researchStageCounts) }]),
+        row([{ value: "Parity counts", className: "mono" }, { value: summarizeCounts(verified.parityStatusCounts) }]),
+        row([{ value: "WF counts", className: "mono" }, { value: summarizeCounts(verified.walkForwardStatusCounts) }]),
+        row([{ value: "Trial pressure", className: "mono" }, { value: summarizeTrialPressure(verified.trialPressure) }])
+      ]);
+      const branchBudget = verified.branchBudget || {};
+      const branchEntries = branchBudget.entries || [];
+      text("branchBudgetMeta", branchBudget.totalBranches === undefined ? "0 branches" : branchBudget.totalBranches + " branches");
+      renderRows("branchBudgetRows", branchEntries.map(function(entry) {
+        return row([
+          { value: entry.branchKind || "-", className: "mono" },
+          { value: entry.targetPct === undefined ? "-" : fmt(entry.targetPct, 0) + "%", className: "mono" },
+          { value: entry.actualPct === undefined ? "-" : fmt(entry.actualPct, 1) + "% (" + (entry.actualCount || 0) + ")", className: "mono" },
+          { value: entry.deficitPct === undefined ? "-" : fmt(entry.deficitPct, 1) + "%", className: entry.deficitPct > 0 ? "warnText" : "goodText" }
+        ]);
+      }));
+
       const loopClass = data.runtime.running ? "pill good" : data.runtime.stopRequested ? "pill warn" : "pill bad";
       cls("loopStatus", loopClass);
       text("loopStatus", data.runtime.running ? "RUNNING pid " + data.runtime.pid : data.runtime.stopRequested ? "STOP REQUESTED" : "STOPPED");
@@ -603,7 +643,23 @@ export function renderDashboardHtml(): string {
           { value: item.repairKind, className: "mono" },
           { value: item.result + " / " + shortId(item.repairedCandidateId) }
         ]);
-      }));
+        }));
+      }
+
+    function summarizeCounts(counts) {
+      const entries = Object.entries(counts || {}).filter(function(entry) { return Number(entry[1]) > 0; });
+      if (entries.length === 0) return "-";
+      return entries.map(function(entry) { return entry[0] + ":" + entry[1]; }).join(" / ");
+    }
+
+    function summarizeTrialPressure(pressure) {
+      if (!pressure) return "-";
+      const total = pressure.totalCandidatesTried === undefined ? "-" : pressure.totalCandidatesTried;
+      const family = pressure.familyTrials === undefined ? "-" : pressure.familyTrials;
+      const threshold = pressure.minimumRequiredScore === undefined || pressure.minimumRequiredScore === null
+        ? "-"
+        : fmt(pressure.minimumRequiredScore, 2);
+      return "trials " + total + " / family " + family + " / min " + threshold;
     }
 
     async function load() {

@@ -979,7 +979,7 @@ describe("ledger CLI commands", () => {
     );
   });
 
-  test("inspect-autonomous-state reports the active champion and v3 operational view", async () => {
+  test("inspect-autonomous-state reports verified-promotion operational view fields", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-cli-inspect-autonomous-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");
     const { candidatePath } = await writePromotionArtifacts(root, "cand-autonomous");
@@ -1119,8 +1119,16 @@ describe("ledger CLI commands", () => {
         activeChampionCandidateId: null,
         headEventCount: 1,
         localEvaluationCount: 1,
-        defaultOperationalView: "v3_autonomous_local_first",
-        loopMode: "local-first",
+        defaultOperationalView: "v4_verified_autoresearch",
+        loopMode: "verified-promotion-first",
+        researchStageCounts: expect.objectContaining({
+          local_pass: 1,
+        }),
+        branchBudget: expect.objectContaining({
+          targets: expect.objectContaining({
+            champion_exploit: 50,
+          }),
+        }),
       }),
     );
   });

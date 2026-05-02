@@ -30,6 +30,7 @@ import {
   readResearchKnowledgeRecords,
   readTaskBatchRecords,
   readTaskRecords,
+  readAutonomousBranchRecords,
   resolveStatePaths,
 } from "./jsonl-store.js";
 import { rebuildAutonomousViews } from "./autonomous-index-builder.js";
@@ -332,6 +333,7 @@ export async function rebuildIndexes(stateRoot: string): Promise<void> {
   const confidenceEvents = await readLocalConfidenceEventRecords(stateRoot);
   const problemEvents = await readProblemEventRecords(stateRoot);
   const repairAttempts = await readRepairAttemptRecords(stateRoot);
+  const branchRecords = await readAutonomousBranchRecords(stateRoot);
   const researchKnowledge = await readResearchKnowledgeRecords(stateRoot);
   const taskBatches = await readTaskBatchRecords(stateRoot);
   const tasks = await readTaskRecords(stateRoot);
@@ -647,6 +649,7 @@ export async function rebuildIndexes(stateRoot: string): Promise<void> {
     confidenceEvents,
     problemEvents,
     repairAttempts,
+    branchRecords,
   });
 }
 

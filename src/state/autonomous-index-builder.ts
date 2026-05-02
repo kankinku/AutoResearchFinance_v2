@@ -8,17 +8,22 @@ import {
   type LocalConfidenceEventRecord,
   type ProblemEventRecord,
   type RepairAttemptRecord,
+  type AutonomousBranchRecord,
+  type AutonomousExperimentRecord,
+  type AutonomousResearchStage,
 } from "../contracts/autonomous.js";
-import { type ExperimentRecord } from "../contracts/types.js";
+import { type BranchKind, type ExperimentRecord } from "../contracts/types.js";
 import { writeJson } from "../utils/fs.js";
 import { resolveStatePaths } from "./jsonl-store.js";
 import {
   compareAutonomousChampion,
   findActiveChampionRecord,
+  isVerifiedPromotionEligible,
   selectLocalEvaluationRecords,
   selectTvVerificationRecords,
 } from "./autonomous-state.js";
 import { buildLocalConfidenceSummary } from "../research/autonomous/divergence-update-phase.js";
+import { AUTONOMOUS_BRANCH_BUDGETS } from "../research/autonomous/branch-scheduler.js";
 import {
   parseAfStrategyConfig,
   summarizeAfCompatibilityIssues,
@@ -33,6 +38,7 @@ export async function rebuildAutonomousViews(input: {
   confidenceEvents: LocalConfidenceEventRecord[];
   problemEvents: ProblemEventRecord[];
   repairAttempts: RepairAttemptRecord[];
+  branchRecords?: AutonomousBranchRecord[];
 }): Promise<void> {
   const views = buildAutonomousViewPayloads({
     experiments: input.experiments,
@@ -42,6 +48,7 @@ export async function rebuildAutonomousViews(input: {
     confidenceEvents: input.confidenceEvents,
     problemEvents: input.problemEvents,
     repairAttempts: input.repairAttempts,
+    branchRecords: input.branchRecords,
   });
   const paths = resolveStatePaths(input.stateRoot);
   await writeJson(paths.localLeaderboardPath, views.localLeaderboard);
@@ -69,6 +76,7 @@ export function buildAutonomousViewPayloads(input: {
   confidenceEvents: LocalConfidenceEventRecord[];
   problemEvents: ProblemEventRecord[];
   repairAttempts: RepairAttemptRecord[];
+  branchRecords?: AutonomousBranchRecord[];
 }) {
   const localRecords = [...selectLocalEvaluationRecords(input.experiments)].sort(
     compareAutonomousChampion,
@@ -76,6 +84,7 @@ export function buildAutonomousViewPayloads(input: {
   const tvRecords = [...selectTvVerificationRecords(input.experiments)].sort(
     (left, right) => right.iteration - left.iteration,
   );
+  const branchRecords = input.branchRecords ?? [];
   const activeChampionRecord = findActiveChampionRecord({
     records: input.experiments,
     headEvents: input.headEvents,
@@ -305,19 +314,130 @@ export function buildAutonomousViewPayloads(input: {
     localConfidenceSummary,
     stage6Readiness,
     autonomousStateSummary: buildAutonomousStateSummaryPayload({
+      records: [...localRecords, ...tvRecords],
       localRecords,
+      tvRecords,
       headEvents: input.headEvents,
       archiveEvents: input.archiveEvents,
       calibrationEvents: input.calibrationEvents,
       confidenceEvents: input.confidenceEvents,
       problemEvents: input.problemEvents,
       repairAttempts: input.repairAttempts,
+      branchRecords,
+      activeChampionRecord,
       activeChampionCandidateId,
       pendingCalibrationQueue,
       stage6Readiness,
     }),
+    branchBudget: buildBranchBudgetSummary(branchRecords),
+    verifiedPromotionReadiness: publicVerifiedPromotionReadiness(
+      buildVerifiedPromotionReadiness({
+        tvRecords,
+        localRecords,
+      }),
+    ),
     failureMemory: buildFailureMemorySummary(input.problemEvents, input.repairAttempts),
   };
+}
+
+function buildBranchBudgetSummary(branchRecords: AutonomousBranchRecord[]) {
+  const total = branchRecords.length;
+  const entries = AUTONOMOUS_BRANCH_BUDGETS.map((budget) => {
+    const count = branchRecords.filter(
+      (record) => record.branchKind === budget.branchKind,
+    ).length;
+    const actualPct = total === 0 ? 0 : (count / total) * 100;
+    return {
+      branchKind: budget.branchKind,
+      targetPct: budget.budgetPct,
+      actualCount: count,
+      actualPct: roundPercent(actualPct),
+      deficitPct: roundPercent(budget.budgetPct - actualPct),
+      activeCount: branchRecords.filter(
+        (record) =>
+          record.branchKind === budget.branchKind && record.status === "active",
+      ).length,
+      exhaustedCount: branchRecords.filter(
+        (record) =>
+          record.branchKind === budget.branchKind && record.status === "exhausted",
+      ).length,
+    };
+  });
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      totalBranches: total,
+      activeBranches: branchRecords.filter((record) => record.status === "active").length,
+      exhaustedBranches: branchRecords.filter((record) => record.status === "exhausted").length,
+      targets: Object.fromEntries(
+        AUTONOMOUS_BRANCH_BUDGETS.map((budget) => [
+          budget.branchKind,
+          budget.budgetPct,
+        ]),
+      ) as Record<BranchKind, number>,
+      entries,
+    },
+  };
+}
+
+function buildVerifiedPromotionReadiness(input: {
+  tvRecords: ReturnType<typeof selectTvVerificationRecords>;
+  localRecords: ReturnType<typeof selectLocalEvaluationRecords>;
+}) {
+  return {
+    generatedAt: new Date().toISOString(),
+    entries: [...input.tvRecords]
+      .map((record) => ({
+        record,
+        candidateId: record.candidateId,
+        iteration: record.iteration,
+        eligible: isVerifiedPromotionEligible({
+          record,
+          localRecords: input.localRecords,
+        }),
+        verifiedPromotionScore:
+          record.verifiedPromotionScore ?? record.verifiedPromotion?.score ?? null,
+        minimumRequiredScore:
+          record.verifiedPromotion?.scoreBreakdown?.minimumRequiredScore ?? null,
+        parityStatus: record.localTvParity?.status ?? "missing",
+        tradeParityStatus: record.localTvParity?.tradeParity?.status ?? "missing",
+        eventParityStatus: record.localTvParity?.eventParity?.status ?? "missing",
+        walkForwardStatus:
+          record.walkForwardEvaluation == null
+            ? "missing"
+            : record.walkForwardEvaluation.passed
+              ? "passed"
+              : "failed",
+        trialLedgerStats: record.verifiedPromotion?.trialLedgerStats ?? null,
+        rejectionReasons: record.verifiedPromotion?.rejectionReasons ?? [],
+      }))
+      .sort((left, right) => {
+        const leftEligible = left.eligible ? 1 : 0;
+        const rightEligible = right.eligible ? 1 : 0;
+        if (leftEligible !== rightEligible) {
+          return rightEligible - leftEligible;
+        }
+        const leftScore = left.verifiedPromotionScore ?? Number.NEGATIVE_INFINITY;
+        const rightScore = right.verifiedPromotionScore ?? Number.NEGATIVE_INFINITY;
+        if (leftScore !== rightScore) {
+          return rightScore - leftScore;
+        }
+        return right.iteration - left.iteration;
+      }),
+  };
+}
+
+function publicVerifiedPromotionReadiness(
+  readiness: ReturnType<typeof buildVerifiedPromotionReadiness>,
+) {
+  return {
+    generatedAt: readiness.generatedAt,
+    entries: readiness.entries.map(({ record: _record, ...entry }) => entry),
+  };
+}
+
+function roundPercent(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function buildPassiveStage6ReadinessPayload(input: {
@@ -654,13 +774,17 @@ function buildDerivedUnsupportedReason(input: {
 }
 
 function buildAutonomousStateSummaryPayload(input: {
+  records: AutonomousExperimentRecord[];
   localRecords: ReturnType<typeof selectLocalEvaluationRecords>;
+  tvRecords: ReturnType<typeof selectTvVerificationRecords>;
   headEvents: HeadEventRecord[];
   archiveEvents: ArchiveEventRecord[];
   calibrationEvents: CalibrationEventRecord[];
   confidenceEvents: LocalConfidenceEventRecord[];
   problemEvents: ProblemEventRecord[];
   repairAttempts: RepairAttemptRecord[];
+  branchRecords: AutonomousBranchRecord[];
+  activeChampionRecord: AutonomousExperimentRecord | null;
   activeChampionCandidateId: string | null;
   pendingCalibrationQueue: Array<{
     candidateId: string;
@@ -668,12 +792,23 @@ function buildAutonomousStateSummaryPayload(input: {
   }>;
   stage6Readiness: ReturnType<typeof buildPassiveStage6ReadinessPayload>;
 }) {
-  const activeChampion =
-    input.activeChampionCandidateId == null
-      ? null
-      : input.localRecords.find(
-          (record) => record.candidateId === input.activeChampionCandidateId,
-        ) ?? null;
+  const activeChampion = input.activeChampionRecord;
+  const researchStageCounts = buildResearchStageCounts({
+    records: input.records,
+    headEvents: input.headEvents,
+    archiveEvents: input.archiveEvents,
+    calibrationEvents: input.calibrationEvents,
+    activeChampionRecord: activeChampion,
+  });
+  const verifiedReadiness = buildVerifiedPromotionReadiness({
+    tvRecords: input.tvRecords,
+    localRecords: input.localRecords,
+  });
+  const branchBudget = buildBranchBudgetSummary(input.branchRecords);
+  const promotionFocus =
+    activeChampion?.recordKind === "tv_verification"
+      ? activeChampion
+      : verifiedReadiness.entries[0]?.record ?? null;
   const latestHeadEvent = [...input.headEvents].sort((left, right) => {
     const leftRecordedAt = Date.parse(left.recordedAt ?? "");
     const rightRecordedAt = Date.parse(right.recordedAt ?? "");
@@ -726,8 +861,61 @@ function buildAutonomousStateSummaryPayload(input: {
   return {
     generatedAt: new Date().toISOString(),
     activeChampionCandidateId: input.activeChampionCandidateId,
-    activeChampionScore: activeChampion?.autoSelectionScore ?? null,
+    activeChampionScore:
+      activeChampion?.verifiedPromotionScore ??
+      activeChampion?.verifiedPromotion?.score ??
+      activeChampion?.autoSelectionScore ??
+      null,
     activeChampionDecision: activeChampion?.decision ?? null,
+    activeChampionResearchStage: activeChampion
+      ? deriveResearchStage({
+          record: activeChampion,
+          headEvents: input.headEvents,
+          archiveEvents: input.archiveEvents,
+          calibrationEvents: input.calibrationEvents,
+          activeChampionRecord: activeChampion,
+        })
+      : null,
+    verifiedPromotionScore:
+      promotionFocus?.verifiedPromotionScore ??
+      promotionFocus?.verifiedPromotion?.score ??
+      null,
+    verifiedPromotionScoreBreakdown:
+      promotionFocus?.verifiedPromotion?.scoreBreakdown ?? null,
+    verifiedPromotionCandidateId: promotionFocus?.candidateId ?? null,
+    verifiedPromotionEligibility:
+      promotionFocus?.verifiedPromotion?.eligible ?? false,
+    parityStatus:
+      promotionFocus?.localTvParity?.status ?? null,
+    walkForwardStatus:
+      promotionFocus?.walkForwardEvaluation == null
+        ? null
+        : promotionFocus.walkForwardEvaluation.passed
+          ? "passed"
+          : "failed",
+    trialPressure:
+      promotionFocus?.verifiedPromotion?.trialLedgerStats == null
+        ? null
+        : {
+            ...promotionFocus.verifiedPromotion.trialLedgerStats,
+            minimumRequiredScore:
+              promotionFocus.verifiedPromotion.scoreBreakdown?.minimumRequiredScore ??
+              null,
+            trialBudgetPenalty:
+              promotionFocus.verifiedPromotion.scoreBreakdown?.trialBudgetPenalty ??
+              null,
+            structureFamilyHash:
+              promotionFocus.verifiedPromotion.structureFamilyHash,
+            fingerprintFamily:
+              promotionFocus.verifiedPromotion.fingerprintFamily,
+            parameterNeighborhood:
+              promotionFocus.verifiedPromotion.parameterNeighborhood,
+          },
+    researchStageCounts,
+    quarantineCount: researchStageCounts.quarantined ?? 0,
+    parityStatusCounts: buildParityStatusCounts(input.tvRecords),
+    walkForwardStatusCounts: buildWalkForwardStatusCounts(input.tvRecords),
+    branchBudget: branchBudget.summary,
     championOrigin:
       activeChampion?.bootstrapSource != null ? activeChampion.bootstrapSource : "autonomous",
     researchMaturity:
@@ -801,10 +989,149 @@ function buildAutonomousStateSummaryPayload(input: {
             : activeChampion
               ? "archive_gap_exploration"
               : "generate_next_candidate",
-    loopMode: "local-first",
+    loopMode: "verified-promotion-first",
     defaultOperationalView:
-      input.localRecords.length > 0 ? "v3_autonomous_local_first" : "legacy_v2",
+      input.records.length > 0 ? "v4_verified_autoresearch" : "legacy_v2",
   };
+}
+
+function buildResearchStageCounts(input: {
+  records: AutonomousExperimentRecord[];
+  headEvents: HeadEventRecord[];
+  archiveEvents: ArchiveEventRecord[];
+  calibrationEvents: CalibrationEventRecord[];
+  activeChampionRecord: AutonomousExperimentRecord | null;
+}): Record<AutonomousResearchStage, number> {
+  const counts = Object.fromEntries(
+    RESEARCH_STAGES.map((stage) => [stage, 0]),
+  ) as Record<AutonomousResearchStage, number>;
+  for (const record of input.records) {
+    const stage = deriveResearchStage({
+      record,
+      headEvents: input.headEvents,
+      archiveEvents: input.archiveEvents,
+      calibrationEvents: input.calibrationEvents,
+      activeChampionRecord: input.activeChampionRecord,
+    });
+    counts[stage] += 1;
+  }
+  return counts;
+}
+
+const RESEARCH_STAGES: AutonomousResearchStage[] = [
+  "candidate",
+  "local_pass",
+  "frontier",
+  "archive",
+  "calibration_queued",
+  "tv_verified",
+  "promotion_candidate",
+  "champion",
+  "quarantined",
+];
+
+function deriveResearchStage(input: {
+  record: AutonomousExperimentRecord;
+  headEvents: HeadEventRecord[];
+  archiveEvents: ArchiveEventRecord[];
+  calibrationEvents: CalibrationEventRecord[];
+  activeChampionRecord: AutonomousExperimentRecord | null;
+}): AutonomousResearchStage {
+  if (
+    input.activeChampionRecord?.candidateId === input.record.candidateId &&
+    input.activeChampionRecord.recordKind === input.record.recordKind &&
+    input.activeChampionRecord.recordMeta.recordHash === input.record.recordMeta.recordHash &&
+    input.headEvents.some(
+      (event) =>
+        event.eventKind === "champion_updated" &&
+        event.candidateId === input.record.candidateId,
+    )
+  ) {
+    return "champion";
+  }
+
+  if (input.record.recordKind === "tv_verification") {
+    if (input.record.verifiedPromotion?.eligible === true) {
+      return "promotion_candidate";
+    }
+    if (isTvRecordQuarantined(input.record)) {
+      return "quarantined";
+    }
+    if (input.record.tvCalibrationStatus === "verified_match") {
+      return "tv_verified";
+    }
+    return input.record.researchStage ?? "candidate";
+  }
+
+  const queued = input.calibrationEvents.some(
+    (event) =>
+      event.candidateId === input.record.candidateId &&
+      event.eventKind === "calibration_candidate_added" &&
+      event.queueState === "queued",
+  );
+  if (queued || input.record.eligibility?.calibrationEligible === true) {
+    return "calibration_queued";
+  }
+  const archived = input.archiveEvents.some(
+    (event) =>
+      event.candidateId === input.record.candidateId &&
+      event.eventKind === "archive_added",
+  );
+  if (archived) {
+    return "archive";
+  }
+  if (input.record.eligibility?.autoSelectionEligible === true) {
+    return "frontier";
+  }
+  if (
+    input.record.decision === "local_candidate_rejected" ||
+    input.record.decision === "local_backtest_empty" ||
+    input.record.testerMetrics != null
+  ) {
+    return "local_pass";
+  }
+  return input.record.researchStage ?? "candidate";
+}
+
+function isTvRecordQuarantined(record: AutonomousExperimentRecord): boolean {
+  if (record.tvCalibrationStatus !== "verified_match") {
+    return true;
+  }
+  const parityStatuses = [
+    record.localTvParity?.status,
+    record.localTvParity?.tradeParity?.status,
+    record.localTvParity?.eventParity?.status,
+  ];
+  return parityStatuses.some(
+    (status) => status === "major_drift" || status === "not_comparable",
+  );
+}
+
+function buildParityStatusCounts(
+  tvRecords: ReturnType<typeof selectTvVerificationRecords>,
+): Record<string, number> {
+  return tvRecords.reduce<Record<string, number>>((counts, record) => {
+    const status = record.localTvParity?.status ?? "missing";
+    counts[status] = (counts[status] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function buildWalkForwardStatusCounts(
+  tvRecords: ReturnType<typeof selectTvVerificationRecords>,
+): Record<string, number> {
+  return tvRecords.reduce<Record<string, number>>((counts, record) => {
+    const key =
+      record.walkForwardEvaluation == null
+        ? "missing"
+        : record.walkForwardEvaluation.canaryHoldout?.exposed === true
+          ? "canary_exposed"
+          : record.walkForwardEvaluation.passed
+            ? "passed"
+            : "failed";
+    counts[key] = (counts[key] ?? 0) + 1;
+    return counts;
+  }, {});
 }
 
 function deriveCalibrationQueueStatus(
@@ -1013,6 +1340,11 @@ async function writeAutonomousNamespaceViews(
   await writeJson(
     path.join(autonomousDir, "local-confidence-summary.json"),
     views.localConfidenceSummary,
+  );
+  await writeJson(path.join(autonomousDir, "branch-budget.json"), views.branchBudget);
+  await writeJson(
+    path.join(autonomousDir, "verified-promotion-readiness.json"),
+    views.verifiedPromotionReadiness,
   );
   await writeJson(path.join(autonomousDir, "failure-memory.json"), views.failureMemory);
 }

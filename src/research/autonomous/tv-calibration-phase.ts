@@ -4,6 +4,7 @@ import { type RuntimeEnvironment } from "../../cli/runtime-config.js";
 import {
   type CalibrationEventRecord,
   type AutonomousExperimentRecord,
+  type AutonomousResearchStage,
   type LocalConfidenceEventRecord,
   type VerifiedPromotionEvidence,
   type WalkForwardEvaluation,
@@ -711,7 +712,7 @@ async function appendTvRecord(
   artifactValidation: Record<string, unknown> | null;
   testerMetrics: Record<string, unknown> | null;
   artifactBundle: Record<string, unknown> | null;
-  localTvParity: Record<string, unknown> | null;
+  localTvParity: AutonomousExperimentRecord["localTvParity"];
   localConfidence: number;
   tvCalibrationStatus: AutonomousExperimentRecord["tvCalibrationStatus"];
   walkForwardEvaluation?: WalkForwardEvaluation | null;
@@ -766,13 +767,18 @@ async function appendTvRecord(
       autoSelectionScore:
         input.verifiedPromotion?.score ??
         input.localRecord.autoSelectionScore,
-      autoSelectionBreakdown: input.localRecord.autoSelectionBreakdown,
-      walkForwardEvaluation: input.walkForwardEvaluation ?? undefined,
-      verifiedPromotionScore: input.verifiedPromotion?.score ?? null,
-      verifiedPromotion: input.verifiedPromotion ?? undefined,
-      objectivePolicyVersion: getObjectivePolicyVersion(),
-      selectionPolicyVersion: getAutonomousSelectionPolicyVersion(),
-      localConfidence: input.localConfidence,
+        autoSelectionBreakdown: input.localRecord.autoSelectionBreakdown,
+        walkForwardEvaluation: input.walkForwardEvaluation ?? undefined,
+        verifiedPromotionScore: input.verifiedPromotion?.score ?? null,
+        verifiedPromotion: input.verifiedPromotion ?? undefined,
+        researchStage: resolveTvResearchStage({
+          tvCalibrationStatus: input.tvCalibrationStatus,
+          localTvParity: input.localTvParity,
+          verifiedPromotion: input.verifiedPromotion ?? null,
+        }),
+        objectivePolicyVersion: getObjectivePolicyVersion(),
+        selectionPolicyVersion: getAutonomousSelectionPolicyVersion(),
+        localConfidence: input.localConfidence,
       tvCalibrationStatus: input.tvCalibrationStatus,
       artifactPaths: input.localRecord.artifactPaths,
       recordMeta: {
@@ -786,6 +792,32 @@ async function appendTvRecord(
         pipelineVersion: "af-autonomous-local-first/v3",
       },
     } as Parameters<typeof appendExperimentRecord>[1],
-  );
-  return autonomousExperimentSchema.parse(normalized);
+    );
+    return autonomousExperimentSchema.parse(normalized);
+  }
+
+function resolveTvResearchStage(input: {
+  tvCalibrationStatus: AutonomousExperimentRecord["tvCalibrationStatus"];
+  localTvParity: AutonomousExperimentRecord["localTvParity"];
+  verifiedPromotion: VerifiedPromotionEvidence | null;
+}): AutonomousResearchStage {
+  if (input.verifiedPromotion?.eligible === true) {
+    return "promotion_candidate";
+  }
+  if (input.tvCalibrationStatus !== "verified_match") {
+    return "quarantined";
+  }
+  const parityStatuses = [
+    input.localTvParity?.status,
+    input.localTvParity?.tradeParity?.status,
+    input.localTvParity?.eventParity?.status,
+  ];
+  if (
+    parityStatuses.some(
+      (status) => status === "major_drift" || status === "not_comparable",
+    )
+  ) {
+    return "quarantined";
+  }
+  return "tv_verified";
 }

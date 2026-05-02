@@ -7,7 +7,9 @@ import { describe, expect, test } from "vitest";
 import { type ArtifactBundle, type ExecutorCapability } from "../../src/contracts/types.js";
 import { validateArtifactBundle } from "../../src/evaluation/artifact-validation.js";
 import {
+  appendAutonomousBranchRecord,
   appendExperimentRecord,
+  appendHeadEventRecord,
   appendIncidentRecord,
   appendResearchKnowledgeRecord,
   appendTaskBatchRecord,
@@ -17,6 +19,10 @@ import {
 import { rebuildIndexes } from "../../src/state/index-builder.js";
 import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
 import { sha256Json } from "../../src/utils/fs.js";
+import {
+  AUTORESEARCH_CONTRACT_VERSION,
+  STRATEGY_SPEC_MUTATION_AUTHORITY,
+} from "../../src/policy/autoresearch-contract.js";
 
 const tradingViewCapability: ExecutorCapability = {
   kind: "tradingview-live",
@@ -1040,5 +1046,354 @@ describe("rebuildIndexes", () => {
     expect(researchSummary.latestKnowledge[0].knowledgeId).toBe("rsk-1");
     expect(researchSummary.topProblemTags[0].label).toBe("trend_down");
     expect(researchSummary.topStrategyTags[0].label).toBe("exit_tightening");
+  });
+
+  test("surfaces verified autoresearch contract readiness in autonomous dashboard views", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-verified-dashboard-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const knowledgePaths = resolveKnowledgePaths(stateRoot);
+    const recordedAt = "2026-04-28T00:00:00.000Z";
+    const candidatePath = path.join(root, "cand-promote.pine");
+    const specPath = path.join(root, "cand-promote.af-spec.json");
+    await writeFile(candidatePath, "//@version=5\nstrategy('candidate')\n", "utf8");
+    await writeFile(specPath, "{\"version\":\"af-spec/v1\"}\n", "utf8");
+
+    const localRecord = {
+      runId: "run-verified-dashboard",
+      iteration: 1,
+      candidateId: "cand-promote",
+      parentCandidateId: null,
+      branchId: "branch-main",
+      acceptedHeadCandidateId: null,
+      baselineCandidateId: null,
+      candidatePath,
+      candidateHash: "candidate-hash",
+      contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+      mutationAuthority: STRATEGY_SPEC_MUTATION_AUTHORITY,
+      specPath,
+      specHash: "spec-hash",
+      studyTitle: "Promotable",
+      candidateScore: 0.7,
+      decision: "local_candidate_eligible",
+      status: "evaluated",
+      recordKind: "local_evaluation",
+      executorRole: "primary_local_backtest",
+      evidenceAuthority: "local_model",
+      evaluationMode: "local_primary",
+      objectivePolicyVersion: "objective.qqq-120m/v1",
+      selectionPolicyVersion: "autonomous-tv-verified/v4",
+      selectionPhase: "steady_state",
+      localConfidence: 1,
+      tvCalibrationStatus: "not_requested",
+      localTvParity: null,
+      researchStage: "calibration_queued",
+      structureFamilyHash: "family-a",
+      fingerprintFamily: "fingerprint-a",
+      parameterNeighborhood: "neighborhood-a",
+      testerMetrics: {
+        netProfitPercent: 12,
+        postFeeNetProfitPercent: 10,
+        profitFactor: 1.6,
+        maxStrategyDrawdownPercent: 8,
+        percentProfitable: 55,
+        totalTrades: 90,
+        avgTradePercent: 0.2,
+      },
+      noveltyFingerprint: {
+        fingerprint: "fp-a",
+        fingerprintFamily: "fingerprint-a",
+        inventorySignature: "inventory-a",
+        structureSignature: "structure-a",
+        featureFlags: [],
+        configBuckets: {},
+        tokens: [],
+      },
+      autoSelectionBreakdown: {
+        baseObjectiveScore: 0.7,
+        robustnessScore: 0.1,
+        noveltyScore: 0.1,
+        diversityScore: 0,
+        localConfidenceBonus: 0,
+        riskPenalty: 0,
+        overfitPenalty: 0,
+        duplicatePenalty: 0,
+        divergencePenalty: 0,
+        complexityPenalty: 0.05,
+        totalScore: 0.7,
+        eligible: true,
+        rejectionReasons: [],
+      },
+      localFrontierScore: 0.7,
+      autoSelectionScore: 0.7,
+      duplicateStatus: {
+        classification: "unique",
+        exactDuplicateCandidateId: null,
+        structuralDuplicateCandidateId: null,
+        duplicateFingerprint: null,
+      },
+      localCompatibility: {
+        compatible: true,
+        unsupportedReason: null,
+        missingFunctions: [],
+        missingInputs: [],
+        unsupportedPatterns: [],
+      },
+      eligibility: {
+        autoSelectionEligible: true,
+        bootstrapEligible: false,
+        archiveEligible: true,
+        calibrationEligible: true,
+        blockingReasons: [],
+      },
+      artifactPaths: { candidate: candidatePath, spec: specPath },
+      recordMeta: {
+        schemaVersion: "experiment/v3",
+        recordHash: "local-record-hash",
+        candidateHash: "candidate-hash",
+        baselineHash: null,
+        artifactBundleHash: null,
+        pipelineVersion: "test",
+      },
+      recordedAt,
+    };
+    const tvRecord = {
+      ...localRecord,
+      runId: "run-verified-dashboard-tv",
+      recordKind: "tv_verification",
+      executorRole: "external_calibration",
+      evidenceAuthority: "external_tv",
+      evaluationMode: "tv_calibration",
+      decision: "tv_verified",
+      status: "verified",
+      tvCalibrationStatus: "verified_match",
+      researchStage: "promotion_candidate",
+      localTvParity: {
+        status: "matched",
+        tradeCountDelta: 0,
+        netProfitPctDelta: 0,
+        maxDrawdownPctDelta: 0,
+        profitFactorDelta: 0,
+        winRateDelta: 0,
+        tradeParity: {
+          status: "matched",
+          entryTimeMatchRatio: 1,
+          exitTimeMatchRatio: 1,
+          profitSignMatchRatio: 1,
+          orderCountDelta: 0,
+        },
+        eventParity: {
+          status: "matched",
+          eventMatchRatio: 1,
+          entryPassMatchRatio: 1,
+          exitReasonMatchRatio: 1,
+        },
+      },
+      walkForwardEvaluation: {
+        policyVersion: "walk-forward-oos/v1",
+        foldCount: 5,
+        requiredPositiveOosFolds: 4,
+        positiveOosFoldCount: 5,
+        minimumTradesPerFold: 12,
+        minimumTotalOosTrades: 60,
+        totalOosTrades: 80,
+        worstFoldDrawdownPercent: 10,
+        medianOosProfitFactor: 1.4,
+        medianOosPostFeeNetProfitPercent: 6,
+        embargoBars: 5,
+        minimumCoverageDays: 730,
+        coverageDays: 900,
+        canaryHoldout: {
+          policyVersion: "canary-holdout/v1",
+          mode: "sealed",
+          exposed: false,
+          reason: "automatic loop cannot evaluate sealed canary",
+        },
+        passed: true,
+        gateReasons: [],
+        folds: [],
+      },
+      verifiedPromotionScore: 0.72,
+      verifiedPromotion: {
+        eligible: true,
+        score: 0.72,
+        scoreBreakdown: {
+          tvPerformanceScore: 0.3,
+          walkForwardRobustnessScore: 0.18,
+          foldConsistencyScore: 0.15,
+          tradeDensityScore: 0.1,
+          parityScore: 0.05,
+          simplicityScore: 0.03,
+          trialBudgetPenalty: 0.02,
+          regimeConcentrationPenalty: 0,
+          complexityPenalty: 0.07,
+          totalScore: 0.72,
+          minimumRequiredScore: 0.62,
+        },
+        rejectionReasons: [],
+        localCandidateHash: "candidate-hash",
+        tvCandidateHash: "candidate-hash",
+        structureFamilyHash: "family-a",
+        fingerprintFamily: "fingerprint-a",
+        parameterNeighborhood: "neighborhood-a",
+        trialLedgerStats: {
+          totalCandidatesTried: 42,
+          totalLocalPass: 12,
+          totalTvVerified: 4,
+          totalPromotionCandidates: 1,
+          familyTrials: 7,
+          fingerprintFamilyTrials: 7,
+          parameterNeighborhoodTrials: 3,
+          oosExposureCount: 12,
+          canaryExposureCount: 0,
+        },
+        localRecordKind: "local_evaluation",
+        tvRecordKind: "tv_verification",
+        policyVersion: "verified-promotion/v1",
+      },
+      recordMeta: {
+        schemaVersion: "experiment/v3",
+        recordHash: "tv-record-hash",
+        candidateHash: "candidate-hash",
+        baselineHash: null,
+        artifactBundleHash: null,
+        pipelineVersion: "test",
+      },
+    };
+    const driftRecord = {
+      ...tvRecord,
+      runId: "run-verified-dashboard-drift",
+      iteration: 2,
+      candidateId: "cand-drift",
+      candidateHash: "drift-hash",
+      specPath: path.join(root, "cand-drift.af-spec.json"),
+      specHash: "drift-spec-hash",
+      verifiedPromotionScore: null,
+      walkForwardEvaluation: {
+        ...tvRecord.walkForwardEvaluation,
+        positiveOosFoldCount: 3,
+        passed: false,
+        gateReasons: ["required_positive_oos_folds"],
+      },
+      verifiedPromotion: {
+        ...tvRecord.verifiedPromotion,
+        eligible: false,
+        score: null,
+        localCandidateHash: "drift-hash",
+        tvCandidateHash: "drift-hash",
+        rejectionReasons: ["parity_major_drift"],
+      },
+      researchStage: "quarantined",
+      localTvParity: {
+        ...tvRecord.localTvParity,
+        status: "major_drift",
+      },
+      recordMeta: {
+        ...tvRecord.recordMeta,
+        recordHash: "drift-record-hash",
+        candidateHash: "drift-hash",
+      },
+    };
+
+    await appendExperimentRecord(stateRoot, localRecord);
+    await appendExperimentRecord(stateRoot, tvRecord);
+    await appendExperimentRecord(stateRoot, driftRecord);
+    await appendHeadEventRecord(stateRoot, {
+      runId: "run-verified-dashboard-head",
+      iteration: 3,
+      eventKind: "champion_updated",
+      candidateId: "cand-promote",
+      previousChampionId: null,
+      selectedBy: "auto_policy",
+      policyVersion: "autonomous-tv-verified/v4",
+      headAuthority: "verified_promotion",
+      selectionPhase: "steady_state",
+      bootstrapSource: null,
+      bootstrapReason: null,
+      researchMaturity: "steady_state",
+      performanceScore: 0.3,
+      objectiveScore: 0.7,
+      noveltyScore: 0,
+      robustnessScore: 0.18,
+      autoSelectionScore: 0.72,
+      diversityScore: 0,
+      diversityContribution: 0,
+      localConfidenceBonus: 0,
+      riskPenalty: 0,
+      overfitPenalty: 0,
+      duplicatePenalty: 0,
+      divergencePenalty: 0,
+      complexityPenalty: 0.07,
+      selectionReason: "Verified promotion test head.",
+      selectionEvidenceHash: "selection-hash",
+      humanOverride: false,
+      recordedAt,
+    });
+    await appendAutonomousBranchRecord(stateRoot, {
+      branchId: "branch-champion",
+      branchKind: "champion_exploit",
+      budgetPct: 50,
+      parentCandidateId: null,
+      followUpRemaining: 0,
+      createdAt: recordedAt,
+      lastCandidateId: "cand-promote",
+      status: "active",
+    });
+    await appendAutonomousBranchRecord(stateRoot, {
+      branchId: "branch-breakout",
+      branchKind: "exploration_breakout",
+      budgetPct: 20,
+      parentCandidateId: "cand-promote",
+      followUpRemaining: 0,
+      createdAt: recordedAt,
+      lastCandidateId: "cand-drift",
+      status: "exhausted",
+    });
+
+    await rebuildIndexes(stateRoot);
+
+    const summary = JSON.parse(
+      await readFile(knowledgePaths.autonomousStateSummaryPath, "utf8"),
+    );
+    const branchBudget = JSON.parse(
+      await readFile(path.join(knowledgePaths.viewsDir, "autonomous", "branch-budget.json"), "utf8"),
+    );
+    const readiness = JSON.parse(
+      await readFile(
+        path.join(knowledgePaths.viewsDir, "autonomous", "verified-promotion-readiness.json"),
+        "utf8",
+      ),
+    );
+
+    expect(summary.loopMode).toBe("verified-promotion-first");
+    expect(summary.activeChampionCandidateId).toBe("cand-promote");
+    expect(summary.verifiedPromotionScore).toBe(0.72);
+    expect(summary.parityStatusCounts.matched).toBe(1);
+    expect(summary.parityStatusCounts.major_drift).toBe(1);
+    expect(summary.walkForwardStatusCounts.passed).toBe(1);
+    expect(summary.researchStageCounts.champion).toBe(1);
+    expect(summary.researchStageCounts.quarantined).toBe(1);
+    expect(summary.quarantineCount).toBe(1);
+    expect(summary.trialPressure.familyTrials).toBe(7);
+    expect(summary.trialPressure.minimumRequiredScore).toBe(0.62);
+    expect(summary.branchBudget.targets.champion_exploit).toBe(50);
+    expect(summary.branchBudget.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          branchKind: "champion_exploit",
+          targetPct: 50,
+          actualCount: 1,
+        }),
+      ]),
+    );
+    expect(branchBudget.summary.totalBranches).toBe(2);
+    expect(readiness.entries[0]).toEqual(
+      expect.objectContaining({
+        candidateId: "cand-promote",
+        eligible: true,
+        verifiedPromotionScore: 0.72,
+        parityStatus: "matched",
+        walkForwardStatus: "passed",
+      }),
+    );
   });
 });

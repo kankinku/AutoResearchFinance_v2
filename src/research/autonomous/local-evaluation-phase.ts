@@ -6,6 +6,7 @@ import {
   type AutonomousEligibility,
   type AutonomousExperimentRecord,
   type AutonomousLocalCompatibility,
+  type AutonomousResearchStage,
   type LocalConfidenceEventRecord,
   type LocalEvaluationBlockingReason,
   type NoveltyFingerprint,
@@ -179,6 +180,7 @@ export async function runLocalEvaluationPhase(input: {
     selectionPhase: input.bootstrapMetadata ? "bootstrap" : "steady_state",
     bootstrapSource: input.bootstrapMetadata?.source ?? null,
     bootstrapReason: input.bootstrapMetadata?.reason ?? null,
+    researchStage: "candidate" as const,
     localConfidence: resolvedLocalConfidence,
     tvCalibrationStatus: "not_requested" as const,
     localTvParity: null,
@@ -690,6 +692,12 @@ export async function runLocalEvaluationPhase(input: {
     autoSelectionBreakdown,
     localCompatibility,
     eligibility,
+    researchStage: resolveLocalResearchStage({
+      decision,
+      eligibility,
+      shouldArchive,
+      shouldQueueCalibration,
+    }),
     artifactPaths: {
       ...buildCandidateArtifactPaths(input.candidateArtifact),
       ...artifactPaths,
@@ -737,6 +745,30 @@ export async function runLocalEvaluationPhase(input: {
     shouldQueueCalibration,
     problemEvent,
   };
+}
+
+function resolveLocalResearchStage(input: {
+  decision: string;
+  eligibility: AutonomousEligibility;
+  shouldArchive: boolean;
+  shouldQueueCalibration: boolean;
+}): AutonomousResearchStage {
+  if (
+    input.decision === "local_backtest_empty" ||
+    input.decision === "local_candidate_rejected"
+  ) {
+    return "local_pass";
+  }
+  if (input.decision !== "local_candidate_eligible") {
+    return "candidate";
+  }
+  if (input.eligibility.calibrationEligible || input.shouldQueueCalibration) {
+    return "calibration_queued";
+  }
+  if (input.shouldArchive || input.eligibility.archiveEligible) {
+    return "archive";
+  }
+  return "frontier";
 }
 
 function mapConfidenceSignal(

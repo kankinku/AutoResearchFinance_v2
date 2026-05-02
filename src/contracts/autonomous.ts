@@ -68,6 +68,18 @@ export const autonomousBootstrapSourceSchema = z.enum([
   "local_compatible_seed",
 ]);
 
+export const autonomousResearchStageSchema = z.enum([
+  "candidate",
+  "local_pass",
+  "frontier",
+  "archive",
+  "calibration_queued",
+  "tv_verified",
+  "promotion_candidate",
+  "champion",
+  "quarantined",
+]);
+
 export const duplicateStatusSchema = z.object({
   classification: duplicateClassificationSchema,
   exactDuplicateCandidateId: z.string().nullable().default(null),
@@ -327,6 +339,7 @@ export const autonomousExperimentSchema = z.object({
   selectionPhase: autonomousSelectionPhaseSchema.default("steady_state"),
   bootstrapSource: autonomousBootstrapSourceSchema.nullable().default(null),
   bootstrapReason: z.string().nullable().default(null),
+  researchStage: autonomousResearchStageSchema.default("candidate"),
   localConfidence: z.number().min(0).max(1).nullable().default(null),
   tvCalibrationStatus: tvCalibrationStatusSchema.default("not_requested"),
   localTvParity: localTvParitySummarySchema.nullable().default(null),
@@ -560,6 +573,7 @@ export type AutonomousLocalCompatibility = z.infer<
 >;
 export type AutonomousEligibility = z.infer<typeof autonomousEligibilitySchema>;
 export type AutonomousExperimentRecord = z.infer<typeof autonomousExperimentSchema>;
+export type AutonomousResearchStage = z.infer<typeof autonomousResearchStageSchema>;
 export type HeadEventRecord = z.infer<typeof headEventRecordSchema>;
 export type HeadAuthority = z.infer<typeof headAuthoritySchema>;
 export type AutonomousBranchStatus = z.infer<typeof autonomousBranchStatusSchema>;

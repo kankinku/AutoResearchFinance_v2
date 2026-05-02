@@ -13,6 +13,7 @@ import {
   readLocalConfidenceEventRecords,
   readProblemEventRecords,
   readRepairAttemptRecords,
+  readAutonomousBranchRecords,
   resolveStatePaths,
 } from "./jsonl-store.js";
 import { buildAutonomousViewPayloads } from "./autonomous-index-builder.js";
@@ -172,6 +173,7 @@ export async function verifyAutonomousDerivedViews(
   const problemEvents = await readProblemEventRecords(stateRoot);
   const confidenceEvents = await readLocalConfidenceEventRecords(stateRoot);
   const repairAttempts = await readRepairAttemptRecords(stateRoot);
+  const branchRecords = await readAutonomousBranchRecords(stateRoot);
   const expected = buildAutonomousViewPayloads({
     experiments,
     headEvents: headEventsResult.records,
@@ -180,6 +182,7 @@ export async function verifyAutonomousDerivedViews(
     confidenceEvents,
     problemEvents,
     repairAttempts,
+    branchRecords,
   });
 
   const comparisons: Array<{
@@ -256,6 +259,20 @@ export async function verifyAutonomousDerivedViews(
       scope: "failure-memory",
       filePath: paths.failureMemoryPath,
       expected: expected.failureMemory,
+    },
+    {
+      scope: "branch-budget",
+      filePath: path.join(path.dirname(paths.localLeaderboardPath), "autonomous", "branch-budget.json"),
+      expected: expected.branchBudget,
+    },
+    {
+      scope: "verified-promotion-readiness",
+      filePath: path.join(
+        path.dirname(paths.localLeaderboardPath),
+        "autonomous",
+        "verified-promotion-readiness.json",
+      ),
+      expected: expected.verifiedPromotionReadiness,
     },
   ];
   const autonomousDir = path.join(path.dirname(paths.localLeaderboardPath), "autonomous");
