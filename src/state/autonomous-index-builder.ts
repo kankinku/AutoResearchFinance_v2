@@ -14,7 +14,7 @@ import { writeJson } from "../utils/fs.js";
 import { resolveStatePaths } from "./jsonl-store.js";
 import {
   compareAutonomousChampion,
-  findActiveChampionCandidateId,
+  findActiveChampionRecord,
   selectLocalEvaluationRecords,
   selectTvVerificationRecords,
 } from "./autonomous-state.js";
@@ -76,7 +76,11 @@ export function buildAutonomousViewPayloads(input: {
   const tvRecords = [...selectTvVerificationRecords(input.experiments)].sort(
     (left, right) => right.iteration - left.iteration,
   );
-  const activeChampionCandidateId = findActiveChampionCandidateId(input.headEvents);
+  const activeChampionRecord = findActiveChampionRecord({
+    records: input.experiments,
+    headEvents: input.headEvents,
+  });
+  const activeChampionCandidateId = activeChampionRecord?.candidateId ?? null;
   const pendingCalibrationQueue = buildPendingCalibrationQueue(
     input.calibrationEvents,
     tvRecords,

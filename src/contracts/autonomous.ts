@@ -341,6 +341,11 @@ export const headEventKindSchema = z.enum([
   "champion_updated",
 ]);
 
+export const headAuthoritySchema = z.enum([
+  "bootstrap_seed",
+  "verified_promotion",
+]);
+
 export const headEventRecordSchema = z.object({
   runId: z.string().min(1),
   iteration: z.number().int().positive(),
@@ -349,6 +354,7 @@ export const headEventRecordSchema = z.object({
   previousChampionId: z.string().nullable().default(null),
   selectedBy: z.literal("auto_policy"),
   policyVersion: z.string().min(1),
+  headAuthority: headAuthoritySchema.nullable().default(null),
   selectionPhase: autonomousSelectionPhaseSchema.default("steady_state"),
   bootstrapSource: autonomousBootstrapSourceSchema.nullable().default(null),
   bootstrapReason: z.string().nullable().default(null),
@@ -537,6 +543,7 @@ export type AutonomousLocalCompatibility = z.infer<
 export type AutonomousEligibility = z.infer<typeof autonomousEligibilitySchema>;
 export type AutonomousExperimentRecord = z.infer<typeof autonomousExperimentSchema>;
 export type HeadEventRecord = z.infer<typeof headEventRecordSchema>;
+export type HeadAuthority = z.infer<typeof headAuthoritySchema>;
 export type ArchiveEventRecord = z.infer<typeof archiveEventRecordSchema>;
 export type CalibrationEventRecord = z.infer<typeof calibrationEventRecordSchema>;
 export type DivergenceSeverity = z.infer<typeof divergenceSeveritySchema>;

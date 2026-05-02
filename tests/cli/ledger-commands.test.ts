@@ -1094,6 +1094,7 @@ describe("ledger CLI commands", () => {
       previousChampionId: null,
       selectedBy: "auto_policy",
       policyVersion: "autonomous-local-first/v3-p0",
+      headAuthority: null,
       selectionPhase: "steady_state",
       bootstrapSource: null,
       bootstrapReason: null,
@@ -1115,7 +1116,7 @@ describe("ledger CLI commands", () => {
     expect(result.code).toBe(0);
     expect(parseCliJson(result.stdout)).toEqual(
       expect.objectContaining({
-        activeChampionCandidateId: "cand-autonomous",
+        activeChampionCandidateId: null,
         headEventCount: 1,
         localEvaluationCount: 1,
         defaultOperationalView: "v3_autonomous_local_first",

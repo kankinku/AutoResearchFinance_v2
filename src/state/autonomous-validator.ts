@@ -16,7 +16,7 @@ import {
   resolveStatePaths,
 } from "./jsonl-store.js";
 import { buildAutonomousViewPayloads } from "./autonomous-index-builder.js";
-import { findActiveChampionCandidateId, selectAutonomousExperimentRecords } from "./autonomous-state.js";
+import { findActiveChampionRecord, selectAutonomousExperimentRecords } from "./autonomous-state.js";
 import type { LedgerValidationIssue } from "./ledger-validator.js";
 
 export async function validateAutonomousLedger(stateRoot: string): Promise<LedgerValidationIssue[]> {
@@ -96,26 +96,23 @@ export async function validateAutonomousLedger(stateRoot: string): Promise<Ledge
     }
   }
 
-  const activeChampionCandidateId = findActiveChampionCandidateId(headEventsResult.records);
-  if (activeChampionCandidateId) {
-    const championRecord = localRecords.find(
-      (record) =>
-        record.recordKind === "local_evaluation" &&
-        record.candidateId === activeChampionCandidateId,
-    );
-    if (!championRecord) {
+  const activeChampion = findActiveChampionRecord({
+    records: experiments,
+    headEvents: headEventsResult.records,
+  });
+  if (activeChampion) {
+    if (
+      activeChampion.recordKind === "local_evaluation" &&
+      (activeChampion.selectionPhase !== "bootstrap" ||
+        activeChampion.bootstrapSource !== "local_compatible_seed" ||
+        activeChampion.eligibility?.bootstrapEligible !== true)
+    ) {
       issues.push({
         severity: "error",
         scope: "autonomous",
-        message: "Active champion must resolve to an existing local evaluation record.",
-        recordId: activeChampionCandidateId,
-      });
-    } else if (championRecord.autoSelectionBreakdown?.eligible !== true) {
-      issues.push({
-        severity: "error",
-        scope: "autonomous",
-        message: "Active champion must be auto-selection eligible.",
-        recordId: activeChampionCandidateId,
+        message:
+          "Local active champion records are only valid as local-compatible bootstrap seeds.",
+        recordId: activeChampion.candidateId,
       });
     }
   }

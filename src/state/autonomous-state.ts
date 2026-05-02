@@ -232,7 +232,72 @@ export function selectBestAutonomousChampionCandidate(
 export function findActiveChampionCandidateId(
   headEvents: HeadEventRecord[],
 ): string | null {
-  const sorted = [...headEvents].sort((left, right) => {
+  return sortHeadEventsNewestFirst(headEvents)[0]?.candidateId ?? null;
+}
+
+export function findActiveVerifiedChampionRecord(input: {
+  records: ExperimentRecord[];
+  headEvents: HeadEventRecord[];
+}): AutonomousExperimentRecord | null {
+  const localRecords = selectLocalEvaluationRecords(input.records);
+  const tvRecords = selectTvVerificationRecords(input.records);
+  for (const headEvent of sortHeadEventsNewestFirst(input.headEvents)) {
+    if (
+      headEvent.headAuthority != null &&
+      headEvent.headAuthority !== "verified_promotion"
+    ) {
+      continue;
+    }
+
+    const matchingTvRecord = tvRecords
+      .filter((record) => record.candidateId === headEvent.candidateId)
+      .filter((record) => isVerifiedPromotionEligible({ record, localRecords }))
+      .sort(compareVerifiedPromotionCandidate)[0];
+    if (matchingTvRecord) {
+      return matchingTvRecord;
+    }
+  }
+
+  return null;
+}
+
+export function findBootstrapSeedRecord(input: {
+  records: ExperimentRecord[];
+  headEvents: HeadEventRecord[];
+}): AutonomousExperimentRecord | null {
+  const localRecords = selectLocalEvaluationRecords(input.records);
+  for (const headEvent of sortHeadEventsNewestFirst(input.headEvents)) {
+    const bootstrapHead =
+      headEvent.headAuthority === "bootstrap_seed" ||
+      (headEvent.headAuthority == null &&
+        headEvent.selectionPhase === "bootstrap" &&
+        headEvent.bootstrapSource === "local_compatible_seed");
+    if (!bootstrapHead) {
+      continue;
+    }
+
+    const matchingLocalRecord = localRecords
+      .filter((record) => record.candidateId === headEvent.candidateId)
+      .filter(
+        (record) =>
+          record.recordKind === "local_evaluation" &&
+          record.selectionPhase === "bootstrap" &&
+          record.bootstrapSource === "local_compatible_seed" &&
+          record.eligibility?.bootstrapEligible === true,
+      )
+      .sort(compareAutonomousChampion)[0];
+    if (matchingLocalRecord) {
+      return matchingLocalRecord;
+    }
+  }
+
+  return null;
+}
+
+function sortHeadEventsNewestFirst(
+  headEvents: HeadEventRecord[],
+): HeadEventRecord[] {
+  return [...headEvents].sort((left, right) => {
     const leftRecordedAt = Date.parse(left.recordedAt ?? "");
     const rightRecordedAt = Date.parse(right.recordedAt ?? "");
     if (leftRecordedAt !== rightRecordedAt) {
@@ -243,32 +308,18 @@ export function findActiveChampionCandidateId(
     }
     return right.candidateId.localeCompare(left.candidateId);
   });
-
-  return sorted[0]?.candidateId ?? null;
 }
 
 export function findActiveChampionRecord(input: {
   records: ExperimentRecord[];
   headEvents: HeadEventRecord[];
 }): AutonomousExperimentRecord | null {
-  const championId = findActiveChampionCandidateId(input.headEvents);
-  if (!championId) {
-    return null;
+  const verifiedChampion = findActiveVerifiedChampionRecord(input);
+  if (verifiedChampion) {
+    return verifiedChampion;
   }
 
-  const localRecords = selectLocalEvaluationRecords(input.records);
-  const tvRecords = selectTvVerificationRecords(input.records)
-    .filter((record) => record.candidateId === championId)
-    .filter((record) => isVerifiedPromotionEligible({ record, localRecords }))
-    .sort(compareVerifiedPromotionCandidate);
-  if (tvRecords[0]) {
-    return tvRecords[0];
-  }
-
-  const matchingLocalRecords = localRecords
-    .filter((record) => record.candidateId === championId)
-    .sort(compareAutonomousChampion);
-  return matchingLocalRecords[0] ?? null;
+  return findBootstrapSeedRecord(input);
 }
 
 export function buildSelectionEvidenceHash(

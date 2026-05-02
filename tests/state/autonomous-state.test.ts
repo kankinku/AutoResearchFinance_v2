@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   autonomousExperimentSchema,
+  type HeadEventRecord,
   type AutonomousExperimentRecord,
 } from "../../src/contracts/autonomous.js";
 import { type ExperimentRecord } from "../../src/contracts/types.js";
@@ -9,9 +10,16 @@ import {
   AUTORESEARCH_CONTRACT_VERSION,
   STRATEGY_SPEC_MUTATION_AUTHORITY,
 } from "../../src/policy/autoresearch-contract.js";
-import { selectBestChampionCandidate } from "../../src/state/autonomous-state.js";
+import {
+  findActiveChampionRecord,
+  findActiveVerifiedChampionRecord,
+  findBootstrapSeedRecord,
+  selectBestChampionCandidate,
+} from "../../src/state/autonomous-state.js";
 
-function createLocalRecord(): AutonomousExperimentRecord {
+function createLocalRecord(
+  overrides?: Partial<AutonomousExperimentRecord>,
+): AutonomousExperimentRecord {
   return autonomousExperimentSchema.parse({
     runId: "run-local",
     iteration: 1,
@@ -57,6 +65,7 @@ function createLocalRecord(): AutonomousExperimentRecord {
       pipelineVersion: "af-autonomous-local-first/v3",
     },
     recordedAt: "2026-05-03T00:00:00.000Z",
+    ...overrides,
   });
 }
 
@@ -160,6 +169,43 @@ function asExperimentRecords(
   records: AutonomousExperimentRecord[],
 ): ExperimentRecord[] {
   return records as unknown as ExperimentRecord[];
+}
+
+function createHeadEvent(
+  overrides?: Partial<HeadEventRecord>,
+): HeadEventRecord {
+  return {
+    runId: "run-head",
+    iteration: 1,
+    eventKind: "champion_updated",
+    candidateId: "cand-a",
+    previousChampionId: null,
+    selectedBy: "auto_policy",
+    policyVersion: "autonomous-tv-verified/v4",
+    headAuthority: "verified_promotion",
+    selectionPhase: "steady_state",
+    bootstrapSource: null,
+    bootstrapReason: null,
+    researchMaturity: "steady_state",
+    performanceScore: 0.72,
+    objectiveScore: 0.6,
+    noveltyScore: 0,
+    robustnessScore: 0,
+    autoSelectionScore: 0.72,
+    diversityScore: 0,
+    diversityContribution: 0,
+    localConfidenceBonus: 0,
+    riskPenalty: 0,
+    overfitPenalty: 0,
+    duplicatePenalty: 0,
+    divergencePenalty: 0,
+    complexityPenalty: 0,
+    selectionReason: "test",
+    selectionEvidenceHash: "evidence",
+    humanOverride: false,
+    recordedAt: "2026-05-03T02:00:00.000Z",
+    ...overrides,
+  };
 }
 
 describe("autonomous champion selectors", () => {
@@ -287,5 +333,102 @@ describe("autonomous champion selectors", () => {
     ]));
 
     expect(selected).toBeNull();
+  });
+
+  test("active champion lookup ignores local steady-state heads", () => {
+    const active = findActiveChampionRecord({
+      records: asExperimentRecords([createLocalRecord()]),
+      headEvents: [
+        createHeadEvent({
+          headAuthority: null,
+          selectionPhase: "steady_state",
+          candidateId: "cand-a",
+        }),
+      ],
+    });
+
+    expect(active).toBeNull();
+  });
+
+  test("bootstrap seed lookup only accepts local-compatible bootstrap records", () => {
+    const bootstrapRecord = createLocalRecord({
+      selectionPhase: "bootstrap",
+      bootstrapSource: "local_compatible_seed",
+      bootstrapReason: "fresh state",
+      eligibility: {
+        autoSelectionEligible: true,
+        bootstrapEligible: true,
+        archiveEligible: true,
+        calibrationEligible: true,
+        blockingReasons: [],
+      },
+    });
+    const headEvents = [
+      createHeadEvent({
+        headAuthority: "bootstrap_seed",
+        selectionPhase: "bootstrap",
+        bootstrapSource: "local_compatible_seed",
+        bootstrapReason: "fresh state",
+        candidateId: "cand-a",
+      }),
+    ];
+
+    expect(
+      findBootstrapSeedRecord({
+        records: asExperimentRecords([bootstrapRecord]),
+        headEvents,
+      })?.candidateId,
+    ).toBe("cand-a");
+    expect(
+      findActiveChampionRecord({
+        records: asExperimentRecords([bootstrapRecord]),
+        headEvents,
+      })?.candidateId,
+    ).toBe("cand-a");
+  });
+
+  test("verified champion lookup supersedes bootstrap fallback", () => {
+    const bootstrapRecord = createLocalRecord({
+      selectionPhase: "bootstrap",
+      bootstrapSource: "local_compatible_seed",
+      bootstrapReason: "fresh state",
+      eligibility: {
+        autoSelectionEligible: true,
+        bootstrapEligible: true,
+        archiveEligible: true,
+        calibrationEligible: true,
+        blockingReasons: [],
+      },
+    });
+    const verified = createTvRecord();
+    const headEvents = [
+      createHeadEvent({
+        headAuthority: "bootstrap_seed",
+        selectionPhase: "bootstrap",
+        bootstrapSource: "local_compatible_seed",
+        bootstrapReason: "fresh state",
+        candidateId: "cand-a",
+        recordedAt: "2026-05-03T03:00:00.000Z",
+      }),
+      createHeadEvent({
+        headAuthority: "verified_promotion",
+        selectionPhase: "steady_state",
+        candidateId: "cand-a",
+        recordedAt: "2026-05-03T01:00:00.000Z",
+      }),
+    ];
+
+    expect(
+      findActiveVerifiedChampionRecord({
+        records: asExperimentRecords([bootstrapRecord, verified]),
+        headEvents,
+      })?.recordKind,
+    ).toBe("tv_verification");
+    expect(
+      findActiveChampionRecord({
+        records: asExperimentRecords([bootstrapRecord, verified]),
+        headEvents,
+      })?.recordKind,
+    ).toBe("tv_verification");
   });
 });

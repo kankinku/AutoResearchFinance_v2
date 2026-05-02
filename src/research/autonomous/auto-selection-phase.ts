@@ -47,10 +47,18 @@ export async function runAutoSelectionPhase(input: {
           .sort(compareAutonomousChampion)[0] ?? null
       : null);
   const localRecords = selectLocalEvaluationRecords(input.experiments);
+  const bestCandidateIsVerified =
+    bestCandidate != null &&
+    isVerifiedPromotionEligible({ record: bestCandidate, localRecords });
+  const bestCandidateIsBootstrapSeed =
+    bestCandidate != null &&
+    isBootstrapSeedCandidate({
+      record: bestCandidate,
+      currentChampion,
+    });
   if (
     !bestCandidate ||
-    (!isVerifiedPromotionEligible({ record: bestCandidate, localRecords }) &&
-      bestCandidate.eligibility?.bootstrapEligible !== true)
+    (!bestCandidateIsVerified && !bestCandidateIsBootstrapSeed)
   ) {
     return {
       activeChampionChanged: false,
@@ -84,6 +92,9 @@ export async function runAutoSelectionPhase(input: {
     previousChampionId: currentChampion?.candidateId ?? null,
     selectedBy: "auto_policy" as const,
     policyVersion: bestCandidate.selectionPolicyVersion,
+    headAuthority: bestCandidateIsVerified
+      ? ("verified_promotion" as const)
+      : ("bootstrap_seed" as const),
     selectionPhase: bestCandidate.selectionPhase,
     bootstrapSource: bestCandidate.bootstrapSource ?? null,
     bootstrapReason: bestCandidate.bootstrapReason ?? null,
@@ -134,6 +145,19 @@ export async function runAutoSelectionPhase(input: {
     activeChampionChanged: true,
     selectedCandidateId: bestCandidate.candidateId,
   };
+}
+
+function isBootstrapSeedCandidate(input: {
+  record: AutonomousExperimentRecord;
+  currentChampion: AutonomousExperimentRecord | null;
+}): boolean {
+  return (
+    input.currentChampion == null &&
+    input.record.recordKind === "local_evaluation" &&
+    input.record.selectionPhase === "bootstrap" &&
+    input.record.bootstrapSource === "local_compatible_seed" &&
+    input.record.eligibility?.bootstrapEligible === true
+  );
 }
 
 function selectBootstrapTransitionCandidate(input: {
