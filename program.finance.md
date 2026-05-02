@@ -11,6 +11,11 @@ The LLM may propose only these research artifacts:
 - candidate summaries, next mutation hints, and condition inventory
 - hypotheses about failures, loss zones, and follow-up mutations
 
+Autonomous candidate artifacts may be written only under:
+
+- `strategies/candidates/`
+- `strategies/specs/`
+
 The LLM must not hand-author Pine as the source of truth. Pine is generated deterministically from `strategySpec`.
 
 ## Evaluation Firewall
@@ -43,4 +48,3 @@ If TradingView is unavailable, candidates remain in the frontier or calibration 
 ## Holdout Policy
 
 Automatic loops may use local screening, walk-forward folds, and regime diagnostics. Canary holdout exposure is sealed by default and must not be opened by the autonomous loop. Canary review is a human operation.
-

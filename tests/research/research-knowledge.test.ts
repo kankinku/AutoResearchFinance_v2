@@ -41,6 +41,7 @@ const testEnv = {
   alphaXivAuthFilePath: undefined,
   alphaXivSessionFilePath: undefined,
   tvCalibrationMode: "live" as const,
+  mutationSchemaMode: "strict" as const,
   autonomousBootstrapMode: "disabled" as const,
   autoProcessCalibration: false,
   calibrationBudget: 1,

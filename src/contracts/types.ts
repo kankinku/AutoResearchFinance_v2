@@ -1,6 +1,23 @@
 import { z } from "zod";
 import { afStrategySpecSchema } from "../strategy-spec/schema.js";
 
+export const specPatchOperationPathSchema = z
+  .string()
+  .regex(/^\/(event|regime|entry|slot|exit)(\/[A-Za-z0-9_-]+)*$/);
+
+export const specPatchOperationSchema = z.object({
+  path: specPatchOperationPathSchema,
+  before: z.unknown().optional(),
+  after: z.unknown(),
+  reason: z.string().min(1),
+});
+
+export const specPatchSchema = z.object({
+  version: z.literal("af-spec-patch/v1"),
+  operations: z.array(specPatchOperationSchema).min(1),
+  summary: z.string().min(1),
+});
+
 export const conditionRoleSchema = z.enum(["entry", "exit", "filter", "risk"]);
 
 export const conditionInventoryItemSchema = z.object({
@@ -444,7 +461,7 @@ export const parsedMutationResponseSchema = z.object({
   nextMutationHints: z.array(z.string()).default([]),
   pineScript: z.string().min(1),
   strategySpec: afStrategySpecSchema.nullable().optional(),
-  specPatch: z.record(z.string(), z.unknown()).nullable().optional(),
+  specPatch: specPatchSchema.nullable().optional(),
   inventory: z.array(conditionInventoryItemSchema).min(1),
   inventorySource: inventorySourceSchema.default("llm"),
   missingFields: z.array(z.string()).default([]),
@@ -1088,6 +1105,7 @@ export type CompactTradeSummary = z.infer<typeof compactTradeSummarySchema>;
 export type CompactEquitySummary = z.infer<typeof compactEquitySummarySchema>;
 export type AttachDiagnostics = z.infer<typeof attachDiagnosticsSchema>;
 export type ObjectiveConfig = z.infer<typeof objectiveConfigSchema>;
+export type SpecPatch = z.infer<typeof specPatchSchema>;
 export type ParsedMutationResponse = z.infer<typeof parsedMutationResponseSchema>;
 export type MutationProvenance = z.infer<typeof mutationProvenanceSchema>;
 export type CompileResult = z.infer<typeof compileResultSchema>;

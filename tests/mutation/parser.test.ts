@@ -99,7 +99,17 @@ describe("parseMutationResponse", () => {
         candidateSummary: "Strict spec candidate",
         nextMutationHints: ["verify in TradingView"],
         strategySpec,
-        specPatch: { source: "test" },
+        specPatch: {
+          version: "af-spec-patch/v1",
+          summary: "Enable event-floor AF entry for strict parser coverage.",
+          operations: [
+            {
+              path: "/event",
+              after: strategySpec.event,
+              reason: "Test strict parsing of a structured AF event patch.",
+            },
+          ],
+        },
         inventory: [
           {
             conditionId: "entry-bull-event",
@@ -133,6 +143,6 @@ describe("parseMutationResponse", () => {
           ],
         }),
       ),
-    ).toThrow(/strategySpec/i);
+    ).toThrow(/strategySpec|specPatch/i);
   });
 });

@@ -1,13 +1,16 @@
 import {
   parsedMutationResponseSchema,
+  specPatchSchema,
   type ConditionInventoryItem,
   type ParsedMutationResponse,
+  type SpecPatch,
 } from "../contracts/types.js";
 import { extractStudyTitle } from "../automation/tradingview/pine-study.js";
 import { renderAfStrategySpecToPine } from "../strategy-spec/codegen-pine.js";
 import { parseAfStrategySpec, type AfStrategySpec } from "../strategy-spec/schema.js";
 import { afStrategySpecFromPine } from "../strategy-spec/to-af-config.js";
 import { validateAfStrategySpec } from "../strategy-spec/validate.js";
+import { assertNoFirewallPathReference } from "../policy/autoresearch-contract.js";
 
 interface LooseConditionRecord {
   conditionId?: unknown;
@@ -80,7 +83,7 @@ function parseMutationResponseInternal(
   const inferredFields: string[] = [];
 
   const strategySpec = resolveStrategySpec(payload, options, missingFields, inferredFields);
-  const specPatch = isRecord(payload.specPatch) ? payload.specPatch : null;
+  const specPatch = resolveSpecPatch(payload, options, missingFields, inferredFields);
   let pineScript =
     strategySpec != null
       ? renderAfStrategySpecToPine(strategySpec)
@@ -141,6 +144,11 @@ function parseMutationResponseInternal(
       : inferredFields.length > 0
         ? "mixed"
         : "llm";
+  assertNoFirewallPathReference({
+    candidateSummary,
+    nextMutationHints,
+    specPatch,
+  });
 
   return parsedMutationResponseSchema.parse({
     candidateSummary,
@@ -153,6 +161,49 @@ function parseMutationResponseInternal(
     missingFields,
     inferredFields,
   });
+}
+
+function resolveSpecPatch(
+  payload: Record<string, unknown>,
+  options: MutationParseOptions,
+  missingFields: string[],
+  inferredFields: string[],
+): SpecPatch | null {
+  const rawPatch = payload.specPatch ?? payload.spec_patch;
+  if (rawPatch == null) {
+    missingFields.push("specPatch");
+    if (options.strict) {
+      throw new Error("Mutation response must include structured specPatch.");
+    }
+    inferredFields.push("specPatch");
+    return buildRecoveredSpecPatch("legacy payload omitted specPatch");
+  }
+
+  const parsed = specPatchSchema.safeParse(rawPatch);
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  if (options.strict) {
+    throw new Error(`specPatch failed validation: ${parsed.error.issues.map((issue) => issue.message).join(", ")}`);
+  }
+
+  inferredFields.push("specPatch");
+  return buildRecoveredSpecPatch("legacy payload used non-structured specPatch");
+}
+
+function buildRecoveredSpecPatch(reason: string): SpecPatch {
+  return {
+    version: "af-spec-patch/v1",
+    summary: "Recovered legacy mutation intent for test-only compatibility.",
+    operations: [
+      {
+        path: "/entry",
+        after: "legacy-recovered",
+        reason,
+      },
+    ],
+  };
 }
 
 function resolveStrategySpec(

@@ -123,6 +123,7 @@ describe("runTaskBatch", () => {
         alphaXivAuthFilePath: undefined,
         alphaXivSessionFilePath: undefined,
         tvCalibrationMode: "live",
+        mutationSchemaMode: "strict",
         autonomousBootstrapMode: "disabled",
         autoProcessCalibration: false,
         calibrationBudget: 1,

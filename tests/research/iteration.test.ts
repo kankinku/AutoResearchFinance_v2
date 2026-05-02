@@ -59,7 +59,20 @@ const baseMutationResponse = JSON.stringify({
     },
   },
   specPatch: {
-    source: "test",
+    version: "af-spec-patch/v1",
+    summary: "Create base mutation response for iteration tests.",
+    operations: [
+      {
+        path: "/entry",
+        after: {
+          primaryTrigger: "bull_event",
+          cooldownBars: 0,
+          allowBearRebound: true,
+          applyFilterToB1: false,
+        },
+        reason: "Exercise strict spec-only mutation generation in iteration tests.",
+      },
+    ],
   },
   inventory: [
     {
@@ -120,7 +133,20 @@ const repairMutationResponse = JSON.stringify({
     },
   },
   specPatch: {
-    source: "test_repair",
+    version: "af-spec-patch/v1",
+    summary: "Repair mutation response while preserving strict spec authority.",
+    operations: [
+      {
+        path: "/entry",
+        after: {
+          primaryTrigger: "bull_event",
+          cooldownBars: 0,
+          allowBearRebound: true,
+          applyFilterToB1: false,
+        },
+        reason: "Exercise strict repair response generation in iteration tests.",
+      },
+    ],
   },
   inventory: [
     {

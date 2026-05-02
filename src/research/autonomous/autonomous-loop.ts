@@ -301,6 +301,7 @@ export async function runAutonomousLoop(input: {
             llmClient: input.llmClient,
             plan,
             parentCandidateId: plan.parentCandidateId,
+            mutationSchemaMode: input.env.mutationSchemaMode,
             signal,
             monitor: input.monitor,
           }),
@@ -412,6 +413,7 @@ export async function runAutonomousLoop(input: {
                 parsedMutation: mutation.parsedMutation,
                 compatibilityIssues,
                 problemEvent: localEvaluation.problemEvent,
+                mutationSchemaMode: input.env.mutationSchemaMode,
                 signal,
                 monitor: input.monitor,
               });
@@ -438,6 +440,7 @@ export async function runAutonomousLoop(input: {
                 evaluation: localEvaluation.record,
               }),
               summary: `Requested ${localEvaluation.problemEvent.suggestedRepairKind} after ${localEvaluation.problemEvent.problemKind}.`,
+              mutationSchemaMode: input.env.mutationSchemaMode,
               signal,
               monitor: input.monitor,
             });

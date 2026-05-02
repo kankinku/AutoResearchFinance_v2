@@ -59,7 +59,15 @@ function normalizeStaticMutationResponse(response: string): string {
       ...payload,
       strategySpec,
       specPatch: payload.specPatch ?? {
-        source: "legacy_static_fixture",
+        version: "af-spec-patch/v1",
+        summary: "Recovered legacy static fixture as a spec-authoritative mutation.",
+        operations: [
+          {
+            path: "/entry",
+            after: "legacy_static_fixture",
+            reason: "Static test fixture omitted a structured specPatch.",
+          },
+        ],
       },
     });
   } catch {
@@ -228,7 +236,7 @@ export function createOpenAiCompatibleLlmClient(config: {
               "candidateSummary: string",
               "nextMutationHints: string[]",
               "strategySpec: object matching version af-spec/v1",
-              "specPatch: object describing the intentional spec changes",
+              "specPatch: { version: 'af-spec-patch/v1', summary: string, operations: [{ path, before?, after, reason }] } where path is under /event, /regime, /entry, /slot, or /exit",
               "inventory: array of { conditionId, role, summary, pineLineHints }",
               "Do not use alternative keys like pine, code, source, or pineScript.",
             ].join(" "),
@@ -258,7 +266,7 @@ export function createOpenAiCompatibleLlmClient(config: {
               "candidateSummary: string",
               "nextMutationHints: string[]",
               "strategySpec: object matching version af-spec/v1",
-              "specPatch: object describing the ablation change",
+              "specPatch: { version: 'af-spec-patch/v1', summary: string, operations: [{ path, before?, after, reason }] } where path is under /event, /regime, /entry, /slot, or /exit",
               "inventory: array of { conditionId, role, summary, pineLineHints }",
             ].join(" "),
         },
@@ -301,7 +309,7 @@ export function createOpenAiCompatibleLlmClient(config: {
               "candidateSummary: string",
               "nextMutationHints: string[]",
               "strategySpec: object matching version af-spec/v1",
-              "specPatch: object describing the repair change",
+              "specPatch: { version: 'af-spec-patch/v1', summary: string, operations: [{ path, before?, after, reason }] } where path is under /event, /regime, /entry, /slot, or /exit",
               "inventory: array of { conditionId, role, summary, pineLineHints }",
               "Do not omit any required key.",
             ].join(" "),

@@ -23,6 +23,9 @@ import { resolveKnowledgePaths } from "../../state/knowledge-paths.js";
 import { initializeWorkspace } from "../workspace.js";
 import { runAutonomousIterations } from "./autonomous-loop.js";
 import { type MutationBriefRecord } from "../../contracts/types.js";
+import { renderAfStrategySpecToPine } from "../../strategy-spec/codegen-pine.js";
+import { afStrategySpecFromPine } from "../../strategy-spec/to-af-config.js";
+import { type AfStrategySpec } from "../../strategy-spec/schema.js";
 
 export type Stage6ReadinessMode = "deterministic" | "real-llm";
 export type Stage6CalibrationMode = "mock-recovered" | "live";
@@ -324,7 +327,7 @@ function createDeterministicStage6LlmClient(seedPine: string): MutationLlmClient
       assertNotAborted(input.signal);
       repairCount += 1;
       const source =
-        input.candidatePine.includes("strategy(") &&
+        looksLikePineSource(input.candidatePine) &&
         input.candidatePine.includes("useSupertrendFilter")
           ? input.candidatePine
           : seedPine;
@@ -334,17 +337,30 @@ function createDeterministicStage6LlmClient(seedPine: string): MutationLlmClient
 }
 
 function buildDeterministicMutationResponse(seedPine: string, index: number): string {
-  const pineScript = seedPine.replace(
-    /strategy\((['"])(.*?)\1/,
-    `strategy("AF Stage6 Deterministic ${index}"`,
-  );
+  const parsedSpec = afStrategySpecFromPine(seedPine);
+  const strategySpec = {
+    ...(parsedSpec.spec ?? buildStage6FallbackSpec(index)),
+    name: `AF Stage6 Deterministic ${index}`,
+  };
   return JSON.stringify({
     candidateSummary: `Stage 6 deterministic AF mutation ${index}`,
     nextMutationHints: [
       "preserve local AF compatibility",
       "continue beyond bootstrap while retaining calibration feedback",
     ],
-    pineScript,
+    pineScript: renderAfStrategySpecToPine(strategySpec),
+    strategySpec,
+    specPatch: {
+      version: "af-spec-patch/v1",
+      summary: `Derive deterministic Stage 6 spec mutation ${index}.`,
+      operations: [
+        {
+          path: "/entry",
+          after: strategySpec.entry,
+          reason: "Keep deterministic readiness mutations under the editable AF entry spec.",
+        },
+      ],
+    },
     inventory: [
       {
         conditionId: "af-exhaustion-entry",
@@ -383,6 +399,52 @@ function buildRecoverableDeterministicMutationResponse(
       },
     ],
   });
+}
+
+function looksLikePineSource(value: string): boolean {
+  const trimmed = value.trimStart();
+  return trimmed.startsWith("//@version=") || trimmed.startsWith("strategy(");
+}
+
+function buildStage6FallbackSpec(index: number): AfStrategySpec {
+  return {
+    version: "af-spec/v1",
+    name: `AF Stage6 Deterministic ${index}`,
+    event: {
+      source: "event_floor",
+      L1: 8,
+      L2: 12,
+      L3: 15,
+      confirmBars: 2,
+      eventFloorBars: 5,
+      eventWindowBars: 10,
+    },
+    regime: {
+      trendMode: "Balanced",
+      useSupertrendFilter: true,
+      riskOffRsi: 44,
+      maxExtPct: 5.5,
+    },
+    entry: {
+      primaryTrigger: "bull_event",
+      cooldownBars: 1,
+      allowBearRebound: true,
+      applyFilterToB1: false,
+    },
+    slot: {
+      slotPct: 12,
+      maxSlots: 14,
+      useReplacement: true,
+      replaceMinRank: 3,
+      replaceIfPnlBelow: -4,
+    },
+    exit: {
+      weakRangeExit: true,
+      maxHoldBars: 18,
+      closeAllOnBearConfRiskOff: true,
+      resetOnL3: false,
+    },
+  };
 }
 
 async function resolveRealLlmClient(

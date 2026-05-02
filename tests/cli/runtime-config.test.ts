@@ -36,5 +36,6 @@ describe("runtime config", () => {
     expect(env.promotionVerificationExecutor).toBe("tradingview-desktop-cdp");
     expect(env.autoProcessCalibration).toBe(true);
     expect(env.calibrationBudget).toBe(3);
+    expect(env.mutationSchemaMode).toBe("strict");
   });
 });

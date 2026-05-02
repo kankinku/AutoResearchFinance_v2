@@ -11,6 +11,9 @@ import {
   loadResearchTarget,
 } from "../config/target-registry.js";
 import { resolveKnowledgePaths } from "../state/knowledge-paths.js";
+import {
+  parseMutationSchemaMode,
+} from "../policy/autoresearch-contract.js";
 
 loadDotEnv();
 
@@ -53,6 +56,7 @@ const runtimeEnvironmentSchema = z.object({
   alphaXivAuthFilePath: z.string().optional(),
   alphaXivSessionFilePath: z.string().optional(),
   tvCalibrationMode: z.enum(["live", "mock-recovered"]).default("live"),
+  mutationSchemaMode: z.enum(["strict", "legacy-recovery-test-only"]).default("strict"),
   autonomousBootstrapMode: z.enum(["auto", "disabled"]).default("auto"),
   autoProcessCalibration: z.boolean().default(true),
   calibrationBudget: z.number().int().positive().default(3),
@@ -193,6 +197,7 @@ export function loadRuntimeEnvironment(options?: {
       process.env.AF_TV_CALIBRATION_MODE === "mock-recovered"
         ? "mock-recovered"
         : "live",
+    mutationSchemaMode: parseMutationSchemaMode(process.env.AF_MUTATION_SCHEMA_MODE),
     autonomousBootstrapMode:
       process.env.AF_AUTONOMOUS_BOOTSTRAP_MODE === "disabled"
         ? "disabled"

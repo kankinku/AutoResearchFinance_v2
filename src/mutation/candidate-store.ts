@@ -8,6 +8,7 @@ import {
 } from "../contracts/types.js";
 import { ensureCandidateStudyTitle } from "../automation/tradingview/pine-study.js";
 import { createCandidateId, ensureDir, sha256 } from "../utils/fs.js";
+import { assertEditableResearchPath } from "../policy/autoresearch-contract.js";
 
 export async function persistCandidateArtifact(input: {
   workspaceRoot: string;
@@ -24,6 +25,10 @@ export async function persistCandidateArtifact(input: {
   const candidatesDir = path.join(input.workspaceRoot, "strategies", "candidates");
   const specsDir = path.join(input.workspaceRoot, "strategies", "specs");
   const candidatePath = path.join(candidatesDir, `${candidateId}.pine`);
+  assertEditableResearchPath({
+    workspaceRoot: input.workspaceRoot,
+    targetPath: candidatePath,
+  });
   await ensureDir(candidatesDir);
   await writeFile(candidatePath, normalizedMutation.source, "utf8");
   let specPath: string | null = null;
@@ -31,6 +36,10 @@ export async function persistCandidateArtifact(input: {
   if (input.parsedMutation.strategySpec) {
     await ensureDir(specsDir);
     specPath = path.join(specsDir, `${candidateId}.json`);
+    assertEditableResearchPath({
+      workspaceRoot: input.workspaceRoot,
+      targetPath: specPath,
+    });
     const specJson = `${JSON.stringify(input.parsedMutation.strategySpec, null, 2)}\n`;
     specHash = sha256(specJson);
     await writeFile(specPath, specJson, "utf8");

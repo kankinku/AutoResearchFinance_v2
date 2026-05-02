@@ -52,6 +52,7 @@ import {
   buildSchemaHardeningSummary,
   buildSchemaRegenerateBrief,
 } from "./llm-repair-phase.js";
+import { type MutationSchemaMode } from "../../policy/autoresearch-contract.js";
 
 const RESPONSE_SCHEMA_VERSION = "parsed-mutation-response/v2";
 const STAGNATION_MIN_ITERATIONS_WITHOUT_CHAMPION = 24;
@@ -649,6 +650,7 @@ export async function generateAutonomousCandidate(input: {
   plan: AutonomousMutationPlan;
   parentCandidateId: string | null;
   branchId?: string;
+  mutationSchemaMode?: MutationSchemaMode;
   signal?: AbortSignal;
   monitor?: MonitorLike;
 }): Promise<AutonomousMutationOutput> {
@@ -694,6 +696,7 @@ export async function generateAutonomousCandidate(input: {
     baselinePine: input.plan.baselinePine,
     response,
     candidateId: input.parentCandidateId,
+    mutationSchemaMode: input.mutationSchemaMode ?? "strict",
     signal: input.signal,
     monitor: input.monitor,
   });
@@ -825,6 +828,7 @@ export async function generateAutonomousCandidate(input: {
           baselinePine: parsed.pineScript,
           response,
           candidateId: input.parentCandidateId,
+          mutationSchemaMode: input.mutationSchemaMode ?? "strict",
           signal: input.signal,
           monitor: input.monitor,
         });
@@ -926,6 +930,7 @@ export async function repairAutonomousCandidateForCompatibility(input: {
   compatibilityIssues: LocalCompatibilityIssue[];
   problemEvent?: ProblemEventRecord | null;
   branchId?: string;
+  mutationSchemaMode?: MutationSchemaMode;
   signal?: AbortSignal;
   monitor?: MonitorLike;
 }): Promise<AutonomousMutationOutput> {
@@ -965,6 +970,7 @@ export async function repairAutonomousCandidateForCompatibility(input: {
     ),
     summary: `Requested local compatibility repair for ${input.compatibilityIssues.map((issue) => issue.code).join(", ")}`,
     branchId: input.branchId,
+    mutationSchemaMode: input.mutationSchemaMode,
     signal: input.signal,
     monitor: input.monitor,
   });
@@ -984,6 +990,7 @@ export async function repairAutonomousCandidateForProblemEvent(input: {
   compileErrors: string[];
   summary: string;
   branchId?: string;
+  mutationSchemaMode?: MutationSchemaMode;
   signal?: AbortSignal;
   monitor?: MonitorLike;
 }): Promise<AutonomousMutationOutput> {
@@ -1033,6 +1040,7 @@ export async function repairAutonomousCandidateForProblemEvent(input: {
       baselinePine: input.parsedMutation.pineScript,
       response,
       candidateId: input.candidateId,
+      mutationSchemaMode: input.mutationSchemaMode ?? "strict",
       signal: input.signal,
       monitor: input.monitor,
     });
@@ -2586,6 +2594,7 @@ async function parseWithSchemaRepair(input: {
   baselinePine: string;
   response: string;
   candidateId: string | null;
+  mutationSchemaMode: MutationSchemaMode;
   signal?: AbortSignal;
   monitor?: MonitorLike;
 }): Promise<{
@@ -2624,46 +2633,48 @@ async function parseWithSchemaRepair(input: {
       suggestedRepairKind: "schema_repair",
       failureSignatureHash,
     });
-    try {
-      const recovered = parseMutationResponseWithRecovery(input.response);
-      const promptHash = sha256(
-        JSON.stringify({
-          operation: "schemaRepairLocalRecovery",
-          brief: input.brief,
-          rawFailedResponse: input.response,
-        }),
-      );
-      const pendingRepairAttempt: PendingSuccessfulRepairAttempt = {
-        problemEventId: problemEvent.problemEventId,
-        candidateId: input.candidateId,
-        repairKind: "schema_repair",
-        llmPromptHash: promptHash,
-        llmResponseHash: sha256(input.response),
-        summary:
-          "Recovered strict JSON schema failure with the local mutation parser recovery path.",
-        failureSignatureHash,
-      };
-      await input.monitor?.log(
-        "autonomous.mutation.schema_recovered",
-        "Recovered strict mutation schema failure locally without an extra LLM round trip",
-        {
-          iteration: input.iteration,
+    if (input.mutationSchemaMode === "legacy-recovery-test-only") {
+      try {
+        const recovered = parseMutationResponseWithRecovery(input.response);
+        const promptHash = sha256(
+          JSON.stringify({
+            operation: "schemaRepairLocalRecovery",
+            brief: input.brief,
+            rawFailedResponse: input.response,
+          }),
+        );
+        const pendingRepairAttempt: PendingSuccessfulRepairAttempt = {
+          problemEventId: problemEvent.problemEventId,
           candidateId: input.candidateId,
-          diagnosis,
-        },
-      );
-      return {
-        parsed: recovered,
-        response: input.response,
-        pendingRepairAttempts: [pendingRepairAttempt],
-      };
-    } catch {
-      // Fall through to LLM-driven schema repair when local salvage is impossible.
+          repairKind: "schema_repair",
+          llmPromptHash: promptHash,
+          llmResponseHash: sha256(input.response),
+          summary:
+            "Recovered strict JSON schema failure with the local mutation parser recovery path.",
+          failureSignatureHash,
+        };
+        await input.monitor?.log(
+          "autonomous.mutation.schema_recovered",
+          "Recovered strict mutation schema failure locally without an extra LLM round trip",
+          {
+            iteration: input.iteration,
+            candidateId: input.candidateId,
+            diagnosis,
+          },
+        );
+        return {
+          parsed: recovered,
+          response: input.response,
+          pendingRepairAttempts: [pendingRepairAttempt],
+        };
+      } catch {
+        // Fall through to LLM-driven schema repair when local salvage is impossible.
+      }
     }
     const schemaRepairErrors = [
       `Previous autonomous mutation failed strict JSON schema validation. ${diagnosis}`,
       "Do not change the strategy idea. Re-emit strict JSON only with required keys candidateSummary, nextMutationHints, strategySpec, specPatch, inventory.",
-      "Use rawFailedResponse as the candidate intent to repair; do not fall back to hand-written Pine unless no candidate intent can be recovered from the malformed payload.",
+      "Use rawFailedResponse only as intent context; do not fall back to hand-written Pine.",
     ];
     const repairResponse = await input.llmClient.repairMutation({
       brief: input.brief,

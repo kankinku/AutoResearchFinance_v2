@@ -92,7 +92,17 @@ describe("AF strategy spec v1", () => {
         nextMutationHints: ["verify promotion evidence"],
         pineScript: renderAfStrategySpecToPine(spec),
         strategySpec: spec,
-        specPatch: { source: "test" },
+        specPatch: {
+          version: "af-spec-patch/v1",
+          summary: "Persist spec-backed candidate artifact.",
+          operations: [
+            {
+              path: "/entry",
+              after: spec.entry,
+              reason: "Exercise structured patch persistence with an editable entry change.",
+            },
+          ],
+        },
         inventory: [
           {
             conditionId: "entry-bull-event",
