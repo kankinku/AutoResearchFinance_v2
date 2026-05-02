@@ -2,8 +2,10 @@ import { z } from "zod";
 
 import {
   artifactValidationResultSchema,
+  artifactBundleSchema,
   backtestMetricsSchema,
   conditionInventoryItemSchema,
+  conditionContributionSchema,
   localTvParitySummarySchema,
   mutationBriefSchema,
   mutationProvenanceSchema,
@@ -116,6 +118,14 @@ export const walkForwardFoldSchema = z.object({
 
 export const walkForwardEvaluationSchema = z.object({
   policyVersion: z.string().min(1).default("walk-forward-oos/v1"),
+  canaryHoldout: z
+    .object({
+      policyVersion: z.string().min(1).default("canary-holdout/v1"),
+      mode: z.literal("sealed"),
+      exposed: z.literal(false),
+      reason: z.string().min(1),
+    })
+    .optional(),
   foldCount: z.number().int().positive(),
   requiredPositiveOosFolds: z.number().int().positive(),
   positiveOosFoldCount: z.number().int().nonnegative(),
@@ -239,8 +249,10 @@ export const autonomousExperimentSchema = z.object({
   evaluationMode: autonomousEvaluationModeSchema,
   mutationBriefSummary: z.string().optional(),
   conditionInventory: z.array(conditionInventoryItemSchema).default([]),
+  conditionContributions: z.array(conditionContributionSchema).default([]),
   mutationProvenance: mutationProvenanceSchema.nullable().default(null),
   artifactValidation: artifactValidationResultSchema.nullable().default(null),
+  artifactBundle: artifactBundleSchema.nullable().default(null),
   testerMetrics: backtestMetricsSchema.nullable().default(null),
   objectiveBreakdown: objectiveBreakdownSchema.nullable().default(null),
   splitEvaluation: splitEvaluationSchema.nullable().default(null),

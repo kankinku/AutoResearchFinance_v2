@@ -4,6 +4,10 @@ import {
   type ParsedMutationResponse,
 } from "../contracts/types.js";
 import { extractStudyTitle } from "../automation/tradingview/pine-study.js";
+import { renderAfStrategySpecToPine } from "../strategy-spec/codegen-pine.js";
+import { parseAfStrategySpec, type AfStrategySpec } from "../strategy-spec/schema.js";
+import { afStrategySpecFromPine } from "../strategy-spec/to-af-config.js";
+import { validateAfStrategySpec } from "../strategy-spec/validate.js";
 
 interface LooseConditionRecord {
   conditionId?: unknown;
@@ -75,11 +79,21 @@ function parseMutationResponseInternal(
   const missingFields: string[] = [];
   const inferredFields: string[] = [];
 
-  const pineScript = options.strict
-    ? pickString(payload, ["pineScript"])
-    : pickString(payload, ["pineScript", "pine", "code", "source"]);
+  const strategySpec = resolveStrategySpec(payload, options, missingFields, inferredFields);
+  const specPatch = isRecord(payload.specPatch) ? payload.specPatch : null;
+  let pineScript =
+    strategySpec != null
+      ? renderAfStrategySpecToPine(strategySpec)
+      : options.strict
+        ? pickString(payload, ["pineScript"])
+        : pickString(payload, ["pineScript", "pine", "code", "source"]);
   if (!pineScript) {
-    throw new Error("Mutation response must include pineScript or a compatible Pine code field.");
+    throw new Error(
+      "Mutation response must include strategySpec; legacy Pine code is accepted only by recovery parsing.",
+    );
+  }
+  if (options.strict && strategySpec == null) {
+    throw new Error("Strict mutation response must include strategySpec.");
   }
 
   let candidateSummary = options.strict
@@ -132,11 +146,46 @@ function parseMutationResponseInternal(
     candidateSummary,
     nextMutationHints,
     pineScript,
+    strategySpec,
+    specPatch,
     inventory,
     inventorySource,
     missingFields,
     inferredFields,
   });
+}
+
+function resolveStrategySpec(
+  payload: Record<string, unknown>,
+  options: MutationParseOptions,
+  missingFields: string[],
+  inferredFields: string[],
+): AfStrategySpec | null {
+  const rawSpec = payload.strategySpec ?? payload.strategy_spec ?? payload.spec;
+  if (rawSpec != null) {
+    const parsed = parseAfStrategySpec(rawSpec);
+    const validation = validateAfStrategySpec(parsed);
+    if (!validation.ok) {
+      throw new Error(`strategySpec failed validation: ${validation.issues.join(", ")}`);
+    }
+    return parsed;
+  }
+
+  missingFields.push("strategySpec");
+  if (options.strict) {
+    return null;
+  }
+
+  const pineScript = pickString(payload, ["pineScript", "pine", "code", "source"]);
+  if (!pineScript) {
+    return null;
+  }
+  const recovered = afStrategySpecFromPine(pineScript);
+  if (!recovered.spec) {
+    return null;
+  }
+  inferredFields.push("strategySpec");
+  return recovered.spec;
 }
 
 function normalizeInventory(

@@ -27,7 +27,14 @@ import {
 import { loadLocalBacktestBars } from "../automation/local-backtest/context.js";
 import { parseAfStrategyConfig, type AfStrategyConfig } from "../automation/local-backtest/af-config.js";
 import { simulateAfStrategy } from "../automation/local-backtest/af-simulator.js";
+import { afStrategySpecToConfig } from "../strategy-spec/to-af-config.js";
 import { sha256Json } from "../utils/fs.js";
+import {
+  buildTrialLedgerStats,
+  computeMinimumVerifiedPromotionScoreFromStats,
+  computeTrialBudgetPenaltyFromStats,
+} from "./trial-penalty.js";
+import { computeRegimeConcentrationPenalty } from "./regime-split.js";
 
 const OBJECTIVE_POLICY_VERSION = "objective.qqq-120m/v1";
 export const AUTONOMOUS_SELECTION_POLICY_VERSION = "autonomous-tv-verified/v4";
@@ -44,6 +51,7 @@ export interface LocalSplitEvaluationInput {
   workspaceRoot: string;
   stateRoot?: string;
   pineScript: string;
+  strategySpec?: unknown;
   objective: ObjectiveConfig;
   fullSampleArtifactBundle?: ArtifactBundle | null;
 }
@@ -72,10 +80,9 @@ export function getVerifiedPromotionPolicyVersion(): string {
 }
 
 export function buildNoveltyFingerprint(
-  parsedMutation: Pick<ParsedMutationResponse, "inventory" | "pineScript">,
+  parsedMutation: Pick<ParsedMutationResponse, "inventory" | "pineScript" | "strategySpec">,
 ): BuiltFingerprint {
-  const parsedConfig = parseAfStrategyConfig(parsedMutation.pineScript);
-  const config = parsedConfig.issues.length === 0 ? parsedConfig.config : null;
+  const config = resolveAfConfig(parsedMutation);
   const inventoryTokens = parsedMutation.inventory
     .map((entry) => `${entry.role}:${entry.conditionId}`)
     .sort();
@@ -169,7 +176,10 @@ export function classifyDuplicateStatus(input: {
 export async function evaluateLocalSplit(
   input: LocalSplitEvaluationInput,
 ): Promise<SplitEvaluation> {
-  const parsed = parseAfStrategyConfig(input.pineScript);
+  const parsed = resolveAfConfigWithIssues({
+    pineScript: input.pineScript,
+    strategySpec: input.strategySpec,
+  });
   if (parsed.issues.length > 0) {
     return splitEvaluationSchema.parse({
       splitMethod: "chronological_70_30",
@@ -243,6 +253,38 @@ export async function evaluateLocalSplit(
     hardGatesPassed: gateReasons.length === 0,
     gateReasons,
   });
+}
+
+function resolveAfConfig(
+  input: Pick<ParsedMutationResponse, "pineScript" | "strategySpec">,
+): AfStrategyConfig | null {
+  const resolved = resolveAfConfigWithIssues(input);
+  return resolved.issues.length === 0 ? resolved.config : null;
+}
+
+function resolveAfConfigWithIssues(input: {
+  pineScript: string;
+  strategySpec?: unknown;
+}): { config: AfStrategyConfig; issues: string[] } {
+  if (input.strategySpec) {
+    try {
+      return {
+        config: afStrategySpecToConfig(input.strategySpec),
+        issues: [],
+      };
+    } catch (error) {
+      return {
+        config: parseAfStrategyConfig(input.pineScript).config,
+        issues: [error instanceof Error ? error.message : String(error)],
+      };
+    }
+  }
+
+  const parsed = parseAfStrategyConfig(input.pineScript);
+  return {
+    config: parsed.config,
+    issues: parsed.issues,
+  };
 }
 
 export function buildAutoSelectionBreakdown(input: {
@@ -403,11 +445,37 @@ export function buildVerifiedPromotionScore(input: {
     if (Math.abs(parity.netProfitPctDelta ?? Number.POSITIVE_INFINITY) > 2) {
       rejectionReasons.push("parity_net_profit_delta");
     }
+    if (!parity.tradeParity || parity.tradeParity.status === "not_comparable") {
+      rejectionReasons.push("trade_parity_not_comparable");
+    } else {
+      if (parity.tradeParity.status === "major_drift") {
+        rejectionReasons.push("trade_parity_major_drift");
+      }
+      if ((parity.tradeParity.entryTimeMatchRatio ?? 0) < 0.95) {
+        rejectionReasons.push("trade_parity_entry_time_match");
+      }
+      if ((parity.tradeParity.exitTimeMatchRatio ?? 0) < 0.95) {
+        rejectionReasons.push("trade_parity_exit_time_match");
+      }
+      if ((parity.tradeParity.profitSignMatchRatio ?? 0) < 0.95) {
+        rejectionReasons.push("trade_parity_profit_sign_match");
+      }
+      if (Math.abs(parity.tradeParity.orderCountDelta ?? Number.POSITIVE_INFINITY) > 1) {
+        rejectionReasons.push("trade_parity_order_count_delta");
+      }
+    }
   }
   if (!walkForward) {
     rejectionReasons.push("walk_forward_missing");
   } else if (!walkForward.passed) {
     rejectionReasons.push(...walkForward.gateReasons.map((reason) => `walk_forward:${reason}`));
+  }
+  if (
+    walkForward &&
+    (walkForward as unknown as { canaryHoldout?: { exposed?: unknown } })
+      .canaryHoldout?.exposed === true
+  ) {
+    rejectionReasons.push("canary_holdout_exposed");
   }
 
   const tvPerformanceScore = normalizePositive(tvMetrics?.postFeeNetProfitPercent ?? 0, 30) * 0.3;
@@ -421,15 +489,20 @@ export function buildVerifiedPromotionScore(input: {
   const tradeDensityScore =
     normalizePositive(walkForward?.totalOosTrades ?? 0, walkForward?.minimumTotalOosTrades ?? 60) * 0.1;
   const parityScore =
-    parity?.status === "matched"
+    parity?.status === "matched" && parity.tradeParity?.status === "matched"
       ? 0.1
-      : parity?.status === "minor_drift"
+      : parity?.status === "minor_drift" || parity?.tradeParity?.status === "minor_drift"
         ? 0.04
         : 0;
   const simplicityScore = Math.max(0, 0.05 - computeComplexityPenalty(input.config) * 0.25);
-  const trialBudgetPenalty = computeTrialBudgetPenalty(input.referenceExperiments);
+  const trialStats = buildTrialLedgerStats({
+    referenceExperiments: input.referenceExperiments,
+  });
+  const trialBudgetPenalty = computeTrialBudgetPenaltyFromStats(trialStats);
   const complexityPenalty = computeComplexityPenalty(input.config);
-  const regimeConcentrationPenalty = 0;
+  const regimeConcentrationPenalty = computeRegimeConcentrationPenalty({
+    walkForwardEvaluation: walkForward,
+  });
   const totalScore = roundScore(
     tvPerformanceScore +
       walkForwardRobustnessScore +
@@ -441,9 +514,7 @@ export function buildVerifiedPromotionScore(input: {
       regimeConcentrationPenalty -
       complexityPenalty,
   );
-  const minimumRequiredScore = computeMinimumVerifiedPromotionScore(
-    input.referenceExperiments,
-  );
+  const minimumRequiredScore = computeMinimumVerifiedPromotionScoreFromStats(trialStats);
   if (totalScore < minimumRequiredScore) {
     rejectionReasons.push("verified_score_below_threshold");
   }
@@ -477,27 +548,21 @@ export function buildVerifiedPromotionScore(input: {
 export function computeTrialBudgetPenalty(
   referenceExperiments: ExperimentRecord[],
 ): number {
-  const tried = referenceExperiments.filter((record) => record.candidateHash).length;
-  if (tried < 100) {
-    return 0;
-  }
-  if (tried < 1_000) {
-    return 0.04;
-  }
-  return 0.08;
+  return computeTrialBudgetPenaltyFromStats(
+    buildTrialLedgerStats({
+      referenceExperiments,
+    }),
+  );
 }
 
 export function computeMinimumVerifiedPromotionScore(
   referenceExperiments: ExperimentRecord[],
 ): number {
-  const tried = referenceExperiments.filter((record) => record.candidateHash).length;
-  if (tried < 100) {
-    return 0.62;
-  }
-  if (tried < 1_000) {
-    return 0.68;
-  }
-  return 0.74;
+  return computeMinimumVerifiedPromotionScoreFromStats(
+    buildTrialLedgerStats({
+      referenceExperiments,
+    }),
+  );
 }
 
 export function buildTvFailureDecision(input: {

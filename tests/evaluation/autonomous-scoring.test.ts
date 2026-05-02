@@ -39,6 +39,24 @@ function createWalkForwardPass(): WalkForwardEvaluation {
   };
 }
 
+function createMatchedParity() {
+  return {
+    status: "matched" as const,
+    tradeCountDelta: 0,
+    netProfitPctDelta: 0,
+    maxDrawdownPctDelta: 0,
+    profitFactorDelta: 0,
+    winRateDelta: 0,
+    tradeParity: {
+      status: "matched" as const,
+      entryTimeMatchRatio: 1,
+      exitTimeMatchRatio: 1,
+      profitSignMatchRatio: 1,
+      orderCountDelta: 0,
+    },
+  };
+}
+
 function createReferences(count: number): ExperimentRecord[] {
   return Array.from({ length: count }, (_, index) => ({
     runId: "run-ref",
@@ -64,14 +82,7 @@ describe("verified promotion scoring", () => {
       localCandidateHash: "hash-a",
       tvCandidateHash: "hash-a",
       tvCalibrationStatus: "verified_match",
-      localTvParity: {
-        status: "matched",
-        tradeCountDelta: 0,
-        netProfitPctDelta: 0,
-        maxDrawdownPctDelta: 0,
-        profitFactorDelta: 0,
-        winRateDelta: 0,
-      },
+      localTvParity: createMatchedParity(),
       walkForwardEvaluation: null,
       config: null,
       referenceExperiments: [],
@@ -96,6 +107,13 @@ describe("verified promotion scoring", () => {
         maxDrawdownPctDelta: 0,
         profitFactorDelta: 0,
         winRateDelta: 0,
+        tradeParity: {
+          status: "major_drift",
+          entryTimeMatchRatio: 0.5,
+          exitTimeMatchRatio: 0.5,
+          profitSignMatchRatio: 0.5,
+          orderCountDelta: 6,
+        },
       },
       walkForwardEvaluation: createWalkForwardPass(),
       config: null,
@@ -120,14 +138,7 @@ describe("verified promotion scoring", () => {
       localCandidateHash: "hash-a",
       tvCandidateHash: "hash-a",
       tvCalibrationStatus: "verified_match",
-      localTvParity: {
-        status: "matched",
-        tradeCountDelta: 0,
-        netProfitPctDelta: 0,
-        maxDrawdownPctDelta: 0,
-        profitFactorDelta: 0,
-        winRateDelta: 0,
-      },
+      localTvParity: createMatchedParity(),
       walkForwardEvaluation: createWalkForwardPass(),
       config: null,
       referenceExperiments: [],

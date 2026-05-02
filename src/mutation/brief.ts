@@ -196,8 +196,8 @@ export function buildMutationBrief(input: {
   const forbiddenPatterns = [
     "Do not remove strategy() declaration.",
     "Do not emit empty or placeholder Pine code.",
-    "Do not leave TODO, placeholder, or markdown fence text inside pineScript.",
-    "Do not use ta.adx(); use Pine v5-safe manual DMI/ADX logic if ADX is required.",
+    "Do not ask the LLM to hand-author Pine; mutation output must be strategySpec-first.",
+    "Do not leave TODO, placeholder, or markdown fence text inside generated artifacts.",
     "Do not optimize for fewer than the minimum required trades.",
     "Do not replace the AF seed with a generic EMA crossover or generic trend-following template.",
     "Preserve the AF seed core: exhaustion count sequencing, confirmation logic, slot-based position scaling or replacement, and staged bearish exit handling unless directly improving one of those blocks.",

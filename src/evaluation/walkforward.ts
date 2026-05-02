@@ -1,6 +1,7 @@
 import { parseAfStrategyConfig } from "../automation/local-backtest/af-config.js";
 import { loadLocalBacktestBars } from "../automation/local-backtest/context.js";
 import { simulateAfStrategy } from "../automation/local-backtest/af-simulator.js";
+import { afStrategySpecToConfig } from "../strategy-spec/to-af-config.js";
 import {
   type BacktestMetrics,
   type ObjectiveConfig,
@@ -23,11 +24,12 @@ export async function evaluateWalkForward(input: {
   workspaceRoot: string;
   stateRoot?: string;
   pineScript: string;
+  strategySpec?: unknown;
   objective: ObjectiveConfig;
   foldCount?: number;
   embargoBars?: number;
 }): Promise<WalkForwardEvaluation> {
-  const parsed = parseAfStrategyConfig(input.pineScript);
+  const parsed = resolveConfig(input.pineScript, input.strategySpec);
   if (parsed.issues.length > 0) {
     return buildFailedWalkForwardEvaluation({
       foldCount: input.foldCount ?? DEFAULT_FOLD_COUNT,
@@ -101,6 +103,28 @@ export async function evaluateWalkForward(input: {
   });
 }
 
+function resolveConfig(
+  pineScript: string,
+  strategySpec?: unknown,
+): ReturnType<typeof parseAfStrategyConfig> {
+  if (strategySpec) {
+    try {
+      return {
+        config: afStrategySpecToConfig(strategySpec),
+        issues: [],
+        compatibilityIssues: [],
+      };
+    } catch (error) {
+      const parsed = parseAfStrategyConfig(pineScript);
+      return {
+        ...parsed,
+        issues: [error instanceof Error ? error.message : String(error)],
+      };
+    }
+  }
+  return parseAfStrategyConfig(pineScript);
+}
+
 export function buildWalkForwardEvaluationFromFoldMetrics(input: {
   foldMetrics: BacktestMetrics[];
   foldMetadata?: Array<{
@@ -168,6 +192,12 @@ export function buildWalkForwardEvaluationFromFoldMetrics(input: {
 
   return walkForwardEvaluationSchema.parse({
     policyVersion: "walk-forward-oos/v1",
+    canaryHoldout: {
+      policyVersion: "canary-holdout/v1",
+      mode: "sealed",
+      exposed: false,
+      reason: "Automatic promotion uses walk-forward folds only; sealed canary review is reserved for human audit.",
+    },
     foldCount,
     requiredPositiveOosFolds: REQUIRED_POSITIVE_OOS_FOLDS,
     positiveOosFoldCount,
@@ -274,6 +304,12 @@ function buildFailedWalkForwardEvaluation(input: {
 }): WalkForwardEvaluation {
   return walkForwardEvaluationSchema.parse({
     policyVersion: "walk-forward-oos/v1",
+    canaryHoldout: {
+      policyVersion: "canary-holdout/v1",
+      mode: "sealed",
+      exposed: false,
+      reason: "Automatic promotion uses walk-forward folds only; sealed canary review is reserved for human audit.",
+    },
     foldCount: input.foldCount,
     requiredPositiveOosFolds: REQUIRED_POSITIVE_OOS_FOLDS,
     positiveOosFoldCount: 0,

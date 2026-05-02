@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { afStrategySpecSchema } from "../strategy-spec/schema.js";
 
 export const conditionRoleSchema = z.enum(["entry", "exit", "filter", "risk"]);
 
@@ -301,6 +302,25 @@ export const localTvParitySummarySchema = z.object({
   maxDrawdownPctDelta: z.number().nullable().default(null),
   profitFactorDelta: z.number().nullable().default(null),
   winRateDelta: z.number().nullable().default(null),
+  tradeParity: z
+    .object({
+      status: z.enum(["matched", "minor_drift", "major_drift", "not_comparable"]),
+      entryTimeMatchRatio: z.number().min(0).max(1).nullable().default(null),
+      exitTimeMatchRatio: z.number().min(0).max(1).nullable().default(null),
+      profitSignMatchRatio: z.number().min(0).max(1).nullable().default(null),
+      orderCountDelta: z.number().nullable().default(null),
+    })
+    .nullable()
+    .optional(),
+  eventParity: z
+    .object({
+      status: z.enum(["matched", "minor_drift", "major_drift", "not_comparable"]),
+      eventMatchRatio: z.number().min(0).max(1).nullable().default(null),
+      entryPassMatchRatio: z.number().min(0).max(1).nullable().default(null),
+      exitReasonMatchRatio: z.number().min(0).max(1).nullable().default(null),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const finalAnalysisSummarySchema = z.object({
@@ -423,6 +443,8 @@ export const parsedMutationResponseSchema = z.object({
   candidateSummary: z.string().min(1),
   nextMutationHints: z.array(z.string()).default([]),
   pineScript: z.string().min(1),
+  strategySpec: afStrategySpecSchema.nullable().optional(),
+  specPatch: z.record(z.string(), z.unknown()).nullable().optional(),
   inventory: z.array(conditionInventoryItemSchema).min(1),
   inventorySource: inventorySourceSchema.default("llm"),
   missingFields: z.array(z.string()).default([]),
@@ -580,6 +602,11 @@ export const conditionContributionSchema = z.object({
   scoreDelta: z.number(),
   ablatedScore: z.number(),
   ablatedDecision: z.string().min(1),
+  tradesAdded: z.number().int().optional(),
+  tradesRemoved: z.number().int().optional(),
+  profitDelta: z.number().optional(),
+  drawdownDelta: z.number().optional(),
+  oosFoldDelta: z.number().optional(),
 });
 
 export const explorationBudgetSchema = z.object({
@@ -737,6 +764,8 @@ export const candidateArtifactSchema = z.object({
   branchId: z.string().min(1),
   pinePath: z.string().min(1),
   pineHash: z.string().min(1),
+  specPath: z.string().nullable().optional(),
+  specHash: z.string().nullable().optional(),
   studyTitle: z.string().nullable(),
   inventory: z.array(conditionInventoryItemSchema),
   candidateSummary: z.string().min(1),

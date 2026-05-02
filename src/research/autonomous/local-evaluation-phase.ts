@@ -26,6 +26,7 @@ import {
   type AutonomousScoringReferenceRecord,
 } from "../../evaluation/autonomous-scoring.js";
 import { evaluateObjective } from "../../evaluation/objective.js";
+import { computeAfConditionAttribution } from "../../evaluation/af-condition-attribution.js";
 import { buildObjectiveArtifact, writeIterationArtifacts } from "../artifact-writer.js";
 import { type MutationProvenance, type ParsedMutationResponse } from "../../contracts/types.js";
 import { appendExperimentRecord, appendProblemEventRecord } from "../../state/jsonl-store.js";
@@ -431,6 +432,7 @@ export async function runLocalEvaluationPhase(input: {
     workspaceRoot: input.workspaceRoot,
     stateRoot: input.stateRoot,
     pineScript,
+    strategySpec: input.parsedMutation.strategySpec,
     objective: input.objective,
     fullSampleArtifactBundle: artifactBundle,
   });
@@ -471,6 +473,18 @@ export async function runLocalEvaluationPhase(input: {
     mutationProvenanceValid: provenanceValid,
     localConfidenceSignal: mapConfidenceSignal(localConfidenceSignal),
   });
+  const conditionContributions =
+    testerMetrics && testerMetrics.totalTrades > 0
+      ? await computeAfConditionAttribution({
+          workspaceRoot: input.workspaceRoot,
+          stateRoot: input.stateRoot,
+          pineScript,
+          strategySpec: input.parsedMutation.strategySpec,
+          inventory: input.candidateArtifact.inventory,
+          objective: input.objective,
+          baseMetrics: testerMetrics,
+        }).catch(() => [])
+      : [];
   const decision =
     testerMetrics == null || testerMetrics.totalTrades <= 0
       ? "local_backtest_empty"
@@ -562,6 +576,7 @@ export async function runLocalEvaluationPhase(input: {
     artifactValidation,
     testerMetrics,
     artifactBundle,
+    conditionContributions,
     objectiveBreakdown,
     splitEvaluation,
     noveltyFingerprint: fingerprintResult.fingerprint,

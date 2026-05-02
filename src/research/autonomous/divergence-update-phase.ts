@@ -1,6 +1,7 @@
 import {
   localTvParitySummarySchema,
   type BacktestMetrics,
+  type TradeRecord,
 } from "../../contracts/types.js";
 import {
   type AutonomousExperimentRecord,
@@ -95,6 +96,10 @@ export interface LocalConfidenceSummary {
 export function buildLocalTvParity(input: {
   localMetrics: BacktestMetrics | null | undefined;
   tvMetrics: BacktestMetrics | null | undefined;
+  localTrades?: TradeRecord[] | null;
+  tvTrades?: TradeRecord[] | null;
+  localEventTrace?: Array<Record<string, unknown>> | null;
+  tvEventTrace?: Array<Record<string, unknown>> | null;
 }) {
   if (!input.localMetrics || !input.tvMetrics) {
     return localTvParitySummarySchema.parse({
@@ -104,6 +109,8 @@ export function buildLocalTvParity(input: {
       maxDrawdownPctDelta: null,
       profitFactorDelta: null,
       winRateDelta: null,
+      tradeParity: buildTradeParity(input.localTrades, input.tvTrades),
+      eventParity: buildEventParity(input.localEventTrace, input.tvEventTrace),
     });
   }
 
@@ -118,16 +125,27 @@ export function buildLocalTvParity(input: {
     input.tvMetrics.profitFactor - input.localMetrics.profitFactor;
   const winRateDelta =
     input.tvMetrics.percentProfitable - input.localMetrics.percentProfitable;
-  const status =
+  const metricStatus: "matched" | "minor_drift" | "major_drift" =
     Math.abs(netProfitPctDelta) <= 2 &&
     Math.abs(maxDrawdownPctDelta) <= 2 &&
-    Math.abs(tradeCountDelta) <= 10
+    Math.abs(tradeCountDelta) <= 1
       ? "matched"
       : Math.abs(netProfitPctDelta) <= 6 &&
           Math.abs(maxDrawdownPctDelta) <= 5 &&
           Math.abs(tradeCountDelta) <= 25
         ? "minor_drift"
         : "major_drift";
+  const tradeParity = buildTradeParity(input.localTrades, input.tvTrades);
+  const eventParity = buildEventParity(input.localEventTrace, input.tvEventTrace);
+  const status = worstParityStatus([
+    metricStatus,
+    (tradeParity?.status ?? "not_comparable") as
+      | "matched"
+      | "minor_drift"
+      | "major_drift"
+      | "not_comparable",
+    eventParity?.status === "major_drift" ? "major_drift" : metricStatus,
+  ]);
 
   return localTvParitySummarySchema.parse({
     status,
@@ -136,7 +154,146 @@ export function buildLocalTvParity(input: {
     maxDrawdownPctDelta,
     profitFactorDelta,
     winRateDelta,
+    tradeParity,
+    eventParity,
   });
+}
+
+function buildTradeParity(
+  localTrades: TradeRecord[] | null | undefined,
+  tvTrades: TradeRecord[] | null | undefined,
+) {
+  if (!localTrades?.length || !tvTrades?.length) {
+    return {
+      status: "not_comparable" as const,
+      entryTimeMatchRatio: null,
+      exitTimeMatchRatio: null,
+      profitSignMatchRatio: null,
+      orderCountDelta: tvTrades?.length != null && localTrades?.length != null
+        ? tvTrades.length - localTrades.length
+        : null,
+    };
+  }
+
+  const comparableCount = Math.min(localTrades.length, tvTrades.length);
+  let entryMatches = 0;
+  let exitMatches = 0;
+  let profitSignMatches = 0;
+  for (let index = 0; index < comparableCount; index += 1) {
+    const localTrade = localTrades[index];
+    const tvTrade = tvTrades[index];
+    if (normalizeTime(localTrade.entryTime) === normalizeTime(tvTrade.entryTime)) {
+      entryMatches += 1;
+    }
+    if (normalizeTime(localTrade.exitTime) === normalizeTime(tvTrade.exitTime)) {
+      exitMatches += 1;
+    }
+    if (Math.sign(localTrade.profitValue ?? 0) === Math.sign(tvTrade.profitValue ?? 0)) {
+      profitSignMatches += 1;
+    }
+  }
+
+  const entryTimeMatchRatio = entryMatches / comparableCount;
+  const exitTimeMatchRatio = exitMatches / comparableCount;
+  const profitSignMatchRatio = profitSignMatches / comparableCount;
+  const orderCountDelta = tvTrades.length - localTrades.length;
+  const status =
+    Math.abs(orderCountDelta) <= 1 &&
+    entryTimeMatchRatio >= 0.95 &&
+    exitTimeMatchRatio >= 0.95 &&
+    profitSignMatchRatio >= 0.95
+      ? "matched"
+      : Math.abs(orderCountDelta) <= 3 &&
+          entryTimeMatchRatio >= 0.8 &&
+          exitTimeMatchRatio >= 0.8 &&
+          profitSignMatchRatio >= 0.8
+        ? "minor_drift"
+        : "major_drift";
+
+  return {
+    status,
+    entryTimeMatchRatio: roundRatio(entryTimeMatchRatio),
+    exitTimeMatchRatio: roundRatio(exitTimeMatchRatio),
+    profitSignMatchRatio: roundRatio(profitSignMatchRatio),
+    orderCountDelta,
+  };
+}
+
+function buildEventParity(
+  localEventTrace: Array<Record<string, unknown>> | null | undefined,
+  tvEventTrace: Array<Record<string, unknown>> | null | undefined,
+) {
+  if (!localEventTrace?.length || !tvEventTrace?.length) {
+    return {
+      status: "not_comparable" as const,
+      eventMatchRatio: null,
+      entryPassMatchRatio: null,
+      exitReasonMatchRatio: null,
+    };
+  }
+
+  const comparableCount = Math.min(localEventTrace.length, tvEventTrace.length);
+  let eventMatches = 0;
+  let entryPassMatches = 0;
+  let exitReasonMatches = 0;
+  for (let index = 0; index < comparableCount; index += 1) {
+    const localEvent = localEventTrace[index];
+    const tvEvent = tvEventTrace[index];
+    if (
+      localEvent.finalBullEvent === tvEvent.finalBullEvent &&
+      localEvent.finalBearEvent === tvEvent.finalBearEvent
+    ) {
+      eventMatches += 1;
+    }
+    if (localEvent.entryPass === tvEvent.entryPass) {
+      entryPassMatches += 1;
+    }
+    if (localEvent.exitReason === tvEvent.exitReason) {
+      exitReasonMatches += 1;
+    }
+  }
+
+  const eventMatchRatio = eventMatches / comparableCount;
+  const entryPassMatchRatio = entryPassMatches / comparableCount;
+  const exitReasonMatchRatio = exitReasonMatches / comparableCount;
+  const status =
+    eventMatchRatio >= 0.95 &&
+    entryPassMatchRatio >= 0.95 &&
+    exitReasonMatchRatio >= 0.95
+      ? "matched"
+      : eventMatchRatio >= 0.8 && entryPassMatchRatio >= 0.8
+        ? "minor_drift"
+        : "major_drift";
+
+  return {
+    status,
+    eventMatchRatio: roundRatio(eventMatchRatio),
+    entryPassMatchRatio: roundRatio(entryPassMatchRatio),
+    exitReasonMatchRatio: roundRatio(exitReasonMatchRatio),
+  };
+}
+
+function worstParityStatus(
+  statuses: Array<"matched" | "minor_drift" | "major_drift" | "not_comparable">,
+): "matched" | "minor_drift" | "major_drift" | "not_comparable" {
+  if (statuses.includes("major_drift")) {
+    return "major_drift";
+  }
+  if (statuses.includes("minor_drift")) {
+    return "minor_drift";
+  }
+  if (statuses.every((status) => status === "matched" || status === "not_comparable")) {
+    return statuses.includes("matched") ? "matched" : "not_comparable";
+  }
+  return "not_comparable";
+}
+
+function normalizeTime(value: string | null | undefined): string | null {
+  return value?.trim() || null;
+}
+
+function roundRatio(value: number): number {
+  return Math.round(value * 10_000) / 10_000;
 }
 
 export function resolveStructureFamilyHash(input: {

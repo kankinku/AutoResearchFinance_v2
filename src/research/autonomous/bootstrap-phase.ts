@@ -11,6 +11,7 @@ import {
 } from "../../contracts/types.js";
 import { persistCandidateArtifact } from "../../mutation/candidate-store.js";
 import { inferConditionInventoryFromPine } from "../../mutation/parser.js";
+import { afStrategySpecFromPine } from "../../strategy-spec/to-af-config.js";
 import { appendCandidateLedgerRecord } from "../../state/jsonl-store.js";
 import {
   findActiveChampionCandidateId,
@@ -71,6 +72,7 @@ export async function prepareBootstrapCandidate(input: {
   const pineScript = await readFile(seedPath, "utf8");
   throwIfAborted(input.signal);
   const inventory = inferConditionInventoryFromPine(pineScript);
+  const strategySpec = afStrategySpecFromPine(pineScript).spec;
   const parsedMutation: ParsedMutationResponse = {
     candidateSummary:
       "Bootstrap local-compatible AF seed used to establish the first fresh-root research baseline champion.",
@@ -79,6 +81,8 @@ export async function prepareBootstrapCandidate(input: {
       "Preserve AF local compatibility while increasing novelty and robustness.",
     ],
     pineScript,
+    strategySpec,
+    specPatch: null,
     inventory,
     inventorySource: "inferred",
     missingFields: [],

@@ -22,9 +22,19 @@ export async function persistCandidateArtifact(input: {
   );
   const pineHash = sha256(normalizedMutation.source);
   const candidatesDir = path.join(input.workspaceRoot, "strategies", "candidates");
+  const specsDir = path.join(input.workspaceRoot, "strategies", "specs");
   const candidatePath = path.join(candidatesDir, `${candidateId}.pine`);
   await ensureDir(candidatesDir);
   await writeFile(candidatePath, normalizedMutation.source, "utf8");
+  let specPath: string | null = null;
+  let specHash: string | null = null;
+  if (input.parsedMutation.strategySpec) {
+    await ensureDir(specsDir);
+    specPath = path.join(specsDir, `${candidateId}.json`);
+    const specJson = `${JSON.stringify(input.parsedMutation.strategySpec, null, 2)}\n`;
+    specHash = sha256(specJson);
+    await writeFile(specPath, specJson, "utf8");
+  }
 
   return candidateArtifactSchema.parse({
     candidateId,
@@ -32,6 +42,8 @@ export async function persistCandidateArtifact(input: {
     branchId: input.branchId,
     pinePath: candidatePath,
     pineHash,
+    specPath,
+    specHash,
     studyTitle: normalizedMutation.studyTitle,
     inventory: input.parsedMutation.inventory,
     candidateSummary: input.parsedMutation.candidateSummary,

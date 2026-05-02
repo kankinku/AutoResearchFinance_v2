@@ -39,6 +39,24 @@ interface EquityPoint {
 export interface LocalBacktestResult {
   artifactBundle: ArtifactBundle;
   metrics: BacktestMetrics;
+  eventTrace: LocalAfEventTrace[];
+}
+
+export interface LocalAfEventTrace {
+  barIndex: number;
+  time: string;
+  bull: number;
+  bear: number;
+  bullEventRaw: number;
+  bearEventRaw: number;
+  finalBullEvent: number;
+  finalBearEvent: number;
+  riskOff: boolean;
+  entryPass: boolean;
+  entryRank: number;
+  exitReason: string | null;
+  slotCount: number;
+  orderAction: "none" | "entry" | "exit" | "replace" | "entry_exit";
 }
 
 export function simulateAfStrategy(
@@ -49,6 +67,7 @@ export function simulateAfStrategy(
   const trades: TradeRecord[] = [];
   const equityPoints: EquityPoint[] = [];
   const slots: SlotPosition[] = [];
+  const eventTrace: LocalAfEventTrace[] = [];
 
   let cash = config.initialCapital;
   let bull = 0;
@@ -86,6 +105,9 @@ export function simulateAfStrategy(
     const atr = indicators.atr[index];
     const supertrendLine = indicators.supertrendLine[index];
     const supertrendDirection = indicators.supertrendDirection[index];
+    const tradesBeforeBar = trades.length;
+    const slotsBeforeBar = slots.length;
+    let exitReason: string | null = null;
 
     updateSlotExtremes(slots, high, low);
 
@@ -429,6 +451,7 @@ export function simulateAfStrategy(
           closeSlot(slots, slotIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
             cash += netProceeds;
           });
+          exitReason = exitReason ?? "max_hold_bars";
           lastOrderBar = index;
         }
       }
@@ -446,6 +469,7 @@ export function simulateAfStrategy(
           closeSlot(slots, slotIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
             cash += netProceeds;
           });
+          exitReason = exitReason ?? "weak_range_exit";
           lastOrderBar = index;
         }
       }
@@ -458,6 +482,7 @@ export function simulateAfStrategy(
           closeSlot(slots, weakestIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
             cash += netProceeds;
           });
+          exitReason = exitReason ?? `bear_event_${effectiveBearEvent}`;
           lastOrderBar = index;
         }
       }
@@ -471,6 +496,7 @@ export function simulateAfStrategy(
           closeSlot(slots, weakestIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
             cash += netProceeds;
           });
+          exitReason = exitReason ?? "bear_event_3";
           lastOrderBar = index;
         }
       }
@@ -488,6 +514,7 @@ export function simulateAfStrategy(
           closeSlot(slots, weakestIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
             cash += netProceeds;
           });
+          exitReason = exitReason ?? "bear_event_4_loser";
           lastOrderBar = index;
         }
 
@@ -496,6 +523,7 @@ export function simulateAfStrategy(
             closeSlot(slots, 0, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
               cash += netProceeds;
             });
+            exitReason = exitReason ?? "bear_confirmed_risk_off";
             lastOrderBar = index;
           }
         }
@@ -516,6 +544,27 @@ export function simulateAfStrategy(
       time: bar.time,
       value: roundNumber(currentEquity(cash, slots, close)),
     });
+    eventTrace.push({
+      barIndex: index,
+      time: bar.time,
+      bull,
+      bear,
+      bullEventRaw,
+      bearEventRaw,
+      finalBullEvent,
+      finalBearEvent: effectiveBearEvent,
+      riskOff,
+      entryPass: effectiveEntryPass,
+      entryRank: effectiveEntryRank,
+      exitReason,
+      slotCount: slots.length,
+      orderAction: classifyOrderAction({
+        tradesBeforeBar,
+        tradesAfterBar: trades.length,
+        slotsBeforeBar,
+        slotsAfterBar: slots.length,
+      }),
+    });
   }
 
   if (bars.length > 0 && slots.length > 0) {
@@ -525,6 +574,22 @@ export function simulateAfStrategy(
         cash += netProceeds;
       });
     }
+    eventTrace.push({
+      barIndex: bars.length - 1,
+      time: lastBar.time,
+      bull,
+      bear,
+      bullEventRaw: 0,
+      bearEventRaw: 0,
+      finalBullEvent: 0,
+      finalBearEvent: 0,
+      riskOff: false,
+      entryPass: false,
+      entryRank: 0,
+      exitReason: "final_close",
+      slotCount: 0,
+      orderAction: "exit",
+    });
     equityPoints.push({
       time: lastBar.time,
       value: roundNumber(cash),
@@ -548,13 +613,42 @@ export function simulateAfStrategy(
       initialCapital: config.initialCapital,
       commissionPercent: config.commissionPercent,
       slotCountClosed: trades.length,
+      eventTrace,
     },
   });
 
   return {
     artifactBundle,
     metrics,
+    eventTrace,
   };
+}
+
+function classifyOrderAction(input: {
+  tradesBeforeBar: number;
+  tradesAfterBar: number;
+  slotsBeforeBar: number;
+  slotsAfterBar: number;
+}): LocalAfEventTrace["orderAction"] {
+  const exits = input.tradesAfterBar > input.tradesBeforeBar;
+  const entries = input.slotsAfterBar > input.slotsBeforeBar;
+  const replacement =
+    exits &&
+    input.slotsAfterBar >= input.slotsBeforeBar &&
+    input.slotsBeforeBar > 0;
+  if (replacement) {
+    return "replace";
+  }
+  if (entries && exits) {
+    return "entry_exit";
+  }
+  if (entries) {
+    return "entry";
+  }
+  if (exits) {
+    return "exit";
+  }
+  return "none";
 }
 
 function updateSlotExtremes(slots: SlotPosition[], high: number, low: number): void {

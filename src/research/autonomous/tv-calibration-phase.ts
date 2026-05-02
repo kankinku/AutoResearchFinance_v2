@@ -14,6 +14,7 @@ import {
   type BacktestMetrics,
 } from "../../contracts/types.js";
 import { parseAfStrategyConfig } from "../../automation/local-backtest/af-config.js";
+import { afStrategySpecFromPine } from "../../strategy-spec/to-af-config.js";
 import { type PineEvaluationExecutor } from "../../automation/common/executor.js";
 import { validateArtifactBundle } from "../../evaluation/artifact-validation.js";
 import {
@@ -169,6 +170,10 @@ export async function processTvCalibrationQueue(input: {
       const parity = buildLocalTvParity({
         localMetrics: localRecord.testerMetrics,
         tvMetrics: mockTvMetrics,
+        localTrades: localRecord.artifactBundle?.trades ?? [],
+        tvTrades: localRecord.artifactBundle?.trades ?? [],
+        localEventTrace: readEventTrace(localRecord.artifactBundle?.state),
+        tvEventTrace: readEventTrace(localRecord.artifactBundle?.state),
       });
       const localConfidenceAfter =
         parity.status === "matched"
@@ -222,7 +227,7 @@ export async function processTvCalibrationQueue(input: {
         testerMetrics: mockTvMetrics,
         artifactBundle: {
           strategy: mockTvMetrics,
-          trades: [],
+          trades: localRecord.artifactBundle?.trades ?? [],
           equity: {
             available: true,
             unavailableReason: null,
@@ -412,6 +417,10 @@ export async function processTvCalibrationQueue(input: {
       const parity = buildLocalTvParity({
         localMetrics: localRecord.testerMetrics,
         tvMetrics: artifactBundle.strategy,
+        localTrades: localRecord.artifactBundle?.trades ?? [],
+        tvTrades: artifactBundle.trades,
+        localEventTrace: readEventTrace(localRecord.artifactBundle?.state),
+        tvEventTrace: readEventTrace(artifactBundle.state),
       });
       const localConfidenceAfter =
         parity.status === "matched"
@@ -590,6 +599,16 @@ function buildMockRecoveredMetrics(
   };
 }
 
+function readEventTrace(state: Record<string, unknown> | null | undefined) {
+  const trace = state?.eventTrace;
+  return Array.isArray(trace)
+    ? trace.filter(
+        (entry): entry is Record<string, unknown> =>
+          typeof entry === "object" && entry !== null && !Array.isArray(entry),
+      )
+    : [];
+}
+
 async function buildTvPromotionEvidence(input: {
   workspaceRoot: string;
   stateRoot: string;
@@ -606,10 +625,12 @@ async function buildTvPromotionEvidence(input: {
 }> {
   const parsedConfig = parseAfStrategyConfig(input.candidateSource);
   const config = parsedConfig.issues.length === 0 ? parsedConfig.config : null;
+  const strategySpec = afStrategySpecFromPine(input.candidateSource).spec;
   const walkForwardEvaluation = await evaluateWalkForward({
     workspaceRoot: input.workspaceRoot,
     stateRoot: input.stateRoot,
     pineScript: input.candidateSource,
+    strategySpec,
     objective: input.objective,
   }).catch(() =>
     buildWalkForwardEvaluationFromFoldMetrics({

@@ -53,7 +53,7 @@ import {
   buildSchemaRegenerateBrief,
 } from "./llm-repair-phase.js";
 
-const RESPONSE_SCHEMA_VERSION = "parsed-mutation-response/v1";
+const RESPONSE_SCHEMA_VERSION = "parsed-mutation-response/v2";
 const STAGNATION_MIN_ITERATIONS_WITHOUT_CHAMPION = 24;
 const STAGNATION_MIN_RECENT_EVALUATIONS = 10;
 const STAGNATION_MIN_RECENT_ELIGIBLE = 3;
@@ -2515,6 +2515,15 @@ function buildPromotionDiagnosticInstruction(
     diagnostics.tradeLifecycle.length > 0
       ? `Trade lifecycle memory: ${diagnostics.tradeLifecycle.slice(0, 3).join(" | ")}.`
       : null,
+    diagnostics.conditionContribution.length > 0
+      ? `Condition attribution: ${diagnostics.conditionContribution
+          .slice(0, 3)
+          .map(
+            (entry) =>
+              `${entry.conditionId} scoreDelta=${entry.scoreDelta} profitDelta=${entry.profitDelta ?? 0} drawdownDelta=${entry.drawdownDelta ?? 0}`,
+          )
+          .join(" | ")}.`
+      : null,
   ].filter((part): part is string => part != null && part.length > 0);
 
   return parts.length === 0 ? null : parts.join(" ");
@@ -2543,6 +2552,16 @@ function readConditionContributions(
       scoreDelta: value.scoreDelta as number,
       ablatedScore: value.ablatedScore as number,
       ablatedDecision: value.ablatedDecision as string,
+      tradesAdded:
+        typeof value.tradesAdded === "number" ? (value.tradesAdded as number) : 0,
+      tradesRemoved:
+        typeof value.tradesRemoved === "number" ? (value.tradesRemoved as number) : 0,
+      profitDelta:
+        typeof value.profitDelta === "number" ? (value.profitDelta as number) : 0,
+      drawdownDelta:
+        typeof value.drawdownDelta === "number" ? (value.drawdownDelta as number) : 0,
+      oosFoldDelta:
+        typeof value.oosFoldDelta === "number" ? (value.oosFoldDelta as number) : 0,
     }));
 }
 
@@ -2643,8 +2662,8 @@ async function parseWithSchemaRepair(input: {
     }
     const schemaRepairErrors = [
       `Previous autonomous mutation failed strict JSON schema validation. ${diagnosis}`,
-      "Do not change the strategy idea. Re-emit strict JSON only with required keys candidateSummary, nextMutationHints, pineScript, inventory.",
-      "Use rawFailedResponse as the candidate intent to repair; do not fall back to the baseline Pine source unless no candidate source can be recovered from the malformed payload.",
+      "Do not change the strategy idea. Re-emit strict JSON only with required keys candidateSummary, nextMutationHints, strategySpec, specPatch, inventory.",
+      "Use rawFailedResponse as the candidate intent to repair; do not fall back to hand-written Pine unless no candidate intent can be recovered from the malformed payload.",
     ];
     const repairResponse = await input.llmClient.repairMutation({
       brief: input.brief,

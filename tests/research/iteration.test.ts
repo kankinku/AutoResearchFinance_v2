@@ -20,6 +20,47 @@ const baseMutationResponse = JSON.stringify({
   candidateSummary: "Candidate from test",
   nextMutationHints: ["hint-a", "hint-b"],
   pineScript: "//@version=5\nstrategy('Mutated', overlay=true)\n",
+  strategySpec: {
+    version: "af-spec/v1",
+    name: "Mutated",
+    event: {
+      source: "af_exhaustion",
+      L1: 9,
+      L2: 12,
+      L3: 14,
+      confirmBars: 2,
+      eventFloorBars: null,
+      eventWindowBars: null,
+    },
+    regime: {
+      trendMode: "Balanced",
+      useSupertrendFilter: false,
+      riskOffRsi: 45,
+      maxExtPct: 6,
+    },
+    entry: {
+      primaryTrigger: "bull_event",
+      cooldownBars: 0,
+      allowBearRebound: true,
+      applyFilterToB1: false,
+    },
+    slot: {
+      slotPct: 15,
+      maxSlots: 18,
+      useReplacement: true,
+      replaceMinRank: 3,
+      replaceIfPnlBelow: -5,
+    },
+    exit: {
+      weakRangeExit: true,
+      maxHoldBars: null,
+      closeAllOnBearConfRiskOff: true,
+      resetOnL3: false,
+    },
+  },
+  specPatch: {
+    source: "test",
+  },
   inventory: [
     {
       conditionId: "entry-alpha",
@@ -40,6 +81,47 @@ const repairMutationResponse = JSON.stringify({
   candidateSummary: "Candidate repaired from compile failure",
   nextMutationHints: ["replace-unsupported-function"],
   pineScript: "//@version=5\nstrategy('Mutated Repaired', overlay=true)\n",
+  strategySpec: {
+    version: "af-spec/v1",
+    name: "Mutated Repaired",
+    event: {
+      source: "af_exhaustion",
+      L1: 9,
+      L2: 12,
+      L3: 14,
+      confirmBars: 2,
+      eventFloorBars: null,
+      eventWindowBars: null,
+    },
+    regime: {
+      trendMode: "Balanced",
+      useSupertrendFilter: false,
+      riskOffRsi: 45,
+      maxExtPct: 6,
+    },
+    entry: {
+      primaryTrigger: "bull_event",
+      cooldownBars: 0,
+      allowBearRebound: true,
+      applyFilterToB1: false,
+    },
+    slot: {
+      slotPct: 15,
+      maxSlots: 18,
+      useReplacement: true,
+      replaceMinRank: 3,
+      replaceIfPnlBelow: -5,
+    },
+    exit: {
+      weakRangeExit: true,
+      maxHoldBars: null,
+      closeAllOnBearConfRiskOff: true,
+      resetOnL3: false,
+    },
+  },
+  specPatch: {
+    source: "test_repair",
+  },
   inventory: [
     {
       conditionId: "entry-alpha",
