@@ -70,9 +70,11 @@ describe("AF strategy spec v1", () => {
     expect(pine).toContain("// AF_SPEC_VERSION=af-spec/v1");
     expect(pine).toContain(`// AF_SPEC_HASH=${hashAfStrategySpec(spec)}`);
     expect(pine).toContain(`// AF_CONTRACT_VERSION=${AUTORESEARCH_CONTRACT_VERSION}`);
+    expect(pine).toContain("process_orders_on_close=true");
     expect(pine).toContain("AFTRACE|v1|");
     expect(pine).toContain("alert_message=f_trace");
     expect(parsed.issues).toEqual([]);
+    expect(parsed.config.processOrdersOnClose).toBe(true);
     expect(parsed.config.slotPct).toBe(12);
     expect(parsed.config.maxSlots).toBe(14);
     expect(parsed.config.useSupertrendFilter).toBe(true);

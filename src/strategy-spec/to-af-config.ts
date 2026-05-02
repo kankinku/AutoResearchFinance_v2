@@ -10,6 +10,7 @@ export function afStrategySpecToConfig(input: unknown): AfStrategyConfig {
     studyTitle: spec.name,
     initialCapital: 100_000,
     commissionPercent: 0.05,
+    processOrdersOnClose: true,
     L1: spec.event.L1,
     L2: Math.max(spec.event.L2, spec.event.L1 + 1),
     L3: Math.max(spec.event.L3, Math.max(spec.event.L2, spec.event.L1 + 1) + 1),

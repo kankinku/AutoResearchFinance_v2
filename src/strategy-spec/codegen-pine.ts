@@ -20,7 +20,7 @@ export function renderAfStrategySpecToPine(input: unknown): string {
     `// AF_SPEC_VERSION=${spec.version}`,
     `// AF_SPEC_HASH=${specHash}`,
     `// AF_CONTRACT_VERSION=${AUTORESEARCH_CONTRACT_VERSION}`,
-    `strategy(${quote(config.studyTitle ?? "AF Spec v1")}, overlay=true, initial_capital=${config.initialCapital}, commission_type=strategy.commission.percent, commission_value=${config.commissionPercent}, pyramiding=${config.maxSlots})`,
+    `strategy(${quote(config.studyTitle ?? "AF Spec v1")}, overlay=true, process_orders_on_close=${config.processOrdersOnClose ? "true" : "false"}, initial_capital=${config.initialCapital}, commission_type=strategy.commission.percent, commission_value=${config.commissionPercent}, pyramiding=${config.maxSlots})`,
     "",
     renderIntInput("L1", config.L1),
     renderIntInput("L2", config.L2),

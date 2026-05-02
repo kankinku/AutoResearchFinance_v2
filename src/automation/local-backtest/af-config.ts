@@ -11,6 +11,7 @@ export interface AfStrategyConfig {
   studyTitle: string | null;
   initialCapital: number;
   commissionPercent: number;
+  processOrdersOnClose: boolean;
   L1: number;
   L2: number;
   L3: number;
@@ -62,6 +63,7 @@ const DEFAULT_CONFIG: AfStrategyConfig = {
   studyTitle: "AF Local Backtest",
   initialCapital: 100_000,
   commissionPercent: 0.05,
+  processOrdersOnClose: true,
   L1: 9,
   L2: 12,
   L3: 14,
@@ -168,6 +170,7 @@ export const AF_LOCAL_COMPATIBILITY_CONTRACT: LocalCompatibilityContract = {
     "Emit a Pine v5 strategy() script.",
     "Define every required AF input via input.* declarations.",
     "Keep enableWeakRangeExit as an explicit input bool.",
+    "Use process_orders_on_close=true for close-fill local parity.",
   ],
   compatibleSeedCandidatePath: null,
 };
@@ -215,6 +218,11 @@ export function parseAfStrategyConfig(source: string): ParsedAfStrategyConfig {
     studyTitle: extractStudyTitle(source),
     initialCapital: parseNamedNumber(source, "initial_capital", DEFAULT_CONFIG.initialCapital),
     commissionPercent: parseNamedNumber(source, "commission_value", DEFAULT_CONFIG.commissionPercent),
+    processOrdersOnClose: parseNamedBoolean(
+      source,
+      "process_orders_on_close",
+      DEFAULT_CONFIG.processOrdersOnClose,
+    ),
   };
 
   for (const name of AF_LOCAL_COMPATIBILITY_CONTRACT.requiredInputs as Array<keyof AfStrategyConfig>) {
@@ -452,6 +460,16 @@ function parseNamedNumber(source: string, key: string, fallback: number): number
 
   const parsed = Number.parseFloat(match[1]);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseNamedBoolean(source: string, key: string, fallback: boolean): boolean {
+  const pattern = new RegExp(`${key}\\s*=\\s*(true|false)`);
+  const match = source.match(pattern);
+  if (!match) {
+    return fallback;
+  }
+
+  return match[1] === "true";
 }
 
 function escapeForRegex(value: string): string {

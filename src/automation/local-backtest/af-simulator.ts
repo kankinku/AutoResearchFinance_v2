@@ -2,13 +2,18 @@ import {
   artifactBundleSchema,
   backtestMetricsSchema,
   equitySummarySchema,
-  tradeRecordSchema,
   type ArtifactBundle,
   type BacktestMetrics,
   type MarketContextBar,
   type TradeRecord,
 } from "../../contracts/types.js";
 import { type AfStrategyConfig } from "./af-config.js";
+import {
+  LOCAL_BACKTEST_VERSION,
+  LocalExecutionLedger,
+  type LocalExecutionFillResult,
+  type LocalSlotPosition,
+} from "./execution.js";
 
 interface IndicatorSeries {
   ema: Array<number | null>;
@@ -17,18 +22,6 @@ interface IndicatorSeries {
   atr: Array<number | null>;
   supertrendLine: Array<number | null>;
   supertrendDirection: Array<number | null>;
-}
-
-interface SlotPosition {
-  id: string;
-  entryPrice: number;
-  qty: number;
-  rank: number;
-  entryBarIndex: number;
-  entryTime: string;
-  peakHigh: number;
-  troughLow: number;
-  entryCommission: number;
 }
 
 interface EquityPoint {
@@ -57,6 +50,9 @@ export interface LocalAfEventTrace {
   exitReason: string | null;
   slotCount: number;
   orderAction: "none" | "entry" | "exit" | "replace" | "entry_exit";
+  orderIds: string[];
+  fillIds: string[];
+  snapshotId: string;
 }
 
 export function simulateAfStrategy(
@@ -64,12 +60,16 @@ export function simulateAfStrategy(
   config: AfStrategyConfig,
 ): LocalBacktestResult {
   const indicators = computeIndicators(bars, config);
-  const trades: TradeRecord[] = [];
+  const execution = new LocalExecutionLedger({
+    initialCapital: config.initialCapital,
+    commissionPercent: config.commissionPercent,
+    processOrdersOnClose: config.processOrdersOnClose,
+  });
+  const trades = execution.trades;
+  const slots = execution.slots;
   const equityPoints: EquityPoint[] = [];
-  const slots: SlotPosition[] = [];
   const eventTrace: LocalAfEventTrace[] = [];
 
-  let cash = config.initialCapital;
   let bull = 0;
   let bear = 0;
   let cycle = 0;
@@ -107,9 +107,10 @@ export function simulateAfStrategy(
     const supertrendDirection = indicators.supertrendDirection[index];
     const tradesBeforeBar = trades.length;
     const slotsBeforeBar = slots.length;
+    const barExecutions: LocalExecutionFillResult[] = [];
     let exitReason: string | null = null;
 
-    updateSlotExtremes(slots, high, low);
+    execution.updateSlotExtremes(high, low);
 
     const has4 = index >= 4;
     const has2 = index >= 2;
@@ -379,7 +380,7 @@ export function simulateAfStrategy(
       ? timeBoxedEntryPass
       : finalBullEvent > 0 && bullFilterPass;
     const effectiveEntryRank = timeBoxedRouteEnabled ? timeBoxedEntryRank : finalBullEvent;
-    const equityBeforeOrders = currentEquity(cash, slots, close);
+    const equityBeforeOrders = execution.currentEquity(close);
     const qtyNow = Math.max(
       close > 0 ? (equityBeforeOrders * (config.slotPct / 100)) / close : 0,
       config.minQty,
@@ -392,7 +393,7 @@ export function simulateAfStrategy(
 
     if (effectiveEntryPass && canEnterLong && qtyOk) {
       if (slotAvailable) {
-        enterSlot(slots, trades, {
+        barExecutions.push(execution.enterSlot({
           close,
           high,
           low,
@@ -401,14 +402,11 @@ export function simulateAfStrategy(
           barIndex: index,
           time: bar.time,
           nextSlotNo,
-          commissionPercent: config.commissionPercent,
-        }, (slot, totalCost) => {
-          cash -= totalCost;
-          nextSlotNo += 1;
-          lastLongEntryBar = index;
-          lastOrderBar = index;
-          slots.push(slot);
-        });
+          reason: "entry",
+        }));
+        nextSlotNo += 1;
+        lastLongEntryBar = index;
+        lastOrderBar = index;
       } else if (config.useReplacement && effectiveEntryRank >= config.replaceMinRank) {
         const weakestIndex = findWeakestSlotIndex(slots, close);
         if (weakestIndex !== null) {
@@ -417,27 +415,27 @@ export function simulateAfStrategy(
           const canReplace =
             weakPnl <= config.replaceIfPnlBelow || effectiveEntryRank > weakest.rank;
           if (canReplace) {
-            closeSlot(slots, weakestIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
-              cash += netProceeds;
-            });
+            barExecutions.push(execution.closeSlot(weakestIndex, {
+              close,
+              barIndex: index,
+              time: bar.time,
+              reason: "replacement_exit",
+            }));
             lastOrderBar = index;
-            enterSlot(slots, trades, {
-                close,
-                high,
-                low,
-                qty: qtyNow,
-                rank: effectiveEntryRank,
-                barIndex: index,
-                time: bar.time,
-                nextSlotNo,
-              commissionPercent: config.commissionPercent,
-            }, (slot, totalCost) => {
-              cash -= totalCost;
-              nextSlotNo += 1;
-              lastLongEntryBar = index;
-              lastOrderBar = index;
-              slots.push(slot);
-            });
+            barExecutions.push(execution.enterSlot({
+              close,
+              high,
+              low,
+              qty: qtyNow,
+              rank: effectiveEntryRank,
+              barIndex: index,
+              time: bar.time,
+              nextSlotNo,
+              reason: "replacement_entry",
+            }));
+            nextSlotNo += 1;
+            lastLongEntryBar = index;
+            lastOrderBar = index;
           }
         }
       }
@@ -448,9 +446,12 @@ export function simulateAfStrategy(
       for (let slotIndex = slots.length - 1; slotIndex >= 0; slotIndex -= 1) {
         const slot = slots[slotIndex];
         if (index - slot.entryBarIndex >= maxHoldBars) {
-          closeSlot(slots, slotIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
-            cash += netProceeds;
-          });
+          barExecutions.push(execution.closeSlot(slotIndex, {
+            close,
+            barIndex: index,
+            time: bar.time,
+            reason: "max_hold_bars",
+          }));
           exitReason = exitReason ?? "max_hold_bars";
           lastOrderBar = index;
         }
@@ -466,9 +467,12 @@ export function simulateAfStrategy(
         const nonProgressing = barsHeld >= config.weakExitBars && runupAtr < config.weakRunupAtrMax;
         const loserTooDeep = lossAtr >= config.weakLossAtrMin;
         if (nonProgressing && loserTooDeep && ema != null && close < ema) {
-          closeSlot(slots, slotIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
-            cash += netProceeds;
-          });
+          barExecutions.push(execution.closeSlot(slotIndex, {
+            close,
+            barIndex: index,
+            time: bar.time,
+            reason: "weak_range_exit",
+          }));
           exitReason = exitReason ?? "weak_range_exit";
           lastOrderBar = index;
         }
@@ -479,9 +483,12 @@ export function simulateAfStrategy(
       if (effectiveBearEvent === 1 || effectiveBearEvent === 2) {
         const weakestIndex = findWeakestSlotIndex(slots, close);
         if (weakestIndex !== null) {
-          closeSlot(slots, weakestIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
-            cash += netProceeds;
-          });
+          barExecutions.push(execution.closeSlot(weakestIndex, {
+            close,
+            barIndex: index,
+            time: bar.time,
+            reason: `bear_event_${effectiveBearEvent}`,
+          }));
           exitReason = exitReason ?? `bear_event_${effectiveBearEvent}`;
           lastOrderBar = index;
         }
@@ -493,9 +500,12 @@ export function simulateAfStrategy(
           if (weakestIndex === null) {
             break;
           }
-          closeSlot(slots, weakestIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
-            cash += netProceeds;
-          });
+          barExecutions.push(execution.closeSlot(weakestIndex, {
+            close,
+            barIndex: index,
+            time: bar.time,
+            reason: "bear_event_3",
+          }));
           exitReason = exitReason ?? "bear_event_3";
           lastOrderBar = index;
         }
@@ -511,18 +521,24 @@ export function simulateAfStrategy(
           if (percentPnl(weakest.entryPrice, close) >= 0) {
             break;
           }
-          closeSlot(slots, weakestIndex, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
-            cash += netProceeds;
-          });
+          barExecutions.push(execution.closeSlot(weakestIndex, {
+            close,
+            barIndex: index,
+            time: bar.time,
+            reason: "bear_event_4_loser",
+          }));
           exitReason = exitReason ?? "bear_event_4_loser";
           lastOrderBar = index;
         }
 
         if (config.closeAllOnBearConfRiskOff && riskOff) {
           while (slots.length > 0) {
-            closeSlot(slots, 0, close, bar.time, config.commissionPercent, trades, (netProceeds) => {
-              cash += netProceeds;
-            });
+            barExecutions.push(execution.closeSlot(0, {
+              close,
+              barIndex: index,
+              time: bar.time,
+              reason: "bear_confirmed_risk_off",
+            }));
             exitReason = exitReason ?? "bear_confirmed_risk_off";
             lastOrderBar = index;
           }
@@ -540,9 +556,18 @@ export function simulateAfStrategy(
       lastOrderBar = null;
     }
 
+    const orderIds = barExecutions.map((executionResult) => executionResult.order.orderId);
+    const fillIds = barExecutions.map((executionResult) => executionResult.fill.fillId);
+    const snapshot = execution.recordPortfolioSnapshot({
+      barIndex: index,
+      time: bar.time,
+      markPrice: close,
+      orderIds,
+      fillIds,
+    });
     equityPoints.push({
       time: bar.time,
-      value: roundNumber(currentEquity(cash, slots, close)),
+      value: snapshot.equity,
     });
     eventTrace.push({
       barIndex: index,
@@ -564,16 +589,29 @@ export function simulateAfStrategy(
         slotsBeforeBar,
         slotsAfterBar: slots.length,
       }),
+      orderIds,
+      fillIds,
+      snapshotId: snapshot.snapshotId,
     });
   }
 
   if (bars.length > 0 && slots.length > 0) {
     const lastBar = bars[bars.length - 1];
-    while (slots.length > 0) {
-      closeSlot(slots, 0, lastBar.close, lastBar.time, config.commissionPercent, trades, (netProceeds) => {
-        cash += netProceeds;
-      });
-    }
+    const finalExecutions = execution.closeAllOpenSlots({
+      close: lastBar.close,
+      barIndex: bars.length - 1,
+      time: lastBar.time,
+      reason: "final_close",
+    });
+    const orderIds = finalExecutions.map((executionResult) => executionResult.order.orderId);
+    const fillIds = finalExecutions.map((executionResult) => executionResult.fill.fillId);
+    const snapshot = execution.recordPortfolioSnapshot({
+      barIndex: bars.length - 1,
+      time: lastBar.time,
+      markPrice: lastBar.close,
+      orderIds,
+      fillIds,
+    });
     eventTrace.push({
       barIndex: bars.length - 1,
       time: lastBar.time,
@@ -589,31 +627,42 @@ export function simulateAfStrategy(
       exitReason: "final_close",
       slotCount: 0,
       orderAction: "exit",
+      orderIds,
+      fillIds,
+      snapshotId: snapshot.snapshotId,
     });
     equityPoints.push({
       time: lastBar.time,
-      value: roundNumber(cash),
+      value: snapshot.equity,
     });
   }
 
-  const metrics = backtestMetricsSchema.parse(buildMetrics(config.initialCapital, cash, trades, equityPoints));
+  const endingEquity = equityPoints.at(-1)?.value ?? execution.cash;
+  const metrics = backtestMetricsSchema.parse(buildMetrics(config.initialCapital, endingEquity, trades, equityPoints));
   const artifactBundle = artifactBundleSchema.parse({
     strategy: metrics,
-    trades: trades.map((trade) => tradeRecordSchema.parse(trade)),
+    trades,
     equity: equitySummarySchema.parse({
       available: true,
       pointsAvailable: true,
       pointCount: equityPoints.length,
-      finalEquity: equityPoints.at(-1)?.value ?? cash,
+      finalEquity: endingEquity,
       maxDrawdownPercent: metrics.maxStrategyDrawdownPercent,
       points: equityPoints,
     }),
     state: {
       engine: "local-backtest",
+      localBacktestVersion: LOCAL_BACKTEST_VERSION,
       initialCapital: config.initialCapital,
       commissionPercent: config.commissionPercent,
+      processOrdersOnClose: config.processOrdersOnClose,
+      fillPolicy: config.processOrdersOnClose ? "close" : "next_open",
       slotCountClosed: trades.length,
       eventTrace,
+      executionTrace: execution.getExecutionTrace(),
+      orders: execution.orders,
+      fills: execution.fills,
+      portfolioSnapshots: execution.portfolioSnapshots,
     },
   });
 
@@ -649,13 +698,6 @@ function classifyOrderAction(input: {
     return "exit";
   }
   return "none";
-}
-
-function updateSlotExtremes(slots: SlotPosition[], high: number, low: number): void {
-  for (const slot of slots) {
-    slot.peakHigh = Math.max(slot.peakHigh, high);
-    slot.troughLow = Math.min(slot.troughLow, low);
-  }
 }
 
 function resetCycleState(
@@ -717,78 +759,7 @@ function resolveConflict(input: {
   return [0, 0];
 }
 
-function enterSlot(
-  slots: SlotPosition[],
-  trades: TradeRecord[],
-  input: {
-    close: number;
-    high: number;
-    low: number;
-    qty: number;
-    rank: number;
-    barIndex: number;
-    time: string;
-    nextSlotNo: number;
-    commissionPercent: number;
-  },
-  commit: (slot: SlotPosition, totalCost: number) => void,
-): void {
-  void slots;
-  void trades;
-  const id = `L_${input.nextSlotNo}`;
-  const entryValue = input.close * input.qty;
-  const entryCommission = entryValue * (input.commissionPercent / 100);
-  commit(
-    {
-      id,
-      entryPrice: input.close,
-      qty: input.qty,
-      rank: input.rank,
-      entryBarIndex: input.barIndex,
-      entryTime: input.time,
-      peakHigh: input.high,
-      troughLow: input.low,
-      entryCommission,
-    },
-    entryValue + entryCommission,
-  );
-}
-
-function closeSlot(
-  slots: SlotPosition[],
-  slotIndex: number,
-  closePrice: number,
-  time: string,
-  commissionPercent: number,
-  trades: TradeRecord[],
-  commit: (netProceeds: number) => void,
-): void {
-  const [slot] = slots.splice(slotIndex, 1);
-  const grossValue = closePrice * slot.qty;
-  const exitCommission = grossValue * (commissionPercent / 100);
-  const netProceeds = grossValue - exitCommission;
-  const profitValue = netProceeds - slot.entryPrice * slot.qty - slot.entryCommission;
-  const costBasis = slot.entryPrice * slot.qty + slot.entryCommission;
-
-  commit(netProceeds);
-  trades.push(
-    tradeRecordSchema.parse({
-      entryComment: slot.id,
-      entryPrice: roundNumber(slot.entryPrice),
-      entryTime: slot.entryTime,
-      exitComment: `Close entry(s) order ${slot.id}`,
-      exitPrice: roundNumber(closePrice),
-      exitTime: time,
-      qty: roundNumber(slot.qty),
-      profitValue: roundNumber(profitValue),
-      profitPercent: roundNumber(costBasis > 0 ? (profitValue / costBasis) * 100 : 0),
-      runupPercent: roundNumber(((slot.peakHigh - slot.entryPrice) / slot.entryPrice) * 100),
-      drawdownPercent: roundNumber(((slot.entryPrice - slot.troughLow) / slot.entryPrice) * 100),
-    }),
-  );
-}
-
-function findWeakestSlotIndex(slots: SlotPosition[], close: number): number | null {
+function findWeakestSlotIndex(slots: LocalSlotPosition[], close: number): number | null {
   let weakestIndex: number | null = null;
   let worstPnl = Number.POSITIVE_INFINITY;
   let worstRank = Number.POSITIVE_INFINITY;
@@ -812,10 +783,6 @@ function findWeakestSlotIndex(slots: SlotPosition[], close: number): number | nu
 
 function percentPnl(entryPrice: number, closePrice: number): number {
   return entryPrice > 0 ? ((closePrice - entryPrice) / entryPrice) * 100 : 0;
-}
-
-function currentEquity(cash: number, slots: SlotPosition[], close: number): number {
-  return cash + slots.reduce((sum, slot) => sum + slot.qty * close, 0);
 }
 
 function buildMetrics(
