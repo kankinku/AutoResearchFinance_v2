@@ -1747,9 +1747,57 @@ describe("autonomous tv-verified v4", () => {
             scoreDelta: -0.08,
             ablatedScore: 0.58,
             ablatedDecision: "ablation_improved",
+            oosFoldDelta: -1,
+            failedFoldImpact: {
+              baseFailedFoldCount: 2,
+              ablatedFailedFoldCount: 1,
+              changedFoldIds: ["wf-2022"],
+              summary: "condition_removal_changed_folds:wf-2022",
+            },
           },
         ],
         topLossZones: ["trend_down:bear_rebound_loss"],
+        lossAnalysisSummary: {
+          status: "available",
+          summary: "Structured diagnostics test fixture.",
+          topLossZones: ["trend_down:bear_rebound_loss"],
+          lossZoneDetails: [
+            {
+              regime: "trend_down",
+              volatilityBucket: "high",
+              trendBucket: "trend_down",
+              entryRoute: "bear_rebound",
+              exitReason: "weak_exit",
+              slotRank: 2,
+              barsHeld: 6,
+              lossCount: 4,
+              averageLossPercent: -1.4,
+            },
+          ],
+          tradeLifecycle: [
+            {
+              entryRoute: "bear_rebound",
+              tradeCount: 9,
+              averageBarsHeld: 5.5,
+              mfeProxy: 0.7,
+              maeProxy: 1.8,
+              exitReasonDistribution: {
+                weak_exit: 6,
+                time_exit: 3,
+              },
+              profitDistribution: {
+                winners: 3,
+                losers: 6,
+                breakeven: 0,
+                averageProfitPercent: -0.42,
+                medianProfitPercent: -0.6,
+              },
+            },
+          ],
+          repairPriorities: [
+            "Reduce bear-rebound exposure during trend_down folds.",
+          ],
+        },
         walkForwardEvaluation: {
           policyVersion: "walk-forward-oos/v1",
           foldCount: 5,
@@ -1764,6 +1812,14 @@ describe("autonomous tv-verified v4", () => {
           embargoBars: 5,
           passed: false,
           gateReasons: ["positive_oos_fold_count", "minimum_total_oos_trades"],
+          failedFoldRegimeSummary: [
+            {
+              foldId: "wf-2022",
+              dominantRegime: "trend_down",
+              concentration: 0.72,
+              gateReasons: ["positive_fold_post_fee_profit"],
+            },
+          ],
           folds: [
             {
               foldId: "wf-2022",
@@ -1817,6 +1873,26 @@ describe("autonomous tv-verified v4", () => {
     );
     expect(plan.brief.promotionDiagnostics?.foldFailureMap[0]?.summary).toContain(
       "walk_forward_failed:diag-candidate",
+    );
+    expect(plan.brief.promotionDiagnostics?.foldFailureMap[0]).toEqual(
+      expect.objectContaining({
+        dominantRegime: "trend_down",
+        suspectedFailureReason: "insufficient_positive_oos_folds",
+        suggestedMutationConstraint: expect.stringContaining("trend_down"),
+      }),
+    );
+    expect(plan.brief.promotionDiagnostics?.lossZoneDetails[0]).toEqual(
+      expect.objectContaining({
+        regime: "trend_down",
+        entryRoute: "bear_rebound",
+        exitReason: "weak_exit",
+      }),
+    );
+    expect(plan.brief.promotionDiagnostics?.tradeLifecycleDetails[0]).toEqual(
+      expect.objectContaining({
+        entryRoute: "bear_rebound",
+        tradeCount: 9,
+      }),
     );
     expect(plan.brief.analysisGuidance.lossZoneGuidance).toContain(
       "trend_down:bear_rebound_loss",

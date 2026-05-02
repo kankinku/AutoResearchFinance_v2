@@ -194,6 +194,8 @@ export function createUnavailableLossAnalysisSummary(): LossAnalysisSummary {
     status: "unavailable_no_trades",
     summary: "No prior loss analysis is available yet.",
     topLossZones: [],
+    lossZoneDetails: [],
+    tradeLifecycle: [],
     repairPriorities: [],
   };
 }

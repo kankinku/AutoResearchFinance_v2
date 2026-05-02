@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 
 import {
+  lossZoneDetailSchema,
+  tradeLifecycleSummarySchema,
   type ExperimentRecord,
   type AutonomousIterationLearningRecord,
   type LocalCompatibilityIssue,
@@ -489,6 +491,8 @@ export async function prepareAutonomousMutationPlan(input: {
       summary:
         "Use recent empirical failures, duplicates, and calibration drift as negative memory. Do not overfit to a single period or a tiny number of trades.",
       topLossZones: [],
+      lossZoneDetails: [],
+      tradeLifecycle: [],
       repairPriorities: [],
     },
     researchContext: {
@@ -2470,6 +2474,12 @@ function buildPromotionDiagnostics(
   const conditionContribution = recentRecords.flatMap((record) =>
     readConditionContributions(record),
   );
+  const lossZoneDetails = recentRecords.flatMap((record) =>
+    readLossZoneDetails(record),
+  );
+  const tradeLifecycleDetails = recentRecords.flatMap((record) =>
+    readTradeLifecycleDetails(record),
+  );
   const lossZones = recentRecords.flatMap((record) => {
     const raw = record as Record<string, unknown>;
     const directZones = Array.isArray(raw.topLossZones)
@@ -2486,7 +2496,7 @@ function buildPromotionDiagnostics(
       : [];
     return [...directZones, ...analyzedZones, ...repairPriorities];
   });
-  const tradeLifecycle = recentRecords
+  const metricLifecycle = recentRecords
     .map((record) => {
       const metrics = record.testerMetrics;
       if (!metrics) {
@@ -2494,44 +2504,22 @@ function buildPromotionDiagnostics(
       }
       return `${record.candidateId}: trades=${metrics.totalTrades}, avgTrade=${metrics.avgTradePercent}, drawdown=${metrics.maxStrategyDrawdownPercent}, pf=${metrics.profitFactor}`;
     })
-    .filter((value): value is string => value != null)
-    .slice(0, 8);
-  const foldFailureMap = recentRecords.flatMap((record) => {
-    const walkForward = (record as Record<string, unknown>)
-      .walkForwardEvaluation as
-      | {
-          passed?: unknown;
-          gateReasons?: unknown;
-          folds?: unknown;
-        }
-      | undefined;
-    if (!walkForward || walkForward.passed === true) {
-      return [];
-    }
-    const folds = Array.isArray(walkForward.folds)
-      ? walkForward.folds
-      : [];
-    const failedFolds = folds
-      .map((fold) => fold as { foldId?: unknown; passed?: unknown })
-      .filter((fold) => fold.passed === false && typeof fold.foldId === "string")
-      .map((fold) => fold.foldId as string);
-    const gateReasons = Array.isArray(walkForward.gateReasons)
-      ? walkForward.gateReasons.filter((reason): reason is string => typeof reason === "string")
-      : [];
-    return [
-      {
-        candidateId: record.candidateId,
-        failedFolds,
-        gateReasons,
-        summary: `walk_forward_failed:${record.candidateId}:${gateReasons.join("+") || "fold_failure"}`,
-      },
-    ];
-  });
+    .filter((value): value is string => value != null);
+  const structuredLifecycle = tradeLifecycleDetails.map(
+    (entry) =>
+      `${entry.entryRoute}: trades=${entry.tradeCount}, avgBarsHeld=${entry.averageBarsHeld ?? "unknown"}, mfe=${entry.mfeProxy ?? "unknown"}, mae=${entry.maeProxy ?? "unknown"}`,
+  );
+  const tradeLifecycle = [...structuredLifecycle, ...metricLifecycle].slice(0, 8);
+  const foldFailureMap = recentRecords.flatMap((record) =>
+    buildFoldFailureMapEntries(record),
+  );
 
   return {
     conditionContribution: conditionContribution.slice(0, 12),
     lossZones: uniqueStrings(lossZones).slice(0, 12),
+    lossZoneDetails: lossZoneDetails.slice(0, 12),
     tradeLifecycle,
+    tradeLifecycleDetails: tradeLifecycleDetails.slice(0, 8),
     foldFailureMap: foldFailureMap.slice(0, 8),
   };
 }
@@ -2546,15 +2534,35 @@ function buildPromotionDiagnosticInstruction(
     diagnostics.lossZones.length > 0
       ? `Loss-zone guidance: ${diagnostics.lossZones.slice(0, 4).join(" | ")}.`
       : null,
+    diagnostics.lossZoneDetails.length > 0
+      ? `Structured loss zones: ${diagnostics.lossZoneDetails
+          .slice(0, 3)
+          .map(
+            (entry) =>
+              `${entry.regime}/${entry.volatilityBucket}/${entry.entryRoute}/${entry.exitReason} losses=${entry.lossCount}`,
+          )
+          .join(" | ")}.`
+      : null,
     diagnostics.tradeLifecycle.length > 0
       ? `Trade lifecycle memory: ${diagnostics.tradeLifecycle.slice(0, 3).join(" | ")}.`
+      : null,
+    diagnostics.tradeLifecycleDetails.length > 0
+      ? `Lifecycle by route: ${diagnostics.tradeLifecycleDetails
+          .slice(0, 3)
+          .map(
+            (entry) =>
+              `${entry.entryRoute} trades=${entry.tradeCount} avgBars=${entry.averageBarsHeld ?? "unknown"} exits=${Object.entries(entry.exitReasonDistribution)
+                .map(([reason, count]) => `${reason}:${count}`)
+                .join(",")}`,
+          )
+          .join(" | ")}.`
       : null,
     diagnostics.conditionContribution.length > 0
       ? `Condition attribution: ${diagnostics.conditionContribution
           .slice(0, 3)
           .map(
             (entry) =>
-              `${entry.conditionId} scoreDelta=${entry.scoreDelta} profitDelta=${entry.profitDelta ?? 0} drawdownDelta=${entry.drawdownDelta ?? 0}`,
+              `${entry.conditionId} scoreDelta=${entry.scoreDelta} profitDelta=${entry.profitDelta ?? 0} drawdownDelta=${entry.drawdownDelta ?? 0} oosFoldDelta=${entry.oosFoldDelta ?? 0}`,
           )
           .join(" | ")}.`
       : null,
@@ -2596,7 +2604,167 @@ function readConditionContributions(
         typeof value.drawdownDelta === "number" ? (value.drawdownDelta as number) : 0,
       oosFoldDelta:
         typeof value.oosFoldDelta === "number" ? (value.oosFoldDelta as number) : 0,
+      failedFoldImpact: readFailedFoldImpact(value.failedFoldImpact),
     }));
+}
+
+function readLossZoneDetails(
+  record: ExperimentRecord,
+): NonNullable<MutationBrief["promotionDiagnostics"]>["lossZoneDetails"] {
+  const lossAnalysis = (record as Record<string, unknown>).lossAnalysisSummary as
+    | { lossZoneDetails?: unknown }
+    | undefined;
+  if (!Array.isArray(lossAnalysis?.lossZoneDetails)) {
+    return [];
+  }
+  return lossAnalysis.lossZoneDetails.flatMap((value) => {
+    const parsed = lossZoneDetailSchema.safeParse(value);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+function readTradeLifecycleDetails(
+  record: ExperimentRecord,
+): NonNullable<MutationBrief["promotionDiagnostics"]>["tradeLifecycleDetails"] {
+  const lossAnalysis = (record as Record<string, unknown>).lossAnalysisSummary as
+    | { tradeLifecycle?: unknown }
+    | undefined;
+  if (!Array.isArray(lossAnalysis?.tradeLifecycle)) {
+    return [];
+  }
+  return lossAnalysis.tradeLifecycle.flatMap((value) => {
+    const parsed = tradeLifecycleSummarySchema.safeParse(value);
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+function buildFoldFailureMapEntries(
+  record: ExperimentRecord,
+): NonNullable<MutationBrief["promotionDiagnostics"]>["foldFailureMap"] {
+  const walkForward = (record as Record<string, unknown>).walkForwardEvaluation as
+    | {
+        passed?: unknown;
+        gateReasons?: unknown;
+        folds?: unknown;
+        failedFoldRegimeSummary?: unknown;
+      }
+    | undefined;
+  if (!walkForward || walkForward.passed === true) {
+    return [];
+  }
+  const folds = Array.isArray(walkForward.folds) ? walkForward.folds : [];
+  const failedFolds = folds
+    .map((fold) => fold as { foldId?: unknown; passed?: unknown })
+    .filter((fold) => fold.passed === false && typeof fold.foldId === "string")
+    .map((fold) => fold.foldId as string);
+  const gateReasons = Array.isArray(walkForward.gateReasons)
+    ? walkForward.gateReasons.filter((reason): reason is string => typeof reason === "string")
+    : [];
+  const regimeEvidence = Array.isArray(walkForward.failedFoldRegimeSummary)
+    ? walkForward.failedFoldRegimeSummary
+        .map(
+          (entry) =>
+            entry as {
+              foldId?: unknown;
+              dominantRegime?: unknown;
+              concentration?: unknown;
+              gateReasons?: unknown;
+            },
+        )
+        .filter((entry) => typeof entry.foldId === "string")
+    : [];
+  const dominantRegime =
+    regimeEvidence.find((entry) => typeof entry.dominantRegime === "string")
+      ?.dominantRegime ?? null;
+  const suspectedFailureReason = inferFoldFailureReason({
+    gateReasons,
+    dominantRegime: typeof dominantRegime === "string" ? dominantRegime : null,
+  });
+  const suggestedMutationConstraint = suggestFoldMutationConstraint({
+    suspectedFailureReason,
+    dominantRegime: typeof dominantRegime === "string" ? dominantRegime : null,
+  });
+  return [
+    {
+      candidateId: record.candidateId,
+      failedFolds: failedFolds.length > 0
+        ? failedFolds
+        : regimeEvidence.map((entry) => entry.foldId as string),
+      gateReasons,
+      dominantRegime: typeof dominantRegime === "string" ? dominantRegime : null,
+      suspectedFailureReason,
+      suggestedMutationConstraint,
+      summary: `walk_forward_failed:${record.candidateId}:${dominantRegime ?? "unknown_regime"}:${suspectedFailureReason ?? (gateReasons.join("+") || "fold_failure")}`,
+    },
+  ];
+}
+
+function inferFoldFailureReason(input: {
+  gateReasons: string[];
+  dominantRegime: string | null;
+}): string | null {
+  if (input.gateReasons.includes("positive_oos_fold_count")) {
+    return "insufficient_positive_oos_folds";
+  }
+  if (input.gateReasons.includes("minimum_total_oos_trades")) {
+    return "insufficient_oos_trade_density";
+  }
+  if (input.gateReasons.includes("worst_fold_drawdown_limit")) {
+    return "drawdown_concentrated_in_failed_fold";
+  }
+  if (input.gateReasons.includes("median_oos_profit_factor")) {
+    return "weak_median_oos_profit_factor";
+  }
+  if (input.dominantRegime === "volatile") {
+    return "volatile_regime_failure";
+  }
+  if (input.dominantRegime === "trend_down") {
+    return "trend_down_failure";
+  }
+  return input.gateReasons[0] ?? null;
+}
+
+function suggestFoldMutationConstraint(input: {
+  suspectedFailureReason: string | null;
+  dominantRegime: string | null;
+}): string | null {
+  if (input.suspectedFailureReason === "insufficient_oos_trade_density") {
+    return "Preserve broader entry windows and avoid adding filters that reduce OOS fold trade density.";
+  }
+  if (input.suspectedFailureReason === "drawdown_concentrated_in_failed_fold") {
+    return "Tighten failed-fold exit behavior before increasing position or replacement aggressiveness.";
+  }
+  if (input.dominantRegime === "volatile") {
+    return "Avoid volatility-regime entries unless risk-off and time exits remain active.";
+  }
+  if (input.dominantRegime === "trend_down") {
+    return "Reduce bear-rebound exposure during trend_down folds unless fast exits are explicit.";
+  }
+  return null;
+}
+
+function readFailedFoldImpact(
+  value: unknown,
+): NonNullable<NonNullable<MutationBrief["promotionDiagnostics"]>["conditionContribution"][number]["failedFoldImpact"]> | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const raw = value as Record<string, unknown>;
+  if (
+    typeof raw.baseFailedFoldCount !== "number" ||
+    typeof raw.ablatedFailedFoldCount !== "number" ||
+    typeof raw.summary !== "string"
+  ) {
+    return undefined;
+  }
+  return {
+    baseFailedFoldCount: raw.baseFailedFoldCount,
+    ablatedFailedFoldCount: raw.ablatedFailedFoldCount,
+    changedFoldIds: Array.isArray(raw.changedFoldIds)
+      ? raw.changedFoldIds.filter((foldId): foldId is string => typeof foldId === "string")
+      : [],
+    summary: raw.summary,
+  };
 }
 
 function getRejectionReasons(record: ExperimentRecord): string[] {

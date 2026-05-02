@@ -119,6 +119,28 @@ describe("loss analysis", () => {
 
     expect(summary.status).toBe("available");
     expect(summary.topLossZones[0]).toContain("trend_down");
+    expect(summary.lossZoneDetails?.[0]).toEqual(
+      expect.objectContaining({
+        regime: "trend_down",
+        volatilityBucket: "high",
+        trendBucket: "trend_down",
+        entryRoute: "entry",
+        exitReason: "weak_exit",
+        lossCount: 2,
+      }),
+    );
+    expect(summary.tradeLifecycle?.[0]).toEqual(
+      expect.objectContaining({
+        entryRoute: "entry",
+        tradeCount: 2,
+        averageBarsHeld: expect.any(Number),
+        mfeProxy: expect.any(Number),
+        maeProxy: expect.any(Number),
+        profitDistribution: expect.objectContaining({
+          losers: 2,
+        }),
+      }),
+    );
     expect(summary.repairPriorities[0]).toContain("deeper drawdown");
     expect(summary.repairPriorities[1]).toContain("counter-trend");
   });

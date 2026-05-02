@@ -153,6 +153,34 @@ export const tvTraceArtifactSchema = z.object({
   missingReason: z.string().nullable().default(null),
 });
 
+export const lossZoneDetailSchema = z.object({
+  regime: z.string().min(1),
+  volatilityBucket: z.string().min(1),
+  trendBucket: z.string().min(1),
+  entryRoute: z.string().min(1),
+  exitReason: z.string().min(1),
+  slotRank: z.number().int().nullable().default(null),
+  barsHeld: z.number().nullable().default(null),
+  lossCount: z.number().int().nonnegative().default(0),
+  averageLossPercent: z.number().nullable().default(null),
+});
+
+export const tradeLifecycleSummarySchema = z.object({
+  entryRoute: z.string().min(1),
+  tradeCount: z.number().int().nonnegative(),
+  averageBarsHeld: z.number().nullable().default(null),
+  mfeProxy: z.number().nullable().default(null),
+  maeProxy: z.number().nullable().default(null),
+  exitReasonDistribution: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  profitDistribution: z.object({
+    winners: z.number().int().nonnegative(),
+    losers: z.number().int().nonnegative(),
+    breakeven: z.number().int().nonnegative(),
+    averageProfitPercent: z.number().nullable().default(null),
+    medianProfitPercent: z.number().nullable().default(null),
+  }),
+});
+
 export const seedStrategyReferenceSchema = z.object({
   candidateId: z.string().min(1),
   summary: z.string().min(1),
@@ -191,6 +219,8 @@ export const lossAnalysisSummarySchema = z.object({
   ]),
   summary: z.string().min(1),
   topLossZones: z.array(z.string()).default([]),
+  lossZoneDetails: z.array(lossZoneDetailSchema).optional(),
+  tradeLifecycle: z.array(tradeLifecycleSummarySchema).optional(),
   repairPriorities: z.array(z.string()).default([]),
 });
 
@@ -728,6 +758,14 @@ export const conditionContributionSchema = z.object({
   profitDelta: z.number().optional(),
   drawdownDelta: z.number().optional(),
   oosFoldDelta: z.number().optional(),
+  failedFoldImpact: z
+    .object({
+      baseFailedFoldCount: z.number().int().nonnegative(),
+      ablatedFailedFoldCount: z.number().int().nonnegative(),
+      changedFoldIds: z.array(z.string()).default([]),
+      summary: z.string().min(1),
+    })
+    .optional(),
 });
 
 export const explorationBudgetSchema = z.object({
@@ -750,13 +788,18 @@ export const foldFailureMapEntrySchema = z.object({
   candidateId: z.string().min(1),
   failedFolds: z.array(z.string()).default([]),
   gateReasons: z.array(z.string()).default([]),
+  dominantRegime: z.string().nullable().default(null),
+  suspectedFailureReason: z.string().nullable().default(null),
+  suggestedMutationConstraint: z.string().nullable().default(null),
   summary: z.string().min(1),
 });
 
 export const promotionDiagnosticsSchema = z.object({
   conditionContribution: z.array(conditionContributionSchema).default([]),
   lossZones: z.array(z.string()).default([]),
+  lossZoneDetails: z.array(lossZoneDetailSchema).default([]),
   tradeLifecycle: z.array(z.string()).default([]),
+  tradeLifecycleDetails: z.array(tradeLifecycleSummarySchema).default([]),
   foldFailureMap: z.array(foldFailureMapEntrySchema).default([]),
 });
 
@@ -1184,6 +1227,8 @@ export type LocalExecutionTraceEntry = z.infer<typeof localExecutionTraceEntrySc
 export type TraceOrderAction = z.infer<typeof traceOrderActionSchema>;
 export type TraceEventV1 = z.infer<typeof traceEventV1Schema>;
 export type TvTraceArtifact = z.infer<typeof tvTraceArtifactSchema>;
+export type LossZoneDetail = z.infer<typeof lossZoneDetailSchema>;
+export type TradeLifecycleSummary = z.infer<typeof tradeLifecycleSummarySchema>;
 export type SeedStrategyReference = z.infer<typeof seedStrategyReferenceSchema>;
 export type AcceptedHeadReference = z.infer<typeof acceptedHeadReferenceSchema>;
 export type CompileFailureClass = z.infer<typeof compileFailureClassSchema>;
