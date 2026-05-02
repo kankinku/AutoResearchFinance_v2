@@ -582,6 +582,28 @@ export const conditionContributionSchema = z.object({
   ablatedDecision: z.string().min(1),
 });
 
+export const explorationBudgetSchema = z.object({
+  championExploitPct: z.number().min(0).max(100),
+  frontierExploitPct: z.number().min(0).max(100),
+  breakoutPct: z.number().min(0).max(100),
+  nearMissRepairPct: z.number().min(0).max(100),
+  simplificationPct: z.number().min(0).max(100),
+});
+
+export const foldFailureMapEntrySchema = z.object({
+  candidateId: z.string().min(1),
+  failedFolds: z.array(z.string()).default([]),
+  gateReasons: z.array(z.string()).default([]),
+  summary: z.string().min(1),
+});
+
+export const promotionDiagnosticsSchema = z.object({
+  conditionContribution: z.array(conditionContributionSchema).default([]),
+  lossZones: z.array(z.string()).default([]),
+  tradeLifecycle: z.array(z.string()).default([]),
+  foldFailureMap: z.array(foldFailureMapEntrySchema).default([]),
+});
+
 export const mutationBriefSchema = z.object({
   objective: z.string().min(1),
   guardrails: z.object({
@@ -668,6 +690,8 @@ export const mutationBriefSchema = z.object({
         changedRiskLogic: z.string().optional(),
       })
       .optional(),
+  explorationBudget: explorationBudgetSchema.optional(),
+  promotionDiagnostics: promotionDiagnosticsSchema.optional(),
   recentCompileErrors: z.array(z.string()).default([]),
   recentCompileFailureClasses: z.array(compileFailureClassSchema).default([]),
   recentLossAnalysis: lossAnalysisSummarySchema,
@@ -1048,6 +1072,9 @@ export type FallbackEvaluationCompatibility = z.infer<
 >;
 export type FallbackEvaluation = z.infer<typeof fallbackEvaluationSchema>;
 export type ConditionContribution = z.infer<typeof conditionContributionSchema>;
+export type ExplorationBudget = z.infer<typeof explorationBudgetSchema>;
+export type FoldFailureMapEntry = z.infer<typeof foldFailureMapEntrySchema>;
+export type PromotionDiagnostics = z.infer<typeof promotionDiagnosticsSchema>;
 export type MutationBrief = z.infer<typeof mutationBriefSchema>;
 export type CandidateArtifact = z.infer<typeof candidateArtifactSchema>;
 export type EvaluationExecutorName = z.infer<typeof evaluationExecutorNameSchema>;

@@ -65,6 +65,13 @@ const ROUTE_SUPPRESSION_MIN_FAILURES = 3;
 const DEFAULT_BREAKOUT_FALLBACK_ROUTE_ID = "time_boxed_event_rotation";
 const TIME_BOXED_ROUTE_ID = "time_boxed_event_rotation";
 const TIME_BOXED_VARIANT_ESCALATION_MIN_COUNT = 4;
+const DEFAULT_EXPLORATION_BUDGET = {
+  championExploitPct: 50,
+  frontierExploitPct: 20,
+  breakoutPct: 20,
+  nearMissRepairPct: 5,
+  simplificationPct: 5,
+} as const;
 
 const EXPLORATION_BREAKOUT_ROUTES = [
   {
@@ -277,6 +284,7 @@ export async function prepareAutonomousMutationPlan(input: {
   const iterationRecordMemory = buildIterationRecordMemory(
     input.iterationRecords ?? [],
   );
+  const promotionDiagnostics = buildPromotionDiagnostics(input.experiments);
   const explorationDirective = resolveExplorationDirective({
     experiments: input.experiments,
     activeChampion,
@@ -373,6 +381,8 @@ export async function prepareAutonomousMutationPlan(input: {
       : "Use only ledger-derived evidence. Explore a materially distinct AF-compatible structure from the seed and optimize for novelty plus robustness without relying on generic trading heuristics.";
   const nextMutationDirection = [
     baseNextMutationDirection,
+    buildPromotionDiagnosticInstruction(promotionDiagnostics),
+    `Exploration budget is fixed for planner reasoning: champion exploit ${DEFAULT_EXPLORATION_BUDGET.championExploitPct}%, frontier exploit ${DEFAULT_EXPLORATION_BUDGET.frontierExploitPct}%, breakout ${DEFAULT_EXPLORATION_BUDGET.breakoutPct}%, near-miss repair ${DEFAULT_EXPLORATION_BUDGET.nearMissRepairPct}%, simplification ${DEFAULT_EXPLORATION_BUDGET.simplificationPct}%.`,
     explorationBreakoutActive
       ? "Use the AF seed/core source as the implementation starting point and treat the active champion only as a score guardrail, not as a structure to preserve."
       : baselineCandidateId
@@ -458,6 +468,8 @@ export async function prepareAutonomousMutationPlan(input: {
     breakoutOutcomeMemory,
     breakoutVariantDirective,
     candidateBehaviorChangeSummary,
+    explorationBudget: DEFAULT_EXPLORATION_BUDGET,
+    promotionDiagnostics,
     recentCompileErrors: [],
     recentCompileFailureClasses: [],
     recentLossAnalysis: {
@@ -567,7 +579,7 @@ export async function prepareAutonomousMutationPlan(input: {
           .slice(0, 2)
           .map((condition) => condition.conditionId) ?? [],
       weakenConditions: [],
-      lossZoneGuidance: [],
+      lossZoneGuidance: promotionDiagnostics.lossZones,
       fallbackEvidenceGuidance: {
         available: false,
         source: null,
@@ -2413,6 +2425,125 @@ function buildCandidateBehaviorChangeSummary(input: {
       ? "Keep response structure strict before adding new risk-side complexity."
       : undefined,
   };
+}
+
+function buildPromotionDiagnostics(
+  experiments: ExperimentRecord[],
+): NonNullable<MutationBrief["promotionDiagnostics"]> {
+  const recentRecords = [...experiments]
+    .sort(compareExperimentRecordedAtDescending)
+    .slice(0, 30);
+  const conditionContribution = recentRecords.flatMap((record) =>
+    readConditionContributions(record),
+  );
+  const lossZones = recentRecords.flatMap((record) => {
+    const raw = record as Record<string, unknown>;
+    const directZones = Array.isArray(raw.topLossZones)
+      ? raw.topLossZones.filter((zone): zone is string => typeof zone === "string")
+      : [];
+    const lossAnalysis = raw.lossAnalysisSummary as
+      | { topLossZones?: unknown; repairPriorities?: unknown }
+      | undefined;
+    const analyzedZones = Array.isArray(lossAnalysis?.topLossZones)
+      ? lossAnalysis.topLossZones.filter((zone): zone is string => typeof zone === "string")
+      : [];
+    const repairPriorities = Array.isArray(lossAnalysis?.repairPriorities)
+      ? lossAnalysis.repairPriorities.filter((priority): priority is string => typeof priority === "string")
+      : [];
+    return [...directZones, ...analyzedZones, ...repairPriorities];
+  });
+  const tradeLifecycle = recentRecords
+    .map((record) => {
+      const metrics = record.testerMetrics;
+      if (!metrics) {
+        return null;
+      }
+      return `${record.candidateId}: trades=${metrics.totalTrades}, avgTrade=${metrics.avgTradePercent}, drawdown=${metrics.maxStrategyDrawdownPercent}, pf=${metrics.profitFactor}`;
+    })
+    .filter((value): value is string => value != null)
+    .slice(0, 8);
+  const foldFailureMap = recentRecords.flatMap((record) => {
+    const walkForward = (record as Record<string, unknown>)
+      .walkForwardEvaluation as
+      | {
+          passed?: unknown;
+          gateReasons?: unknown;
+          folds?: unknown;
+        }
+      | undefined;
+    if (!walkForward || walkForward.passed === true) {
+      return [];
+    }
+    const folds = Array.isArray(walkForward.folds)
+      ? walkForward.folds
+      : [];
+    const failedFolds = folds
+      .map((fold) => fold as { foldId?: unknown; passed?: unknown })
+      .filter((fold) => fold.passed === false && typeof fold.foldId === "string")
+      .map((fold) => fold.foldId as string);
+    const gateReasons = Array.isArray(walkForward.gateReasons)
+      ? walkForward.gateReasons.filter((reason): reason is string => typeof reason === "string")
+      : [];
+    return [
+      {
+        candidateId: record.candidateId,
+        failedFolds,
+        gateReasons,
+        summary: `walk_forward_failed:${record.candidateId}:${gateReasons.join("+") || "fold_failure"}`,
+      },
+    ];
+  });
+
+  return {
+    conditionContribution: conditionContribution.slice(0, 12),
+    lossZones: uniqueStrings(lossZones).slice(0, 12),
+    tradeLifecycle,
+    foldFailureMap: foldFailureMap.slice(0, 8),
+  };
+}
+
+function buildPromotionDiagnosticInstruction(
+  diagnostics: NonNullable<MutationBrief["promotionDiagnostics"]>,
+): string | null {
+  const parts = [
+    diagnostics.foldFailureMap.length > 0
+      ? `Fold failure map: ${diagnostics.foldFailureMap.map((entry) => entry.summary).join(" | ")}.`
+      : null,
+    diagnostics.lossZones.length > 0
+      ? `Loss-zone guidance: ${diagnostics.lossZones.slice(0, 4).join(" | ")}.`
+      : null,
+    diagnostics.tradeLifecycle.length > 0
+      ? `Trade lifecycle memory: ${diagnostics.tradeLifecycle.slice(0, 3).join(" | ")}.`
+      : null,
+  ].filter((part): part is string => part != null && part.length > 0);
+
+  return parts.length === 0 ? null : parts.join(" ");
+}
+
+function readConditionContributions(
+  record: ExperimentRecord,
+): NonNullable<MutationBrief["promotionDiagnostics"]>["conditionContribution"] {
+  const raw = record as Record<string, unknown>;
+  const values = Array.isArray(raw.conditionContributions)
+    ? raw.conditionContributions
+    : Array.isArray(raw.topConditionContributions)
+      ? raw.topConditionContributions
+      : [];
+  return values
+    .map((value) => value as Record<string, unknown>)
+    .filter(
+      (value) =>
+        typeof value.conditionId === "string" &&
+        typeof value.scoreDelta === "number" &&
+        typeof value.ablatedScore === "number" &&
+        typeof value.ablatedDecision === "string",
+    )
+    .map((value) => ({
+      conditionId: value.conditionId as string,
+      scoreDelta: value.scoreDelta as number,
+      ablatedScore: value.ablatedScore as number,
+      ablatedDecision: value.ablatedDecision as string,
+    }));
 }
 
 function getRejectionReasons(record: ExperimentRecord): string[] {

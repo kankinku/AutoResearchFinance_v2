@@ -1632,6 +1632,99 @@ describe("autonomous tv-verified v4", () => {
     );
   });
 
+  test("prepareAutonomousMutationPlan carries promotion diagnostics and fixed exploration budget", async () => {
+    const workspaceRoot = await mkdtemp(
+      path.join(tmpdir(), "af-autonomous-promotion-diagnostics-"),
+    );
+    await initializeWorkspace(workspaceRoot);
+    const objective = await loadObjectiveConfig(workspaceRoot);
+    const experiments: ExperimentRecord[] = [
+      {
+        runId: "run-diagnostics",
+        iteration: 1,
+        candidateId: "diag-candidate",
+        parentCandidateId: null,
+        branchId: "autonomous-main",
+        acceptedHeadCandidateId: null,
+        baselineCandidateId: null,
+        candidatePath: "C:\\tmp\\diag-candidate.pine",
+        candidateHash: "hash-diagnostics",
+        candidateScore: 0.5,
+        decision: "tv_verified",
+        status: "verified",
+        testerMetrics: createStrongMetrics(),
+        conditionContributions: [
+          {
+            conditionId: "risk-off-filter",
+            scoreDelta: -0.08,
+            ablatedScore: 0.58,
+            ablatedDecision: "ablation_improved",
+          },
+        ],
+        topLossZones: ["trend_down:bear_rebound_loss"],
+        walkForwardEvaluation: {
+          policyVersion: "walk-forward-oos/v1",
+          foldCount: 5,
+          requiredPositiveOosFolds: 4,
+          positiveOosFoldCount: 3,
+          minimumTradesPerFold: 12,
+          minimumTotalOosTrades: 60,
+          totalOosTrades: 57,
+          worstFoldDrawdownPercent: 19,
+          medianOosProfitFactor: 1.05,
+          medianOosPostFeeNetProfitPercent: 2,
+          embargoBars: 5,
+          passed: false,
+          gateReasons: ["positive_oos_fold_count", "minimum_total_oos_trades"],
+          folds: [
+            {
+              foldId: "wf-2022",
+              index: 3,
+              trainStartTime: null,
+              trainEndTime: null,
+              testStartTime: null,
+              testEndTime: null,
+              embargoBars: 5,
+              metrics: null,
+              objectiveBreakdown: null,
+              passed: false,
+              gateReasons: ["positive_fold_post_fee_profit"],
+            },
+          ],
+        },
+      } as ExperimentRecord,
+    ];
+
+    const plan = await prepareAutonomousMutationPlan({
+      workspaceRoot,
+      objective,
+      experiments,
+      headEvents: [],
+      archiveEvents: [],
+      calibrationEvents: [],
+    });
+
+    expect(plan.brief.explorationBudget).toEqual({
+      championExploitPct: 50,
+      frontierExploitPct: 20,
+      breakoutPct: 20,
+      nearMissRepairPct: 5,
+      simplificationPct: 5,
+    });
+    expect(plan.brief.promotionDiagnostics?.conditionContribution[0]?.conditionId).toBe(
+      "risk-off-filter",
+    );
+    expect(plan.brief.promotionDiagnostics?.foldFailureMap[0]?.summary).toContain(
+      "walk_forward_failed:diag-candidate",
+    );
+    expect(plan.brief.analysisGuidance.lossZoneGuidance).toContain(
+      "trend_down:bear_rebound_loss",
+    );
+    expect(plan.brief.nextMutationDirection).toContain(
+      "Exploration budget is fixed",
+    );
+  });
+
   test("prepareAutonomousMutationPlan suppresses sparse breakout routes and prefers eligible time-boxed evidence", async () => {
     const workspaceRoot = await mkdtemp(
       path.join(tmpdir(), "af-autonomous-breakout-memory-"),
