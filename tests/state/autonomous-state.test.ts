@@ -181,6 +181,29 @@ describe("autonomous champion selectors", () => {
         }),
       ])),
     ).toBeNull();
+    expect(
+      selectBestChampionCandidate(asExperimentRecords([
+        localRecord,
+        createTvRecord({
+          walkForwardEvaluation: {
+            policyVersion: "walk-forward-oos/v1",
+            foldCount: 5,
+            requiredPositiveOosFolds: 4,
+            positiveOosFoldCount: 3,
+            minimumTradesPerFold: 12,
+            minimumTotalOosTrades: 60,
+            totalOosTrades: 55,
+            worstFoldDrawdownPercent: 19,
+            medianOosProfitFactor: 1.05,
+            medianOosPostFeeNetProfitPercent: 2,
+            embargoBars: 5,
+            passed: false,
+            gateReasons: ["positive_oos_fold_count"],
+            folds: [],
+          },
+        }),
+      ])),
+    ).toBeNull();
   });
 
   test("selects verified promotion candidates", () => {

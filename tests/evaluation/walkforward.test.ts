@@ -36,6 +36,11 @@ describe("walk-forward promotion gate", () => {
     expect(evaluation.passed).toBe(true);
     expect(evaluation.positiveOosFoldCount).toBe(4);
     expect(evaluation.totalOosTrades).toBeGreaterThanOrEqual(60);
+    expect(evaluation.canaryHoldout).toMatchObject({
+      policyVersion: "canary-holdout/v1",
+      mode: "sealed",
+      exposed: false,
+    });
   });
 
   test("rejects two failed folds", () => {

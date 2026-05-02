@@ -57,11 +57,18 @@ export function isVerifiedPromotionEligible(input: {
       localRecord.candidateId === input.record.candidateId &&
       localRecord.candidateHash === input.record.candidateHash,
   );
+  const parityStatus = input.record.localTvParity?.status;
+  const verifiedPromotion = input.record.verifiedPromotion;
   return (
     matchingLocalRecord != null &&
     input.record.tvCalibrationStatus === "verified_match" &&
-    input.record.localTvParity?.status !== "major_drift" &&
-    input.record.verifiedPromotion?.eligible === true &&
+    parityStatus != null &&
+    parityStatus !== "major_drift" &&
+    parityStatus !== "not_comparable" &&
+    input.record.walkForwardEvaluation?.passed === true &&
+    verifiedPromotion?.eligible === true &&
+    verifiedPromotion.localCandidateHash === matchingLocalRecord.candidateHash &&
+    verifiedPromotion.tvCandidateHash === input.record.candidateHash &&
     typeof input.record.verifiedPromotionScore === "number"
   );
 }

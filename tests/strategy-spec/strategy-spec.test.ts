@@ -1,6 +1,11 @@
+import { mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { describe, expect, test } from "vitest";
 
 import { parseAfStrategyConfig } from "../../src/automation/local-backtest/af-config.js";
+import { persistCandidateArtifact } from "../../src/mutation/candidate-store.js";
 import { renderAfStrategySpecToPine } from "../../src/strategy-spec/codegen-pine.js";
 import { afStrategySpecToConfig, afStrategySpecFromPine } from "../../src/strategy-spec/to-af-config.js";
 import { validateAfStrategySpec } from "../../src/strategy-spec/validate.js";
@@ -74,5 +79,41 @@ describe("AF strategy spec v1", () => {
     expect(validation.issues).toEqual([]);
     expect(roundTrip.issues).toEqual([]);
     expect(roundTrip.spec?.event.eventWindowBars).toBe(10);
+  });
+
+  test("persists the strategy spec beside the generated candidate Pine", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-spec-candidate-"));
+    const artifact = await persistCandidateArtifact({
+      workspaceRoot,
+      parentCandidateId: null,
+      branchId: "test",
+      parsedMutation: {
+        candidateSummary: "Spec-backed candidate",
+        nextMutationHints: ["verify promotion evidence"],
+        pineScript: renderAfStrategySpecToPine(spec),
+        strategySpec: spec,
+        specPatch: { source: "test" },
+        inventory: [
+          {
+            conditionId: "entry-bull-event",
+            role: "entry",
+            summary: "Bull event entry",
+            pineLineHints: [1],
+          },
+        ],
+        inventorySource: "llm",
+        missingFields: [],
+        inferredFields: [],
+      },
+    });
+
+    expect(artifact.specPath).toBeTruthy();
+    expect(artifact.specHash).toBeTruthy();
+    const persisted = JSON.parse(await readFile(artifact.specPath ?? "", "utf8")) as {
+      version?: string;
+      event?: { eventWindowBars?: number };
+    };
+    expect(persisted.version).toBe("af-spec/v1");
+    expect(persisted.event?.eventWindowBars).toBe(10);
   });
 });

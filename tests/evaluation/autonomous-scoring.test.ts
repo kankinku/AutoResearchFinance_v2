@@ -148,6 +148,31 @@ describe("verified promotion scoring", () => {
     expect(result.score).toBeGreaterThanOrEqual(0.62);
   });
 
+  test("rejects promotion when sealed canary evidence has been exposed", () => {
+    const result = buildVerifiedPromotionScore({
+      localMetrics: createMetrics(),
+      tvMetrics: createMetrics(),
+      localCandidateHash: "hash-a",
+      tvCandidateHash: "hash-a",
+      tvCalibrationStatus: "verified_match",
+      localTvParity: createMatchedParity(),
+      walkForwardEvaluation: {
+        ...createWalkForwardPass(),
+        canaryHoldout: {
+          policyVersion: "canary-holdout/v1",
+          mode: "manual_review_only",
+          exposed: true,
+          reason: "test exposure",
+        },
+      },
+      config: null,
+      referenceExperiments: [],
+    });
+
+    expect(result.eligible).toBe(false);
+    expect(result.rejectionReasons).toContain("canary_holdout_exposed");
+  });
+
   test("raises the minimum verified score threshold as trial count grows", () => {
     expect(computeMinimumVerifiedPromotionScore(createReferences(0))).toBe(0.62);
     expect(computeMinimumVerifiedPromotionScore(createReferences(100))).toBe(0.68);

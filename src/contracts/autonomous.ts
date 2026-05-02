@@ -121,8 +121,8 @@ export const walkForwardEvaluationSchema = z.object({
   canaryHoldout: z
     .object({
       policyVersion: z.string().min(1).default("canary-holdout/v1"),
-      mode: z.literal("sealed"),
-      exposed: z.literal(false),
+      mode: z.enum(["sealed", "manual_review_only"]),
+      exposed: z.boolean().default(false),
       reason: z.string().min(1),
     })
     .optional(),

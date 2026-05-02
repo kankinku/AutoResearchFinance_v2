@@ -84,6 +84,15 @@ describe("parseAfStrategyConfig", () => {
 
     expect(baseline.metrics.totalTrades).toBe(31);
     expect(timeBoxed.metrics.totalTrades).toBeGreaterThan(50);
+    expect(timeBoxed.eventTrace.length).toBeGreaterThan(0);
+    expect(timeBoxed.eventTrace[0]).toEqual(
+      expect.objectContaining({
+        barIndex: expect.any(Number),
+        entryPass: expect.any(Boolean),
+        orderAction: expect.any(String),
+      }),
+    );
+    expect(timeBoxed.artifactBundle.state.eventTrace).toBe(timeBoxed.eventTrace);
   });
 
   test("parses generated rotation-window aliases as route-aware inputs", async () => {

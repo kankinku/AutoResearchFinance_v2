@@ -1,6 +1,48 @@
 import { describe, expect, test } from "vitest";
 
-import { parseMutationResponse } from "../../src/mutation/parser.js";
+import {
+  parseMutationResponse,
+  parseMutationResponseStrict,
+} from "../../src/mutation/parser.js";
+
+const strategySpec = {
+  version: "af-spec/v1" as const,
+  name: "Strict Spec Candidate",
+  event: {
+    source: "event_floor" as const,
+    L1: 8,
+    L2: 12,
+    L3: 15,
+    confirmBars: 2,
+    eventFloorBars: 5,
+    eventWindowBars: 10,
+  },
+  regime: {
+    trendMode: "Balanced" as const,
+    useSupertrendFilter: true,
+    riskOffRsi: 44,
+    maxExtPct: 5.5,
+  },
+  entry: {
+    primaryTrigger: "bull_event",
+    cooldownBars: 1,
+    allowBearRebound: true,
+    applyFilterToB1: false,
+  },
+  slot: {
+    slotPct: 12,
+    maxSlots: 14,
+    useReplacement: true,
+    replaceMinRank: 3,
+    replaceIfPnlBelow: -4,
+  },
+  exit: {
+    weakRangeExit: true,
+    maxHoldBars: 18,
+    closeAllOnBearConfRiskOff: true,
+    resetOnL3: false,
+  },
+};
 
 describe("parseMutationResponse", () => {
   test("parses structured JSON with pine script and inventory", () => {
@@ -49,5 +91,48 @@ describe("parseMutationResponse", () => {
     expect(() => parseMutationResponse(JSON.stringify({ candidateSummary: "invalid" }))).toThrow(
       /pineScript|Pine code/i,
     );
+  });
+
+  test("strict parser renders deterministic Pine from strategySpec", () => {
+    const parsed = parseMutationResponseStrict(
+      JSON.stringify({
+        candidateSummary: "Strict spec candidate",
+        nextMutationHints: ["verify in TradingView"],
+        strategySpec,
+        specPatch: { source: "test" },
+        inventory: [
+          {
+            conditionId: "entry-bull-event",
+            role: "entry",
+            summary: "Bull event entry from AF spec",
+            pineLineHints: [1],
+          },
+        ],
+      }),
+    );
+
+    expect(parsed.strategySpec?.version).toBe("af-spec/v1");
+    expect(parsed.pineScript).toContain("Strict Spec Candidate");
+    expect(parsed.inferredFields).toEqual([]);
+  });
+
+  test("strict parser rejects legacy Pine-only payloads", () => {
+    expect(() =>
+      parseMutationResponseStrict(
+        JSON.stringify({
+          candidateSummary: "Legacy Pine only",
+          nextMutationHints: [],
+          pineScript: "//@version=5\nstrategy('Legacy', overlay=true)\n",
+          inventory: [
+            {
+              conditionId: "entry-legacy",
+              role: "entry",
+              summary: "Legacy entry",
+              pineLineHints: [1],
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/strategySpec/i);
   });
 });
