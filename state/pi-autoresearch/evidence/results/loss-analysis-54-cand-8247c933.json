@@ -1,0 +1,14 @@
+{
+  "status": "available",
+  "summary": "Analyzed 36 losing trades. Largest loss cluster appeared in trend_up.",
+  "topLossZones": [
+    "trend_up:19",
+    "range_squeeze:12",
+    "range:5",
+    "range_squeeze:weak_exit:5",
+    "range:weak_exit:3"
+  ],
+  "repairPriorities": [
+    "Tighten exit behavior when losing trades continue into deeper drawdown."
+  ]
+}

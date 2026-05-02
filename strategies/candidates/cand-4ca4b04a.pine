@@ -1,0 +1,78 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856] mutation 01 [cand-4ca4b04a]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+adxThreshold = input.float(16.0, "ADX Min", minval=1, step=0.5)
+extLookback = input.int(8, "Extension Lookback", minval=2)
+maxExtensionAtr = input.float(1.35, "Max Short-Window Extension ATR", minval=0.2, step=0.05)
+maxCloseAboveFastAtr = input.float(1.1, "Max Close Above Fast EMA ATR", minval=0.2, step=0.05)
+initialStopAtr = input.float(2.1, "Initial Stop ATR", minval=0.5, step=0.1)
+trailStopAtr = input.float(2.6, "Trailing Stop ATR", minval=0.5, step=0.1)
+breakevenTriggerAtr = input.float(1.0, "Break-even Trigger ATR", minval=0.2, step=0.1)
+maxBarsInTrade = input.int(28, "Max Bars In Trade", minval=2)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adxValue = ta.rma(dx, adxLength)
+
+recentLow = ta.lowest(low, extLookback)
+shortWindowExtensionAtr = atrValue == 0.0 ? 0.0 : (close - recentLow) / atrValue
+closeAboveFastAtr = atrValue == 0.0 ? 0.0 : (close - fastEma) / atrValue
+trendOk = fastEma > slowEma and plusDI > minusDI and adxValue > adxThreshold
+antiChaseOk = shortWindowExtensionAtr < maxExtensionAtr and closeAboveFastAtr < maxCloseAboveFastAtr
+momentumOk = rsiValue > 53
+
+longEntry = ta.crossover(fastEma, slowEma) and momentumOk and trendOk and antiChaseOk
+
+var int entryBarIndex = na
+var float highestSinceEntry = na
+if strategy.position_size > 0
+    highestSinceEntry := na(highestSinceEntry) ? high : math.max(highestSinceEntry, high)
+else
+    highestSinceEntry := na
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+newLong = strategy.position_size > 0 and strategy.position_size[1] <= 0
+if newLong
+    entryBarIndex := bar_index
+if strategy.position_size <= 0
+    entryBarIndex := na
+
+inTrade = strategy.position_size > 0
+entryPrice = strategy.position_avg_price
+barsInTrade = inTrade and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+openProfitAtr = inTrade and atrValue > 0 ? (close - entryPrice) / atrValue : 0.0
+initialStop = inTrade ? entryPrice - atrValue * initialStopAtr : na
+breakevenStop = inTrade and openProfitAtr >= breakevenTriggerAtr ? entryPrice : na
+trailBase = inTrade and not na(highestSinceEntry) ? highestSinceEntry - atrValue * trailStopAtr : na
+activeStop = inTrade ? math.max(initialStop, na(breakevenStop) ? initialStop : breakevenStop) : na
+activeStop := inTrade and not na(trailBase) ? math.max(activeStop, trailBase) : activeStop
+
+strategy.exit("XL", from_entry="Long", stop=activeStop)
+
+weakTrendExit = inTrade and (ta.crossunder(fastEma, slowEma) or (rsiValue < 47 and close < fastEma) or (minusDI > plusDI and adxValue > adxThreshold))
+timeExit = inTrade and barsInTrade >= maxBarsInTrade
+if weakTrendExit or timeExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.teal)
+plot(slowEma, "Slow EMA", color=color.orange)
+plot(inTrade ? activeStop : na, "Active Stop", color=color.red, style=plot.style_linebr)
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.lime, size=size.tiny)

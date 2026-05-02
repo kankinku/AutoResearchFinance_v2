@@ -1,0 +1,16 @@
+{
+  "status": "available",
+  "summary": "Pine mutation touched entry, exit logic across 5 conditions with broad scope. No-op risk is low.",
+  "changeScope": "broad",
+  "noOpRisk": "low",
+  "hypothesisAlignment": "aligned",
+  "materialChangeDetected": true,
+  "conditionCount": 5,
+  "changedLineCount": 388,
+  "changedRoles": [
+    "entry",
+    "exit"
+  ],
+  "blockingIssueCodes": [],
+  "warningIssueCodes": []
+}

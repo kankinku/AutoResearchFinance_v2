@@ -1,0 +1,66 @@
+//@version=5
+strategy("AF Mutation QQQ 120m [cand-mut-ema-dmi-pullback] [cand-1c68a810]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLen = input.int(20, "Fast EMA", minval=1)
+midLen = input.int(50, "Mid EMA", minval=1)
+slowLen = input.int(100, "Slow EMA", minval=1)
+rsiLen = input.int(14, "RSI Length", minval=1)
+adxLen = input.int(14, "ADX Length", minval=1)
+adxThresh = input.float(16.0, "ADX Threshold", minval=1.0, step=0.5)
+pullbackLookback = input.int(4, "Pullback Lookback", minval=1)
+atrLen = input.int(14, "ATR Length", minval=1)
+stopAtr = input.float(2.2, "Stop ATR Mult", minval=0.5, step=0.1)
+targetAtr = input.float(4.0, "Target ATR Mult", minval=0.5, step=0.1)
+trailAtr = input.float(1.8, "Trail ATR Mult", minval=0.5, step=0.1)
+maxBarsHold = input.int(36, "Max Bars Hold", minval=1)
+trendStrength = input.float(0.0, "Min Slow EMA Slope %", step=0.01)
+
+fastEma = ta.ema(close, fastLen)
+midEma = ta.ema(close, midLen)
+slowEma = ta.ema(close, slowLen)
+rsiValue = ta.rsi(close, rsiLen)
+atrValue = ta.atr(atrLen)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLen)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLen) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLen) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLen)
+
+slowSlopePct = slowEma[5] == 0.0 ? 0.0 : (slowEma - slowEma[5]) / slowEma[5] * 100.0
+trendUp = fastEma > midEma and midEma > slowEma and slowSlopePct > trendStrength
+regimeOk = adx > adxThresh and plusDI > minusDI
+pullbackSeen = ta.lowest(low, pullbackLookback) <= fastEma
+reclaimFast = close > fastEma and close > open
+momentumOk = rsiValue > 52
+entrySignal = trendUp and regimeOk and pullbackSeen and reclaimFast and momentumOk and strategy.position_size <= 0
+
+var int entryBar = na
+if entrySignal
+    strategy.entry("Long", strategy.long)
+    entryBar := bar_index
+
+if strategy.position_size > 0 and na(entryBar)
+    entryBar := bar_index
+if strategy.position_size == 0
+    entryBar := na
+
+avgPrice = strategy.position_avg_price
+stopPrice = avgPrice - atrValue * stopAtr
+limitPrice = avgPrice + atrValue * targetAtr
+trailOffset = atrValue * trailAtr
+strategy.exit("Long Exit", "Long", stop=stopPrice, limit=limitPrice, trail_offset=trailOffset)
+
+barsInTrade = strategy.position_size > 0 and not na(entryBar) ? bar_index - entryBar : 0
+exitSignal = strategy.position_size > 0 and ((close < midEma and rsiValue < 48) or barsInTrade >= maxBarsHold or (adx < adxThresh * 0.8 and close < fastEma))
+if exitSignal
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.green, 0))
+plot(midEma, "Mid EMA", color=color.new(color.orange, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.red, 0))
+plotshape(entrySignal, title="Long Signal", style=shape.triangleup, location=location.belowbar, color=color.new(color.lime, 0), size=size.tiny)

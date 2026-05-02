@@ -1,0 +1,2341 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.781Z",
+  "entries": [
+    {
+      "candidateId": "cand-42ed2fa4",
+      "score": 0.7879,
+      "noveltyScore": 0.156,
+      "robustnessScore": 0.0825,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T05:37:39.373Z"
+    },
+    {
+      "candidateId": "cand-5874be08",
+      "score": 0.765,
+      "noveltyScore": 0.157,
+      "robustnessScore": 0.0825,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T05:39:30.705Z"
+    },
+    {
+      "candidateId": "cand-8dd713e8",
+      "score": 0.7159,
+      "noveltyScore": 0.1396,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T08:15:04.422Z"
+    },
+    {
+      "candidateId": "cand-4f8faae3",
+      "score": 0.6981,
+      "noveltyScore": 0.1384,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T08:17:52.392Z"
+    },
+    {
+      "candidateId": "cand-a46650f8",
+      "score": 0.7578,
+      "noveltyScore": 0.1523,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:28:50.423Z"
+    },
+    {
+      "candidateId": "cand-1209761b",
+      "score": 0.7376,
+      "noveltyScore": 0.1481,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:30:40.393Z"
+    },
+    {
+      "candidateId": "cand-e34e118c",
+      "score": 0.7381,
+      "noveltyScore": 0.1406,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:36:21.811Z"
+    },
+    {
+      "candidateId": "cand-35a74bba",
+      "score": 0.6831,
+      "noveltyScore": 0.1321,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:38:07.733Z"
+    },
+    {
+      "candidateId": "cand-a04084d5",
+      "score": 0.7252,
+      "noveltyScore": 0.142,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:39:55.760Z"
+    },
+    {
+      "candidateId": "cand-c6b25611",
+      "score": 0.7097,
+      "noveltyScore": 0.1334,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:41:43.987Z"
+    },
+    {
+      "candidateId": "cand-8a16db7d",
+      "score": 0.7222,
+      "noveltyScore": 0.139,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:43:32.218Z"
+    },
+    {
+      "candidateId": "cand-fb62e922",
+      "score": 0.7153,
+      "noveltyScore": 0.1321,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:53:24.919Z"
+    },
+    {
+      "candidateId": "cand-48d0560a",
+      "score": 0.7252,
+      "noveltyScore": 0.1357,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:55:14.065Z"
+    },
+    {
+      "candidateId": "cand-ccdae17b",
+      "score": 0.6932,
+      "noveltyScore": 0.1256,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:57:44.046Z"
+    },
+    {
+      "candidateId": "cand-b8102dcd",
+      "score": 0.6905,
+      "noveltyScore": 0.1109,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T10:59:38.203Z"
+    },
+    {
+      "candidateId": "cand-451c70ed",
+      "score": 0.7149,
+      "noveltyScore": 0.1317,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:02:15.067Z"
+    },
+    {
+      "candidateId": "cand-f6ae3e86",
+      "score": 0.6996,
+      "noveltyScore": 0.1233,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:04:10.131Z"
+    },
+    {
+      "candidateId": "cand-cc7aba92",
+      "score": 0.6621,
+      "noveltyScore": 0.1111,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:07:06.383Z"
+    },
+    {
+      "candidateId": "cand-a887a699",
+      "score": 0.7468,
+      "noveltyScore": 0.1205,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:09:40.509Z"
+    },
+    {
+      "candidateId": "cand-89324cd2",
+      "score": 0.7447,
+      "noveltyScore": 0.1184,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:27:43.859Z"
+    },
+    {
+      "candidateId": "cand-691e635c",
+      "score": 0.7428,
+      "noveltyScore": 0.1165,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:29:34.730Z"
+    },
+    {
+      "candidateId": "cand-967670ff",
+      "score": 0.752,
+      "noveltyScore": 0.1272,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:31:30.152Z"
+    },
+    {
+      "candidateId": "cand-41e96726",
+      "score": 0.7141,
+      "noveltyScore": 0.1015,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:33:24.784Z"
+    },
+    {
+      "candidateId": "cand-9b5164cd",
+      "score": 0.7296,
+      "noveltyScore": 0.1081,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:35:20.405Z"
+    },
+    {
+      "candidateId": "cand-168c9d66",
+      "score": 0.7324,
+      "noveltyScore": 0.1148,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:37:17.270Z"
+    },
+    {
+      "candidateId": "cand-a64998af",
+      "score": 0.6973,
+      "noveltyScore": 0.0958,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T11:39:11.153Z"
+    },
+    {
+      "candidateId": "cand-8a1fe27b",
+      "score": 0.7243,
+      "noveltyScore": 0.1028,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:27:21.380Z"
+    },
+    {
+      "candidateId": "cand-ebbdd6a9",
+      "score": 0.7379,
+      "noveltyScore": 0.1116,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:29:46.470Z"
+    },
+    {
+      "candidateId": "cand-80dfaaa1",
+      "score": 0.7296,
+      "noveltyScore": 0.1108,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:32:09.707Z"
+    },
+    {
+      "candidateId": "cand-03f30a70",
+      "score": 0.7642,
+      "noveltyScore": 0.1247,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:34:33.873Z"
+    },
+    {
+      "candidateId": "cand-c6235b65",
+      "score": 0.7405,
+      "noveltyScore": 0.1142,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:36:55.329Z"
+    },
+    {
+      "candidateId": "cand-2f290563",
+      "score": 0.7363,
+      "noveltyScore": 0.11,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:50:20.154Z"
+    },
+    {
+      "candidateId": "cand-e76cded5",
+      "score": 0.7426,
+      "noveltyScore": 0.1147,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:52:14.719Z"
+    },
+    {
+      "candidateId": "cand-710d8bc6",
+      "score": 0.7376,
+      "noveltyScore": 0.1113,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T18:54:11.082Z"
+    },
+    {
+      "candidateId": "cand-dd7e63cf",
+      "score": 0.7362,
+      "noveltyScore": 0.1083,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T19:04:39.426Z"
+    },
+    {
+      "candidateId": "cand-949bf032",
+      "score": 0.7351,
+      "noveltyScore": 0.1088,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T19:06:37.815Z"
+    },
+    {
+      "candidateId": "cand-b14595e0",
+      "score": 0.7482,
+      "noveltyScore": 0.115,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-29T19:08:32.746Z"
+    },
+    {
+      "candidateId": "cand-90dc4ec3",
+      "score": 0.7244,
+      "noveltyScore": 0.1029,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:27:31.344Z"
+    },
+    {
+      "candidateId": "cand-f1103886",
+      "score": 0.7337,
+      "noveltyScore": 0.1074,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:45:52.186Z"
+    },
+    {
+      "candidateId": "cand-77224b87",
+      "score": 0.729,
+      "noveltyScore": 0.1159,
+      "robustnessScore": 0.0541,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:48:06.037Z"
+    },
+    {
+      "candidateId": "cand-55f47b32",
+      "score": 0.7316,
+      "noveltyScore": 0.114,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:50:20.621Z"
+    },
+    {
+      "candidateId": "cand-cb18c54a",
+      "score": 0.7555,
+      "noveltyScore": 0.1223,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:52:35.978Z"
+    },
+    {
+      "candidateId": "cand-8a1a7cf2",
+      "score": 0.7405,
+      "noveltyScore": 0.1142,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:54:46.467Z"
+    },
+    {
+      "candidateId": "cand-db12aa7d",
+      "score": 0.7352,
+      "noveltyScore": 0.1089,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:56:58.346Z"
+    },
+    {
+      "candidateId": "cand-eb3175fc",
+      "score": 0.7381,
+      "noveltyScore": 0.1133,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T05:59:14.014Z"
+    },
+    {
+      "candidateId": "cand-ce89005b",
+      "score": 0.7323,
+      "noveltyScore": 0.1147,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:01:26.176Z"
+    },
+    {
+      "candidateId": "cand-b333865d",
+      "score": 0.7369,
+      "noveltyScore": 0.1106,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:03:42.682Z"
+    },
+    {
+      "candidateId": "cand-14f5f8ff",
+      "score": 0.7534,
+      "noveltyScore": 0.1164,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:05:55.671Z"
+    },
+    {
+      "candidateId": "cand-87a7fa06",
+      "score": 0.7369,
+      "noveltyScore": 0.1073,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:08:08.255Z"
+    },
+    {
+      "candidateId": "cand-609d9f19",
+      "score": 0.7437,
+      "noveltyScore": 0.1174,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:10:21.114Z"
+    },
+    {
+      "candidateId": "cand-09a0ae17",
+      "score": 0.7459,
+      "noveltyScore": 0.1109,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:12:29.607Z"
+    },
+    {
+      "candidateId": "cand-fbb3fb78",
+      "score": 0.7358,
+      "noveltyScore": 0.1182,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:14:41.094Z"
+    },
+    {
+      "candidateId": "cand-7bff0c1a",
+      "score": 0.6945,
+      "noveltyScore": 0.093,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:16:49.210Z"
+    },
+    {
+      "candidateId": "cand-6e976c42",
+      "score": 0.7527,
+      "noveltyScore": 0.1195,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:19:02.045Z"
+    },
+    {
+      "candidateId": "cand-eaf67b92",
+      "score": 0.7208,
+      "noveltyScore": 0.0993,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:21:17.552Z"
+    },
+    {
+      "candidateId": "cand-ea5075a8",
+      "score": 0.7589,
+      "noveltyScore": 0.1174,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:23:25.181Z"
+    },
+    {
+      "candidateId": "cand-c0d6f969",
+      "score": 0.7177,
+      "noveltyScore": 0.1065,
+      "robustnessScore": 0.0739,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:25:35.862Z"
+    },
+    {
+      "candidateId": "cand-946579c0",
+      "score": 0.7618,
+      "noveltyScore": 0.1203,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:31:51.634Z"
+    },
+    {
+      "candidateId": "cand-1638111b",
+      "score": 0.6981,
+      "noveltyScore": 0.1254,
+      "robustnessScore": 0.0691,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:35:58.890Z"
+    },
+    {
+      "candidateId": "cand-840b49c0",
+      "score": 0.6634,
+      "noveltyScore": 0.1051,
+      "robustnessScore": 0.0691,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:40:04.807Z"
+    },
+    {
+      "candidateId": "cand-a1b63e8c",
+      "score": 0.7164,
+      "noveltyScore": 0.0963,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:42:18.524Z"
+    },
+    {
+      "candidateId": "cand-d3fa966c",
+      "score": 0.7351,
+      "noveltyScore": 0.1088,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:44:30.223Z"
+    },
+    {
+      "candidateId": "cand-af6ef21e",
+      "score": 0.7468,
+      "noveltyScore": 0.1136,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:46:39.057Z"
+    },
+    {
+      "candidateId": "cand-c5832df6",
+      "score": 0.7317,
+      "noveltyScore": 0.1054,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:51:40.704Z"
+    },
+    {
+      "candidateId": "cand-57321a8c",
+      "score": 0.7583,
+      "noveltyScore": 0.1206,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:53:53.158Z"
+    },
+    {
+      "candidateId": "cand-3004b0f8",
+      "score": 0.7317,
+      "noveltyScore": 0.1054,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:56:09.073Z"
+    },
+    {
+      "candidateId": "cand-00644032",
+      "score": 0.735,
+      "noveltyScore": 0.1071,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T06:58:25.314Z"
+    },
+    {
+      "candidateId": "cand-6272ab0f",
+      "score": 0.7198,
+      "noveltyScore": 0.1022,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:00:37.554Z"
+    },
+    {
+      "candidateId": "cand-7b341ad0",
+      "score": 0.731,
+      "noveltyScore": 0.1047,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:02:50.775Z"
+    },
+    {
+      "candidateId": "cand-5c90b0de",
+      "score": 0.7087,
+      "noveltyScore": 0.0982,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:04:59.644Z"
+    },
+    {
+      "candidateId": "cand-350b7e7b",
+      "score": 0.733,
+      "noveltyScore": 0.1067,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:07:08.875Z"
+    },
+    {
+      "candidateId": "cand-05218055",
+      "score": 0.7268,
+      "noveltyScore": 0.1092,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:09:19.771Z"
+    },
+    {
+      "candidateId": "cand-6ebbd52a",
+      "score": 0.7109,
+      "noveltyScore": 0.1012,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:11:30.635Z"
+    },
+    {
+      "candidateId": "cand-9edd626e",
+      "score": 0.7299,
+      "noveltyScore": 0.1036,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:13:42.185Z"
+    },
+    {
+      "candidateId": "cand-5d685d8a",
+      "score": 0.7059,
+      "noveltyScore": 0.0944,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:15:56.362Z"
+    },
+    {
+      "candidateId": "cand-addb3d5a",
+      "score": 0.7464,
+      "noveltyScore": 0.1132,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:18:06.161Z"
+    },
+    {
+      "candidateId": "cand-1a03e904",
+      "score": 0.7341,
+      "noveltyScore": 0.1078,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:20:15.068Z"
+    },
+    {
+      "candidateId": "cand-935b6a7d",
+      "score": 0.7194,
+      "noveltyScore": 0.1006,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:22:27.259Z"
+    },
+    {
+      "candidateId": "cand-11e460d8",
+      "score": 0.732,
+      "noveltyScore": 0.1144,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:24:39.981Z"
+    },
+    {
+      "candidateId": "cand-58484f09",
+      "score": 0.7453,
+      "noveltyScore": 0.1121,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:26:52.947Z"
+    },
+    {
+      "candidateId": "cand-c3549cdc",
+      "score": 0.7294,
+      "noveltyScore": 0.1031,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:29:02.387Z"
+    },
+    {
+      "candidateId": "cand-e000c048",
+      "score": 0.7252,
+      "noveltyScore": 0.1076,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:31:15.090Z"
+    },
+    {
+      "candidateId": "cand-5927e5ca",
+      "score": 0.6448,
+      "noveltyScore": 0.0933,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:35:28.602Z"
+    },
+    {
+      "candidateId": "cand-7ae4d6eb",
+      "score": 0.7107,
+      "noveltyScore": 0.1002,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:37:46.059Z"
+    },
+    {
+      "candidateId": "cand-bd3c959f",
+      "score": 0.7305,
+      "noveltyScore": 0.1057,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:43:54.357Z"
+    },
+    {
+      "candidateId": "cand-ad98c7fd",
+      "score": 0.7229,
+      "noveltyScore": 0.1053,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:46:03.736Z"
+    },
+    {
+      "candidateId": "cand-a3456179",
+      "score": 0.7041,
+      "noveltyScore": 0.1031,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:48:13.739Z"
+    },
+    {
+      "candidateId": "cand-fa19c7db",
+      "score": 0.7124,
+      "noveltyScore": 0.0936,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:50:26.010Z"
+    },
+    {
+      "candidateId": "cand-8211114e",
+      "score": 0.7596,
+      "noveltyScore": 0.1286,
+      "robustnessScore": 0.0541,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:52:38.615Z"
+    },
+    {
+      "candidateId": "cand-737e8acc",
+      "score": 0.6974,
+      "noveltyScore": 0.0964,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:54:48.773Z"
+    },
+    {
+      "candidateId": "cand-9ae5abb8",
+      "score": 0.7057,
+      "noveltyScore": 0.096,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:57:04.305Z"
+    },
+    {
+      "candidateId": "cand-f68c494c",
+      "score": 0.7541,
+      "noveltyScore": 0.1126,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T07:59:40.027Z"
+    },
+    {
+      "candidateId": "cand-0cb06744",
+      "score": 0.6936,
+      "noveltyScore": 0.0926,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:01:50.989Z"
+    },
+    {
+      "candidateId": "cand-c4540c5e",
+      "score": 0.7296,
+      "noveltyScore": 0.1033,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:04:02.844Z"
+    },
+    {
+      "candidateId": "cand-887ba798",
+      "score": 0.7068,
+      "noveltyScore": 0.0979,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:06:13.293Z"
+    },
+    {
+      "candidateId": "cand-334ff9ed",
+      "score": 0.7397,
+      "noveltyScore": 0.1047,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:08:28.487Z"
+    },
+    {
+      "candidateId": "cand-1e7bb092",
+      "score": 0.7257,
+      "noveltyScore": 0.0978,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:10:45.387Z"
+    },
+    {
+      "candidateId": "cand-940106ac",
+      "score": 0.7303,
+      "noveltyScore": 0.1055,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:15:45.885Z"
+    },
+    {
+      "candidateId": "cand-b1575fba",
+      "score": 0.7292,
+      "noveltyScore": 0.1044,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:18:27.855Z"
+    },
+    {
+      "candidateId": "cand-1c1cb560",
+      "score": 0.7164,
+      "noveltyScore": 0.0976,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:20:44.377Z"
+    },
+    {
+      "candidateId": "cand-2ba5ca56",
+      "score": 0.7289,
+      "noveltyScore": 0.1041,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:22:56.014Z"
+    },
+    {
+      "candidateId": "cand-4e158d7d",
+      "score": 0.7707,
+      "noveltyScore": 0.1254,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:25:07.575Z"
+    },
+    {
+      "candidateId": "cand-ee1867a5",
+      "score": 0.7466,
+      "noveltyScore": 0.1096,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:27:20.992Z"
+    },
+    {
+      "candidateId": "cand-ccf655ee",
+      "score": 0.7621,
+      "noveltyScore": 0.1226,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:30:00.970Z"
+    },
+    {
+      "candidateId": "cand-2f2f67f1",
+      "score": 0.7351,
+      "noveltyScore": 0.1088,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:32:13.294Z"
+    },
+    {
+      "candidateId": "cand-dd0d4883",
+      "score": 0.7292,
+      "noveltyScore": 0.1013,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:34:32.527Z"
+    },
+    {
+      "candidateId": "cand-9e390b78",
+      "score": 0.7012,
+      "noveltyScore": 0.0907,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:36:48.124Z"
+    },
+    {
+      "candidateId": "cand-2b509e63",
+      "score": 0.7194,
+      "noveltyScore": 0.1006,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:39:01.994Z"
+    },
+    {
+      "candidateId": "cand-a42bb737",
+      "score": 0.698,
+      "noveltyScore": 0.0865,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:41:17.916Z"
+    },
+    {
+      "candidateId": "cand-ba65a405",
+      "score": 0.7459,
+      "noveltyScore": 0.1127,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:43:29.993Z"
+    },
+    {
+      "candidateId": "cand-95b5fcb4",
+      "score": 0.7285,
+      "noveltyScore": 0.1037,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:45:47.911Z"
+    },
+    {
+      "candidateId": "cand-c1decc14",
+      "score": 0.7291,
+      "noveltyScore": 0.1043,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:48:02.792Z"
+    },
+    {
+      "candidateId": "cand-fad40100",
+      "score": 0.6955,
+      "noveltyScore": 0.0949,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:50:12.355Z"
+    },
+    {
+      "candidateId": "cand-3d99c3c3",
+      "score": 0.7192,
+      "noveltyScore": 0.1004,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:52:23.636Z"
+    },
+    {
+      "candidateId": "cand-ed6ed300",
+      "score": 0.7035,
+      "noveltyScore": 0.092,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:54:39.694Z"
+    },
+    {
+      "candidateId": "cand-36473405",
+      "score": 0.7851,
+      "noveltyScore": 0.1695,
+      "robustnessScore": 0.1094,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T08:58:36.917Z"
+    },
+    {
+      "candidateId": "cand-32556840",
+      "score": 0.7635,
+      "noveltyScore": 0.1377,
+      "robustnessScore": 0.0797,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:02:51.256Z"
+    },
+    {
+      "candidateId": "cand-056beb3f",
+      "score": 0.7103,
+      "noveltyScore": 0.1007,
+      "robustnessScore": 0.0691,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:05:05.698Z"
+    },
+    {
+      "candidateId": "cand-fef34f1d",
+      "score": 0.6986,
+      "noveltyScore": 0.1173,
+      "robustnessScore": 0.0855,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:09:12.476Z"
+    },
+    {
+      "candidateId": "cand-4e58abee",
+      "score": 0.6959,
+      "noveltyScore": 0.0833,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:11:32.716Z"
+    },
+    {
+      "candidateId": "cand-6c095f1d",
+      "score": 0.7352,
+      "noveltyScore": 0.1104,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:13:46.435Z"
+    },
+    {
+      "candidateId": "cand-72fdbd0a",
+      "score": 0.7137,
+      "noveltyScore": 0.0922,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:16:07.292Z"
+    },
+    {
+      "candidateId": "cand-1a73f98c",
+      "score": 0.6889,
+      "noveltyScore": 0.0883,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:18:26.177Z"
+    },
+    {
+      "candidateId": "cand-60e5fb9a",
+      "score": 0.6467,
+      "noveltyScore": 0.0961,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:22:29.282Z"
+    },
+    {
+      "candidateId": "cand-fbd6e1cd",
+      "score": 0.6951,
+      "noveltyScore": 0.0825,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:24:43.468Z"
+    },
+    {
+      "candidateId": "cand-6fa9e64c",
+      "score": 0.7323,
+      "noveltyScore": 0.106,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:26:57.676Z"
+    },
+    {
+      "candidateId": "cand-b3ce6dfd",
+      "score": 0.713,
+      "noveltyScore": 0.0942,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:29:15.377Z"
+    },
+    {
+      "candidateId": "cand-d7b18242",
+      "score": 0.7204,
+      "noveltyScore": 0.0941,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:31:57.981Z"
+    },
+    {
+      "candidateId": "cand-cddf1147",
+      "score": 0.7127,
+      "noveltyScore": 0.0951,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:34:08.790Z"
+    },
+    {
+      "candidateId": "cand-a2b17756",
+      "score": 0.7044,
+      "noveltyScore": 0.0947,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:36:21.176Z"
+    },
+    {
+      "candidateId": "cand-4106d658",
+      "score": 0.709,
+      "noveltyScore": 0.0993,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:38:35.882Z"
+    },
+    {
+      "candidateId": "cand-bf2319b1",
+      "score": 0.7326,
+      "noveltyScore": 0.1063,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:40:49.611Z"
+    },
+    {
+      "candidateId": "cand-1be3a1ed",
+      "score": 0.7131,
+      "noveltyScore": 0.0955,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:43:05.358Z"
+    },
+    {
+      "candidateId": "cand-ec8276d1",
+      "score": 0.718,
+      "noveltyScore": 0.0992,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:45:22.305Z"
+    },
+    {
+      "candidateId": "cand-66da2fad",
+      "score": 0.6942,
+      "noveltyScore": 0.0816,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:47:40.616Z"
+    },
+    {
+      "candidateId": "cand-10487d69",
+      "score": 0.7176,
+      "noveltyScore": 0.0988,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:52:49.892Z"
+    },
+    {
+      "candidateId": "cand-a0b082a6",
+      "score": 0.7366,
+      "noveltyScore": 0.1016,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:55:07.035Z"
+    },
+    {
+      "candidateId": "cand-e1c37158",
+      "score": 0.7137,
+      "noveltyScore": 0.0949,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:57:21.770Z"
+    },
+    {
+      "candidateId": "cand-3924bc09",
+      "score": 0.7283,
+      "noveltyScore": 0.102,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T09:59:40.907Z"
+    },
+    {
+      "candidateId": "cand-c5a37a36",
+      "score": 0.7321,
+      "noveltyScore": 0.1042,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:02:00.173Z"
+    },
+    {
+      "candidateId": "cand-9f921b3b",
+      "score": 0.7299,
+      "noveltyScore": 0.1051,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:04:17.649Z"
+    },
+    {
+      "candidateId": "cand-976660f2",
+      "score": 0.7398,
+      "noveltyScore": 0.1135,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:06:35.086Z"
+    },
+    {
+      "candidateId": "cand-1fd659d1",
+      "score": 0.7172,
+      "noveltyScore": 0.0984,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:08:50.862Z"
+    },
+    {
+      "candidateId": "cand-1ebe3284",
+      "score": 0.7077,
+      "noveltyScore": 0.098,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:11:08.493Z"
+    },
+    {
+      "candidateId": "cand-a05583cb",
+      "score": 0.7454,
+      "noveltyScore": 0.1122,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:13:28.131Z"
+    },
+    {
+      "candidateId": "cand-68e1f6c0",
+      "score": 0.7437,
+      "noveltyScore": 0.1067,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:15:47.605Z"
+    },
+    {
+      "candidateId": "cand-939bafa7",
+      "score": 0.7168,
+      "noveltyScore": 0.098,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:18:03.518Z"
+    },
+    {
+      "candidateId": "cand-5dfb966e",
+      "score": 0.7137,
+      "noveltyScore": 0.0949,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:20:20.406Z"
+    },
+    {
+      "candidateId": "cand-ec9d7a77",
+      "score": 0.7166,
+      "noveltyScore": 0.0978,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:22:34.858Z"
+    },
+    {
+      "candidateId": "cand-c9bd8a69",
+      "score": 0.7164,
+      "noveltyScore": 0.0976,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:25:03.982Z"
+    },
+    {
+      "candidateId": "cand-cad467d1",
+      "score": 0.7288,
+      "noveltyScore": 0.104,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:27:19.534Z"
+    },
+    {
+      "candidateId": "cand-30ca4ecf",
+      "score": 0.7041,
+      "noveltyScore": 0.0944,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:29:37.381Z"
+    },
+    {
+      "candidateId": "cand-274a3d78",
+      "score": 0.6952,
+      "noveltyScore": 0.0837,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:31:58.476Z"
+    },
+    {
+      "candidateId": "cand-8f6a1544",
+      "score": 0.6461,
+      "noveltyScore": 0.0856,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:36:09.018Z"
+    },
+    {
+      "candidateId": "cand-be21675f",
+      "score": 0.727,
+      "noveltyScore": 0.1007,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:38:29.195Z"
+    },
+    {
+      "candidateId": "cand-17c07e8f",
+      "score": 0.7156,
+      "noveltyScore": 0.0968,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:40:56.237Z"
+    },
+    {
+      "candidateId": "cand-60166f81",
+      "score": 0.7432,
+      "noveltyScore": 0.1082,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:46:19.850Z"
+    },
+    {
+      "candidateId": "cand-8f82de94",
+      "score": 0.7111,
+      "noveltyScore": 0.0935,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:48:39.766Z"
+    },
+    {
+      "candidateId": "cand-42460886",
+      "score": 0.7009,
+      "noveltyScore": 0.123,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:55:40.263Z"
+    },
+    {
+      "candidateId": "cand-9295e93d",
+      "score": 0.7114,
+      "noveltyScore": 0.0938,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T10:58:03.234Z"
+    },
+    {
+      "candidateId": "cand-5a54f71c",
+      "score": 0.6984,
+      "noveltyScore": 0.0879,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:00:21.872Z"
+    },
+    {
+      "candidateId": "cand-a12eacdf",
+      "score": 0.7093,
+      "noveltyScore": 0.1004,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:02:44.725Z"
+    },
+    {
+      "candidateId": "cand-5b236726",
+      "score": 0.685,
+      "noveltyScore": 0.084,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:05:05.949Z"
+    },
+    {
+      "candidateId": "cand-dbfe05b6",
+      "score": 0.6952,
+      "noveltyScore": 0.0847,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:07:20.999Z"
+    },
+    {
+      "candidateId": "cand-eb4f9103",
+      "score": 0.7304,
+      "noveltyScore": 0.1025,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:09:36.915Z"
+    },
+    {
+      "candidateId": "cand-294a8337",
+      "score": 0.7202,
+      "noveltyScore": 0.1026,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:11:56.127Z"
+    },
+    {
+      "candidateId": "cand-54d331f7",
+      "score": 0.7399,
+      "noveltyScore": 0.1067,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:14:11.702Z"
+    },
+    {
+      "candidateId": "cand-303f93be",
+      "score": 0.7148,
+      "noveltyScore": 0.096,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:16:28.087Z"
+    },
+    {
+      "candidateId": "cand-64ceccd8",
+      "score": 0.6982,
+      "noveltyScore": 0.0877,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:18:43.839Z"
+    },
+    {
+      "candidateId": "cand-82301049",
+      "score": 0.6993,
+      "noveltyScore": 0.0896,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:20:59.152Z"
+    },
+    {
+      "candidateId": "cand-cb926322",
+      "score": 0.7259,
+      "noveltyScore": 0.0996,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:23:15.451Z"
+    },
+    {
+      "candidateId": "cand-9740ccd3",
+      "score": 0.7271,
+      "noveltyScore": 0.0975,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:29:38.915Z"
+    },
+    {
+      "candidateId": "cand-45f69d7a",
+      "score": 0.7533,
+      "noveltyScore": 0.1138,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:32:03.976Z"
+    },
+    {
+      "candidateId": "cand-8195e18c",
+      "score": 0.7118,
+      "noveltyScore": 0.093,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:34:25.713Z"
+    },
+    {
+      "candidateId": "cand-9ad02865",
+      "score": 0.7256,
+      "noveltyScore": 0.0993,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:36:46.568Z"
+    },
+    {
+      "candidateId": "cand-b0561318",
+      "score": 0.7166,
+      "noveltyScore": 0.0978,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:39:13.414Z"
+    },
+    {
+      "candidateId": "cand-77645d5d",
+      "score": 0.7267,
+      "noveltyScore": 0.0971,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:41:33.232Z"
+    },
+    {
+      "candidateId": "cand-3913b48a",
+      "score": 0.7055,
+      "noveltyScore": 0.095,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:43:54.233Z"
+    },
+    {
+      "candidateId": "cand-d8c529f0",
+      "score": 0.7268,
+      "noveltyScore": 0.0972,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:46:15.729Z"
+    },
+    {
+      "candidateId": "cand-3e0617a5",
+      "score": 0.7247,
+      "noveltyScore": 0.0968,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:48:35.989Z"
+    },
+    {
+      "candidateId": "cand-796b47d8",
+      "score": 0.7418,
+      "noveltyScore": 0.1048,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:50:59.948Z"
+    },
+    {
+      "candidateId": "cand-da5bc8a6",
+      "score": 0.7266,
+      "noveltyScore": 0.097,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:53:25.570Z"
+    },
+    {
+      "candidateId": "cand-6385aa99",
+      "score": 0.7247,
+      "noveltyScore": 0.0968,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:55:51.149Z"
+    },
+    {
+      "candidateId": "cand-ce0fb6b8",
+      "score": 0.7417,
+      "noveltyScore": 0.1047,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T11:58:19.371Z"
+    },
+    {
+      "candidateId": "cand-f53efe87",
+      "score": 0.7419,
+      "noveltyScore": 0.1049,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:00:50.429Z"
+    },
+    {
+      "candidateId": "cand-541078ba",
+      "score": 0.7085,
+      "noveltyScore": 0.0897,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:03:20.610Z"
+    },
+    {
+      "candidateId": "cand-102cde43",
+      "score": 0.7244,
+      "noveltyScore": 0.0965,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:05:49.741Z"
+    },
+    {
+      "candidateId": "cand-99a518c8",
+      "score": 0.7128,
+      "noveltyScore": 0.0927,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:08:18.301Z"
+    },
+    {
+      "candidateId": "cand-45eae1ed",
+      "score": 0.7238,
+      "noveltyScore": 0.0975,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:10:49.160Z"
+    },
+    {
+      "candidateId": "cand-5fa9bbca",
+      "score": 0.7414,
+      "noveltyScore": 0.1044,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:13:21.325Z"
+    },
+    {
+      "candidateId": "cand-58a6bc67",
+      "score": 0.6489,
+      "noveltyScore": 0.0987,
+      "robustnessScore": 0.066,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:17:57.280Z"
+    },
+    {
+      "candidateId": "cand-e2e95d0b",
+      "score": 0.7096,
+      "noveltyScore": 0.0895,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:20:29.576Z"
+    },
+    {
+      "candidateId": "cand-e7d44996",
+      "score": 0.7555,
+      "noveltyScore": 0.1118,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:23:04.000Z"
+    },
+    {
+      "candidateId": "cand-4fd1f661",
+      "score": 0.7332,
+      "noveltyScore": 0.0961,
+      "robustnessScore": 0.0737,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:25:29.047Z"
+    },
+    {
+      "candidateId": "cand-f8a32482",
+      "score": 0.7501,
+      "noveltyScore": 0.1119,
+      "robustnessScore": 0.0734,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:27:56.837Z"
+    },
+    {
+      "candidateId": "cand-65221fbc",
+      "score": 0.724,
+      "noveltyScore": 0.0961,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:30:22.579Z"
+    },
+    {
+      "candidateId": "cand-0dcbc429",
+      "score": 0.7416,
+      "noveltyScore": 0.1084,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:32:55.537Z"
+    },
+    {
+      "candidateId": "cand-7237f414",
+      "score": 0.7409,
+      "noveltyScore": 0.1041,
+      "robustnessScore": 0.0749,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:35:25.739Z"
+    },
+    {
+      "candidateId": "cand-13ab4eb7",
+      "score": 0.7573,
+      "noveltyScore": 0.1158,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:37:57.185Z"
+    },
+    {
+      "candidateId": "cand-74403bc5",
+      "score": 0.7263,
+      "noveltyScore": 0.0984,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:47:51.499Z"
+    },
+    {
+      "candidateId": "cand-08afa655",
+      "score": 0.7276,
+      "noveltyScore": 0.1013,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:50:32.049Z"
+    },
+    {
+      "candidateId": "cand-8fc0ffa2",
+      "score": 0.7234,
+      "noveltyScore": 0.1058,
+      "robustnessScore": 0.0703,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T12:53:01.123Z"
+    },
+    {
+      "candidateId": "cand-f80d7394",
+      "score": 0.7748,
+      "noveltyScore": 0.1499,
+      "robustnessScore": 0.0683,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-04-30T13:51:23.270Z"
+    },
+    {
+      "candidateId": "cand-f7398180",
+      "score": 0.4723,
+      "noveltyScore": 0.1361,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:15:08.668Z"
+    },
+    {
+      "candidateId": "cand-b8e26ed1",
+      "score": 0.5444,
+      "noveltyScore": 0.1556,
+      "robustnessScore": 0.0177,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:22:25.394Z"
+    },
+    {
+      "candidateId": "cand-97e78627",
+      "score": 0.451,
+      "noveltyScore": 0.1496,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:25:00.578Z"
+    },
+    {
+      "candidateId": "cand-8cfb97d5",
+      "score": 0.4842,
+      "noveltyScore": 0.1496,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:30:15.933Z"
+    },
+    {
+      "candidateId": "cand-2c409867",
+      "score": 0.5058,
+      "noveltyScore": 0.1501,
+      "robustnessScore": 0.0564,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:32:52.085Z"
+    },
+    {
+      "candidateId": "cand-990db2d3",
+      "score": 0.4886,
+      "noveltyScore": 0.1434,
+      "robustnessScore": 0.042,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:35:27.660Z"
+    },
+    {
+      "candidateId": "cand-d3505cb8",
+      "score": 0.5352,
+      "noveltyScore": 0.1421,
+      "robustnessScore": 0.042,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:38:03.497Z"
+    },
+    {
+      "candidateId": "cand-c99b76d2",
+      "score": 0.4426,
+      "noveltyScore": 0.1381,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:40:37.138Z"
+    },
+    {
+      "candidateId": "cand-a32fd47a",
+      "score": 0.5429,
+      "noveltyScore": 0.1497,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:47:32.700Z"
+    },
+    {
+      "candidateId": "cand-60aab7fe",
+      "score": 0.4733,
+      "noveltyScore": 0.1492,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:50:05.386Z"
+    },
+    {
+      "candidateId": "cand-3f27c596",
+      "score": 0.5151,
+      "noveltyScore": 0.149,
+      "robustnessScore": 0.0164,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:52:46.950Z"
+    },
+    {
+      "candidateId": "cand-7d7ec144",
+      "score": 0.7206,
+      "noveltyScore": 0.1426,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T00:55:25.571Z"
+    },
+    {
+      "candidateId": "cand-a5ddec79",
+      "score": 0.4295,
+      "noveltyScore": 0.1305,
+      "robustnessScore": 0.0416,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:02:17.713Z"
+    },
+    {
+      "candidateId": "cand-f35eb742",
+      "score": 0.5307,
+      "noveltyScore": 0.135,
+      "robustnessScore": 0.0772,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:05:05.299Z"
+    },
+    {
+      "candidateId": "cand-3bde95a6",
+      "score": 0.4067,
+      "noveltyScore": 0.1157,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:18:15.286Z"
+    },
+    {
+      "candidateId": "cand-5e145275",
+      "score": 0.55,
+      "noveltyScore": 0.1501,
+      "robustnessScore": 0.0551,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:27:24.915Z"
+    },
+    {
+      "candidateId": "cand-93924d92",
+      "score": 0.4168,
+      "noveltyScore": 0.1229,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:30:05.134Z"
+    },
+    {
+      "candidateId": "cand-de4d3ae4",
+      "score": 0.449,
+      "noveltyScore": 0.1407,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:32:55.512Z"
+    },
+    {
+      "candidateId": "cand-6f7e7135",
+      "score": 0.4462,
+      "noveltyScore": 0.1156,
+      "robustnessScore": 0.0033,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:35:34.740Z"
+    },
+    {
+      "candidateId": "cand-8c77c5e2",
+      "score": 0.4851,
+      "noveltyScore": 0.1377,
+      "robustnessScore": 0.0489,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:38:19.895Z"
+    },
+    {
+      "candidateId": "cand-ed7049a5",
+      "score": 0.4036,
+      "noveltyScore": 0.113,
+      "robustnessScore": 0.0178,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:40:54.982Z"
+    },
+    {
+      "candidateId": "cand-880d9c3b",
+      "score": 0.4011,
+      "noveltyScore": 0.1218,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:48:36.923Z"
+    },
+    {
+      "candidateId": "cand-13019569",
+      "score": 0.4646,
+      "noveltyScore": 0.1303,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:56:37.628Z"
+    },
+    {
+      "candidateId": "cand-6125b79f",
+      "score": 0.4774,
+      "noveltyScore": 0.1148,
+      "robustnessScore": 0.0742,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T01:59:26.005Z"
+    },
+    {
+      "candidateId": "cand-df4acc55",
+      "score": 0.487,
+      "noveltyScore": 0.1361,
+      "robustnessScore": 0.0067,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:02:20.761Z"
+    },
+    {
+      "candidateId": "cand-21300a79",
+      "score": 0.4547,
+      "noveltyScore": 0.1509,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:05:14.222Z"
+    },
+    {
+      "candidateId": "cand-8a81d15e",
+      "score": 0.3924,
+      "noveltyScore": 0.1144,
+      "robustnessScore": 0.0099,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:22:34.011Z"
+    },
+    {
+      "candidateId": "cand-ce602264",
+      "score": 0.4072,
+      "noveltyScore": 0.1209,
+      "robustnessScore": 0.0326,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:30:09.033Z"
+    },
+    {
+      "candidateId": "cand-19b9feeb",
+      "score": 0.4939,
+      "noveltyScore": 0.1295,
+      "robustnessScore": 0.0083,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:32:50.735Z"
+    },
+    {
+      "candidateId": "cand-1b5527d4",
+      "score": 0.4356,
+      "noveltyScore": 0.128,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:35:38.328Z"
+    },
+    {
+      "candidateId": "cand-cec287b8",
+      "score": 0.4152,
+      "noveltyScore": 0.1287,
+      "robustnessScore": 0.0019,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:43:12.620Z"
+    },
+    {
+      "candidateId": "cand-20c62eb7",
+      "score": 0.4493,
+      "noveltyScore": 0.1211,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T02:45:55.338Z"
+    },
+    {
+      "candidateId": "cand-459935ed",
+      "score": 0.4129,
+      "noveltyScore": 0.1201,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:07:25.544Z"
+    },
+    {
+      "candidateId": "cand-8d08674d",
+      "score": 0.4084,
+      "noveltyScore": 0.1127,
+      "robustnessScore": 0.0433,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:13:58.680Z"
+    },
+    {
+      "candidateId": "cand-6bde64a7",
+      "score": 0.4068,
+      "noveltyScore": 0.1197,
+      "robustnessScore": 0.0248,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:20:53.434Z"
+    },
+    {
+      "candidateId": "cand-9d431a5b",
+      "score": 0.4104,
+      "noveltyScore": 0.1192,
+      "robustnessScore": 0.0235,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:25:52.563Z"
+    },
+    {
+      "candidateId": "cand-e3d11f5f",
+      "score": 0.477,
+      "noveltyScore": 0.1406,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:37:02.030Z"
+    },
+    {
+      "candidateId": "cand-bf690779",
+      "score": 0.3707,
+      "noveltyScore": 0.1115,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:39:16.143Z"
+    },
+    {
+      "candidateId": "cand-f3c67e81",
+      "score": 0.4286,
+      "noveltyScore": 0.1266,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:45:59.435Z"
+    },
+    {
+      "candidateId": "cand-f255c40e",
+      "score": 0.4634,
+      "noveltyScore": 0.1362,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:48:03.852Z"
+    },
+    {
+      "candidateId": "cand-04162f97",
+      "score": 0.4055,
+      "noveltyScore": 0.1123,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T03:50:20.901Z"
+    },
+    {
+      "candidateId": "cand-1f3d733a",
+      "score": 0.4996,
+      "noveltyScore": 0.1324,
+      "robustnessScore": 0.0725,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:09:49.611Z"
+    },
+    {
+      "candidateId": "cand-59781639",
+      "score": 0.4582,
+      "noveltyScore": 0.1337,
+      "robustnessScore": 0.0042,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:12:02.221Z"
+    },
+    {
+      "candidateId": "cand-b0a68a2d",
+      "score": 0.4011,
+      "noveltyScore": 0.1199,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:14:14.348Z"
+    },
+    {
+      "candidateId": "cand-e038a7ef",
+      "score": 0.4734,
+      "noveltyScore": 0.1407,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:21:29.049Z"
+    },
+    {
+      "candidateId": "cand-afddafc8",
+      "score": 0.5333,
+      "noveltyScore": 0.1428,
+      "robustnessScore": 0.0707,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:23:45.759Z"
+    },
+    {
+      "candidateId": "cand-c578e8f3",
+      "score": 0.4345,
+      "noveltyScore": 0.1305,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:35:02.701Z"
+    },
+    {
+      "candidateId": "cand-6569ce26",
+      "score": 0.4721,
+      "noveltyScore": 0.1153,
+      "robustnessScore": 0.0696,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:37:18.760Z"
+    },
+    {
+      "candidateId": "cand-a81712fe",
+      "score": 0.5057,
+      "noveltyScore": 0.1263,
+      "robustnessScore": 0.0197,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:48:17.190Z"
+    },
+    {
+      "candidateId": "cand-4e6862d5",
+      "score": 0.4532,
+      "noveltyScore": 0.1291,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:52:37.776Z"
+    },
+    {
+      "candidateId": "cand-65524f8e",
+      "score": 0.4197,
+      "noveltyScore": 0.1198,
+      "robustnessScore": 0.01,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T04:59:16.611Z"
+    },
+    {
+      "candidateId": "cand-e2491475",
+      "score": 0.4256,
+      "noveltyScore": 0.1127,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:07:50.019Z"
+    },
+    {
+      "candidateId": "cand-ac8537b2",
+      "score": 0.4724,
+      "noveltyScore": 0.1343,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:25:12.396Z"
+    },
+    {
+      "candidateId": "cand-a0397b36",
+      "score": 0.3965,
+      "noveltyScore": 0.1222,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:27:31.361Z"
+    },
+    {
+      "candidateId": "cand-f803c3ef",
+      "score": 0.4319,
+      "noveltyScore": 0.1202,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:32:01.560Z"
+    },
+    {
+      "candidateId": "cand-d8dce1c7",
+      "score": 0.4587,
+      "noveltyScore": 0.1335,
+      "robustnessScore": 0.0063,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:34:27.503Z"
+    },
+    {
+      "candidateId": "cand-d7a58655",
+      "score": 0.4321,
+      "noveltyScore": 0.1285,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:41:15.495Z"
+    },
+    {
+      "candidateId": "cand-223b66c0",
+      "score": 0.4395,
+      "noveltyScore": 0.1132,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:50:14.774Z"
+    },
+    {
+      "candidateId": "cand-e46dc612",
+      "score": 0.4471,
+      "noveltyScore": 0.1304,
+      "robustnessScore": 0.0133,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:56:49.745Z"
+    },
+    {
+      "candidateId": "cand-23203453",
+      "score": 0.5006,
+      "noveltyScore": 0.1508,
+      "robustnessScore": 0.0444,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T05:59:14.991Z"
+    },
+    {
+      "candidateId": "cand-f25446f4",
+      "score": 0.3905,
+      "noveltyScore": 0.1193,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:05:44.131Z"
+    },
+    {
+      "candidateId": "cand-bc34720b",
+      "score": 0.5203,
+      "noveltyScore": 0.1401,
+      "robustnessScore": 0.0683,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:07:55.810Z"
+    },
+    {
+      "candidateId": "cand-32fdba18",
+      "score": 0.4428,
+      "noveltyScore": 0.1192,
+      "robustnessScore": 0.0496,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:10:11.374Z"
+    },
+    {
+      "candidateId": "cand-e22bd063",
+      "score": 0.4786,
+      "noveltyScore": 0.1132,
+      "robustnessScore": 0.0532,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:14:36.702Z"
+    },
+    {
+      "candidateId": "cand-3412de37",
+      "score": 0.4259,
+      "noveltyScore": 0.1336,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:19:03.864Z"
+    },
+    {
+      "candidateId": "cand-c89f0008",
+      "score": 0.4601,
+      "noveltyScore": 0.1172,
+      "robustnessScore": 0.0376,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:34:08.699Z"
+    },
+    {
+      "candidateId": "cand-0787953a",
+      "score": 0.3797,
+      "noveltyScore": 0.1184,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:40:40.620Z"
+    },
+    {
+      "candidateId": "cand-222131f7",
+      "score": 0.405,
+      "noveltyScore": 0.1147,
+      "robustnessScore": 0.0063,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:42:58.268Z"
+    },
+    {
+      "candidateId": "cand-5ec517b7",
+      "score": 0.5374,
+      "noveltyScore": 0.1385,
+      "robustnessScore": 0.0573,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:49:20.708Z"
+    },
+    {
+      "candidateId": "cand-d9519491",
+      "score": 0.4407,
+      "noveltyScore": 0.1268,
+      "robustnessScore": 0.01,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T06:53:35.651Z"
+    },
+    {
+      "candidateId": "cand-9521e7a1",
+      "score": 0.4996,
+      "noveltyScore": 0.1507,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:04:41.658Z"
+    },
+    {
+      "candidateId": "cand-d3d1487e",
+      "score": 0.4753,
+      "noveltyScore": 0.1401,
+      "robustnessScore": 0.0075,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:08:50.242Z"
+    },
+    {
+      "candidateId": "cand-4c97cbfd",
+      "score": 0.4098,
+      "noveltyScore": 0.119,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:15:35.486Z"
+    },
+    {
+      "candidateId": "cand-11091f3c",
+      "score": 0.4704,
+      "noveltyScore": 0.1266,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:17:52.135Z"
+    },
+    {
+      "candidateId": "cand-a0cd5fa1",
+      "score": 0.4315,
+      "noveltyScore": 0.1202,
+      "robustnessScore": 0.0108,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:22:14.007Z"
+    },
+    {
+      "candidateId": "cand-2aaffa7f",
+      "score": 0.4225,
+      "noveltyScore": 0.1211,
+      "robustnessScore": 0.0047,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:26:29.685Z"
+    },
+    {
+      "candidateId": "cand-16d85966",
+      "score": 0.4358,
+      "noveltyScore": 0.1108,
+      "robustnessScore": 0.0064,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:28:41.594Z"
+    },
+    {
+      "candidateId": "cand-6dc8f24d",
+      "score": 0.466,
+      "noveltyScore": 0.1337,
+      "robustnessScore": 0.0106,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:31:04.336Z"
+    },
+    {
+      "candidateId": "cand-baf7599a",
+      "score": 0.5082,
+      "noveltyScore": 0.1359,
+      "robustnessScore": 0.0547,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:42:09.533Z"
+    },
+    {
+      "candidateId": "cand-e72f7455",
+      "score": 0.4307,
+      "noveltyScore": 0.1366,
+      "robustnessScore": 0.0361,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:44:28.284Z"
+    },
+    {
+      "candidateId": "cand-cdc0ec24",
+      "score": 0.5458,
+      "noveltyScore": 0.1395,
+      "robustnessScore": 0.0802,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:46:47.043Z"
+    },
+    {
+      "candidateId": "cand-dc11d054",
+      "score": 0.4606,
+      "noveltyScore": 0.1209,
+      "robustnessScore": 0.0413,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:49:14.794Z"
+    },
+    {
+      "candidateId": "cand-5e746ec8",
+      "score": 0.4165,
+      "noveltyScore": 0.1291,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T07:51:33.959Z"
+    },
+    {
+      "candidateId": "cand-81cb6faa",
+      "score": 0.4655,
+      "noveltyScore": 0.1258,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T08:02:38.397Z"
+    },
+    {
+      "candidateId": "cand-f51d6023",
+      "score": 0.4631,
+      "noveltyScore": 0.1252,
+      "robustnessScore": 0.064,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T08:04:59.012Z"
+    },
+    {
+      "candidateId": "cand-f2abc872",
+      "score": 0.4933,
+      "noveltyScore": 0.1266,
+      "robustnessScore": 0.0568,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T08:09:19.269Z"
+    },
+    {
+      "candidateId": "cand-94bfa124",
+      "score": 0.3887,
+      "noveltyScore": 0.1132,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T08:15:56.529Z"
+    },
+    {
+      "candidateId": "cand-f8d9a14c",
+      "score": 0.4294,
+      "noveltyScore": 0.1205,
+      "robustnessScore": 0.0043,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T08:20:27.422Z"
+    },
+    {
+      "candidateId": "cand-d3580992",
+      "score": 0.4093,
+      "noveltyScore": 0.1191,
+      "robustnessScore": 0.0379,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-01T08:22:55.455Z"
+    }
+  ]
+}

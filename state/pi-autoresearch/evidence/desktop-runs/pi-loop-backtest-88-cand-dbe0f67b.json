@@ -1,0 +1,56 @@
+{
+  "strategy": null,
+  "trades": [],
+  "equity": {
+    "available": false,
+    "pointsAvailable": false,
+    "pointCount": 0,
+    "finalEquity": null,
+    "maxDrawdownPercent": null,
+    "points": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Seed 01 Mutation [seed-core-restored] [range-squeeze-tight-exit] [cand-mut-restore-freq-01] [cand-dbe0f67b]",
+    "detectedStudyTitle": "AF Seed 01 Mutation [seed-core-restored] [range-squeeze-tight-exit] [cand-mut-restore-freq-01] [cand-dbe0f67b]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "state": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Seed 01 Mutation [seed-core-restored] [range-squeeze-tight-exit] [cand-mut-restore-freq-01] [cand-dbe0f67b] (21, 55, 14, 14, 14, 20, 8, 3.2, 2, 73, 50, 13, 2, 2.3, 18, 5, 0.95, -0.55, 18, 2.4, -0.15, -0.3, -0.85, 50, 4, 3, 3, false)",
+        "normalizedTitle": "AF Seed 01 Mutation [seed-core-restored] [range-squeeze-tight-exit] [cand-mut-restore-freq-01] [cand-dbe0f67b]",
+        "metaDescription": "AF Seed 01 Mutation [seed-core-restored] [range-squeeze-tight-exit] [cand-mut-restore-freq-01] [cand-dbe0f67b]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+﻿◇ injected env (11) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+{
+  "stateRoot": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch",
+  "problemEventCount": 3,
+  "repairAttemptCount": 0,
+  "recentProblemEvents": [
+    {
+      "problemEventId": "problem-db622aff",
+      "runId": "autonomous-1777392035078",
+      "iteration": 198,
+      "candidateId": "cand-0e6a0180",
+      "problemKind": "local_backtest_fail",
+      "diagnosis": "local_candidate_rejected | objective_hard_gate_fail | full_sample_hard_gate_fail | minimum_oos_trades | positive_oos_post_fee_profit | oos_hard_gate_fail | full_sample_trades=2 | oos_trades=0 | oos_post_fee_profit=0",
+      "evidenceHash": "ed771b7fec6acf706923b34fb3c8f2b4d0d359bc04478903784e3ffc4a36146c",
+      "suggestedRepairKind": "mutation_prompt_adjustment",
+      "recordedAt": "2026-04-28T16:02:42.693Z"
+    },
+    {
+      "problemEventId": "problem-4e46ab20",
+      "runId": "autonomous-1777392163364",
+      "iteration": 199,
+      "candidateId": "cand-5e18a717",
+      "problemKind": "local_backtest_fail",
+      "diagnosis": "local_candidate_rejected | objective_hard_gate_fail | full_sample_hard_gate_fail | minimum_oos_trades | oos_hard_gate_fail | full_sample_trades=30 | oos_trades=8 | oos_post_fee_profit=2.036175",
+      "evidenceHash": "6128055083fc3f668268e292f6c2a4afd23a59adcb0bf3c285ae0f621aa1658b",
+      "suggestedRepairKind": "mutation_prompt_adjustment",
+      "recordedAt": "2026-04-28T16:04:47.734Z"
+    },
+    {
+      "problemEventId": "problem-d2d6318a",
+      "runId": "autonomous-1777392288345",
+      "iteration": 200,
+      "candidateId": "cand-9f33e80b",
+      "problemKind": "local_backtest_fail",
+      "diagnosis": "local_candidate_rejected | objective_hard_gate_fail | full_sample_hard_gate_fail | minimum_oos_trades | positive_oos_post_fee_profit | oos_hard_gate_fail | full_sample_trades=2 | oos_trades=0 | oos_post_fee_profit=0",
+      "evidenceHash": "ed771b7fec6acf706923b34fb3c8f2b4d0d359bc04478903784e3ffc4a36146c",
+      "suggestedRepairKind": "mutation_prompt_adjustment",
+      "recordedAt": "2026-04-28T16:06:55.381Z"
+    }
+  ],
+  "recentRepairAttempts": [],
+  "tracePath": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\traces\\inspect-failure-memory-2026-04-28T17-03-33-217Z-trace-5fc7e2f5.jsonl"
+}

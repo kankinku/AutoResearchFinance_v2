@@ -1,0 +1,58 @@
+//@version=5
+strategy("AF Mutation Restored Frequency [cand-mut-restore-trades] [cand-41341406]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLen = input.int(20, "Fast EMA", minval=2)
+slowLen = input.int(50, "Slow EMA", minval=3)
+trendLen = input.int(200, "Trend EMA", minval=20)
+rsiLen = input.int(14, "RSI Length", minval=2)
+rsiMin = input.float(52.0, "RSI Minimum", step=0.1)
+breakoutLen = input.int(20, "Breakout Lookback", minval=2)
+pullbackLen = input.int(5, "Pullback Lookback", minval=2)
+atrLen = input.int(14, "ATR Length", minval=2)
+stopATR = input.float(2.2, "Stop ATR Mult", step=0.1)
+targetATR = input.float(3.6, "Target ATR Mult", step=0.1)
+maxBarsInTrade = input.int(24, "Max Bars In Trade", minval=1)
+minTrendSlope = input.float(0.0, "Min Slow EMA Slope %", step=0.01)
+
+fastEma = ta.ema(close, fastLen)
+slowEma = ta.ema(close, slowLen)
+trendEma = ta.ema(close, trendLen)
+rsiValue = ta.rsi(close, rsiLen)
+atrValue = ta.atr(atrLen)
+
+slowSlopePct = slowEma[1] != 0.0 ? (slowEma - slowEma[1]) / slowEma[1] * 100.0 : 0.0
+trendUp = close > trendEma and fastEma > slowEma and slowEma > trendEma and slowSlopePct >= minTrendSlope
+momentumOk = rsiValue >= rsiMin
+
+recentHigh = ta.highest(high[1], breakoutLen)
+recentPullbackLow = ta.lowest(low[1], pullbackLen)
+
+breakoutEntry = trendUp and momentumOk and close > recentHigh
+pullbackBounce = trendUp and momentumOk and low <= fastEma and close > fastEma and close > open and close > close[1]
+reclaimSlow = close > slowEma and close[1] <= slowEma[1] and trendUp and momentumOk
+
+longEntry = strategy.position_size <= 0 and (breakoutEntry or pullbackBounce or reclaimSlow)
+
+var int entryBarIndex = na
+if longEntry
+    strategy.entry("Long", strategy.long)
+    entryBarIndex := bar_index
+
+if strategy.position_size > 0
+    stopPrice = strategy.position_avg_price - atrValue * stopATR
+    targetPrice = strategy.position_avg_price + atrValue * targetATR
+    strategy.exit("Long Exit", "Long", stop=stopPrice, limit=targetPrice)
+
+barsInTrade = strategy.position_size > 0 and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+exitTrendFail = strategy.position_size > 0 and (close < slowEma or rsiValue < 47 or fastEma < slowEma)
+exitTime = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+
+if exitTrendFail or exitTime
+    strategy.close("Long")
+
+if strategy.position_size == 0
+    entryBarIndex := na
+
+plot(fastEma, color=color.new(color.teal, 0), title="Fast EMA")
+plot(slowEma, color=color.new(color.orange, 0), title="Slow EMA")
+plot(trendEma, color=color.new(color.blue, 20), title="Trend EMA")

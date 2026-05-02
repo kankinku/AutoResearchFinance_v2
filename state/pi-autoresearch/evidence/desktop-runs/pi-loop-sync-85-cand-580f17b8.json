@@ -1,0 +1,58 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": false,
+    "errors": [
+      "Could not find function or function reference 'ta.sum'",
+      "Undeclared identifier 'momentumOk'"
+    ]
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Seed 01 Mutation [range-squeeze-tight-exit] [cand-af-rsq-01] [cand-da6d21c4]",
+    "detectedStudyTitle": "AF Seed 01 Mutation [range-squeeze-tight-exit] [cand-af-rsq-01] [cand-da6d21c4]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "stateAfter": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Exhaustion Signal (false, false)",
+        "normalizedTitle": "Exhaustion Signal",
+        "metaDescription": "Exhaustion Signal",
+        "hasStrategyData": false
+      }
+    ]
+  }
+}

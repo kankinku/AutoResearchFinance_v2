@@ -1,0 +1,47 @@
+{
+  "name": "af",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "af": "./dist/cli/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "bootstrap": "tsx src/cli/index.ts bootstrap",
+    "mutate": "tsx src/cli/index.ts mutate",
+    "evaluate": "tsx src/cli/index.ts evaluate",
+    "iterate": "tsx src/cli/index.ts iterate",
+    "run-tasks": "tsx src/cli/index.ts run-tasks",
+    "dashboard": "tsx src/cli/index.ts dashboard",
+    "ingest-knowledge": "tsx src/cli/index.ts ingest-knowledge",
+    "rebuild-indexes": "tsx src/cli/index.ts rebuild-indexes",
+    "check-knowledge-tree": "tsx src/cli/index.ts check-knowledge-tree",
+    "migrate-state": "tsx src/cli/index.ts migrate-state",
+    "test": "vitest run",
+    "test:e2e:tradingview": "vitest run tests/e2e/tradingview.e2e.test.ts",
+    "test:watch": "vitest",
+    "lint": "npm run typecheck",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@backtest/framework": "^1.1.18",
+    "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/client": "^2.0.0-alpha.2",
+    "commander": "^14.0.1",
+    "dotenv": "^17.2.3",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.59.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

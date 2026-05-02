@@ -1,0 +1,171 @@
+//@version=5
+strategy("AF Seed 01 Mutation [exhaustion-restore-tight-range-exit] [cand-mut-restore-01] [cand-b51832d7] [cand-75617232]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=2)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+trendLookback = input.int(20, "Trend Slope Lookback", minval=2)
+extLookback = input.int(8, "Extension Lookback", minval=2)
+maxExtensionPct = input.float(3.2, "Max Short-Term Extension %", minval=0.2, step=0.1)
+maxFastDistPct = input.float(2.2, "Max Distance Above Fast EMA %", minval=0.1, step=0.1)
+maxEntryRsi = input.int(74, "Max RSI For Entry Stretch Filter", minval=50, maxval=95)
+minRsi = input.int(50, "Min RSI For Entry", minval=1, maxval=99)
+minAdx = input.float(13.0, "Min ADX For Entry", minval=1, step=0.5)
+stopAtrMult = input.float(2.2, "Stop ATR Mult", minval=0.5, step=0.1)
+trailAtrMult = input.float(2.5, "Trail ATR Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(18, "Max Bars In Trade", minval=1)
+lossBarsExit = input.int(5, "Lose-After Bars Exit", minval=1)
+retraceExitAtr = input.float(0.95, "Peak Retrace Exit ATR", minval=0.2, step=0.1)
+quickLossAtr = input.float(-0.55, "Quick Loss ATR Threshold", maxval=0, step=0.05)
+rangeAdxMax = input.float(18.0, "Range ADX Max", minval=5, step=0.5)
+squeezeWidthPctMax = input.float(2.3, "Squeeze Width % Max", minval=0.2, step=0.1)
+rangeWeakLossAtr = input.float(-0.15, "Range Weak Loss ATR", maxval=0, step=0.05)
+rangeQuickLossAtr = input.float(-0.28, "Range Quick Loss ATR", maxval=0, step=0.05)
+deepDrawdownAtr = input.float(-0.9, "Deep Drawdown ATR Exit", maxval=0, step=0.05)
+weakMomentumRsi = input.int(51, "Weak Momentum RSI Exit", minval=1, maxval=99)
+
+exhaustionLookback = input.int(4, "Exhaustion Count Lookback", minval=2)
+exhaustionNeeded = input.int(2, "Exhaustion Count Needed", minval=1, maxval=4)
+exhaustionRsiMax = input.int(48, "Exhaustion RSI Max", minval=5, maxval=70)
+confirmBars = input.int(2, "Confirmation Window Bars", minval=1, maxval=5)
+rearmBars = input.int(6, "Exhaustion Rearm Bars", minval=1, maxval=20)
+slot2AtrTrigger = input.float(0.55, "Slot 2 Add Trigger ATR", minval=0.1, step=0.05)
+slotReplaceLossAtr = input.float(-0.45, "Slot Replace Loss ATR", maxval=0, step=0.05)
+slotPct = input.float(50.0, "Slot Size %", minval=1.0, maxval=100.0, step=1.0)
+
+barsSinceEntry(entryBar) => na(entryBar) ? 0 : bar_index - entryBar
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLength)
+
+slowSlopeUp = slowEma > slowEma[trendLookback]
+trendDownRegime = fastEma < slowEma and slowEma < slowEma[trendLookback] and minusDI > plusDI
+shortTermExtensionPct = ((close / ta.lowest(close, extLookback)) - 1.0) * 100.0
+fastDistPct = fastEma == 0.0 ? 0.0 : ((close / fastEma) - 1.0) * 100.0
+bandBasis = ta.sma(close, 20)
+bandDev = ta.stdev(close, 20)
+bandUpper = bandBasis + bandDev * 2.0
+bandLower = bandBasis - bandDev * 2.0
+bandWidthPct = bandBasis == 0.0 ? 0.0 : ((bandUpper - bandLower) / bandBasis) * 100.0
+rangeRegime = adx < rangeAdxMax and math.abs(fastEma - slowEma) / close < 0.012
+rangeSqueezeRegime = rangeRegime and bandWidthPct < squeezeWidthPctMax
+notLateExtension = shortTermExtensionPct < maxExtensionPct and fastDistPct < maxFastDistPct and rsiValue < maxEntryRsi
+trendQualified = fastEma > slowEma and slowSlopeUp and adx > minAdx and plusDI >= minusDI
+trendQualifiedLoose = fastEma > slowEma and slowSlopeUp and plusDI >= minusDI and adx > minAdx * 0.85
+
+pullbackBar = close < close[1] and close <= low[1] + (high[1] - low[1]) * 0.45 and close <= fastEma * 1.01 and close <= ta.lowest(close, exhaustionLookback)
+exhaustionStep = pullbackBar and rsiValue <= exhaustionRsiMax and not trendDownRegime
+var int exhaustionCount = 0
+var int lastExhaustionBar = na
+var int confirmWindow = 0
+
+if exhaustionStep
+    if na(lastExhaustionBar) or bar_index - lastExhaustionBar > rearmBars
+        exhaustionCount := 1
+    else
+        exhaustionCount += 1
+    lastExhaustionBar := bar_index
+    if exhaustionCount >= exhaustionNeeded
+        confirmWindow := confirmBars
+else
+    if confirmWindow > 0
+        confirmWindow -= 1
+    if not na(lastExhaustionBar) and bar_index - lastExhaustionBar > rearmBars
+        exhaustionCount := 0
+
+baseCross = ta.crossover(fastEma, slowEma)
+pullbackContinuation = close > fastEma and close[1] <= fastEma[1] and fastEma > slowEma
+reclaimConfirmation = close > open and close > fastEma and close > high[1] * 0.998 and rsiValue > minRsi and rsiValue >= rsiValue[1]
+seedConfirm = confirmWindow > 0 and reclaimConfirmation
+momentumOk = rsiValue > minRsi and (rsiValue > rsiValue[1] or close > close[1])
+slot1Entry = (seedConfirm or baseCross or pullbackContinuation) and momentumOk and trendQualifiedLoose and not trendDownRegime and notLateExtension
+
+var int slotCount = 0
+var int entryBarIndex = na
+var float peakOpenPnLAtr = na
+var float highestSinceEntry = na
+var int lastEntryBar = na
+
+avgPrice = strategy.position_avg_price
+openPnLAtr = strategy.position_size > 0 ? (close - avgPrice) / atrValue : 0.0
+slot2Confirm = strategy.position_size > 0 and slotCount == 1 and seedConfirm and openPnLAtr > slot2AtrTrigger and not rangeSqueezeRegime
+replaceSlot = strategy.position_size > 0 and slotCount == 1 and barsSinceEntry(entryBarIndex) >= 2 and openPnLAtr <= slotReplaceLossAtr and seedConfirm and trendQualifiedLoose
+
+if slot1Entry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long, qty=slotPct)
+    slotCount := 1
+    lastEntryBar := bar_index
+    exhaustionCount := 0
+    confirmWindow := 0
+
+if slot2Confirm
+    strategy.entry("Long", strategy.long, qty=slotPct)
+    slotCount := 2
+    lastEntryBar := bar_index
+    exhaustionCount := 0
+    confirmWindow := 0
+
+if replaceSlot
+    strategy.close("Long")
+    strategy.entry("Long", strategy.long, qty=slotPct)
+    slotCount := 1
+    lastEntryBar := bar_index
+    exhaustionCount := 0
+    confirmWindow := 0
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBarIndex := bar_index
+    peakOpenPnLAtr := 0.0
+    highestSinceEntry := high
+if strategy.position_size > 0
+    highestSinceEntry := math.max(nz(highestSinceEntry, high), high)
+if strategy.position_size <= 0
+    entryBarIndex := na
+    peakOpenPnLAtr := na
+    highestSinceEntry := na
+    slotCount := 0
+
+barsInTrade = na(entryBarIndex) ? 0 : bar_index - entryBarIndex
+openPnLAtr2 = strategy.position_size > 0 ? (close - strategy.position_avg_price) / atrValue : 0.0
+peakOpenPnLAtr := strategy.position_size > 0 ? math.max(nz(peakOpenPnLAtr, openPnLAtr2), openPnLAtr2) : na
+profitRetraceAtr = strategy.position_size > 0 ? nz(peakOpenPnLAtr, 0.0) - openPnLAtr2 : 0.0
+
+hardStop = strategy.position_size > 0 ? strategy.position_avg_price - atrValue * stopAtrMult : na
+trailBase = strategy.position_size > 0 ? nz(highestSinceEntry, high) - atrValue * trailAtrMult : na
+activeStop = strategy.position_size > 0 ? math.max(hardStop, trailBase) : na
+strategy.exit("XL", "Long", stop=activeStop)
+
+emaFailureExit = strategy.position_size > 0 and close < slowEma and rsiValue < 47
+stalledLoserExit = strategy.position_size > 0 and barsInTrade >= lossBarsExit and openPnLAtr2 < -0.3 and close < fastEma
+quickTrendLossExit = strategy.position_size > 0 and barsInTrade >= 2 and openPnLAtr2 <= quickLossAtr and (minusDI > plusDI or close < slowEma)
+rangeWeakExit = strategy.position_size > 0 and barsInTrade >= 2 and (rangeRegime or rangeSqueezeRegime) and openPnLAtr2 <= rangeWeakLossAtr and close < fastEma and rsiValue < weakMomentumRsi
+rangeSqueezeMomentumExit = strategy.position_size > 0 and barsInTrade >= 1 and rangeSqueezeRegime and openPnLAtr2 <= 0.1 and (rsiValue < weakMomentumRsi or rsiValue < rsiValue[1] or close < close[1]) and close < fastEma
+compressionQuickLossExit = strategy.position_size > 0 and barsInTrade >= 1 and rangeSqueezeRegime and openPnLAtr2 <= rangeQuickLossAtr
+deeperDrawdownExit = strategy.position_size > 0 and barsInTrade >= 3 and openPnLAtr2 <= deepDrawdownAtr and (close < fastEma or minusDI > plusDI)
+timeExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade and openPnLAtr2 < 0.6
+trendReversalExit = strategy.position_size > 0 and minusDI > plusDI and adx > minAdx and close < fastEma
+profitProtectionExit = strategy.position_size > 0 and peakOpenPnLAtr > 0.9 and profitRetraceAtr >= retraceExitAtr and close < fastEma
+stagedBearExit1 = strategy.position_size > 0 and slotCount == 2 and barsInTrade >= 1 and close < fastEma and minusDI > plusDI and rsiValue < 50
+stagedBearExit2 = strategy.position_size > 0 and slotCount >= 1 and close < slowEma and minusDI > plusDI and rsiValue < 47
+manualExit = emaFailureExit or stalledLoserExit or quickTrendLossExit or rangeWeakExit or rangeSqueezeMomentumExit or compressionQuickLossExit or deeperDrawdownExit or timeExit or trendReversalExit or profitProtectionExit or stagedBearExit1 or stagedBearExit2
+if manualExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plotshape(seedConfirm, title="Seed Confirm", style=shape.circle, size=size.tiny, color=color.new(color.lime, 0), location=location.belowbar)
+plotshape(exhaustionStep, title="Exhaustion Step", style=shape.xcross, size=size.tiny, color=color.new(color.yellow, 0), location=location.belowbar)

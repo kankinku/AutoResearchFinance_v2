@@ -1,0 +1,13 @@
+
+> af@0.1.0 dashboard
+> tsx src/cli/index.ts dashboard --host 127.0.0.1 --port 4177
+
+◇ injected env (11) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+{
+  "url": "http://127.0.0.1:4177/",
+  "host": "127.0.0.1",
+  "port": 4177,
+  "localOnly": true,
+  "workspaceRoot": "C:\\Users\\hanji\\Desktop\\AF",
+  "stateRoot": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch"
+}

@@ -1,0 +1,75 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mutA [cand-501f338d]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+trendLength = input.int(200, "Trend EMA", minval=20)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+adxThreshold = input.float(16.0, "ADX Min", minval=5, step=0.5)
+atrLength = input.int(14, "ATR Length", minval=2)
+maxExtAtr = input.float(1.15, "Max Extension vs Fast EMA (ATR)", minval=0.2, step=0.05)
+maxRoc = input.float(3.2, "Max 5-bar ROC %", minval=0.5, step=0.1)
+stopAtrMult = input.float(2.1, "Stop ATR Mult", minval=0.5, step=0.1)
+trailAtrMult = input.float(2.6, "Trail ATR Mult", minval=0.5, step=0.1)
+weakExitAtr = input.float(1.1, "Weak Exit ATR Loss", minval=0.3, step=0.1)
+cooldownBars = input.int(2, "Re-entry Cooldown Bars", minval=0, maxval=20)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+trendEma = ta.ema(close, trendLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+roc5 = 100 * (close / close[5] - 1)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0 ? 0 : 100 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0 ? 0 : 100 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0) ? 0 : 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLength)
+
+trendUp = close > trendEma and trendEma > trendEma[5]
+trendDown = close < trendEma and trendEma < trendEma[5]
+strongTrend = adx > adxThreshold
+allowLongRegime = trendUp and plusDI > minusDI and strongTrend and not trendDown
+notExtended = (close - fastEma) <= atrValue * maxExtAtr and roc5 <= maxRoc
+momentumConfirm = rsiValue > 53 and rsiValue > rsiValue[1]
+maTrigger = ta.crossover(fastEma, slowEma) or (fastEma > slowEma and close > fastEma and close[1] <= fastEma[1])
+
+var int lastExitBar = na
+canReenter = na(lastExitBar) or bar_index - lastExitBar > cooldownBars
+
+longEntry = allowLongRegime and notExtended and momentumConfirm and maTrigger and canReenter
+
+inPosition = strategy.position_size > 0
+avgPrice = strategy.position_avg_price
+barsInTrade = ta.barssince(strategy.position_size <= 0)
+openLossAtr = inPosition ? (avgPrice - close) / atrValue : 0.0
+weakMomentum = rsiValue < 49 or (fastEma < fastEma[1] and close < fastEma)
+regimeBreak = minusDI > plusDI and adx > adxThreshold
+longExitSignal = ta.crossunder(fastEma, slowEma) or rsiValue < 47 or regimeBreak or (inPosition and openLossAtr > weakExitAtr and weakMomentum)
+
+if longEntry and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+
+if inPosition
+    stopPrice = avgPrice - atrValue * stopAtrMult
+    trailOffset = atrValue * trailAtrMult
+    strategy.exit("XL", "Long", stop=stopPrice, trail_offset=trailOffset)
+
+if longExitSignal and inPosition
+    strategy.close("Long")
+    lastExitBar := bar_index
+
+if strategy.position_size == 0 and strategy.position_size[1] > 0
+    lastExitBar := bar_index
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(trendEma, "Trend EMA", color=color.new(color.blue, 20))
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(longExitSignal and inPosition, title="Long Exit", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

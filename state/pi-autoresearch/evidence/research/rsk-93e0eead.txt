@@ -1,0 +1,16 @@
+{
+  "summary": "Research note about weak exits in range regimes.",
+  "problemTags": ["weak_exit", "range_squeeze"],
+  "strategyTags": ["exit_tightening", "regime_filter"],
+  "insights": [
+    {
+      "insightId": "insight-1",
+      "summary": "Weak exits should be tightened during low-volatility ranges.",
+      "rationale": "Losses deepen when entries stay open during squeeze breakdowns.",
+      "suggestedMutation": "Tighten exits during range_squeeze when momentum weakens after entry.",
+      "relatedFailurePatterns": ["weak_exit", "range_squeeze"],
+      "keywords": ["exit", "squeeze", "momentum"],
+      "confidence": 0.84
+    }
+  ]
+}

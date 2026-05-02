@@ -1,0 +1,95 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut-4 [regime-gated-pullback-breakout] [cand-6d996611]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(18, "Fast EMA", minval=1)
+slowLength = input.int(50, "Slow EMA", minval=2)
+regimeLength = input.int(200, "Regime EMA", minval=20)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+adxLength = input.int(14, "ADX Length", minval=2)
+trendLookback = input.int(6, "Trend Lookback", minval=1)
+pullbackLookback = input.int(6, "Pullback Lookback", minval=1)
+breakoutLookback = input.int(10, "Breakout Lookback", minval=2)
+entryRsi = input.float(50.0, "Entry RSI Threshold", step=0.1)
+exitRsi = input.float(45.0, "Exit RSI Threshold", step=0.1)
+minAdx = input.float(15.0, "Minimum ADX", step=0.5)
+atrStopMult = input.float(1.8, "ATR Stop Mult", step=0.1, minval=0.1)
+profitAtrMult = input.float(3.6, "Profit Target ATR Mult", step=0.1, minval=0.1)
+trailAtrMult = input.float(2.2, "Trailing ATR Mult", step=0.1, minval=0.1)
+maxBarsInTrade = input.int(20, "Max Bars In Trade", minval=1)
+maxAtrPct = input.float(3.2, "Max ATR % For Entries", step=0.1, minval=0.1)
+reclaimBufferPct = input.float(0.15, "Reclaim Buffer %", step=0.01, minval=0.0)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+regimeEma = ta.ema(close, regimeLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+atrPct = close != 0.0 ? atrValue / close * 100.0 : 0.0
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adxValue = ta.rma(dx, adxLength)
+
+slowRising = slowEma > slowEma[trendLookback]
+regimeRising = regimeEma > regimeEma[trendLookback]
+fastAboveSlow = fastEma > slowEma
+priceAboveRegime = close > regimeEma
+trendUp = fastAboveSlow and slowRising and regimeRising and priceAboveRegime
+trendQualified = trendUp and adxValue >= minAdx and plusDI > minusDI and atrPct <= maxAtrPct
+
+pullbackTouched = ta.lowest(low, pullbackLookback) <= fastEma * 1.003
+reclaimFast = close > fastEma * (1.0 + reclaimBufferPct * 0.01) and close > open
+rsiSupportive = rsiValue >= entryRsi
+breakoutNow = close > ta.highest(high[1], breakoutLookback)
+channelBias = close > ta.sma(close, 20)
+
+emaCrossLong = ta.crossover(fastEma, slowEma) and priceAboveRegime and rsiValue >= entryRsi - 2.0
+continuationLong = trendQualified and pullbackTouched and reclaimFast and rsiSupportive
+breakoutLong = trendQualified and breakoutNow and channelBias and rsiValue >= entryRsi - 1.0
+longEntry = strategy.position_size <= 0 and (emaCrossLong or continuationLong or breakoutLong)
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+var int barsInTrade = 0
+barsInTrade := strategy.position_size > 0 ? nz(barsInTrade[1]) + 1 : 0
+
+var float highSinceEntry = na
+highSinceEntry := strategy.position_size > 0 ? (na(highSinceEntry[1]) ? high : math.max(highSinceEntry[1], high)) : na
+
+inPosition = strategy.position_size > 0
+stopPrice = inPosition ? strategy.position_avg_price - atrValue * atrStopMult : na
+limitPrice = inPosition ? strategy.position_avg_price + atrValue * profitAtrMult : na
+trailPrice = inPosition and not na(highSinceEntry) ? highSinceEntry - atrValue * trailAtrMult : na
+activeStop = inPosition ? math.max(stopPrice, trailPrice) : na
+
+if inPosition
+    strategy.exit("Long Risk", "Long", stop=activeStop, limit=limitPrice)
+
+timeExit = inPosition and barsInTrade >= maxBarsInTrade
+trendFailExit = inPosition and ta.crossunder(fastEma, slowEma)
+rsiExit = inPosition and rsiValue < exitRsi and close < fastEma
+weakTrendExit = inPosition and adxValue < minAdx * 0.85 and close < fastEma
+regimeExit = inPosition and close < regimeEma and fastEma < slowEma
+
+earlyLossCut = inPosition and barsInTrade >= 4 and close < strategy.position_avg_price and rsiValue < 50 and close < fastEma
+longExit = timeExit or trendFailExit or rsiExit or weakTrendExit or regimeExit or earlyLossCut
+
+if longExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(regimeEma, "Regime EMA", color=color.new(color.blue, 0))
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(longExit, title="Long Exit", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)
+plot(adxValue, "ADX", color=color.new(color.blue, 60), display=display.none)
+plot(rsiValue, "RSI", color=color.new(color.purple, 60), display=display.none)
+plot(atrPct, "ATR %", color=color.new(color.gray, 70), display=display.none)

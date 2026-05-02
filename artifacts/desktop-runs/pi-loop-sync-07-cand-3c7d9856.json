@@ -1,0 +1,31 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": true,
+    "errors": []
+  },
+  "apply": {
+    "ok": true,
+    "message": "applied",
+    "attachDiagnostics": {
+      "expectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]",
+      "detectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]",
+      "exactTitleMatched": true,
+      "staleStudySuspected": false,
+      "recoveryActions": []
+    },
+    "fallbackActions": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]",
+    "detectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "stateAfter": {}
+}

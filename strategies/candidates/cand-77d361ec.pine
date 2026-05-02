@@ -1,0 +1,52 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut-1 [cand-77d361ec]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+htfTf = input.timeframe("1D", "HTF Trend TF")
+htfEmaLength = input.int(50, "HTF EMA Length", minval=1)
+entryRsiMin = input.float(52.0, "Entry RSI Min", step=0.1)
+exitRsiMin = input.float(46.0, "Exit RSI Floor", step=0.1)
+maxStretchPct = input.float(2.2, "Max Close Above Fast EMA %", step=0.1)
+atrLength = input.int(14, "ATR Length", minval=1)
+stopAtrMult = input.float(2.2, "Stop ATR Mult", step=0.1)
+targetAtrMult = input.float(4.0, "Target ATR Mult", step=0.1)
+trailAtrMult = input.float(2.8, "Trail ATR Mult", step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+htfClose = request.security(syminfo.tickerid, htfTf, close)
+htfEma = request.security(syminfo.tickerid, htfTf, ta.ema(close, htfEmaLength))
+htfTrendUp = htfClose > htfEma
+
+trendAligned = fastEma > slowEma
+bullCross = ta.crossover(fastEma, slowEma)
+pullbackOk = close <= fastEma * (1 + maxStretchPct / 100)
+momentumOk = rsiValue > entryRsiMin
+longEntry = bullCross and momentumOk and htfTrendUp and pullbackOk
+
+trendFailure = ta.crossunder(fastEma, slowEma)
+momentumFailure = rsiValue < exitRsiMin and close < fastEma
+longExit = trendFailure or momentumFailure
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0
+    stopPrice = strategy.position_avg_price - atrValue * stopAtrMult
+    limitPrice = strategy.position_avg_price + atrValue * targetAtrMult
+    trailOffsetTicks = math.round((atrValue * trailAtrMult) / syminfo.mintick)
+    strategy.exit("Long Risk Exit", "Long", stop=stopPrice, limit=limitPrice, trail_offset=trailOffsetTicks)
+
+if longExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0), linewidth=2)
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0), linewidth=2)
+plot(htfEma, "HTF EMA", color=color.new(color.blue, 60))
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(longExit, title="Long Exit", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

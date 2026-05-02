@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+playwright-report/
+test-results/
+coverage/
+state/**/backups/
+state/**/*.pre-compact-*.jsonl

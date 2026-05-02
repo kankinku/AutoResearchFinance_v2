@@ -1,0 +1,3 @@
+{"timestamp":"2026-04-23T14:21:45.726Z","command":"mutate","event":"mutate.start","message":"Preparing mutation request","details":{"workspaceRoot":"C:\\Users\\hanji\\Desktop\\AF"},"taskNumber":null}
+{"timestamp":"2026-04-23T14:21:45.746Z","command":"mutate","event":"hypothesis.ready","message":"Mutation hypothesis prepared","details":{"objective":"QQQ 120m hard-gate-passing strategy improvement","recentFailures":[],"acceptedHead":"cand-3c7d9856"},"taskNumber":null}
+{"timestamp":"2026-04-23T14:21:45.746Z","command":"mutate","event":"mutation.request","message":"Sending mutation request","details":{"baselineLength":605},"taskNumber":null}

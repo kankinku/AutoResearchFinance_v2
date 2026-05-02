@@ -1,0 +1,156 @@
+{
+  "strategy": {
+    "netProfitPercent": -0.021068,
+    "postFeeNetProfitPercent": -0.021068,
+    "profitFactor": 0.3880104978947593,
+    "maxStrategyDrawdownPercent": 0.021526,
+    "percentProfitable": 14.285714,
+    "totalTrades": 7,
+    "avgTradePercent": -0.552655
+  },
+  "trades": [
+    {
+      "entryComment": "Long",
+      "entryPrice": 524.49,
+      "entryTime": "2025-01-06T21:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 518.84,
+      "exitTime": "2025-01-07T15:00:00.000Z",
+      "qty": 1,
+      "profitValue": -6.69333,
+      "profitPercent": -0.006693,
+      "runupPercent": 0.185806,
+      "drawdownPercent": 1.176061
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 516.01,
+      "entryTime": "2025-01-16T15:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 512.33,
+      "exitTime": "2025-01-16T23:00:00.000Z",
+      "qty": 1,
+      "profitValue": -11.40167,
+      "profitPercent": -0.004709,
+      "runupPercent": 0.382167,
+      "drawdownPercent": 1.004017
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 454.5,
+      "entryTime": "2025-04-11T18:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 453.91,
+      "exitTime": "2025-04-15T22:00:00.000Z",
+      "qty": 1,
+      "profitValue": -12.90008,
+      "profitPercent": -0.001499,
+      "runupPercent": 2.210221,
+      "drawdownPercent": 0.682376
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 608.89,
+      "entryTime": "2025-11-25T23:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 623.48,
+      "exitTime": "2025-12-08T17:00:00.000Z",
+      "qty": 1,
+      "profitValue": 0.45755,
+      "profitPercent": 0.013359,
+      "runupPercent": 3.186406,
+      "drawdownPercent": 0.152402
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 609.73,
+      "entryTime": "2026-03-05T09:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 603.19,
+      "exitTime": "2026-03-05T19:00:00.000Z",
+      "qty": 1,
+      "profitValue": -7.29537,
+      "profitPercent": -0.007753,
+      "runupPercent": 0.396545,
+      "drawdownPercent": 1.323809
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 612.17,
+      "entryTime": "2026-03-10T18:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 603.11,
+      "exitTime": "2026-03-11T22:00:00.000Z",
+      "qty": 1,
+      "profitValue": -17.57065,
+      "profitPercent": -0.010276,
+      "runupPercent": 0,
+      "drawdownPercent": 1.578403
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 585,
+      "entryTime": "2026-04-02T20:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 582.67,
+      "exitTime": "2026-04-07T14:00:00.000Z",
+      "qty": 1,
+      "profitValue": -21.06832,
+      "profitPercent": -0.003498,
+      "runupPercent": 0.863239,
+      "drawdownPercent": 0.499501
+    }
+  ],
+  "equity": {
+    "available": false,
+    "pointsAvailable": false,
+    "pointCount": 0,
+    "finalEquity": null,
+    "maxDrawdownPercent": null,
+    "points": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mock Candidate [cand-mut-range-guard] [cand-95a1b618]",
+    "detectedStudyTitle": "AF Mock Candidate [cand-mut-range-guard] [cand-95a1b618]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "state": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Mock Candidate [cand-mut-range-guard] [cand-95a1b618] (21, 55, 14, 14, 54, 48, 1.8, 4, 68, 20, 2, 0.035, 2.2, 2.8, 6, 0.35, true, 14, 16, false)",
+        "normalizedTitle": "AF Mock Candidate [cand-mut-range-guard] [cand-95a1b618]",
+        "metaDescription": "AF Mock Candidate [cand-mut-range-guard] [cand-95a1b618]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+//@version=5
+strategy("AF Mutation Range-Exit Defense [cand-mut-qqq-120m-01] [cand-4825b785]", overlay=true, initial_capital=100000, pyramiding=0, commission_type=strategy.commission.percent, commission_value=0.1, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLen = input.int(14, "ADX Length", minval=2)
+adxMin = input.float(16.0, "Min ADX For Entry", minval=1, step=0.5)
+bbLen = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.5, step=0.1)
+squeezePct = input.float(6.0, "Squeeze Width % Threshold", minval=1.0, step=0.5)
+atrLen = input.int(14, "ATR Length", minval=1)
+stopAtrMult = input.float(1.8, "Initial Stop ATR", minval=0.5, step=0.1)
+trailAtrMult = input.float(2.4, "Trail ATR", minval=0.5, step=0.1)
+profitAtrTrigger = input.float(1.2, "Trail Activation Profit ATR", minval=0.2, step=0.1)
+timeStopBars = input.int(14, "Weak Trade Time Stop Bars", minval=2)
+weakLossAtr = input.float(0.8, "Emergency Weak Exit ATR Loss", minval=0.2, step=0.1)
+minRsi = input.float(53.0, "Min RSI Entry", minval=1, maxval=99, step=0.5)
+exitRsi = input.float(47.0, "RSI Exit", minval=1, maxval=99, step=0.5)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atr = ta.atr(atrLen)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLen)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLen) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLen) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLen)
+
+bbBasis = ta.sma(close, bbLen)
+bbDev = ta.stdev(close, bbLen) * bbMult
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+bbWidthPct = bbBasis != 0.0 ? (bbUpper - bbLower) / bbBasis * 100.0 : 0.0
+isSqueeze = bbWidthPct < squeezePct
+isRange = adx < adxMin or (close < bbUpper and close > bbLower and isSqueeze)
+trendUp = fastEma > slowEma and slowEma > slowEma[1] and plusDI > minusDI
+
+longEntry = ta.crossover(fastEma, slowEma) and rsiValue > minRsi and adx > adxMin and plusDI > minusDI
+reEntryTrend = trendUp and close > fastEma and ta.rising(rsiValue, 2) and rsiValue > minRsi + 1 and adx > adxMin + 1 and strategy.position_size == 0
+entrySignal = longEntry or reEntryTrend
+
+var int entryBar = na
+var float highSinceEntry = na
+var float lowSinceEntry = na
+
+if strategy.position_size == 0
+    entryBar := na
+    highSinceEntry := na
+    lowSinceEntry := na
+
+if entrySignal and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0
+    entryBar := na(entryBar) ? bar_index : entryBar
+    highSinceEntry := na(highSinceEntry) ? high : math.max(highSinceEntry, high)
+    lowSinceEntry := na(lowSinceEntry) ? low : math.min(lowSinceEntry, low)
+
+avgPrice = strategy.position_avg_price
+barsInTrade = strategy.position_size > 0 and not na(entryBar) ? (bar_index - entryBar) : 0
+openProfitAtr = strategy.position_size > 0 ? (close - avgPrice) / atr : 0.0
+openLossAtr = strategy.position_size > 0 ? (avgPrice - close) / atr : 0.0
+trailActive = strategy.position_size > 0 and openProfitAtr >= profitAtrTrigger
+trailStop = trailActive and not na(highSinceEntry) ? highSinceEntry - trailAtrMult * atr : na
+baseStop = strategy.position_size > 0 ? avgPrice - stopAtrMult * atr : na
+activeStop = strategy.position_size > 0 ? (trailActive ? math.max(baseStop, trailStop) : baseStop) : na
+
+weakStructure = isRange or rsiValue < 50 or close < fastEma
+hardExitTrend = ta.crossunder(fastEma, slowEma) or rsiValue < exitRsi or minusDI > plusDI
+emergencyWeakExit = strategy.position_size > 0 and weakStructure and openLossAtr >= weakLossAtr
+stagnationExit = strategy.position_size > 0 and barsInTrade >= timeStopBars and openProfitAtr < 0.3 and weakStructure
+closeBelowStop = strategy.position_size > 0 and not na(activeStop) and close < activeStop
+
+if strategy.position_size > 0 and (hardExitTrend or emergencyWeakExit or stagnationExit or closeBelowStop)
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0), linewidth=2)
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0), linewidth=2)
+plot(bbUpper, "BB Upper", color=color.new(color.gray, 70))
+plot(bbBasis, "BB Basis", color=color.new(color.gray, 80))
+plot(bbLower, "BB Lower", color=color.new(color.gray, 70))
+plot(activeStop, "Active Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+bgcolor(isRange ? color.new(color.yellow, 90) : na)

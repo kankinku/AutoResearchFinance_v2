@@ -1,0 +1,58 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": false,
+    "errors": [
+      "Undeclared identifier 'weakStreak'",
+      "Cannot modify global variable 'lastOrderBar' in function"
+    ]
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Seed 01 - QQQ 120m tradable squeeze exit [cand-a6a5d6c7]",
+    "detectedStudyTitle": "Exhaustion Signal - test",
+    "exactTitleMatched": false,
+    "staleStudySuspected": true,
+    "recoveryActions": []
+  },
+  "stateAfter": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Exhaustion Signal (false, false)",
+        "normalizedTitle": "Exhaustion Signal",
+        "metaDescription": "Exhaustion Signal",
+        "hasStrategyData": false
+      }
+    ]
+  }
+}

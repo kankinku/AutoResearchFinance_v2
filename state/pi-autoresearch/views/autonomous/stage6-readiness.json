@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-04-30T05:22:53.680Z",
+  "evaluated": true,
+  "passed": true,
+  "mode": "deterministic",
+  "countRequested": 10,
+  "countCompleted": 10,
+  "countFailed": 0,
+  "activeChampionCandidateId": "cand-a64e2088",
+  "freshBootstrapPassed": true,
+  "multiIterationPassed": true,
+  "rootIsolationPassed": true,
+  "repairTraceabilityPassed": true,
+  "calibrationQueuePassed": true,
+  "scoreFeedbackPassed": true,
+  "feedbackClosureRequired": false,
+  "calibrationMode": "queue_only",
+  "ledgerValidationPassed": true,
+  "indexVerificationPassed": true,
+  "rootIsolationStatus": {
+    "status": "passed",
+    "customStateRoot": "C:\\Users\\hanji\\AppData\\Local\\Temp\\af-stage6-state-YAZZ8Y",
+    "defaultWorkspaceStateRoot": "C:\\Users\\hanji\\AppData\\Local\\Temp\\af-stage6-workspace-Nnkt1H\\state\\pi-autoresearch",
+    "customContextExists": true,
+    "defaultWorkspaceStateHasArtifacts": false
+  },
+  "repairTraceabilityStatus": {
+    "status": "passed",
+    "successfulRepairCount": 10,
+    "successfulRepairsWithoutCandidateCount": 0
+  },
+  "feedbackClosureStatus": {
+    "status": "passed",
+    "required": false,
+    "promptFeedbackObserved": true,
+    "scoreBreakdownFeedbackObserved": false,
+    "divergenceCount": 0,
+    "confidenceUpdateCount": 0
+  },
+  "evidence": {
+    "tempWorkspaceRoot": null,
+    "tempStateRoot": null,
+    "localEvaluationCount": 19,
+    "headEventCount": 2,
+    "archiveEventCount": 11,
+    "calibrationEventCount": 2,
+    "mutationBriefCount": 18,
+    "problemEventCount": 18,
+    "repairAttemptCount": 10,
+    "deadlineBreachCount": 0
+  },
+  "warnings": []
+}

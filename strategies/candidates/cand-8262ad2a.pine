@@ -1,0 +1,82 @@
+//@version=5
+strategy("AF Mutation Range-Squeeze Repair [cand-mutation-01] [cand-8262ad2a]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=1)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+adxLength = input.int(14, "ADX Length", minval=2)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.5, step=0.1)
+minAdx = input.float(16.0, "Min ADX", minval=5, step=0.5)
+minBbWidthPct = input.float(0.035, "Min BB Width %", minval=0.005, step=0.001)
+extLookback = input.int(6, "Extension Lookback", minval=2)
+maxExtensionPct = input.float(0.028, "Max Short-Window Extension %", minval=0.005, step=0.001)
+atrStopMult = input.float(2.1, "ATR Stop Mult", minval=0.5, step=0.1)
+atrProfitMult = input.float(3.4, "ATR Target Mult", minval=0.5, step=0.1)
+weakBarsStop = input.int(10, "Weak Regime Time Stop Bars", minval=2)
+maxBarsHold = input.int(36, "Max Hold Bars", minval=5)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+basis = ta.sma(close, bbLength)
+dev = bbMult * ta.stdev(close, bbLength)
+upperBb = basis + dev
+lowerBb = basis - dev
+bbWidthPct = basis != 0.0 ? (upperBb - lowerBb) / basis : 0.0
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr, adxLength)
+plusDI = trur != 0.0 ? 100 * ta.rma(plusDM, adxLength) / trur : 0.0
+minusDI = trur != 0.0 ? 100 * ta.rma(minusDM, adxLength) / trur : 0.0
+dx = (plusDI + minusDI) != 0.0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLength)
+
+slowSlopeUp = slowEma > slowEma[3]
+trendUp = fastEma > slowEma and slowSlopeUp and plusDI > minusDI
+notSqueeze = bbWidthPct > minBbWidthPct
+trendStrength = adx > minAdx
+
+recentRunup = ta.highest(close, extLookback) / close - 1.0
+notLateEntry = recentRunup < maxExtensionPct and close < upperBb * 0.995
+
+pullbackRecovered = close > fastEma and close[1] <= fastEma[1]
+rsiSupport = rsiValue > 53
+entryTrigger = (ta.crossover(fastEma, slowEma) or pullbackRecovered) and rsiSupport
+longEntry = entryTrigger and trendUp and trendStrength and notSqueeze and notLateEntry
+
+var int entryBarIndex = na
+if strategy.position_size == 0
+    entryBarIndex := na
+if longEntry and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+    entryBarIndex := bar_index
+
+barsInTrade = strategy.position_size > 0 and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+avgPrice = strategy.position_size > 0 ? strategy.position_avg_price : na
+stopPrice = strategy.position_size > 0 ? avgPrice - atrValue * atrStopMult : na
+limitPrice = strategy.position_size > 0 ? avgPrice + atrValue * atrProfitMult : na
+strategy.exit("LX", "Long", stop=stopPrice, limit=limitPrice)
+
+weakRegime = adx < minAdx or bbWidthPct < minBbWidthPct or rsiValue < 50
+momentumFade = ta.crossunder(rsiValue, 49) or (close < fastEma and close < close[1])
+trendBreak = ta.crossunder(fastEma, slowEma) or plusDI < minusDI
+weakTimeStop = strategy.position_size > 0 and barsInTrade >= weakBarsStop and weakRegime and close < avgPrice
+hardTimeStop = strategy.position_size > 0 and barsInTrade >= maxBarsHold
+protectiveExit = strategy.position_size > 0 and (momentumFade or trendBreak or weakTimeStop or hardTimeStop)
+
+if protectiveExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.teal)
+plot(slowEma, "Slow EMA", color=color.orange)
+plot(upperBb, "Upper BB", color=color.new(color.blue, 70))
+plot(lowerBb, "Lower BB", color=color.new(color.blue, 70))
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(protectiveExit and strategy.position_size > 0, title="Protective Exit", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)

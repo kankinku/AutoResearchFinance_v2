@@ -1,0 +1,25 @@
+{
+  "strategy": {
+    "netProfitPercent": 6.813019,
+    "postFeeNetProfitPercent": 6.013019,
+    "profitFactor": 3.413174,
+    "maxStrategyDrawdownPercent": 3.222352,
+    "percentProfitable": 73.239437,
+    "totalTrades": 69,
+    "avgTradePercent": 1.880018
+  },
+  "trades": [],
+  "equity": {
+    "available": true,
+    "unavailableReason": null,
+    "pointsAvailable": false,
+    "pointCount": 0,
+    "finalEquity": null,
+    "maxDrawdownPercent": 3.222352,
+    "points": []
+  },
+  "rawReportHash": "mock-recovered-report",
+  "state": {
+    "engine": "mock-recovered"
+  }
+}

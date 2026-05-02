@@ -1,0 +1,86 @@
+//@version=5
+strategy("AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+adxLength = input.int(14, "ADX Length", minval=2)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.5, step=0.1)
+kcLength = input.int(20, "KC Length", minval=5)
+kcMult = input.float(1.5, "KC Mult", minval=0.5, step=0.1)
+entryRsiMin = input.float(53.0, "Entry RSI Min", step=0.1)
+exitRsiMin = input.float(47.0, "Base Exit RSI", step=0.1)
+stopAtrMult = input.float(2.0, "Stop ATR Mult", minval=0.5, step=0.1)
+targetAtrMult = input.float(3.2, "Target ATR Mult", minval=0.5, step=0.1)
+squeezeStopAtrMult = input.float(1.2, "Squeeze Stop ATR Mult", minval=0.3, step=0.1)
+deepLossAtrMult = input.float(1.0, "Deep Loss ATR Exit", minval=0.3, step=0.1)
+maxHoldBars = input.int(24, "Max Hold Bars", minval=1)
+minAdxTrend = input.float(16.0, "Min ADX Trend", minval=1.0, step=0.5)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+emaBasis = ta.ema(close, kcLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adxValue = ta.rma(dx, adxLength)
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = bbMult * ta.stdev(close, bbLength)
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+kcUpper = emaBasis + kcMult * atrValue
+kcLower = emaBasis - kcMult * atrValue
+squeezeOn = bbUpper < kcUpper and bbLower > kcLower
+
+trendUp = fastEma > slowEma and fastEma > fastEma[1]
+strongTrend = adxValue > minAdxTrend and plusDI > minusDI
+longEntry = ta.crossover(fastEma, slowEma) and rsiValue > entryRsiMin
+longEntry := longEntry or (trendUp and strongTrend and close > fastEma and ta.crossover(rsiValue, entryRsiMin + 1.0))
+
+var int entryBarIndex = na
+if strategy.position_size <= 0
+    entryBarIndex := na
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+    entryBarIndex := bar_index
+
+inPosition = strategy.position_size > 0
+avgPrice = strategy.position_avg_price
+barsHeld = inPosition and not na(entryBarIndex) ? (bar_index - entryBarIndex) : 0
+openLossAtr = inPosition ? (avgPrice - close) / atrValue : 0.0
+weakTrendNow = adxValue < minAdxTrend or minusDI > plusDI
+rangeRiskNow = squeezeOn or weakTrendNow
+
+baseStop = inPosition ? avgPrice - atrValue * stopAtrMult : na
+squeezeStop = inPosition ? avgPrice - atrValue * squeezeStopAtrMult : na
+activeStop = rangeRiskNow ? math.max(baseStop, squeezeStop) : baseStop
+activeTarget = inPosition ? avgPrice + atrValue * targetAtrMult : na
+
+strategy.exit("LX", "Long", stop=activeStop, limit=activeTarget)
+
+emaCrossExit = ta.crossunder(fastEma, slowEma)
+rsiExit = rsiValue < exitRsiMin
+squeezeWeakExit = inPosition and rangeRiskNow and openLossAtr > deepLossAtrMult
+stagnationExit = inPosition and barsHeld >= maxHoldBars and close < avgPrice and adxValue < minAdxTrend + 2.0
+momentumFailureExit = inPosition and close < fastEma and rsiValue < 50 and plusDI < minusDI
+
+longExit = emaCrossExit or rsiExit or squeezeWeakExit or stagnationExit or momentumFailureExit
+if longExit
+    strategy.close("Long")
+
+plot(fastEma, color=color.new(color.teal, 0), title="Fast EMA")
+plot(slowEma, color=color.new(color.orange, 0), title="Slow EMA")
+plot(inPosition ? activeStop : na, color=color.new(color.red, 0), title="Active Stop", style=plot.style_linebr)
+plot(inPosition ? activeTarget : na, color=color.new(color.green, 0), title="Active Target", style=plot.style_linebr)
+bgcolor(squeezeOn ? color.new(color.yellow, 88) : na, title="Squeeze")

@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-04-23T10:44:58.492Z",
+  "entries": [
+    {
+      "rank": 1,
+      "candidateId": "cand-9cbc4c5f",
+      "score": 0.37000000000000005,
+      "decision": "accepted_improvement",
+      "iteration": 1,
+      "branchId": "main"
+    },
+    {
+      "rank": 2,
+      "candidateId": "cand-51397d04",
+      "score": 0.37000000000000005,
+      "decision": "accepted_no_improvement",
+      "iteration": 2,
+      "branchId": "main"
+    },
+    {
+      "rank": 3,
+      "candidateId": "cand-a93778fa",
+      "score": 0.37000000000000005,
+      "decision": "accepted_no_improvement",
+      "iteration": 3,
+      "branchId": "main"
+    },
+    {
+      "rank": 4,
+      "candidateId": "cand-2a5e6ffe",
+      "score": 0.37000000000000005,
+      "decision": "accepted_no_improvement",
+      "iteration": 4,
+      "branchId": "main"
+    },
+    {
+      "rank": 5,
+      "candidateId": "cand-fdc1ae65",
+      "score": 0.37000000000000005,
+      "decision": "accepted_no_improvement",
+      "iteration": 5,
+      "branchId": "main"
+    },
+    {
+      "rank": 6,
+      "candidateId": "cand-bbb67c15",
+      "score": 0.37000000000000005,
+      "decision": "accepted_no_improvement",
+      "iteration": 6,
+      "branchId": "main"
+    },
+    {
+      "rank": 7,
+      "candidateId": "cand-3c7d9856",
+      "score": 0.37000000000000005,
+      "decision": "accepted_no_improvement",
+      "iteration": 7,
+      "branchId": "main"
+    }
+  ]
+}

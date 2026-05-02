@@ -1,0 +1,8 @@
+{
+  "status": "available",
+  "summary": "Analyzed 3 losing trades. Largest loss cluster appeared in trend_up.",
+  "topLossZones": [
+    "trend_up:3"
+  ],
+  "repairPriorities": []
+}

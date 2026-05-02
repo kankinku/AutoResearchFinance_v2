@@ -1,0 +1,28 @@
+{
+  "symbol": "QQQ",
+  "timeframe": "60",
+  "hardGates": {
+    "minimumTotalTrades": 50,
+    "minimumPostFeeNetProfitPercent": 0
+  },
+  "softGuardrails": {
+    "maximumStrategyDrawdownPercent": 15,
+    "softGuardrailPenalty": 0.1
+  },
+  "weights": {
+    "netProfitPercent": 0.45,
+    "profitFactor": 0.15,
+    "inverseMaxDrawdown": 0.15,
+    "percentProfitable": 0.1,
+    "totalTrades": 0.05,
+    "avgTradePercent": 0.1
+  },
+  "normalizationCaps": {
+    "netProfitPercent": 50,
+    "profitFactor": 3,
+    "maxStrategyDrawdownPercent": 25,
+    "percentProfitable": 100,
+    "totalTrades": 200,
+    "avgTradePercent": 2
+  }
+}

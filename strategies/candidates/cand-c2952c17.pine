@@ -1,0 +1,81 @@
+//@version=5
+strategy("AF Mutation Late-Entry Gate + Tight Exit [cand-mut-qqq-120m-01] [cand-c2952c17]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(18, "Fast EMA", minval=2)
+slowLength = input.int(50, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+trendLookback = input.int(6, "Trend Slope Lookback", minval=1)
+extLookback = input.int(5, "Extension Lookback", minval=2)
+maxExtAtr = input.float(1.2, "Max Short-Term Extension ATR", minval=0.2, step=0.05)
+maxExtPct = input.float(2.2, "Max Short-Term Extension %", minval=0.2, step=0.1)
+entryRsiMin = input.float(53.0, "Entry RSI Min", minval=1, maxval=99, step=0.5)
+entryRsiMax = input.float(68.0, "Entry RSI Max", minval=1, maxval=99, step=0.5)
+stopAtrMult = input.float(2.0, "Stop ATR Mult", minval=0.2, step=0.1)
+trailAtrMult = input.float(2.8, "Trailing ATR Mult", minval=0.5, step=0.1)
+breakevenTrigAtr = input.float(1.2, "Breakeven Trigger ATR", minval=0.2, step=0.1)
+breakevenOffsetAtr = input.float(0.15, "Breakeven Offset ATR", minval=0.0, step=0.05)
+maxBarsInTrade = input.int(18, "Max Bars In Trade", minval=2)
+weakTradeBars = input.int(8, "Weak Trade Check Bars", minval=2)
+weakProfitAtr = input.float(0.35, "Weak Trade Profit ATR", minval=0.0, step=0.05)
+cooldownBars = input.int(1, "Cooldown Bars After Exit", minval=0)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+emaBull = fastEma > slowEma
+emaCrossUp = ta.crossover(fastEma, slowEma)
+trendSlopeUp = fastEma > fastEma[trendLookback] and slowEma >= slowEma[trendLookback]
+priceAboveSlow = close > slowEma
+
+recentLow = ta.lowest(low, extLookback)
+shortTermExtensionAbs = close - recentLow
+shortTermExtensionAtr = atrValue > 0 ? shortTermExtensionAbs / atrValue : 0.0
+shortTermExtensionPct = recentLow > 0 ? (shortTermExtensionAbs / recentLow) * 100.0 : 0.0
+notLateEntry = shortTermExtensionAtr <= maxExtAtr and shortTermExtensionPct <= maxExtPct
+
+rsiEntryOk = rsiValue >= entryRsiMin and rsiValue <= entryRsiMax
+entrySignal = (emaCrossUp or (emaBull and trendSlopeUp and ta.crossover(close, fastEma))) and priceAboveSlow and rsiEntryOk and notLateEntry
+
+var int lastExitBar = na
+cooldownOk = na(lastExitBar) or bar_index - lastExitBar > cooldownBars
+longEntry = entrySignal and cooldownOk and strategy.position_size <= 0
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+var int barsInTrade = 0
+barsInTrade := strategy.position_size > 0 ? nz(barsInTrade[1]) + 1 : 0
+newExit = strategy.position_size == 0 and strategy.position_size[1] > 0
+if newExit
+    lastExitBar := bar_index
+
+entryPrice = strategy.position_avg_price
+openProfitAtr = strategy.position_size > 0 and atrValue > 0 ? (close - entryPrice) / atrValue : 0.0
+highestSinceEntry = strategy.position_size > 0 ? ta.highest(high, barsInTrade + 1) : na
+baseStop = strategy.position_size > 0 ? entryPrice - atrValue * stopAtrMult : na
+trailStop = strategy.position_size > 0 ? highestSinceEntry - atrValue * trailAtrMult : na
+breakevenStop = strategy.position_size > 0 and openProfitAtr >= breakevenTrigAtr ? entryPrice + atrValue * breakevenOffsetAtr : na
+protectiveStop = strategy.position_size > 0 ? math.max(baseStop, nz(trailStop, baseStop)) : na
+protectiveStop := strategy.position_size > 0 and not na(breakevenStop) ? math.max(protectiveStop, breakevenStop) : protectiveStop
+
+if strategy.position_size > 0
+    strategy.exit("XL", "Long", stop=protectiveStop)
+
+emaWeakening = strategy.position_size > 0 and fastEma < fastEma[1] and close < fastEma
+momentumLoss = strategy.position_size > 0 and rsiValue < 47
+trendBreak = strategy.position_size > 0 and ta.crossunder(fastEma, slowEma)
+weakTradeTimeout = strategy.position_size > 0 and barsInTrade >= weakTradeBars and openProfitAtr < weakProfitAtr and close < fastEma
+hardTimeout = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+emergencyExit = trendBreak or (emaWeakening and momentumLoss) or weakTradeTimeout or hardTimeout
+
+if emergencyExit
+    strategy.close("Long")
+
+plot(fastEma, color=color.new(color.teal, 0), title="Fast EMA")
+plot(slowEma, color=color.new(color.orange, 0), title="Slow EMA")
+plot(strategy.position_size > 0 ? protectiveStop : na, color=color.new(color.red, 0), title="Protective Stop", style=plot.style_linebr)
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(emergencyExit and strategy.position_size > 0, title="Emergency Exit", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

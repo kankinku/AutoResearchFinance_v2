@@ -1,0 +1,1 @@
+{"timestamp":"2026-04-28T13:56:40.954Z","command":"inspect-experiment","event":"experiment.inspect","message":"Experiment inspection completed","details":{"candidate":"cand-3f99a396","iteration":194,"found":true},"taskNumber":null}

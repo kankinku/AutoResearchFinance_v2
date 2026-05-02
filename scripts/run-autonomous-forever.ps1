@@ -1,0 +1,191 @@
+param(
+  [int]$SleepSeconds = 10,
+  [int]$OpenAiTimeoutMs = 180000,
+  [int]$OpenAiMaxRetries = 2,
+  [int]$VerifyEvery = 10
+)
+
+$ErrorActionPreference = "Stop"
+
+$ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+$RuntimeRoot = Join-Path $StateRoot "runtime"
+$LogRoot = Join-Path $StateRoot "logs"
+$StopFile = Join-Path $RuntimeRoot "STOP_AUTONOMOUS_LOOP"
+$PidFile = Join-Path $RuntimeRoot "autonomous-loop.pid"
+$HeartbeatFile = Join-Path $RuntimeRoot "autonomous-loop-heartbeat.json"
+$LogFile = Join-Path $LogRoot ("autonomous-loop-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
+
+New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
+if (Test-Path -LiteralPath $PidFile) {
+  $existingPid = Get-Content -LiteralPath $PidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($existingPid -and (Get-Process -Id ([int]$existingPid) -ErrorAction SilentlyContinue)) {
+    throw "Autonomous loop already appears to be running with PID $existingPid."
+  }
+  Remove-Item -LiteralPath $PidFile -Force
+}
+if (Test-Path -LiteralPath $StopFile) {
+  Remove-Item -LiteralPath $StopFile -Force
+}
+
+Set-Content -LiteralPath $PidFile -Value $PID -Encoding ASCII
+
+$env:PINE_EVALUATION_EXECUTOR = "local-backtest"
+$env:AF_AUTO_PROCESS_CALIBRATION = "false"
+$env:OPENAI_REQUEST_TIMEOUT_MS = [string]$OpenAiTimeoutMs
+$env:OPENAI_MAX_RETRIES = [string]$OpenAiMaxRetries
+
+function Write-LoopLog {
+  param([string]$Message)
+  $line = "[{0}] {1}" -f (Get-Date -Format "o"), $Message
+  Add-Content -LiteralPath $LogFile -Value $line -Encoding UTF8
+}
+
+function Invoke-Af {
+  param([string[]]$Arguments)
+  Push-Location $ProjectRoot
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    & node "dist/cli/index.js" @Arguments 2>&1 | ForEach-Object {
+      Add-Content -LiteralPath $LogFile -Value $_ -Encoding UTF8
+    }
+    return $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+    Pop-Location
+  }
+}
+
+function Get-LoopTelemetry {
+  $proc = Get-Process -Id $PID -ErrorAction SilentlyContinue
+  $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+  $totalBytes = if ($os) { [double]$os.TotalVisibleMemorySize * 1024 } else { 0 }
+  $freeBytes = if ($os) { [double]$os.FreePhysicalMemory * 1024 } else { 0 }
+  $rssBytes = if ($proc) { [double]$proc.WorkingSet64 } else { 0 }
+  $privateBytes = if ($proc) { [double]$proc.PrivateMemorySize64 } else { 0 }
+  $warnBytes = if ($totalBytes -gt 0) { [math]::Min([math]::Max($totalBytes * 0.10, 512MB), 2048MB) } else { 2048MB }
+  $criticalBytes = if ($totalBytes -gt 0) { [math]::Min([math]::Max($totalBytes * 0.14, 768MB), 3072MB) } else { 3072MB }
+  $pressure = if ($rssBytes -ge $criticalBytes) { "critical" } elseif ($rssBytes -ge $warnBytes) { "warning" } else { "ok" }
+  return @{
+    rssMB = [math]::Round($rssBytes / 1MB, 2)
+    privateMB = [math]::Round($privateBytes / 1MB, 2)
+    systemTotalMemoryMB = [math]::Round($totalBytes / 1MB, 2)
+    systemFreeMemoryMB = [math]::Round($freeBytes / 1MB, 2)
+    warningThresholdMB = [math]::Round($warnBytes / 1MB, 2)
+    criticalThresholdMB = [math]::Round($criticalBytes / 1MB, 2)
+    pressure = $pressure
+  }
+}
+
+function Get-NodeTelemetry {
+  $nodeTelemetryPath = Join-Path $RuntimeRoot "node-memory-telemetry.json"
+  if (-not (Test-Path -LiteralPath $nodeTelemetryPath)) {
+    return $null
+  }
+  try {
+    return Get-Content -LiteralPath $nodeTelemetryPath -Raw | ConvertFrom-Json
+  } catch {
+    return $null
+  }
+}
+
+$iteration = 0
+$memoryWarningTimes = @()
+Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot"
+Write-LoopLog "stop file: $StopFile"
+
+try {
+  while ($true) {
+    if (Test-Path -LiteralPath $StopFile) {
+      Write-LoopLog "stop file detected; exiting"
+      break
+    }
+
+    $iteration += 1
+    $startedAt = Get-Date
+    $memory = Get-LoopTelemetry
+    @{
+      pid = $PID
+      iteration = $iteration
+      status = "running"
+      startedAt = $startedAt.ToUniversalTime().ToString("o")
+      logFile = $LogFile
+      memory = $memory
+      nodeMemory = Get-NodeTelemetry
+    } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+
+    Write-LoopLog "iteration ${iteration}: run-autonomous-loop start"
+    $runExit = Invoke-Af -Arguments @("run-autonomous-loop", "--count", "1", "--auto-process-calibration", "false")
+    Write-LoopLog "iteration ${iteration}: run-autonomous-loop exit=$runExit"
+
+    $memory = Get-LoopTelemetry
+    if ($memory.pressure -ne "ok") {
+      $memoryWarningTimes += (Get-Date)
+      $cutoff = (Get-Date).AddSeconds(-120)
+      $memoryWarningTimes = @($memoryWarningTimes | Where-Object { $_ -ge $cutoff })
+      Write-LoopLog ("iteration ${iteration}: memory pressure={0}; rssMB={1}" -f $memory.pressure, $memory.rssMB)
+    }
+    $selfHealingActive = $memoryWarningTimes.Count -ge 5
+    $effectiveVerifyEvery = if ($selfHealingActive) { [math]::Max($VerifyEvery, 20) } else { $VerifyEvery }
+    $effectiveSleepSeconds = if ($selfHealingActive) { [math]::Max($SleepSeconds, [int][math]::Ceiling($SleepSeconds * 1.5)) } else { $SleepSeconds }
+
+    if ($effectiveVerifyEvery -gt 0 -and (($iteration % $effectiveVerifyEvery) -eq 0) -and $memory.pressure -ne "critical") {
+      Write-LoopLog "iteration ${iteration}: validate-ledger start"
+      $validateStartedAt = Get-Date
+      $ledgerExit = Invoke-Af -Arguments @("validate-ledger")
+      $validateDurationSeconds = [math]::Round(((Get-Date) - $validateStartedAt).TotalSeconds, 3)
+      Write-LoopLog "iteration ${iteration}: validate-ledger exit=$ledgerExit durationSeconds=$validateDurationSeconds"
+
+      Write-LoopLog "iteration ${iteration}: rebuild-indexes --verify start"
+      $rebuildStartedAt = Get-Date
+      $indexExit = Invoke-Af -Arguments @("rebuild-indexes", "--verify")
+      $rebuildDurationSeconds = [math]::Round(((Get-Date) - $rebuildStartedAt).TotalSeconds, 3)
+      Write-LoopLog "iteration ${iteration}: rebuild-indexes --verify exit=$indexExit durationSeconds=$rebuildDurationSeconds"
+    } else {
+      $ledgerExit = $null
+      $indexExit = $null
+      $validateDurationSeconds = $null
+      $rebuildDurationSeconds = $null
+      if ($memory.pressure -eq "critical") {
+        Write-LoopLog "iteration ${iteration}: full validation skipped due to critical memory pressure"
+      }
+    }
+
+    $completedAt = Get-Date
+    @{
+      pid = $PID
+      iteration = $iteration
+      status = "sleeping"
+      lastRunExit = $runExit
+      completedAt = $completedAt.ToUniversalTime().ToString("o")
+      durationSeconds = [math]::Round(($completedAt - $startedAt).TotalSeconds, 3)
+      logFile = $LogFile
+      memory = $memory
+      nodeMemory = Get-NodeTelemetry
+      verifyEvery = $effectiveVerifyEvery
+      selfHealingActive = $selfHealingActive
+      lastLedgerExit = $ledgerExit
+      lastIndexExit = $indexExit
+      lastValidateDurationSeconds = $validateDurationSeconds
+      lastRebuildDurationSeconds = $rebuildDurationSeconds
+    } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+
+    Start-Sleep -Seconds $effectiveSleepSeconds
+  }
+} catch {
+  Write-LoopLog ("fatal error: {0}" -f $_.Exception.Message)
+  @{
+    pid = $PID
+    iteration = $iteration
+    status = "failed"
+    error = $_.Exception.Message
+    logFile = $LogFile
+  } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+  throw
+} finally {
+  if (Test-Path -LiteralPath $PidFile) {
+    Remove-Item -LiteralPath $PidFile -Force
+  }
+  Write-LoopLog "autonomous forever loop stopped"
+}

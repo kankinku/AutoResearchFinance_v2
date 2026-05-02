@@ -1,0 +1,78 @@
+//@version=5
+strategy("AF Mutation Exit Tightener [cand-exit-tightener-01] [cand-47d63666]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+entryRsiMin = input.float(53.0, "Entry RSI Min", step=0.1)
+exitRsiMin = input.float(48.0, "Base Exit RSI", step=0.1)
+stopAtrMult = input.float(2.2, "Initial Stop ATR Mult", step=0.1, minval=0.1)
+trailAtrMult = input.float(2.6, "Trailing ATR Mult", step=0.1, minval=0.1)
+breakEvenAtrTrigger = input.float(1.2, "Break-even Trigger ATR", step=0.1, minval=0.1)
+fatigueRsiLevel = input.float(56.0, "Trend Fatigue RSI", step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+emaBull = fastEma > slowEma
+emaCrossUp = ta.crossover(fastEma, slowEma)
+emaCrossDown = ta.crossunder(fastEma, slowEma)
+trendSlopeWeak = fastEma < fastEma[1]
+
+longEntry = (emaCrossUp or (emaBull and close > fastEma and close[1] <= fastEma[1])) and rsiValue > entryRsiMin
+
+var float highSinceEntry = na
+var float stopPrice = na
+var float trailStop = na
+var bool breakEvenArmed = false
+
+inLong = strategy.position_size > 0
+avgPrice = strategy.position_avg_price
+
+if inLong and strategy.position_size[1] <= 0
+    highSinceEntry := high
+    breakEvenArmed := false
+else if inLong
+    highSinceEntry := na(highSinceEntry) ? high : math.max(highSinceEntry, high)
+else
+    highSinceEntry := na
+    stopPrice := na
+    trailStop := na
+    breakEvenArmed := false
+
+openProfitAtr = inLong ? (highSinceEntry - avgPrice) / atrValue : 0.0
+if inLong and not breakEvenArmed and openProfitAtr >= breakEvenAtrTrigger
+    breakEvenArmed := true
+
+initialStop = inLong ? avgPrice - atrValue * stopAtrMult : na
+beStop = inLong and breakEvenArmed ? avgPrice * 1.001 : na
+rawTrailStop = inLong ? highSinceEntry - atrValue * trailAtrMult : na
+
+stopPrice := inLong ? initialStop : na
+if inLong and breakEvenArmed
+    stopPrice := math.max(stopPrice, beStop)
+if inLong
+    trailStop := rawTrailStop
+    stopPrice := math.max(stopPrice, trailStop)
+
+weakMomentumExit = inLong and close < fastEma and rsiValue < fatigueRsiLevel and trendSlopeWeak
+baseSignalExit = inLong and (emaCrossDown or rsiValue < exitRsiMin)
+priceStopExit = inLong and close < stopPrice
+
+if longEntry and not inLong
+    strategy.entry("Long", strategy.long)
+
+if inLong
+    strategy.exit("XL", "Long", stop=stopPrice)
+
+if baseSignalExit or weakMomentumExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(inLong ? stopPrice : na, "Active Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plotshape(longEntry and not inLong, title="Long Entry Signal", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(baseSignalExit or weakMomentumExit, title="Exit Signal", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

@@ -1,0 +1,8 @@
+Add-Content : 'C:\Users\hanji\Desktop\AF\state\pi-autoresearch\logs\autonomous-loop-20260501-101140.log' 파일은 다른 프
+로세스에서 사용 중이므로 프로세스에서 액세스할 수 없습니다.
+위치 C:\Users\hanji\Desktop\AF\scripts\run-autonomous-forever.ps1:51 문자:7
++       Add-Content -LiteralPath $LogFile -Value $_ -Encoding UTF8
++       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : WriteError: (C:\Users\hanji\...0501-101140.log:String) [Add-Content], IOException
+    + FullyQualifiedErrorId : GetContentWriterIOError,Microsoft.PowerShell.Commands.AddContentCommand
+ 

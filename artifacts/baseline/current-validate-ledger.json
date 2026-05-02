@@ -1,0 +1,51 @@
+﻿◇ injected env (11) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+{
+  "ok": true,
+  "errorCount": 0,
+  "warningCount": 6,
+  "issues": [
+    {
+      "severity": "warning",
+      "scope": "experiment-record-meta",
+      "recordId": "cand-f918d6d8",
+      "message": "recordHash does not match the serialized experiment record."
+    },
+    {
+      "severity": "warning",
+      "scope": "experiment-record-meta",
+      "recordId": "cand-3f99a396",
+      "message": "recordHash does not match the serialized experiment record."
+    },
+    {
+      "severity": "warning",
+      "scope": "experiment-record-meta",
+      "recordId": "cand-93a71a19",
+      "message": "recordHash does not match the serialized experiment record."
+    },
+    {
+      "severity": "warning",
+      "scope": "experiment-record-meta",
+      "recordId": "cand-560e2d3b",
+      "message": "recordHash does not match the serialized experiment record."
+    },
+    {
+      "severity": "warning",
+      "scope": "experiment-record-meta",
+      "recordId": "cand-24b4021d",
+      "message": "recordHash does not match the serialized experiment record."
+    },
+    {
+      "severity": "warning",
+      "scope": "candidate-dedup",
+      "recordId": "bfee8f4eb7eabba2047b8b2270beef764a3942811cda8134d75c15c171c0c26a",
+      "message": "Duplicate candidate source hash detected across ids: cand-2a5e6ffe, cand-51397d04, cand-9cbc4c5f, cand-a93778fa, cand-bbb67c15, cand-fdc1ae65"
+    }
+  ],
+  "summary": {
+    "experiments": 200,
+    "candidates": 175,
+    "taskBatches": 131
+  },
+  "stateRoot": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch",
+  "tracePath": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\traces\\validate-ledger-2026-04-28T17-03-33-374Z-trace-58d41635.jsonl"
+}

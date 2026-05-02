@@ -1,0 +1,80 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(18, "Fast EMA", minval=1)
+slowLength = input.int(50, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+adxLength = input.int(14, "ADX Length", minval=2)
+trendLookback = input.int(6, "Trend Lookback", minval=1)
+pullbackLookback = input.int(4, "Pullback Lookback", minval=1)
+breakoutLookback = input.int(10, "Breakout Lookback", minval=2)
+entryRsi = input.float(50.0, "Entry RSI Threshold", step=0.1)
+exitRsi = input.float(44.0, "Exit RSI Threshold", step=0.1)
+minAdx = input.float(16.0, "Minimum ADX", step=0.5)
+atrStopMult = input.float(2.0, "ATR Stop Mult", step=0.1, minval=0.1)
+atrTrailMult = input.float(2.6, "ATR Trail Mult", step=0.1, minval=0.1)
+profitAtrMult = input.float(4.2, "Profit Target ATR Mult", step=0.1, minval=0.1)
+maxBarsInTrade = input.int(22, "Max Bars In Trade", minval=1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur != 0 ? 100 * ta.rma(plusDM, adxLength) / trur : 0.0
+minusDI = trur != 0 ? 100 * ta.rma(minusDM, adxLength) / trur : 0.0
+dx = (plusDI + minusDI) != 0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adxValue = ta.rma(dx, adxLength)
+
+slowRising = slowEma > slowEma[trendLookback]
+fastAboveSlow = fastEma > slowEma
+trendUp = fastAboveSlow and slowRising
+trendQualified = trendUp and adxValue > minAdx
+
+pullbackHappened = ta.lowest(low, pullbackLookback) <= fastEma
+reclaimFast = close > fastEma and close[1] <= fastEma[1]
+rsiSupportive = rsiValue > entryRsi and rsiValue > rsiValue[1]
+
+emaCrossLong = ta.crossover(fastEma, slowEma) and rsiValue > entryRsi
+continuationLong = trendQualified and pullbackHappened and reclaimFast and rsiSupportive
+breakoutLong = trendQualified and close > ta.highest(high[1], breakoutLookback) and rsiValue > entryRsi
+longEntry = (emaCrossLong or continuationLong or breakoutLong) and strategy.position_size <= 0
+
+trendFailExit = ta.crossunder(fastEma, slowEma)
+rsiExit = rsiValue < exitRsi
+priceFailExit = close < fastEma and close < slowEma
+weakTrendExit = adxValue < minAdx * 0.85 and close < fastEma
+
+var int entryBarIndex = na
+if longEntry
+    strategy.entry("Long", strategy.long)
+    entryBarIndex := bar_index
+
+barsInTrade = strategy.position_size > 0 and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+timeExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+
+if strategy.position_size > 0
+    stopPrice = strategy.position_avg_price - atrValue * atrStopMult
+    limitPrice = strategy.position_avg_price + atrValue * profitAtrMult
+    trailOffset = atrValue * atrTrailMult
+    strategy.exit("Long Risk", "Long", stop=stopPrice, limit=limitPrice, trail_offset=trailOffset)
+
+longExit = strategy.position_size > 0 and (trendFailExit or rsiExit or priceFailExit or weakTrendExit or timeExit)
+if longExit
+    strategy.close("Long")
+
+if strategy.position_size <= 0
+    entryBarIndex := na
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(longExit, title="Long Exit", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)
+plot(adxValue, "ADX", color=color.new(color.blue, 60), display=display.none)
+plot(rsiValue, "RSI", color=color.new(color.purple, 60), display=display.none)

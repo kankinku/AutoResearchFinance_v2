@@ -1,0 +1,81 @@
+//@version=5
+strategy("AF Mutation Range-Aware Trend [cand-mut-range-guard] [cand-ad2c9ce7]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+baseEmaLength = input.int(20, "Base EMA", minval=1)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+adxMin = input.float(18.0, "Min ADX", minval=1, step=0.5)
+rsiMin = input.float(53.0, "Min RSI", minval=1, maxval=99, step=0.5)
+atrLength = input.int(14, "ATR Length", minval=1)
+stopAtrMult = input.float(2.0, "Stop ATR Mult", minval=0.5, step=0.1)
+targetAtrMult = input.float(3.2, "Target ATR Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(18, "Max Bars In Trade", minval=1)
+stagnationBars = input.int(7, "Stagnation Bars", minval=1)
+stagnationAtr = input.float(0.4, "Stagnation Threshold ATR", minval=0.1, step=0.1)
+maxDistAboveEmaPct = input.float(2.2, "Max % Above EMA20 For Entry", minval=0.1, step=0.1)
+maxShortRunPct = input.float(3.0, "Max 3-Bar Run %", minval=0.1, step=0.1)
+requireAdxRising = input.bool(true, "Require Rising ADX")
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+baseEma = ta.ema(close, baseEmaLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adxValue = ta.rma(dx, adxLength)
+
+trendUp = fastEma > slowEma and close > slowEma
+trendStrength = adxValue > adxMin and plusDI > minusDI and (requireAdxRising ? adxValue > adxValue[1] : true)
+notOverextended = ((close - baseEma) / baseEma) * 100.0 <= maxDistAboveEmaPct
+shortRunPct = close[3] != 0.0 ? ((close - close[3]) / close[3]) * 100.0 : 0.0
+notLateEntry = shortRunPct <= maxShortRunPct
+pullbackQuality = close <= high - 0.2 * atrValue
+entrySignal = ta.crossover(fastEma, slowEma) or (trendUp and close > fastEma and close[1] <= fastEma[1])
+longEntry = entrySignal and trendUp and trendStrength and rsiValue > rsiMin and notOverextended and notLateEntry and pullbackQuality
+
+var int barsInTrade = 0
+var float highestSinceEntry = na
+var float entryAtr = na
+
+inTrade = strategy.position_size > 0
+newTrade = inTrade and strategy.position_size[1] <= 0
+flatNow = strategy.position_size <= 0
+
+if flatNow
+    barsInTrade := 0
+    highestSinceEntry := na
+    entryAtr := na
+else
+    barsInTrade := newTrade ? 0 : nz(barsInTrade) + 1
+    highestSinceEntry := newTrade ? high : math.max(nz(highestSinceEntry, high), high)
+    entryAtr := newTrade ? atrValue : nz(entryAtr, atrValue)
+
+if longEntry and flatNow
+    strategy.entry("Long", strategy.long)
+
+avgPrice = strategy.position_avg_price
+stopPrice = avgPrice - atrValue * stopAtrMult
+targetPrice = avgPrice + atrValue * targetAtrMult
+strategy.exit("LX-ATR", "Long", stop=stopPrice, limit=targetPrice)
+
+trendBreakExit = inTrade and (ta.crossunder(fastEma, slowEma) or (close < baseEma and rsiValue < 48) or (adxValue < adxMin * 0.85 and close < fastEma))
+stagnationExit = inTrade and barsInTrade >= stagnationBars and highestSinceEntry < avgPrice + atrValue * stagnationAtr
+timeExit = inTrade and barsInTrade >= maxBarsInTrade
+lossControlExit = inTrade and close < avgPrice - atrValue * 1.2 and close < baseEma
+
+if trendBreakExit or stagnationExit or timeExit or lossControlExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(baseEma, "Base EMA20", color=color.new(color.blue, 40))

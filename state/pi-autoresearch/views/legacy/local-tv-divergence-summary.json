@@ -1,0 +1,138 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.685Z",
+  "parityStatusCounts": {
+    "matched": 27
+  },
+  "latestEntries": [
+    {
+      "candidateId": "cand-a64998af",
+      "iteration": 272,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-168c9d66",
+      "iteration": 270,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-9b5164cd",
+      "iteration": 268,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-41e96726",
+      "iteration": 266,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-967670ff",
+      "iteration": 264,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-691e635c",
+      "iteration": 262,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-89324cd2",
+      "iteration": 260,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-a887a699",
+      "iteration": 258,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-cc7aba92",
+      "iteration": 256,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    },
+    {
+      "candidateId": "cand-f6ae3e86",
+      "iteration": 254,
+      "source": "authoritative",
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,427 @@
+//@version=5
+strategy("AF Seed 01 - Event Reclaim Reversal [cand-8d4b91ef]", overlay=true, pyramiding=30, process_orders_on_close=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=5, commission_type=strategy.commission.percent, commission_value=0.05)
+
+groupSig = "1. Exhaustion"
+L1 = input.int(9, "L1", minval=2, group=groupSig)
+L2 = input.int(12, "L2", minval=3, group=groupSig)
+L3 = input.int(14, "L3", minval=4, group=groupSig)
+confirmBars = input.int(2, "confirmBars", minval=1, maxval=5, group=groupSig)
+
+groupFilter = "2. Filters"
+emaLen = input.int(21, "emaLen", minval=1, group=groupFilter)
+baseEmaLen = input.int(55, "baseEmaLen", minval=1, group=groupFilter)
+rsiLen = input.int(14, "rsiLen", minval=2, group=groupFilter)
+maxExtPct = input.float(6.0, "maxExtPct", minval=1.0, step=0.5, group=groupFilter)
+riskOffRsi = input.float(45.0, "riskOffRsi", minval=5.0, maxval=95.0, step=0.5, group=groupFilter)
+
+groupPos = "3. Slot Management"
+slotPct = input.float(5.0, "slotPct", minval=0.1, maxval=100.0, step=0.5, group=groupPos)
+maxSlots = input.int(9, "maxSlots", minval=1, maxval=50, group=groupPos)
+useReplacement = input.bool(true, "useReplacement", group=groupPos)
+replaceMinRank = input.int(3, "replaceMinRank", minval=1, maxval=4, group=groupPos)
+replaceIfPnlBelow = input.float(0.0, "replaceIfPnlBelow", step=0.5, group=groupPos)
+applyFilterToB1 = input.bool(false, "applyFilterToB1", group=groupPos)
+minQty = input.float(1.0, "minQty", minval=0.000001, step=0.1, group=groupPos)
+
+groupExit = "4. Exits"
+closeAllOnBearConfRiskOff = input.bool(true, "closeAllOnBearConfRiskOff", group=groupExit)
+
+groupExec = "5. Execution"
+sameBarConflictMode = input.string("StrongWins", "sameBarConflictMode", options=["StrongWins", "SkipBoth", "BearPriority"], group=groupExec)
+trendMode = input.string("Balanced", "trendMode", options=["Strict", "Balanced", "Loose"], group=groupExec)
+allowStrongCounterTrend = input.bool(true, "allowStrongCounterTrend", group=groupExec)
+entryCooldownBars = input.int(0, "entryCooldownBars", minval=0, maxval=20, group=groupExec)
+useRealFillSync = input.bool(true, "useRealFillSync", group=groupExec)
+resetOnL3 = input.bool(false, "resetOnL3", group=groupExec)
+useSupertrendFilter = input.bool(false, "useSupertrendFilter", group=groupExec)
+supertrendAtrPeriod = input.int(10, "supertrendAtrPeriod", minval=1, group=groupExec)
+supertrendFactor = input.float(3.0, "supertrendFactor", minval=0.1, step=0.1, group=groupExec)
+supertrendBlocksWeakBull = input.bool(false, "supertrendBlocksWeakBull", group=groupExec)
+supertrendRiskOffEnabled = input.bool(false, "supertrendRiskOffEnabled", group=groupExec)
+enableWeakRangeExit = input.bool(true, "enableWeakRangeExit", group=groupExec)
+weakExitAtrLen = input.int(14, "weakExitAtrLen", minval=1, group=groupExec)
+weakExitBars = input.int(6, "weakExitBars", minval=1, group=groupExec)
+weakRunupAtrMax = input.float(1.2, "weakRunupAtrMax", minval=0.0, step=0.1, group=groupExec)
+weakLossAtrMin = input.float(-0.3, "weakLossAtrMin", step=0.1, group=groupExec)
+weakSlopeAtrMax = input.float(0.15, "weakSlopeAtrMax", minval=0.0, step=0.01, group=groupExec)
+
+groupRoute = "6. Event Reclaim Route"
+reclaimLookbackBars = input.int(6, "reclaimLookbackBars", minval=1, maxval=30, group=groupRoute)
+reclaimWindowBars = input.int(5, "reclaimWindowBars", minval=1, maxval=20, group=groupRoute)
+maxHoldBars = input.int(10, "maxHoldBars", minval=1, maxval=50, group=groupRoute)
+reboundFloorRank = input.int(2, "reboundFloorRank", minval=1, maxval=4, group=groupRoute)
+reclaimRsiFloor = input.float(45.0, "reclaimRsiFloor", minval=5.0, maxval=95.0, step=0.5, group=groupRoute)
+
+groupView = "7. View"
+showEMAs = input.bool(true, "showEMAs", group=groupView)
+showSignals = input.bool(true, "showSignals", group=groupView)
+showConfMark = input.bool(true, "showConfMark", group=groupView)
+showDebugMarks = input.bool(false, "showDebugMarks", group=groupView)
+
+L2v = math.max(L2, L1 + 1)
+L3v = math.max(L3, L2v + 1)
+
+ema = ta.ema(close, emaLen)
+baseEMA = ta.ema(close, baseEmaLen)
+rsi = ta.rsi(close, rsiLen)
+atrWeak = ta.atr(weakExitAtrLen)
+atrSt = ta.atr(supertrendAtrPeriod)
+
+emaUp = not na(ema[1]) and ema >= ema[1]
+emaDown = not na(ema[1]) and ema <= ema[1]
+riskOffBase = close < baseEMA and rsi < riskOffRsi and emaDown
+overextended = close > ema * (1.0 + maxExtPct / 100.0)
+
+hl2 = (high + low) * 0.5
+upperBand = hl2 + supertrendFactor * atrSt
+lowerBand = hl2 - supertrendFactor * atrSt
+var float stUpper = na
+var float stLower = na
+var int stDir = 1
+stUpper := na(stUpper[1]) ? upperBand : (close[1] > stUpper[1] ? math.max(upperBand, stUpper[1]) : upperBand)
+stLower := na(stLower[1]) ? lowerBand : (close[1] < stLower[1] ? math.min(lowerBand, stLower[1]) : lowerBand)
+stDir := na(stDir[1]) ? 1 : stDir[1]
+if stDir == -1 and close > stUpper[1]
+    stDir := 1
+else if stDir == 1 and close < stLower[1]
+    stDir := -1
+supertrendBull = stDir == 1
+supertrendBear = stDir == -1
+riskOff = supertrendRiskOffEnabled ? (riskOffBase or supertrendBear) : riskOffBase
+
+var int cycle = 0
+var int bull = 0
+var int bear = 0
+
+has4 = bar_index >= 4 and not na(close[4])
+has2 = bar_index >= 2 and not na(close[2])
+
+if not has4
+    bull := 0
+    bear := 0
+    cycle := 0
+else
+    if cycle < L1
+        if close < close[4]
+            bull += 1
+            bear := 0
+            cycle := bull
+        else if close > close[4]
+            bear += 1
+            bull := 0
+            cycle := bear
+        else
+            bull := 0
+            bear := 0
+            cycle := 0
+    else
+        if bull > 0
+            if has2 and close < close[2]
+                bull += 1
+                cycle := bull
+            else
+                if close < close[4]
+                    bull := 1
+                    bear := 0
+                    cycle := 1
+                else if close > close[4]
+                    bull := 0
+                    bear := 1
+                    cycle := 1
+                else
+                    bull := 0
+                    bear := 0
+                    cycle := 0
+        else if bear > 0
+            if has2 and close > close[2]
+                bear += 1
+                cycle := bear
+            else
+                if close < close[4]
+                    bull := 1
+                    bear := 0
+                    cycle := 1
+                else if close > close[4]
+                    bull := 0
+                    bear := 1
+                    cycle := 1
+                else
+                    bull := 0
+                    bear := 0
+                    cycle := 0
+        else
+            if close < close[4]
+                bull := 1
+                bear := 0
+                cycle := 1
+            else if close > close[4]
+                bull := 0
+                bear := 1
+                cycle := 1
+            else
+                bull := 0
+                bear := 0
+                cycle := 0
+
+bullL1 = bull == L1
+bullL2 = bull == L2v
+bullL3 = bull == L3v
+bearL1 = bear == L1
+bearL2 = bear == L2v
+bearL3 = bear == L3v
+
+var int bullSignalBar = na
+var int bearSignalBar = na
+
+if bullL2 or bullL3
+    bullSignalBar := bar_index
+if bearL2 or bearL3
+    bearSignalBar := bar_index
+
+bullConfirmed = not na(bullSignalBar) and bar_index > bullSignalBar and (bar_index - bullSignalBar <= confirmBars) and close > high[1]
+bearConfirmed = not na(bearSignalBar) and bar_index > bearSignalBar and (bar_index - bearSignalBar <= confirmBars) and close < low[1]
+
+if bullConfirmed or (not na(bullSignalBar) and bar_index - bullSignalBar > confirmBars)
+    bullSignalBar := na
+if bearConfirmed or (not na(bearSignalBar) and bar_index - bearSignalBar > confirmBars)
+    bearSignalBar := na
+
+newBullL1 = bullL1 and not nz(bullL1[1], false)
+newBullL2 = bullL2 and not nz(bullL2[1], false)
+newBullL3 = bullL3 and not nz(bullL3[1], false)
+newBullConfirmed = bullConfirmed and not nz(bullConfirmed[1], false)
+newBearL1 = bearL1 and not nz(bearL1[1], false)
+newBearL2 = bearL2 and not nz(bearL2[1], false)
+newBearL3 = bearL3 and not nz(bearL3[1], false)
+newBearConfirmed = bearConfirmed and not nz(bearConfirmed[1], false)
+
+bullEventRaw = newBullConfirmed ? 4 : newBullL3 ? 3 : newBullL2 ? 2 : newBullL1 ? 1 : 0
+bearEventRaw = newBearConfirmed ? 4 : newBearL3 ? 3 : newBearL2 ? 2 : newBearL1 ? 1 : 0
+
+resolvedBull = 0
+resolvedBear = 0
+if bullEventRaw > 0 and bearEventRaw > 0
+    if sameBarConflictMode == "BearPriority"
+        resolvedBear := bearEventRaw
+    else if sameBarConflictMode == "SkipBoth"
+        resolvedBull := 0
+        resolvedBear := 0
+    else
+        if bullEventRaw > bearEventRaw
+            resolvedBull := bullEventRaw
+        else if bearEventRaw > bullEventRaw
+            resolvedBear := bearEventRaw
+        else
+            if close >= ema
+                resolvedBull := bullEventRaw
+            else
+                resolvedBear := bearEventRaw
+else
+    resolvedBull := bullEventRaw
+    resolvedBear := bearEventRaw
+
+allowBull = resolvedBull > 0
+allowBear = resolvedBear > 0
+
+bearEventSeen = allowBear
+barsSinceBearEvent = ta.barssince(bearEventSeen)
+recentBearContext = not na(barsSinceBearEvent) and barsSinceBearEvent <= reclaimLookbackBars
+failedBreakdown = recentBearContext and close > low[1] and close > ema
+freshBullReclaim = allowBull and resolvedBull >= reboundFloorRank and failedBreakdown
+bullRecoveryWindowAge = ta.barssince(freshBullReclaim)
+inReclaimWindow = not na(bullRecoveryWindowAge) and bullRecoveryWindowAge <= reclaimWindowBars
+
+trendPass = trendMode == "Strict" ? close >= ema and ema >= baseEMA : trendMode == "Loose" ? close >= ema or emaUp : close >= ema or close >= baseEMA
+counterTrendPass = allowStrongCounterTrend ? true : trendPass
+b1FilterPass = applyFilterToB1 ? not overextended : true
+weakBullBlocked = useSupertrendFilter and supertrendBlocksWeakBull and resolvedBull <= 2 and not supertrendBull
+
+primaryEntryTrigger = freshBullReclaim or (inReclaimWindow and close > ema and rsi >= reclaimRsiFloor)
+entryPass = primaryEntryTrigger and not riskOff
+entrySignal = entryPass and counterTrendPass and b1FilterPass and not weakBullBlocked and not overextended
+
+var slotIds = array.new_string()
+var slotEntry = array.new_float()
+var slotRank = array.new_int()
+var slotEntryBar = array.new_int()
+var int nextSlotNo = 1
+var int lastLongEntryBar = na
+var int lastOrderBar = na
+
+f_entry_qty(float pct) =>
+    float rawQty = close > 0 ? (strategy.equity * (pct * 0.01)) / close : 0.0
+    math.max(rawQty, minQty)
+
+f_slot_pnl_pct(int idx) =>
+    float ep = array.get(slotEntry, idx)
+    ep > 0 ? ((close - ep) / ep) * 100.0 : 0.0
+
+f_find_open_trade_idx(string entryId) =>
+    int foundIdx = na
+    if strategy.opentrades > 0
+        for i = 0 to strategy.opentrades - 1
+            if na(foundIdx) and strategy.opentrades.entry_id(i) == entryId
+                foundIdx := i
+    foundIdx
+
+f_sync_slot_entries() =>
+    if useRealFillSync and array.size(slotIds) > 0 and strategy.opentrades > 0
+        for i = 0 to array.size(slotIds) - 1
+            string sid = array.get(slotIds, i)
+            int openIdx = f_find_open_trade_idx(sid)
+            if not na(openIdx)
+                array.set(slotEntry, i, strategy.opentrades.entry_price(openIdx))
+
+f_find_weakest_idx() =>
+    int weakestIdx = na
+    float worstPnl = na
+    int worstRank = na
+    if array.size(slotEntry) > 0
+        for i = 0 to array.size(slotEntry) - 1
+            float pnl = f_slot_pnl_pct(i)
+            int rk = array.get(slotRank, i)
+            if na(weakestIdx)
+                weakestIdx := i
+                worstPnl := pnl
+                worstRank := rk
+            else if pnl < worstPnl or (math.abs(pnl - worstPnl) < 0.0001 and rk < worstRank)
+                weakestIdx := i
+                worstPnl := pnl
+                worstRank := rk
+    weakestIdx
+
+f_close_slot(int idx) =>
+    if idx >= 0 and idx < array.size(slotIds)
+        string idToClose = array.get(slotIds, idx)
+        strategy.close(idToClose, immediately=true)
+        array.remove(slotIds, idx)
+        array.remove(slotEntry, idx)
+        array.remove(slotRank, idx)
+        array.remove(slotEntryBar, idx)
+
+if strategy.position_size == 0 and array.size(slotIds) > 0 and (na(lastOrderBar) or bar_index > lastOrderBar)
+    array.clear(slotIds)
+    array.clear(slotEntry)
+    array.clear(slotRank)
+    array.clear(slotEntryBar)
+else
+    f_sync_slot_entries()
+
+canEnterLong = na(lastLongEntryBar) or (bar_index - lastLongEntryBar >= entryCooldownBars + 1)
+slotAvailable = array.size(slotIds) < maxSlots
+qtyNow = f_entry_qty(slotPct)
+qtyOK = qtyNow > 0
+entryRank = resolvedBull > 0 ? resolvedBull : 1
+
+if entrySignal and canEnterLong and qtyOK
+    if slotAvailable
+        string newId = "L_" + str.tostring(nextSlotNo)
+        nextSlotNo += 1
+        strategy.entry(newId, strategy.long, qty=qtyNow)
+        array.push(slotIds, newId)
+        array.push(slotEntry, close)
+        array.push(slotRank, entryRank)
+        array.push(slotEntryBar, bar_index)
+        lastLongEntryBar := bar_index
+        lastOrderBar := bar_index
+    else if useReplacement and entryRank >= replaceMinRank
+        int weakIdx = f_find_weakest_idx()
+        if not na(weakIdx)
+            float weakPnl = f_slot_pnl_pct(weakIdx)
+            int weakRank = array.get(slotRank, weakIdx)
+            bool canReplace = weakPnl <= replaceIfPnlBelow or entryRank > weakRank
+            if canReplace
+                f_close_slot(weakIdx)
+                lastOrderBar := bar_index
+                string newId2 = "L_" + str.tostring(nextSlotNo)
+                nextSlotNo += 1
+                strategy.entry(newId2, strategy.long, qty=qtyNow)
+                array.push(slotIds, newId2)
+                array.push(slotEntry, close)
+                array.push(slotRank, entryRank)
+                array.push(slotEntryBar, bar_index)
+                lastLongEntryBar := bar_index
+                lastOrderBar := bar_index
+
+if array.size(slotIds) > 0
+    for step = 0 to 49
+        if step < array.size(slotIds)
+            int idx = array.size(slotIds) - 1 - step
+            if idx >= 0 and idx < array.size(slotIds)
+                int heldBars = bar_index - array.get(slotEntryBar, idx)
+                float pnlPct = f_slot_pnl_pct(idx)
+                float atrRunup = atrWeak > 0 ? (high - array.get(slotEntry, idx)) / atrWeak : 0.0
+                float atrLoss = atrWeak > 0 ? (close - array.get(slotEntry, idx)) / atrWeak : 0.0
+                float atrSlope = atrWeak > 0 and not na(ema[weakExitBars]) ? (ema - ema[weakExitBars]) / atrWeak : 0.0
+                bool weakRangeExit = enableWeakRangeExit and heldBars >= weakExitBars and atrRunup <= weakRunupAtrMax and atrLoss <= weakLossAtrMin and math.abs(atrSlope) <= weakSlopeAtrMax
+                bool timeExit = heldBars >= maxHoldBars
+                bool bearPressureExit = allowBear and pnlPct > 0
+                if weakRangeExit or timeExit or bearPressureExit
+                    f_close_slot(idx)
+                    lastOrderBar := bar_index
+
+if allowBear and array.size(slotIds) > 0
+    if resolvedBear == 1 or resolvedBear == 2
+        int weakIdx1 = f_find_weakest_idx()
+        if not na(weakIdx1)
+            f_close_slot(weakIdx1)
+            lastOrderBar := bar_index
+    if resolvedBear == 3
+        for step = 0 to 1
+            if array.size(slotIds) > 0
+                int weakIdx2 = f_find_weakest_idx()
+                if not na(weakIdx2)
+                    f_close_slot(weakIdx2)
+                    lastOrderBar := bar_index
+    if resolvedBear == 4
+        bool keepClosingLoss = true
+        for step = 0 to 49
+            if keepClosingLoss and array.size(slotIds) > 0
+                int weakIdx3 = f_find_weakest_idx()
+                if not na(weakIdx3)
+                    float pnl3 = f_slot_pnl_pct(weakIdx3)
+                    if pnl3 < 0
+                        f_close_slot(weakIdx3)
+                        lastOrderBar := bar_index
+                    else
+                        keepClosingLoss := false
+        if closeAllOnBearConfRiskOff and riskOff
+            for step = 0 to 49
+                if array.size(slotIds) > 0
+                    int weakIdx4 = f_find_weakest_idx()
+                    if not na(weakIdx4)
+                        f_close_slot(weakIdx4)
+                        lastOrderBar := bar_index
+
+if resetOnL3 and (bull == L3v or bear == L3v)
+    bull := 0
+    bear := 0
+    cycle := 0
+
+plot(showEMAs ? ema : na, "EMA", color=color.orange, linewidth=1)
+plot(showEMAs ? baseEMA : na, "Base EMA", color=color.red, linewidth=2)
+plot(showEMAs and useSupertrendFilter ? stUpper : na, "ST Upper", color=color.new(color.gray, 40))
+plot(showEMAs and useSupertrendFilter ? stLower : na, "ST Lower", color=color.new(color.teal, 40))
+
+plotshape(showSignals and bullL1, title="B1", location=location.belowbar, color=color.new(color.green, 65), style=shape.circle, size=size.tiny, text="B1")
+plotshape(showSignals and bullL2, title="B2", location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small, text="B2")
+plotshape(showSignals and bullL3, title="B3", location=location.belowbar, color=color.lime, style=shape.diamond, size=size.small, text="B3")
+plotshape(showSignals and bearL1, title="S1", location=location.abovebar, color=color.new(color.red, 65), style=shape.circle, size=size.tiny, text="S1")
+plotshape(showSignals and bearL2, title="S2", location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small, text="S2")
+plotshape(showSignals and bearL3, title="S3", location=location.abovebar, color=color.maroon, style=shape.diamond, size=size.small, text="S3")
+plotshape(showConfMark and bullConfirmed, title="BCONF", location=location.belowbar, color=color.blue, style=shape.labelup, size=size.small, text="BC")
+plotshape(showConfMark and bearConfirmed, title="SCONF", location=location.abovebar, color=color.orange, style=shape.labeldown, size=size.small, text="SC")
+
+plotchar(showDebugMarks ? freshBullReclaim : na, title="freshBullReclaim", char="R", location=location.top, color=color.aqua, size=size.tiny)
+plotchar(showDebugMarks ? primaryEntryTrigger : na, title="primaryEntryTrigger", char="P", location=location.top, color=color.green, size=size.tiny)
+plotchar(showDebugMarks ? entryPass : na, title="entryPass", char="E", location=location.top, color=color.yellow, size=size.tiny)
+plotchar(showDebugMarks ? allowBear : na, title="allowBear", char="B", location=location.bottom, color=color.red, size=size.tiny)
+
+alertcondition(newBullL1, title="New B1", message="New B1: {{ticker}}")
+alertcondition(newBullL2, title="New B2", message="New B2: {{ticker}}")
+alertcondition(newBullL3, title="New B3", message="New B3: {{ticker}}")
+alertcondition(newBullConfirmed, title="New BCONF", message="New BCONF: {{ticker}}")
+alertcondition(newBearL1, title="New S1", message="New S1: {{ticker}}")
+alertcondition(newBearL2, title="New S2", message="New S2: {{ticker}}")
+alertcondition(newBearL3, title="New S3", message="New S3: {{ticker}}")
+alertcondition(newBearConfirmed, title="New SCONF", message="New SCONF: {{ticker}}")

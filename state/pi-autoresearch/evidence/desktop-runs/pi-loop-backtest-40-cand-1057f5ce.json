@@ -1,0 +1,221 @@
+{
+  "strategy": {
+    "netProfitPercent": -0.012346,
+    "postFeeNetProfitPercent": -0.012346,
+    "profitFactor": 0.6829647148246005,
+    "maxStrategyDrawdownPercent": 0.035308,
+    "percentProfitable": 33.333333,
+    "totalTrades": 12,
+    "avgTradePercent": -0.25316
+  },
+  "trades": [
+    {
+      "entryComment": "Long",
+      "entryPrice": 319.65,
+      "entryTime": "2023-04-27T20:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 319.66,
+      "exitTime": "2023-05-02T14:00:00.000Z",
+      "qty": 1,
+      "profitValue": -0.62931,
+      "profitPercent": -0.000629,
+      "runupPercent": 1.143968,
+      "drawdownPercent": 0.331172
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 365.12,
+      "entryTime": "2023-06-28T20:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 363.9,
+      "exitTime": "2023-06-29T20:00:00.000Z",
+      "qty": 1,
+      "profitValue": -2.57833,
+      "profitPercent": -0.001949,
+      "runupPercent": 0.209278,
+      "drawdownPercent": 0.915255
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 390.28,
+      "entryTime": "2023-12-07T21:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 387.47,
+      "exitTime": "2023-12-08T13:00:00.000Z",
+      "qty": 1,
+      "profitValue": -6.16608,
+      "profitPercent": -0.003588,
+      "runupPercent": 0.005048,
+      "drawdownPercent": 0.819177
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 405.66,
+      "entryTime": "2024-01-09T21:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 410.64,
+      "exitTime": "2024-01-11T09:00:00.000Z",
+      "qty": 1,
+      "profitValue": -2.00238,
+      "profitPercent": 0.004164,
+      "runupPercent": 1.126503,
+      "drawdownPercent": 0.223033
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 445.31,
+      "entryTime": "2024-04-04T16:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 435.25,
+      "exitTime": "2024-04-04T18:00:00.000Z",
+      "qty": 1,
+      "profitValue": -12.94294,
+      "profitPercent": -0.010941,
+      "runupPercent": 0,
+      "drawdownPercent": 2.388151
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 487.15,
+      "entryTime": "2024-10-04T20:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 482.65,
+      "exitTime": "2024-10-07T18:00:00.000Z",
+      "qty": 1,
+      "profitValue": -18.41274,
+      "profitPercent": -0.005471,
+      "runupPercent": 0,
+      "drawdownPercent": 1.022717
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 529.97,
+      "entryTime": "2024-12-24T21:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 525.64,
+      "exitTime": "2024-12-27T13:00:00.000Z",
+      "qty": 1,
+      "profitValue": -23.79835,
+      "profitPercent": -0.005387,
+      "runupPercent": 0.139497,
+      "drawdownPercent": 0.916111
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 524.5,
+      "entryTime": "2025-01-06T19:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 519.36,
+      "exitTime": "2025-01-07T15:00:00.000Z",
+      "qty": 1,
+      "profitValue": -29.98221,
+      "profitPercent": -0.006185,
+      "runupPercent": 0.183896,
+      "drawdownPercent": 1.078902
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 516.15,
+      "entryTime": "2025-01-16T13:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 524.83,
+      "exitTime": "2025-01-21T09:00:00.000Z",
+      "qty": 1,
+      "profitValue": -22.34319,
+      "profitPercent": 0.007641,
+      "runupPercent": 1.580102,
+      "drawdownPercent": 1.030869
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 517.01,
+      "entryTime": "2025-05-27T12:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 526.24,
+      "exitTime": "2025-05-28T22:00:00.000Z",
+      "qty": 1,
+      "profitValue": -14.15644,
+      "profitPercent": 0.008189,
+      "runupPercent": 1.683582,
+      "drawdownPercent": 0.103765
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 625.17,
+      "entryTime": "2026-01-15T13:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 621.62,
+      "exitTime": "2026-01-15T19:00:00.000Z",
+      "qty": 1,
+      "profitValue": -18.95323,
+      "profitPercent": -0.004797,
+      "runupPercent": 0.186136,
+      "drawdownPercent": 0.826975
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 622.56,
+      "entryTime": "2026-01-23T17:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 630.42,
+      "exitTime": "2026-01-27T13:00:00.000Z",
+      "qty": 1,
+      "profitValue": -12.34621,
+      "profitPercent": 0.006608,
+      "runupPercent": 1.161368,
+      "drawdownPercent": 0.639068
+    }
+  ],
+  "equity": {
+    "available": false,
+    "pointsAvailable": false,
+    "pointCount": 0,
+    "finalEquity": null,
+    "maxDrawdownPercent": null,
+    "points": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mutation QQQ 120m [ext-gate+dmi-exit] [cand-1057f5ce]",
+    "detectedStudyTitle": "AF Mutation QQQ 120m [ext-gate+dmi-exit] [cand-1057f5ce]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "state": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Mutation QQQ 120m [ext-gate+dmi-exit] [cand-1057f5ce] (21, 55, 14, 14, 16, 53, 47, 8, 0.9, 2, 3.2, 1.2, 22, 4, false)",
+        "normalizedTitle": "AF Mutation QQQ 120m [ext-gate+dmi-exit] [cand-1057f5ce]",
+        "metaDescription": "AF Mutation QQQ 120m [ext-gate+dmi-exit] [cand-1057f5ce]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "current_phase": "completed",
+  "started_at": "2026-04-24T01:15:47Z",
+  "task_description": "Implement curated seed baseline and QQQ 2h loss analysis feedback loop for AF",
+  "context_snapshot_path": "C:\\Users\\hanji\\Desktop\\AF\\.omx\\context\\seed-loss-analysis-20260424T011547Z.md",
+  "design_spec_path": "C:\\Users\\hanji\\Desktop\\AF\\docs\\superpowers\\specs\\2026-04-24-seed-loss-analysis-design.md",
+  "implementation_plan_path": "C:\\Users\\hanji\\Desktop\\AF\\docs\\superpowers\\plans\\2026-04-24-seed-loss-analysis-implementation.md",
+  "execution_mode": "inline_autopilot_resume_from_approved_spec_and_plan",
+  "iteration": 61,
+  "completed_at": "2026-04-24T01:37:30+09:00",
+  "spec": "C:\\Users\\hanji\\Desktop\\AF\\docs\\superpowers\\specs\\2026-04-24-seed-loss-analysis-design.md",
+  "plan": "C:\\Users\\hanji\\Desktop\\AF\\docs\\superpowers\\plans\\2026-04-24-seed-loss-analysis-implementation.md",
+  "status": "completed",
+  "validation": [
+    "npm run typecheck",
+    "npm test",
+    "npm run build",
+    ".\\af.cmd check-knowledge-tree",
+    ".\\af.cmd bootstrap",
+    ".\\af.cmd iterate --count 1",
+    ".\\af.cmd iterate --count 1"
+  ],
+  "last_turn_at": "2026-05-02T20:11:24.605Z"
+}

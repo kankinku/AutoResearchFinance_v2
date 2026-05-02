@@ -1,0 +1,2 @@
+{"timestamp":"2026-04-23T13:54:03.611Z","command":"bootstrap","event":"bootstrap.start","message":"Initializing workspace","details":{"workspaceRoot":"C:\\Users\\hanji\\Desktop\\AF"},"taskNumber":null}
+{"timestamp":"2026-04-23T13:54:03.642Z","command":"bootstrap","event":"bootstrap.smoke","message":"Running Pine evaluation smoke check","details":{"symbol":"QQQ","timeframe":"120"},"taskNumber":null}

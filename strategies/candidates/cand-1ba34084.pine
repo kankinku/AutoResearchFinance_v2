@@ -1,0 +1,76 @@
+//@version=5
+strategy("AF Mutation Trend Gate 01 [cand-1ba34084]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(18, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+trendLength = input.int(200, "Trend EMA", minval=20)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLen = input.int(14, "ADX Length", minval=2)
+adxThreshold = input.float(17.0, "ADX Threshold", minval=5, step=0.5)
+atrLen = input.int(14, "ATR Length", minval=2)
+stopATR = input.float(2.2, "Stop ATR", minval=0.5, step=0.1)
+targetATR = input.float(3.4, "Target ATR", minval=0.5, step=0.1)
+trailATR = input.float(1.8, "Trail ATR", minval=0.5, step=0.1)
+extensionATR = input.float(1.15, "Max Extension ATR", minval=0.2, step=0.05)
+breakoutLookback = input.int(10, "Breakout Lookback", minval=2)
+maxBarsInTrade = input.int(24, "Max Bars In Trade", minval=2)
+htfTf = input.timeframe("1D", "Higher Timeframe")
+htfLen = input.int(50, "HTF EMA Length", minval=10)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+trendEma = ta.ema(close, trendLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLen)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLen)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLen) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLen) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLen)
+
+htfClose = request.security(syminfo.tickerid, htfTf, close)
+htfEma = request.security(syminfo.tickerid, htfTf, ta.ema(close, htfLen))
+htfBull = htfClose > htfEma
+
+trendUp = fastEma > slowEma and close > trendEma
+trendStrengthOk = adx > adxThreshold and plusDI > minusDI
+notLateExtension = (close - fastEma) < atrValue * extensionATR and close < ta.highest(high, breakoutLookback)[1] + atrValue * 0.35
+pullbackHealthy = close > fastEma and close[1] <= high[1]
+momentumOk = rsiValue > 52 and rsiValue < 68
+
+longEntry = strategy.position_size <= 0 and trendUp and htfBull and trendStrengthOk and notLateExtension and momentumOk and pullbackHealthy
+
+var int entryBarIndex = na
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBarIndex := bar_index
+if strategy.position_size <= 0
+    entryBarIndex := na
+
+barsInTrade = na(entryBarIndex) ? 0 : bar_index - entryBarIndex
+avgPrice = strategy.position_avg_price
+stopPrice = avgPrice - atrValue * stopATR
+limitPrice = avgPrice + atrValue * targetATR
+trailOffsetTicks = math.max(1, int(math.round((atrValue * trailATR) / syminfo.mintick)))
+strategy.exit("Long Exit", "Long", stop=stopPrice, limit=limitPrice, trail_offset=trailOffsetTicks)
+
+trendFadeExit = strategy.position_size > 0 and (close < slowEma or plusDI < minusDI)
+rsiWeakExit = strategy.position_size > 0 and rsiValue < 46
+timeExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+lossAccelerationExit = strategy.position_size > 0 and close < avgPrice - atrValue * 1.2 and close < fastEma
+
+if trendFadeExit or rsiWeakExit or timeExit or lossAccelerationExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(trendEma, "Trend EMA", color=color.new(color.blue, 20))
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotchar(adx, title="ADX", char="•", location=location.top, color=color.new(color.purple, 70), size=size.tiny)

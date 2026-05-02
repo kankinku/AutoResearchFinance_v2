@@ -1,0 +1,16 @@
+{
+  "status": "available",
+  "summary": "Analyzed 11 losing trades. Largest loss cluster appeared in range.",
+  "topLossZones": [
+    "range:6",
+    "range:weak_exit:4",
+    "range_squeeze:3",
+    "range_squeeze:weak_exit:2",
+    "trend_up:2"
+  ],
+  "repairPriorities": [
+    "Reduce overextended entries when price is materially above EMA20.",
+    "Avoid late entries after short-window upside extension.",
+    "Tighten exit behavior when losing trades continue into deeper drawdown."
+  ]
+}

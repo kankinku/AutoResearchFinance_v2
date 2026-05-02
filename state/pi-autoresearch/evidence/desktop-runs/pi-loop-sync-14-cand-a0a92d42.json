@@ -1,0 +1,67 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": true,
+    "errors": []
+  },
+  "apply": {
+    "ok": true,
+    "message": "Pine strategy attached to chart.",
+    "attachDiagnostics": {
+      "expectedStudyTitle": "AF Mutation QQQ 120m [anti-extension + tighter exits] [cand-a0a92d42]",
+      "detectedStudyTitle": "AF Mutation QQQ 120m [anti-extension + tighter exits] [cand-a0a92d42]",
+      "exactTitleMatched": true,
+      "staleStudySuspected": false,
+      "recoveryActions": []
+    },
+    "fallbackActions": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mutation QQQ 120m [anti-extension + tighter exits] [cand-a0a92d42]",
+    "detectedStudyTitle": "AF Mutation QQQ 120m [anti-extension + tighter exits] [cand-a0a92d42]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "stateAfter": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Mutation QQQ 120m [anti-extension + tighter exits] [cand-a0a92d42] (21, 55, 14, 14, 16, 20, 2, 20, 1.5, 6, 1.2, 10, 14, 2.2, 3.6, 10, 4, 53, 47, false)",
+        "normalizedTitle": "AF Mutation QQQ 120m [anti-extension + tighter exits] [cand-a0a92d42]",
+        "metaDescription": "AF Mutation QQQ 120m [anti-extension + tighter exits] [cand-a0a92d42]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

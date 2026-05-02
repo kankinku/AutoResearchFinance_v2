@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.069Z",
+  "storageClasses": [
+    "policy",
+    "evidence",
+    "ledger",
+    "view",
+    "taxonomy",
+    "asset"
+  ]
+}

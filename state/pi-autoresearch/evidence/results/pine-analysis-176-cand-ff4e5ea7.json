@@ -1,0 +1,16 @@
+{
+  "status": "available",
+  "summary": "Pine mutation touched filter, exit logic across 2 conditions with broad scope. No-op risk is low.",
+  "changeScope": "broad",
+  "noOpRisk": "low",
+  "hypothesisAlignment": "aligned",
+  "materialChangeDetected": true,
+  "conditionCount": 2,
+  "changedLineCount": 395,
+  "changedRoles": [
+    "filter",
+    "exit"
+  ],
+  "blockingIssueCodes": [],
+  "warningIssueCodes": []
+}

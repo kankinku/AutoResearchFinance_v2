@@ -1,0 +1,51 @@
+//@version=5
+strategy("AF Mutation QQQ 120m [freq_restore_01] [cand-26953733]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(20, "Fast EMA", minval=2)
+slowLength = input.int(50, "Slow EMA", minval=3)
+trendLength = input.int(200, "Trend EMA", minval=20)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+lookbackPullback = input.int(6, "Pullback Lookback", minval=2)
+reboundBars = input.int(3, "RSI Rebound Bars", minval=1)
+minTrendSlopeBars = input.int(8, "Trend Slope Bars", minval=1)
+minAtrPct = input.float(0.35, "Min ATR %", minval=0.05, step=0.05)
+stopAtrMult = input.float(1.8, "Stop ATR Mult", minval=0.5, step=0.1)
+targetAtrMult = input.float(2.8, "Target ATR Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(24, "Max Bars In Trade", minval=2)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+trendEma = ta.ema(close, trendLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+atrPct = atrValue / close * 100.0
+
+trendUp = fastEma > slowEma and close > trendEma and trendEma > trendEma[minTrendSlopeBars]
+pullbackRecently = ta.lowest(low, lookbackPullback) <= fastEma
+reclaimFast = close > fastEma and close > open
+rsiRebound = rsiValue > 52 and ta.lowest(rsiValue, reboundBars) < 48
+priceMomentum = close > close[1]
+volatilityOk = atrPct >= minAtrPct
+
+longEntry = trendUp and pullbackRecently and reclaimFast and rsiRebound and priceMomentum and volatilityOk
+
+var int barsInTrade = 0
+barsInTrade := strategy.position_size > 0 ? nz(barsInTrade[1]) + 1 : 0
+
+longExitSignal = (close < slowEma and rsiValue < 47) or barsInTrade >= maxBarsInTrade
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0
+    stopPrice = strategy.position_avg_price - atrValue * stopAtrMult
+    limitPrice = strategy.position_avg_price + atrValue * targetAtrMult
+    strategy.exit("Long Exit", "Long", stop=stopPrice, limit=limitPrice)
+
+if longExitSignal and strategy.position_size > 0
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(trendEma, "Trend EMA", color=color.new(color.blue, 20))

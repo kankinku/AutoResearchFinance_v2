@@ -1,0 +1,55 @@
+[배치 시작] 작업 배치 실행 | 작업 배치를 시작합니다. batch: batch-463d2723, 목표: 10 | 2026-04-25T09:05:35.652Z
+-------task 01----------
+[반복 시작] 작업 배치 실행 task 01 | 반복을 시작합니다. iteration: 139, 기준 후보: cand-ae2377f7, 기준 점수: 0.7506 | 2026-04-25T09:05:35.709Z
+[가설 준비] 작업 배치 실행 task 01 | 가설을 준비했습니다. 다음 방향: Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Preserve parent tradability from 79 trades and keep at least 56 closed trades before optimizing other metrics. Recover tradability by loosening or removing existing entry filters, regime gates, cooldowns, or extension blockers before adding any new logic. If tradability has collapsed, change entry gating only; defer exit and subsystem rewrites until the trade floor is restored. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. In Pine, if regime == trend_down, require setupScore >= highTierThreshold for entry, or require close > fastEMA and ROC(len) > 0 before allowing longs; optionally reduce qty by 50% instead of blocking all entries. Avoid repeating repair priority "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries." again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority "Tighten exit behavior when losing trades continue into deeper drawdown." again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. | 2026-04-25T09:05:35.711Z
+[변형 브리프] 작업 배치 실행 task 01 | 변형 브리프를 준비했습니다. 최근 실패: compile_fail · hard_gate_fail · hard_gate_fail, 손실 구간: range_squeeze:weak_exit:1 · range:weak_exit:3 · trend_down:weak_exit:4 | 2026-04-25T09:05:35.711Z
+[변형 응답] 작업 배치 실행 task 01 | 변형 응답을 받았습니다. 응답 길이: 25553자 | 2026-04-25T09:07:44.822Z
+[변형 해석] 작업 배치 실행 task 01 | 변형 응답을 해석했습니다. 조건 수: 1, 요약: Entry-recovery mutation that preserves the AF seed exhaustion/confirmation/slot/replaceme… | 2026-04-25T09:07:44.833Z
+[생성 사전 점검] 작업 배치 실행 task 01 | Pine 생성 사전 점검을 마쳤습니다. 문제: 0, 차단: 0 | 2026-04-25T09:07:44.837Z
+[후보 저장] 작업 배치 실행 task 01 | 후보 아티팩트를 저장했습니다. 후보: cand-91d04def, 기준: cand-ae2377f7 | 2026-04-25T09:07:44.839Z
+[실행 대상 갱신] 작업 배치 실행 task 01 | 실행 대상 Pine 파일을 갱신했습니다. study: Exhaustion Signal - test [cand-entry-recovery-baseema] [can… | 2026-04-25T09:07:44.843Z
+[실행 표면 준비] 작업 배치 실행 task 01 | 평가 실행 표면 준비를 마쳤습니다. 대상: QQQ / 120 / candles | 2026-04-25T09:07:44.877Z
+[Pine 소스 반영] 작업 배치 실행 task 01 | Pine 소스를 반영했습니다. | 2026-04-25T09:07:44.922Z
+[컴파일] 작업 배치 실행 task 01 | 컴파일을 마쳤습니다. 성공 | 2026-04-25T09:07:49.096Z
+[전략 적용] 작업 배치 실행 task 01 | 전략 적용을 마쳤습니다. 성공, study: Exhaustion Signal - test [cand-entry-recovery-baseema] [can… | 2026-04-25T09:07:53.287Z
+[백테스트 지표] 작업 배치 실행 task 01 | 백테스트 지표를 수집했습니다. 거래: 79, 순이익: 31.106%, 수수료후: 31.106% | 2026-04-25T09:07:53.300Z
+[손실 구간 분석] 작업 배치 실행 task 01 | Loss-zone analysis completed 요약: Analyzed 8 losing trades. Largest loss cluster appeared in range_squeeze., 우선 조치: Prioritize faster loser exits in range … · Tighten exit behavior when losing trade… | 2026-04-25T09:07:53.362Z
+[목적 함수 평가] 작업 배치 실행 task 01 | 목적 함수를 평가했습니다. 결정: accepted_no_improvement, 점수: 0.7506 | 2026-04-25T09:07:53.364Z
+[조건 기여도 계산] 작업 배치 실행 task 01 | 조건별 기여도를 계산했습니다. 계산 수: 1 | 2026-04-25T09:10:12.266Z
+[상태 기록] 작업 배치 실행 task 01 | 실험 기록과 인덱스 재생성을 마쳤습니다. 후보: cand-91d04def, 결정: accepted_no_improvement, 점수: 0.7506 | 2026-04-25T09:10:12.307Z
+[배치 진행] 작업 배치 실행 task 01 | 작업 배치 진행 상황을 갱신했습니다. 완료: 1, 최근 결정: accepted_no_improvement, 런타임 실패: 0 | 2026-04-25T09:10:12.312Z
+-------task 02----------
+[반복 시작] 작업 배치 실행 task 02 | 반복을 시작합니다. iteration: 140, 기준 후보: cand-91d04def, 기준 점수: 0.7506 | 2026-04-25T09:10:12.369Z
+[가설 준비] 작업 배치 실행 task 02 | 가설을 준비했습니다. 다음 방향: Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Preserve parent tradability from 79 trades and keep at least 56 closed trades before optimizing other metrics. Recover tradability by loosening or removing existing entry filters, regime gates, cooldowns, or extension blockers before adding any new logic. If tradability has collapsed, change entry gating only; defer exit and subsystem rewrites until the trade floor is restored. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. In Pine, if regime == trend_down, require setupScore >= highTierThreshold for entry, or require close > fastEMA and ROC(len) > 0 before allowing longs; optionally reduce qty by 50% instead of blocking all entries. Avoid repeating repair priority "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries." again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority "Tighten exit behavior when losing trades continue into deeper drawdown." again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. | 2026-04-25T09:10:12.370Z
+[변형 브리프] 작업 배치 실행 task 02 | 변형 브리프를 준비했습니다. 최근 실패: compile_fail · hard_gate_fail · hard_gate_fail, 손실 구간: range_squeeze:weak_exit:1 · range:weak_exit:3 · trend_down:weak_exit:4 | 2026-04-25T09:10:12.371Z
+[변형 응답] 작업 배치 실행 task 02 | 변형 응답을 받았습니다. 응답 길이: 26159자 | 2026-04-25T09:12:28.439Z
+[변형 해석] 작업 배치 실행 task 02 | 변형 응답을 해석했습니다. 조건 수: 5, 요약: Accepted-head-preserving entry-recovery mutation with one localized change in the long-en… | 2026-04-25T09:12:28.448Z
+[생성 사전 점검] 작업 배치 실행 task 02 | Pine 생성 사전 점검을 마쳤습니다. 문제: 0, 차단: 0 | 2026-04-25T09:12:28.450Z
+[후보 저장] 작업 배치 실행 task 02 | 후보 아티팩트를 저장했습니다. 후보: cand-e6b085fe, 기준: cand-91d04def | 2026-04-25T09:12:28.452Z
+[실행 대상 갱신] 작업 배치 실행 task 02 | 실행 대상 Pine 파일을 갱신했습니다. study: Exhaustion Signal - test [cand-entry-recovery-baseema-rsi-r… | 2026-04-25T09:12:28.454Z
+[실행 표면 준비] 작업 배치 실행 task 02 | 평가 실행 표면 준비를 마쳤습니다. 대상: QQQ / 120 / candles | 2026-04-25T09:12:28.471Z
+[Pine 소스 반영] 작업 배치 실행 task 02 | Pine 소스를 반영했습니다. | 2026-04-25T09:12:28.504Z
+[컴파일] 작업 배치 실행 task 02 | 컴파일을 마쳤습니다. 성공 | 2026-04-25T09:12:32.574Z
+[전략 적용] 작업 배치 실행 task 02 | 전략 적용을 마쳤습니다. 성공, study: Exhaustion Signal - test [cand-entry-recovery-baseema-rsi-r… | 2026-04-25T09:12:36.758Z
+[백테스트 지표] 작업 배치 실행 task 02 | 백테스트 지표를 수집했습니다. 거래: 79, 순이익: 31.106%, 수수료후: 31.106% | 2026-04-25T09:12:36.772Z
+[손실 구간 분석] 작업 배치 실행 task 02 | Loss-zone analysis completed 요약: Analyzed 8 losing trades. Largest loss cluster appeared in range_squeeze., 우선 조치: Prioritize faster loser exits in range … · Tighten exit behavior when losing trade… | 2026-04-25T09:12:36.831Z
+[목적 함수 평가] 작업 배치 실행 task 02 | 목적 함수를 평가했습니다. 결정: accepted_no_improvement, 점수: 0.7506 | 2026-04-25T09:12:36.832Z
+[조건 기여도 계산] 작업 배치 실행 task 02 | 조건별 기여도를 계산했습니다. 계산 수: 4 | 2026-04-25T09:24:33.711Z
+[상태 기록] 작업 배치 실행 task 02 | 실험 기록과 인덱스 재생성을 마쳤습니다. 후보: cand-e6b085fe, 결정: accepted_no_improvement, 점수: 0.7506 | 2026-04-25T09:24:33.753Z
+[배치 진행] 작업 배치 실행 task 02 | 작업 배치 진행 상황을 갱신했습니다. 완료: 2, 최근 결정: accepted_no_improvement, 런타임 실패: 0 | 2026-04-25T09:24:33.757Z
+-------task 03----------
+[반복 시작] 작업 배치 실행 task 03 | 반복을 시작합니다. iteration: 141, 기준 후보: cand-e6b085fe, 기준 점수: 0.7506 | 2026-04-25T09:24:33.818Z
+[가설 준비] 작업 배치 실행 task 03 | 가설을 준비했습니다. 다음 방향: Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Preserve parent tradability from 79 trades and keep at least 56 closed trades before optimizing other metrics. Recover tradability by loosening or removing existing entry filters, regime gates, cooldowns, or extension blockers before adding any new logic. If tradability has collapsed, change entry gating only; defer exit and subsystem rewrites until the trade floor is restored. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. In Pine, if regime == trend_down, require setupScore >= highTierThreshold for entry, or require close > fastEMA and ROC(len) > 0 before allowing longs; optionally reduce qty by 50% instead of blocking all entries. Avoid repeating repair priority "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries." again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority "Tighten exit behavior when losing trades continue into deeper drawdown." again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. | 2026-04-25T09:24:33.819Z
+[변형 브리프] 작업 배치 실행 task 03 | 변형 브리프를 준비했습니다. 최근 실패: compile_fail · hard_gate_fail · hard_gate_fail, 손실 구간: range_squeeze:weak_exit:1 · range:weak_exit:3 · trend_down:weak_exit:4 | 2026-04-25T09:24:33.820Z
+[변형 응답] 작업 배치 실행 task 03 | 변형 응답을 받았습니다. 응답 길이: 25461자 | 2026-04-25T09:26:44.172Z
+[변형 해석] 작업 배치 실행 task 03 | 변형 응답을 해석했습니다. 조건 수: 5, 요약: Accepted-head-preserving entry-recovery mutation with one localized change in the long-en… | 2026-04-25T09:26:44.182Z
+[생성 사전 점검] 작업 배치 실행 task 03 | Pine 생성 사전 점검을 마쳤습니다. 문제: 0, 차단: 0 | 2026-04-25T09:26:44.184Z
+[후보 저장] 작업 배치 실행 task 03 | 후보 아티팩트를 저장했습니다. 후보: cand-ece798f5, 기준: cand-e6b085fe | 2026-04-25T09:26:44.186Z
+[실행 대상 갱신] 작업 배치 실행 task 03 | 실행 대상 Pine 파일을 갱신했습니다. study: Exhaustion Signal - test [cand-entry-recovery-b2-baseema-rs… | 2026-04-25T09:26:44.188Z
+[실행 표면 준비] 작업 배치 실행 task 03 | 평가 실행 표면 준비를 마쳤습니다. 대상: QQQ / 120 / candles | 2026-04-25T09:26:44.210Z
+[Pine 소스 반영] 작업 배치 실행 task 03 | Pine 소스를 반영했습니다. | 2026-04-25T09:26:44.245Z
+[컴파일] 작업 배치 실행 task 03 | 컴파일을 마쳤습니다. 성공 | 2026-04-25T09:26:48.341Z
+[전략 적용] 작업 배치 실행 task 03 | 전략 적용을 마쳤습니다. 성공, study: Exhaustion Signal - test [cand-entry-recovery-b2-baseema-rs… | 2026-04-25T09:26:52.500Z
+[백테스트 지표] 작업 배치 실행 task 03 | 백테스트 지표를 수집했습니다. 거래: 79, 순이익: 31.106%, 수수료후: 31.106% | 2026-04-25T09:26:52.506Z
+[손실 구간 분석] 작업 배치 실행 task 03 | Loss-zone analysis completed 요약: Analyzed 8 losing trades. Largest loss cluster appeared in range_squeeze., 우선 조치: Prioritize faster loser exits in range … · Tighten exit behavior when losing trade… | 2026-04-25T09:26:52.570Z
+[목적 함수 평가] 작업 배치 실행 task 03 | 목적 함수를 평가했습니다. 결정: accepted_no_improvement, 점수: 0.7506 | 2026-04-25T09:26:52.571Z

@@ -1,0 +1,67 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": true,
+    "errors": []
+  },
+  "apply": {
+    "ok": true,
+    "message": "Pine strategy attached to chart.",
+    "attachDiagnostics": {
+      "expectedStudyTitle": "AF Seed 01 Mutation [seed-exhaustion-restore-tight-exit] [cand-af-seed-rstr-01] [cand-3cade50b-fixed] [cand-943ca2e2]",
+      "detectedStudyTitle": "AF Seed 01 Mutation [seed-exhaustion-restore-tight-exit] [cand-af-seed-rstr-01] [cand-3cade50b-fixed] [cand-943ca2e2]",
+      "exactTitleMatched": true,
+      "staleStudySuspected": false,
+      "recoveryActions": []
+    },
+    "fallbackActions": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Seed 01 Mutation [seed-exhaustion-restore-tight-exit] [cand-af-seed-rstr-01] [cand-3cade50b-fixed] [cand-943ca2e2]",
+    "detectedStudyTitle": "AF Seed 01 Mutation [seed-exhaustion-restore-tight-exit] [cand-af-seed-rstr-01] [cand-3cade50b-fixed] [cand-943ca2e2]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "stateAfter": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Seed 01 Mutation [seed-exhaustion-restore-tight-exit] [cand-af-seed-rstr-01] [cand-3cade50b-fixed] [cand-943ca2e2] (21, 55, 14, 14, 14, 20, 8, 3, 2.2, 73, 49, 13, 2.2, 2.5, 20, 5, 1, -0.6, 18, 2.2, -0.2, -0.3, -0.95, 48, 3, 46, 53, 3, 50, 50, false)",
+        "normalizedTitle": "AF Seed 01 Mutation [seed-exhaustion-restore-tight-exit] [cand-af-seed-rstr-01] [cand-3cade50b-fixed] [cand-943ca2e2]",
+        "metaDescription": "AF Seed 01 Mutation [seed-exhaustion-restore-tight-exit] [cand-af-seed-rstr-01] [cand-3cade50b-fixed] [cand-943ca2e2]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

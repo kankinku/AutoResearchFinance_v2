@@ -1,0 +1,65 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut1 [cand-63d235ec]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLen = input.int(14, "ADX Length", minval=2)
+adxMin = input.float(16.0, "Min ADX", minval=1.0, step=0.5)
+atrLen = input.int(14, "ATR Length", minval=1)
+stopAtrMult = input.float(2.0, "Stop ATR Mult", minval=0.5, step=0.1)
+targetAtrMult = input.float(3.2, "Target ATR Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(24, "Max Bars In Trade", minval=1)
+maxExtPct = input.float(1.8, "Max Price Extension % Above Fast EMA", minval=0.2, step=0.1)
+maxRoc3Pct = input.float(2.2, "Max 3-Bar ROC %", minval=0.2, step=0.1)
+rsiEntryMin = input.float(53.0, "RSI Entry Min", minval=1, maxval=99, step=0.5)
+rsiEntryMax = input.float(68.0, "RSI Entry Max", minval=1, maxval=99, step=0.5)
+rsiExitWeak = input.float(47.0, "RSI Weak Exit", minval=1, maxval=99, step=0.5)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLen)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLen)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLen) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLen) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLen)
+
+priceExtPct = fastEma == 0.0 ? 0.0 : 100.0 * (close - fastEma) / fastEma
+roc3Pct = close[3] == 0.0 ? 0.0 : 100.0 * (close / close[3] - 1.0)
+trendUp = fastEma > slowEma
+antiChaseOk = priceExtPct < maxExtPct and roc3Pct < maxRoc3Pct and rsiValue < rsiEntryMax
+trendStrengthOk = adx > adxMin and plusDI > minusDI
+
+longEntry = ta.crossover(fastEma, slowEma) and rsiValue > rsiEntryMin and antiChaseOk and trendStrengthOk
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+inTrade = strategy.position_size > 0
+barsInTrade = inTrade ? (bar_index - strategy.opentrades.entry_bar_index(0)) : 0
+entryPrice = strategy.position_avg_price
+stopPrice = entryPrice - atrValue * stopAtrMult
+limitPrice = entryPrice + atrValue * targetAtrMult
+
+if inTrade
+    strategy.exit("L-ATR", "Long", stop=stopPrice, limit=limitPrice)
+
+momentumFailureExit = inTrade and close < fastEma and rsiValue < rsiExitWeak
+trendLossExit = inTrade and ta.crossunder(fastEma, slowEma)
+timeExit = inTrade and barsInTrade >= maxBarsInTrade
+hardLossExit = inTrade and close < entryPrice - atrValue * 1.25
+
+if momentumFailureExit or trendLossExit or timeExit or hardLossExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(momentumFailureExit or trendLossExit or timeExit or hardLossExit, title="Exit Signal", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

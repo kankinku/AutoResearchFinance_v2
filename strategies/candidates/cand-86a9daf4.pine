@@ -1,0 +1,89 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut1 [cand-86a9daf4]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.5, step=0.1)
+minBbWidthPct = input.float(0.012, "Min BB Width %", minval=0.0, step=0.001)
+entryRsiMin = input.float(52.0, "Entry RSI Min", minval=1, maxval=99, step=0.1)
+exitRsiMin = input.float(47.0, "Exit RSI Weak", minval=1, maxval=99, step=0.1)
+minAdx = input.float(14.0, "Min ADX", minval=1, maxval=100, step=0.5)
+initStopAtr = input.float(2.0, "Initial Stop ATR", minval=0.5, step=0.1)
+breakevenTriggerAtr = input.float(1.1, "Breakeven Trigger ATR", minval=0.2, step=0.1)
+trailTriggerAtr = input.float(1.6, "Trail Trigger ATR", minval=0.5, step=0.1)
+trailStopAtr = input.float(1.4, "Trail Stop ATR", minval=0.5, step=0.1)
+timeStopBars = input.int(18, "Time Stop Bars", minval=2)
+profitLockPct = input.float(0.003, "Profit Lock %", minval=0.0, step=0.001)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLength)
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = ta.stdev(close, bbLength) * bbMult
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+bbWidthPct = bbBasis == 0.0 ? 0.0 : (bbUpper - bbLower) / bbBasis
+
+trendUp = fastEma > slowEma and slowEma > slowEma[1]
+momentumOk = rsiValue > entryRsiMin and rsiValue > rsiValue[1]
+trendStrengthOk = adx > minAdx and plusDI > minusDI
+volatilityOk = bbWidthPct > minBbWidthPct
+
+longEntry = ta.crossover(fastEma, slowEma) and momentumOk and volatilityOk
+reEntry = trendUp and ta.crossover(close, fastEma) and rsiValue > entryRsiMin + 1 and trendStrengthOk and volatilityOk
+enterLong = (longEntry or reEntry) and strategy.position_size <= 0
+
+var int barsInTrade = 0
+var float peakHighInTrade = na
+
+inTrade = strategy.position_size > 0
+if inTrade
+    barsInTrade += 1
+    peakHighInTrade := na(peakHighInTrade) ? high : math.max(peakHighInTrade, high)
+else
+    barsInTrade := 0
+    peakHighInTrade := na
+
+if enterLong
+    strategy.entry("Long", strategy.long)
+
+avgPrice = strategy.position_avg_price
+openProfitAtr = inTrade and atrValue > 0 ? (close - avgPrice) / atrValue : 0.0
+hardStop = avgPrice - atrValue * initStopAtr
+breakevenStop = avgPrice * (1 + profitLockPct)
+trailStop = (na(peakHighInTrade) or not inTrade) ? na : peakHighInTrade - atrValue * trailStopAtr
+activeStop = hardStop
+if inTrade and openProfitAtr >= breakevenTriggerAtr
+    activeStop := math.max(activeStop, breakevenStop)
+if inTrade and openProfitAtr >= trailTriggerAtr and not na(trailStop)
+    activeStop := math.max(activeStop, trailStop)
+
+strategy.exit("XL", "Long", stop=activeStop)
+
+squeezeWeak = bbWidthPct < minBbWidthPct * 1.15 and adx < minAdx and rsiValue < 50
+momentumExit = ta.crossunder(fastEma, slowEma) or rsiValue < exitRsiMin or (adx < minAdx and minusDI > plusDI)
+timeExit = inTrade and barsInTrade >= timeStopBars and (close <= avgPrice or squeezeWeak)
+
+if momentumExit or timeExit
+    strategy.close("Long")
+
+plot(fastEma, color=color.new(color.teal, 0), title="Fast EMA")
+plot(slowEma, color=color.new(color.orange, 0), title="Slow EMA")
+plot(inTrade ? activeStop : na, color=color.new(color.red, 0), title="Active Stop", style=plot.style_linebr)
+plot(bbBasis, color=color.new(color.blue, 70), title="BB Basis")

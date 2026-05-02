@@ -1,0 +1,87 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut-exittight [cand-592eb6a8]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+entryRsiMin = input.float(53.0, "Entry RSI Min", step=0.1)
+exitRsiWeak = input.float(47.5, "Weak Exit RSI", step=0.1)
+adxMin = input.float(16.0, "ADX Min", step=0.1)
+adxMax = input.float(38.0, "ADX Max", step=0.1)
+diSpreadMin = input.float(1.5, "DI Spread Min", step=0.1)
+atrStopMult = input.float(2.2, "ATR Stop Mult", step=0.1)
+trailTriggerAtr = input.float(1.4, "Trail Trigger ATR", step=0.1)
+trailOffsetAtr = input.float(1.1, "Trail Offset ATR", step=0.1)
+timeStopBars = input.int(18, "Time Stop Bars", minval=1)
+lossExitAtr = input.float(1.0, "Fast Loss Exit ATR", step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adxValue = ta.rma(dx, adxLength)
+
+trendUp = fastEma > slowEma
+entrySignal = ta.crossover(fastEma, slowEma) and rsiValue > entryRsiMin
+regimeFilter = adxValue > adxMin and adxValue < adxMax and plusDI > minusDI and (plusDI - minusDI) > diSpreadMin
+longEntry = entrySignal and regimeFilter
+
+var int barsInTrade = 0
+var float highSinceEntry = na
+inPos = strategy.position_size > 0
+newLong = strategy.position_size > 0 and strategy.position_size[1] <= 0
+flatNow = strategy.position_size <= 0
+
+if flatNow
+    barsInTrade := 0
+    highSinceEntry := na
+else
+    barsInTrade := newLong ? 0 : barsInTrade + 1
+    highSinceEntry := newLong ? high : math.max(nz(highSinceEntry, high), high)
+
+entryPrice = strategy.position_avg_price
+openProfitAtr = inPos and atrValue > 0 ? (close - entryPrice) / atrValue : 0.0
+hardStopPrice = inPos ? entryPrice - atrStopMult * atrValue : na
+trailActive = inPos and highSinceEntry >= entryPrice + trailTriggerAtr * atrValue
+trailStopPrice = trailActive ? highSinceEntry - trailOffsetAtr * atrValue : na
+activeStopPrice = inPos ? math.max(hardStopPrice, nz(trailStopPrice, hardStopPrice)) : na
+
+weakMomentumExit = inPos and ((ta.crossunder(fastEma, slowEma)) or (rsiValue < exitRsiWeak and close < fastEma))
+fastLossExit = inPos and barsInTrade >= 2 and close < entryPrice - lossExitAtr * atrValue and rsiValue < 50
+trendUpStallExit = inPos and trendUp and adxValue > adxMax and rsiValue < 52 and close < fastEma
+rangeWeakExit = inPos and adxValue < adxMin and barsInTrade >= 4 and close < fastEma and rsiValue < 50
+timeExit = inPos and barsInTrade >= timeStopBars and openProfitAtr < 0.5
+stopExit = inPos and low <= activeStopPrice
+
+if longEntry and not inPos
+    strategy.entry("Long", strategy.long)
+
+if stopExit
+    strategy.close("Long", comment="Stop")
+else if fastLossExit
+    strategy.close("Long", comment="FastLoss")
+else if trendUpStallExit
+    strategy.close("Long", comment="TrendStall")
+else if rangeWeakExit
+    strategy.close("Long", comment="RangeWeak")
+else if timeExit
+    strategy.close("Long", comment="Time")
+else if weakMomentumExit
+    strategy.close("Long", comment="Weak")
+
+plot(fastEma, "Fast EMA", color=color.teal)
+plot(slowEma, "Slow EMA", color=color.orange)
+plot(inPos ? activeStopPrice : na, "Active Stop", color=color.red, style=plot.style_linebr)
+plotchar(longEntry, "Long Entry", "▲", location.belowbar, color=color.lime, size=size.tiny)
+plotchar(weakMomentumExit or fastLossExit or trendUpStallExit or rangeWeakExit or timeExit or stopExit, "Exit", "▼", location.abovebar, color=color.red, size=size.tiny)

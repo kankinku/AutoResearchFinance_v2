@@ -1,0 +1,79 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut-exit-tighten [cand-47fc289e]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+adxMin = input.float(16.0, "Min ADX For Entry", minval=1, step=0.5)
+atrLength = input.int(14, "ATR Length", minval=1)
+stopAtrMult = input.float(1.8, "Initial Stop ATR", minval=0.5, step=0.1)
+targetAtrMult = input.float(2.8, "Target ATR", minval=0.5, step=0.1)
+trailAtrMult = input.float(1.2, "Trail ATR After Activation", minval=0.3, step=0.1)
+trailActivateAtr = input.float(1.0, "Activate Trail At Profit ATR", minval=0.2, step=0.1)
+maxBarsInTrade = input.int(18, "Max Bars In Trade", minval=2)
+weakRsiExit = input.float(49.0, "Weak RSI Exit", minval=1, maxval=99, step=0.5)
+entryRsiMin = input.float(54.0, "Entry RSI Min", minval=1, maxval=99, step=0.5)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLength)
+
+slowSlopeUp = slowEma > slowEma[1]
+trendFilter = adx > adxMin and plusDI > minusDI and slowSlopeUp
+
+longEntry = ta.crossover(fastEma, slowEma) and rsiValue > entryRsiMin and trendFilter
+baseExit = ta.crossunder(fastEma, slowEma) or rsiValue < 48
+
+var int entryBarIndex = na
+var float highSinceEntry = na
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBarIndex := bar_index
+    highSinceEntry := high
+else if strategy.position_size > 0
+    highSinceEntry := na(highSinceEntry) ? high : math.max(highSinceEntry, high)
+else
+    entryBarIndex := na
+    highSinceEntry := na
+
+barsInTrade = na(entryBarIndex) ? 0 : (bar_index - entryBarIndex)
+entryPrice = strategy.position_avg_price
+openProfitAtr = strategy.position_size > 0 and atrValue > 0 ? (close - entryPrice) / atrValue : 0.0
+trailActive = strategy.position_size > 0 and openProfitAtr >= trailActivateAtr
+
+initialStop = entryPrice - atrValue * stopAtrMult
+profitTarget = entryPrice + atrValue * targetAtrMult
+trailStop = na(highSinceEntry) ? na : highSinceEntry - atrValue * trailAtrMult
+activeStop = trailActive and not na(trailStop) ? math.max(initialStop, trailStop) : initialStop
+
+strategy.exit("Long Risk Exit", "Long", stop=activeStop, limit=profitTarget)
+
+momentumFailureExit = strategy.position_size > 0 and barsInTrade >= 2 and rsiValue < weakRsiExit and close < fastEma
+trendFailureExit = strategy.position_size > 0 and adx < adxMin * 0.9 and close < fastEma and openProfitAtr < 0.5
+timeStopExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade and (close < fastEma or rsiValue < 52)
+deepLossExit = strategy.position_size > 0 and close < entryPrice - atrValue * 1.1 and rsiValue < 46
+
+if baseExit or momentumFailureExit or trendFailureExit or timeStopExit or deepLossExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0), linewidth=2)
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0), linewidth=2)
+plot(strategy.position_size > 0 ? activeStop : na, "Active Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plot(strategy.position_size > 0 ? profitTarget : na, "Profit Target", color=color.new(color.green, 0), style=plot.style_linebr)
+plot(adx, "ADX", color=color.new(color.blue, 0), display=display.none)
+plot(rsiValue, "RSI", color=color.new(color.purple, 0), display=display.none)

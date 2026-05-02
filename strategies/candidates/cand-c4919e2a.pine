@@ -1,0 +1,87 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mutA [cand-c4919e2a]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+ema20Length = input.int(20, "EMA20 Length", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.5, step=0.1)
+atrLength = input.int(14, "ATR Length", minval=2)
+maxAboveEmaPct = input.float(1.8, "Max % Above EMA20 For Entry", minval=0.2, step=0.1)
+maxShortRunPct = input.float(2.4, "Max 5-Bar Run-Up %", minval=0.5, step=0.1)
+minBbWidthPct = input.float(3.2, "Min BB Width %", minval=0.5, step=0.1)
+minAdx = input.float(16.0, "Min ADX", minval=5, step=0.5)
+entryRsiMin = input.float(53.0, "Entry RSI Min", minval=40, maxval=80, step=0.5)
+exitRsiWeak = input.float(47.0, "Weak RSI Exit", minval=20, maxval=60, step=0.5)
+atrStopMult = input.float(2.2, "ATR Stop Mult", minval=0.5, step=0.1)
+atrTrailTrigger = input.float(1.2, "ATR Profit Trigger", minval=0.5, step=0.1)
+atrTrailMult = input.float(1.6, "ATR Trail Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(36, "Max Bars In Trade", minval=4)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+ema20 = ta.ema(close, ema20Length)
+rsiValue = ta.rsi(close, rsiLength)
+atr = ta.atr(atrLength)
+
+basis = ta.sma(close, bbLength)
+dev = ta.stdev(close, bbLength)
+bbUpper = basis + bbMult * dev
+bbLower = basis - bbMult * dev
+bbWidthPct = basis != 0.0 ? (bbUpper - bbLower) / basis * 100.0 : 0.0
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+tr1 = high - low
+tr2 = math.abs(high - close[1])
+tr3 = math.abs(low - close[1])
+trueRange = math.max(tr1, math.max(tr2, tr3))
+smPlusDM = ta.rma(plusDM, adxLength)
+smMinusDM = ta.rma(minusDM, adxLength)
+smTR = ta.rma(trueRange, adxLength)
+plusDI = smTR != 0 ? 100 * smPlusDM / smTR : 0.0
+minusDI = smTR != 0 ? 100 * smMinusDM / smTR : 0.0
+dx = (plusDI + minusDI) != 0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLength)
+
+aboveEmaPct = ema20 != 0.0 ? (close - ema20) / ema20 * 100.0 : 0.0
+shortRunPct = close[5] != 0.0 ? (close - close[5]) / close[5] * 100.0 : 0.0
+trendUp = fastEma > slowEma and ema20 > ema20[1]
+trendQuality = adx > minAdx and plusDI > minusDI
+notOverextended = aboveEmaPct < maxAboveEmaPct and shortRunPct < maxShortRunPct
+notSqueezed = bbWidthPct > minBbWidthPct
+momentumOk = rsiValue > entryRsiMin
+
+longEntry = ta.crossover(fastEma, slowEma) and trendUp and trendQuality and momentumOk and notOverextended and notSqueezed
+
+var int barsInTrade = 0
+barsInTrade := strategy.position_size > 0 ? nz(barsInTrade[1]) + 1 : 0
+entryPrice = strategy.position_avg_price
+openProfitAtr = strategy.position_size > 0 and atr > 0 ? (close - entryPrice) / atr : 0.0
+trailActive = strategy.position_size > 0 and openProfitAtr > atrTrailTrigger
+trailStop = trailActive ? close - atr * atrTrailMult : na
+baseStop = strategy.position_size > 0 ? entryPrice - atr * atrStopMult : na
+activeStop = strategy.position_size > 0 ? (trailActive ? math.max(baseStop, trailStop) : baseStop) : na
+
+weakLossExit = strategy.position_size > 0 and close < ema20 and close < entryPrice and rsiValue < exitRsiWeak
+trendFailureExit = strategy.position_size > 0 and (ta.crossunder(fastEma, slowEma) or (adx < minAdx * 0.85 and rsiValue < 50))
+timeExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade and close < ta.highest(high, math.min(maxBarsInTrade, 20))
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and not na(activeStop)
+    strategy.exit("Long-Exit", "Long", stop=activeStop)
+
+if weakLossExit or trendFailureExit or timeExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.teal)
+plot(slowEma, "Slow EMA", color=color.orange)
+plot(ema20, "EMA20", color=color.blue)
+plot(bbUpper, "BB Upper", color=color.new(color.gray, 70))
+plot(bbLower, "BB Lower", color=color.new(color.gray, 70))

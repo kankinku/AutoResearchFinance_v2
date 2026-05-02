@@ -1,0 +1,57 @@
+//@version=5
+strategy("AF Mock Candidate [cand-mut-qqq120-extgate-exit] [cand-e07b8a71]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+trendLookback = input.int(10, "Trend Lookback", minval=2)
+extLookback = input.int(6, "Extension Lookback", minval=2)
+extAtrMult = input.float(1.0, "Max Short-Term Extension ATR", minval=0.2, step=0.1)
+entryRsiMin = input.float(53.0, "Entry RSI Min", minval=1, maxval=99, step=0.5)
+exitRsiSoft = input.float(49.0, "Soft Exit RSI", minval=1, maxval=99, step=0.5)
+stopAtrMult = input.float(2.0, "Stop ATR Mult", minval=0.5, step=0.1)
+targetAtrMult = input.float(3.2, "Target ATR Mult", minval=0.5, step=0.1)
+weakBars = input.int(6, "Weak Trade Timeout Bars", minval=1)
+weakLossAtr = input.float(0.6, "Weak Loss ATR Threshold", minval=0.1, step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+trendUp = fastEma > slowEma and fastEma > fastEma[trendLookback] and slowEma > slowEma[trendLookback]
+shortTermBase = ta.lowest(low, extLookback)
+upsideExtension = close - shortTermBase
+notLateExtension = upsideExtension <= atrValue * extAtrMult
+
+crossEntry = ta.crossover(fastEma, slowEma)
+pullbackTrendEntry = trendUp and close > fastEma and close[1] <= fastEma[1] and rsiValue > entryRsiMin
+longEntry = (crossEntry or pullbackTrendEntry) and rsiValue > entryRsiMin and notLateExtension
+
+hardTrendLossExit = strategy.position_size > 0 and close < slowEma and rsiValue < exitRsiSoft
+emaCrossExit = ta.crossunder(fastEma, slowEma)
+
+var int entryBarIndex = na
+if longEntry and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBarIndex := bar_index
+if strategy.position_size == 0
+    entryBarIndex := na
+
+barsInTrade = strategy.position_size > 0 and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+avgPrice = strategy.position_avg_price
+stopPrice = avgPrice - atrValue * stopAtrMult
+targetPrice = avgPrice + atrValue * targetAtrMult
+strategy.exit("XL", "Long", stop=stopPrice, limit=targetPrice)
+
+weakTradeExit = strategy.position_size > 0 and barsInTrade >= weakBars and close < avgPrice and (avgPrice - close) > atrValue * weakLossAtr
+softMomentumExit = strategy.position_size > 0 and barsInTrade >= 2 and rsiValue < exitRsiSoft and close < fastEma
+
+if emaCrossExit or hardTrendLossExit or weakTradeExit or softMomentumExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))

@@ -1,0 +1,56 @@
+{
+  "strategy": null,
+  "trades": [],
+  "equity": {
+    "available": false,
+    "pointsAvailable": false,
+    "pointCount": 0,
+    "finalEquity": null,
+    "maxDrawdownPercent": null,
+    "points": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Seed 01 Mutation [seed-preserve-exhaustion-freq-restore] [cand-mut-qqq-120m-01] [cand-892cbf82-fixed] [cand-b3901fde]",
+    "detectedStudyTitle": "AF Seed 01 Mutation [seed-preserve-exhaustion-freq-restore] [cand-mut-qqq-120m-01] [cand-892cbf82-fixed] [cand-b3901fde]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "state": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Seed 01 Mutation [seed-preserve-exhaustion-freq-restore] [cand-mut-qqq-120m-01] [cand-892cbf82-fixed] [cand-b3901fde] (21, 55, 14, 14, 14, 20, 3, 46, 42, 48, 14, 18, 2.4, 2, 0.35, -0.45, 2.2, 2.5, 18, 5, 0.95, -0.55, -0.15, -0.3, -0.9, 48, false)",
+        "normalizedTitle": "AF Seed 01 Mutation [seed-preserve-exhaustion-freq-restore] [cand-mut-qqq-120m-01] [cand-892cbf82-fixed] [cand-b3901fde]",
+        "metaDescription": "AF Seed 01 Mutation [seed-preserve-exhaustion-freq-restore] [cand-mut-qqq-120m-01] [cand-892cbf82-fixed] [cand-b3901fde]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-04-27T16:54:20.737Z",
+  "timestamp": "2026-04-27T16-54-20-723Z",
+  "knownGood": {
+    "status": "failed",
+    "recordedAt": "2026-04-27T16:54:20.734Z",
+    "message": "AF_TV_E2E_CANDIDATE_PATH must be set for TradingView E2E runs."
+  },
+  "knownBad": {
+    "status": "failed",
+    "recordedAt": "2026-04-27T16:54:20.737Z",
+    "message": "AF_TV_E2E_CANDIDATE_PATH must be set for TradingView E2E runs."
+  }
+}

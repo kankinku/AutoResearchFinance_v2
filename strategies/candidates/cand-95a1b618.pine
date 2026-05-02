@@ -1,0 +1,87 @@
+//@version=5
+strategy("AF Mock Candidate [cand-mut-range-guard] [cand-95a1b618]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+baseRsiEntry = input.float(54.0, "Base RSI Entry", step=0.1)
+baseRsiExit = input.float(48.0, "Base RSI Exit", step=0.1)
+extAtrLimit = input.float(1.8, "Max Extension ATR", step=0.1)
+chaseLookback = input.int(4, "Short Extension Lookback", minval=1)
+chaseRsiMax = input.float(68.0, "Max RSI For Entry", step=0.1)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", step=0.1)
+minBbWidth = input.float(0.035, "Min BB Width", step=0.001)
+stopAtrMult = input.float(2.2, "Stop ATR Mult", step=0.1)
+trailAtrMult = input.float(2.8, "Trail ATR Mult", step=0.1)
+failBars = input.int(6, "Fail Exit Bars", minval=1)
+failAtrFrac = input.float(0.35, "Fail Exit ATR Fraction", step=0.05)
+useAdxFilter = input.bool(true, "Use ADX Trend Filter")
+adxLen = input.int(14, "ADX Length", minval=2)
+minAdx = input.float(16.0, "Min ADX", step=0.5)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = ta.stdev(close, bbLength) * bbMult
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+bbWidth = bbBasis != 0.0 ? (bbUpper - bbLower) / bbBasis : 0.0
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trComp1 = high - low
+trComp2 = math.abs(high - close[1])
+trComp3 = math.abs(low - close[1])
+trueRange = math.max(trComp1, math.max(trComp2, trComp3))
+smPlusDM = ta.rma(plusDM, adxLen)
+smMinusDM = ta.rma(minusDM, adxLen)
+smTR = ta.rma(trueRange, adxLen)
+plusDI = smTR != 0 ? 100 * smPlusDM / smTR : 0.0
+minusDI = smTR != 0 ? 100 * smMinusDM / smTR : 0.0
+dx = (plusDI + minusDI) != 0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLen)
+
+trendUp = fastEma > slowEma and slowEma > slowEma[1]
+notRange = bbWidth > minBbWidth
+adxPass = not useAdxFilter or adx > minAdx
+
+emaExtensionAtr = atrValue != 0.0 ? (close - fastEma) / atrValue : 0.0
+shortRunUp = ta.rising(close, chaseLookback)
+lateExtensionBlock = emaExtensionAtr > extAtrLimit or (shortRunUp and rsiValue > chaseRsiMax)
+
+longEntry = ta.crossover(fastEma, slowEma) and rsiValue > baseRsiEntry and trendUp and notRange and adxPass and not lateExtensionBlock
+
+var int barsInTrade = 0
+barsInTrade := strategy.position_size > 0 ? barsInTrade + 1 : 0
+
+entryPrice = strategy.position_avg_price
+openProfitAtr = strategy.position_size > 0 and atrValue != 0.0 ? (close - entryPrice) / atrValue : 0.0
+failExit = strategy.position_size > 0 and barsInTrade >= failBars and openProfitAtr < failAtrFrac and close < fastEma
+momentumLossExit = strategy.position_size > 0 and (ta.crossunder(fastEma, slowEma) or rsiValue < baseRsiExit or (close < fastEma and rsiValue < 50 and emaExtensionAtr < 0))
+
+highestSinceEntry = ta.highest(high, math.max(barsInTrade, 1))
+trailStop = highestSinceEntry - atrValue * trailAtrMult
+hardStop = entryPrice - atrValue * stopAtrMult
+activeStop = strategy.position_size > 0 ? math.max(hardStop, trailStop) : na
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0
+    strategy.exit("XL", "Long", stop=activeStop)
+
+if failExit or momentumLossExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(strategy.position_size > 0 ? activeStop : na, "Active Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plot(bbUpper, "BB Upper", color=color.new(color.blue, 80))
+plot(bbLower, "BB Lower", color=color.new(color.blue, 80))

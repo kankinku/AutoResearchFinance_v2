@@ -1,0 +1,86 @@
+//@version=5
+strategy("AF Mutation [qqq_120m_freq_restore_01] [cand-c46d394b]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(20, "Fast EMA", minval=2)
+slowLength = input.int(50, "Slow EMA", minval=3)
+trendLength = input.int(200, "Trend EMA", minval=20)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+atrStopMult = input.float(2.6, "ATR Stop Mult", minval=0.5, step=0.1)
+atrTrailMult = input.float(3.2, "ATR Trail Mult", minval=0.5, step=0.1)
+profitATRMult = input.float(5.0, "ATR Profit Trigger", minval=0.5, step=0.1)
+pullbackLookback = input.int(5, "Pullback Lookback", minval=1)
+cooldownBars = input.int(3, "Cooldown Bars", minval=0)
+maxBarsInTrade = input.int(36, "Max Bars In Trade", minval=1)
+adxLen = input.int(14, "ADX Length", minval=2)
+minAdx = input.float(16.0, "Min ADX", minval=1.0, step=0.5)
+useAdxFilter = input.bool(true, "Use ADX Filter")
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+trendEma = ta.ema(close, trendLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trComp1 = high - low
+trComp2 = math.abs(high - close[1])
+trComp3 = math.abs(low - close[1])
+trueRange = math.max(trComp1, math.max(trComp2, trComp3))
+smPlusDM = ta.rma(plusDM, adxLen)
+smMinusDM = ta.rma(minusDM, adxLen)
+smTR = ta.rma(trueRange, adxLen)
+plusDI = smTR != 0 ? 100 * smPlusDM / smTR : 0
+minusDI = smTR != 0 ? 100 * smMinusDM / smTR : 0
+dx = (plusDI + minusDI) != 0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0
+adxValue = ta.rma(dx, adxLen)
+
+trendUp = fastEma > slowEma and close > trendEma
+momentumOk = rsiValue > 52 and rsiValue > rsiValue[1]
+pullbackOk = ta.lowest(low, pullbackLookback) <= fastEma * 1.003
+reclaimOk = close > fastEma and close > open
+adxOk = not useAdxFilter or adxValue > minAdx
+
+var int lastExitBar = na
+cooldownOk = na(lastExitBar) or bar_index - lastExitBar > cooldownBars
+
+longEntry = trendUp and momentumOk and pullbackOk and reclaimOk and adxOk and cooldownOk and strategy.position_size <= 0
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+var int barsInTrade = 0
+var float highestSinceEntry = na
+
+if strategy.position_size > 0
+    barsInTrade := strategy.position_size[1] <= 0 ? 0 : nz(barsInTrade[1]) + 1
+    highestSinceEntry := strategy.position_size[1] <= 0 ? high : math.max(nz(highestSinceEntry[1], high), high)
+else
+    barsInTrade := 0
+    highestSinceEntry := na
+
+entryPrice = strategy.position_avg_price
+stopPrice = strategy.position_size > 0 ? entryPrice - atrValue * atrStopMult : na
+trailPrice = strategy.position_size > 0 and not na(highestSinceEntry) ? highestSinceEntry - atrValue * atrTrailMult : na
+activeStop = strategy.position_size > 0 ? math.max(stopPrice, trailPrice) : na
+strategy.exit("Long Exit", "Long", stop=activeStop)
+
+profitTriggerReached = strategy.position_size > 0 and close >= entryPrice + atrValue * profitATRMult
+trendFail = strategy.position_size > 0 and (close < slowEma or rsiValue < 46 or plusDI < minusDI)
+timeExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+
+if profitTriggerReached or trendFail or timeExit
+    strategy.close("Long")
+
+justClosed = strategy.position_size == 0 and strategy.position_size[1] > 0
+if justClosed
+    lastExitBar := bar_index
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(trendEma, "Trend EMA", color=color.new(color.blue, 40))
+plot(activeStop, "Active Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)

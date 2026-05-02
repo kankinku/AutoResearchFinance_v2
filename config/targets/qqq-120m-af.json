@@ -1,0 +1,11 @@
+{
+  "id": "qqq-120m-af",
+  "symbol": "QQQ",
+  "timeframe": "120",
+  "strategyFamily": "AF",
+  "primaryExecutor": "local-af-backtest",
+  "externalCalibrationExecutor": "tradingview",
+  "objectivePolicyFile": "objective.qqq-120m.json",
+  "noveltyPolicy": "autonomous-local-first/v3",
+  "calibrationPolicy": "tv-optional-local-primary/v1"
+}

@@ -1,0 +1,100 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mutA [cand-7a8b177b]-fix [cand-791e00d3]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+adxMin = input.float(18.0, "Min ADX", step=0.1)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", step=0.1)
+minBbWidthPct = input.float(0.035, "Min BB Width %", step=0.001)
+atrLength = input.int(14, "ATR Length", minval=1)
+initialStopATR = input.float(2.1, "Initial Stop ATR", step=0.1)
+trailStopATR = input.float(2.6, "Trail Stop ATR", step=0.1)
+failExitBars = input.int(8, "Fail Exit Bars", minval=1)
+failExitATR = input.float(0.7, "Fail Exit ATR", step=0.1)
+breakevenATR = input.float(1.0, "Breakeven Trigger ATR", step=0.1)
+profitLockATR = input.float(1.8, "Profit Lock Trigger ATR", step=0.1)
+profitLockOffsetATR = input.float(0.5, "Profit Lock Offset ATR", step=0.1)
+maxRsiEntry = input.float(72.0, "Max RSI Entry", step=0.1)
+minRsiEntry = input.float(54.0, "Min RSI Entry", step=0.1)
+exitRsi = input.float(48.0, "Exit RSI", step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atr = ta.atr(atrLength)
+
+basis = ta.sma(close, bbLength)
+dev = bbMult * ta.stdev(close, bbLength)
+bbUpper = basis + dev
+bbLower = basis - dev
+bbWidthPct = basis != 0.0 ? (bbUpper - bbLower) / basis : 0.0
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur != 0.0 ? 100.0 * ta.rma(plusDM, adxLength) / trur : 0.0
+minusDI = trur != 0.0 ? 100.0 * ta.rma(minusDM, adxLength) / trur : 0.0
+dx = (plusDI + minusDI) != 0.0 ? 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLength)
+
+trendUp = fastEma > slowEma and slowEma > slowEma[1]
+emaSpreadRising = (fastEma - slowEma) > (fastEma[1] - slowEma[1])
+notSqueeze = bbWidthPct > minBbWidthPct
+trendStrengthOk = adx > adxMin and plusDI > minusDI
+entrySignal = ta.crossover(fastEma, slowEma) and rsiValue > minRsiEntry and rsiValue < maxRsiEntry
+longEntry = entrySignal and trendUp and (trendStrengthOk or emaSpreadRising) and notSqueeze
+
+var int entryBar = na
+var float highestSinceEntry = na
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBar := bar_index
+    highestSinceEntry := high
+else if strategy.position_size > 0
+    highestSinceEntry := na(highestSinceEntry) ? high : math.max(highestSinceEntry, high)
+else
+    entryBar := na
+    highestSinceEntry := na
+
+inPos = strategy.position_size > 0
+avgPrice = strategy.position_avg_price
+barsInTrade = inPos and not na(entryBar) ? bar_index - entryBar : 0
+openProfitAtr = inPos and atr != 0.0 ? (close - avgPrice) / atr : 0.0
+
+initialStop = inPos ? avgPrice - initialStopATR * atr : na
+trailStop = inPos and not na(highestSinceEntry) ? highestSinceEntry - trailStopATR * atr : na
+breakevenStop = inPos and openProfitAtr >= breakevenATR ? avgPrice : na
+profitLockStop = inPos and openProfitAtr >= profitLockATR ? avgPrice + profitLockOffsetATR * atr : na
+
+float stopPrice = na
+if inPos
+    stopPrice := initialStop
+    if not na(trailStop)
+        stopPrice := math.max(stopPrice, trailStop)
+    if not na(breakevenStop)
+        stopPrice := math.max(stopPrice, breakevenStop)
+    if not na(profitLockStop)
+        stopPrice := math.max(stopPrice, profitLockStop)
+
+strategy.exit("LX", "Long", stop=stopPrice)
+
+failExit = inPos and barsInTrade >= failExitBars and close < avgPrice + failExitATR * atr
+weakRegimeExit = inPos and bbWidthPct < minBbWidthPct * 0.9 and adx < adxMin
+signalExit = inPos and (ta.crossunder(fastEma, slowEma) or rsiValue < exitRsi)
+
+if failExit or weakRegimeExit or signalExit
+    strategy.close("Long")
+
+plot(fastEma, color=color.teal, title="Fast EMA")
+plot(slowEma, color=color.orange, title="Slow EMA")
+plot(inPos ? stopPrice : na, color=color.red, title="Active Stop")
+plot(bbWidthPct, color=color.blue, title="BB Width %", display=display.none)
+plot(adx, color=color.purple, title="ADX", display=display.none)

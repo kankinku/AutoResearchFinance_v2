@@ -1,0 +1,10 @@
+[배치 시작] 작업 배치 실행 | 작업 배치를 시작합니다. batch: batch-9040485c, 목표: 10 | 2026-04-25T13:51:50.801Z
+[task.system_check] 작업 배치 실행 | Running task batch system checks | 2026-04-25T13:51:50.833Z
+[실행 오류] 작업 배치 실행 | 작업 중 오류가 발생했습니다. [
+  {
+    "origin": "number",
+    "code": "too_small",
+    "minimum": 0,
+    "inclusive": false,
+    "path": [
+      "i… 시스템 로그: C:\Users\hanji\Desktop\AF\state\pi-autoresearch\evidence\traces\run-tasks-2026-04-25T13-51-46-773Z-trace-c6d08067.jsonl | 2026-04-25T13:53:22.442Z

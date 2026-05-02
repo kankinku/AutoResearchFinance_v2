@@ -1,0 +1,102 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mutA [cand-31ec46b1]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.5, step=0.1)
+kcLength = input.int(20, "KC Length", minval=5)
+kcMult = input.float(1.5, "KC Mult", minval=0.5, step=0.1)
+entryExtensionAtr = input.float(0.9, "Max Entry Extension ATR", minval=0.1, step=0.05)
+entryExtensionPct = input.float(2.2, "Max Entry Extension % Above Fast EMA", minval=0.2, step=0.1)
+minAdx = input.float(16.0, "Min ADX", minval=5, step=0.5)
+stopAtrMult = input.float(1.8, "Stop ATR Mult", minval=0.5, step=0.1)
+trailAtrMult = input.float(2.4, "Trail ATR Mult", minval=0.5, step=0.1)
+breakevenTriggerAtr = input.float(1.0, "Breakeven Trigger ATR", minval=0.2, step=0.1)
+maxHoldBars = input.int(28, "Max Hold Bars", minval=2)
+failureBars = input.int(8, "Failure Exit Bars", minval=2)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+tr = ta.tr(true)
+trRma = ta.rma(tr, adxLength)
+plusDI = trRma != 0 ? 100 * ta.rma(plusDM, adxLength) / trRma : 0.0
+minusDI = trRma != 0 ? 100 * ta.rma(minusDM, adxLength) / trRma : 0.0
+dx = (plusDI + minusDI) != 0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLength)
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = bbMult * ta.stdev(close, bbLength)
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+kcBasis = ta.ema(close, kcLength)
+kcRange = ta.ema(ta.tr(true), kcLength)
+kcUpper = kcBasis + kcMult * kcRange
+kcLower = kcBasis - kcMult * kcRange
+squeezeOn = bbUpper < kcUpper and bbLower > kcLower
+narrowRange = atrValue / close < 0.012
+rangeSqueeze = squeezeOn and adx < minAdx + 2 and narrowRange
+
+trendUp = fastEma > slowEma and slowEma > slowEma[1]
+freshCross = ta.crossover(fastEma, slowEma) or (fastEma > slowEma and ta.barssince(ta.crossover(fastEma, slowEma)) <= 3)
+notLateByAtr = (close - fastEma) / atrValue <= entryExtensionAtr
+notLateByPct = ((close / fastEma) - 1.0) * 100 <= entryExtensionPct
+rsiConfirm = rsiValue > 52 and rsiValue < 72
+momentumConfirm = close > close[1] and plusDI > minusDI
+longEntry = trendUp and freshCross and notLateByAtr and notLateByPct and rsiConfirm and momentumConfirm and adx > minAdx and not rangeSqueeze
+
+var int entryBar = na
+var float highSinceEntry = na
+var float stopPrice = na
+var float trailStop = na
+var float takeStop = na
+
+if strategy.position_size <= 0
+    entryBar := na
+    highSinceEntry := na
+    stopPrice := na
+    trailStop := na
+    takeStop := na
+
+if longEntry and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0
+    if na(entryBar)
+        entryBar := bar_index
+        highSinceEntry := high
+    else
+        highSinceEntry := math.max(highSinceEntry, high)
+
+    avgPrice = strategy.position_avg_price
+    barsHeld = bar_index - entryBar
+    openProfitAtr = (highSinceEntry - avgPrice) / atrValue
+    baseStop = avgPrice - atrValue * stopAtrMult
+    beStop = openProfitAtr >= breakevenTriggerAtr ? avgPrice : baseStop
+    dynTrail = highSinceEntry - atrValue * trailAtrMult
+    stopPrice := math.max(baseStop, beStop)
+    trailStop := math.max(stopPrice, dynTrail)
+    takeStop := trailStop
+    strategy.exit("XL", "Long", stop=takeStop)
+
+    weakProgress = barsHeld >= failureBars and close < avgPrice and close < fastEma
+    timeExit = barsHeld >= maxHoldBars
+    trendExit = ta.crossunder(fastEma, slowEma) or rsiValue < 46 or (adx < minAdx and close < fastEma)
+    if weakProgress or timeExit or trendExit
+        strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(strategy.position_size > 0 ? takeStop : na, "Active Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plotshape(longEntry and strategy.position_size == 0, title="Long Signal", style=shape.triangleup, location=location.belowbar, color=color.new(color.lime, 0), size=size.tiny)
+bgcolor(rangeSqueeze ? color.new(color.red, 90) : na)

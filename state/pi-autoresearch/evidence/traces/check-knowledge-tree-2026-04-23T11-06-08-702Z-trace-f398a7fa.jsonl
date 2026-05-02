@@ -1,0 +1,1 @@
+{"timestamp":"2026-04-23T11:06:08.720Z","command":"check-knowledge-tree","event":"knowledge.audit","message":"Knowledge tree audited","details":{"auditOk":true,"totalEntries":19,"missingEntries":0,"legacyRootArtifacts":["experiments.jsonl","incidents.jsonl","leaderboard.json","lineage.json","frontier.json","mutations","traces"]},"taskNumber":null}

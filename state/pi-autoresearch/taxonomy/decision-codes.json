@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.069Z",
+  "decisionCodes": [
+    "compile_fail",
+    "mutation_generation_fail",
+    "apply_fail",
+    "backtest_empty",
+    "hard_gate_fail",
+    "soft_regress",
+    "accepted_improvement",
+    "accepted_no_improvement"
+  ]
+}

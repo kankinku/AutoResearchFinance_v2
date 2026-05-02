@@ -1,0 +1,67 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": true,
+    "errors": []
+  },
+  "apply": {
+    "ok": true,
+    "message": "Pine strategy attached to chart.",
+    "attachDiagnostics": {
+      "expectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852]",
+      "detectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852]",
+      "exactTitleMatched": true,
+      "staleStudySuspected": false,
+      "recoveryActions": []
+    },
+    "fallbackActions": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852]",
+    "detectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "stateAfter": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852] (18, 50, 14, 14, 14, 6, 4, 10, 50, 44, 16, 2, 2.6, 4.2, 22, false)",
+        "normalizedTitle": "AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852]",
+        "metaDescription": "AF Mock Candidate [cand-3c7d9856]-mut-2 [cand-hardgate-pass-attempt] [cand-0695f401] [cand-1698a852]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

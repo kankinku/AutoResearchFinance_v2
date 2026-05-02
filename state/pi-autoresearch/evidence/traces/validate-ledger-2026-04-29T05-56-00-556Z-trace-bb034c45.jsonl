@@ -1,0 +1,1 @@
+{"timestamp":"2026-04-29T05:56:00.816Z","command":"validate-ledger","event":"ledger.validation","message":"Ledger validation completed","details":{"stateRoot":"C:\\Temp\\af-audit-fresh-20260429b","ok":true,"errorCount":0,"warningCount":0},"taskNumber":null}

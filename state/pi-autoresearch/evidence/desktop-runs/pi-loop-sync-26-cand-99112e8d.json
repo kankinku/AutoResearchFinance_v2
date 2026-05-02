@@ -1,0 +1,67 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": true,
+    "errors": []
+  },
+  "apply": {
+    "ok": true,
+    "message": "Pine strategy attached to chart.",
+    "attachDiagnostics": {
+      "expectedStudyTitle": "AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d]",
+      "detectedStudyTitle": "AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d]",
+      "exactTitleMatched": true,
+      "staleStudySuspected": false,
+      "recoveryActions": []
+    },
+    "fallbackActions": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d]",
+    "detectedStudyTitle": "AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "stateAfter": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d] (21, 55, 14, 14, 14, 20, 2, 20, 1.5, 53, 47, 2, 3.2, 1.2, 1, 24, 16, false)",
+        "normalizedTitle": "AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d]",
+        "metaDescription": "AF Mutation Range-Squeeze Exit Tightener [cand-99112e8d]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

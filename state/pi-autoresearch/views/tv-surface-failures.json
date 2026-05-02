@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.781Z",
+  "entries": [
+    {
+      "candidateId": "cand-c6235b65",
+      "decision": "tv_surface_failure",
+      "iteration": 279,
+      "fingerprintFamily": "22a182d8c6cc683a3264c2cfd8718ee3f5a6f41d1e7165c2e91073d7bb543ac9",
+      "localConfidence": 1,
+      "recordedAt": "2026-04-29T18:46:19.526Z"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+﻿◇ injected env (11) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+{
+  "activeChampionCandidateId": null,
+  "activeChampionScore": null,
+  "activeChampionDecision": null,
+  "selectedBy": null,
+  "selectionPolicyVersion": null,
+  "objectivePolicyVersion": null,
+  "headEventCount": 0,
+  "archiveEventCount": 0,
+  "calibrationEventCount": 1,
+  "problemEventCount": 3,
+  "repairAttemptCount": 0,
+  "localEvaluationCount": 3,
+  "tvVerificationCount": 0,
+  "pendingCalibrationCandidateCount": 1,
+  "pendingCalibrationCandidateIds": [
+    "cand-7754f279"
+  ],
+  "recentProblemKinds": [
+    "local_backtest_fail",
+    "local_backtest_fail",
+    "local_backtest_fail"
+  ],
+  "recentRepairResults": [],
+  "nextPlannedAction": "mutation_prompt_adjustment",
+  "tvHealth": "healthy",
+  "loopMode": "local-first",
+  "defaultOperationalView": "v3_autonomous_local_first",
+  "tracePath": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\traces\\inspect-autonomous-state-2026-04-28T17-10-01-902Z-trace-504cf45f.jsonl"
+}

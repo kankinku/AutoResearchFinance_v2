@@ -1,0 +1,2 @@
+{"timestamp":"2026-04-28T17:10:04.138Z","command":"rebuild-indexes","event":"indexes.start","message":"Rebuilding derived indexes","details":{"stateRoot":"C:\\Temp\\af-stage4-baseline-fresh"},"taskNumber":null}
+{"timestamp":"2026-04-28T17:10:04.223Z","command":"rebuild-indexes","event":"indexes.done","message":"Derived indexes rebuilt","details":{"stateRoot":"C:\\Temp\\af-stage4-baseline-fresh","verificationOk":true},"taskNumber":null}

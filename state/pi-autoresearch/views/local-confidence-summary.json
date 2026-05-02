@@ -1,0 +1,282 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.780Z",
+  "totalUpdates": 27,
+  "familyCount": 24,
+  "recentCalibrationSummary": "Calibration history is active across 24 structure families and 27 confidence updates.",
+  "highDivergenceFamilies": [],
+  "lowDivergenceFamilies": [
+    "3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d",
+    "0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a",
+    "bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d",
+    "350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6",
+    "52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a"
+  ],
+  "confidenceAdjustmentSummary": "Positive local confidence is active for 5 families; divergence penalties are active for 0 families with repeated drift.",
+  "calibrationAwareInstruction": "Prefer low-divergence families first: 3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d, 0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a, bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d, 350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6, 52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a. No high-divergence family is currently penalized.",
+  "families": [
+    {
+      "structureFamilyHash": "3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-a64998af",
+      "sourceCalibrationEventId": "calibration-f200b703",
+      "recordedAt": "2026-04-29T11:39:11.637Z"
+    },
+    {
+      "structureFamilyHash": "0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 4,
+      "candidateId": "cand-168c9d66",
+      "sourceCalibrationEventId": "calibration-37174bab",
+      "recordedAt": "2026-04-29T11:37:17.705Z"
+    },
+    {
+      "structureFamilyHash": "bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-9b5164cd",
+      "sourceCalibrationEventId": "calibration-64f6f720",
+      "recordedAt": "2026-04-29T11:35:20.903Z"
+    },
+    {
+      "structureFamilyHash": "350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-41e96726",
+      "sourceCalibrationEventId": "calibration-3587eef2",
+      "recordedAt": "2026-04-29T11:33:25.208Z"
+    },
+    {
+      "structureFamilyHash": "52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-967670ff",
+      "sourceCalibrationEventId": "calibration-177f6f7c",
+      "recordedAt": "2026-04-29T11:31:30.621Z"
+    },
+    {
+      "structureFamilyHash": "7fa4f1cf67a05fd95cd3269e70e9aee4b3d4de178f941ee5d9c0f10585f9624e",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-cc7aba92",
+      "sourceCalibrationEventId": "calibration-ab8939e4",
+      "recordedAt": "2026-04-29T11:07:06.728Z"
+    },
+    {
+      "structureFamilyHash": "fd477e320eddbc1bfdf06fe41ffbd4bf1bfd6c5b96a9a1af46dd53872a37e118",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-f6ae3e86",
+      "sourceCalibrationEventId": "calibration-b05b408a",
+      "recordedAt": "2026-04-29T11:04:10.540Z"
+    },
+    {
+      "structureFamilyHash": "33f41e65fe5ad64afe747fd245850dc9039285cc24463d6d515c74933c60806d",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-451c70ed",
+      "sourceCalibrationEventId": "calibration-027c818c",
+      "recordedAt": "2026-04-29T11:02:15.479Z"
+    },
+    {
+      "structureFamilyHash": "a865916eca451ad71f150fba21eed58bbfa64a903835dfd26c806cc71f49d6f2",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-fb62e922",
+      "sourceCalibrationEventId": "calibration-4262136d",
+      "recordedAt": "2026-04-29T10:59:38.580Z"
+    },
+    {
+      "structureFamilyHash": "6c4fe6e00e17f2f08b333aea4b4a49840bf99a0070d1b69afe559915f323dabe",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-8dd713e8",
+      "sourceCalibrationEventId": "calibration-a9b29995",
+      "recordedAt": "2026-04-29T10:57:44.366Z"
+    },
+    {
+      "structureFamilyHash": "be6f19d7c955a2cc37fc74ec2ef3343ea96228d751acdc508ea8263c919c6141",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-48d0560a",
+      "sourceCalibrationEventId": "calibration-ee609814",
+      "recordedAt": "2026-04-29T10:55:14.410Z"
+    },
+    {
+      "structureFamilyHash": "b04cb5a8dd6a4d9f762b62e065945254a169dfd6788fd1c6747ccc08ccc8f6c4",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-8a16db7d",
+      "sourceCalibrationEventId": "calibration-f0e871c2",
+      "recordedAt": "2026-04-29T10:53:25.218Z"
+    },
+    {
+      "structureFamilyHash": "57fce854c1872ccf835e9ad6e3bac512a4f5c0cf77cc547b2c12546828a24071",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-a04084d5",
+      "sourceCalibrationEventId": "calibration-855aacc0",
+      "recordedAt": "2026-04-29T10:43:32.564Z"
+    },
+    {
+      "structureFamilyHash": "f0d0a007e10ea0e43729b43b62d8fb7fa09a03939e0901c5818b3ad711a6386c",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-6e107f98",
+      "sourceCalibrationEventId": "calibration-a23d1882",
+      "recordedAt": "2026-04-29T10:41:44.298Z"
+    },
+    {
+      "structureFamilyHash": "457919cabb7fd7c6e47b831b06c20fd68db0e39765664de47d1a8006cdb1238a",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-31e4233e",
+      "sourceCalibrationEventId": "calibration-2b97c51f",
+      "recordedAt": "2026-04-29T10:39:56.006Z"
+    },
+    {
+      "structureFamilyHash": "ecf953edf1178055a47c545ca59ab0125f2c3585ced8feaaf2fdf310c612a828",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-24b4021d",
+      "sourceCalibrationEventId": "calibration-dcbf82c9",
+      "recordedAt": "2026-04-29T10:38:08.015Z"
+    },
+    {
+      "structureFamilyHash": "0667225c49505c8eaa66dbae1bf4d7188e47cd28df593f141c900c3477b758c3",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-e34e118c",
+      "sourceCalibrationEventId": "calibration-b2fd3614",
+      "recordedAt": "2026-04-29T10:36:22.086Z"
+    },
+    {
+      "structureFamilyHash": "4c5331e11e5ab1c24adb3a8b312fddffc26abfa1f9bd6dc9090bdc5cb9a723b1",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-1209761b",
+      "sourceCalibrationEventId": "calibration-64b70300",
+      "recordedAt": "2026-04-29T10:30:40.627Z"
+    },
+    {
+      "structureFamilyHash": "c5be98336cd6c519aa0adb78da0bc102991bc474fc9df4f4303bff3c39062244",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-a46650f8",
+      "sourceCalibrationEventId": "calibration-cbf3ab1b",
+      "recordedAt": "2026-04-29T10:28:50.661Z"
+    },
+    {
+      "structureFamilyHash": "6879dd7a387eff3fbbda14c02332ffe5eb287d41466e612ca36deb4890f1f597",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-5874be08",
+      "sourceCalibrationEventId": "calibration-3c92130f",
+      "recordedAt": "2026-04-29T08:13:11.352Z"
+    },
+    {
+      "structureFamilyHash": "d263eadb81762e1b9ff89731a1167a229fcf2ba3ea60cc79f09136405e90966f",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-42ed2fa4",
+      "sourceCalibrationEventId": "calibration-40d907b6",
+      "recordedAt": "2026-04-29T08:13:11.334Z"
+    },
+    {
+      "structureFamilyHash": "409331a496dccfdb7934e4f66b22bb092ee16f7ff957ef96102e18167a1a410e",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-5d413e92",
+      "sourceCalibrationEventId": "calibration-b1476e5c",
+      "recordedAt": "2026-04-29T08:13:11.321Z"
+    },
+    {
+      "structureFamilyHash": "713cf910942a30244dca6caac1c47f7e32d5031b513152b37d9317d1f494055e",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-13195e68",
+      "sourceCalibrationEventId": "calibration-692db396",
+      "recordedAt": "2026-04-29T08:13:11.305Z"
+    },
+    {
+      "structureFamilyHash": "5b78e710de915b70e029e13a09f05b397cc1ad608278e6a2b90796928b9d7237",
+      "currentConfidence": 1,
+      "localConfidenceBonus": 0.05,
+      "divergencePenalty": 0,
+      "divergenceSeverity": "low",
+      "recentEventCount": 1,
+      "candidateId": "cand-5e18a717",
+      "sourceCalibrationEventId": "calibration-53ef31b8",
+      "recordedAt": "2026-04-29T08:13:11.291Z"
+    }
+  ]
+}

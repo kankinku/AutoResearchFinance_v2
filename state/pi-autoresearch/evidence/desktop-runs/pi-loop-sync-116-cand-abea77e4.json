@@ -1,0 +1,67 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": true,
+    "errors": []
+  },
+  "apply": {
+    "ok": false,
+    "message": "Expected study title was not attached to the chart.",
+    "attachDiagnostics": {
+      "expectedStudyTitle": "Exhaustion Signal - test [cand-abea77e4]",
+      "detectedStudyTitle": null,
+      "exactTitleMatched": false,
+      "staleStudySuspected": false,
+      "recoveryActions": []
+    },
+    "fallbackActions": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "Exhaustion Signal - test [cand-abea77e4]",
+    "detectedStudyTitle": null,
+    "exactTitleMatched": false,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "stateAfter": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Exhaustion Signal (false, false)",
+        "normalizedTitle": "Exhaustion Signal",
+        "metaDescription": "Exhaustion Signal",
+        "hasStrategyData": false
+      }
+    ]
+  }
+}

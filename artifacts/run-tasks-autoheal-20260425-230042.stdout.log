@@ -1,0 +1,439 @@
+
+> af@0.1.0 run-tasks
+> tsx src/cli/index.ts run-tasks --count 10 --max-runtime-failures 10
+
+◇ injected env (11) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+{
+  "batch": {
+    "batchId": "batch-5a87d819",
+    "runId": "run-1777125644075",
+    "targetTaskCount": 10,
+    "completedTaskCount": 0,
+    "runtimeFailureCount": 10,
+    "status": "stopped",
+    "stopReason": "generation failures reached 10",
+    "tasks": [
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-01",
+        "taskNumber": 1,
+        "iteration": 142,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Preserve parent tradability from 79 trades and keep at least 56 closed trades before optimizing other metrics. Recover tradability by loosening or removing existing entry filters, regime gates, cooldowns, or extension blockers before adding any new logic. If tradability has collapsed, change entry gating only; defer exit and subsystem rewrites until the trade floor is restored. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. In Pine, if regime == trend_down, require setupScore >= highTierThreshold for entry, or require close > fastEMA and ROC(len) > 0 before allowing longs; optionally reduce qty by 50% instead of blocking all entries. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "backtest_empty",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-2ef736df",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-142-evt-71b85c59.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:06:15.551Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-02",
+        "taskNumber": 2,
+        "iteration": 144,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Preserve parent tradability from 79 trades and keep at least 56 closed trades before optimizing other metrics. Recover tradability by loosening or removing existing entry filters, regime gates, cooldowns, or extension blockers before adding any new logic. If tradability has collapsed, change entry gating only; defer exit and subsystem rewrites until the trade floor is restored. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. In Pine, if regime == trend_down, require setupScore >= highTierThreshold for entry, or require close > fastEMA and ROC(len) > 0 before allowing longs; optionally reduce qty by 50% instead of blocking all entries. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "backtest_empty",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-154cefd0",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-144-evt-954c258d.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:10:16.111Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-03",
+        "taskNumber": 3,
+        "iteration": 146,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. In Pine, if regime == trend_down, require setupScore >= highTierThreshold for entry, or require close > fastEMA and ROC(len) > 0 before allowing longs; optionally reduce qty by 50% instead of blocking all entries. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-2dcf3b3b",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-146-evt-1f41a3b9.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:14:16.403Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-04",
+        "taskNumber": 4,
+        "iteration": 148,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Track `barsInTrade = ta.barssince(strategy.position_size == 0)`. Add `if strategy.position_size > 0 and rangeRegime and barsInTrade >= 3 and close <= strategy.position_avg_price * 1.002 strategy.close('L')`. Thresholds can be tightened or loosened in one line. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-8e7724dc",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-148-evt-cebac2bb.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:19:04.754Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-05",
+        "taskNumber": 5,
+        "iteration": 150,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Track `barsInTrade = ta.barssince(strategy.position_size == 0)`. Add `if strategy.position_size > 0 and rangeRegime and barsInTrade >= 3 and close <= strategy.position_avg_price * 1.002 strategy.close('L')`. Thresholds can be tightened or loosened in one line. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-b0a4c858",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-150-evt-0be2e465.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:23:05.393Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-06",
+        "taskNumber": 6,
+        "iteration": 152,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Track `barsInTrade = ta.barssince(strategy.position_size == 0)`. Add `if strategy.position_size > 0 and rangeRegime and barsInTrade >= 3 and close <= strategy.position_avg_price * 1.002 strategy.close('L')`. Thresholds can be tightened or loosened in one line. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-1cde70c2",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-152-evt-dfa6987e.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:27:05.927Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-07",
+        "taskNumber": 7,
+        "iteration": 154,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Track `barsInTrade = ta.barssince(strategy.position_size == 0)`. Add `if strategy.position_size > 0 and rangeRegime and barsInTrade >= 3 and close <= strategy.position_avg_price * 1.002 strategy.close('L')`. Thresholds can be tightened or loosened in one line. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-2b8c1dad",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-154-evt-3ae5604c.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:31:02.701Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-08",
+        "taskNumber": 8,
+        "iteration": 156,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Track `barsInTrade = ta.barssince(strategy.position_size == 0)`. Add `if strategy.position_size > 0 and rangeRegime and barsInTrade >= 3 and close <= strategy.position_avg_price * 1.002 strategy.close('L')`. Thresholds can be tightened or loosened in one line. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-5285057a",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-156-evt-33372cd5.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:35:02.979Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-09",
+        "taskNumber": 9,
+        "iteration": 158,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Track `barsInTrade = ta.barssince(strategy.position_size == 0)`. Add `if strategy.position_size > 0 and rangeRegime and barsInTrade >= 3 and close <= strategy.position_avg_price * 1.002 strategy.close('L')`. Thresholds can be tightened or loosened in one line. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-43e5f482",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-158-evt-95b8a06b.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:39:03.526Z"
+      },
+      {
+        "runId": "run-1777125644075",
+        "batchId": "batch-5a87d819",
+        "taskId": "batch-5a87d819-task-10",
+        "taskNumber": 10,
+        "iteration": 160,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Preserve the AF seed core architecture while applying these changes: Use the accepted head as a control and make one localized behavioral change in a single block per mutation unless the brief explicitly requires a coordinated pair. Prefer parameter, threshold, or single-rule adjustments before introducing new state, regime engines, or multi-part subsystems. Keep tradability above 56 closed trades while prioritizing exit and risk repairs over entry expansion. Mutate staged bearish exit, loser-trimming, risk-off liquidation, replacement, or slot-management thresholds before touching entry gating. Translate each loss-cluster diagnosis into one concrete exit or risk rule change rather than repeating the same abstract diagnosis. Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Track `barsInTrade = ta.barssince(strategy.position_size == 0)`. Add `if strategy.position_size > 0 and rangeRegime and barsInTrade >= 3 and close <= strategy.position_avg_price * 1.002 strategy.close('L')`. Thresholds can be tightened or loosened in one line. Avoid repeating repair priority \"Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement. Avoid repeating repair priority \"Tighten exit behavior when losing trades continue into deeper drawdown.\" again without a materially different rule change; it appeared 5 times in the last 5 evaluated candidates without score improvement.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "genfail-8be1906e",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-160-evt-a5a4ef5e.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "pineAnalysisSummary": null,
+          "finalAnalysisSummary": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-25T14:43:08.060Z"
+      }
+    ]
+  },
+  "tracePath": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\traces\\run-tasks-2026-04-25T14-00-44-063Z-trace-ebb2c6f0.jsonl"
+}

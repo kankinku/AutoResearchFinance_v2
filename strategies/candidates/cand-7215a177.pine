@@ -1,0 +1,77 @@
+//@version=5
+strategy("AF Mutation Range Guard 01 [cand-7215a177]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=1)
+rsiLength = input.int(14, "RSI Length", minval=1)
+adxLength = input.int(14, "ADX Length", minval=1)
+adxMin = input.float(17.0, "Min ADX", minval=1, step=0.5)
+bbLength = input.int(20, "BB Length", minval=1)
+bbMult = input.float(2.0, "BB Mult", minval=0.1, step=0.1)
+minBbWidthPct = input.float(3.0, "Min BB Width %", minval=0.1, step=0.1)
+atrLength = input.int(14, "ATR Length", minval=1)
+stopAtrMult = input.float(2.2, "Stop ATR Mult", minval=0.1, step=0.1)
+trailAtrMult = input.float(3.0, "Trail ATR Mult", minval=0.1, step=0.1)
+entryRsiMin = input.float(55.0, "Entry RSI Min", minval=1, maxval=99, step=0.5)
+exitRsiMin = input.float(47.0, "Exit RSI Fail", minval=1, maxval=99, step=0.5)
+emaSlopeLookback = input.int(5, "Slow EMA Slope Lookback", minval=1)
+maxBarsInTrade = input.int(32, "Max Bars In Trade", minval=1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+basis = ta.sma(close, bbLength)
+dev = ta.stdev(close, bbLength) * bbMult
+bbUpper = basis + dev
+bbLower = basis - dev
+bbWidthPct = basis != 0.0 ? ((bbUpper - bbLower) / basis) * 100.0 : 0.0
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trComp1 = high - low
+trComp2 = math.abs(high - close[1])
+trComp3 = math.abs(low - close[1])
+trRaw = math.max(trComp1, math.max(trComp2, trComp3))
+trRma = ta.rma(trRaw, adxLength)
+plusDI = trRma != 0.0 ? 100.0 * ta.rma(plusDM, adxLength) / trRma : 0.0
+minusDI = trRma != 0.0 ? 100.0 * ta.rma(minusDM, adxLength) / trRma : 0.0
+dx = (plusDI + minusDI) != 0.0 ? 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLength)
+
+slowSlope = slowEma - slowEma[emaSlopeLookback]
+trendUp = close > slowEma and fastEma > slowEma and slowSlope > 0 and plusDI > minusDI
+trendDown = close < slowEma and fastEma < slowEma and slowSlope < 0 and minusDI > plusDI
+rangeRegime = adx < adxMin or bbWidthPct < minBbWidthPct
+
+entryCross = ta.crossover(fastEma, slowEma)
+entryMomentum = rsiValue > entryRsiMin
+entryFilter = not trendDown and not rangeRegime and adx >= adxMin and bbWidthPct >= minBbWidthPct and trendUp
+longEntry = entryCross and entryMomentum and entryFilter
+
+var int barsInTrade = 0
+barsInTrade := strategy.position_size > 0 ? nz(barsInTrade[1]) + 1 : 0
+
+stopPrice = strategy.position_size > 0 ? strategy.position_avg_price - atrValue * stopAtrMult : na
+trailOffset = atrValue * trailAtrMult
+strategy.exit("XL", "Long", stop=stopPrice, trail_offset=trailOffset)
+
+weakMomentumExit = rsiValue < exitRsiMin
+trendFailExit = close < slowEma or fastEma < slowEma or minusDI > plusDI
+rangeExit = rangeRegime and rsiValue < 52
+maxHoldExit = barsInTrade >= maxBarsInTrade
+longExit = weakMomentumExit or trendFailExit or rangeExit or maxHoldExit
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+if longExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(bbUpper, "BB Upper", color=color.new(color.blue, 75))
+plot(bbLower, "BB Lower", color=color.new(color.blue, 75))

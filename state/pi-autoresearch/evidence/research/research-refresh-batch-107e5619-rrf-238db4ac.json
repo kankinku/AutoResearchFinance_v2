@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-04-24T13:32:26.043Z",
+  "batchId": "batch-107e5619",
+  "plan": {
+    "shouldRefresh": true,
+    "statusSummary": "After three consecutive completed tasks, AF is still stuck in hard-gate failure with only marginal score movement and repeated implementation/backtest issues. The mutation stream is converging on the same local idea—faster loser exits in range/range_squeeze and fewer counter-trend longs in trend_down—but no evidence shows that current heuristics are sufficient to recover hard-gate performance. Existing knowledge already covers generic range weak-exit tightening, so the main need is fresh external guidance on regime-conditional exit design, drawdown suppression without trade-count collapse, and recovery methods when stricter filters reduce participation.",
+    "knowledgeGaps": [
+      "How to design regime-specific loser exits for low-trend/range-squeeze conditions that reduce adverse excursion without overcutting acceptable trades on 120m equity index systems.",
+      "Methods for blocking or tapering counter-trend long exposure during trend_down regimes while preserving enough trade count to pass tradability constraints.",
+      "Practical approaches for adding time-in-trade, momentum-fade, or staged partial exits that improve drawdown control more than they reduce expectancy.",
+      "Techniques for recovering low trade count after tightening exits/filters, especially via selective re-entry, asymmetric gating by setup tier, or narrower application of regime blocks."
+    ],
+    "searchQueries": [
+      "What exit rules in systematic trend-following or swing strategies reduce drawdown in range-bound and volatility-compression regimes without sharply lowering trade count?",
+      "How do regime-aware trading systems selectively suppress counter-trend entries in downtrends and recover trade frequency after adding tighter exits or filters?"
+    ],
+    "paperQuestion": "What evidence-based regime-aware exit and entry-suppression mechanisms best reduce drawdown in range/range_squeeze and trend_down conditions while preserving enough trade count for a 120m QQQ long strategy?",
+    "ingestionTitle": "Regime-aware exit tightening and trade-count recovery for 120m QQQ strategy"
+  },
+  "retrievals": [
+    {
+      "query": "What exit rules in systematic trend-following or swing strategies reduce drawdown in range-bound and volatility-compression regimes without sharply lowering trade count?",
+      "retrievalText": "1. [ID=2602.11708] **Systematic Trend-Following with Adaptive Portfolio Construction: Enhancing Risk-Adjusted Alpha in Cryptocurrency Markets**. Published on 2026-02-12: Cryptocurrency markets exhibit pronounced momentum effects and regime-dependent volatility, presenting both opportunities and challenges for systematic trading strategies. We propose AdaptiveTrend, a ...\n2. [ID=2303.02613] **On Data-Driven Drawdown Control with Restart Mechanism in Trading**. Published on 2023-03-05 by National Tsing-Hua University: This paper extends the existing drawdown modulation control policy to include a novel restart mechanism for trading. It is known that the drawdown modulation policy guarantees the maximum percentage d...\n3. [ID=1609.00869] **Determining Optimal Stop-Loss Thresholds via Bayesian Analysis of Drawdown Distributions**. Published on 2016-09-03: Stop-loss rules are often studied in the financial literature, but the stop-loss levels are seldom constructed systematically. In many papers, and indeed in practice as well, the level of the stops is...\n4. [ID=1812.02527] **Evaluating the Building Blocks of a Dynamically Adaptive Systematic  Trading Strategy**. Published on 2018-12-06: Financial markets change their behaviours abruptly. The mean, variance and\ncorrelation patterns of stocks can vary dramatically, triggered by fundamental\nchanges in macroeconomic variables, policies o...\n5. [ID=2501.07135] **Follow the Leader: Enhancing Systematic Trend-Following Using Network Momentum**. Published on 2025-01-13 by Imperial College London: We present a systematic, trend-following strategy, applied to commodity futures markets, that combines univariate trend indicators with cross-sectional trend indicators that capture so-called {\\em mom...\n6. [ID=2403.00474] **Volatility-based strategy on Chinese equity index ETF options**. Published on 2024-03-29: This study examines the performance of a volatility-based strategy using Chinese equity index ETF options. Initially successful, the strategy's effectiveness waned post-2018. By integrating GARCH mode...\n7. [ID=0801.03560] **Trading Model with Pair Pattern Strategies**. Published on 2008-01-23: A simple trading model based on pair pattern strategy space with holding periods is proposed. Power-law behaviors are observed for the return variance $\\sigma^2$, the price impact $H$ and the predicta...\n8. [ID=1701.3098] **Trading strategies for stock pairs regarding to the cross-impact cost**. Published on 2017-01-11: We extend the framework of trading strategies of Gatheral [2010] from single stocks to a pair of stocks. Our trading strategy with the executions of two round-trip trades can be described by the tradi...\n9. [ID=1701.03098] **Trading strategies for stock pairs regarding to the cross-impact cost**. Published on 2017-07-06: We extend the framework of trading strategies of Gatheral [2010] from single\nstocks to a pair of stocks. Our trading strategy with the executions of two\nround-trip trades can be described by the tradi...",
+      "paperUrls": [
+        "https://arxiv.org/abs/2602.11708",
+        "https://arxiv.org/abs/2303.02613"
+      ],
+      "answers": [
+        {
+          "url": "https://arxiv.org/abs/2602.11708",
+          "answer": "MCP error -32602: Input validation error: Invalid arguments for tool answer_pdf_queries: [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"urls\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  },\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"queries\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  }\n]"
+        },
+        {
+          "url": "https://arxiv.org/abs/2303.02613",
+          "answer": "MCP error -32602: Input validation error: Invalid arguments for tool answer_pdf_queries: [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"urls\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  },\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"queries\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "query": "How do regime-aware trading systems selectively suppress counter-trend entries in downtrends and recover trade frequency after adding tighter exits or filters?",
+      "retrievalText": "1. [ID=2309.15383] **Intelligent trading strategy based on improved directional change and regime change detection**. Published on 2023-09-27: Previous research primarily characterized price movements according to time intervals, resulting in temporal discontinuity and overlooking crucial activities in financial markets. Directional Change (...\n2. [ID=2603.09219] **AlgoXpert Alpha Research Framework. A Rigorous IS WFA OOS Protocol for Mitigating Overfitting in Quantitative Strategies**. Published on 2026-03-10: Transitioning a strategy from backtest to live trading is a common failure point for quantitative systems due to parameter overfitting, selection bias, and sensitivity to regime changes. This paper pr...\n3. [ID=2309.15383/metadata] **Intelligent trading strategy based on improved directional change and regime change detection**. Published on 2023-09-27: Previous research primarily characterized price movements according to time intervals, resulting in temporal discontinuity and overlooking crucial activities in financial markets. Directional Change (...\n4. [ID=2208.11574] **Improving on the Markov-Switching Regression Model by the Use of an Adaptive Moving Average**. Published on 2022-08-24 by University College London: Regime detection is vital for the effective operation of trading and investment strategies. However, the most popular means of doing this, the two-state Markov-switching regression model (MSR), is not...\n5. [ID=2507.22712] **Order-Flow Filtration and Directional Association with Short-Horizon Returns**. Published on 2025-07-30: Electronic markets generate dense order flow with many transient orders, which degrade directional signals derived from the limit order book (LOB). We study whether simple structural filters on order ...\n6. [ID=2303.02613] **On Data-Driven Drawdown Control with Restart Mechanism in Trading**. Published on 2023-03-05 by National Tsing-Hua University: This paper extends the existing drawdown modulation control policy to include a novel restart mechanism for trading. It is known that the drawdown modulation policy guarantees the maximum percentage d...",
+      "paperUrls": [
+        "https://arxiv.org/abs/2309.15383",
+        "https://arxiv.org/abs/2603.09219"
+      ],
+      "answers": [
+        {
+          "url": "https://arxiv.org/abs/2309.15383",
+          "answer": "MCP error -32602: Input validation error: Invalid arguments for tool answer_pdf_queries: [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"urls\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  },\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"queries\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  }\n]"
+        },
+        {
+          "url": "https://arxiv.org/abs/2603.09219",
+          "answer": "MCP error -32602: Input validation error: Invalid arguments for tool answer_pdf_queries: [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"urls\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  },\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"queries\"\n    ],\n    \"message\": \"Invalid input: expected array, received undefined\"\n  }\n]"
+        }
+      ]
+    }
+  ],
+  "knowledgeIds": [
+    "rsk-596742ad"
+  ]
+}

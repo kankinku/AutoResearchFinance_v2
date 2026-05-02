@@ -1,0 +1,5 @@
+
+> af@0.1.0 run-tasks
+> tsx src/cli/index.ts run-tasks --count 10 --max-runtime-failures 10
+
+◇ injected env (11) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }

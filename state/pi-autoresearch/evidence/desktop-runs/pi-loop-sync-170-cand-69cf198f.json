@@ -1,0 +1,17 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": false,
+    "errors": [
+      "Local backtest executor does not support this candidate cleanly: missing_input:L1, missing_input:L2, missing_input:L3"
+    ]
+  },
+  "stateAfter": {
+    "engine": "local-backtest",
+    "sourceLength": 21590
+  }
+}

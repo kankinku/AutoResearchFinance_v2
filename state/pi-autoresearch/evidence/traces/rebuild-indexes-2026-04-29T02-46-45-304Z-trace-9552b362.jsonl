@@ -1,0 +1,2 @@
+{"timestamp":"2026-04-29T02:46:46.627Z","command":"rebuild-indexes","event":"indexes.start","message":"Rebuilding derived indexes","details":{"stateRoot":"C:\\Temp\\af-stage4-count5"},"taskNumber":null}
+{"timestamp":"2026-04-29T02:46:47.952Z","command":"rebuild-indexes","event":"indexes.done","message":"Derived indexes rebuilt","details":{"stateRoot":"C:\\Temp\\af-stage4-count5","verificationOk":true},"taskNumber":null}

@@ -1,0 +1,507 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.070Z",
+  "entries": [
+    {
+      "id": "policy.objective.current",
+      "storageClass": "policy",
+      "relativePath": "policy/objective.current.json",
+      "format": "json",
+      "sourceOfTruth": true,
+      "producer": "workspace.initialize/syncKnowledgeCatalog",
+      "consumers": [
+        "evaluation.objective",
+        "mutation.brief"
+      ],
+      "rebuildRule": "overwrite from config/objective.qqq-120m.json on bootstrap and iteration",
+      "retention": "keep latest current objective snapshot",
+      "description": "Current objective and guardrail policy snapshot used by runtime evaluation."
+    },
+    {
+      "id": "evidence.traces",
+      "storageClass": "evidence",
+      "relativePath": "traces",
+      "format": "directory",
+      "sourceOfTruth": true,
+      "producer": "cli.monitor",
+      "consumers": [
+        "operator review",
+        "knowledge.audit"
+      ],
+      "rebuildRule": "append-only per CLI run",
+      "retention": "keep all traces unless manually pruned",
+      "description": "Human-monitorable CLI step traces for every command execution."
+    },
+    {
+      "id": "evidence.desktop_runs",
+      "storageClass": "evidence",
+      "relativePath": "artifacts/desktop-runs",
+      "format": "directory",
+      "sourceOfTruth": true,
+      "producer": "research.artifact-writer",
+      "consumers": [
+        "operator review",
+        "experiment inspection"
+      ],
+      "rebuildRule": "append/update per iteration",
+      "retention": "keep all sync/backtest artifacts",
+      "description": "Raw Pine evaluation executor sync and backtest evidence artifacts."
+    },
+    {
+      "id": "evidence.results",
+      "storageClass": "evidence",
+      "relativePath": "artifacts/results",
+      "format": "directory",
+      "sourceOfTruth": false,
+      "producer": "research.artifact-writer",
+      "consumers": [
+        "operator review",
+        "latest result inspection"
+      ],
+      "rebuildRule": "overwrite latest result summaries on each evaluation",
+      "retention": "keep latest snapshots",
+      "description": "Latest objective and backtest summaries derived from the latest evaluation."
+    },
+    {
+      "id": "evidence.research",
+      "storageClass": "evidence",
+      "relativePath": "evidence/research",
+      "format": "directory",
+      "sourceOfTruth": true,
+      "producer": "research.research-knowledge",
+      "consumers": [
+        "mutation.brief",
+        "operator review"
+      ],
+      "rebuildRule": "append raw extracted text per ingested research item",
+      "retention": "keep all ingested research source extracts",
+      "description": "Raw PDF/text extracts and manual knowledge payloads attached to AF."
+    },
+    {
+      "id": "evidence.qqq_2h_context",
+      "storageClass": "evidence",
+      "relativePath": "artifacts/results/qqq-2h-context.json",
+      "format": "json",
+      "sourceOfTruth": true,
+      "producer": "research.market-context",
+      "consumers": [
+        "research.trade-context",
+        "research.loss-analysis"
+      ],
+      "rebuildRule": "refresh from Yahoo chart data or reuse cached copy",
+      "retention": "keep latest context cache",
+      "description": "QQQ 2-hour market context cache used to enrich AF trade records."
+    },
+    {
+      "id": "ledger.runs",
+      "storageClass": "ledger",
+      "relativePath": "ledger/runs.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "cli.iterate",
+      "consumers": [
+        "knowledge.audit",
+        "run inspection"
+      ],
+      "rebuildRule": "append per run",
+      "retention": "append-only",
+      "description": "Run-level execution ledger across iteration batches."
+    },
+    {
+      "id": "ledger.task_batches",
+      "storageClass": "ledger",
+      "relativePath": "ledger/task-batches.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "research.task-batch-runner",
+      "consumers": [
+        "views.task-board",
+        "operator review"
+      ],
+      "rebuildRule": "append per task batch lifecycle update",
+      "retention": "append-only",
+      "description": "Constrained task batch ledger for bounded autonomous runs."
+    },
+    {
+      "id": "ledger.tasks",
+      "storageClass": "ledger",
+      "relativePath": "ledger/tasks.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "research.task-batch-runner",
+      "consumers": [
+        "views.task-board",
+        "operator review"
+      ],
+      "rebuildRule": "append per completed or failed task",
+      "retention": "append-only",
+      "description": "Per-task hypothesis, execution, and analysis ledger."
+    },
+    {
+      "id": "ledger.mutation_briefs",
+      "storageClass": "ledger",
+      "relativePath": "ledger/mutation-briefs.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "research.iteration-runner",
+      "consumers": [
+        "mutation analysis",
+        "knowledge.audit"
+      ],
+      "rebuildRule": "append per iteration before mutation request",
+      "retention": "append-only",
+      "description": "Structured mutation brief history used to drive candidate generation."
+    },
+    {
+      "id": "ledger.candidates",
+      "storageClass": "ledger",
+      "relativePath": "ledger/candidates.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "mutation.candidate-store",
+      "consumers": [
+        "lineage analysis",
+        "knowledge.audit"
+      ],
+      "rebuildRule": "append per candidate persist",
+      "retention": "append-only",
+      "description": "Candidate-level ledger describing persisted strategy variants."
+    },
+    {
+      "id": "ledger.research_knowledge",
+      "storageClass": "ledger",
+      "relativePath": "ledger/research-knowledge.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "research.research-knowledge",
+      "consumers": [
+        "mutation.brief",
+        "views.research-summary",
+        "operator review"
+      ],
+      "rebuildRule": "append per ingested research item",
+      "retention": "append-only",
+      "description": "Structured external research knowledge attached to AF for hypothesis generation."
+    },
+    {
+      "id": "ledger.experiments",
+      "storageClass": "ledger",
+      "relativePath": "ledger/experiments.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "research.iteration-runner",
+      "consumers": [
+        "views.index-builder",
+        "mutation analysis"
+      ],
+      "rebuildRule": "append per evaluated candidate",
+      "retention": "append-only",
+      "description": "Canonical experiment ledger and the primary source of truth for derived views."
+    },
+    {
+      "id": "ledger.incidents",
+      "storageClass": "ledger",
+      "relativePath": "ledger/incidents.jsonl",
+      "format": "jsonl",
+      "sourceOfTruth": true,
+      "producer": "research.iteration-runner",
+      "consumers": [
+        "views.failure-summary",
+        "operator review"
+      ],
+      "rebuildRule": "append per failure or noteworthy runtime incident",
+      "retention": "append-only",
+      "description": "Runtime and evaluation incident ledger."
+    },
+    {
+      "id": "views.leaderboard",
+      "storageClass": "view",
+      "relativePath": "views/leaderboard.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Ranked candidate summary derived from experiments."
+    },
+    {
+      "id": "views.lineage",
+      "storageClass": "view",
+      "relativePath": "views/lineage.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Candidate lineage graph derived from experiments."
+    },
+    {
+      "id": "views.frontier",
+      "storageClass": "view",
+      "relativePath": "views/frontier.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Accepted frontier view derived from experiments."
+    },
+    {
+      "id": "views.failure_summary",
+      "storageClass": "view",
+      "relativePath": "views/failure-summary.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review",
+        "mutation policy tuning"
+      ],
+      "rebuildRule": "rebuild from ledger.incidents and ledger.experiments",
+      "retention": "latest only",
+      "description": "Failure and incident aggregates derived from ledgers."
+    },
+    {
+      "id": "views.task_board",
+      "storageClass": "view",
+      "relativePath": "views/task-board.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.task_batches and ledger.tasks",
+      "retention": "latest only",
+      "description": "Batch progress board showing task-level hypothesis, execution, and analysis state."
+    },
+    {
+      "id": "views.verification_failures",
+      "storageClass": "view",
+      "relativePath": "views/verification-failures.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Verification failure board with runtime and metric-regression outcomes."
+    },
+    {
+      "id": "views.fallback_evidence_board",
+      "storageClass": "view",
+      "relativePath": "views/fallback-evidence-board.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review",
+        "mutation policy tuning"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Local fallback evidence collected after authoritative runtime failures."
+    },
+    {
+      "id": "views.screening_board",
+      "storageClass": "view",
+      "relativePath": "views/screening-board.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Canonical screening-only board for local and non-promoted records."
+    },
+    {
+      "id": "views.invalid_records",
+      "storageClass": "view",
+      "relativePath": "views/invalid-records.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review",
+        "knowledge.audit"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Quarantined current records that violate verified, promotion, or promoted-head contracts."
+    },
+    {
+      "id": "views.runtime_failure_summary",
+      "storageClass": "view",
+      "relativePath": "views/runtime-failure-summary.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Aggregate counts of authoritative runtime failure kinds."
+    },
+    {
+      "id": "views.local_tv_divergence_summary",
+      "storageClass": "view",
+      "relativePath": "views/local-tv-divergence-summary.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review",
+        "mutation policy tuning"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Prepared local-versus-TradingView divergence report structure."
+    },
+    {
+      "id": "views.verification_queue",
+      "storageClass": "view",
+      "relativePath": "views/verification-queue.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Candidates waiting on re-verification after authoritative runtime failures."
+    },
+    {
+      "id": "views.loss_pattern_summary",
+      "storageClass": "view",
+      "relativePath": "views/loss-pattern-summary.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review",
+        "mutation policy tuning"
+      ],
+      "rebuildRule": "rebuild from ledger.experiments",
+      "retention": "latest only",
+      "description": "Aggregated recurring loss zones and repair priorities derived from experiments."
+    },
+    {
+      "id": "views.research_summary",
+      "storageClass": "view",
+      "relativePath": "views/research-summary.json",
+      "format": "json",
+      "sourceOfTruth": false,
+      "producer": "state.index-builder",
+      "consumers": [
+        "operator review",
+        "mutation policy tuning"
+      ],
+      "rebuildRule": "rebuild from ledger.research_knowledge",
+      "retention": "latest only",
+      "description": "Summary of attached research knowledge and its dominant problem and strategy tags."
+    },
+    {
+      "id": "taxonomy.knowledge_types",
+      "storageClass": "taxonomy",
+      "relativePath": "taxonomy/knowledge-types.json",
+      "format": "json",
+      "sourceOfTruth": true,
+      "producer": "state.knowledge-catalog",
+      "consumers": [
+        "knowledge.audit"
+      ],
+      "rebuildRule": "overwrite on bootstrap and migration",
+      "retention": "latest only",
+      "description": "Knowledge storage classes supported by AF."
+    },
+    {
+      "id": "taxonomy.decision_codes",
+      "storageClass": "taxonomy",
+      "relativePath": "taxonomy/decision-codes.json",
+      "format": "json",
+      "sourceOfTruth": true,
+      "producer": "state.knowledge-catalog",
+      "consumers": [
+        "knowledge.audit",
+        "operator review"
+      ],
+      "rebuildRule": "overwrite on bootstrap and migration",
+      "retention": "latest only",
+      "description": "Recognized experiment decision codes."
+    },
+    {
+      "id": "taxonomy.incident_types",
+      "storageClass": "taxonomy",
+      "relativePath": "taxonomy/incident-types.json",
+      "format": "json",
+      "sourceOfTruth": true,
+      "producer": "state.knowledge-catalog",
+      "consumers": [
+        "knowledge.audit",
+        "operator review"
+      ],
+      "rebuildRule": "overwrite on bootstrap and migration",
+      "retention": "latest only",
+      "description": "Recognized runtime and evaluation incident types."
+    },
+    {
+      "id": "taxonomy.knowledge_catalog",
+      "storageClass": "taxonomy",
+      "relativePath": "taxonomy/knowledge-catalog.json",
+      "format": "json",
+      "sourceOfTruth": true,
+      "producer": "state.knowledge-catalog",
+      "consumers": [
+        "knowledge.audit",
+        "operator review"
+      ],
+      "rebuildRule": "overwrite on bootstrap and migration",
+      "retention": "latest only",
+      "description": "Machine-readable inventory of AF knowledge artifacts."
+    },
+    {
+      "id": "asset.strategy_candidates",
+      "storageClass": "asset",
+      "relativePath": "../../strategies/candidates",
+      "format": "directory",
+      "sourceOfTruth": true,
+      "producer": "mutation.candidate-store",
+      "consumers": [
+        "research.iteration-runner",
+        "operator review"
+      ],
+      "rebuildRule": "append per candidate generation",
+      "retention": "keep all candidate files",
+      "description": "Persisted Pine candidate source files outside the state tree."
+    },
+    {
+      "id": "asset.strategy_source",
+      "storageClass": "asset",
+      "relativePath": "../../strategies/source",
+      "format": "directory",
+      "sourceOfTruth": true,
+      "producer": "workspace.initialize",
+      "consumers": [
+        "research.iteration-runner",
+        "operator review"
+      ],
+      "rebuildRule": "baseline static, runtime target overwritten per iteration",
+      "retention": "keep baseline and current runtime target",
+      "description": "Baseline and runtime Pine strategy sources outside the state tree."
+    }
+  ]
+}

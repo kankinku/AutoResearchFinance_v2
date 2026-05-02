@@ -1,0 +1,11 @@
+{
+  "id": "qqq-60m-af-dryrun",
+  "symbol": "QQQ",
+  "timeframe": "60",
+  "strategyFamily": "AF",
+  "primaryExecutor": "local-af-backtest",
+  "externalCalibrationExecutor": "tradingview",
+  "objectivePolicyFile": "objective.qqq-60m.json",
+  "noveltyPolicy": "autonomous-local-first/v3",
+  "calibrationPolicy": "tv-optional-local-primary/v1"
+}

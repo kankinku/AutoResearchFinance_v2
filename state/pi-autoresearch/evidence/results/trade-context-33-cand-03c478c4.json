@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-04-23T17:30:35.247Z",
+  "candidateId": "cand-03c478c4",
+  "barsAnalyzed": 2537,
+  "fromCache": true,
+  "trades": [
+    {
+      "entryComment": "Long",
+      "entryPrice": 367.63,
+      "entryTime": "2023-07-11T16:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 378.32,
+      "exitTime": "2023-07-14T18:00:00.000Z",
+      "qty": 1,
+      "profitValue": 9.94405,
+      "profitPercent": 0.009944,
+      "runupPercent": 4.038714,
+      "drawdownPercent": 0.618925,
+      "entryContext": {
+        "time": "2023-07-11T16:30:00.000Z",
+        "open": 366.6199951171875,
+        "high": 367.3299865722656,
+        "low": 365.8699951171875,
+        "close": 366.2229919433594,
+        "volume": 6353533,
+        "ema20": 366.84306641309206,
+        "ema50": 365.05488197549346,
+        "ema200": null,
+        "atr14": 2.4252883271230936,
+        "atrPercent": 0.6622436003412349,
+        "rsi14": 48.53290611110823,
+        "bbWidth": 0.02168196830715772,
+        "ret3": 0.0006912881433242954,
+        "ret10": -0.0035290517770021246,
+        "regime": "range_squeeze"
+      },
+      "exitContext": {
+        "time": "2023-07-14T17:30:00.000Z",
+        "open": 380.3399963378906,
+        "high": 380.6600036621094,
+        "low": 378.19000244140625,
+        "close": 378.5,
+        "volume": 11485528,
+        "ema20": 373.7509776536567,
+        "ema50": 369.1560706429351,
+        "ema200": null,
+        "atr14": 2.6307715493543804,
+        "atrPercent": 0.6950519284952128,
+        "rsi14": 66.78065753528887,
+        "bbWidth": 0.05970268598520007,
+        "ret3": -0.00178014851901913,
+        "ret10": 0.02808560472359319,
+        "regime": "range"
+      },
+      "flags": {
+        "counterTrendEntry": false,
+        "overextendedEntry": false,
+        "lateEntry": false,
+        "weakExit": false
+      }
+    }
+  ]
+}

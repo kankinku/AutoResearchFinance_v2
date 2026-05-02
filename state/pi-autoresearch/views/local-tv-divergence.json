@@ -1,0 +1,464 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.781Z",
+  "entries": [
+    {
+      "candidateId": "cand-5e18a717",
+      "fingerprintFamily": "5b78e710de915b70e029e13a09f05b397cc1ad608278e6a2b90796928b9d7237",
+      "structureFamilyHash": "5b78e710de915b70e029e13a09f05b397cc1ad608278e6a2b90796928b9d7237",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.7,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T08:13:11.286Z"
+    },
+    {
+      "candidateId": "cand-13195e68",
+      "fingerprintFamily": "713cf910942a30244dca6caac1c47f7e32d5031b513152b37d9317d1f494055e",
+      "structureFamilyHash": "713cf910942a30244dca6caac1c47f7e32d5031b513152b37d9317d1f494055e",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.7,
+        "profitFactorDelta": -0.05000000000000071,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T08:13:11.302Z"
+    },
+    {
+      "candidateId": "cand-5d413e92",
+      "fingerprintFamily": "409331a496dccfdb7934e4f66b22bb092ee16f7ff957ef96102e18167a1a410e",
+      "structureFamilyHash": "409331a496dccfdb7934e4f66b22bb092ee16f7ff957ef96102e18167a1a410e",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.7,
+        "profitFactorDelta": -0.05000000000000071,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T08:13:11.317Z"
+    },
+    {
+      "candidateId": "cand-42ed2fa4",
+      "fingerprintFamily": "d263eadb81762e1b9ff89731a1167a229fcf2ba3ea60cc79f09136405e90966f",
+      "structureFamilyHash": "d263eadb81762e1b9ff89731a1167a229fcf2ba3ea60cc79f09136405e90966f",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.7000000000000002,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T08:13:11.331Z"
+    },
+    {
+      "candidateId": "cand-5874be08",
+      "fingerprintFamily": "6879dd7a387eff3fbbda14c02332ffe5eb287d41466e612ca36deb4890f1f597",
+      "structureFamilyHash": "6879dd7a387eff3fbbda14c02332ffe5eb287d41466e612ca36deb4890f1f597",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.7000000000000002,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T08:13:11.348Z"
+    },
+    {
+      "candidateId": "cand-a46650f8",
+      "fingerprintFamily": "c5be98336cd6c519aa0adb78da0bc102991bc474fc9df4f4303bff3c39062244",
+      "structureFamilyHash": "c5be98336cd6c519aa0adb78da0bc102991bc474fc9df4f4303bff3c39062244",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:28:50.658Z"
+    },
+    {
+      "candidateId": "cand-1209761b",
+      "fingerprintFamily": "4c5331e11e5ab1c24adb3a8b312fddffc26abfa1f9bd6dc9090bdc5cb9a723b1",
+      "structureFamilyHash": "4c5331e11e5ab1c24adb3a8b312fddffc26abfa1f9bd6dc9090bdc5cb9a723b1",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:30:40.624Z"
+    },
+    {
+      "candidateId": "cand-e34e118c",
+      "fingerprintFamily": "0667225c49505c8eaa66dbae1bf4d7188e47cd28df593f141c900c3477b758c3",
+      "structureFamilyHash": "0667225c49505c8eaa66dbae1bf4d7188e47cd28df593f141c900c3477b758c3",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:36:22.083Z"
+    },
+    {
+      "candidateId": "cand-24b4021d",
+      "fingerprintFamily": "ecf953edf1178055a47c545ca59ab0125f2c3585ced8feaaf2fdf310c612a828",
+      "structureFamilyHash": "ecf953edf1178055a47c545ca59ab0125f2c3585ced8feaaf2fdf310c612a828",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -1,
+        "netProfitPctDelta": -0.8,
+        "maxDrawdownPctDelta": 0.7,
+        "profitFactorDelta": -0.05000000000001137,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:38:08.013Z"
+    },
+    {
+      "candidateId": "cand-31e4233e",
+      "fingerprintFamily": "457919cabb7fd7c6e47b831b06c20fd68db0e39765664de47d1a8006cdb1238a",
+      "structureFamilyHash": "457919cabb7fd7c6e47b831b06c20fd68db0e39765664de47d1a8006cdb1238a",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.7,
+        "profitFactorDelta": -0.05000000000000071,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:39:56.003Z"
+    },
+    {
+      "candidateId": "cand-6e107f98",
+      "fingerprintFamily": "f0d0a007e10ea0e43729b43b62d8fb7fa09a03939e0901c5818b3ad711a6386c",
+      "structureFamilyHash": "f0d0a007e10ea0e43729b43b62d8fb7fa09a03939e0901c5818b3ad711a6386c",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.7,
+        "profitFactorDelta": -0.05000000000000071,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:41:44.296Z"
+    },
+    {
+      "candidateId": "cand-a04084d5",
+      "fingerprintFamily": "57fce854c1872ccf835e9ad6e3bac512a4f5c0cf77cc547b2c12546828a24071",
+      "structureFamilyHash": "57fce854c1872ccf835e9ad6e3bac512a4f5c0cf77cc547b2c12546828a24071",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:43:32.561Z"
+    },
+    {
+      "candidateId": "cand-8a16db7d",
+      "fingerprintFamily": "b24d2dc36f12265d605d86abd8671709939ccbcad7dfe57937fceecc8ab10173",
+      "structureFamilyHash": "b04cb5a8dd6a4d9f762b62e065945254a169dfd6788fd1c6747ccc08ccc8f6c4",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:53:25.216Z"
+    },
+    {
+      "candidateId": "cand-48d0560a",
+      "fingerprintFamily": "a0c67fb63230451b35e96e6674c7d48e7cd00124ecfbcd29a34665b1e77be2b5",
+      "structureFamilyHash": "be6f19d7c955a2cc37fc74ec2ef3343ea96228d751acdc508ea8263c919c6141",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:55:14.405Z"
+    },
+    {
+      "candidateId": "cand-8dd713e8",
+      "fingerprintFamily": "50867ccc83e8e8796043db37f202228712fa8f7b5508256bc733cf3faf31d494",
+      "structureFamilyHash": "6c4fe6e00e17f2f08b333aea4b4a49840bf99a0070d1b69afe559915f323dabe",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:57:44.360Z"
+    },
+    {
+      "candidateId": "cand-fb62e922",
+      "fingerprintFamily": "a0cb28acc0b6aac0a5e6db2a2d1e49b65d93b40c627538cf1734ba3428695d7b",
+      "structureFamilyHash": "a865916eca451ad71f150fba21eed58bbfa64a903835dfd26c806cc71f49d6f2",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T10:59:38.558Z"
+    },
+    {
+      "candidateId": "cand-451c70ed",
+      "fingerprintFamily": "f27d580a1a4311f70065ffc39b03d5b110c745d69a6634295f68ad10bbb9e5d3",
+      "structureFamilyHash": "33f41e65fe5ad64afe747fd245850dc9039285cc24463d6d515c74933c60806d",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:02:15.476Z"
+    },
+    {
+      "candidateId": "cand-f6ae3e86",
+      "fingerprintFamily": "d4cb8b965d8908bdd6578150b0ab61795751ff7e2cc86a1a329552cedf1bf479",
+      "structureFamilyHash": "fd477e320eddbc1bfdf06fe41ffbd4bf1bfd6c5b96a9a1af46dd53872a37e118",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:04:10.532Z"
+    },
+    {
+      "candidateId": "cand-cc7aba92",
+      "fingerprintFamily": "7666a0a22f88b9707061ea81c57f79ade2188e0ac10a4f1aede469f27ac94833",
+      "structureFamilyHash": "7fa4f1cf67a05fd95cd3269e70e9aee4b3d4de178f941ee5d9c0f10585f9624e",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:07:06.722Z"
+    },
+    {
+      "candidateId": "cand-a887a699",
+      "fingerprintFamily": "0c11f9c83448e5f115f471a8ec13ca822c5b80c379f80300f5bf844602db676e",
+      "structureFamilyHash": "0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:09:40.873Z"
+    },
+    {
+      "candidateId": "cand-89324cd2",
+      "fingerprintFamily": "fddfe3e52a21b6677bd9313c1f125e48074b07096d03696813b405948b2ab6f9",
+      "structureFamilyHash": "0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:27:44.228Z"
+    },
+    {
+      "candidateId": "cand-691e635c",
+      "fingerprintFamily": "35efdf51ffaf5618e81aa34a18df82c717f3240201886d0300dbef100dad434d",
+      "structureFamilyHash": "0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:29:35.091Z"
+    },
+    {
+      "candidateId": "cand-967670ff",
+      "fingerprintFamily": "b09ec3b19960156891ab3fa0109d30cdd3f201c155c89a272c1181d7a743e0b9",
+      "structureFamilyHash": "52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:31:30.617Z"
+    },
+    {
+      "candidateId": "cand-41e96726",
+      "fingerprintFamily": "d61f145963b429464c5f8db17e50d9e1f27d0dbd54daf6d69df5a5c7378ed1a2",
+      "structureFamilyHash": "350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:33:25.205Z"
+    },
+    {
+      "candidateId": "cand-9b5164cd",
+      "fingerprintFamily": "223d117a6a11a1a427b10ce38e8f25f1f92e5158258afb2b0fff172faa2a951c",
+      "structureFamilyHash": "bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:35:20.900Z"
+    },
+    {
+      "candidateId": "cand-168c9d66",
+      "fingerprintFamily": "c4d9825c96f7e52775a1875c7b612568fbeffd3843db15b8ac67c824b4a1dd4e",
+      "structureFamilyHash": "0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:37:17.701Z"
+    },
+    {
+      "candidateId": "cand-a64998af",
+      "fingerprintFamily": "02c1846da2979e7c6e9f295540d7a8dce205476d27f6219c1496bc74f88a94b9",
+      "structureFamilyHash": "3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 1,
+      "parity": {
+        "status": "matched",
+        "tradeCountDelta": -2,
+        "netProfitPctDelta": -0.7999999999999998,
+        "maxDrawdownPctDelta": 0.6999999999999997,
+        "profitFactorDelta": -0.04999999999999982,
+        "winRateDelta": 0
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-04-29T11:39:11.635Z"
+    }
+  ]
+}

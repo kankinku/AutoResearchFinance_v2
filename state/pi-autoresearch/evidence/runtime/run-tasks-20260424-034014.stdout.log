@@ -1,0 +1,135 @@
+◇ injected env (11) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+{
+  "batch": {
+    "batchId": "batch-f8d16051",
+    "runId": "run-1776969616463",
+    "targetTaskCount": 10,
+    "completedTaskCount": 0,
+    "runtimeFailureCount": 3,
+    "status": "stopped",
+    "stopReason": "generation failures reached 3",
+    "tasks": [
+      {
+        "runId": "run-1776969616463",
+        "batchId": "batch-f8d16051",
+        "taskId": "batch-f8d16051-task-01",
+        "taskNumber": 1,
+        "iteration": 48,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Tighten exit behavior when losing trades continue into deeper drawdown.",
+          "recentFailures": [
+            "backtest_empty",
+            "hard_gate_fail",
+            "backtest_empty",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-3c7d9856"
+        },
+        "execution": {
+          "candidateId": "genfail-de9b23c9",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-48-evt-6dd11337.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-23T18:40:26.302Z"
+      },
+      {
+        "runId": "run-1776969616463",
+        "batchId": "batch-f8d16051",
+        "taskId": "batch-f8d16051-task-02",
+        "taskNumber": 2,
+        "iteration": 49,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Tighten exit behavior when losing trades continue into deeper drawdown.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "backtest_empty",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-3c7d9856"
+        },
+        "execution": {
+          "candidateId": "genfail-9c763446",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-49-evt-add2f616.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-23T18:40:26.385Z"
+      },
+      {
+        "runId": "run-1776969616463",
+        "batchId": "batch-f8d16051",
+        "taskId": "batch-f8d16051-task-03",
+        "taskNumber": 3,
+        "iteration": 50,
+        "status": "generation_failed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Tighten exit behavior when losing trades continue into deeper drawdown.",
+          "recentFailures": [
+            "backtest_empty",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "mutation_generation_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-3c7d9856"
+        },
+        "execution": {
+          "candidateId": "genfail-540aa6ec",
+          "studyTitle": null,
+          "status": "generation_failed",
+          "decision": "mutation_generation_fail",
+          "compileOk": null,
+          "applyOk": null,
+          "artifactPaths": {
+            "mutationFailureArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\runtime\\mutation-mutation_request_failed-50-evt-24f1ba7f.json"
+          }
+        },
+        "analysis": {
+          "decision": "mutation_generation_fail",
+          "score": null,
+          "hardGatesPassed": null,
+          "softGuardrailBreached": null,
+          "topConditionContributions": [],
+          "nextMutationHints": []
+        },
+        "recordedAt": "2026-04-23T18:40:26.470Z"
+      }
+    ]
+  },
+  "tracePath": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\traces\\run-tasks-2026-04-23T18-40-15-519Z-trace-ffd1ed31.jsonl"
+}

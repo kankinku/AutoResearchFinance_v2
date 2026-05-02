@@ -1,0 +1,99 @@
+//@version=5
+strategy("AF Mutation Anti-Extension Exit Tightener [cand-8247c933]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+lookbackExt = input.int(6, "Extension Lookback", minval=2)
+maxExtPct = input.float(2.4, "Max Extension % From Lookback Low", minval=0.2, step=0.1)
+maxFastDistPct = input.float(1.8, "Max Distance % Above Fast EMA", minval=0.1, step=0.1)
+maxSlowDistPct = input.float(3.5, "Max Distance % Above Slow EMA", minval=0.1, step=0.1)
+entryRsiMin = input.float(54.0, "Entry RSI Min", minval=1, maxval=99, step=0.5)
+entryRsiMax = input.float(68.0, "Entry RSI Max", minval=1, maxval=99, step=0.5)
+exitRsiWeak = input.float(49.0, "Weak Exit RSI", minval=1, maxval=99, step=0.5)
+minAdx = input.float(16.0, "Min ADX", minval=1, step=0.5)
+atrStopMult = input.float(1.9, "ATR Stop Mult", minval=0.2, step=0.1)
+trailAtrMult = input.float(2.2, "ATR Trail Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(24, "Max Bars In Trade", minval=1)
+profitActivateAtr = input.float(1.2, "Trail Activation Profit ATR", minval=0.2, step=0.1)
+cooldownBars = input.int(2, "Cooldown Bars After Exit", minval=0)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLength)
+
+slowSlopeUp = slowEma > slowEma[1]
+fastAboveSlow = fastEma > slowEma
+trendQuality = fastAboveSlow and slowSlopeUp and plusDI > minusDI and adx > minAdx
+
+lookbackLow = ta.lowest(low, lookbackExt)
+extFromLowPct = lookbackLow == 0.0 ? 0.0 : (close / lookbackLow - 1.0) * 100.0
+fastDistPct = fastEma == 0.0 ? 0.0 : (close / fastEma - 1.0) * 100.0
+slowDistPct = slowEma == 0.0 ? 0.0 : (close / slowEma - 1.0) * 100.0
+notLateExtension = extFromLowPct <= maxExtPct and fastDistPct <= maxFastDistPct and slowDistPct <= maxSlowDistPct
+
+crossEntry = ta.crossover(fastEma, slowEma)
+pullbackTrendEntry = fastAboveSlow and close > fastEma and close[1] <= fastEma[1] and fastEma > fastEma[1]
+entrySignal = (crossEntry or pullbackTrendEntry) and trendQuality and notLateExtension and rsiValue > entryRsiMin and rsiValue < entryRsiMax
+
+var int lastExitBar = na
+inCooldown = not na(lastExitBar) and bar_index - lastExitBar <= cooldownBars
+canEnter = strategy.position_size <= 0 and not inCooldown
+
+if entrySignal and canEnter
+    strategy.entry("Long", strategy.long)
+
+var float highestSinceEntry = na
+var int entryBarIndex = na
+
+newLong = strategy.position_size > 0 and strategy.position_size[1] <= 0
+flatNow = strategy.position_size <= 0 and strategy.position_size[1] > 0
+
+if newLong
+    highestSinceEntry := high
+    entryBarIndex := bar_index
+else if strategy.position_size > 0
+    highestSinceEntry := na(highestSinceEntry) ? high : math.max(highestSinceEntry, high)
+else
+    highestSinceEntry := na
+    entryBarIndex := na
+
+if flatNow
+    lastExitBar := bar_index
+
+barsInTrade = strategy.position_size > 0 and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+entryPrice = strategy.position_avg_price
+baseStop = strategy.position_size > 0 ? entryPrice - atrValue * atrStopMult : na
+openProfitAtr = strategy.position_size > 0 ? (close - entryPrice) / atrValue : 0.0
+trailActive = strategy.position_size > 0 and openProfitAtr >= profitActivateAtr
+trailStop = strategy.position_size > 0 and trailActive and not na(highestSinceEntry) ? highestSinceEntry - atrValue * trailAtrMult : na
+finalStop = strategy.position_size > 0 ? (trailActive ? math.max(baseStop, trailStop) : baseStop) : na
+
+weakMomentumExit = strategy.position_size > 0 and (rsiValue < exitRsiWeak or (plusDI < minusDI and adx > minAdx))
+timeExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+trendExit = strategy.position_size > 0 and ta.crossunder(fastEma, slowEma)
+stopExit = strategy.position_size > 0 and not na(finalStop) and close < finalStop
+
+if strategy.position_size > 0
+    strategy.exit("XL", "Long", stop=finalStop)
+
+if weakMomentumExit or timeExit or trendExit or stopExit
+    strategy.close("Long")
+
+plot(fastEma, color=color.new(color.teal, 0), title="Fast EMA")
+plot(slowEma, color=color.new(color.orange, 0), title="Slow EMA")
+plot(strategy.position_size > 0 ? finalStop : na, color=color.new(color.red, 0), title="Active Stop", style=plot.style_linebr)
+plotshape(entrySignal and canEnter, title="Long Signal", style=shape.triangleup, color=color.new(color.green, 0), location=location.belowbar, size=size.tiny)

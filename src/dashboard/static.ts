@@ -1,0 +1,627 @@
+export function renderDashboardHtml(): string {
+  return String.raw`<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AF Local Loop Dashboard</title>
+  <style>
+    :root {
+      --paper: #f4f1ea;
+      --ink: #171717;
+      --muted: #6d6a63;
+      --line: #c9c2b4;
+      --panel: #fffaf0;
+      --accent: #d9472f;
+      --good: #13795b;
+      --warn: #b7791f;
+      --bad: #9f1239;
+      --blue: #22577a;
+      --mono: "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --body: "Aptos", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--body);
+      letter-spacing: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.18;
+      background-image:
+        repeating-linear-gradient(0deg, transparent 0 23px, rgba(23,23,23,0.05) 24px),
+        repeating-linear-gradient(90deg, transparent 0 47px, rgba(23,23,23,0.035) 48px);
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+    }
+
+    .rail {
+      background: var(--ink);
+      color: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 3px solid var(--accent);
+    }
+
+    .rail span {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    main {
+      width: min(1680px, 100%);
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      padding-bottom: 18px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: clamp(24px, 4vw, 54px);
+      line-height: 0.95;
+      text-transform: uppercase;
+    }
+
+    .subline {
+      margin-top: 8px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .status-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border: 1px solid var(--ink);
+      padding: 6px 9px;
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--panel);
+      white-space: nowrap;
+    }
+
+    .pill.good { color: var(--good); border-color: var(--good); }
+    .pill.warn { color: var(--warn); border-color: var(--warn); }
+    .pill.bad { color: var(--bad); border-color: var(--bad); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .metric,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .metric {
+      min-height: 96px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .label {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .value {
+      font-family: var(--mono);
+      font-size: clamp(20px, 2.2vw, 34px);
+      line-height: 1;
+    }
+
+    .delta {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .panel {
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-family: var(--mono);
+      font-size: 14px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .chart {
+      width: 100%;
+      height: 270px;
+      display: block;
+      border: 1px solid var(--line);
+      background: #fffdf7;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .copy {
+      margin: 0;
+      color: var(--ink);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      font-family: var(--mono);
+      font-size: 11px;
+      border: 1px solid var(--line);
+      padding: 5px 7px;
+      background: #fffdf7;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    td.mono { font-family: var(--mono); }
+    .goodText { color: var(--good); }
+    .warnText { color: var(--warn); }
+    .badText { color: var(--bad); }
+
+    .hypothesis-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .hypothesis-row {
+      border-left: 4px solid var(--accent);
+      padding-left: 10px;
+    }
+
+    .footer {
+      margin-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail { display: none; }
+      .grid, .two-col { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      header { grid-template-columns: 1fr; }
+      .status-strip { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail"><span>AF LOCAL ONLY / QQQ 120M</span></aside>
+    <main>
+      <header>
+        <div>
+          <h1>Autonomous Loop Dashboard</h1>
+          <div class="subline" id="subline">loading local state...</div>
+        </div>
+        <div class="status-strip">
+          <span class="pill" id="loopStatus">LOOP</span>
+          <span class="pill" id="improvementStatus">STATE</span>
+          <span class="pill" id="refreshStatus">REFRESH</span>
+        </div>
+      </header>
+
+      <section class="metrics">
+        <div class="metric"><div class="label">Latest Score</div><div class="value" id="latestScore">-</div><div class="delta" id="latestDecision">-</div></div>
+        <div class="metric"><div class="label">Latest Net</div><div class="value" id="latestNet">-</div><div class="delta" id="latestTrades">-</div></div>
+        <div class="metric"><div class="label">Profit Factor</div><div class="value" id="latestPf">-</div><div class="delta" id="latestDd">-</div></div>
+        <div class="metric"><div class="label">Active Champion</div><div class="value" id="championScore">-</div><div class="delta" id="championId">-</div></div>
+        <div class="metric"><div class="label">Best Eligible</div><div class="value" id="bestScore">-</div><div class="delta" id="bestId">-</div></div>
+        <div class="metric"><div class="label">Recent Health</div><div class="value" id="healthValue">-</div><div class="delta" id="healthDetail">-</div></div>
+        <div class="metric"><div class="label">Node Memory</div><div class="value" id="memoryValue">-</div><div class="delta" id="memoryDetail">-</div></div>
+        <div class="metric"><div class="label">Storage</div><div class="value" id="storageValue">-</div><div class="delta" id="storageDetail">-</div></div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h2><span>Recent Score Trace</span><span id="chartMeta">-</span></h2>
+          <svg class="chart" id="scoreChart" role="img" aria-label="Recent score trend"></svg>
+        </div>
+        <div class="panel">
+          <h2><span>Improvement State</span><span id="generatedAt">-</span></h2>
+          <p class="copy" id="improvementSummary">-</p>
+          <div class="feature-list" id="nextFocus"></div>
+        </div>
+      </section>
+
+      <section class="two-col">
+        <div class="panel">
+          <h2><span>Best Strategy Analysis</span><span id="strategyId">-</span></h2>
+          <p class="copy" id="strategySummary">-</p>
+          <div class="feature-list" id="strategyFeatures"></div>
+          <table style="margin-top: 12px">
+            <tbody id="strategyTable"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2><span>Current Hypothesis</span><span id="repairMode">-</span></h2>
+          <div class="hypothesis-grid" id="hypothesisGrid"></div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h2><span>Recent Candidates</span><span>tail window</span></h2>
+          <table>
+            <thead><tr><th>ID</th><th>Score</th><th>Net</th><th>Trades</th><th>Decision</th></tr></thead>
+            <tbody id="candidateRows"></tbody>
+          </table>
+        </div>
+        <div class="stack">
+          <div class="panel">
+            <h2><span>Failure Memory</span><span id="problemCount">-</span></h2>
+            <table>
+              <thead><tr><th>Iter</th><th>Kind</th><th>Diagnosis</th></tr></thead>
+              <tbody id="problemRows"></tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h2><span>Repair Trail</span><span id="repairCount">-</span></h2>
+            <table>
+              <thead><tr><th>Iter</th><th>Repair</th><th>Result</th></tr></thead>
+              <tbody id="repairRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer">
+        <span id="paths">local files only</span>
+        <span>auto refresh: 8s</span>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const state = { timer: null };
+
+    function fmt(value, digits) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
+      return Number(value).toFixed(digits);
+    }
+
+    function pct(value) {
+      return value === null || value === undefined ? "-" : fmt(value, 2) + "%";
+    }
+
+    function text(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function cls(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.className = value;
+    }
+
+    function shortId(value) {
+      return value ? value.replace("cand-", "c-") : "-";
+    }
+
+    function renderChipList(id, values) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = "";
+      (values || []).forEach(function(value) {
+        const span = document.createElement("span");
+        span.className = "chip";
+        span.textContent = value;
+        el.appendChild(span);
+      });
+    }
+
+    function renderChart(points) {
+      const svg = document.getElementById("scoreChart");
+      svg.innerHTML = "";
+      const width = 820;
+      const height = 270;
+      svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+      const pad = { left: 46, right: 18, top: 20, bottom: 34 };
+      const values = (points || []).map(function(p) { return p.score; }).filter(function(v) { return typeof v === "number"; });
+      if (values.length < 2) {
+        const empty = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        empty.setAttribute("x", "30");
+        empty.setAttribute("y", "130");
+        empty.setAttribute("font-family", "var(--mono)");
+        empty.setAttribute("font-size", "13");
+        empty.textContent = "not enough score data";
+        svg.appendChild(empty);
+        return;
+      }
+      const min = Math.min.apply(null, values);
+      const max = Math.max.apply(null, values);
+      const span = Math.max(0.001, max - min);
+      const usableW = width - pad.left - pad.right;
+      const usableH = height - pad.top - pad.bottom;
+      const linePoints = points.map(function(p, index) {
+        const x = pad.left + (points.length === 1 ? 0 : index * usableW / (points.length - 1));
+        const y = pad.top + (max - (p.score || 0)) * usableH / span;
+        return { x: x, y: y, p: p };
+      });
+
+      for (let i = 0; i <= 4; i += 1) {
+        const y = pad.top + i * usableH / 4;
+        const grid = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        grid.setAttribute("x1", String(pad.left));
+        grid.setAttribute("x2", String(width - pad.right));
+        grid.setAttribute("y1", String(y));
+        grid.setAttribute("y2", String(y));
+        grid.setAttribute("stroke", "#c9c2b4");
+        grid.setAttribute("stroke-width", "1");
+        svg.appendChild(grid);
+      }
+
+      const poly = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      poly.setAttribute("fill", "none");
+      poly.setAttribute("stroke", "#d9472f");
+      poly.setAttribute("stroke-width", "3");
+      poly.setAttribute("points", linePoints.map(function(pt) { return pt.x + "," + pt.y; }).join(" "));
+      svg.appendChild(poly);
+
+      linePoints.forEach(function(pt) {
+        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dot.setAttribute("cx", String(pt.x));
+        dot.setAttribute("cy", String(pt.y));
+        dot.setAttribute("r", pt.p.eligible ? "4" : "3");
+        dot.setAttribute("fill", pt.p.eligible ? "#13795b" : "#22577a");
+        svg.appendChild(dot);
+      });
+
+      const minLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      minLabel.setAttribute("x", "8");
+      minLabel.setAttribute("y", String(height - pad.bottom));
+      minLabel.setAttribute("font-family", "var(--mono)");
+      minLabel.setAttribute("font-size", "11");
+      minLabel.textContent = fmt(min, 3);
+      svg.appendChild(minLabel);
+
+      const maxLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      maxLabel.setAttribute("x", "8");
+      maxLabel.setAttribute("y", String(pad.top + 4));
+      maxLabel.setAttribute("font-family", "var(--mono)");
+      maxLabel.setAttribute("font-size", "11");
+      maxLabel.textContent = fmt(max, 3);
+      svg.appendChild(maxLabel);
+    }
+
+    function row(cells) {
+      const tr = document.createElement("tr");
+      cells.forEach(function(cell) {
+        const td = document.createElement("td");
+        if (cell.className) td.className = cell.className;
+        td.textContent = cell.value;
+        tr.appendChild(td);
+      });
+      return tr;
+    }
+
+    function renderRows(id, rows) {
+      const body = document.getElementById(id);
+      if (!body) return;
+      body.innerHTML = "";
+      rows.forEach(function(item) { body.appendChild(item); });
+    }
+
+    function render(data) {
+      const latest = data.score.latest;
+      const latestMetrics = latest && latest.metrics;
+      text("subline", "state " + data.project.stateRoot + " / " + new Date(data.generatedAt).toLocaleTimeString());
+      text("generatedAt", new Date(data.generatedAt).toLocaleTimeString());
+      text("latestScore", latest && latest.score !== null ? fmt(latest.score, 4) : "-");
+      text("latestDecision", latest ? shortId(latest.candidateId) + " / " + latest.decision : "-");
+      text("latestNet", latestMetrics ? pct(latestMetrics.netProfitPercent) : "-");
+      text("latestTrades", latestMetrics ? latestMetrics.totalTrades + " trades" : "-");
+      text("latestPf", latestMetrics ? fmt(latestMetrics.profitFactor, 2) : "-");
+      text("latestDd", latestMetrics ? "DD " + pct(latestMetrics.maxDrawdownPercent) : "-");
+      text("championScore", data.score.activeChampion ? fmt(data.score.activeChampion.score, 4) : "-");
+      text("championId", data.score.activeChampion ? shortId(data.score.activeChampion.candidateId) : "-");
+      text("bestScore", data.score.bestEligible ? fmt(data.score.bestEligible.score, 4) : "-");
+      text("bestId", data.score.bestEligible ? shortId(data.score.bestEligible.candidateId) : "-");
+      text("healthValue", data.score.recentEligibleCount + "/10");
+      text("healthDetail", "eligible, sparse " + data.score.recentSparseProblemCount + ", repair " + data.score.recentPreflightRepairCount);
+      const memory = data.runtime.nodeMemory || {};
+      text("memoryValue", memory.rssMB ? fmt(memory.rssMB, 0) + "MB" : "-");
+      text("memoryDetail", memory.heapUsedMB ? "heap " + fmt(memory.heapUsedMB, 0) + "MB / ratio " + fmt(memory.rssToSystemRatio || 0, 4) : "-");
+      text("storageValue", data.score.ledgerSizeMB !== undefined ? fmt(data.score.ledgerSizeMB, 1) + "MB" : "-");
+      text("storageDetail", data.score.artifactSizeMB !== undefined ? "artifacts " + fmt(data.score.artifactSizeMB, 1) + "MB" : "-");
+      text("chartMeta", (data.trend || []).length + " pts");
+      text("improvementSummary", data.improvement.summary);
+      renderChipList("nextFocus", data.improvement.nextFocus);
+      text("paths", data.project.workspaceRoot);
+
+      const loopClass = data.runtime.running ? "pill good" : data.runtime.stopRequested ? "pill warn" : "pill bad";
+      cls("loopStatus", loopClass);
+      text("loopStatus", data.runtime.running ? "RUNNING pid " + data.runtime.pid : data.runtime.stopRequested ? "STOP REQUESTED" : "STOPPED");
+      cls("improvementStatus", "pill " + (data.improvement.status === "improving" ? "good" : data.improvement.status === "blocked" ? "bad" : "warn"));
+      text("improvementStatus", data.improvement.status.toUpperCase());
+      text("refreshStatus", "UPDATED " + new Date().toLocaleTimeString());
+
+      renderChart(data.trend || []);
+
+      const strategy = data.bestStrategy;
+      text("strategyId", strategy ? shortId(strategy.candidateId) : "-");
+      text("strategySummary", strategy ? (strategy.summary || strategy.title || "No summary available.") : "-");
+      renderChipList("strategyFeatures", strategy ? strategy.features : []);
+      const strategyRows = [];
+      if (strategy) {
+        strategyRows.push(row([{ value: "Entry", className: "mono" }, { value: strategy.entryShape }]));
+        strategyRows.push(row([{ value: "Exit", className: "mono" }, { value: strategy.exitShape }]));
+        strategyRows.push(row([{ value: "Risk", className: "mono" }, { value: strategy.riskShape }]));
+        Object.keys(strategy.routeInputs || {}).forEach(function(key) {
+          strategyRows.push(row([{ value: key, className: "mono" }, { value: strategy.routeInputs[key] === null ? "-" : String(strategy.routeInputs[key]) }]));
+        });
+      }
+      renderRows("strategyTable", strategyRows);
+
+      const hyp = data.hypothesis;
+      text("repairMode", hyp ? hyp.repairMode : "-");
+      const hypEl = document.getElementById("hypothesisGrid");
+      if (hypEl) {
+        hypEl.innerHTML = "";
+        [
+          ["Hypothesis", hyp && hyp.hypothesis],
+          ["Expected", hyp && hyp.expectedEffect],
+          ["Invalid If", hyp && hyp.invalidIf],
+          ["Route", hyp ? "preferred " + hyp.route.preferred.join(", ") + " / variant " + (hyp.route.variant || "-") : null],
+          ["Next", hyp && hyp.nextMutationDirection]
+        ].forEach(function(pair) {
+          const div = document.createElement("div");
+          div.className = "hypothesis-row";
+          div.innerHTML = '<div class="label"></div><p class="copy"></p>';
+          div.querySelector(".label").textContent = pair[0];
+          div.querySelector(".copy").textContent = pair[1] || "-";
+          hypEl.appendChild(div);
+        });
+      }
+
+      renderRows("candidateRows", (data.recentCandidates || []).map(function(item) {
+        return row([
+          { value: shortId(item.candidateId), className: "mono" },
+          { value: item.score === null ? "-" : fmt(item.score, 4), className: "mono" },
+          { value: item.metrics ? pct(item.metrics.netProfitPercent) : "-", className: "mono" },
+          { value: item.metrics ? String(item.metrics.totalTrades) : "-", className: "mono" },
+          { value: item.decision, className: item.eligible ? "goodText" : "warnText" }
+        ]);
+      }));
+
+      text("problemCount", String((data.failureMemory.recentProblems || []).length));
+      renderRows("problemRows", (data.failureMemory.recentProblems || []).slice(-6).reverse().map(function(item) {
+        return row([
+          { value: item.iteration === null ? "-" : String(item.iteration), className: "mono" },
+          { value: item.problemKind, className: "mono" },
+          { value: item.diagnosis.slice(0, 96) }
+        ]);
+      }));
+
+      text("repairCount", String((data.failureMemory.recentRepairs || []).length));
+      renderRows("repairRows", (data.failureMemory.recentRepairs || []).slice(-6).reverse().map(function(item) {
+        return row([
+          { value: item.iteration === null ? "-" : String(item.iteration), className: "mono" },
+          { value: item.repairKind, className: "mono" },
+          { value: item.result + " / " + shortId(item.repairedCandidateId) }
+        ]);
+      }));
+    }
+
+    async function load() {
+      try {
+        const response = await fetch("/api/status", { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        render(data);
+      } catch (error) {
+        cls("refreshStatus", "pill bad");
+        text("refreshStatus", "REFRESH FAILED");
+        console.error(error);
+      }
+    }
+
+    load();
+    state.timer = setInterval(load, 8000);
+  </script>
+</body>
+</html>`;
+}

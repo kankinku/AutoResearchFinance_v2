@@ -1,0 +1,109 @@
+//@version=5
+strategy("AF Mutation QQQ 120m [anti-squeeze anti-chase] [cand-7a4620b0]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.5, step=0.1)
+kcLength = input.int(20, "KC Length", minval=5)
+kcMult = input.float(1.5, "KC Mult", minval=0.5, step=0.1)
+maxSqueezeRatio = input.float(1.05, "Max BB/KC Width Ratio", minval=0.7, step=0.01)
+maxShortExtAtr = input.float(1.1, "Max Short-Term Extension ATR", minval=0.2, step=0.05)
+maxEmaGapAtr = input.float(1.6, "Max Price-FastEMA Gap ATR", minval=0.2, step=0.05)
+entryRsiMin = input.float(53.0, "Entry RSI Min", minval=40, maxval=80, step=0.5)
+exitRsiMin = input.float(47.0, "Exit RSI Min", minval=20, maxval=70, step=0.5)
+trendStrengthMin = input.float(18.0, "Min ADX", minval=5, maxval=50, step=0.5)
+initialStopAtr = input.float(2.2, "Initial Stop ATR", minval=0.5, step=0.1)
+trailStopAtr = input.float(2.6, "Trail Stop ATR", minval=0.5, step=0.1)
+breakevenTriggerAtr = input.float(1.2, "Breakeven Trigger ATR", minval=0.2, step=0.1)
+maxBarsInTrade = input.int(26, "Max Bars In Trade", minval=2)
+weakTradeBars = input.int(8, "Weak Trade Review Bars", minval=2)
+weakTradeAtr = input.float(0.35, "Min Progress ATR by Weak Review", minval=0.0, step=0.05)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = bbMult * ta.stdev(close, bbLength)
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+bbWidth = bbUpper - bbLower
+
+kcBasis = ta.ema(close, kcLength)
+kcRange = ta.ema(ta.tr(true), kcLength) * kcMult
+kcUpper = kcBasis + kcRange
+kcLower = kcBasis - kcRange
+kcWidth = kcUpper - kcLower
+squeezeRatio = kcWidth != 0.0 ? bbWidth / kcWidth : 999.0
+notSqueezed = squeezeRatio > maxSqueezeRatio
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), atrLength)
+plusDI = trur != 0.0 ? 100.0 * ta.rma(plusDM, atrLength) / trur : 0.0
+minusDI = trur != 0.0 ? 100.0 * ta.rma(minusDM, atrLength) / trur : 0.0
+dx = (plusDI + minusDI) != 0.0 ? 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, atrLength)
+
+shortExtensionAtr = atrValue != 0.0 ? (close - ta.lowest(low, 5)) / atrValue : 0.0
+emaGapAtr = atrValue != 0.0 ? (close - fastEma) / atrValue : 0.0
+antiChase = shortExtensionAtr < maxShortExtAtr and emaGapAtr < maxEmaGapAtr
+
+trendUp = fastEma > slowEma and slowEma > slowEma[1]
+momentumOk = rsiValue > entryRsiMin and rsiValue > rsiValue[1]
+trendStrengthOk = adx > trendStrengthMin and plusDI > minusDI
+pullbackStructureOk = close > fastEma and low <= fastEma * 1.003
+
+longEntry = ta.crossover(fastEma, slowEma) and momentumOk and trendStrengthOk and notSqueezed and antiChase
+longEntry := longEntry or (trendUp and pullbackStructureOk and momentumOk and trendStrengthOk and notSqueezed and antiChase and close > high[1])
+
+var int barsInTrade = 0
+var float highestSinceEntry = na
+var float entryAtr = na
+
+inTrade = strategy.position_size > 0
+if inTrade
+    barsInTrade += 1
+    highestSinceEntry := na(highestSinceEntry) ? high : math.max(highestSinceEntry, high)
+else
+    barsInTrade := 0
+    highestSinceEntry := na
+    entryAtr := na
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and na(entryAtr)
+    entryAtr := atrValue
+
+avgPrice = strategy.position_avg_price
+openProfitAtr = (strategy.position_size > 0 and atrValue != 0.0) ? (close - avgPrice) / atrValue : 0.0
+baseStop = strategy.position_size > 0 ? avgPrice - initialStopAtr * nz(entryAtr, atrValue) : na
+trailStop = strategy.position_size > 0 ? highestSinceEntry - trailStopAtr * atrValue : na
+breakevenStop = strategy.position_size > 0 and openProfitAtr >= breakevenTriggerAtr ? avgPrice : na
+activeStop = strategy.position_size > 0 ? math.max(baseStop, na(breakevenStop) ? baseStop : breakevenStop) : na
+activeStop := strategy.position_size > 0 ? math.max(activeStop, trailStop) : na
+
+weakProgress = strategy.position_size > 0 and barsInTrade >= weakTradeBars and (close - avgPrice) < weakTradeAtr * nz(entryAtr, atrValue)
+momentumFade = rsiValue < exitRsiMin or (adx < trendStrengthMin * 0.85 and minusDI > plusDI)
+trendBreak = ta.crossunder(fastEma, slowEma) or close < slowEma
+maxHoldExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+
+if strategy.position_size > 0
+    strategy.exit("XL", "Long", stop=activeStop)
+
+closeSignal = strategy.position_size > 0 and (trendBreak or (weakProgress and momentumFade) or maxHoldExit)
+if closeSignal
+    strategy.close("Long")
+
+plot(fastEma, color=color.new(color.teal, 0), title="Fast EMA")
+plot(slowEma, color=color.new(color.orange, 0), title="Slow EMA")
+plot(strategy.position_size > 0 ? activeStop : na, color=color.new(color.red, 0), title="Active Stop", style=plot.style_linebr)
+plotchar(longEntry, title="Long Entry", char="▲", location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotchar(closeSignal, title="Close Signal", char="▼", location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

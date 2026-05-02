@@ -1,0 +1,86 @@
+//@version=5
+strategy("AF Mutation QQQ 120m Anti-Chase Exit Tightener [cand-d8948434]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+lookbackExt = input.int(5, "Short Extension Lookback", minval=2)
+extAtrMax = input.float(0.9, "Max Extension Above Short Low (ATR)", minval=0.1, step=0.1)
+rsiEntryMin = input.int(52, "RSI Entry Minimum", minval=1, maxval=99)
+rsiEntryMax = input.int(68, "RSI Entry Maximum", minval=1, maxval=99)
+trendSlopeMinAtr = input.float(0.02, "Slow EMA Slope Min ATR", minval=-1.0, step=0.01)
+stopAtrMult = input.float(2.0, "Initial Stop ATR", minval=0.2, step=0.1)
+profitAtrForTightening = input.float(0.8, "Profit ATR To Tighten", minval=0.1, step=0.1)
+tightStopAtrMult = input.float(1.1, "Tight Stop ATR", minval=0.2, step=0.1)
+maxBarsInTrade = input.int(18, "Max Bars In Trade", minval=1)
+lossBarsFail = input.int(5, "Loss Hold Bars Before Fail Exit", minval=1)
+minAtrTrend = input.float(0.003, "Min ATR/Close", minval=0.0001, step=0.0001)
+reentryCooldownBars = input.int(2, "Reentry Cooldown Bars", minval=0)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+shortLow = ta.lowest(low, lookbackExt)
+shortHigh = ta.highest(high, lookbackExt)
+extensionAtr = atrValue > 0 ? (close - shortLow) / atrValue : 0.0
+atrPct = close != 0 ? atrValue / close : 0.0
+slowSlopeAtr = atrValue > 0 ? (slowEma - slowEma[3]) / atrValue : 0.0
+priceAboveSlow = close > slowEma
+trendUp = fastEma > slowEma and slowSlopeAtr > trendSlopeMinAtr
+notOverextended = extensionAtr <= extAtrMax and close < shortHigh
+rsiBalanced = rsiValue >= rsiEntryMin and rsiValue <= rsiEntryMax
+volOkay = atrPct >= minAtrTrend
+crossSignal = ta.crossover(fastEma, slowEma)
+baseLongEntry = crossSignal and priceAboveSlow and trendUp and notOverextended and rsiBalanced and volOkay
+
+var int lastExitBar = na
+cooldownActive = not na(lastExitBar) and (bar_index - lastExitBar) <= reentryCooldownBars
+longEntry = baseLongEntry and not cooldownActive
+
+var int entryBarIndex = na
+var float entryAtr = na
+var float peakSinceEntry = na
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+newLong = strategy.position_size > 0 and strategy.position_size[1] <= 0
+flatNow = strategy.position_size <= 0 and strategy.position_size[1] > 0
+
+if newLong
+    entryBarIndex := bar_index
+    entryAtr := atrValue
+    peakSinceEntry := high
+
+if strategy.position_size > 0
+    peakSinceEntry := na(peakSinceEntry) ? high : math.max(peakSinceEntry, high)
+
+barsInTrade = strategy.position_size > 0 and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+avgPrice = strategy.position_avg_price
+openProfitAtr = strategy.position_size > 0 and atrValue > 0 ? (close - avgPrice) / atrValue : 0.0
+activeStopAtr = openProfitAtr >= profitAtrForTightening ? tightStopAtrMult : stopAtrMult
+stopPrice = strategy.position_size > 0 ? avgPrice - atrValue * activeStopAtr : na
+trailingFailPrice = strategy.position_size > 0 and not na(peakSinceEntry) ? peakSinceEntry - atrValue * 1.6 : na
+
+momentumWeak = rsiValue < 48 or fastEma < fastEma[1]
+trendBroken = close < slowEma or ta.crossunder(fastEma, slowEma)
+timeFail = strategy.position_size > 0 and barsInTrade >= lossBarsFail and close < avgPrice and momentumWeak
+maxHoldExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade and openProfitAtr < 0.5
+protectiveExit = strategy.position_size > 0 and ((not na(stopPrice) and close <= stopPrice) or (not na(trailingFailPrice) and close <= trailingFailPrice))
+signalExit = strategy.position_size > 0 and trendBroken
+
+if protectiveExit or timeFail or maxHoldExit or signalExit
+    strategy.close("Long")
+
+if flatNow
+    lastExitBar := bar_index
+    entryBarIndex := na
+    entryAtr := na
+    peakSinceEntry := na
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(strategy.position_size > 0 ? stopPrice : na, "Dynamic Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plot(strategy.position_size > 0 ? trailingFailPrice : na, "Trailing Fail", color=color.new(color.purple, 20), style=plot.style_linebr)

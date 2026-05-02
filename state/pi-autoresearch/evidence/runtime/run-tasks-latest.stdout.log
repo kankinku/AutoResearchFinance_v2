@@ -1,0 +1,870 @@
+
+> af@0.1.0 run-tasks
+> tsx src/cli/index.ts run-tasks --count 10 --max-runtime-failures 3
+
+◇ injected env (11) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+{
+  "batch": {
+    "batchId": "batch-71399f97",
+    "runId": "run-1777133293854",
+    "targetTaskCount": 10,
+    "completedTaskCount": 10,
+    "runtimeFailureCount": 0,
+    "status": "completed",
+    "stopReason": null,
+    "tasks": [
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-01",
+        "taskNumber": 1,
+        "iteration": 183,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "compile_fail",
+            "compile_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "mutation_generation_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-fb0b3dc7",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-range-stall-close] [cand-fb0b3dc7]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-fb0b3dc7.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-183-cand-fb0b3dc7.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-183-cand-fb0b3dc7.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-183-cand-fb0b3dc7.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-183-cand-fb0b3dc7.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-183-cand-fb0b3dc7.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 2 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 2,
+            "changedLineCount": 345,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this improves drawdown but trims too many trades, loosen the new stall exit by raising bars threshold from 3 to 4 or reducing the near-entry buffer from 0.25% to 0.1%.",
+            "If range losses persist, keep entries unchanged and mutate only the existing weakRangeExit thresholds, especially weakLossAtrMin or weakExitBars, rather than adding another subsystem.",
+            "If trend_down losses remain dominant after this, make a single localized bearish-exit staging tweak such as closing two weakest slots on S2 only when aggregate position is below average price.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:11:01.914Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-02",
+        "taskNumber": 2,
+        "iteration": 184,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "compile_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "mutation_generation_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-5b1b3970",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-repair-fast-range-trim] [cand-5b1b3970]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-5b1b3970.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-184-cand-5b1b3970.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-184-cand-5b1b3970.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-184-cand-5b1b3970.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-184-cand-5b1b3970.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-184-cand-5b1b3970.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 1 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 1,
+            "changedLineCount": 379,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this preserves trade count but leaves some trend_down losses, mutate only the Bear event 3 staged close count from 2 slots to a score- or riskOff-conditioned 3-slot taper.",
+            "Alternative single-block exit mutation: keep current fast squeeze trim and slightly tighten the existing weakLossAtrMin threshold only when emaSpreadAtr is very compressed.",
+            "If profit improves but drawdown remains sticky, localize a tiny replacement-block tweak so replacement requires stronger incoming rank when rangeLikeRegime is true.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:13:23.377Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-03",
+        "taskNumber": 3,
+        "iteration": 185,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "mutation_generation_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-bbc1bb53",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-range-stall-trim] [cand-bbc1bb53]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-bbc1bb53.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-185-cand-bbc1bb53.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-185-cand-bbc1bb53.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-185-cand-bbc1bb53.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-185-cand-bbc1bb53.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-185-cand-bbc1bb53.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 1 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 1,
+            "changedLineCount": 332,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this still leaves range_squeeze losses, tighten only the new stalled-loser threshold from 1.002 to 1.0005 or move barsInTrade trigger from 3 to 2, without touching entries.",
+            "Alternative single-block mutation: keep this new time-stop but require close < ema and close < baseEMA together for stronger localization if trade retention dips.",
+            "If trend_down weak exits remain, mutate only bearish exit staging by increasing finalBearEvent==3 closure count from 2 slots to 3 slots, leaving entry and weak-range logic unchanged.",
+            "Another localized option is to tighten the existing ATR weak loser rule by raising weakRunupAtrMax sensitivity or lowering weakExitBars by one, but avoid combining with additional entry-side edits.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:15:34.764Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-04",
+        "taskNumber": 4,
+        "iteration": 186,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "mutation_generation_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-6cf3032c",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-repair-range-squeeze-stalltrim] [cand-6cf3032c]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-6cf3032c.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-186-cand-6cf3032c.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-186-cand-6cf3032c.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-186-cand-6cf3032c.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-186-cand-6cf3032c.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-186-cand-6cf3032c.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 1 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 1,
+            "changedLineCount": 355,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this preserves trade count but profit stalls, tighten the new stalled-loser threshold slightly by moving the loss gate from close < entry to close <= entry * 1.001 or reducing stalled bars by 1.",
+            "If drawdown improves but winners are clipped, keep the stalled-loser concept and require close < ema in addition to the new rule.",
+            "A next localized repair could adjust only Bear event 4 loser liquidation ordering or thresholding without touching entries.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:17:54.443Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-05",
+        "taskNumber": 5,
+        "iteration": 187,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "mutation_generation_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-d607d70c",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-repair-rangesqueeze-stallclose] [cand-d607d70c]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-d607d70c.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-187-cand-d607d70c.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-187-cand-d607d70c.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-187-cand-d607d70c.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-187-cand-d607d70c.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-187-cand-d607d70c.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched filter logic across 5 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 5,
+            "changedLineCount": 372,
+            "changedRoles": [
+              "filter"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: filter",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this improves drawdown but trims profit too early, relax the new stall-loss threshold from close <= ep * 1.001 to close <= ep * 0.999 or increase stall bars from 3 to 4.",
+            "If range losses persist, mutate only the existing weakRangeExit block next by lowering weakExitBars or weakLossAtrMin, without touching entries.",
+            "If trend_down losses remain after this localized repair, test a bearish-exit-stage-only change such as closing two weakest slots already on bear L2 instead of altering entry filters.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:20:15.589Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-06",
+        "taskNumber": 6,
+        "iteration": 188,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-d49dd001",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-range-stall-trim] [cand-d49dd001]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-d49dd001.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-188-cand-d49dd001.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-188-cand-d49dd001.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-188-cand-d49dd001.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-188-cand-d49dd001.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-188-cand-d49dd001.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 1 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 1,
+            "changedLineCount": 337,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this improves drawdown but cuts profit too early, relax the stalled-loss threshold from avg price * 1.0015 to 1.0005 or increase barsInTrade gate from 3 to 4.",
+            "If trade retention remains strong but weak exits persist, mutate only the existing weakRangeExit thresholds next: slightly reduce weakExitBars or raise weakLossAtrMin without touching entries.",
+            "If trend_down losses remain dominant after this localized repair, adjust only bearish staged exit aggressiveness on S3/S4 loser trimming rather than altering entry gating.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:22:30.838Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-07",
+        "taskNumber": 7,
+        "iteration": 189,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-3f4b85c5",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-repair-range-stall-trim] [cand-3f4b85c5]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-3f4b85c5.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-189-cand-3f4b85c5.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-189-cand-3f4b85c5.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-189-cand-3f4b85c5.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-189-cand-3f4b85c5.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-189-cand-3f4b85c5.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 1 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 1,
+            "changedLineCount": 354,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this improves drawdown but cuts profit too early, relax the stall threshold from entry*1.001 to entry*0.999 or raise stalledExitBars from 3 to 4.",
+            "If range losses persist, mutate only the weak-exit loss threshold by lowering weakLossAtrMin slightly or requiring close < baseEMA instead of close < ema inside the same block.",
+            "If trade retention stays high and weak exits help, test a tiny variant that applies the stalled-loser trim only when rsi < 52 to reduce premature exits without touching entries.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:24:47.209Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-08",
+        "taskNumber": 8,
+        "iteration": 190,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-3d1b11fe",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-repair-stalled-range-trim] [cand-3d1b11fe]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-3d1b11fe.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-190-cand-3d1b11fe.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-190-cand-3d1b11fe.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-190-cand-3d1b11fe.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-190-cand-3d1b11fe.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-190-cand-3d1b11fe.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 1 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 1,
+            "changedLineCount": 355,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this improves drawdown but cuts profit too early, loosen the near-breakeven threshold from 0.25% to 0.10% or increase stalledExitBars from 3 to 4.",
+            "If trade retention remains strong and weak exits still lag, keep the same block and lower stalledRunupAtrMax from 0.35 to 0.25 for stricter non-progress detection.",
+            "If range-squeeze losses persist, mutate only this block again by requiring close < baseEMA instead of close < ema for the stalled trim, testing tighter regime-localization without touching entries.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:27:00.884Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-09",
+        "taskNumber": 9,
+        "iteration": 191,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-a1eb8a4d",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-range-timeout-local] [cand-a1eb8a4d]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-a1eb8a4d.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-191-cand-a1eb8a4d.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-191-cand-a1eb8a4d.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-191-cand-a1eb8a4d.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-191-cand-a1eb8a4d.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-191-cand-a1eb8a4d.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched exit logic across 2 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 2,
+            "changedLineCount": 374,
+            "changedRoles": [
+              "exit"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: exit",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this improves drawdown but trims too many winners, loosen the new timeout from 3 to 4 bars or reduce the near-breakeven threshold from 1.002 to 1.001.",
+            "If range_squeeze losses persist, mutate only the new runup-progress threshold next, e.g. require runupAtr < 0.25 instead of < 0.35.",
+            "If trend_down remains the residual loss cluster, keep entry unchanged and localize the next mutation to bearish exit staging by closing two weakest slots on bear L2 only when riskOff is active.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:29:22.577Z"
+      },
+      {
+        "runId": "run-1777133293854",
+        "batchId": "batch-71399f97",
+        "taskId": "batch-71399f97-task-10",
+        "taskNumber": 10,
+        "iteration": 192,
+        "status": "completed",
+        "hypothesis": {
+          "objective": "QQQ 120m hard-gate-passing strategy improvement",
+          "nextMutationDirection": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries. Tighten exit behavior when losing trades continue into deeper drawdown. Reduce counter-trend long entries during trend_down regimes.",
+          "recentFailures": [
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail",
+            "hard_gate_fail"
+          ],
+          "acceptedHeadCandidateId": "cand-e6b085fe"
+        },
+        "execution": {
+          "candidateId": "cand-ce9277fd",
+          "studyTitle": "Exhaustion Signal - test [cand-exit-squeeze-timecut] [cand-ce9277fd]",
+          "status": "evaluated",
+          "decision": "hard_gate_fail",
+          "compileOk": true,
+          "applyOk": true,
+          "artifactPaths": {
+            "candidate": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\candidates\\cand-ce9277fd.pine",
+            "runtimeTarget": "C:\\Users\\hanji\\Desktop\\AF\\strategies\\source\\runtime_target.pine",
+            "syncArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-sync-192-cand-ce9277fd.json",
+            "backtestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\desktop-runs\\pi-loop-backtest-192-cand-ce9277fd.json",
+            "latestBacktestArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-full-backtest.json",
+            "objectiveArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\tester-pi-objective.json",
+            "tradeContextArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\trade-context-192-cand-ce9277fd.json",
+            "lossAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\loss-analysis-192-cand-ce9277fd.json",
+            "pineAnalysisArtifact": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\pine-analysis-192-cand-ce9277fd.json",
+            "qqqTwoHourContext": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\results\\qqq-2h-context.json"
+          }
+        },
+        "analysis": {
+          "decision": "hard_gate_fail",
+          "score": 0.577321749,
+          "hardGatesPassed": false,
+          "softGuardrailBreached": false,
+          "pineAnalysisSummary": {
+            "status": "available",
+            "summary": "Pine mutation touched filter logic across 5 conditions with broad scope. No-op risk is low.",
+            "changeScope": "broad",
+            "noOpRisk": "low",
+            "hypothesisAlignment": "aligned",
+            "materialChangeDetected": true,
+            "conditionCount": 5,
+            "changedLineCount": 346,
+            "changedRoles": [
+              "filter"
+            ],
+            "blockingIssueCodes": [],
+            "warningIssueCodes": []
+          },
+          "finalAnalysisSummary": {
+            "status": "available",
+            "verdict": "risky",
+            "summary": "The Pine mutation introduced execution or objective risk before it could become a reliable frontier candidate.",
+            "signals": [
+              "Roles touched: filter",
+              "Scope: broad",
+              "No-op risk: low",
+              "Hypothesis alignment: aligned",
+              "Objective decision: hard_gate_fail",
+              "Loss priority: Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries."
+            ],
+            "recommendedAction": "Resolve the blocking execution or guardrail issue before spending more mutations on this branch."
+          },
+          "topConditionContributions": [],
+          "nextMutationHints": [
+            "If this improves drawdown but cuts profit too early, loosen the new close threshold from entry*1.002 to entry*1.000 or raise the hold bars from 3 to 4.",
+            "If weak exits still lag in trend_down losses, mutate only the staged bearish exit block next by increasing S3 from closing 2 weakest slots to 3 weakest slots.",
+            "If trade retention remains high and profit rises, test narrowing the squeeze detector by lowering squeezeAtrSpreadMax from 0.14 to 0.12 without touching entries.",
+            "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+            "Tighten exit behavior when losing trades continue into deeper drawdown.",
+            "Reduce counter-trend long entries during trend_down regimes."
+          ]
+        },
+        "recordedAt": "2026-04-25T16:31:45.458Z"
+      }
+    ]
+  },
+  "tracePath": "C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch\\evidence\\traces\\run-tasks-2026-04-25T16-08-13-839Z-trace-6de19793.jsonl"
+}

@@ -1,0 +1,240 @@
+{
+  "strategy": {
+    "netProfitPercent": 0.018581,
+    "postFeeNetProfitPercent": 0.018581,
+    "profitFactor": 1.8179607900106347,
+    "maxStrategyDrawdownPercent": 0.013223,
+    "percentProfitable": 46.153846,
+    "totalTrades": 13,
+    "avgTradePercent": 0.24223
+  },
+  "trades": [
+    {
+      "entryComment": "Long",
+      "entryPrice": 286.34,
+      "entryTime": "2023-01-25T19:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 291.41,
+      "exitTime": "2023-01-30T19:00:00.000Z",
+      "qty": 1,
+      "profitValue": 4.49225,
+      "profitPercent": 0.004492,
+      "runupPercent": 4.058825,
+      "drawdownPercent": 0.197588
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 307.49,
+      "entryTime": "2023-02-09T13:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 303.5,
+      "exitTime": "2023-02-09T19:00:00.000Z",
+      "qty": 1,
+      "profitValue": -0.10874,
+      "profitPercent": -0.004601,
+      "runupPercent": 0.384184,
+      "drawdownPercent": 1.47418
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 347.99,
+      "entryTime": "2023-06-01T08:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 352.67,
+      "exitTime": "2023-06-07T14:00:00.000Z",
+      "qty": 1,
+      "profitValue": 3.8706,
+      "profitPercent": 0.003979,
+      "runupPercent": 2.630207,
+      "drawdownPercent": 0.481713
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 368.16,
+      "entryTime": "2023-07-05T12:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 369.01,
+      "exitTime": "2023-07-06T10:00:00.000Z",
+      "qty": 1,
+      "profitValue": 3.98343,
+      "profitPercent": 0.000113,
+      "runupPercent": 0.942083,
+      "drawdownPercent": 0.156884
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 379.82,
+      "entryTime": "2023-07-28T10:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 381.67,
+      "exitTime": "2023-08-01T12:00:00.000Z",
+      "qty": 1,
+      "profitValue": 5.07194,
+      "profitPercent": 0.001088,
+      "runupPercent": 1.230979,
+      "drawdownPercent": 0.220889
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 377.27,
+      "entryTime": "2023-09-01T18:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 376.31,
+      "exitTime": "2023-09-05T14:00:00.000Z",
+      "qty": 1,
+      "profitValue": 3.35836,
+      "profitPercent": -0.001713,
+      "runupPercent": 0.048386,
+      "drawdownPercent": 0.634791
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 370.57,
+      "entryTime": "2023-10-13T14:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 365.22,
+      "exitTime": "2023-10-13T16:00:00.000Z",
+      "qty": 1,
+      "profitValue": -2.72743,
+      "profitPercent": -0.006086,
+      "runupPercent": 0,
+      "drawdownPercent": 1.601488
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 388.11,
+      "entryTime": "2023-11-21T19:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 387.81,
+      "exitTime": "2023-11-21T23:00:00.000Z",
+      "qty": 1,
+      "profitValue": -3.80335,
+      "profitPercent": -0.001076,
+      "runupPercent": 0.149779,
+      "drawdownPercent": 0.488576
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 497.14,
+      "entryTime": "2024-07-16T12:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 495.22,
+      "exitTime": "2024-07-16T16:00:00.000Z",
+      "qty": 1,
+      "profitValue": -6.71571,
+      "profitPercent": -0.002912,
+      "runupPercent": 0.161334,
+      "drawdownPercent": 0.803224
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 515.7,
+      "entryTime": "2025-01-17T11:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 528.71,
+      "exitTime": "2025-01-24T19:00:00.000Z",
+      "qty": 1,
+      "profitValue": 5.24988,
+      "profitPercent": 0.011966,
+      "runupPercent": 3.412198,
+      "drawdownPercent": 0.27812
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 518,
+      "entryTime": "2025-05-19T14:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 516.16,
+      "exitTime": "2025-05-21T10:00:00.000Z",
+      "qty": 1,
+      "profitValue": 2.37572,
+      "profitPercent": -0.002874,
+      "runupPercent": 0.841244,
+      "drawdownPercent": 0.504901
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 632.77,
+      "entryTime": "2025-10-30T22:00:00.000Z",
+      "exitComment": "Close entry(s) order Long",
+      "exitPrice": 630.58,
+      "exitTime": "2025-10-31T16:00:00.000Z",
+      "qty": 1,
+      "profitValue": -1.07763,
+      "profitPercent": -0.003453,
+      "runupPercent": 0.398993,
+      "drawdownPercent": 0.448809
+    },
+    {
+      "entryComment": "Long",
+      "entryPrice": 585.3,
+      "entryTime": "2026-04-07T18:00:00.000Z",
+      "exitComment": "XL",
+      "exitPrice": 606.15,
+      "exitTime": "2026-04-13T08:00:00.000Z",
+      "qty": 1,
+      "profitValue": 18.58092,
+      "profitPercent": 0.019659,
+      "runupPercent": 4.742345,
+      "drawdownPercent": 0.721182
+    }
+  ],
+  "equity": {
+    "available": false,
+    "pointsAvailable": false,
+    "pointCount": 0,
+    "finalEquity": null,
+    "maxDrawdownPercent": null,
+    "points": []
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mock Candidate [cand-mut-af-seed-extension-squeeze-exit] [cand-6f3d1a21] [cand-28c47be8] [cand-285a650a]",
+    "detectedStudyTitle": "AF Mock Candidate [cand-mut-af-seed-extension-squeeze-exit] [cand-6f3d1a21] [cand-28c47be8] [cand-285a650a]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "state": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "pineEditorOpen": false,
+    "attachedStudies": [
+      {
+        "title": "Dividends",
+        "normalizedTitle": "Dividends",
+        "metaDescription": "Dividends",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Splits",
+        "normalizedTitle": "Splits",
+        "metaDescription": "Splits",
+        "hasStrategyData": false
+      },
+      {
+        "title": "Earnings",
+        "normalizedTitle": "Earnings",
+        "metaDescription": "Earnings",
+        "hasStrategyData": false
+      },
+      {
+        "title": "RollDatesCalculator (now)",
+        "normalizedTitle": "RollDatesCalculator",
+        "metaDescription": "Dates calculator for continuous",
+        "hasStrategyData": false
+      },
+      {
+        "title": "AF Mock Candidate [cand-mut-ext-cooldown-adverse-exit] [cand-3f1e8a72] [cand-28c47be8] [cand-9a5f1f1f] (21, 55, 14, 14, 14, 20, 8, 2.3, 1.4, 0.9, 10, 0.6, 3, 52, 16, 2, 2.2, 16, 4, 0.9, -0.5, 0.85, -0.95, false)",
+        "normalizedTitle": "AF Mock Candidate [cand-mut-ext-cooldown-adverse-exit] [cand-3f1e8a72] [cand-28c47be8] [cand-9a5f1f1f]",
+        "metaDescription": "AF Mock Candidate [cand-mut-ext-cooldown-adverse-exit] [cand-3f1e8a72] [cand-28c47be8] [cand-9a5f1f1f]",
+        "hasStrategyData": true
+      },
+      {
+        "title": "AF Mock Candidate [cand-mut-af-seed-extension-squeeze-exit] [cand-6f3d1a21] [cand-28c47be8] [cand-285a650a] (21, 55, 14, 14, 14, 20, 8, 2.3, 1.4, 3, 1.7, 0.7, 52, 16, 2, 2.3, 18, 5, 0.95, -0.5, 0.012, 2.8, 20, 3, 49, -0.95, 4, false)",
+        "normalizedTitle": "AF Mock Candidate [cand-mut-af-seed-extension-squeeze-exit] [cand-6f3d1a21] [cand-28c47be8] [cand-285a650a]",
+        "metaDescription": "AF Mock Candidate [cand-mut-af-seed-extension-squeeze-exit] [cand-6f3d1a21] [cand-28c47be8] [cand-285a650a]",
+        "hasStrategyData": true
+      }
+    ]
+  }
+}

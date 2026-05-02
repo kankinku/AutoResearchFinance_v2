@@ -1,0 +1,48 @@
+//@version=5
+strategy("AF Mutation Trend Pullback Recovery [cand-8fa7e390]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(18, "Fast EMA", minval=2)
+slowLength = input.int(50, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+rsiMin = input.int(50, "RSI Minimum", minval=1, maxval=99)
+atrLength = input.int(14, "ATR Length", minval=1)
+stopATR = input.float(2.2, "Stop ATR Mult", minval=0.5, step=0.1)
+targetATR = input.float(3.8, "Target ATR Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(22, "Max Bars In Trade", minval=1)
+pullbackLookback = input.int(3, "Pullback Lookback", minval=1, maxval=10)
+trendSlopeLen = input.int(5, "Slow EMA Slope Lookback", minval=1, maxval=20)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+trendUp = fastEma > slowEma and slowEma > slowEma[trendSlopeLen]
+momentumOk = rsiValue >= rsiMin
+pullbackRecent = ta.lowest(low, pullbackLookback) <= fastEma
+reclaimFast = close > fastEma and close > open
+crossSignal = ta.crossover(fastEma, slowEma)
+entrySignal = (trendUp and momentumOk and pullbackRecent and reclaimFast) or (crossSignal and rsiValue > rsiMin - 2)
+
+var int entryBarIndex = na
+if strategy.position_size == 0 and entrySignal
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBarIndex := bar_index
+if strategy.position_size == 0
+    entryBarIndex := na
+
+longStop = strategy.position_avg_price - atrValue * stopATR
+longTarget = strategy.position_avg_price + atrValue * targetATR
+strategy.exit("Long Exit", "Long", stop=longStop, limit=longTarget)
+
+barsHeld = na(entryBarIndex) ? 0 : bar_index - entryBarIndex
+lossOfTrend = close < slowEma or rsiValue < 45 or ta.crossunder(fastEma, slowEma)
+timeExit = strategy.position_size > 0 and barsHeld >= maxBarsInTrade
+if strategy.position_size > 0 and (lossOfTrend or timeExit)
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0), linewidth=2)
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0), linewidth=2)
+plotshape(entrySignal and strategy.position_size == 0, title="Entry Signal", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)

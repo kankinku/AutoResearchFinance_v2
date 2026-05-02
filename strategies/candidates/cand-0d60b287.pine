@@ -1,0 +1,80 @@
+//@version=5
+strategy("AF Mock Candidate [cand-mut-anti-late-tight-exit] [cand-09b44c3a] [cand-0d60b287]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+trendLookback = input.int(20, "Trend Slope Lookback", minval=2)
+extLookback = input.int(8, "Extension Lookback", minval=2)
+maxExtensionPct = input.float(2.6, "Max Short-Term Extension %", minval=0.2, step=0.1)
+maxFastDistAtr = input.float(0.95, "Max Distance Above Fast EMA In ATR", minval=0.1, step=0.05)
+recentHighLookback = input.int(6, "Recent High Lookback", minval=2)
+recentHighBufferPct = input.float(0.35, "Recent High Chase Buffer %", minval=0.05, step=0.05)
+minRsi = input.int(52, "Min RSI For Entry", minval=1, maxval=99)
+minAdx = input.float(16.0, "Min ADX For Entry", minval=1, step=0.5)
+stopAtrMult = input.float(2.0, "Stop ATR Mult", minval=0.5, step=0.1)
+trailAtrMult = input.float(2.4, "Trail ATR Mult", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(18, "Max Bars In Trade", minval=1)
+lossBarsExit = input.int(5, "Lose-After Bars Exit", minval=1)
+earlyDamageBars = input.int(3, "Early Damage Bars", minval=1)
+earlyDamageAtr = input.float(0.85, "Early Damage ATR", minval=0.1, step=0.05)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLength)
+
+slowSlopeUp = slowEma > slowEma[trendLookback]
+trendDownRegime = fastEma < slowEma and slowEma < slowEma[trendLookback] and minusDI > plusDI
+shortTermExtensionPct = ((close / ta.lowest(close, extLookback)) - 1.0) * 100.0
+notLateExtension = shortTermExtensionPct < maxExtensionPct
+fastEmaDistAtr = atrValue == 0.0 ? 0.0 : (close - fastEma) / atrValue
+notOverFast = fastEmaDistAtr < maxFastDistAtr
+recentHighRef = ta.highest(high[1], recentHighLookback)
+notChasingRecentHigh = close < recentHighRef * (1.0 + recentHighBufferPct / 100.0)
+trendQualified = fastEma > slowEma and slowSlopeUp and adx > minAdx and plusDI > minusDI
+
+baseCross = ta.crossover(fastEma, slowEma)
+pullbackContinuation = close > fastEma and close[1] <= fastEma[1] and fastEma > slowEma
+longEntry = (baseCross or pullbackContinuation) and rsiValue > minRsi and trendQualified and not trendDownRegime and notLateExtension and notOverFast and notChasingRecentHigh
+
+var int entryBarIndex = na
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBarIndex := bar_index
+if strategy.position_size <= 0
+    entryBarIndex := na
+
+barsInTrade = na(entryBarIndex) ? 0 : bar_index - entryBarIndex
+avgPrice = strategy.position_avg_price
+openPnLAtr = strategy.position_size > 0 and atrValue != 0.0 ? (close - avgPrice) / atrValue : 0.0
+hardStop = strategy.position_size > 0 ? avgPrice - atrValue * stopAtrMult : na
+trailStop = strategy.position_size > 0 ? close - atrValue * trailAtrMult : na
+activeStop = strategy.position_size > 0 ? math.max(hardStop, trailStop) : na
+strategy.exit("XL", "Long", stop=activeStop)
+
+emaFailureExit = strategy.position_size > 0 and close < slowEma and rsiValue < 47
+earlyDamageExit = strategy.position_size > 0 and barsInTrade >= earlyDamageBars and openPnLAtr < -earlyDamageAtr and close < fastEma
+stalledLoserExit = strategy.position_size > 0 and barsInTrade >= lossBarsExit and openPnLAtr < -0.25 and close < fastEma
+timeExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade and openPnLAtr < 0.35
+trendReversalExit = strategy.position_size > 0 and minusDI > plusDI and adx > minAdx and close < fastEma
+manualExit = emaFailureExit or earlyDamageExit or stalledLoserExit or timeExit or trendReversalExit
+if manualExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))

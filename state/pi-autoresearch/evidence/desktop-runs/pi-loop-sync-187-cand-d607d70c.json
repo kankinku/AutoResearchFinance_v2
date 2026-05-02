@@ -1,0 +1,15 @@
+{
+  "chartTarget": {
+    "symbol": "QQQ",
+    "timeframe": "120",
+    "chartType": "candles"
+  },
+  "compile": {
+    "ok": true,
+    "errors": []
+  },
+  "stateAfter": {
+    "engine": "local-backtest",
+    "sourceLength": 23839
+  }
+}

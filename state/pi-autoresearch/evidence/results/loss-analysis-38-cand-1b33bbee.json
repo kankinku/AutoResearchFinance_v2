@@ -1,0 +1,8 @@
+{
+  "status": "unavailable_no_trades",
+  "summary": "No losing trades were available for loss-zone analysis.",
+  "topLossZones": [],
+  "repairPriorities": [
+    "Restore tradable entry frequency before optimizing other metrics."
+  ]
+}

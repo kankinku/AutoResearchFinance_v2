@@ -1,0 +1,88 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mutA [cand-a7504bd5]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+adxMin = input.float(16.0, "Min ADX", minval=1.0, step=0.5)
+atrLength = input.int(14, "ATR Length", minval=1)
+stopAtrMult = input.float(1.9, "Stop ATR Mult", minval=0.5, step=0.1)
+targetAtrMult = input.float(3.2, "Target ATR Mult", minval=0.5, step=0.1)
+breakevenAtr = input.float(1.1, "Breakeven Trigger ATR", minval=0.2, step=0.1)
+timeStopBars = input.int(12, "Time Stop Bars", minval=2)
+minProgressAtr = input.float(0.45, "Min Progress ATR For Time Stop", minval=0.0, step=0.05)
+trailAtrMult = input.float(2.4, "Trailing ATR Mult", minval=0.5, step=0.1)
+useAdxFilter = input.bool(true, "Use ADX Filter")
+useTimeStop = input.bool(true, "Use Time Stop")
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur != 0 ? 100 * ta.rma(plusDM, adxLength) / trur : 0.0
+minusDI = trur != 0 ? 100 * ta.rma(minusDM, adxLength) / trur : 0.0
+dx = (plusDI + minusDI) != 0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLength)
+
+trendFilter = fastEma > slowEma and slowEma > slowEma[1]
+momentumFilter = rsiValue > 54
+strengthFilter = not useAdxFilter or (adx > adxMin and plusDI > minusDI)
+longEntry = ta.crossover(fastEma, slowEma) and momentumFilter and strengthFilter
+
+var int entryBarIndex = na
+var float highestSinceEntry = na
+
+inPos = strategy.position_size > 0
+newLong = inPos and strategy.position_size[1] <= 0
+flatNow = strategy.position_size <= 0
+
+if newLong
+    entryBarIndex := bar_index
+    highestSinceEntry := high
+else if inPos
+    highestSinceEntry := na(highestSinceEntry) ? high : math.max(highestSinceEntry, high)
+else
+    entryBarIndex := na
+    highestSinceEntry := na
+
+barsInTrade = inPos and not na(entryBarIndex) ? bar_index - entryBarIndex : 0
+avgPrice = strategy.position_avg_price
+openProfitAtr = inPos and atrValue > 0 ? (close - avgPrice) / atrValue : 0.0
+maxRunupAtr = inPos and atrValue > 0 and not na(highestSinceEntry) ? (highestSinceEntry - avgPrice) / atrValue : 0.0
+
+baseStop = inPos ? avgPrice - atrValue * stopAtrMult : na
+breakevenStop = inPos and maxRunupAtr >= breakevenAtr ? avgPrice + atrValue * 0.05 : na
+trailStop = inPos and not na(highestSinceEntry) ? highestSinceEntry - atrValue * trailAtrMult : na
+protectiveStop = inPos ? math.max(baseStop, na(breakevenStop) ? baseStop : breakevenStop) : na
+finalStop = inPos ? math.max(protectiveStop, na(trailStop) ? protectiveStop : trailStop) : na
+targetPrice = inPos ? avgPrice + atrValue * targetAtrMult : na
+
+if longEntry and flatNow and trendFilter
+    strategy.entry("Long", strategy.long)
+
+if inPos
+    strategy.exit("Long Exit", from_entry="Long", stop=finalStop, limit=targetPrice)
+
+emaExit = ta.crossunder(fastEma, slowEma)
+rsiExit = rsiValue < 48
+weakTrendExit = adx < adxMin * 0.85 and rsiValue < 50
+stallExit = useTimeStop and inPos and barsInTrade >= timeStopBars and maxRunupAtr < minProgressAtr and openProfitAtr < 0.2
+hardLossExit = inPos and openProfitAtr < -1.35
+
+if emaExit or rsiExit or weakTrendExit or stallExit or hardLossExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(inPos ? finalStop : na, "Dynamic Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plot(inPos ? targetPrice : na, "Target", color=color.new(color.green, 0), style=plot.style_linebr)
+plot(adx, "ADX", color=color.new(color.blue, 0), display=display.none)
+plot(plusDI, "+DI", color=color.new(color.green, 0), display=display.none)
+plot(minusDI, "-DI", color=color.new(color.red, 0), display=display.none)

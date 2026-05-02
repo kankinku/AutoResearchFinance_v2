@@ -1,0 +1,479 @@
+{
+  "generatedAt": "2026-05-01T08:23:07.686Z",
+  "topLossZones": [
+    {
+      "label": "range_squeeze:weak_exit:1",
+      "count": 23
+    },
+    {
+      "label": "range:6",
+      "count": 22
+    },
+    {
+      "label": "range:weak_exit:5",
+      "count": 18
+    },
+    {
+      "label": "trend_up:weak_exit:1",
+      "count": 17
+    },
+    {
+      "label": "trend_down:1",
+      "count": 16
+    },
+    {
+      "label": "trend_down:counter_trend_entry:1",
+      "count": 13
+    },
+    {
+      "label": "range:4",
+      "count": 12
+    },
+    {
+      "label": "range:weak_exit:1",
+      "count": 12
+    },
+    {
+      "label": "range_squeeze:2",
+      "count": 10
+    },
+    {
+      "label": "range:5",
+      "count": 10
+    },
+    {
+      "label": "range:weak_exit:2",
+      "count": 10
+    },
+    {
+      "label": "range:weak_exit:3",
+      "count": 10
+    },
+    {
+      "label": "range_squeeze:weak_exit:2",
+      "count": 9
+    },
+    {
+      "label": "range_squeeze:8",
+      "count": 8
+    },
+    {
+      "label": "range_squeeze:weak_exit:4",
+      "count": 8
+    },
+    {
+      "label": "range:3",
+      "count": 8
+    },
+    {
+      "label": "range_squeeze:weak_exit:3",
+      "count": 7
+    },
+    {
+      "label": "trend_down:weak_exit:4",
+      "count": 7
+    },
+    {
+      "label": "range_squeeze:3",
+      "count": 6
+    },
+    {
+      "label": "range_squeeze:weak_exit:5",
+      "count": 6
+    },
+    {
+      "label": "range_squeeze:weak_exit:6",
+      "count": 6
+    },
+    {
+      "label": "range:1",
+      "count": 6
+    },
+    {
+      "label": "range:7",
+      "count": 6
+    },
+    {
+      "label": "range:weak_exit:4",
+      "count": 6
+    },
+    {
+      "label": "trend_up:4",
+      "count": 6
+    },
+    {
+      "label": "trend_up:late_entry:4",
+      "count": 6
+    },
+    {
+      "label": "range_squeeze:12",
+      "count": 5
+    },
+    {
+      "label": "range_squeeze:7",
+      "count": 5
+    },
+    {
+      "label": "range_squeeze:9",
+      "count": 5
+    },
+    {
+      "label": "range:8",
+      "count": 5
+    },
+    {
+      "label": "range:weak_exit:6",
+      "count": 5
+    },
+    {
+      "label": "trend_down:weak_exit:1",
+      "count": 5
+    },
+    {
+      "label": "trend_down:weak_exit:6",
+      "count": 5
+    },
+    {
+      "label": "trend_up:15",
+      "count": 5
+    },
+    {
+      "label": "trend_up:8",
+      "count": 5
+    },
+    {
+      "label": "trend_up:late_entry:3",
+      "count": 5
+    },
+    {
+      "label": "range_squeeze:10",
+      "count": 4
+    },
+    {
+      "label": "range_squeeze:5",
+      "count": 4
+    },
+    {
+      "label": "range:10",
+      "count": 4
+    },
+    {
+      "label": "range:late_entry:4",
+      "count": 4
+    },
+    {
+      "label": "trend_down:weak_exit:5",
+      "count": 4
+    },
+    {
+      "label": "trend_up:late_entry:2",
+      "count": 4
+    },
+    {
+      "label": "range_squeeze:1",
+      "count": 3
+    },
+    {
+      "label": "range_squeeze:15",
+      "count": 3
+    },
+    {
+      "label": "range_squeeze:4",
+      "count": 3
+    },
+    {
+      "label": "range_squeeze:weak_exit:10",
+      "count": 3
+    },
+    {
+      "label": "range_squeeze:weak_exit:11",
+      "count": 3
+    },
+    {
+      "label": "range_squeeze:weak_exit:7",
+      "count": 3
+    },
+    {
+      "label": "range_squeeze:weak_exit:8",
+      "count": 3
+    },
+    {
+      "label": "range:2",
+      "count": 3
+    },
+    {
+      "label": "range:late_entry:1",
+      "count": 3
+    },
+    {
+      "label": "trend_down:weak_exit:2",
+      "count": 3
+    },
+    {
+      "label": "trend_up:22",
+      "count": 3
+    },
+    {
+      "label": "trend_up:5",
+      "count": 3
+    },
+    {
+      "label": "trend_up:7",
+      "count": 3
+    },
+    {
+      "label": "volatile:weak_exit:1",
+      "count": 3
+    },
+    {
+      "label": "range_squeeze:13",
+      "count": 2
+    },
+    {
+      "label": "range_squeeze:17",
+      "count": 2
+    },
+    {
+      "label": "range_squeeze:25",
+      "count": 2
+    },
+    {
+      "label": "range:16",
+      "count": 2
+    },
+    {
+      "label": "range:9",
+      "count": 2
+    },
+    {
+      "label": "range:late_entry:3",
+      "count": 2
+    },
+    {
+      "label": "range:weak_exit:7",
+      "count": 2
+    },
+    {
+      "label": "trend_down:4",
+      "count": 2
+    },
+    {
+      "label": "trend_down:weak_exit:3",
+      "count": 2
+    },
+    {
+      "label": "trend_up:16",
+      "count": 2
+    },
+    {
+      "label": "trend_up:19",
+      "count": 2
+    },
+    {
+      "label": "trend_up:2",
+      "count": 2
+    },
+    {
+      "label": "trend_up:20",
+      "count": 2
+    },
+    {
+      "label": "trend_up:21",
+      "count": 2
+    },
+    {
+      "label": "trend_up:23",
+      "count": 2
+    },
+    {
+      "label": "trend_up:24",
+      "count": 2
+    },
+    {
+      "label": "range_squeeze:11",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:16",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:19",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:21",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:22",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:23",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:24",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:26",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:28",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:6",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:late_entry:2",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:late_entry:3",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:weak_exit:17",
+      "count": 1
+    },
+    {
+      "label": "range_squeeze:weak_exit:9",
+      "count": 1
+    },
+    {
+      "label": "range:12",
+      "count": 1
+    },
+    {
+      "label": "range:14",
+      "count": 1
+    },
+    {
+      "label": "range:15",
+      "count": 1
+    },
+    {
+      "label": "range:17",
+      "count": 1
+    },
+    {
+      "label": "range:late_entry:2",
+      "count": 1
+    },
+    {
+      "label": "range:late_entry:5",
+      "count": 1
+    },
+    {
+      "label": "range:late_entry:6",
+      "count": 1
+    },
+    {
+      "label": "range:weak_exit:8",
+      "count": 1
+    },
+    {
+      "label": "trend_down:2",
+      "count": 1
+    },
+    {
+      "label": "trend_down:3",
+      "count": 1
+    },
+    {
+      "label": "trend_down:6",
+      "count": 1
+    },
+    {
+      "label": "trend_down:counter_trend_entry:3",
+      "count": 1
+    },
+    {
+      "label": "trend_down:counter_trend_entry:4",
+      "count": 1
+    },
+    {
+      "label": "trend_down:weak_exit:9",
+      "count": 1
+    },
+    {
+      "label": "trend_up:10",
+      "count": 1
+    },
+    {
+      "label": "trend_up:12",
+      "count": 1
+    },
+    {
+      "label": "trend_up:13",
+      "count": 1
+    },
+    {
+      "label": "trend_up:14",
+      "count": 1
+    },
+    {
+      "label": "trend_up:17",
+      "count": 1
+    },
+    {
+      "label": "trend_up:18",
+      "count": 1
+    },
+    {
+      "label": "trend_up:25",
+      "count": 1
+    },
+    {
+      "label": "trend_up:26",
+      "count": 1
+    },
+    {
+      "label": "trend_up:27",
+      "count": 1
+    },
+    {
+      "label": "trend_up:3",
+      "count": 1
+    },
+    {
+      "label": "trend_up:9",
+      "count": 1
+    },
+    {
+      "label": "trend_up:late_entry:1",
+      "count": 1
+    }
+  ],
+  "topRepairPriorities": [
+    {
+      "label": "Tighten exit behavior when losing trades continue into deeper drawdown.",
+      "count": 93
+    },
+    {
+      "label": "Avoid late entries after short-window upside extension.",
+      "count": 48
+    },
+    {
+      "label": "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+      "count": 36
+    },
+    {
+      "label": "Reduce counter-trend long entries during trend_down regimes.",
+      "count": 34
+    },
+    {
+      "label": "Restore tradable entry frequency before optimizing other metrics.",
+      "count": 22
+    },
+    {
+      "label": "Reduce overextended entries when price is materially above EMA20.",
+      "count": 6
+    }
+  ]
+}

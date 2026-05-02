@@ -1,0 +1,63 @@
+//@version=5
+strategy("AF Mutation QQQ 120m Hard Gate [cand-1f350e76]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+extLookback = input.int(6, "Extension Lookback", minval=2)
+extRsiCap = input.float(68.0, "Late Entry RSI Cap", minval=50, maxval=95, step=0.5)
+maxStretchAtr = input.float(1.2, "Max Stretch Above Fast EMA ATR", minval=0.2, maxval=4.0, step=0.05)
+maxRunupPct = input.float(3.0, "Max Short Window Runup %", minval=0.5, maxval=10.0, step=0.1)
+minTrendSpreadAtr = input.float(0.08, "Min EMA Spread ATR", minval=0.0, maxval=2.0, step=0.01)
+stopAtrMult = input.float(2.3, "ATR Stop Mult", minval=0.5, maxval=6.0, step=0.1)
+profitAtrMult = input.float(4.8, "ATR Profit Mult", minval=0.5, maxval=10.0, step=0.1)
+maxBarsInTrade = input.int(24, "Max Bars In Trade", minval=2, maxval=200)
+exitRsiFloor = input.float(47.0, "Exit RSI Floor", minval=20, maxval=60, step=0.5)
+weaknessBars = input.int(2, "Weakness Confirm Bars", minval=1, maxval=5)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+emaSpreadAtr = atrValue > 0 ? (fastEma - slowEma) / atrValue : 0.0
+stretchAtr = atrValue > 0 ? (close - fastEma) / atrValue : 0.0
+recentLow = ta.lowest(low, extLookback)
+runupPct = recentLow > 0 ? ((close / recentLow) - 1.0) * 100.0 : 0.0
+fastSlope = fastEma - fastEma[3]
+slowSlope = slowEma - slowEma[3]
+
+trendOk = fastEma > slowEma and fastSlope > 0 and slowSlope >= 0 and emaSpreadAtr >= minTrendSpreadAtr
+notLate = stretchAtr <= maxStretchAtr and runupPct <= maxRunupPct and rsiValue <= extRsiCap
+momentumOk = rsiValue > 53
+entrySignal = ta.crossover(fastEma, slowEma) or (trendOk and ta.crossover(rsiValue, 54))
+longEntry = trendOk and momentumOk and notLate and entrySignal
+
+var int entryBarIndex = na
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and strategy.position_size[1] <= 0
+    entryBarIndex := bar_index
+if strategy.position_size <= 0
+    entryBarIndex := na
+
+barsInTrade = na(entryBarIndex) ? 0 : bar_index - entryBarIndex
+avgPrice = strategy.position_avg_price
+stopPrice = avgPrice - atrValue * stopAtrMult
+limitPrice = avgPrice + atrValue * profitAtrMult
+strategy.exit("L-ATR", "Long", stop=stopPrice, limit=limitPrice)
+
+weakMomentum = ta.barssince(rsiValue >= exitRsiFloor) >= weaknessBars - 1
+trendFailure = close < fastEma and fastEma < slowEma
+lateTradeTimeout = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade
+hardExit = strategy.position_size > 0 and (trendFailure or weakMomentum or lateTradeTimeout)
+
+if hardExit
+    strategy.close("Long")
+
+plot(fastEma, color=color.teal, title="Fast EMA")
+plot(slowEma, color=color.orange, title="Slow EMA")
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, color=color.lime, location=location.belowbar, size=size.tiny)
+plotshape(hardExit, title="Hard Exit", style=shape.triangledown, color=color.red, location=location.abovebar, size=size.tiny)

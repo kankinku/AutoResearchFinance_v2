@@ -1,0 +1,72 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mut1 [cand-8c658e95]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+trendLength = input.int(20, "Trend EMA", minval=5)
+rsiLength = input.int(14, "RSI Length", minval=2)
+adxLen = input.int(14, "ADX Length", minval=2)
+atrLen = input.int(14, "ATR Length", minval=2)
+minRsi = input.float(53.0, "Min RSI For Entry", step=0.1)
+maxDistPct = input.float(2.2, "Max % Above Fast EMA", step=0.1)
+maxRunupPct = input.float(3.4, "Max 3-Bar Runup %", step=0.1)
+minAdx = input.float(17.0, "Min ADX", step=0.1)
+stopAtr = input.float(2.0, "Stop ATR Mult", step=0.1)
+trailAtr = input.float(2.6, "Trail ATR Mult", step=0.1)
+profitArmAtr = input.float(1.2, "Trail Arm ATR", step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+trendEma = ta.ema(close, trendLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLen)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLen)
+plusDI = trur != 0 ? 100 * ta.rma(plusDM, adxLen) / trur : 0.0
+minusDI = trur != 0 ? 100 * ta.rma(minusDM, adxLen) / trur : 0.0
+dx = (plusDI + minusDI) != 0 ? 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI) : 0.0
+adx = ta.rma(dx, adxLen)
+
+emaSlopeUp = fastEma > fastEma[1] and slowEma > slowEma[1]
+trendAligned = close > slowEma and fastEma > slowEma and close > trendEma and emaSlopeUp
+notTrendDown = close > slowEma or adx < 22 or plusDI >= minusDI
+
+distAboveFastPct = fastEma != 0 ? 100 * (close - fastEma) / fastEma : 0.0
+runup3Pct = close[3] != 0 ? 100 * (close - close[3]) / close[3] : 0.0
+notOverextended = distAboveFastPct <= maxDistPct and runup3Pct <= maxRunupPct
+
+entrySignal = ta.crossover(fastEma, slowEma) or (ta.crossover(close, fastEma) and fastEma > slowEma)
+entryFilter = trendAligned and notTrendDown and rsiValue > minRsi and adx > minAdx and plusDI > minusDI and notOverextended
+longEntry = entrySignal and entryFilter
+
+var float highestSinceEntry = na
+if strategy.position_size > 0
+    highestSinceEntry := na(highestSinceEntry) ? high : math.max(highestSinceEntry, high)
+else
+    highestSinceEntry := na
+
+entryPrice = strategy.position_avg_price
+armedTrail = strategy.position_size > 0 and highestSinceEntry >= entryPrice + profitArmAtr * atrValue
+trailStopPrice = armedTrail ? highestSinceEntry - trailAtr * atrValue : na
+hardStopPrice = strategy.position_size > 0 ? entryPrice - stopAtr * atrValue : na
+activeStop = strategy.position_size > 0 ? (armedTrail ? math.max(hardStopPrice, trailStopPrice) : hardStopPrice) : na
+
+momentumFailExit = strategy.position_size > 0 and ((rsiValue < 47 and close < fastEma) or (plusDI < minusDI and adx > 20 and close < slowEma))
+trendExit = strategy.position_size > 0 and (ta.crossunder(fastEma, slowEma) or close < trendEma)
+
+if longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0 and not na(activeStop)
+    strategy.exit("Long Risk", "Long", stop=activeStop)
+
+if momentumFailExit or trendExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(trendEma, "Trend EMA", color=color.new(color.blue, 20))

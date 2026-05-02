@@ -1,0 +1,66 @@
+{
+  "candidateId": "cand-3c7d9856",
+  "decision": "accepted_no_improvement",
+  "score": 0.37000000000000005,
+  "objectiveBreakdown": {
+    "score": 0.37000000000000005,
+    "hardGatesPassed": true,
+    "softGuardrailBreached": false,
+    "hardGateReasons": [],
+    "components": {
+      "netProfitPercent": {
+        "rawValue": 12,
+        "normalizedValue": 0.24,
+        "weight": 0.45,
+        "contribution": 0.108
+      },
+      "profitFactor": {
+        "rawValue": 1.8,
+        "normalizedValue": 0.6,
+        "weight": 0.15,
+        "contribution": 0.09
+      },
+      "inverseMaxDrawdown": {
+        "rawValue": 11,
+        "normalizedValue": 0.56,
+        "weight": 0.15,
+        "contribution": 0.084
+      },
+      "percentProfitable": {
+        "rawValue": 58,
+        "normalizedValue": 0.58,
+        "weight": 0.1,
+        "contribution": 0.057999999999999996
+      },
+      "totalTrades": {
+        "rawValue": 60,
+        "normalizedValue": 0.3,
+        "weight": 0.05,
+        "contribution": 0.015
+      },
+      "avgTradePercent": {
+        "rawValue": 0.3,
+        "normalizedValue": 0.15,
+        "weight": 0.1,
+        "contribution": 0.015
+      }
+    }
+  },
+  "strategyMetrics": {
+    "netProfitPercent": 12,
+    "postFeeNetProfitPercent": 10,
+    "profitFactor": 1.8,
+    "maxStrategyDrawdownPercent": 11,
+    "percentProfitable": 58,
+    "totalTrades": 60,
+    "avgTradePercent": 0.3
+  },
+  "attachDiagnostics": {
+    "expectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]",
+    "detectedStudyTitle": "AF Mock Candidate [cand-3c7d9856]",
+    "exactTitleMatched": true,
+    "staleStudySuspected": false,
+    "recoveryActions": []
+  },
+  "generatedAt": "2026-04-23T10:44:52.979Z"
+}

@@ -1,0 +1,15 @@
+{
+  "status": "available",
+  "summary": "Pine mutation touched filter logic across 5 conditions with broad scope. No-op risk is low.",
+  "changeScope": "broad",
+  "noOpRisk": "low",
+  "hypothesisAlignment": "aligned",
+  "materialChangeDetected": true,
+  "conditionCount": 5,
+  "changedLineCount": 354,
+  "changedRoles": [
+    "filter"
+  ],
+  "blockingIssueCodes": [],
+  "warningIssueCodes": []
+}

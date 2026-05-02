@@ -1,0 +1,72 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]-mutA [cand-03c478c4]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+entryRsiMin = input.float(53.0, "Entry RSI Min", step=0.1)
+exitRsiMin = input.float(47.0, "Exit RSI Weakness", step=0.1)
+extLookback = input.int(5, "Extension Lookback", minval=2)
+extAtrLen = input.int(14, "Extension ATR Length", minval=2)
+extAtrMult = input.float(0.9, "Max Short-Term Extension ATR", minval=0.1, step=0.1)
+pullbackMaxPct = input.float(1.015, "Max Close vs Fast EMA", minval=1.0, step=0.001)
+atrLen = input.int(14, "Risk ATR Length", minval=2)
+stopAtrMult = input.float(2.2, "Initial Stop ATR Mult", minval=0.5, step=0.1)
+trailAtrMult = input.float(2.8, "Trailing ATR Mult", minval=0.5, step=0.1)
+weakBars = input.int(6, "Weakness Exit Bars", minval=1)
+minHoldBars = input.int(2, "Minimum Hold Bars", minval=0)
+timeStopBars = input.int(18, "Time Stop Bars", minval=2)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLen)
+extAtr = ta.atr(extAtrLen)
+
+highestRecent = ta.highest(high, extLookback)
+priceExtension = highestRecent - fastEma
+notOverextended = priceExtension <= extAtr * extAtrMult and close <= fastEma * pullbackMaxPct
+trendAligned = fastEma > slowEma
+crossUp = ta.crossover(fastEma, slowEma)
+entrySignal = crossUp and rsiValue > entryRsiMin and notOverextended
+
+var int barsInTrade = 0
+var float highestSinceEntry = na
+var float entryAtr = na
+
+inTrade = strategy.position_size > 0
+justEntered = inTrade and strategy.position_size[1] <= 0
+justExited = strategy.position_size <= 0 and strategy.position_size[1] > 0
+
+if not inTrade
+    barsInTrade := 0
+    highestSinceEntry := na
+    entryAtr := na
+else
+    barsInTrade += 1
+    highestSinceEntry := na(highestSinceEntry) ? high : math.max(highestSinceEntry, high)
+    entryAtr := na(entryAtr) ? atrValue : entryAtr
+
+if entrySignal and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+
+avgPrice = strategy.position_avg_price
+stopPrice = inTrade and not na(entryAtr) ? avgPrice - entryAtr * stopAtrMult : na
+trailStop = inTrade and not na(highestSinceEntry) ? highestSinceEntry - atrValue * trailAtrMult : na
+activeStop = inTrade ? math.max(stopPrice, trailStop) : na
+
+if inTrade and not na(activeStop)
+    strategy.exit("XL", "Long", stop=activeStop)
+
+emaLossExit = inTrade and barsInTrade >= minHoldBars and close < fastEma and close < avgPrice and rsiValue < exitRsiMin
+slowTrendFail = inTrade and barsInTrade >= minHoldBars and ta.crossunder(fastEma, slowEma)
+timeWeakExit = inTrade and barsInTrade >= timeStopBars and close <= avgPrice and rsiValue < 50
+
+if emaLossExit or slowTrendFail or timeWeakExit
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0), linewidth=2)
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0), linewidth=2)
+plot(inTrade ? activeStop : na, "Active Stop", color=color.new(color.red, 0), linewidth=1, style=plot.style_linebr)
+plotshape(entrySignal, title="Entry Signal", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(emaLossExit or slowTrendFail or timeWeakExit, title="Exit Signal", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

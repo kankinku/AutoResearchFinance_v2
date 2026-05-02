@@ -1,0 +1,16 @@
+{
+  "status": "available",
+  "summary": "Analyzed 7 losing trades. Largest loss cluster appeared in range.",
+  "topLossZones": [
+    "range:weak_exit:5",
+    "trend_up:weak_exit:1",
+    "range:6",
+    "trend_down:1",
+    "trend_down:counter_trend_entry:1"
+  ],
+  "repairPriorities": [
+    "Prioritize faster loser exits in range and range_squeeze regimes before tuning new entries.",
+    "Tighten exit behavior when losing trades continue into deeper drawdown.",
+    "Reduce counter-trend long entries during trend_down regimes."
+  ]
+}

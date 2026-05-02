@@ -1,0 +1,1 @@
+{"timestamp":"2026-04-28T13:56:40.952Z","command":"inspect-candidate","event":"candidate.inspect","message":"Candidate inspection completed","details":{"candidate":"cand-3f99a396","candidateRecords":1,"experimentRecords":1},"taskNumber":null}

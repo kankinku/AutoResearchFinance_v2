@@ -1,0 +1,87 @@
+//@version=5
+strategy("AF Mutation QQQ 120m [cand-improve-lateexit-01] [cand-d2888c5f]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLength = input.int(21, "Fast EMA", minval=2)
+slowLength = input.int(55, "Slow EMA", minval=3)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=2)
+adxLength = input.int(14, "ADX Length", minval=2)
+bbLength = input.int(20, "BB Length", minval=5)
+bbMult = input.float(2.0, "BB Mult", minval=0.1, step=0.1)
+kcLength = input.int(20, "KC Length", minval=5)
+kcMult = input.float(1.5, "KC Mult", minval=0.1, step=0.1)
+entryRsiMin = input.float(54.0, "Entry RSI Min", step=0.1)
+exitRsiMin = input.float(48.0, "Exit RSI Min", step=0.1)
+maxExtensionAtr = input.float(1.1, "Max Short-Term Extension ATR", minval=0.1, step=0.1)
+maxExtensionPct = input.float(2.2, "Max Distance Above Fast EMA %", minval=0.1, step=0.1)
+minAdxTrend = input.float(18.0, "Min ADX Trend", minval=1.0, step=0.5)
+stopAtrMult = input.float(2.1, "Stop ATR Mult", minval=0.5, step=0.1)
+trailAtrMult = input.float(2.6, "Trail ATR Mult", minval=0.5, step=0.1)
+profitAtrTrigger = input.float(1.8, "Profit Trigger ATR", minval=0.5, step=0.1)
+maxBarsInTrade = input.int(18, "Max Bars In Trade Before Failure Exit", minval=2)
+failureAtrThreshold = input.float(0.4, "Failure Exit ATR Threshold", minval=0.0, step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adxValue = ta.rma(dx, adxLength)
+
+bbBasis = ta.sma(close, bbLength)
+bbDev = bbMult * ta.stdev(close, bbLength)
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+kcBasis = ta.ema(close, kcLength)
+kcRange = ta.ema(ta.tr(true), kcLength)
+kcUpper = kcBasis + kcRange * kcMult
+kcLower = kcBasis - kcRange * kcMult
+inSqueeze = bbUpper < kcUpper and bbLower > kcLower
+
+trendUp = fastEma > slowEma and slowEma > slowEma[1]
+momentumOk = rsiValue > entryRsiMin and rsiValue > rsiValue[1]
+notLateExtension = ((close - ta.lowest(close, 5)) / atrValue < maxExtensionAtr) and (((close / fastEma) - 1.0) * 100.0 < maxExtensionPct)
+trendStrengthOk = adxValue > minAdxTrend and plusDI > minusDI
+avoidRangeSqueeze = not (inSqueeze and adxValue < minAdxTrend)
+
+longEntry = ta.crossover(fastEma, slowEma) and momentumOk and trendUp and notLateExtension and trendStrengthOk and avoidRangeSqueeze
+
+var int barsInTrade = 0
+var float peakSinceEntry = na
+if strategy.position_size > 0
+    barsInTrade += 1
+    peakSinceEntry := na(peakSinceEntry) ? high : math.max(peakSinceEntry, high)
+else
+    barsInTrade := 0
+    peakSinceEntry := na
+
+entryPrice = strategy.position_avg_price
+stopPrice = strategy.position_size > 0 ? entryPrice - atrValue * stopAtrMult : na
+trailPrice = strategy.position_size > 0 and not na(peakSinceEntry) ? peakSinceEntry - atrValue * trailAtrMult : na
+activeStop = strategy.position_size > 0 ? math.max(stopPrice, trailPrice) : na
+profitOpenAtr = strategy.position_size > 0 ? (peakSinceEntry - entryPrice) / atrValue : 0.0
+failureExit = strategy.position_size > 0 and barsInTrade >= maxBarsInTrade and (close - entryPrice) / atrValue < failureAtrThreshold
+momentumExit = strategy.position_size > 0 and (ta.crossunder(fastEma, slowEma) or rsiValue < exitRsiMin or (adxValue < minAdxTrend and inSqueeze) or (profitOpenAtr < profitAtrTrigger and close < fastEma))
+
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+if strategy.position_size > 0
+    strategy.exit("XL", "Long", stop=activeStop)
+
+if momentumExit or failureExit
+    strategy.close("Long")
+
+plot(fastEma, color=color.new(color.teal, 0), title="Fast EMA")
+plot(slowEma, color=color.new(color.orange, 0), title="Slow EMA")
+plot(strategy.position_size > 0 ? activeStop : na, color=color.new(color.red, 0), title="Active Stop", style=plot.style_linebr)
+plotshape(longEntry, title="Long Entry", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(momentumExit or failureExit, title="Close Signal", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)

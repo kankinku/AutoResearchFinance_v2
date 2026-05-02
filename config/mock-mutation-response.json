@@ -1,0 +1,28 @@
+{
+  "candidateSummary": "Static mock EMA/RSI refinement",
+  "nextMutationHints": [
+    "Tighten RSI entry filter",
+    "Test a volatility-aware risk exit"
+  ],
+  "pineScript": "//@version=5\nstrategy(\"AF Mock Candidate\", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1)\nfastLength = input.int(21, \"Fast EMA\")\nslowLength = input.int(55, \"Slow EMA\")\nrsiLength = input.int(14, \"RSI Length\")\nfastEma = ta.ema(close, fastLength)\nslowEma = ta.ema(close, slowLength)\nrsiValue = ta.rsi(close, rsiLength)\nlongEntry = ta.crossover(fastEma, slowEma) and rsiValue > 54\nlongExit = ta.crossunder(fastEma, slowEma) or rsiValue < 48\nif longEntry\n    strategy.entry(\"Long\", strategy.long)\nif longExit\n    strategy.close(\"Long\")\n",
+  "inventory": [
+    {
+      "conditionId": "entry-ema-cross",
+      "role": "entry",
+      "summary": "Fast EMA crosses above slow EMA",
+      "pineLineHints": [7]
+    },
+    {
+      "conditionId": "filter-rsi",
+      "role": "filter",
+      "summary": "RSI stays above 54",
+      "pineLineHints": [7]
+    },
+    {
+      "conditionId": "exit-ema-cross",
+      "role": "exit",
+      "summary": "Fast EMA crosses below slow EMA",
+      "pineLineHints": [8]
+    }
+  ]
+}

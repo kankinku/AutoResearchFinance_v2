@@ -1,0 +1,72 @@
+//@version=5
+strategy("AF Mutation Range Exit Tightener [cand-c7b1d5dc]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0, process_orders_on_close=true)
+
+fastLength = input.int(21, "Fast EMA", minval=1)
+slowLength = input.int(55, "Slow EMA", minval=2)
+rsiLength = input.int(14, "RSI Length", minval=2)
+atrLength = input.int(14, "ATR Length", minval=1)
+adxLength = input.int(14, "ADX Length", minval=2)
+entryRsiMin = input.float(54.0, "Entry RSI Min", step=0.1)
+baseExitRsi = input.float(48.0, "Base Exit RSI", step=0.1)
+weakExitRsi = input.float(50.0, "Weak Regime Exit RSI", step=0.1)
+trendAdxMin = input.float(18.0, "Trend ADX Threshold", step=0.1)
+strongTrendAdx = input.float(25.0, "Strong Trend ADX", step=0.1)
+baseAtrStopMult = input.float(2.2, "Base ATR Stop Mult", step=0.1)
+tightAtrStopMult = input.float(1.2, "Tight ATR Stop Mult", step=0.1)
+staleBarsWeak = input.int(10, "Weak Regime Stale Bars", minval=1)
+profitProtectAtr = input.float(1.0, "Profit Protect ATR", step=0.1)
+
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+atrValue = ta.atr(atrLength)
+
+upMove = high - high[1]
+downMove = low[1] - low
+plusDM = (upMove > downMove and upMove > 0) ? upMove : 0.0
+minusDM = (downMove > upMove and downMove > 0) ? downMove : 0.0
+trur = ta.rma(ta.tr(true), adxLength)
+plusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(plusDM, adxLength) / trur
+minusDI = trur == 0.0 ? 0.0 : 100.0 * ta.rma(minusDM, adxLength) / trur
+dx = (plusDI + minusDI == 0.0) ? 0.0 : 100.0 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+adx = ta.rma(dx, adxLength)
+
+trendUp = fastEma > slowEma and plusDI > minusDI
+weakRegime = adx < trendAdxMin
+strongTrend = adx >= strongTrendAdx and trendUp
+rangeSqueeze = weakRegime and math.abs(fastEma - slowEma) < atrValue * 0.35
+
+longEntry = ta.crossover(fastEma, slowEma) and rsiValue > entryRsiMin
+if longEntry
+    strategy.entry("Long", strategy.long)
+
+inPos = strategy.position_size > 0
+entryPrice = strategy.position_avg_price
+barsInTrade = inPos ? bar_index - strategy.opentrades.entry_bar_index(0) : 0
+openProfitAtr = inPos and atrValue > 0 ? (close - entryPrice) / atrValue : 0.0
+underwater = inPos and close < entryPrice
+
+baseStop = inPos ? entryPrice - atrValue * baseAtrStopMult : na
+tightStop = inPos ? entryPrice - atrValue * tightAtrStopMult : na
+activeStop = weakRegime and underwater ? tightStop : baseStop
+profitProtectStop = inPos and openProfitAtr > profitProtectAtr ? math.max(activeStop, fastEma) : activeStop
+
+crossExit = ta.crossunder(fastEma, slowEma)
+rsiFadeExit = rsiValue < baseExitRsi
+weakLossExit = weakRegime and underwater and (rsiValue < weakExitRsi or close < fastEma)
+staleExit = weakRegime and barsInTrade >= staleBarsWeak and openProfitAtr < 0.4
+rangeSqueezeExit = rangeSqueeze and underwater and close < fastEma
+trendFailureExit = not strongTrend and minusDI > plusDI and rsiValue < weakExitRsi
+
+longExit = crossExit or rsiFadeExit or weakLossExit or staleExit or rangeSqueezeExit or trendFailureExit
+
+if inPos
+    strategy.exit("XL", "Long", stop=profitProtectStop)
+    if longExit
+        strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(inPos ? profitProtectStop : na, "Active Stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plot(adx, "ADX", color=color.new(color.blue, 0), display=display.none)
+plot(rsiValue, "RSI", color=color.new(color.purple, 0), display=display.none)

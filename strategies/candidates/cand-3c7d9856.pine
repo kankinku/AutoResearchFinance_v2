@@ -1,0 +1,14 @@
+//@version=5
+strategy("AF Mock Candidate [cand-3c7d9856]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1)
+fastLength = input.int(21, "Fast EMA")
+slowLength = input.int(55, "Slow EMA")
+rsiLength = input.int(14, "RSI Length")
+fastEma = ta.ema(close, fastLength)
+slowEma = ta.ema(close, slowLength)
+rsiValue = ta.rsi(close, rsiLength)
+longEntry = ta.crossover(fastEma, slowEma) and rsiValue > 54
+longExit = ta.crossunder(fastEma, slowEma) or rsiValue < 48
+if longEntry
+    strategy.entry("Long", strategy.long)
+if longExit
+    strategy.close("Long")

@@ -1,0 +1,357 @@
+//@version=5
+strategy("AF Seed 01 - Compression Release Breakout v2 [cand-4067bbdc]", overlay=true, pyramiding=30, process_orders_on_close=true, initial_capital=100000, default_qty_type=strategy.percent_of_equity, default_qty_value=5, commission_type=strategy.commission.percent, commission_value=0.05)
+
+groupSig = "1. Exhaustion"
+L1 = input.int(9, "L1", minval=2, group=groupSig)
+L2 = input.int(12, "L2", minval=3, group=groupSig)
+L3 = input.int(14, "L3", minval=4, group=groupSig)
+confirmBars = input.int(2, "confirmBars", minval=1, maxval=5, group=groupSig)
+
+groupFilter = "2. Filters"
+emaLen = input.int(21, "emaLen", minval=1, group=groupFilter)
+baseEmaLen = input.int(55, "baseEmaLen", minval=1, group=groupFilter)
+rsiLen = input.int(14, "rsiLen", minval=2, group=groupFilter)
+maxExtPct = input.float(8.0, "maxExtPct", minval=0.5, step=0.5, group=groupFilter)
+riskOffRsi = input.float(44.0, "riskOffRsi", minval=5.0, maxval=95.0, step=0.5, group=groupFilter)
+
+groupPos = "3. Slot Management"
+slotPct = input.float(5.0, "slotPct", minval=0.1, maxval=100.0, step=0.5, group=groupPos)
+maxSlots = input.int(10, "maxSlots", minval=1, maxval=50, group=groupPos)
+useReplacement = input.bool(true, "useReplacement", group=groupPos)
+replaceMinRank = input.int(2, "replaceMinRank", minval=1, maxval=4, group=groupPos)
+replaceIfPnlBelow = input.float(-1.0, "replaceIfPnlBelow", step=0.5, group=groupPos)
+applyFilterToB1 = input.bool(false, "applyFilterToB1", group=groupPos)
+minQty = input.float(1.0, "minQty", minval=0.000001, step=0.1, group=groupPos)
+
+groupExit = "4. Exit"
+closeAllOnBearConfRiskOff = input.bool(true, "closeAllOnBearConfRiskOff", group=groupExit)
+
+groupExec = "5. Execution"
+sameBarConflictMode = input.string("StrongWins", "sameBarConflictMode", options=["StrongWins", "SkipBoth", "BearPriority"], group=groupExec)
+trendMode = input.string("Loose", "trendMode", options=["Strict", "Balanced", "Loose"], group=groupExec)
+allowStrongCounterTrend = input.bool(true, "allowStrongCounterTrend", group=groupExec)
+entryCooldownBars = input.int(0, "entryCooldownBars", minval=0, maxval=20, group=groupExec)
+useRealFillSync = input.bool(true, "useRealFillSync", group=groupExec)
+resetOnL3 = input.bool(false, "resetOnL3", group=groupExec)
+
+groupST = "6. Supertrend Filter"
+useSupertrendFilter = input.bool(false, "useSupertrendFilter", group=groupST)
+supertrendAtrPeriod = input.int(10, "supertrendAtrPeriod", minval=1, group=groupST)
+supertrendFactor = input.float(3.0, "supertrendFactor", minval=0.1, step=0.1, group=groupST)
+supertrendBlocksWeakBull = input.bool(false, "supertrendBlocksWeakBull", group=groupST)
+supertrendRiskOffEnabled = input.bool(false, "supertrendRiskOffEnabled", group=groupST)
+
+groupWeak = "7. Weak Range Exit"
+enableWeakRangeExit = input.bool(true, "enableWeakRangeExit", group=groupWeak)
+weakExitAtrLen = input.int(14, "weakExitAtrLen", minval=1, group=groupWeak)
+weakExitBars = input.int(4, "weakExitBars", minval=1, maxval=20, group=groupWeak)
+weakRunupAtrMax = input.float(1.8, "weakRunupAtrMax", minval=0.1, step=0.1, group=groupWeak)
+weakLossAtrMin = input.float(-0.2, "weakLossAtrMin", step=0.1, group=groupWeak)
+weakSlopeAtrMax = input.float(0.2, "weakSlopeAtrMax", minval=0.0, step=0.05, group=groupWeak)
+
+ema = ta.ema(close, emaLen)
+baseEMA = ta.ema(close, baseEmaLen)
+rsi = ta.rsi(close, rsiLen)
+atr = ta.atr(weakExitAtrLen)
+
+overextended = close > ema * (1.0 + maxExtPct * 0.01)
+emaUp = not na(ema[1]) and ema >= ema[1]
+emaDown = not na(ema[1]) and ema <= ema[1]
+riskOffBase = close < baseEMA and rsi < riskOffRsi and emaDown
+
+stAtr = ta.atr(supertrendAtrPeriod)
+stUpper = hl2 + supertrendFactor * stAtr
+stLower = hl2 - supertrendFactor * stAtr
+var float stLine = na
+var bool stBull = true
+if na(stLine[1])
+    stLine := stLower
+    stBull := true
+else
+    prevLine = stLine[1]
+    prevBull = stBull[1]
+    finalLower = close[1] > prevLine ? math.max(stLower, prevLine) : stLower
+    finalUpper = close[1] < prevLine ? math.min(stUpper, prevLine) : stUpper
+    if prevBull
+        if close < finalLower
+            stBull := false
+            stLine := finalUpper
+        else
+            stBull := true
+            stLine := finalLower
+    else
+        if close > finalUpper
+            stBull := true
+            stLine := finalLower
+        else
+            stBull := false
+            stLine := finalUpper
+
+riskOff = riskOffBase or (supertrendRiskOffEnabled and not stBull)
+
+var int cycle = 0
+var int bull = 0
+var int bear = 0
+has4 = bar_index >= 4 and not na(close[4])
+has2 = bar_index >= 2 and not na(close[2])
+
+if not has4
+    bull := 0
+    bear := 0
+    cycle := 0
+else
+    if cycle < L1
+        if close < close[4]
+            bull := bull + 1
+            bear := 0
+            cycle := bull
+        else if close > close[4]
+            bear := bear + 1
+            bull := 0
+            cycle := bear
+        else
+            bull := 0
+            bear := 0
+            cycle := 0
+    else
+        if bull > 0
+            if has2 and close < close[2]
+                bull := bull + 1
+                cycle := bull
+            else
+                bull := 0
+                bear := 0
+                cycle := 0
+        else if bear > 0
+            if has2 and close > close[2]
+                bear := bear + 1
+                cycle := bear
+            else
+                bull := 0
+                bear := 0
+                cycle := 0
+
+bullL1 = bull == L1
+bullL2 = bull == L2
+bullL3 = bull == L3
+bearL1 = bear == L1
+bearL2 = bear == L2
+bearL3 = bear == L3
+
+newBullL1 = bullL1 and not nz(bullL1[1], false)
+newBullL2 = bullL2 and not nz(bullL2[1], false)
+newBullL3 = bullL3 and not nz(bullL3[1], false)
+newBearL1 = bearL1 and not nz(bearL1[1], false)
+newBearL2 = bearL2 and not nz(bearL2[1], false)
+newBearL3 = bearL3 and not nz(bearL3[1], false)
+
+var int bullSignalBar = na
+var int bearSignalBar = na
+if newBullL2 or newBullL3
+    bullSignalBar := bar_index
+if newBearL2 or newBearL3
+    bearSignalBar := bar_index
+
+bullConfirmed = not na(bullSignalBar) and bar_index > bullSignalBar and (bar_index - bullSignalBar <= confirmBars) and close > high[1]
+bearConfirmed = not na(bearSignalBar) and bar_index > bearSignalBar and (bar_index - bearSignalBar <= confirmBars) and close < low[1]
+if bullConfirmed or (not na(bullSignalBar) and bar_index - bullSignalBar > confirmBars)
+    bullSignalBar := na
+if bearConfirmed or (not na(bearSignalBar) and bar_index - bearSignalBar > confirmBars)
+    bearSignalBar := na
+
+newBullConfirmed = bullConfirmed and not nz(bullConfirmed[1], false)
+newBearConfirmed = bearConfirmed and not nz(bearConfirmed[1], false)
+
+bullEventRaw = newBullConfirmed ? 4 : newBullL3 ? 3 : newBullL2 ? 2 : newBullL1 ? 1 : 0
+bearEventRaw = newBearConfirmed ? 4 : newBearL3 ? 3 : newBearL2 ? 2 : newBearL1 ? 1 : 0
+
+int finalBullEvent = 0
+int finalBearEvent = 0
+if bullEventRaw > 0 and bearEventRaw > 0
+    if sameBarConflictMode == "BearPriority"
+        finalBearEvent := bearEventRaw
+    else if sameBarConflictMode == "SkipBoth"
+        finalBullEvent := 0
+        finalBearEvent := 0
+    else
+        if bullEventRaw >= bearEventRaw
+            finalBullEvent := bullEventRaw
+        else
+            finalBearEvent := bearEventRaw
+else
+    finalBullEvent := bullEventRaw
+    finalBearEvent := bearEventRaw
+
+bbLen = 20
+bbBasis = ta.sma(close, bbLen)
+bbDev = ta.stdev(close, bbLen)
+bbUpper = bbBasis + bbDev * 2.0
+bbLower = bbBasis - bbDev * 2.0
+bbWidthPct = bbBasis != 0 ? ((bbUpper - bbLower) / bbBasis) * 100.0 : 0.0
+bbWidthAvg = ta.sma(bbWidthPct, 10)
+compression = bbWidthPct < bbWidthAvg * 0.97
+recentCompression = compression or nz(compression[1], false) or nz(compression[2], false) or nz(compression[3], false) or nz(compression[4], false) or nz(compression[5], false)
+expandingNow = bbWidthPct > nz(bbWidthPct[1], bbWidthPct) * 1.01
+releaseBreak = close > bbBasis and close > ema and close >= ta.highest(high, 3)[1]
+compressionRelease = recentCompression and expandingNow and releaseBreak
+
+trendPass = false
+if trendMode == "Strict"
+    trendPass := close >= baseEMA and emaUp
+else if trendMode == "Balanced"
+    trendPass := close >= ema
+else
+    trendPass := close >= ema or close > open
+
+rankContextPass = finalBullEvent >= 2 or close > close[1]
+supertrendEntryPass = not useSupertrendFilter or stBull or (allowStrongCounterTrend and finalBullEvent >= 3)
+entryPass = compressionRelease and trendPass and rankContextPass and supertrendEntryPass and not overextended and (not riskOff or allowStrongCounterTrend)
+
+var slotIds = array.new_string()
+var slotEntry = array.new_float()
+var slotRank = array.new_int()
+var int nextSlotNo = 1
+var int lastLongEntryBar = na
+
+f_entry_qty(float pct) =>
+    rawQty = close > 0 ? (strategy.equity * (pct * 0.01)) / close : 0.0
+    math.max(rawQty, minQty)
+
+f_slot_pnl_pct(int idx) =>
+    ep = array.get(slotEntry, idx)
+    ep > 0 ? ((close - ep) / ep) * 100.0 : 0.0
+
+f_find_open_trade_idx(string entryId) =>
+    int foundIdx = na
+    if strategy.opentrades > 0
+        for i = 0 to strategy.opentrades - 1
+            if na(foundIdx) and strategy.opentrades.entry_id(i) == entryId
+                foundIdx := i
+    foundIdx
+
+f_sync_slot_entries() =>
+    if useRealFillSync and array.size(slotIds) > 0 and strategy.opentrades > 0
+        for i = 0 to array.size(slotIds) - 1
+            sid = array.get(slotIds, i)
+            openIdx = f_find_open_trade_idx(sid)
+            if not na(openIdx)
+                array.set(slotEntry, i, strategy.opentrades.entry_price(openIdx))
+
+f_find_weakest_idx() =>
+    int weakestIdx = na
+    float worstPnl = na
+    int worstRank = na
+    if array.size(slotEntry) > 0
+        for i = 0 to array.size(slotEntry) - 1
+            pnl = f_slot_pnl_pct(i)
+            rk = array.get(slotRank, i)
+            if na(weakestIdx)
+                weakestIdx := i
+                worstPnl := pnl
+                worstRank := rk
+            else if pnl < worstPnl or (math.abs(pnl - worstPnl) < 0.0001 and rk < worstRank)
+                weakestIdx := i
+                worstPnl := pnl
+                worstRank := rk
+    weakestIdx
+
+f_close_slot(int idx) =>
+    if idx >= 0 and idx < array.size(slotIds)
+        idToClose = array.get(slotIds, idx)
+        strategy.close(idToClose, immediately=true)
+        array.remove(slotIds, idx)
+        array.remove(slotEntry, idx)
+        array.remove(slotRank, idx)
+
+if strategy.position_size == 0 and array.size(slotIds) > 0
+    array.clear(slotIds)
+    array.clear(slotEntry)
+    array.clear(slotRank)
+else
+    f_sync_slot_entries()
+
+canEnterLong = na(lastLongEntryBar) or (bar_index - lastLongEntryBar >= entryCooldownBars + 1)
+slotAvailable = array.size(slotIds) < maxSlots
+qtyNow = f_entry_qty(slotPct)
+
+if entryPass and canEnterLong and qtyNow > 0
+    entryRank = finalBullEvent > 0 ? finalBullEvent : 1
+    if slotAvailable
+        newId = "L_" + str.tostring(nextSlotNo)
+        nextSlotNo += 1
+        strategy.entry(newId, strategy.long, qty=qtyNow)
+        array.push(slotIds, newId)
+        array.push(slotEntry, close)
+        array.push(slotRank, entryRank)
+        lastLongEntryBar := bar_index
+    else if useReplacement and entryRank >= replaceMinRank
+        weakIdx = f_find_weakest_idx()
+        if not na(weakIdx)
+            weakPnl = f_slot_pnl_pct(weakIdx)
+            weakRank = array.get(slotRank, weakIdx)
+            canReplace = weakPnl <= replaceIfPnlBelow or entryRank > weakRank
+            if canReplace
+                f_close_slot(weakIdx)
+                newId = "L_" + str.tostring(nextSlotNo)
+                nextSlotNo += 1
+                strategy.entry(newId, strategy.long, qty=qtyNow)
+                array.push(slotIds, newId)
+                array.push(slotEntry, close)
+                array.push(slotRank, entryRank)
+                lastLongEntryBar := bar_index
+
+compressionFailExit = array.size(slotIds) > 0 and close < bbBasis and bbWidthPct < bbWidthAvg
+releaseRiskOffExit = array.size(slotIds) > 0 and riskOff and close < ema
+weakRangeExit = false
+if enableWeakRangeExit and array.size(slotIds) > 0 and atr > 0
+    runupAtr = (ta.highest(high, weakExitBars) - close) / atr
+    lossAtr = (close - ta.lowest(low, weakExitBars)) / atr
+    slopeAtr = math.abs(ema - nz(ema[weakExitBars], ema)) / atr
+    weakRangeExit := runupAtr <= weakRunupAtrMax and lossAtr >= weakLossAtrMin and slopeAtr <= weakSlopeAtrMax and close < ema
+
+if (compressionFailExit or weakRangeExit) and array.size(slotIds) > 0
+    weakIdxExit = f_find_weakest_idx()
+    if not na(weakIdxExit)
+        f_close_slot(weakIdxExit)
+
+if releaseRiskOffExit and array.size(slotIds) > 0
+    weakIdxRisk = f_find_weakest_idx()
+    if not na(weakIdxRisk)
+        f_close_slot(weakIdxRisk)
+
+if finalBearEvent > 0 and array.size(slotIds) > 0
+    if finalBearEvent <= 2
+        weakIdx1 = f_find_weakest_idx()
+        if not na(weakIdx1)
+            f_close_slot(weakIdx1)
+    else if finalBearEvent == 3
+        for step = 0 to 1
+            if array.size(slotIds) > 0
+                weakIdx2 = f_find_weakest_idx()
+                if not na(weakIdx2)
+                    f_close_slot(weakIdx2)
+    else
+        for step = 0 to 49
+            if array.size(slotIds) > 0
+                weakIdx3 = f_find_weakest_idx()
+                if not na(weakIdx3)
+                    pnlNow = f_slot_pnl_pct(weakIdx3)
+                    if pnlNow < 0 or closeAllOnBearConfRiskOff and riskOff
+                        f_close_slot(weakIdx3)
+
+if resetOnL3 and (bull == L3 or bear == L3)
+    bull := 0
+    bear := 0
+    cycle := 0
+
+plot(ema, "EMA", color=color.orange)
+plot(baseEMA, "Base EMA", color=color.red)
+plot(bbBasis, "BB Basis", color=color.blue)
+plot(useSupertrendFilter ? stLine : na, "Supertrend", color=stBull ? color.lime : color.maroon)
+plotshape(compressionRelease, title="CR", location=location.belowbar, color=color.aqua, style=shape.square, size=size.tiny, text="CR")
+plotshape(newBullL2, title="B2", location=location.belowbar, color=color.green, style=shape.triangleup, size=size.tiny, text="B2")
+plotshape(newBullL3, title="B3", location=location.belowbar, color=color.lime, style=shape.diamond, size=size.tiny, text="B3")
+plotshape(newBullConfirmed, title="BC", location=location.belowbar, color=color.blue, style=shape.labelup, size=size.tiny, text="BC")
+plotshape(newBearL2, title="S2", location=location.abovebar, color=color.red, style=shape.triangledown, size=size.tiny, text="S2")
+plotshape(newBearL3, title="S3", location=location.abovebar, color=color.maroon, style=shape.diamond, size=size.tiny, text="S3")
+plotshape(newBearConfirmed, title="SC", location=location.abovebar, color=color.orange, style=shape.labeldown, size=size.tiny, text="SC")

@@ -1,0 +1,53 @@
+//@version=5
+strategy("AF Mutation QQQ 120m Trade Restore [cand-956e4181]", overlay=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.1, pyramiding=0)
+
+fastLen = input.int(18, "Fast EMA", minval=2)
+slowLen = input.int(50, "Slow EMA", minval=3)
+trendLen = input.int(200, "Trend EMA", minval=20)
+rsiLen = input.int(14, "RSI Length", minval=2)
+rsiMin = input.int(52, "RSI Minimum", minval=1, maxval=99)
+pullbackLookback = input.int(3, "Pullback Lookback Bars", minval=1, maxval=10)
+volLen = input.int(20, "Volume SMA Length", minval=2)
+minVolRatio = input.float(0.85, "Min Volume / Avg Volume", minval=0.1, step=0.05)
+atrLen = input.int(14, "ATR Length", minval=1)
+stopATR = input.float(2.2, "Stop ATR Multiplier", minval=0.5, step=0.1)
+targetATR = input.float(4.0, "Target ATR Multiplier", minval=0.5, step=0.1)
+trailATR = input.float(1.8, "Trail ATR Multiplier", minval=0.5, step=0.1)
+maxBarsHold = input.int(24, "Max Bars Hold", minval=1)
+
+fastEma = ta.ema(close, fastLen)
+slowEma = ta.ema(close, slowLen)
+trendEma = ta.ema(close, trendLen)
+rsiValue = ta.rsi(close, rsiLen)
+atrValue = ta.atr(atrLen)
+volSma = ta.sma(volume, volLen)
+
+trendUp = close > trendEma and trendEma > trendEma[5] and fastEma > slowEma
+pullbackRecent = ta.lowest(low, pullbackLookback) <= fastEma
+reclaimFast = close > fastEma and close > open
+rsiFilter = rsiValue >= rsiMin
+volFilter = volume >= volSma * minVolRatio
+entrySignal = trendUp and pullbackRecent and reclaimFast and rsiFilter and volFilter
+
+var int barsInTrade = 0
+barsInTrade := strategy.position_size > 0 ? nz(barsInTrade[1]) + 1 : 0
+
+if entrySignal and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+
+avgPrice = strategy.position_avg_price
+stopPrice = avgPrice - atrValue * stopATR
+limitPrice = avgPrice + atrValue * targetATR
+trailOffsetTicks = math.max(1, int(math.round((atrValue * trailATR) / syminfo.mintick)))
+
+if strategy.position_size > 0
+    strategy.exit("XL", "Long", stop=stopPrice, limit=limitPrice, trail_offset=trailOffsetTicks)
+
+lossOfMomentum = close < slowEma and rsiValue < 48
+if strategy.position_size > 0 and (barsInTrade >= maxBarsHold or lossOfMomentum)
+    strategy.close("Long")
+
+plot(fastEma, "Fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "Slow EMA", color=color.new(color.orange, 0))
+plot(trendEma, "Trend EMA", color=color.new(color.blue, 0))
+plotshape(entrySignal and strategy.position_size == 0, title="Entry Signal", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
