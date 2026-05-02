@@ -115,6 +115,14 @@ export const walkForwardFoldSchema = z.object({
   objectiveBreakdown: objectiveBreakdownSchema.nullable().default(null),
   passed: z.boolean(),
   gateReasons: z.array(z.string()).default([]),
+  regimeSummary: z
+    .object({
+      totalBars: z.number().int().nonnegative(),
+      counts: z.record(z.string(), z.number().int().nonnegative()).default({}),
+      dominantRegime: z.string().nullable().default(null),
+      concentration: z.number().min(0).max(1).default(0),
+    })
+    .optional(),
 });
 
 export const walkForwardEvaluationSchema = z.object({
@@ -137,6 +145,28 @@ export const walkForwardEvaluationSchema = z.object({
   medianOosProfitFactor: z.number().nullable().default(null),
   medianOosPostFeeNetProfitPercent: z.number().nullable().default(null),
   embargoBars: z.number().int().nonnegative(),
+  minimumCoverageDays: z.number().int().nonnegative().default(0),
+  coverageDays: z.number().nonnegative().nullable().default(null),
+  coverageStartTime: z.string().nullable().default(null),
+  coverageEndTime: z.string().nullable().default(null),
+  regimeSummary: z
+    .object({
+      totalBars: z.number().int().nonnegative(),
+      counts: z.record(z.string(), z.number().int().nonnegative()).default({}),
+      dominantRegime: z.string().nullable().default(null),
+      concentration: z.number().min(0).max(1).default(0),
+    })
+    .optional(),
+  failedFoldRegimeSummary: z
+    .array(
+      z.object({
+        foldId: z.string().min(1),
+        dominantRegime: z.string().nullable().default(null),
+        concentration: z.number().min(0).max(1).default(0),
+        gateReasons: z.array(z.string()).default([]),
+      }),
+    )
+    .default([]),
   passed: z.boolean(),
   gateReasons: z.array(z.string()).default([]),
   folds: z.array(walkForwardFoldSchema).default([]),

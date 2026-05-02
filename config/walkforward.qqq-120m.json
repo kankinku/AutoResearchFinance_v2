@@ -1,0 +1,17 @@
+{
+  "policyVersion": "walk-forward-oos/v1",
+  "foldCount": 5,
+  "embargoBars": 5,
+  "requiredPositiveOosFolds": 4,
+  "minimumTradesPerFold": 12,
+  "minimumTotalOosTrades": 60,
+  "maximumWorstFoldDrawdownPercent": 18,
+  "minimumMedianOosProfitFactor": 1.1,
+  "minimumCoverageDays": 730,
+  "canaryHoldout": {
+    "policyVersion": "canary-holdout/v1",
+    "mode": "sealed",
+    "exposed": false,
+    "reason": "Automatic promotion uses walk-forward folds only; sealed canary review is reserved for human audit."
+  }
+}

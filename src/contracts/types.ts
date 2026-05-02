@@ -51,6 +51,80 @@ export const tradeRecordSchema = z.object({
   drawdownPercent: z.number().nullable().default(null),
 });
 
+export const simulatedOrderSideSchema = z.enum(["buy", "sell"]);
+
+export const simulatedOrderTypeSchema = z.enum(["market"]);
+
+export const simulatedOrderStatusSchema = z.enum(["submitted", "filled", "canceled"]);
+
+export const simulatedFillPolicySchema = z.enum(["close", "next_open"]);
+
+export const simulatedCostBreakdownSchema = z.object({
+  commissionPercent: z.number(),
+  commission: z.number(),
+  grossValue: z.number(),
+  netCashChange: z.number(),
+});
+
+export const simulatedOrderSchema = z.object({
+  orderId: z.string().min(1),
+  slotId: z.string().nullable().default(null),
+  parentOrderId: z.string().nullable().default(null),
+  barIndex: z.number().int().nonnegative(),
+  time: z.string().min(1),
+  side: simulatedOrderSideSchema,
+  orderType: simulatedOrderTypeSchema,
+  status: simulatedOrderStatusSchema,
+  quantity: z.number(),
+  requestedPrice: z.number(),
+  fillPolicy: simulatedFillPolicySchema,
+  reason: z.string().min(1),
+});
+
+export const simulatedFillSchema = z.object({
+  fillId: z.string().min(1),
+  orderId: z.string().min(1),
+  slotId: z.string().nullable().default(null),
+  barIndex: z.number().int().nonnegative(),
+  time: z.string().min(1),
+  side: simulatedOrderSideSchema,
+  quantity: z.number(),
+  price: z.number(),
+  cost: simulatedCostBreakdownSchema,
+  realizedPnl: z.number().nullable().default(null),
+  cashAfter: z.number(),
+});
+
+export const localPortfolioSnapshotSchema = z.object({
+  snapshotId: z.string().min(1),
+  barIndex: z.number().int().nonnegative(),
+  time: z.string().min(1),
+  cash: z.number(),
+  positionValue: z.number(),
+  equity: z.number(),
+  openSlotCount: z.number().int().nonnegative(),
+  openQuantity: z.number(),
+  realizedPnl: z.number(),
+  orderIds: z.array(z.string()).default([]),
+  fillIds: z.array(z.string()).default([]),
+});
+
+export const localExecutionTraceEntrySchema = z.object({
+  sequence: z.number().int().positive(),
+  barIndex: z.number().int().nonnegative(),
+  time: z.string().min(1),
+  orderId: z.string().min(1),
+  fillId: z.string().min(1),
+  slotId: z.string().nullable().default(null),
+  side: simulatedOrderSideSchema,
+  reason: z.string().min(1),
+  quantity: z.number(),
+  price: z.number(),
+  commission: z.number(),
+  cashAfter: z.number(),
+  realizedPnl: z.number().nullable().default(null),
+});
+
 export const traceOrderActionSchema = z.enum([
   "none",
   "entry",
@@ -1087,6 +1161,15 @@ export type ConditionInventoryItem = z.infer<typeof conditionInventoryItemSchema
 export type ConditionRole = z.infer<typeof conditionRoleSchema>;
 export type BacktestMetrics = z.infer<typeof backtestMetricsSchema>;
 export type TradeRecord = z.infer<typeof tradeRecordSchema>;
+export type SimulatedOrderSide = z.infer<typeof simulatedOrderSideSchema>;
+export type SimulatedOrderType = z.infer<typeof simulatedOrderTypeSchema>;
+export type SimulatedOrderStatus = z.infer<typeof simulatedOrderStatusSchema>;
+export type SimulatedFillPolicy = z.infer<typeof simulatedFillPolicySchema>;
+export type SimulatedCostBreakdown = z.infer<typeof simulatedCostBreakdownSchema>;
+export type SimulatedOrder = z.infer<typeof simulatedOrderSchema>;
+export type SimulatedFill = z.infer<typeof simulatedFillSchema>;
+export type LocalPortfolioSnapshot = z.infer<typeof localPortfolioSnapshotSchema>;
+export type LocalExecutionTraceEntry = z.infer<typeof localExecutionTraceEntrySchema>;
 export type TraceOrderAction = z.infer<typeof traceOrderActionSchema>;
 export type TraceEventV1 = z.infer<typeof traceEventV1Schema>;
 export type TvTraceArtifact = z.infer<typeof tvTraceArtifactSchema>;

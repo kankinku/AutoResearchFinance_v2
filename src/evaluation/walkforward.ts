@@ -1,9 +1,15 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+import { z } from "zod";
+
 import { parseAfStrategyConfig } from "../automation/local-backtest/af-config.js";
 import { loadLocalBacktestBars } from "../automation/local-backtest/context.js";
 import { simulateAfStrategy } from "../automation/local-backtest/af-simulator.js";
 import { afStrategySpecToConfig } from "../strategy-spec/to-af-config.js";
 import {
   type BacktestMetrics,
+  type MarketContextBar,
   type ObjectiveConfig,
 } from "../contracts/types.js";
 import {
@@ -12,13 +18,53 @@ import {
 } from "../contracts/autonomous.js";
 import { evaluateObjective } from "./objective.js";
 
-const DEFAULT_FOLD_COUNT = 5;
-const DEFAULT_EMBARGO_BARS = 5;
-const MINIMUM_TRADES_PER_FOLD = 12;
-const MINIMUM_TOTAL_OOS_TRADES = 60;
-const REQUIRED_POSITIVE_OOS_FOLDS = 4;
-const MAX_WORST_FOLD_DRAWDOWN = 18;
-const MINIMUM_MEDIAN_OOS_PROFIT_FACTOR = 1.1;
+const walkForwardPolicySchema = z.object({
+  policyVersion: z.literal("walk-forward-oos/v1"),
+  foldCount: z.number().int().positive(),
+  embargoBars: z.number().int().nonnegative(),
+  requiredPositiveOosFolds: z.number().int().positive(),
+  minimumTradesPerFold: z.number().int().positive(),
+  minimumTotalOosTrades: z.number().int().positive(),
+  maximumWorstFoldDrawdownPercent: z.number().positive(),
+  minimumMedianOosProfitFactor: z.number().positive(),
+  minimumCoverageDays: z.number().int().nonnegative(),
+  canaryHoldout: z.object({
+    policyVersion: z.string().min(1).default("canary-holdout/v1"),
+    mode: z.enum(["sealed", "manual_review_only"]),
+    exposed: z.boolean().default(false),
+    reason: z.string().min(1),
+  }),
+});
+
+export type WalkForwardPolicy = z.infer<typeof walkForwardPolicySchema>;
+
+export const DEFAULT_WALK_FORWARD_POLICY: WalkForwardPolicy = {
+  policyVersion: "walk-forward-oos/v1",
+  foldCount: 5,
+  embargoBars: 5,
+  requiredPositiveOosFolds: 4,
+  minimumTradesPerFold: 12,
+  minimumTotalOosTrades: 60,
+  maximumWorstFoldDrawdownPercent: 18,
+  minimumMedianOosProfitFactor: 1.1,
+  minimumCoverageDays: 730,
+  canaryHoldout: {
+    policyVersion: "canary-holdout/v1",
+    mode: "sealed",
+    exposed: false,
+    reason: "Automatic promotion uses walk-forward folds only; sealed canary review is reserved for human audit.",
+  },
+};
+
+const REGIME_BUCKETS = [
+  "trend_up",
+  "trend_down",
+  "range",
+  "range_squeeze",
+  "volatile",
+] as const;
+
+type RegimeBucket = (typeof REGIME_BUCKETS)[number];
 
 export async function evaluateWalkForward(input: {
   workspaceRoot: string;
@@ -29,11 +75,16 @@ export async function evaluateWalkForward(input: {
   foldCount?: number;
   embargoBars?: number;
 }): Promise<WalkForwardEvaluation> {
+  const policy = await loadWalkForwardPolicy(input.workspaceRoot);
+  const effectivePolicy = {
+    ...policy,
+    foldCount: input.foldCount ?? policy.foldCount,
+    embargoBars: input.embargoBars ?? policy.embargoBars,
+  };
   const parsed = resolveConfig(input.pineScript, input.strategySpec);
   if (parsed.issues.length > 0) {
     return buildFailedWalkForwardEvaluation({
-      foldCount: input.foldCount ?? DEFAULT_FOLD_COUNT,
-      embargoBars: input.embargoBars ?? DEFAULT_EMBARGO_BARS,
+      policy: effectivePolicy,
       gateReasons: parsed.issues,
     });
   }
@@ -41,18 +92,27 @@ export async function evaluateWalkForward(input: {
   const bars = await loadLocalBacktestBars(input.workspaceRoot, {
     stateRoot: input.stateRoot,
   });
-  const foldCount = input.foldCount ?? DEFAULT_FOLD_COUNT;
-  const embargoBars = input.embargoBars ?? DEFAULT_EMBARGO_BARS;
-  const foldWindows = buildWalkForwardWindows({
-    barCount: bars.length,
-    foldCount,
-    embargoBars,
-  });
-  if (foldWindows.length < foldCount) {
+  const coverage = computeCoverageSummary(bars);
+  if ((coverage.coverageDays ?? 0) < effectivePolicy.minimumCoverageDays) {
     return buildFailedWalkForwardEvaluation({
-      foldCount,
-      embargoBars,
+      policy: effectivePolicy,
+      gateReasons: ["insufficient_historical_coverage"],
+      coverage,
+      regimeSummary: buildRegimeSummary(bars),
+    });
+  }
+
+  const foldWindows = buildRollingWalkForwardWindows({
+    bars,
+    foldCount: effectivePolicy.foldCount,
+    embargoBars: effectivePolicy.embargoBars,
+  });
+  if (foldWindows.length < effectivePolicy.foldCount) {
+    return buildFailedWalkForwardEvaluation({
+      policy: effectivePolicy,
       gateReasons: ["insufficient_bars_for_walk_forward"],
+      coverage,
+      regimeSummary: buildRegimeSummary(bars),
     });
   }
 
@@ -64,12 +124,12 @@ export async function evaluateWalkForward(input: {
       ...input.objective,
       hardGates: {
         ...input.objective.hardGates,
-        minimumTotalTrades: MINIMUM_TRADES_PER_FOLD,
+        minimumTotalTrades: effectivePolicy.minimumTradesPerFold,
       },
     };
     const objectiveBreakdown =
       metrics.totalTrades > 0 ? evaluateObjective(metrics, foldObjective) : null;
-    const gateReasons = buildFoldGateReasons(metrics, objectiveBreakdown);
+    const gateReasons = buildFoldGateReasons(metrics, objectiveBreakdown, effectivePolicy);
     return {
       foldId: `wf-${index + 1}`,
       index,
@@ -77,11 +137,12 @@ export async function evaluateWalkForward(input: {
       trainEndTime: bars[Math.max(0, window.trainEnd - 1)]?.time ?? null,
       testStartTime: testBars[0]?.time ?? null,
       testEndTime: testBars.at(-1)?.time ?? null,
-      embargoBars,
+      embargoBars: effectivePolicy.embargoBars,
       metrics,
       objectiveBreakdown,
       passed: gateReasons.length === 0,
       gateReasons,
+      regimeSummary: buildRegimeSummary(testBars),
     };
   });
 
@@ -97,10 +158,24 @@ export async function evaluateWalkForward(input: {
       embargoBars: fold.embargoBars,
       objectiveBreakdown: fold.objectiveBreakdown,
       gateReasons: fold.gateReasons,
+      regimeSummary: fold.regimeSummary,
     })),
-    foldCount,
-    embargoBars,
+    policy: effectivePolicy,
+    coverage,
+    regimeSummary: buildRegimeSummary(bars),
   });
+}
+
+export async function loadWalkForwardPolicy(
+  workspaceRoot: string,
+): Promise<WalkForwardPolicy> {
+  const policyPath = path.join(workspaceRoot, "config", "walkforward.qqq-120m.json");
+  try {
+    const parsed = JSON.parse(await readFile(policyPath, "utf8")) as unknown;
+    return walkForwardPolicySchema.parse(parsed);
+  } catch {
+    return DEFAULT_WALK_FORWARD_POLICY;
+  }
 }
 
 function resolveConfig(
@@ -137,15 +212,33 @@ export function buildWalkForwardEvaluationFromFoldMetrics(input: {
     embargoBars?: number;
     objectiveBreakdown?: WalkForwardEvaluation["folds"][number]["objectiveBreakdown"];
     gateReasons?: string[];
+    regimeSummary?: WalkForwardEvaluation["folds"][number]["regimeSummary"];
   }>;
   foldCount?: number;
   embargoBars?: number;
+  policy?: WalkForwardPolicy;
+  coverage?: {
+    coverageDays: number | null;
+    coverageStartTime: string | null;
+    coverageEndTime: string | null;
+  };
+  regimeSummary?: WalkForwardEvaluation["regimeSummary"];
 }): WalkForwardEvaluation {
-  const foldCount = input.foldCount ?? input.foldMetrics.length;
-  const embargoBars = input.embargoBars ?? DEFAULT_EMBARGO_BARS;
+  const policy = {
+    ...(input.policy ?? DEFAULT_WALK_FORWARD_POLICY),
+    foldCount:
+      input.foldCount ?? input.policy?.foldCount ?? input.foldMetrics.length,
+    embargoBars:
+      input.embargoBars ?? input.policy?.embargoBars ?? DEFAULT_WALK_FORWARD_POLICY.embargoBars,
+  };
+  const coverage = input.coverage ?? {
+    coverageDays: policy.minimumCoverageDays,
+    coverageStartTime: null,
+    coverageEndTime: null,
+  };
   const folds = input.foldMetrics.map((metrics, index) => {
     const metadata = input.foldMetadata?.[index];
-    const gateReasons = metadata?.gateReasons ?? buildFoldGateReasons(metrics, null);
+    const gateReasons = metadata?.gateReasons ?? buildFoldGateReasons(metrics, null, policy);
     return {
       foldId: metadata?.foldId ?? `wf-${index + 1}`,
       index: metadata?.index ?? index,
@@ -153,11 +246,12 @@ export function buildWalkForwardEvaluationFromFoldMetrics(input: {
       trainEndTime: metadata?.trainEndTime ?? null,
       testStartTime: metadata?.testStartTime ?? null,
       testEndTime: metadata?.testEndTime ?? null,
-      embargoBars: metadata?.embargoBars ?? embargoBars,
+      embargoBars: metadata?.embargoBars ?? policy.embargoBars,
       metrics,
       objectiveBreakdown: metadata?.objectiveBreakdown ?? null,
       passed: gateReasons.length === 0,
       gateReasons,
+      regimeSummary: metadata?.regimeSummary,
     };
   });
   const positiveOosFoldCount = folds.filter(
@@ -181,7 +275,8 @@ export function buildWalkForwardEvaluationFromFoldMetrics(input: {
   const medianOosProfitFactor = median(profitFactors);
   const medianOosPostFeeNetProfitPercent = median(postFeeProfits);
   const gateReasons = buildEvaluationGateReasons({
-    foldCount,
+    policy,
+    coverageDays: coverage.coverageDays,
     actualFoldCount: folds.length,
     positiveOosFoldCount,
     totalOosTrades,
@@ -189,25 +284,34 @@ export function buildWalkForwardEvaluationFromFoldMetrics(input: {
     medianOosProfitFactor,
     foldsPassed: folds.filter((fold) => fold.passed).length,
   });
+  const failedFoldRegimeSummary = folds
+    .filter((fold) => !fold.passed)
+    .map((fold) => ({
+      foldId: fold.foldId,
+      dominantRegime: fold.regimeSummary?.dominantRegime ?? null,
+      concentration: fold.regimeSummary?.concentration ?? 0,
+      gateReasons: fold.gateReasons,
+    }));
 
   return walkForwardEvaluationSchema.parse({
-    policyVersion: "walk-forward-oos/v1",
-    canaryHoldout: {
-      policyVersion: "canary-holdout/v1",
-      mode: "sealed",
-      exposed: false,
-      reason: "Automatic promotion uses walk-forward folds only; sealed canary review is reserved for human audit.",
-    },
-    foldCount,
-    requiredPositiveOosFolds: REQUIRED_POSITIVE_OOS_FOLDS,
+    policyVersion: policy.policyVersion,
+    canaryHoldout: policy.canaryHoldout,
+    foldCount: policy.foldCount,
+    requiredPositiveOosFolds: policy.requiredPositiveOosFolds,
     positiveOosFoldCount,
-    minimumTradesPerFold: MINIMUM_TRADES_PER_FOLD,
-    minimumTotalOosTrades: MINIMUM_TOTAL_OOS_TRADES,
+    minimumTradesPerFold: policy.minimumTradesPerFold,
+    minimumTotalOosTrades: policy.minimumTotalOosTrades,
     totalOosTrades,
     worstFoldDrawdownPercent,
     medianOosProfitFactor,
     medianOosPostFeeNetProfitPercent,
-    embargoBars,
+    embargoBars: policy.embargoBars,
+    minimumCoverageDays: policy.minimumCoverageDays,
+    coverageDays: coverage.coverageDays,
+    coverageStartTime: coverage.coverageStartTime,
+    coverageEndTime: coverage.coverageEndTime,
+    regimeSummary: input.regimeSummary,
+    failedFoldRegimeSummary,
     passed: gateReasons.length === 0,
     gateReasons,
     folds,
@@ -237,12 +341,31 @@ export function buildWalkForwardWindows(input: {
   return windows;
 }
 
+export function buildRollingWalkForwardWindows(input: {
+  bars: Array<{ time: string }>;
+  foldCount: number;
+  embargoBars: number;
+}): Array<{ trainEnd: number; testStart: number; testEnd: number }> {
+  const bars = [...input.bars].sort(
+    (left, right) => Date.parse(left.time) - Date.parse(right.time),
+  );
+  if (bars.length !== input.bars.length) {
+    return [];
+  }
+  return buildWalkForwardWindows({
+    barCount: bars.length,
+    foldCount: input.foldCount,
+    embargoBars: input.embargoBars,
+  }).filter((window) => window.trainEnd + input.embargoBars <= window.testStart);
+}
+
 function buildFoldGateReasons(
   metrics: BacktestMetrics,
   objectiveBreakdown: ReturnType<typeof evaluateObjective> | null,
+  policy: WalkForwardPolicy,
 ): string[] {
   const gateReasons: string[] = [];
-  if (metrics.totalTrades < MINIMUM_TRADES_PER_FOLD) {
+  if (metrics.totalTrades < policy.minimumTradesPerFold) {
     gateReasons.push("minimum_fold_trades");
   }
   if (metrics.postFeeNetProfitPercent <= 0) {
@@ -251,7 +374,7 @@ function buildFoldGateReasons(
   if (metrics.avgTradePercent <= 0) {
     gateReasons.push("positive_fold_avg_trade");
   }
-  if (metrics.maxStrategyDrawdownPercent > MAX_WORST_FOLD_DRAWDOWN) {
+  if (metrics.maxStrategyDrawdownPercent > policy.maximumWorstFoldDrawdownPercent) {
     gateReasons.push("fold_drawdown_limit");
   }
   if (objectiveBreakdown && !objectiveBreakdown.hardGatesPassed) {
@@ -261,7 +384,8 @@ function buildFoldGateReasons(
 }
 
 function buildEvaluationGateReasons(input: {
-  foldCount: number;
+  policy: WalkForwardPolicy;
+  coverageDays: number | null;
   actualFoldCount: number;
   positiveOosFoldCount: number;
   totalOosTrades: number;
@@ -270,27 +394,33 @@ function buildEvaluationGateReasons(input: {
   foldsPassed: number;
 }): string[] {
   const gateReasons: string[] = [];
-  if (input.actualFoldCount < input.foldCount) {
+  if ((input.coverageDays ?? 0) < input.policy.minimumCoverageDays) {
+    gateReasons.push("insufficient_historical_coverage");
+  }
+  if (input.policy.canaryHoldout.exposed) {
+    gateReasons.push("canary_holdout_exposed");
+  }
+  if (input.actualFoldCount < input.policy.foldCount) {
     gateReasons.push("insufficient_fold_count");
   }
-  if (input.positiveOosFoldCount < REQUIRED_POSITIVE_OOS_FOLDS) {
+  if (input.positiveOosFoldCount < input.policy.requiredPositiveOosFolds) {
     gateReasons.push("positive_oos_fold_count");
   }
-  if (input.foldsPassed < REQUIRED_POSITIVE_OOS_FOLDS) {
+  if (input.foldsPassed < input.policy.requiredPositiveOosFolds) {
     gateReasons.push("passed_oos_fold_count");
   }
-  if (input.totalOosTrades < MINIMUM_TOTAL_OOS_TRADES) {
+  if (input.totalOosTrades < input.policy.minimumTotalOosTrades) {
     gateReasons.push("minimum_total_oos_trades");
   }
   if (
     input.worstFoldDrawdownPercent == null ||
-    input.worstFoldDrawdownPercent > MAX_WORST_FOLD_DRAWDOWN
+    input.worstFoldDrawdownPercent > input.policy.maximumWorstFoldDrawdownPercent
   ) {
     gateReasons.push("worst_fold_drawdown_limit");
   }
   if (
     input.medianOosProfitFactor == null ||
-    input.medianOosProfitFactor < MINIMUM_MEDIAN_OOS_PROFIT_FACTOR
+    input.medianOosProfitFactor < input.policy.minimumMedianOosProfitFactor
   ) {
     gateReasons.push("median_oos_profit_factor");
   }
@@ -298,32 +428,120 @@ function buildEvaluationGateReasons(input: {
 }
 
 function buildFailedWalkForwardEvaluation(input: {
-  foldCount: number;
-  embargoBars: number;
+  policy: WalkForwardPolicy;
   gateReasons: string[];
+  coverage?: {
+    coverageDays: number | null;
+    coverageStartTime: string | null;
+    coverageEndTime: string | null;
+  };
+  regimeSummary?: WalkForwardEvaluation["regimeSummary"];
 }): WalkForwardEvaluation {
   return walkForwardEvaluationSchema.parse({
-    policyVersion: "walk-forward-oos/v1",
-    canaryHoldout: {
-      policyVersion: "canary-holdout/v1",
-      mode: "sealed",
-      exposed: false,
-      reason: "Automatic promotion uses walk-forward folds only; sealed canary review is reserved for human audit.",
-    },
-    foldCount: input.foldCount,
-    requiredPositiveOosFolds: REQUIRED_POSITIVE_OOS_FOLDS,
+    policyVersion: input.policy.policyVersion,
+    canaryHoldout: input.policy.canaryHoldout,
+    foldCount: input.policy.foldCount,
+    requiredPositiveOosFolds: input.policy.requiredPositiveOosFolds,
     positiveOosFoldCount: 0,
-    minimumTradesPerFold: MINIMUM_TRADES_PER_FOLD,
-    minimumTotalOosTrades: MINIMUM_TOTAL_OOS_TRADES,
+    minimumTradesPerFold: input.policy.minimumTradesPerFold,
+    minimumTotalOosTrades: input.policy.minimumTotalOosTrades,
     totalOosTrades: 0,
     worstFoldDrawdownPercent: null,
     medianOosProfitFactor: null,
     medianOosPostFeeNetProfitPercent: null,
-    embargoBars: input.embargoBars,
+    embargoBars: input.policy.embargoBars,
+    minimumCoverageDays: input.policy.minimumCoverageDays,
+    coverageDays: input.coverage?.coverageDays ?? null,
+    coverageStartTime: input.coverage?.coverageStartTime ?? null,
+    coverageEndTime: input.coverage?.coverageEndTime ?? null,
+    regimeSummary: input.regimeSummary,
+    failedFoldRegimeSummary: [],
     passed: false,
-    gateReasons: input.gateReasons,
+    gateReasons: input.policy.canaryHoldout.exposed
+      ? [...new Set([...input.gateReasons, "canary_holdout_exposed"])]
+      : input.gateReasons,
     folds: [],
   });
+}
+
+function computeCoverageSummary(bars: Array<{ time: string }>): {
+  coverageDays: number | null;
+  coverageStartTime: string | null;
+  coverageEndTime: string | null;
+} {
+  if (bars.length < 2) {
+    return {
+      coverageDays: null,
+      coverageStartTime: bars[0]?.time ?? null,
+      coverageEndTime: bars.at(-1)?.time ?? null,
+    };
+  }
+  const sorted = [...bars].sort(
+    (left, right) => Date.parse(left.time) - Date.parse(right.time),
+  );
+  const start = sorted[0]?.time ?? null;
+  const end = sorted.at(-1)?.time ?? null;
+  const startMs = Date.parse(start ?? "");
+  const endMs = Date.parse(end ?? "");
+  const coverageDays =
+    Number.isFinite(startMs) && Number.isFinite(endMs) && endMs >= startMs
+      ? roundNumber((endMs - startMs) / 86_400_000)
+      : null;
+  return {
+    coverageDays,
+    coverageStartTime: start,
+    coverageEndTime: end,
+  };
+}
+
+function buildRegimeSummary(bars: MarketContextBar[]):
+  | NonNullable<WalkForwardEvaluation["regimeSummary"]>
+  | undefined {
+  if (bars.length === 0) {
+    return undefined;
+  }
+  const counts = Object.fromEntries(REGIME_BUCKETS.map((bucket) => [bucket, 0]));
+  for (let index = 0; index < bars.length; index += 1) {
+    const bucket = classifyRegime(bars[index], bars[index - 1] ?? null);
+    counts[bucket] = (counts[bucket] ?? 0) + 1;
+  }
+  const [dominantRegime, dominantCount] = Object.entries(counts).sort(
+    ([, left], [, right]) => right - left,
+  )[0] ?? [null, 0];
+  return {
+    totalBars: bars.length,
+    counts,
+    dominantRegime,
+    concentration: roundNumber((dominantCount ?? 0) / bars.length),
+  };
+}
+
+function classifyRegime(
+  bar: MarketContextBar,
+  previous: MarketContextBar | null,
+): RegimeBucket {
+  const close = bar.close;
+  const open = bar.open;
+  const rangePct = close > 0 ? ((bar.high - bar.low) / close) * 100 : 0;
+  const returnPct =
+    previous && previous.close > 0
+      ? ((close - previous.close) / previous.close) * 100
+      : close > 0
+        ? ((close - open) / close) * 100
+        : 0;
+  if (rangePct >= 3.5 || Math.abs(returnPct) >= 2.5) {
+    return "volatile";
+  }
+  if (returnPct >= 0.35) {
+    return "trend_up";
+  }
+  if (returnPct <= -0.35) {
+    return "trend_down";
+  }
+  if (rangePct <= 0.75) {
+    return "range_squeeze";
+  }
+  return "range";
 }
 
 function median(values: number[]): number | null {
@@ -336,4 +554,8 @@ function median(values: number[]): number | null {
     return sorted[middle] ?? null;
   }
   return ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+}
+
+function roundNumber(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
 }

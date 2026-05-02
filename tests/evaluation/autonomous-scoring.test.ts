@@ -33,8 +33,13 @@ function createWalkForwardPass(): WalkForwardEvaluation {
     medianOosProfitFactor: 1.4,
     medianOosPostFeeNetProfitPercent: 15,
     embargoBars: 5,
+    minimumCoverageDays: 730,
+    coverageDays: 800,
+    coverageStartTime: "2023-05-25T00:00:00.000Z",
+    coverageEndTime: "2025-08-02T00:00:00.000Z",
     passed: true,
     gateReasons: [],
+    failedFoldRegimeSummary: [],
     folds: [],
   };
 }
