@@ -77,10 +77,14 @@ export function renderAfStrategySpecToPine(input: unknown): string {
     "riskOff = rsi < riskOffRsi",
     "trendPass = trendMode == \"Loose\" or close >= emaBase or allowStrongCounterTrend",
     "entryPass = bullEvent and trendPass and not riskOff",
+    "f_bool(value) =>",
+    "    value ? \"1\" : \"0\"",
+    "f_trace(orderAction, exitReason) =>",
+    "    \"AFTRACE|v1|barIndex=\" + str.tostring(bar_index) + \";time=\" + str.tostring(time) + \";orderAction=\" + orderAction + \";finalBullEvent=\" + f_bool(bullEvent) + \";finalBearEvent=\" + f_bool(bearEvent) + \";entryPass=\" + f_bool(entryPass) + \";entryRank=\" + (entryPass ? \"1\" : \"0\") + \";exitReason=\" + exitReason + \";slotCount=\" + str.tostring(strategy.opentrades)",
     "if entryPass",
-    "    strategy.entry(\"AF-L\", strategy.long, qty=minQty)",
+    "    strategy.entry(\"AF-L\", strategy.long, qty=minQty, comment=f_trace(\"entry\", \"none\"), alert_message=f_trace(\"entry\", \"none\"))",
     "if bearEvent and closeAllOnBearConfRiskOff",
-    "    strategy.close_all(comment=\"bear_event\")",
+    "    strategy.close_all(comment=f_trace(\"exit\", \"bear_event\"), alert_message=f_trace(\"exit\", \"bear_event\"))",
     "",
   ].join("\n");
 }

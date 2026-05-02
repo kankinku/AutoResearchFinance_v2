@@ -4,8 +4,10 @@ import {
   tradeRecordSchema,
   type BacktestMetrics,
   type EquitySummary,
+  type TraceEventV1,
   type TradeRecord,
 } from "../../contracts/types.js";
+import { extractTraceEventsFromUnknownReportData } from "./trace-artifact.js";
 
 interface RawTradeLeg {
   c?: string;
@@ -176,6 +178,13 @@ export function extractTradeRecordsFromReportData(
       drawdownPercent: ratioToNullablePercent(trade.dd?.p),
     }),
   );
+}
+
+export function extractTraceEventsFromReportData(
+  reportData: RawStrategyReportData | null | undefined,
+  maxEvents = 200,
+): TraceEventV1[] {
+  return extractTraceEventsFromUnknownReportData(reportData, maxEvents);
 }
 
 export function extractEquitySummaryFromReportData(

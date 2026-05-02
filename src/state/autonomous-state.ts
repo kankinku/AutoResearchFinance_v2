@@ -62,6 +62,8 @@ export function isVerifiedPromotionEligible(input: {
       localRecord.candidateHash === input.record.candidateHash,
   );
   const parityStatus = input.record.localTvParity?.status;
+  const tradeParityStatus = input.record.localTvParity?.tradeParity?.status;
+  const eventParityStatus = input.record.localTvParity?.eventParity?.status;
   const verifiedPromotion = input.record.verifiedPromotion;
   const specAuthorityMatches =
     matchingLocalRecord != null &&
@@ -79,9 +81,9 @@ export function isVerifiedPromotionEligible(input: {
     matchingLocalRecord != null &&
     specAuthorityMatches &&
     input.record.tvCalibrationStatus === "verified_match" &&
-    parityStatus != null &&
-    parityStatus !== "major_drift" &&
-    parityStatus !== "not_comparable" &&
+    parityStatus === "matched" &&
+    tradeParityStatus === "matched" &&
+    eventParityStatus === "matched" &&
     input.record.walkForwardEvaluation?.passed === true &&
     verifiedPromotion?.eligible === true &&
     verifiedPromotion.localCandidateHash === matchingLocalRecord.candidateHash &&

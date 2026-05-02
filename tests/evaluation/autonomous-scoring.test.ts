@@ -54,6 +54,12 @@ function createMatchedParity() {
       profitSignMatchRatio: 1,
       orderCountDelta: 0,
     },
+    eventParity: {
+      status: "matched" as const,
+      eventMatchRatio: 1,
+      entryPassMatchRatio: 1,
+      exitReasonMatchRatio: 1,
+    },
   };
 }
 
@@ -114,6 +120,12 @@ describe("verified promotion scoring", () => {
           profitSignMatchRatio: 0.5,
           orderCountDelta: 6,
         },
+        eventParity: {
+          status: "major_drift",
+          eventMatchRatio: 0.5,
+          entryPassMatchRatio: 0.5,
+          exitReasonMatchRatio: 0.5,
+        },
       },
       walkForwardEvaluation: createWalkForwardPass(),
       config: null,
@@ -127,8 +139,36 @@ describe("verified promotion scoring", () => {
         "local_tv_major_drift",
         "parity_trade_count_delta",
         "parity_net_profit_delta",
+        "trace_parity_major_drift",
       ]),
     );
+  });
+
+  test("rejects metric-only parity when trace evidence is not comparable", () => {
+    const result = buildVerifiedPromotionScore({
+      localMetrics: createMetrics(),
+      tvMetrics: createMetrics(),
+      localCandidateHash: "hash-a",
+      tvCandidateHash: "hash-a",
+      tvCalibrationStatus: "verified_match",
+      localTvParity: {
+        ...createMatchedParity(),
+        status: "not_comparable",
+        eventParity: {
+          status: "not_comparable",
+          eventMatchRatio: null,
+          entryPassMatchRatio: null,
+          exitReasonMatchRatio: null,
+        },
+      },
+      walkForwardEvaluation: createWalkForwardPass(),
+      config: null,
+      referenceExperiments: [],
+    });
+
+    expect(result.eligible).toBe(false);
+    expect(result.rejectionReasons).toContain("parity_not_comparable");
+    expect(result.rejectionReasons).toContain("trace_parity_not_comparable");
   });
 
   test("returns an eligible verified score when TV, parity, and walk-forward gates pass", () => {

@@ -12,6 +12,8 @@ import {
   type ObjectiveConfig,
   type ExperimentRecord,
   type BacktestMetrics,
+  artifactBundleSchema,
+  type ArtifactBundle,
 } from "../../contracts/types.js";
 import { parseAfStrategyConfig } from "../../automation/local-backtest/af-config.js";
 import { afStrategySpecFromPine } from "../../strategy-spec/to-af-config.js";
@@ -165,15 +167,21 @@ export async function processTvCalibrationQueue(input: {
       continue;
     }
 
+    const localArtifactBundle = await readRecordArtifactBundle(localRecord);
+    const localTrades = localArtifactBundle?.trades ?? localRecord.artifactBundle?.trades ?? [];
+    const localEventTrace = readEventTrace(
+      localArtifactBundle?.state ?? localRecord.artifactBundle?.state,
+    );
+
     if (input.env.tvCalibrationMode === "mock-recovered") {
       const mockTvMetrics = buildMockRecoveredMetrics(localRecord.testerMetrics);
       const parity = buildLocalTvParity({
         localMetrics: localRecord.testerMetrics,
         tvMetrics: mockTvMetrics,
-        localTrades: localRecord.artifactBundle?.trades ?? [],
-        tvTrades: localRecord.artifactBundle?.trades ?? [],
-        localEventTrace: readEventTrace(localRecord.artifactBundle?.state),
-        tvEventTrace: readEventTrace(localRecord.artifactBundle?.state),
+        localTrades,
+        tvTrades: localTrades,
+        localEventTrace,
+        tvEventTrace: localEventTrace,
       });
       const localConfidenceAfter =
         parity.status === "matched"
@@ -227,7 +235,7 @@ export async function processTvCalibrationQueue(input: {
         testerMetrics: mockTvMetrics,
         artifactBundle: {
           strategy: mockTvMetrics,
-          trades: localRecord.artifactBundle?.trades ?? [],
+          trades: localTrades,
           equity: {
             available: true,
             unavailableReason: null,
@@ -240,6 +248,7 @@ export async function processTvCalibrationQueue(input: {
           rawReportHash: "mock-recovered-report",
           state: {
             engine: "mock-recovered",
+            eventTrace: localEventTrace,
           },
         },
         localTvParity: parity,
@@ -417,9 +426,9 @@ export async function processTvCalibrationQueue(input: {
       const parity = buildLocalTvParity({
         localMetrics: localRecord.testerMetrics,
         tvMetrics: artifactBundle.strategy,
-        localTrades: localRecord.artifactBundle?.trades ?? [],
+        localTrades,
         tvTrades: artifactBundle.trades,
-        localEventTrace: readEventTrace(localRecord.artifactBundle?.state),
+        localEventTrace,
         tvEventTrace: readEventTrace(artifactBundle.state),
       });
       const localConfidenceAfter =
@@ -607,6 +616,27 @@ function readEventTrace(state: Record<string, unknown> | null | undefined) {
           typeof entry === "object" && entry !== null && !Array.isArray(entry),
       )
     : [];
+}
+
+async function readRecordArtifactBundle(
+  record: AutonomousExperimentRecord,
+): Promise<ArtifactBundle | null> {
+  if (record.artifactBundle) {
+    return record.artifactBundle;
+  }
+
+  const artifactPath =
+    record.artifactPaths.artifactBundle ?? record.artifactPaths.backtestArtifact ?? null;
+  if (!artifactPath) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(await readFile(artifactPath, "utf8")) as unknown;
+    return artifactBundleSchema.parse(parsed);
+  } catch {
+    return null;
+  }
 }
 
 async function buildTvPromotionEvidence(input: {

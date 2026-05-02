@@ -1,6 +1,7 @@
 import {
   localTvParitySummarySchema,
   type BacktestMetrics,
+  type TraceEventV1,
   type TradeRecord,
 } from "../../contracts/types.js";
 import {
@@ -14,6 +15,10 @@ import {
   appendLocalConfidenceEventRecord,
 } from "../../state/jsonl-store.js";
 import { createCandidateId, sha256Json } from "../../utils/fs.js";
+import {
+  isOrderBearingTraceEvent,
+  normalizeTraceEventForParity,
+} from "../../automation/tradingview/trace-artifact.js";
 
 const LOW_DIVERGENCE_BONUS = 0.05;
 const MEDIUM_DIVERGENCE_PENALTY = 0.04;
@@ -144,7 +149,11 @@ export function buildLocalTvParity(input: {
       | "minor_drift"
       | "major_drift"
       | "not_comparable",
-    eventParity?.status === "major_drift" ? "major_drift" : metricStatus,
+    (eventParity?.status ?? "not_comparable") as
+      | "matched"
+      | "minor_drift"
+      | "major_drift"
+      | "not_comparable",
   ]);
 
   return localTvParitySummarySchema.parse({
@@ -223,7 +232,9 @@ function buildEventParity(
   localEventTrace: Array<Record<string, unknown>> | null | undefined,
   tvEventTrace: Array<Record<string, unknown>> | null | undefined,
 ) {
-  if (!localEventTrace?.length || !tvEventTrace?.length) {
+  const localEvents = normalizeOrderBearingTrace(localEventTrace);
+  const tvEvents = normalizeOrderBearingTrace(tvEventTrace);
+  if (!localEvents.length || !tvEvents.length) {
     return {
       status: "not_comparable" as const,
       eventMatchRatio: null,
@@ -232,13 +243,13 @@ function buildEventParity(
     };
   }
 
-  const comparableCount = Math.min(localEventTrace.length, tvEventTrace.length);
+  const comparableCount = Math.min(localEvents.length, tvEvents.length);
   let eventMatches = 0;
   let entryPassMatches = 0;
   let exitReasonMatches = 0;
   for (let index = 0; index < comparableCount; index += 1) {
-    const localEvent = localEventTrace[index];
-    const tvEvent = tvEventTrace[index];
+    const localEvent = localEvents[index];
+    const tvEvent = tvEvents[index];
     if (
       localEvent.finalBullEvent === tvEvent.finalBullEvent &&
       localEvent.finalBearEvent === tvEvent.finalBearEvent
@@ -273,19 +284,29 @@ function buildEventParity(
   };
 }
 
+function normalizeOrderBearingTrace(
+  trace: Array<Record<string, unknown>> | null | undefined,
+) {
+  const normalized =
+    trace
+      ?.map((entry) => normalizeTraceEventForParity(entry))
+      .filter((entry): entry is TraceEventV1 => entry != null) ?? [];
+  return normalized.filter(isOrderBearingTraceEvent);
+}
+
 function worstParityStatus(
   statuses: Array<"matched" | "minor_drift" | "major_drift" | "not_comparable">,
 ): "matched" | "minor_drift" | "major_drift" | "not_comparable" {
   if (statuses.includes("major_drift")) {
     return "major_drift";
   }
+  if (statuses.includes("not_comparable")) {
+    return "not_comparable";
+  }
   if (statuses.includes("minor_drift")) {
     return "minor_drift";
   }
-  if (statuses.every((status) => status === "matched" || status === "not_comparable")) {
-    return statuses.includes("matched") ? "matched" : "not_comparable";
-  }
-  return "not_comparable";
+  return "matched";
 }
 
 function normalizeTime(value: string | null | undefined): string | null {

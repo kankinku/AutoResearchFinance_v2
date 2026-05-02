@@ -2931,6 +2931,19 @@ describe("autonomous tv-verified v4", () => {
         maxDrawdownPctDelta: 0,
         profitFactorDelta: 0,
         winRateDelta: 0,
+        tradeParity: {
+          status: "matched",
+          entryTimeMatchRatio: 1,
+          exitTimeMatchRatio: 1,
+          profitSignMatchRatio: 1,
+          orderCountDelta: 0,
+        },
+        eventParity: {
+          status: "matched",
+          eventMatchRatio: 1,
+          entryPassMatchRatio: 1,
+          exitReasonMatchRatio: 1,
+        },
       },
       recordMeta: {
         ...(steadyStateChallenger.recordMeta ?? {}),

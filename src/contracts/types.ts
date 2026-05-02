@@ -51,6 +51,34 @@ export const tradeRecordSchema = z.object({
   drawdownPercent: z.number().nullable().default(null),
 });
 
+export const traceOrderActionSchema = z.enum([
+  "none",
+  "entry",
+  "exit",
+  "replace",
+  "entry_exit",
+]);
+
+export const traceEventV1Schema = z.object({
+  barIndex: z.number().int().nonnegative(),
+  time: z.string().min(1),
+  orderAction: traceOrderActionSchema,
+  finalBullEvent: z.number().int().nonnegative(),
+  finalBearEvent: z.number().int().nonnegative(),
+  entryPass: z.boolean(),
+  entryRank: z.number(),
+  exitReason: z.string().nullable().default(null),
+  slotCount: z.number().int().nonnegative(),
+});
+
+export const tvTraceArtifactSchema = z.object({
+  schemaVersion: z.literal("tv-trace-artifact/v1"),
+  source: z.literal("tradingview-report"),
+  tracePrefix: z.literal("AFTRACE|v1|"),
+  events: z.array(traceEventV1Schema).default([]),
+  missingReason: z.string().nullable().default(null),
+});
+
 export const seedStrategyReferenceSchema = z.object({
   candidateId: z.string().min(1),
   summary: z.string().min(1),
@@ -1059,6 +1087,9 @@ export type ConditionInventoryItem = z.infer<typeof conditionInventoryItemSchema
 export type ConditionRole = z.infer<typeof conditionRoleSchema>;
 export type BacktestMetrics = z.infer<typeof backtestMetricsSchema>;
 export type TradeRecord = z.infer<typeof tradeRecordSchema>;
+export type TraceOrderAction = z.infer<typeof traceOrderActionSchema>;
+export type TraceEventV1 = z.infer<typeof traceEventV1Schema>;
+export type TvTraceArtifact = z.infer<typeof tvTraceArtifactSchema>;
 export type SeedStrategyReference = z.infer<typeof seedStrategyReferenceSchema>;
 export type AcceptedHeadReference = z.infer<typeof acceptedHeadReferenceSchema>;
 export type CompileFailureClass = z.infer<typeof compileFailureClassSchema>;

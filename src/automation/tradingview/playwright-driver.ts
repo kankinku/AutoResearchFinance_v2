@@ -18,11 +18,13 @@ import { extractStudyTitle } from "./pine-study.js";
 import {
   extractBacktestMetricsFromReportData,
   extractEquitySummaryFromReportData,
+  extractTraceEventsFromReportData,
   extractTradeRecordsFromReportData,
   inspectReportData,
   normalizeAttachedStudyTitle,
   type RawStrategyReportData,
 } from "./report-data.js";
+import { buildTvTraceArtifact } from "./trace-artifact.js";
 import { type PineEvaluationExecutor } from "./types.js";
 import { type ExecutorHealth } from "../common/executor.js";
 import { TradingViewDesktopCdpClient } from "./cdp-client.js";
@@ -272,6 +274,8 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
     const reportDiagnostics = inspectReportData(reportData);
     const strategy = extractBacktestMetricsFromReportData(reportData);
     const rawReportHash = reportData ? sha256(JSON.stringify(reportData)) : null;
+    const eventTrace = extractTraceEventsFromReportData(reportData);
+    const tvTraceArtifact = buildTvTraceArtifact(eventTrace);
 
     return artifactBundleSchema.parse({
       strategy,
@@ -283,6 +287,8 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
         ...(await this.readChartState()),
         reportDiagnostics,
         rawReportSnapshot: reportData,
+        eventTrace,
+        tvTraceArtifact,
       },
     });
   }

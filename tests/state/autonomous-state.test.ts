@@ -84,6 +84,19 @@ function createTvRecord(
       maxDrawdownPctDelta: 0,
       profitFactorDelta: 0,
       winRateDelta: 0,
+      tradeParity: {
+        status: "matched",
+        entryTimeMatchRatio: 1,
+        exitTimeMatchRatio: 1,
+        profitSignMatchRatio: 1,
+        orderCountDelta: 0,
+      },
+      eventParity: {
+        status: "matched",
+        eventMatchRatio: 1,
+        entryPassMatchRatio: 1,
+        exitReasonMatchRatio: 1,
+      },
     },
     walkForwardEvaluation: {
       policyVersion: "walk-forward-oos/v1",
@@ -212,6 +225,37 @@ describe("autonomous champion selectors", () => {
         }),
       ])),
     ).toBeNull();
+  });
+
+  test("rejects metric-only verified records when AFTRACE parity is missing", () => {
+    const selected = selectBestChampionCandidate(asExperimentRecords([
+      createLocalRecord(),
+      createTvRecord({
+        localTvParity: {
+          status: "matched",
+          tradeCountDelta: 0,
+          netProfitPctDelta: 0,
+          maxDrawdownPctDelta: 0,
+          profitFactorDelta: 0,
+          winRateDelta: 0,
+          tradeParity: {
+            status: "matched",
+            entryTimeMatchRatio: 1,
+            exitTimeMatchRatio: 1,
+            profitSignMatchRatio: 1,
+            orderCountDelta: 0,
+          },
+          eventParity: {
+            status: "not_comparable",
+            eventMatchRatio: null,
+            entryPassMatchRatio: null,
+            exitReasonMatchRatio: null,
+          },
+        },
+      }),
+    ]));
+
+    expect(selected).toBeNull();
   });
 
   test("selects verified promotion candidates", () => {

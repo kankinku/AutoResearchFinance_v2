@@ -6,6 +6,7 @@ import {
   type ExecutorCapability,
   type ExecutorCompatibilityResult,
   type BacktestMetrics,
+  type TraceEventV1,
   type TradeRecord,
 } from "../../contracts/types.js";
 import { type PineEvaluationExecutor } from "./types.js";
@@ -149,6 +150,10 @@ export function createMockPineEvaluationExecutor(config?: {
         throw new Error("Strategy source was not updated before reading metrics.");
       }
       const strategy = backtestMetricsSchema.parse(config?.metrics ?? defaultMetrics);
+      const trades = config?.trades ?? [];
+      const eventTrace = Array.isArray(config?.state?.eventTrace)
+        ? config.state.eventTrace
+        : buildMockEventTraceFromTrades(trades);
       const applyResult = applyResultSchema.parse(
         config?.apply ?? {
           ok: true,
@@ -165,7 +170,7 @@ export function createMockPineEvaluationExecutor(config?: {
       );
       return artifactBundleSchema.parse({
         strategy,
-        trades: config?.trades ?? [],
+        trades,
         equity:
           config?.equity ??
           {
@@ -184,6 +189,7 @@ export function createMockPineEvaluationExecutor(config?: {
         rawReportHash: config?.rawReportHash ?? "mock-raw-report-hash",
         state: {
           ...(config?.state ?? {}),
+          eventTrace,
           reportDiagnostics:
             config?.reportDiagnostics ??
             {
@@ -207,4 +213,32 @@ export function createMockPineEvaluationExecutor(config?: {
       return metrics ? backtestMetricsSchema.parse(metrics) : null;
     },
   };
+}
+
+function buildMockEventTraceFromTrades(trades: TradeRecord[]): TraceEventV1[] {
+  return trades.flatMap((trade, index) => {
+    const entryEvent: TraceEventV1 = {
+      barIndex: index * 2,
+      time: trade.entryTime ?? `mock-entry-${index}`,
+      orderAction: "entry",
+      finalBullEvent: 1,
+      finalBearEvent: 0,
+      entryPass: true,
+      entryRank: 1,
+      exitReason: null,
+      slotCount: 1,
+    };
+    const exitEvent: TraceEventV1 = {
+      barIndex: index * 2 + 1,
+      time: trade.exitTime ?? `mock-exit-${index}`,
+      orderAction: "exit",
+      finalBullEvent: 0,
+      finalBearEvent: 1,
+      entryPass: false,
+      entryRank: 0,
+      exitReason: trade.exitComment ?? "exit",
+      slotCount: 0,
+    };
+    return [entryEvent, exitEvent];
+  });
 }

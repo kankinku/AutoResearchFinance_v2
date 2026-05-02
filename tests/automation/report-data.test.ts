@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   extractBacktestMetricsFromReportData,
   extractEquitySummaryFromReportData,
+  extractTraceEventsFromReportData,
   extractTradeRecordsFromReportData,
   inspectReportData,
   normalizeAttachedStudyTitle,
@@ -84,6 +85,50 @@ describe("report-data", () => {
       runupPercent: 5,
       drawdownPercent: 1,
     });
+  });
+
+  test("extracts AFTRACE v1 events from TradingView trade comments", () => {
+    const trace = extractTraceEventsFromReportData({
+      trades: [
+        {
+          e: {
+            c: "AFTRACE|v1|barIndex=10;time=1713628800000;orderAction=entry;finalBullEvent=1;finalBearEvent=0;entryPass=1;entryRank=1;exitReason=none;slotCount=1",
+            p: 100,
+            tm: Date.parse("2026-04-20T00:00:00.000Z"),
+          },
+          x: {
+            c: "AFTRACE|v1|barIndex=11;time=1713636000000;orderAction=exit;finalBullEvent=0;finalBearEvent=1;entryPass=0;entryRank=0;exitReason=bear_event;slotCount=0",
+            p: 104,
+            tm: Date.parse("2026-04-20T02:00:00.000Z"),
+          },
+        },
+      ],
+    });
+
+    expect(trace).toEqual([
+      {
+        barIndex: 10,
+        time: "1713628800000",
+        orderAction: "entry",
+        finalBullEvent: 1,
+        finalBearEvent: 0,
+        entryPass: true,
+        entryRank: 1,
+        exitReason: null,
+        slotCount: 1,
+      },
+      {
+        barIndex: 11,
+        time: "1713636000000",
+        orderAction: "exit",
+        finalBullEvent: 0,
+        finalBearEvent: 1,
+        entryPass: false,
+        entryRank: 0,
+        exitReason: "bear_event",
+        slotCount: 0,
+      },
+    ]);
   });
 
   test("normalizes attached study titles by removing parameter suffixes", () => {

@@ -433,9 +433,12 @@ export function buildVerifiedPromotionScore(input: {
   if (!tvMetrics) {
     rejectionReasons.push("tv_metrics_missing");
   }
-  if (!parity || parity.status === "not_comparable") {
+  if (!parity) {
     rejectionReasons.push("parity_not_comparable");
   } else {
+    if (parity.status === "not_comparable") {
+      rejectionReasons.push("parity_not_comparable");
+    }
     if (parity.status === "major_drift") {
       rejectionReasons.push("local_tv_major_drift");
     }
@@ -464,6 +467,22 @@ export function buildVerifiedPromotionScore(input: {
         rejectionReasons.push("trade_parity_order_count_delta");
       }
     }
+    if (!parity.eventParity || parity.eventParity.status === "not_comparable") {
+      rejectionReasons.push("trace_parity_not_comparable");
+    } else {
+      if (parity.eventParity.status === "major_drift") {
+        rejectionReasons.push("trace_parity_major_drift");
+      }
+      if ((parity.eventParity.eventMatchRatio ?? 0) < 0.95) {
+        rejectionReasons.push("trace_parity_event_match");
+      }
+      if ((parity.eventParity.entryPassMatchRatio ?? 0) < 0.95) {
+        rejectionReasons.push("trace_parity_entry_pass_match");
+      }
+      if ((parity.eventParity.exitReasonMatchRatio ?? 0) < 0.95) {
+        rejectionReasons.push("trace_parity_exit_reason_match");
+      }
+    }
   }
   if (!walkForward) {
     rejectionReasons.push("walk_forward_missing");
@@ -489,9 +508,13 @@ export function buildVerifiedPromotionScore(input: {
   const tradeDensityScore =
     normalizePositive(walkForward?.totalOosTrades ?? 0, walkForward?.minimumTotalOosTrades ?? 60) * 0.1;
   const parityScore =
-    parity?.status === "matched" && parity.tradeParity?.status === "matched"
+    parity?.status === "matched" &&
+    parity.tradeParity?.status === "matched" &&
+    parity.eventParity?.status === "matched"
       ? 0.1
-      : parity?.status === "minor_drift" || parity?.tradeParity?.status === "minor_drift"
+      : parity?.status === "minor_drift" ||
+          parity?.tradeParity?.status === "minor_drift" ||
+          parity?.eventParity?.status === "minor_drift"
         ? 0.04
         : 0;
   const simplicityScore = Math.max(0, 0.05 - computeComplexityPenalty(input.config) * 0.25);
