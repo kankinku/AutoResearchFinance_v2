@@ -593,3 +593,11 @@
 {"runId":"autonomous-1777780878217","startedAt":"2026-05-03T04:01:19.315Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
 {"runId":"tv-calibration-1777789165446","startedAt":"2026-05-03T06:19:25.447Z","executor":"tradingview-desktop-cdp","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
 {"runId":"tv-calibration-1777789703294","startedAt":"2026-05-03T06:28:23.296Z","executor":"tradingview-desktop-cdp","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777790704081","startedAt":"2026-05-03T06:45:05.346Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777790850743","startedAt":"2026-05-03T06:47:32.024Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777790931241","startedAt":"2026-05-03T06:48:52.515Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777791146877","startedAt":"2026-05-03T06:52:28.149Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777791226907","startedAt":"2026-05-03T06:53:48.174Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777791374850","startedAt":"2026-05-03T06:56:16.117Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777791512352","startedAt":"2026-05-03T06:58:33.655Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777791640094","startedAt":"2026-05-03T07:00:41.384Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}

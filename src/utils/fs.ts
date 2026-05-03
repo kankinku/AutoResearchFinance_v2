@@ -6,6 +6,7 @@ import {
   mkdir,
   open,
   readFile,
+  rename,
   stat,
   unlink,
   writeFile,
@@ -66,8 +67,26 @@ export async function fileExists(filePath: string): Promise<boolean> {
 }
 
 export async function writeJson(filePath: string, value: unknown): Promise<void> {
-  await ensureDir(path.dirname(filePath));
-  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  const dirPath = path.dirname(filePath);
+  await ensureDir(dirPath);
+  const tempPath = path.join(
+    dirPath,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`,
+  );
+  const handle = await open(tempPath, "w");
+  try {
+    await handle.writeFile(`${JSON.stringify(value, null, 2)}\n`, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+
+  try {
+    await rename(tempPath, filePath);
+  } catch (error) {
+    await unlink(tempPath).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function readJson<T>(filePath: string): Promise<T> {

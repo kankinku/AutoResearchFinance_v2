@@ -1,10 +1,218 @@
 {
-  "generatedAt": "2026-05-03T06:34:29.493Z",
+  "generatedAt": "2026-05-03T07:07:39.655Z",
   "parityStatusCounts": {
-    "major_drift": 1,
+    "major_drift": 9,
     "matched": 27
   },
   "latestEntries": [
+    {
+      "candidateId": "cand-185ff5a5",
+      "iteration": 918,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 162,
+        "netProfitPctDelta": -14.845255,
+        "maxDrawdownPctDelta": -21.149117,
+        "profitFactorDelta": -0.2934257273290366,
+        "winRateDelta": 17.566103,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.5,
+          "orderCountDelta": -974
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.07,
+          "entryPassMatchRatio": 0.5,
+          "exitReasonMatchRatio": 0.235
+        }
+      }
+    },
+    {
+      "candidateId": "cand-e7b7295d",
+      "iteration": 916,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -9.428790000000001,
+        "maxDrawdownPctDelta": -22.234318,
+        "profitFactorDelta": -0.23609755858897763,
+        "winRateDelta": 14.006717000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.54,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.205
+        }
+      }
+    },
+    {
+      "candidateId": "cand-bc1d3a3d",
+      "iteration": 914,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -9.428790000000001,
+        "maxDrawdownPctDelta": -22.234318,
+        "profitFactorDelta": -0.23609755858897763,
+        "winRateDelta": 14.006717000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.54,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.205
+        }
+      }
+    },
+    {
+      "candidateId": "cand-c4713b99",
+      "iteration": 912,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -9.428790000000001,
+        "maxDrawdownPctDelta": -22.234318,
+        "profitFactorDelta": -0.23609755858897763,
+        "winRateDelta": 14.006717000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.54,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.205
+        }
+      }
+    },
+    {
+      "candidateId": "cand-b163d9ef",
+      "iteration": 910,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": -18,
+        "netProfitPctDelta": -9.906886,
+        "maxDrawdownPctDelta": -24.779578,
+        "profitFactorDelta": -0.2337485585889777,
+        "winRateDelta": 14.721421,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.62,
+          "orderCountDelta": -1160
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.51,
+          "exitReasonMatchRatio": 0.195
+        }
+      }
+    },
+    {
+      "candidateId": "cand-4fbb1061",
+      "iteration": 907,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 258,
+        "netProfitPctDelta": -0.07591200000000001,
+        "maxDrawdownPctDelta": -12.338275999999999,
+        "profitFactorDelta": -0.13813972732903657,
+        "winRateDelta": 16.653522000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.42,
+          "orderCountDelta": -878
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.08,
+          "entryPassMatchRatio": 0.525,
+          "exitReasonMatchRatio": 0.195
+        }
+      }
+    },
+    {
+      "candidateId": "cand-ad169693",
+      "iteration": 905,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": -18,
+        "netProfitPctDelta": -20.749561,
+        "maxDrawdownPctDelta": -27.398023,
+        "profitFactorDelta": -0.3167625585889776,
+        "winRateDelta": 14.390842,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.58,
+          "orderCountDelta": -1160
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.095,
+          "entryPassMatchRatio": 0.51,
+          "exitReasonMatchRatio": 0.21
+        }
+      }
+    },
+    {
+      "candidateId": "cand-967e090b",
+      "iteration": 903,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -31.284599,
+        "maxDrawdownPctDelta": -26.352154,
+        "profitFactorDelta": -0.40600455858897766,
+        "winRateDelta": 13.008532000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.5,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.07,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.21
+        }
+      }
+    },
     {
       "candidateId": "cand-4a6036c4",
       "iteration": 898,
@@ -34,110 +242,6 @@
     {
       "candidateId": "cand-a64998af",
       "iteration": 272,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-168c9d66",
-      "iteration": 270,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-9b5164cd",
-      "iteration": 268,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-41e96726",
-      "iteration": 266,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-967670ff",
-      "iteration": 264,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-691e635c",
-      "iteration": 262,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-89324cd2",
-      "iteration": 260,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-a887a699",
-      "iteration": 258,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-cc7aba92",
-      "iteration": 256,
       "source": "authoritative",
       "parity": {
         "status": "matched",

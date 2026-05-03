@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -106,6 +106,8 @@ describe("experiment JSONL compaction", () => {
 
     expect(record.artifactBundle).toBeUndefined();
     expect(record.artifactBundleRef?.path).toBeTruthy();
+    expect(record.artifactPaths?.backtestArtifact).toBe(record.artifactBundleRef?.path);
+    expect(record.artifactPaths?.artifactBundle).toBe(record.artifactBundleRef?.path);
     expect(record.artifactSummary?.tradeCount).toBe(2);
     expect(record.tradeSummary?.winningTrades).toBe(1);
     expect(record.equitySummary?.pointCount).toBe(2);
@@ -121,6 +123,57 @@ describe("experiment JSONL compaction", () => {
     const recent = await readRecentExperimentRecords(stateRoot, 1);
     expect(records).toHaveLength(1);
     expect(recent[0]?.candidateId).toBe("cand-compact");
+  });
+
+  test("appendExperimentRecord separates local backtest artifacts from external bundle refs", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-jsonl-tv-ref-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const candidatePath = await writeCandidate(root, "cand-tv-ref");
+    const localBacktestPath = path.join(root, "local-backtest.json");
+    await writeFile(
+      localBacktestPath,
+      `${JSON.stringify(createArtifactBundle(), null, 2)}\n`,
+      "utf8",
+    );
+    const tvBundle = {
+      ...createArtifactBundle(),
+      rawReportHash: "tv-raw-hash",
+      strategy: {
+        ...createArtifactBundle().strategy,
+        netProfitPercent: 9.1,
+      },
+    };
+
+    const record = await appendExperimentRecord(stateRoot, {
+      runId: "run-1",
+      iteration: 2,
+      candidateId: "cand-tv-ref",
+      parentCandidateId: null,
+      branchId: "main",
+      acceptedHeadCandidateId: null,
+      baselineCandidateId: null,
+      candidatePath,
+      candidateHash: "candidate-hash",
+      candidateScore: 0.61,
+      decision: "tv_verified",
+      status: "verified_diverged",
+      artifactBundle: tvBundle,
+      artifactPaths: {
+        backtestArtifact: localBacktestPath,
+      },
+    });
+
+    const refPath = record.artifactBundleRef?.path;
+    expect(refPath).toBeTruthy();
+    if (!refPath) {
+      throw new Error("missing artifact bundle ref path");
+    }
+    expect(refPath).not.toBe(localBacktestPath);
+    expect(record.artifactPaths?.backtestArtifact).toBe(refPath);
+    expect(record.artifactPaths?.artifactBundle).toBe(refPath);
+    expect(record.artifactPaths?.localBacktestArtifact).toBe(localBacktestPath);
+    const storedBundle = JSON.parse(await readFile(refPath, "utf8")) as ArtifactBundle;
+    expect(storedBundle.rawReportHash).toBe("tv-raw-hash");
   });
 
   test("compactExperimentLedger rewrites legacy heavy records and preserves validation", async () => {
@@ -172,6 +225,81 @@ describe("experiment JSONL compaction", () => {
     expect(compacted[0]?.artifactBundleRef?.path).toBeTruthy();
     expect(compacted[0]?.recordMeta?.artifactBundleHash).toBeTruthy();
     expect((await validateLedger(stateRoot)).ok).toBe(true);
+  });
+
+  test("compactExperimentLedger normalizes existing bundle refs with local backtest aliases", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-jsonl-ref-normalize-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const paths = resolveKnowledgePaths(stateRoot);
+    const candidatePath = await writeCandidate(root, "cand-ref-normalize");
+    const localBacktestPath = path.join(root, "local-backtest.json");
+    const bundleRefPath = path.join(
+      paths.artifactDir,
+      "experiment-bundles",
+      "3-cand-ref-normalize-tv-hash.json",
+    );
+    await ensureStateRoot(stateRoot);
+    await mkdir(path.dirname(bundleRefPath), { recursive: true });
+    await writeFile(
+      localBacktestPath,
+      `${JSON.stringify(createArtifactBundle(), null, 2)}\n`,
+      "utf8",
+    );
+    await writeFile(
+      bundleRefPath,
+      `${JSON.stringify(
+        {
+          ...createArtifactBundle(),
+          rawReportHash: "tv-raw-hash",
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    await writeFile(
+      paths.experimentsPath,
+      `${JSON.stringify({
+        runId: "run-1",
+        iteration: 3,
+        candidateId: "cand-ref-normalize",
+        parentCandidateId: null,
+        branchId: "main",
+        acceptedHeadCandidateId: null,
+        baselineCandidateId: null,
+        candidatePath,
+        candidateHash: "candidate-hash",
+        candidateScore: 0.41,
+        decision: "tv_verified",
+        status: "verified_diverged",
+        artifactBundleRef: {
+          path: bundleRefPath,
+          hash: "tv-hash",
+          storage: "file",
+          schemaVersion: "artifact-bundle/v1",
+        },
+        artifactPaths: {
+          backtestArtifact: localBacktestPath,
+        },
+        recordMeta: {
+          schemaVersion: "experiment/v4",
+          recordHash: "legacy-hash",
+          candidateHash: "candidate-hash",
+          baselineHash: null,
+          artifactBundleHash: "tv-hash",
+          pipelineVersion: "test",
+        },
+        recordedAt: "2026-05-01T00:00:00.000Z",
+      })}\n`,
+      "utf8",
+    );
+
+    await compactExperimentLedger(stateRoot);
+
+    const records = await readExperimentRecords(stateRoot);
+    expect(records[0]?.artifactPaths?.backtestArtifact).toBe(bundleRefPath);
+    expect(records[0]?.artifactPaths?.artifactBundle).toBe(bundleRefPath);
+    expect(records[0]?.artifactPaths?.localBacktestArtifact).toBe(localBacktestPath);
   });
 });
 

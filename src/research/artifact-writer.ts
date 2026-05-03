@@ -64,9 +64,18 @@ export async function writeIterationArtifacts(
   }
 
   if (input.objectiveArtifact) {
-    const objectiveArtifactPath = path.join(resultsDir, "tester-pi-objective.json");
+    const objectiveArtifactPath = path.join(
+      resultsDir,
+      `pi-loop-objective-${suffix}.json`,
+    );
+    const latestObjectiveArtifactPath = path.join(
+      resultsDir,
+      "tester-pi-objective.json",
+    );
     await writeJson(objectiveArtifactPath, input.objectiveArtifact);
+    await writeJson(latestObjectiveArtifactPath, input.objectiveArtifact);
     artifactPaths.objectiveArtifact = objectiveArtifactPath;
+    artifactPaths.latestObjectiveArtifact = latestObjectiveArtifactPath;
   }
 
   if (input.tradeContextArtifact) {

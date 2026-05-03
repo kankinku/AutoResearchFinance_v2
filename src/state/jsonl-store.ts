@@ -57,6 +57,7 @@ import {
   readJsonlStream,
   readJsonlTail,
   sha256Json,
+  writeJson,
 } from "../utils/fs.js";
 import { resolveKnowledgePaths } from "./knowledge-paths.js";
 
@@ -372,6 +373,17 @@ async function compactExperimentRecordForStorage(
 ): Promise<Omit<ExperimentRecord, "recordedAt"> & { recordedAt?: string }> {
   const artifactBundle = (record as { artifactBundle?: ArtifactBundle }).artifactBundle;
   if (!artifactBundle) {
+    const artifactBundleRef = (record as { artifactBundleRef?: ArtifactBundleRef })
+      .artifactBundleRef;
+    if (artifactBundleRef?.path) {
+      return {
+        ...record,
+        artifactPaths: buildArtifactPathsForBundleRef(
+          record.artifactPaths as Record<string, string> | undefined,
+          artifactBundleRef.path,
+        ),
+      };
+    }
     return record;
   }
 
@@ -383,10 +395,10 @@ async function compactExperimentRecordForStorage(
     artifactBundleHash,
     writeArtifacts: options.writeArtifacts,
   });
-  const artifactPaths = {
-    ...(record.artifactPaths ?? {}),
-    artifactBundle: artifactBundleRef.path,
-  };
+  const artifactPaths = buildArtifactPathsForBundleRef(
+    record.artifactPaths as Record<string, string> | undefined,
+    artifactBundleRef.path,
+  );
   const recordMeta = {
     ...(record.recordMeta ?? {}),
     schemaVersion: "experiment/v4",
@@ -414,6 +426,24 @@ async function compactExperimentRecordForStorage(
 
   delete compacted.artifactBundle;
   return compacted as Omit<ExperimentRecord, "recordedAt"> & { recordedAt?: string };
+}
+
+function buildArtifactPathsForBundleRef(
+  artifactPaths: Record<string, string> | undefined,
+  artifactBundlePath: string,
+): Record<string, string> {
+  const existingArtifactPaths = artifactPaths ?? {};
+  const existingBacktestArtifact = existingArtifactPaths.backtestArtifact;
+  const normalizedArtifactPaths: Record<string, string> = {
+    ...existingArtifactPaths,
+    backtestArtifact: artifactBundlePath,
+    artifactBundle: artifactBundlePath,
+  };
+  if (existingBacktestArtifact && existingBacktestArtifact !== artifactBundlePath) {
+    normalizedArtifactPaths.localBacktestArtifact =
+      existingArtifactPaths.localBacktestArtifact ?? existingBacktestArtifact;
+  }
+  return normalizedArtifactPaths;
 }
 
 async function resolveArtifactBundleRef(input: {
@@ -455,17 +485,7 @@ async function resolveArtifactBundleRef(input: {
   );
 
   if (input.writeArtifacts && !(await fileExists(artifactPath))) {
-    await ensureDir(artifactDir);
-    const handle = await open(artifactPath, "w");
-    try {
-      await handle.writeFile(
-        `${JSON.stringify(input.artifactBundle, null, 2)}\n`,
-        "utf8",
-      );
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
+    await writeJson(artifactPath, input.artifactBundle);
   }
 
   return {

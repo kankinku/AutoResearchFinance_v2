@@ -6,6 +6,9 @@ test-results/
 coverage/
 state/**/backups/
 state/**/*.pre-compact-*.jsonl
+state/**/logs/
+state/**/runtime/
+state/**/traces/
 .omx/logs/
 .omx/state/
 .omx/metrics.json

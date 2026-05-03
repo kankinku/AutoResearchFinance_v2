@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T06:34:29.707Z",
+  "generatedAt": "2026-05-03T07:07:39.881Z",
   "entries": [
     {
       "candidateId": "cand-5e18a717",
@@ -489,6 +489,246 @@
       },
       "tvDecision": "tv_verified",
       "recordedAt": "2026-05-03T06:28:27.757Z"
+    },
+    {
+      "candidateId": "cand-967e090b",
+      "fingerprintFamily": "795a88e503888eb47b229dadb6ca724a79496c464c6192a1cf49da11eca968e3",
+      "structureFamilyHash": "2a2463806f13c03343b7616532ec89fa2f0a33ffa0a51f5e71a24bf1e12328e1",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -31.284599,
+        "maxDrawdownPctDelta": -26.352154,
+        "profitFactorDelta": -0.40600455858897766,
+        "winRateDelta": 13.008532000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.5,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.07,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.21
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T06:47:18.443Z"
+    },
+    {
+      "candidateId": "cand-ad169693",
+      "fingerprintFamily": "94067dda4b76e64888d36f089daea2e146474bab6f860692caf74cee2e0542a8",
+      "structureFamilyHash": "e0940afbecd6d926a75e202da4d056f127a69ccad90de243c1f0d44989ee71ec",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": -18,
+        "netProfitPctDelta": -20.749561,
+        "maxDrawdownPctDelta": -27.398023,
+        "profitFactorDelta": -0.3167625585889776,
+        "winRateDelta": 14.390842,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.58,
+          "orderCountDelta": -1160
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.095,
+          "entryPassMatchRatio": 0.51,
+          "exitReasonMatchRatio": 0.21
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T06:48:38.976Z"
+    },
+    {
+      "candidateId": "cand-4fbb1061",
+      "fingerprintFamily": "fb469d4fc95da1657d20673a061695fa7f3fa583a29555e8a151726a741f5562",
+      "structureFamilyHash": "4276b6385e7072a4ef431838b35a50f976a6c779aaef8318b5e1911f8a30d42d",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 258,
+        "netProfitPctDelta": -0.07591200000000001,
+        "maxDrawdownPctDelta": -12.338275999999999,
+        "profitFactorDelta": -0.13813972732903657,
+        "winRateDelta": 16.653522000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.42,
+          "orderCountDelta": -878
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.08,
+          "entryPassMatchRatio": 0.525,
+          "exitReasonMatchRatio": 0.195
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T06:52:14.621Z"
+    },
+    {
+      "candidateId": "cand-b163d9ef",
+      "fingerprintFamily": "594ea8514f1299f027e8620abaaee39b21bc909a3ded4140155281ab73721027",
+      "structureFamilyHash": "0ec0f63cac3604cbf119da0906ef6300d7f8832f682335f864c9a32054bff86c",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": -18,
+        "netProfitPctDelta": -9.906886,
+        "maxDrawdownPctDelta": -24.779578,
+        "profitFactorDelta": -0.2337485585889777,
+        "winRateDelta": 14.721421,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.62,
+          "orderCountDelta": -1160
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.51,
+          "exitReasonMatchRatio": 0.195
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T06:53:34.600Z"
+    },
+    {
+      "candidateId": "cand-c4713b99",
+      "fingerprintFamily": "43d0872e0da283010601c6dca9be901198f39bd5971b235b16cb2d4ad76bfb0f",
+      "structureFamilyHash": "3c4a4b7df08ed5e82097055c86ce6dd962c7db625e7b75cfa3189001c39fdc65",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -9.428790000000001,
+        "maxDrawdownPctDelta": -22.234318,
+        "profitFactorDelta": -0.23609755858897763,
+        "winRateDelta": 14.006717000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.54,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.205
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T06:56:02.606Z"
+    },
+    {
+      "candidateId": "cand-bc1d3a3d",
+      "fingerprintFamily": "721267ae6ac018accc0e16cad986befd2dff1bea1d785d793f069201efe7fa54",
+      "structureFamilyHash": "d2357071bc3247c88e7b7d6cac2e90a13e90f170f8a737431e646d683f849838",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -9.428790000000001,
+        "maxDrawdownPctDelta": -22.234318,
+        "profitFactorDelta": -0.23609755858897763,
+        "winRateDelta": 14.006717000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.54,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.205
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T06:58:19.983Z"
+    },
+    {
+      "candidateId": "cand-e7b7295d",
+      "fingerprintFamily": "43359e959c85163a8fef09ce0bad73438900c4e882a140a3564f7125d0fca787",
+      "structureFamilyHash": "7cd0fd39dd7022bbac366c59fae0f96c3739faca268cc72fc224ae90e90817fb",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 90,
+        "netProfitPctDelta": -9.428790000000001,
+        "maxDrawdownPctDelta": -22.234318,
+        "profitFactorDelta": -0.23609755858897763,
+        "winRateDelta": 14.006717000000002,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.54,
+          "orderCountDelta": -1052
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.06,
+          "entryPassMatchRatio": 0.515,
+          "exitReasonMatchRatio": 0.205
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T07:00:27.791Z"
+    },
+    {
+      "candidateId": "cand-185ff5a5",
+      "fingerprintFamily": "ed81c9491ddab4afe49bee48bc48d55659a9f4df7a5e2022b7e9d67515cc67af",
+      "structureFamilyHash": "aec586511a0c61f3fca5d883ec4e654561941d65d3811c62f9dade9b05c1556f",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 162,
+        "netProfitPctDelta": -14.845255,
+        "maxDrawdownPctDelta": -21.149117,
+        "profitFactorDelta": -0.2934257273290366,
+        "winRateDelta": 17.566103,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.5,
+          "orderCountDelta": -974
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.07,
+          "entryPassMatchRatio": 0.5,
+          "exitReasonMatchRatio": 0.235
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T07:02:54.918Z"
     }
   ]
 }

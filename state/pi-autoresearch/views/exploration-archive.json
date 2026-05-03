@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T06:34:29.707Z",
+  "generatedAt": "2026-05-03T07:07:39.880Z",
   "entries": [
     {
       "candidateId": "cand-42ed2fa4",
@@ -3088,6 +3088,62 @@
       "robustnessScore": 0,
       "reason": "local hard gates passed with complete local artifact evidence.",
       "recordedAt": "2026-05-03T04:03:04.598Z"
+    },
+    {
+      "candidateId": "cand-967e090b",
+      "score": 0.501,
+      "noveltyScore": 0.1822,
+      "robustnessScore": 0.0574,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-03T06:47:13.737Z"
+    },
+    {
+      "candidateId": "cand-ad169693",
+      "score": 0.3344,
+      "noveltyScore": 0.1743,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-03T06:48:34.326Z"
+    },
+    {
+      "candidateId": "cand-b163d9ef",
+      "score": 0.2376,
+      "noveltyScore": 0.1779,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-03T06:53:29.967Z"
+    },
+    {
+      "candidateId": "cand-c4713b99",
+      "score": 0.2474,
+      "noveltyScore": 0.1778,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-03T06:55:57.976Z"
+    },
+    {
+      "candidateId": "cand-bc1d3a3d",
+      "score": 0.2435,
+      "noveltyScore": 0.1811,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-03T06:58:15.200Z"
+    },
+    {
+      "candidateId": "cand-e7b7295d",
+      "score": 0.2387,
+      "noveltyScore": 0.1736,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-03T07:00:23.076Z"
+    },
+    {
+      "candidateId": "cand-185ff5a5",
+      "score": 0.2949,
+      "noveltyScore": 0.1685,
+      "robustnessScore": 0,
+      "reason": "local hard gates passed with complete local artifact evidence.",
+      "recordedAt": "2026-05-03T07:02:50.114Z"
     }
   ]
 }

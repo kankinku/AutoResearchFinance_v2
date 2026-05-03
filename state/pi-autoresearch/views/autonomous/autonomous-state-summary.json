@@ -1,40 +1,67 @@
 {
-  "generatedAt": "2026-05-03T06:34:29.714Z",
+  "generatedAt": "2026-05-03T07:07:39.886Z",
   "activeChampionCandidateId": null,
   "activeChampionScore": null,
   "activeChampionDecision": null,
   "activeChampionResearchStage": null,
   "verifiedPromotionScore": null,
-  "verifiedPromotionScoreBreakdown": null,
-  "verifiedPromotionCandidateId": "cand-e27ffda1",
+  "verifiedPromotionScoreBreakdown": {
+    "tvPerformanceScore": 0,
+    "walkForwardRobustnessScore": 0.0154,
+    "foldConsistencyScore": 0.12,
+    "tradeDensityScore": 0.1,
+    "parityScore": 0,
+    "simplicityScore": 0.035,
+    "trialBudgetPenalty": 0.087,
+    "regimeConcentrationPenalty": 0,
+    "complexityPenalty": 0.06,
+    "totalScore": 0.1234,
+    "minimumRequiredScore": 0.68
+  },
+  "verifiedPromotionCandidateId": "cand-185ff5a5",
   "verifiedPromotionEligibility": false,
-  "parityStatus": null,
-  "walkForwardStatus": null,
-  "trialPressure": null,
+  "parityStatus": "major_drift",
+  "walkForwardStatus": "failed",
+  "trialPressure": {
+    "totalCandidatesTried": 888,
+    "totalLocalPass": 393,
+    "totalTvVerified": 27,
+    "totalPromotionCandidates": 0,
+    "familyTrials": 1,
+    "fingerprintFamilyTrials": 1,
+    "parameterNeighborhoodTrials": 4,
+    "oosExposureCount": 703,
+    "canaryExposureCount": 0,
+    "minimumRequiredScore": 0.68,
+    "trialBudgetPenalty": 0.087,
+    "structureFamilyHash": "aec586511a0c61f3fca5d883ec4e654561941d65d3811c62f9dade9b05c1556f",
+    "fingerprintFamily": "ed81c9491ddab4afe49bee48bc48d55659a9f4df7a5e2022b7e9d67515cc67af",
+    "parameterNeighborhood": "event:af_exhaustion|levels:L1_lte_9|L2_lte_12|L3_lte_14|trend:Balanced|slot:pct_lte_15|max_lte_12|exit:weak_exit+riskoff_close+no_reset_l3|maxHold:lte_12"
+  },
   "researchStageCounts": {
     "candidate": 23,
     "local_pass": 56,
     "frontier": 0,
     "archive": 0,
-    "calibration_queued": 601,
+    "calibration_queued": 610,
     "tv_verified": 27,
     "promotion_candidate": 0,
     "champion": 0,
-    "quarantined": 3
+    "quarantined": 11
   },
-  "quarantineCount": 3,
+  "quarantineCount": 11,
   "parityStatusCounts": {
+    "major_drift": 9,
     "missing": 2,
-    "major_drift": 1,
     "matched": 27
   },
   "walkForwardStatusCounts": {
-    "missing": 29,
-    "failed": 1
+    "failed": 9,
+    "missing": 29
   },
   "branchBudget": {
-    "totalBranches": 103,
-    "activeBranches": 102,
+    "totalBranches": 111,
+    "activeBranches": 110,
     "exhaustedBranches": 1,
     "targets": {
       "champion_exploit": 50,
@@ -47,36 +74,36 @@
       {
         "branchKind": "champion_exploit",
         "targetPct": 50,
-        "actualCount": 52,
-        "actualPct": 50.49,
-        "deficitPct": -0.49,
-        "activeCount": 52,
+        "actualCount": 56,
+        "actualPct": 50.45,
+        "deficitPct": -0.45,
+        "activeCount": 56,
         "exhaustedCount": 0
       },
       {
         "branchKind": "frontier_exploit",
         "targetPct": 20,
-        "actualCount": 21,
-        "actualPct": 20.39,
-        "deficitPct": -0.39,
-        "activeCount": 21,
+        "actualCount": 23,
+        "actualPct": 20.72,
+        "deficitPct": -0.72,
+        "activeCount": 23,
         "exhaustedCount": 0
       },
       {
         "branchKind": "exploration_breakout",
         "targetPct": 20,
-        "actualCount": 21,
-        "actualPct": 20.39,
-        "deficitPct": -0.39,
-        "activeCount": 21,
+        "actualCount": 23,
+        "actualPct": 20.72,
+        "deficitPct": -0.72,
+        "activeCount": 23,
         "exhaustedCount": 0
       },
       {
         "branchKind": "near_miss_repair",
         "targetPct": 5,
         "actualCount": 3,
-        "actualPct": 2.91,
-        "deficitPct": 2.09,
+        "actualPct": 2.7,
+        "deficitPct": 2.3,
         "activeCount": 2,
         "exhaustedCount": 1
       },
@@ -84,8 +111,8 @@
         "branchKind": "adversarial_simplification",
         "targetPct": 5,
         "actualCount": 6,
-        "actualPct": 5.83,
-        "deficitPct": -0.83,
+        "actualPct": 5.41,
+        "deficitPct": -0.41,
         "activeCount": 6,
         "exhaustedCount": 0
       }
@@ -97,21 +124,21 @@
   "selectionPolicyVersion": "autonomous-local-first/v3-p0",
   "objectivePolicyVersion": null,
   "headEventCount": 2,
-  "archiveEventCount": 608,
-  "calibrationEventCount": 524,
-  "calibrationCandidateCount": 494,
-  "divergenceCount": 28,
-  "localConfidenceUpdateCount": 28,
-  "problemEventCount": 442,
-  "repairAttemptCount": 275,
-  "localEvaluationCount": 680,
-  "localEligibleCount": 386,
+  "archiveEventCount": 623,
+  "calibrationEventCount": 540,
+  "calibrationCandidateCount": 502,
+  "divergenceCount": 36,
+  "localConfidenceUpdateCount": 36,
+  "problemEventCount": 451,
+  "repairAttemptCount": 283,
+  "localEvaluationCount": 689,
+  "localEligibleCount": 393,
   "bootstrapCompatibleCount": 0,
   "bootstrapEligibleCount": 0,
   "bootstrapStatus": "not_started",
   "bootstrapSource": null,
   "bootstrapReason": null,
-  "localRejectedCount": 271,
+  "localRejectedCount": 273,
   "topBlockingReason": "low_trade_count",
   "pendingCalibrationCandidateCount": 464,
   "pendingCalibrationCandidateIds": [
@@ -581,47 +608,47 @@
     "cand-9bc447dd"
   ],
   "recentProblemKinds": [
-    "llm_schema_fail",
-    "llm_schema_fail",
     "local_backtest_fail",
+    "llm_schema_fail",
+    "llm_schema_fail",
     "llm_schema_fail",
     "llm_schema_fail"
   ],
   "recentRepairResults": [
     {
-      "repairKind": "entry_frequency_repair",
-      "result": "success",
-      "repairedCandidateId": "cand-9bc447dd",
-      "summary": "Requested entry_frequency_repair after local_backtest_fail."
-    },
-    {
-      "repairKind": "schema_repair",
-      "result": "success",
-      "repairedCandidateId": "cand-33a2318e",
-      "summary": "Requested strict JSON schema repair for autonomous mutation."
-    },
-    {
-      "repairKind": "schema_repair",
-      "result": "success",
-      "repairedCandidateId": "cand-4a6036c4",
-      "summary": "Requested strict JSON schema repair for autonomous mutation."
-    },
-    {
       "repairKind": "risk_logic_repair",
       "result": "success",
-      "repairedCandidateId": "cand-4a6036c4",
+      "repairedCandidateId": "cand-4fbb1061",
       "summary": "Requested risk_logic_repair after local_backtest_fail."
     },
     {
       "repairKind": "schema_repair",
       "result": "success",
-      "repairedCandidateId": "cand-e27ffda1",
+      "repairedCandidateId": "cand-c4713b99",
+      "summary": "Requested strict JSON schema repair for autonomous mutation."
+    },
+    {
+      "repairKind": "schema_repair",
+      "result": "success",
+      "repairedCandidateId": "cand-bc1d3a3d",
+      "summary": "Requested strict JSON schema repair for autonomous mutation."
+    },
+    {
+      "repairKind": "schema_repair",
+      "result": "success",
+      "repairedCandidateId": "cand-e7b7295d",
+      "summary": "Requested strict JSON schema repair for autonomous mutation."
+    },
+    {
+      "repairKind": "schema_repair",
+      "result": "success",
+      "repairedCandidateId": "cand-185ff5a5",
       "summary": "Requested strict JSON schema repair for autonomous mutation."
     }
   ],
   "scoreFeedbackObserved": true,
   "stage6Readiness": {
-    "generatedAt": "2026-05-03T06:34:29.706Z",
+    "generatedAt": "2026-05-03T07:07:39.879Z",
     "evaluated": false,
     "passed": false,
     "activeChampionCandidateId": null,
@@ -640,10 +667,10 @@
       "Run verify-stage6-readiness for an isolated fresh/custom root gate result."
     ],
     "evidence": {
-      "localEvaluationCount": 680,
+      "localEvaluationCount": 689,
       "headEventCount": 2,
-      "calibrationEventCount": 524,
-      "successfulRepairCount": 274,
+      "calibrationEventCount": 540,
+      "successfulRepairCount": 282,
       "successfulRepairsWithoutCandidateCount": 1
     }
   },
