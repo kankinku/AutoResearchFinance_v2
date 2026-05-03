@@ -1,0 +1,38 @@
+{
+  "version": "af-spec/v1",
+  "name": "AF Spec v1",
+  "event": {
+    "source": "af_exhaustion",
+    "L1": 9,
+    "L2": 12,
+    "L3": 14,
+    "confirmBars": 2,
+    "eventFloorBars": 1,
+    "eventWindowBars": 8
+  },
+  "regime": {
+    "trendMode": "Loose",
+    "useSupertrendFilter": false,
+    "riskOffRsi": 42,
+    "maxExtPct": 6
+  },
+  "entry": {
+    "primaryTrigger": "reset_then_baseline_reclaim",
+    "cooldownBars": 0,
+    "allowBearRebound": true,
+    "applyFilterToB1": false
+  },
+  "slot": {
+    "slotPct": 15,
+    "maxSlots": 9,
+    "useReplacement": true,
+    "replaceMinRank": 2,
+    "replaceIfPnlBelow": -4
+  },
+  "exit": {
+    "weakRangeExit": true,
+    "maxHoldBars": 8,
+    "closeAllOnBearConfRiskOff": true,
+    "resetOnL3": false
+  }
+}

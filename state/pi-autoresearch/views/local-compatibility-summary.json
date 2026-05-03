@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-05-01T08:23:07.786Z",
-  "localEvaluationCount": 558,
-  "localUnsupportedCount": 22,
-  "localCandidateEligibleCount": 292,
-  "localCompatibleRate": 0.9605734767025089,
+  "generatedAt": "2026-05-03T05:58:07.541Z",
+  "localEvaluationCount": 680,
+  "localUnsupportedCount": 23,
+  "localCandidateEligibleCount": 386,
+  "localCompatibleRate": 0.9661764705882353,
   "unsupportedReasonCounts": {
     "missing required AF inputs.": 4,
     "missing_input:useSupertrendFilter, missing_input:supertrendAtrPeriod, missing_input:supertrendFactor, missing_input:supertrendBlocksWeakBull, missing_input:supertrendRiskOffEnabled, missing_input:enableWeakRangeExit, missing_input:weakExitAtrLen, missing_input:weakExitBars, missing_input:weakRunupAtrMax, missing_input:weakLossAtrMin, missing_input:weakSlopeAtrMax": 1,
-    "missing_input:L2, missing_input:L3": 17
+    "missing_input:L2, missing_input:L3": 18
   },
   "missingFunctionsCounts": {},
   "missingInputsCounts": {
@@ -22,8 +22,8 @@
     "weakRunupAtrMax": 5,
     "weakLossAtrMin": 5,
     "weakSlopeAtrMax": 5,
-    "L2": 17,
-    "L3": 17
+    "L2": 18,
+    "L3": 18
   },
   "missingFunctionCounts": {},
   "missingInputCounts": {
@@ -38,33 +38,11 @@
     "weakRunupAtrMax": 5,
     "weakLossAtrMin": 5,
     "weakSlopeAtrMax": 5,
-    "L2": 17,
-    "L3": 17
+    "L2": 18,
+    "L3": 18
   },
   "unsupportedPatternCounts": {},
   "recentUnsupportedExamples": [
-    {
-      "candidateId": "cand-93a71a19",
-      "diagnosis": "missing required AF inputs.",
-      "missingFunctions": [],
-      "missingInputs": [
-        "useSupertrendFilter",
-        "supertrendAtrPeriod",
-        "supertrendFactor",
-        "supertrendBlocksWeakBull",
-        "supertrendRiskOffEnabled",
-        "enableWeakRangeExit",
-        "weakExitAtrLen",
-        "weakExitBars",
-        "weakRunupAtrMax",
-        "weakLossAtrMin",
-        "weakSlopeAtrMax"
-      ],
-      "unsupportedPatterns": [],
-      "failureSignatureHash": null,
-      "structureFamily": null,
-      "recordedAt": "2026-04-28T13:56:42.963Z"
-    },
     {
       "candidateId": "cand-560e2d3b",
       "diagnosis": "missing required AF inputs.",
@@ -329,6 +307,19 @@
       "failureSignatureHash": "10e94150b802d6cf074d302f5fbe436fb039db58b05ebeab7b8e8c42201142df",
       "structureFamily": "032e672fd6cd79e9150ed600a68f45299d73ee89538c53b4f7d8828a84ed30e3",
       "recordedAt": "2026-05-01T08:18:18.536Z"
+    },
+    {
+      "candidateId": "cand-85a850cc",
+      "diagnosis": "missing_input:L2, missing_input:L3",
+      "missingFunctions": [],
+      "missingInputs": [
+        "L2",
+        "L3"
+      ],
+      "unsupportedPatterns": [],
+      "failureSignatureHash": "c45f9ba100cabe9e045da98aac8626b144462630c87cec351eb9f08a11ff5d95",
+      "structureFamily": "73fc26d02d254fd9a89aaf57e19c50ee30574cd3cb1d15ee19bae7c51d438238",
+      "recordedAt": "2026-05-01T08:25:20.571Z"
     }
   ],
   "repairAttemptSuccessRateByReason": {
@@ -572,6 +563,19 @@
       "failureSignatureHash": "10e94150b802d6cf074d302f5fbe436fb039db58b05ebeab7b8e8c42201142df",
       "structureFamily": "032e672fd6cd79e9150ed600a68f45299d73ee89538c53b4f7d8828a84ed30e3",
       "recordedAt": "2026-05-01T08:18:18.540Z"
+    },
+    {
+      "problemEventId": "problem-b68b4262",
+      "runId": "autonomous-1777623787058",
+      "iteration": 779,
+      "candidateId": "cand-85a850cc",
+      "problemKind": "local_unsupported",
+      "diagnosis": "missing_input:L2, missing_input:L3",
+      "evidenceHash": "4b2e161b89946f211a40c2e9222cce7950be7771a76474bc266ad257a288b405",
+      "suggestedRepairKind": "local_compatibility_repair",
+      "failureSignatureHash": "c45f9ba100cabe9e045da98aac8626b144462630c87cec351eb9f08a11ff5d95",
+      "structureFamily": "73fc26d02d254fd9a89aaf57e19c50ee30574cd3cb1d15ee19bae7c51d438238",
+      "recordedAt": "2026-05-01T08:25:20.575Z"
     }
   ]
 }

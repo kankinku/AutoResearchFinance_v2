@@ -1,0 +1,63 @@
+//@version=5
+// AF_SPEC_VERSION=af-spec/v1
+// AF_SPEC_HASH=200cabadeeb3c09d723e12183c08a3589bcd08e055c23cdef6646a0a49e105ca
+// AF_CONTRACT_VERSION=finance-autoresearch-contract/v1
+strategy("AF Spec v1 [cand-f0b4cf14]", overlay=true, process_orders_on_close=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.05, pyramiding=18)
+
+L1 = input.int(9, "L1")
+L2 = input.int(12, "L2")
+L3 = input.int(14, "L3")
+confirmBars = input.int(2, "confirmBars")
+emaLen = input.int(21, "emaLen")
+baseEmaLen = input.int(55, "baseEmaLen")
+rsiLen = input.int(14, "rsiLen")
+maxExtPct = input.float(6, "maxExtPct")
+riskOffRsi = input.float(45, "riskOffRsi")
+slotPct = input.float(15, "slotPct")
+maxSlots = input.int(18, "maxSlots")
+useReplacement = input.bool(true, "useReplacement")
+replaceMinRank = input.int(3, "replaceMinRank")
+replaceIfPnlBelow = input.float(-5, "replaceIfPnlBelow")
+applyFilterToB1 = input.bool(false, "applyFilterToB1")
+minQty = input.float(1, "minQty")
+closeAllOnBearConfRiskOff = input.bool(true, "closeAllOnBearConfRiskOff")
+sameBarConflictMode = input.string("StrongWins", "sameBarConflictMode", options=["StrongWins", "SkipBoth", "BearPriority"])
+trendMode = input.string("Balanced", "trendMode", options=["Strict", "Balanced", "Loose"])
+allowStrongCounterTrend = input.bool(true, "allowStrongCounterTrend")
+entryCooldownBars = input.int(0, "entryCooldownBars")
+useRealFillSync = input.bool(true, "useRealFillSync")
+resetOnL3 = input.bool(false, "resetOnL3")
+useSupertrendFilter = input.bool(false, "useSupertrendFilter")
+supertrendAtrPeriod = input.int(10, "supertrendAtrPeriod")
+supertrendFactor = input.float(3, "supertrendFactor")
+supertrendBlocksWeakBull = input.bool(true, "supertrendBlocksWeakBull")
+supertrendRiskOffEnabled = input.bool(true, "supertrendRiskOffEnabled")
+enableWeakRangeExit = input.bool(true, "enableWeakRangeExit")
+weakExitAtrLen = input.int(14, "weakExitAtrLen")
+weakExitBars = input.int(5, "weakExitBars")
+weakRunupAtrMax = input.float(0.6, "weakRunupAtrMax")
+weakLossAtrMin = input.float(0.9, "weakLossAtrMin")
+weakSlopeAtrMax = input.float(0.18, "weakSlopeAtrMax")
+eventFloorBars = input.int(1, "eventFloorBars")
+eventWindowBars = input.int(6, "eventWindowBars")
+maxHoldBars = input.int(18, "maxHoldBars")
+
+f_find_weakest_idx() =>
+    0
+
+emaFast = ta.ema(close, emaLen)
+emaBase = ta.ema(close, baseEmaLen)
+rsi = ta.rsi(close, rsiLen)
+bullEvent = close < close[4]
+bearEvent = close > close[4]
+riskOff = rsi < riskOffRsi
+trendPass = trendMode == "Loose" or close >= emaBase or allowStrongCounterTrend
+entryPass = bullEvent and trendPass and not riskOff
+f_bool(value) =>
+    value ? "1" : "0"
+f_trace(orderAction, exitReason) =>
+    "AFTRACE|v1|barIndex=" + str.tostring(bar_index) + ";time=" + str.tostring(time) + ";orderAction=" + orderAction + ";finalBullEvent=" + f_bool(bullEvent) + ";finalBearEvent=" + f_bool(bearEvent) + ";entryPass=" + f_bool(entryPass) + ";entryRank=" + (entryPass ? "1" : "0") + ";exitReason=" + exitReason + ";slotCount=" + str.tostring(strategy.opentrades)
+if entryPass
+    strategy.entry("AF-L", strategy.long, qty=minQty, comment=f_trace("entry", "none"), alert_message=f_trace("entry", "none"))
+if bearEvent and closeAllOnBearConfRiskOff
+    strategy.close_all(comment=f_trace("exit", "bear_event"), alert_message=f_trace("exit", "bear_event"))

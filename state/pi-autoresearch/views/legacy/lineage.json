@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T08:23:07.679Z",
+  "generatedAt": "2026-05-03T05:58:07.328Z",
   "acceptedHeadCandidateId": "manual-exhaustion-sample",
   "activeHeadCandidateId": null,
   "nodes": [
@@ -7002,6 +7002,1104 @@
       "branchId": "autonomous-main",
       "accepted": false,
       "score": 0.4093,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-85a850cc",
+      "parentCandidateId": null,
+      "branchId": "autonomous-main",
+      "accepted": false,
+      "score": null,
+      "decision": "local_unsupported",
+      "reason": "local_unsupported"
+    },
+    {
+      "candidateId": "cand-54cf21c2",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-7f239583",
+      "accepted": false,
+      "score": 0.6961,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-002acdba",
+      "parentCandidateId": "cand-54cf21c2",
+      "branchId": "branch-champion_exploit-7f239583",
+      "accepted": false,
+      "score": 0.5919,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-40db03fa",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-a6f9f857",
+      "accepted": false,
+      "score": 0.6287,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-99c6ea8b",
+      "parentCandidateId": "cand-40db03fa",
+      "branchId": "branch-frontier_exploit-a6f9f857",
+      "accepted": false,
+      "score": 0.572,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-916bb3cb",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-6b89ca35",
+      "accepted": false,
+      "score": 0.5205,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-96056aa5",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-c77d99bc",
+      "accepted": false,
+      "score": 0.6406,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f46d87d4",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-a68b156b",
+      "accepted": false,
+      "score": 0.5772,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-33c39497",
+      "parentCandidateId": null,
+      "branchId": "branch-near_miss_repair-bf882ad3",
+      "accepted": false,
+      "score": 0.5178,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-d5f5067f",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-eca15d70",
+      "accepted": false,
+      "score": 0.5494,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-36038455",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-facad003",
+      "accepted": false,
+      "score": 0.6651,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-6655f831",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-0b95f8e7",
+      "accepted": false,
+      "score": 0.5056,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-550a7d22",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-edfaa02b",
+      "accepted": false,
+      "score": 0.4861,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-020a8b10",
+      "parentCandidateId": null,
+      "branchId": "branch-adversarial_simplification-1d156240",
+      "accepted": false,
+      "score": 0.4516,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-14ed4f8f",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-bd97dd5a",
+      "accepted": false,
+      "score": 0.1034,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-ff5409c4",
+      "parentCandidateId": "cand-14ed4f8f",
+      "branchId": "branch-champion_exploit-bd97dd5a",
+      "accepted": false,
+      "score": 0.3709,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-c05830fe",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-b2481fdb",
+      "accepted": false,
+      "score": 0.6405,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-d5cf3e85",
+      "parentCandidateId": "cand-c05830fe",
+      "branchId": "branch-frontier_exploit-b2481fdb",
+      "accepted": false,
+      "score": 0.059,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-fd410e35",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-192d6464",
+      "accepted": false,
+      "score": 0.4526,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-2721ae69",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-894d0d57",
+      "accepted": false,
+      "score": 0.5176,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-c7eab53f",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-54a73d1c",
+      "accepted": false,
+      "score": 0.3041,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-5c9c3e99",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-9060865f",
+      "accepted": false,
+      "score": 0.6078,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-6bbf6458",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-11816edc",
+      "accepted": false,
+      "score": 0.2355,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-df356506",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-d7d7e6fb",
+      "accepted": false,
+      "score": 0.2588,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f20838ec",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-c2fd5ead",
+      "accepted": false,
+      "score": 0.1003,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-2131b5d8",
+      "parentCandidateId": "cand-f20838ec",
+      "branchId": "branch-champion_exploit-c2fd5ead",
+      "accepted": false,
+      "score": 0.1362,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-81f7e61f",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-d97e6886",
+      "accepted": false,
+      "score": 0.6298,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-10d59581",
+      "parentCandidateId": "cand-81f7e61f",
+      "branchId": "branch-champion_exploit-d97e6886",
+      "accepted": false,
+      "score": 0.6702,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-76ccb25f",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-d8d31214",
+      "accepted": false,
+      "score": 0.2336,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-595d4025",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-acc247de",
+      "accepted": false,
+      "score": 0.5058,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-354f062e",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-6d25dd39",
+      "accepted": false,
+      "score": 0.4187,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-182fb36f",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-caafe381",
+      "accepted": false,
+      "score": 0.2382,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-4c015de3",
+      "parentCandidateId": null,
+      "branchId": "branch-near_miss_repair-fad9c1b3",
+      "accepted": false,
+      "score": 0.2069,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-d1353981",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-818e6c7f",
+      "accepted": false,
+      "score": 0.4788,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-35daab10",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-28a5ed30",
+      "accepted": false,
+      "score": 0.2068,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-84081d99",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-0576e4f2",
+      "accepted": false,
+      "score": 0.1467,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-5f96d3ee",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-b773ce06",
+      "accepted": false,
+      "score": 0.2672,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-ada28219",
+      "parentCandidateId": null,
+      "branchId": "branch-adversarial_simplification-142f8369",
+      "accepted": false,
+      "score": 0.2671,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-490935fa",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-03512651",
+      "accepted": false,
+      "score": 0.0991,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-aa831a28",
+      "parentCandidateId": "cand-490935fa",
+      "branchId": "branch-champion_exploit-03512651",
+      "accepted": false,
+      "score": 0.5596,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-63e955bc",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-02247f57",
+      "accepted": false,
+      "score": 0.0919,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-065ce4e4",
+      "parentCandidateId": "cand-63e955bc",
+      "branchId": "branch-frontier_exploit-02247f57",
+      "accepted": false,
+      "score": 0.4112,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-533202b3",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-8fde0886",
+      "accepted": false,
+      "score": -0.2768,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-d04b7585",
+      "parentCandidateId": "cand-533202b3",
+      "branchId": "branch-champion_exploit-8fde0886",
+      "accepted": false,
+      "score": 0.0796,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-3d08fe94",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-8dcd9474",
+      "accepted": false,
+      "score": 0.9346,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-282aa41e",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-4d852e17",
+      "accepted": false,
+      "score": 0.9379,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-395b5139",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-e0cd3849",
+      "accepted": false,
+      "score": 0.5359,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-2cb1b397",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-f18330ed",
+      "accepted": false,
+      "score": 0.159,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-bac57a39",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-c88b605d",
+      "accepted": false,
+      "score": 0.319,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-a1034536",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-adc3978b",
+      "accepted": false,
+      "score": 0.5464,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3387ec21",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-4678e321",
+      "accepted": false,
+      "score": 0.026,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-3a9387ca",
+      "parentCandidateId": "cand-3387ec21",
+      "branchId": "branch-champion_exploit-4678e321",
+      "accepted": false,
+      "score": 0.4918,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-1eb55f75",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-c1cb9b36",
+      "accepted": false,
+      "score": 0.5233,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-c00ad450",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-ea9aa4f1",
+      "accepted": false,
+      "score": 0.3003,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-b4321fd5",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-896f96ab",
+      "accepted": false,
+      "score": 0.2648,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3cf5198e",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-f61414e6",
+      "accepted": false,
+      "score": 0.5488,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-6172d7d6",
+      "parentCandidateId": null,
+      "branchId": "branch-near_miss_repair-6d3ff6f7",
+      "accepted": false,
+      "score": 0.5347,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-7fd8f896",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-fff6d2b3",
+      "accepted": false,
+      "score": 0.7005,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f5e15c4c",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-16da0da5",
+      "accepted": false,
+      "score": 0.2349,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-b24028f1",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-290de168",
+      "accepted": false,
+      "score": 0.4345,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-c067b5d5",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-c3cfe99e",
+      "accepted": false,
+      "score": 0.3267,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-fb5eea34",
+      "parentCandidateId": null,
+      "branchId": "branch-adversarial_simplification-7f91108e",
+      "accepted": false,
+      "score": 0.5226,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-a8feaf0a",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-bf5ed448",
+      "accepted": false,
+      "score": 0.5747,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e7b7336e",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-6f6482bc",
+      "accepted": false,
+      "score": 0.3019,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f9b63850",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-227af1e6",
+      "accepted": false,
+      "score": 0.507,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-80a953a2",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-3afe59aa",
+      "accepted": false,
+      "score": 0.3142,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-5f1bc1ee",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-9adaa4e4",
+      "accepted": false,
+      "score": 0.6621,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-ef3a4596",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-e7573de5",
+      "accepted": false,
+      "score": 0.9375,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-61ecfd74",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-1de266f0",
+      "accepted": false,
+      "score": 0.947,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-81288a7e",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-c4da8b6d",
+      "accepted": false,
+      "score": 0.9145,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-72b907aa",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-1429ed74",
+      "accepted": false,
+      "score": 0.5193,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-6419be95",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-65453cf6",
+      "accepted": false,
+      "score": 0.5562,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-ac969016",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-caff92fa",
+      "accepted": false,
+      "score": 0.5157,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-36e6c7c4",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-c6ce915c",
+      "accepted": false,
+      "score": 0.9198,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-2f1c6028",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-83f64a39",
+      "accepted": false,
+      "score": 0.3788,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-108cd93a",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-eac27b49",
+      "accepted": false,
+      "score": 0.4067,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-95f53b80",
+      "parentCandidateId": null,
+      "branchId": "branch-adversarial_simplification-254ae299",
+      "accepted": false,
+      "score": 0.932,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e8ac126e",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-759457a1",
+      "accepted": false,
+      "score": 0.4506,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-efb4e627",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-df0efbaf",
+      "accepted": false,
+      "score": 0.5314,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f397433f",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-78535464",
+      "accepted": false,
+      "score": 0.7363,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-d9353a6a",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-bb593ae3",
+      "accepted": false,
+      "score": 0.4223,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f96f91ea",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-8c626253",
+      "accepted": false,
+      "score": 0.6809,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-c6512549",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-a06d37fe",
+      "accepted": false,
+      "score": 0.9207,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3a5ca25b",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-ecac8b81",
+      "accepted": false,
+      "score": 0.0745,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-8f7ede72",
+      "parentCandidateId": "cand-3a5ca25b",
+      "branchId": "branch-exploration_breakout-ecac8b81",
+      "accepted": false,
+      "score": 0.3115,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-93f59357",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-2fb7509a",
+      "accepted": false,
+      "score": 0.9487,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e1b6c01a",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-ff0b9f4e",
+      "accepted": false,
+      "score": 0.9336,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-b7670d61",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-14005eb4",
+      "accepted": false,
+      "score": 0.6345,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-c885d2f7",
+      "parentCandidateId": "cand-b7670d61",
+      "branchId": "branch-frontier_exploit-14005eb4",
+      "accepted": false,
+      "score": 0.5895,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-a01ec1f7",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-92d88e71",
+      "accepted": false,
+      "score": 0.6259,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-2d75d6c7",
+      "parentCandidateId": "cand-a01ec1f7",
+      "branchId": "branch-champion_exploit-92d88e71",
+      "accepted": false,
+      "score": 0.5319,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-52a7a50a",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-cb1bc783",
+      "accepted": false,
+      "score": 0.362,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-d4e735e4",
+      "parentCandidateId": "cand-52a7a50a",
+      "branchId": "branch-exploration_breakout-cb1bc783",
+      "accepted": false,
+      "score": 0.4237,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-fcb82015",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-182e8591",
+      "accepted": false,
+      "score": 0.2468,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e0717945",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-8504d151",
+      "accepted": false,
+      "score": 0.105,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-5309dcd0",
+      "parentCandidateId": "cand-e0717945",
+      "branchId": "branch-champion_exploit-8504d151",
+      "accepted": false,
+      "score": 0.4626,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-7bf67aa0",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-3e612f08",
+      "accepted": false,
+      "score": 0.6318,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-93147a7c",
+      "parentCandidateId": "cand-7bf67aa0",
+      "branchId": "branch-frontier_exploit-3e612f08",
+      "accepted": false,
+      "score": 0.499,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-0c5cb65e",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-21e35939",
+      "accepted": false,
+      "score": 0.9506,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-71ba434f",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-9b46be2c",
+      "accepted": false,
+      "score": 0.598,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-2cf2c2ce",
+      "parentCandidateId": null,
+      "branchId": "branch-adversarial_simplification-804427d2",
+      "accepted": false,
+      "score": 0.6353,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e51fa567",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-e9eb262d",
+      "accepted": false,
+      "score": 0.2702,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3ea55d10",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-52463170",
+      "accepted": false,
+      "score": 0.4631,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f0b4cf14",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-740772c4",
+      "accepted": false,
+      "score": 0.5175,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-fcc551b8",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-39ca75f4",
+      "accepted": false,
+      "score": 0.5147,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-9a081476",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-a5ed3626",
+      "accepted": false,
+      "score": 0.5337,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-de9c692a",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-a09f6a19",
+      "accepted": false,
+      "score": 0.5755,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3eef8756",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-ccdc0a77",
+      "accepted": false,
+      "score": 0.5377,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-6accb8d5",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-fab12b05",
+      "accepted": false,
+      "score": 0.9564,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-302f81b4",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-0f6898ef",
+      "accepted": false,
+      "score": 0.232,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3d594654",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-88c832d6",
+      "accepted": false,
+      "score": 0.9352,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-51b476d5",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-a8f519df",
+      "accepted": false,
+      "score": 0.5379,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-24dbbbeb",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-c6dbf42e",
+      "accepted": false,
+      "score": 0.9475,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-9608d598",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-f2373543",
+      "accepted": false,
+      "score": 0.9474,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-6a5fcfc2",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-7b98d396",
+      "accepted": false,
+      "score": 0.9403,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-9d323edb",
+      "parentCandidateId": null,
+      "branchId": "branch-adversarial_simplification-4fe12136",
+      "accepted": false,
+      "score": 0.8256,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-131673d7",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-ee809a8d",
+      "accepted": false,
+      "score": 0.4353,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-d93a945e",
+      "parentCandidateId": null,
+      "branchId": "branch-frontier_exploit-0e5499b5",
+      "accepted": false,
+      "score": 0.5965,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-9bc447dd",
+      "parentCandidateId": "cand-d93a945e",
+      "branchId": "branch-frontier_exploit-0e5499b5",
+      "accepted": false,
+      "score": 0.5831,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-33a2318e",
+      "parentCandidateId": null,
+      "branchId": "branch-exploration_breakout-4293dde4",
+      "accepted": false,
+      "score": 0.0744,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-4a6036c4",
+      "parentCandidateId": "cand-33a2318e",
+      "branchId": "branch-exploration_breakout-4293dde4",
+      "accepted": false,
+      "score": 0.392,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e27ffda1",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-e8d99824",
+      "accepted": false,
+      "score": 0.1219,
       "decision": "local_candidate_eligible",
       "reason": "local_candidate_eligible"
     }

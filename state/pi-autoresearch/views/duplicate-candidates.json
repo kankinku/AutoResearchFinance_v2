@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T08:23:07.781Z",
+  "generatedAt": "2026-05-03T05:58:07.539Z",
   "entries": [
     {
       "candidateId": "cand-bcee3c55",
@@ -146,6 +146,15 @@
       "recordedAt": "2026-04-30T15:45:42.520Z"
     },
     {
+      "candidateId": "cand-3387ec21",
+      "candidateHash": "4b6213079fd21f4c1b949acc5e7d5e9a09b85fe0a11aa38f6785b8b5e514842b",
+      "classification": "structural_duplicate",
+      "exactDuplicateCandidateId": null,
+      "structuralDuplicateCandidateId": "cand-a1034536",
+      "fingerprintFamily": "fe665a4961d0a23f965bbfd9abd2d9c1aea6cccdfac10736caadec6449c57991",
+      "recordedAt": "2026-05-03T01:33:56.120Z"
+    },
+    {
       "candidateId": "cand-c77cdb6a",
       "candidateHash": "e988d4e93260579e949e004b18025915854b170751941aefc31341a75c356bf0",
       "classification": "structural_duplicate",
@@ -153,6 +162,15 @@
       "structuralDuplicateCandidateId": "cand-6125b79f",
       "fingerprintFamily": "cf8ff29cc4a16dd2a6ebd4729b19f081a4b79a15287c21558651fe6d38aeb103",
       "recordedAt": "2026-05-01T02:12:59.746Z"
+    },
+    {
+      "candidateId": "cand-533202b3",
+      "candidateHash": "0c7837c6de6852b45d88cb67aeb68f04eadf5309d76bcdfeea5b2895d75e846f",
+      "classification": "structural_duplicate",
+      "exactDuplicateCandidateId": null,
+      "structuralDuplicateCandidateId": "cand-490935fa",
+      "fingerprintFamily": "36d1dddfe9819899fcb26caa2c1b2ab36ddb9dec48cb267d090035b1a6780023",
+      "recordedAt": "2026-05-03T01:16:03.009Z"
     }
   ]
 }

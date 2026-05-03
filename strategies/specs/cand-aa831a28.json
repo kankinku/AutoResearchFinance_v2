@@ -1,0 +1,38 @@
+{
+  "version": "af-spec/v1",
+  "name": "AF Spec v1",
+  "event": {
+    "source": "reclaim",
+    "L1": 9,
+    "L2": 12,
+    "L3": 14,
+    "confirmBars": 2,
+    "eventFloorBars": 1,
+    "eventWindowBars": 3
+  },
+  "regime": {
+    "trendMode": "Balanced",
+    "useSupertrendFilter": false,
+    "riskOffRsi": 45,
+    "maxExtPct": 4.5
+  },
+  "entry": {
+    "primaryTrigger": "failed_breakdown_bullish_reclaim",
+    "cooldownBars": 0,
+    "allowBearRebound": false,
+    "applyFilterToB1": false
+  },
+  "slot": {
+    "slotPct": 10,
+    "maxSlots": 8,
+    "useReplacement": false,
+    "replaceMinRank": 3,
+    "replaceIfPnlBelow": -5
+  },
+  "exit": {
+    "weakRangeExit": true,
+    "maxHoldBars": 6,
+    "closeAllOnBearConfRiskOff": true,
+    "resetOnL3": true
+  }
+}

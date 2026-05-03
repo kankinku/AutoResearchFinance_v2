@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T08:23:07.681Z",
+  "generatedAt": "2026-05-03T05:58:07.330Z",
   "incidentCounts": {
     "task_runtime_failure": 12,
     "stale_attach_detected": 7,
@@ -7,7 +7,7 @@
     "task_auto_recovery_failed": 1,
     "task_auto_recovery_applied": 13,
     "task_batch_preflight_recovery_applied": 4,
-    "autonomous_loop_failed": 28
+    "autonomous_loop_failed": 34
   },
   "systemIncidentCounts": {
     "task_runtime_failure": 12,
@@ -16,7 +16,7 @@
     "task_auto_recovery_failed": 1,
     "task_auto_recovery_applied": 13,
     "task_batch_preflight_recovery_applied": 4,
-    "autonomous_loop_failed": 28
+    "autonomous_loop_failed": 34
   },
   "evaluationIncidentCounts": {
     "accepted_no_improvement": 20,
@@ -34,9 +34,9 @@
     "backtest_empty": 21,
     "mutation_generation_fail": 30,
     "apply_fail": 8,
-    "local_unsupported": 22,
-    "local_candidate_rejected": 244,
-    "local_candidate_eligible": 292,
+    "local_unsupported": 23,
+    "local_candidate_rejected": 271,
+    "local_candidate_eligible": 386,
     "tv_verified": 27,
     "tv_surface_failure": 1
   },
@@ -48,9 +48,9 @@
     "backtest_empty": 21,
     "mutation_generation_fail": 30,
     "apply_fail": 8,
-    "local_unsupported": 22,
-    "local_candidate_rejected": 244,
-    "local_candidate_eligible": 292,
+    "local_unsupported": 23,
+    "local_candidate_rejected": 271,
+    "local_candidate_eligible": 386,
     "tv_verified": 27,
     "tv_surface_failure": 1
   },
@@ -64,7 +64,7 @@
     "title_too_long": 0,
     "na_type_assignment": 1
   },
-  "evaluatedCandidateCount": 398,
+  "evaluatedCandidateCount": 492,
   "hardGateFailReasonCounts": {
     "positive_post_fee_profit": 54,
     "minimum_total_trades": 46
@@ -84,60 +84,6 @@
     }
   ],
   "latestIncidents": [
-    {
-      "runId": "autonomous-1777567222149",
-      "iteration": 560,
-      "candidateId": "autonomous-560",
-      "category": "system",
-      "incidentType": "autonomous_loop_failed",
-      "detail": "mutation_generation exceeded 150000ms",
-      "recordedAt": "2026-04-30T16:42:55.023Z"
-    },
-    {
-      "runId": "autonomous-1777569402741",
-      "iteration": 572,
-      "candidateId": "autonomous-572",
-      "category": "system",
-      "incidentType": "autonomous_loop_failed",
-      "detail": "repair_candidate_generation exceeded 150000ms",
-      "recordedAt": "2026-04-30T17:21:23.147Z"
-    },
-    {
-      "runId": "autonomous-1777570082465",
-      "iteration": 575,
-      "candidateId": "autonomous-575",
-      "category": "system",
-      "incidentType": "autonomous_loop_failed",
-      "detail": "mutation_generation exceeded 150000ms",
-      "recordedAt": "2026-04-30T17:30:35.744Z"
-    },
-    {
-      "runId": "autonomous-1777570266387",
-      "iteration": 575,
-      "candidateId": "autonomous-575",
-      "category": "system",
-      "incidentType": "autonomous_loop_failed",
-      "detail": "mutation_generation exceeded 150000ms",
-      "recordedAt": "2026-04-30T17:33:39.567Z"
-    },
-    {
-      "runId": "autonomous-1777592304795",
-      "iteration": 577,
-      "candidateId": "autonomous-577",
-      "category": "system",
-      "incidentType": "autonomous_loop_failed",
-      "detail": "mutation_generation exceeded 150000ms",
-      "recordedAt": "2026-04-30T23:40:58.691Z"
-    },
-    {
-      "runId": "autonomous-1777592498038",
-      "iteration": 577,
-      "candidateId": "autonomous-577",
-      "category": "system",
-      "incidentType": "autonomous_loop_failed",
-      "detail": "mutation_generation exceeded 150000ms",
-      "recordedAt": "2026-04-30T23:44:12.276Z"
-    },
     {
       "runId": "autonomous-1777592786194",
       "iteration": 577,
@@ -173,6 +119,60 @@
       "incidentType": "autonomous_loop_failed",
       "detail": "repair_candidate_generation exceeded 150000ms",
       "recordedAt": "2026-05-01T05:45:56.960Z"
+    },
+    {
+      "runId": "autonomous-1777771030257",
+      "iteration": 823,
+      "candidateId": "autonomous-823",
+      "category": "system",
+      "incidentType": "autonomous_loop_failed",
+      "detail": "mutation_generation exceeded 150000ms",
+      "recordedAt": "2026-05-03T01:19:41.366Z"
+    },
+    {
+      "runId": "autonomous-1777772807764",
+      "iteration": 836,
+      "candidateId": "autonomous-836",
+      "category": "system",
+      "incidentType": "autonomous_loop_failed",
+      "detail": "mutation_generation exceeded 150000ms",
+      "recordedAt": "2026-05-03T01:49:18.894Z"
+    },
+    {
+      "runId": "autonomous-1777773674471",
+      "iteration": 841,
+      "candidateId": "autonomous-841",
+      "category": "system",
+      "incidentType": "autonomous_loop_failed",
+      "detail": "mutation_generation exceeded 150000ms",
+      "recordedAt": "2026-05-03T02:03:45.618Z"
+    },
+    {
+      "runId": "autonomous-1777774364256",
+      "iteration": 845,
+      "candidateId": "autonomous-845",
+      "category": "system",
+      "incidentType": "autonomous_loop_failed",
+      "detail": "mutation_generation exceeded 150000ms",
+      "recordedAt": "2026-05-03T02:15:15.415Z"
+    },
+    {
+      "runId": "autonomous-1777774527253",
+      "iteration": 845,
+      "candidateId": "autonomous-845",
+      "category": "system",
+      "incidentType": "autonomous_loop_failed",
+      "detail": "mutation_generation exceeded 150000ms",
+      "recordedAt": "2026-05-03T02:17:58.399Z"
+    },
+    {
+      "runId": "autonomous-1777775052532",
+      "iteration": 848,
+      "candidateId": "autonomous-848",
+      "category": "system",
+      "incidentType": "autonomous_loop_failed",
+      "detail": "mutation_generation exceeded 150000ms",
+      "recordedAt": "2026-05-03T02:26:43.684Z"
     }
   ]
 }
