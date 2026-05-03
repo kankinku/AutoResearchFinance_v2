@@ -4,7 +4,7 @@ export function renderDashboardHtml(): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AF Local Loop Dashboard</title>
+  <title>AF 로컬 루프 대시보드</title>
   <style>
     :root {
       --paper: #f6f7f9;
@@ -69,6 +69,7 @@ export function renderDashboardHtml(): string {
       width: min(1680px, 100%);
       margin: 0 auto;
       padding: 22px;
+      min-width: 0;
     }
 
     header {
@@ -93,6 +94,7 @@ export function renderDashboardHtml(): string {
       color: var(--muted);
       font-family: var(--mono);
       font-size: 13px;
+      overflow-wrap: anywhere;
     }
 
     .status-strip {
@@ -120,6 +122,7 @@ export function renderDashboardHtml(): string {
       grid-template-columns: 1.35fr 0.85fr;
       gap: 18px;
       margin-top: 18px;
+      min-width: 0;
     }
 
     .brief-band {
@@ -127,11 +130,12 @@ export function renderDashboardHtml(): string {
       grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
       gap: 18px;
       margin-top: 18px;
+      min-width: 0;
     }
 
     .metrics {
       display: grid;
-      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
       gap: 10px;
       margin-top: 18px;
     }
@@ -274,11 +278,13 @@ export function renderDashboardHtml(): string {
       grid-template-columns: 1fr 1fr;
       gap: 18px;
       margin-top: 18px;
+      min-width: 0;
     }
 
     .stack {
       display: grid;
       gap: 18px;
+      min-width: 0;
     }
 
     .copy {
@@ -286,6 +292,7 @@ export function renderDashboardHtml(): string {
       color: var(--ink);
       line-height: 1.55;
       font-size: 14px;
+      overflow-wrap: anywhere;
     }
 
     .small {
@@ -307,12 +314,15 @@ export function renderDashboardHtml(): string {
       border: 1px solid var(--line);
       padding: 5px 7px;
       background: #fffdf7;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
+      table-layout: fixed;
     }
 
     th, td {
@@ -320,6 +330,7 @@ export function renderDashboardHtml(): string {
       padding: 8px 6px;
       border-bottom: 1px solid var(--line);
       vertical-align: top;
+      overflow-wrap: anywhere;
     }
 
     th {
@@ -342,12 +353,15 @@ export function renderDashboardHtml(): string {
     .hypothesis-row {
       border-left: 4px solid var(--accent);
       padding-left: 10px;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .footer {
       margin-top: 18px;
       display: flex;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 12px;
       color: var(--muted);
       font-family: var(--mono);
@@ -356,10 +370,15 @@ export function renderDashboardHtml(): string {
       padding-top: 12px;
     }
 
+    .footer span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
     @media (max-width: 1100px) {
       .shell { grid-template-columns: 1fr; }
       .rail { display: none; }
-      .grid, .two-col, .brief-band { grid-template-columns: 1fr; }
+      .grid, .two-col, .brief-band { grid-template-columns: minmax(0, 1fr); }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .evidence-grid { grid-template-columns: 1fr; }
       header { grid-template-columns: 1fr; }
@@ -369,23 +388,23 @@ export function renderDashboardHtml(): string {
 </head>
 <body>
   <div class="shell">
-    <aside class="rail"><span>AF VERIFIED / QQQ 120M</span></aside>
+    <aside class="rail"><span>AF 검증 / QQQ 120분</span></aside>
     <main>
       <header>
         <div>
-          <h1>Autonomous Loop Dashboard</h1>
-          <div class="subline" id="subline">loading local state...</div>
+          <h1>자율 연구 대시보드</h1>
+          <div class="subline" id="subline">로컬 상태를 불러오는 중...</div>
         </div>
         <div class="status-strip">
-          <span class="pill" id="loopStatus">LOOP</span>
-          <span class="pill" id="improvementStatus">STATE</span>
-          <span class="pill" id="refreshStatus">REFRESH</span>
+          <span class="pill" id="loopStatus">루프</span>
+          <span class="pill" id="improvementStatus">상태</span>
+          <span class="pill" id="refreshStatus">갱신</span>
         </div>
       </header>
 
       <section class="brief-band">
         <div class="panel">
-          <h2><span>Operator Brief</span><span id="operatorMode">-</span></h2>
+          <h2><span>운영 브리프</span><span id="operatorMode">-</span></h2>
           <h3 class="brief-title" id="briefHeadline">-</h3>
           <p class="copy" id="briefSummary">-</p>
           <div class="evidence-grid" id="operatorEvidence"></div>
@@ -393,7 +412,7 @@ export function renderDashboardHtml(): string {
           <ul class="warning-list" id="warningList"></ul>
         </div>
         <div class="panel">
-          <h2><span>External Validation</span><span id="externalMode">manual</span></h2>
+          <h2><span>외부 검증</span><span id="externalMode">수동</span></h2>
           <table>
             <tbody id="externalRows"></tbody>
           </table>
@@ -402,23 +421,25 @@ export function renderDashboardHtml(): string {
       </section>
 
       <section class="metrics">
-        <div class="metric"><div class="label">Latest Score</div><div class="value" id="latestScore">-</div><div class="delta" id="latestDecision">-</div></div>
-        <div class="metric"><div class="label">Latest Net</div><div class="value" id="latestNet">-</div><div class="delta" id="latestTrades">-</div></div>
-        <div class="metric"><div class="label">Profit Factor</div><div class="value" id="latestPf">-</div><div class="delta" id="latestDd">-</div></div>
-        <div class="metric"><div class="label">Active Champion</div><div class="value" id="championScore">-</div><div class="delta" id="championId">-</div></div>
-        <div class="metric"><div class="label">Best Eligible</div><div class="value" id="bestScore">-</div><div class="delta" id="bestId">-</div></div>
-        <div class="metric"><div class="label">Recent Health</div><div class="value" id="healthValue">-</div><div class="delta" id="healthDetail">-</div></div>
-        <div class="metric"><div class="label">Node Memory</div><div class="value" id="memoryValue">-</div><div class="delta" id="memoryDetail">-</div></div>
-        <div class="metric"><div class="label">Storage</div><div class="value" id="storageValue">-</div><div class="delta" id="storageDetail">-</div></div>
+        <div class="metric"><div class="label">최신 점수</div><div class="value" id="latestScore">-</div><div class="delta" id="latestDecision">-</div></div>
+        <div class="metric"><div class="label">최신 수익률</div><div class="value" id="latestNet">-</div><div class="delta" id="latestTrades">-</div></div>
+        <div class="metric"><div class="label">최근 최고 수익률</div><div class="value" id="bestReturn">-</div><div class="delta" id="bestReturnId">-</div></div>
+        <div class="metric"><div class="label">최근 평균 수익률</div><div class="value" id="averageReturn">-</div><div class="delta" id="averageReturnDetail">최근 12개 후보</div></div>
+        <div class="metric"><div class="label">수익 팩터</div><div class="value" id="latestPf">-</div><div class="delta" id="latestDd">-</div></div>
+        <div class="metric"><div class="label">활성 챔피언</div><div class="value" id="championScore">-</div><div class="delta" id="championId">-</div></div>
+        <div class="metric"><div class="label">최고 적격 후보</div><div class="value" id="bestScore">-</div><div class="delta" id="bestId">-</div></div>
+        <div class="metric"><div class="label">최근 상태</div><div class="value" id="healthValue">-</div><div class="delta" id="healthDetail">-</div></div>
+        <div class="metric"><div class="label">Node 메모리</div><div class="value" id="memoryValue">-</div><div class="delta" id="memoryDetail">-</div></div>
+        <div class="metric"><div class="label">저장소</div><div class="value" id="storageValue">-</div><div class="delta" id="storageDetail">-</div></div>
       </section>
 
       <section class="grid">
         <div class="panel">
-          <h2><span>Recent Score Trace</span><span id="chartMeta">-</span></h2>
-          <svg class="chart" id="scoreChart" role="img" aria-label="Recent score trend"></svg>
+          <h2><span>최근 점수 추적</span><span id="chartMeta">-</span></h2>
+          <svg class="chart" id="scoreChart" role="img" aria-label="최근 점수 추세"></svg>
         </div>
         <div class="panel">
-          <h2><span>Improvement State</span><span id="generatedAt">-</span></h2>
+          <h2><span>개선 상태</span><span id="generatedAt">-</span></h2>
           <p class="copy" id="improvementSummary">-</p>
           <div class="feature-list" id="nextFocus"></div>
         </div>
@@ -426,15 +447,15 @@ export function renderDashboardHtml(): string {
 
       <section class="two-col">
         <div class="panel">
-          <h2><span>Verified Promotion Contract</span><span id="verifiedCandidate">-</span></h2>
+          <h2><span>검증 승격 조건</span><span id="verifiedCandidate">-</span></h2>
           <table>
             <tbody id="verifiedContractRows"></tbody>
           </table>
         </div>
         <div class="panel">
-          <h2><span>Branch Budget</span><span id="branchBudgetMeta">-</span></h2>
+          <h2><span>브랜치 배분</span><span id="branchBudgetMeta">-</span></h2>
           <table>
-            <thead><tr><th>Branch</th><th>Target</th><th>Actual</th><th>Deficit</th></tr></thead>
+            <thead><tr><th>브랜치</th><th>목표</th><th>실제</th><th>부족분</th></tr></thead>
             <tbody id="branchBudgetRows"></tbody>
           </table>
         </div>
@@ -442,14 +463,14 @@ export function renderDashboardHtml(): string {
 
       <section class="two-col">
         <div class="panel">
-          <h2><span>Manual TV Queue</span><span id="queueMeta">-</span></h2>
+          <h2><span>수동 TV 큐</span><span id="queueMeta">-</span></h2>
           <table>
-            <thead><tr><th>ID</th><th>Status</th><th>Reason</th><th>Recorded</th></tr></thead>
+            <thead><tr><th>ID</th><th>상태</th><th>사유</th><th>기록</th></tr></thead>
             <tbody id="externalEventRows"></tbody>
           </table>
         </div>
         <div class="panel">
-          <h2><span>Latest Local/TV Drift</span><span id="driftMeta">-</span></h2>
+          <h2><span>최신 로컬/TV 차이</span><span id="driftMeta">-</span></h2>
           <table>
             <tbody id="driftRows"></tbody>
           </table>
@@ -458,7 +479,7 @@ export function renderDashboardHtml(): string {
 
       <section class="two-col">
         <div class="panel">
-          <h2><span>Best Strategy Analysis</span><span id="strategyId">-</span></h2>
+          <h2><span>최고 전략 분석</span><span id="strategyId">-</span></h2>
           <p class="copy" id="strategySummary">-</p>
           <div class="feature-list" id="strategyFeatures"></div>
           <table style="margin-top: 12px">
@@ -466,31 +487,31 @@ export function renderDashboardHtml(): string {
           </table>
         </div>
         <div class="panel">
-          <h2><span>Current Hypothesis</span><span id="repairMode">-</span></h2>
+          <h2><span>현재 가설</span><span id="repairMode">-</span></h2>
           <div class="hypothesis-grid" id="hypothesisGrid"></div>
         </div>
       </section>
 
       <section class="grid">
         <div class="panel">
-          <h2><span>Recent Candidates</span><span>tail window</span></h2>
+          <h2><span>최근 후보</span><span>tail window</span></h2>
           <table>
-            <thead><tr><th>ID</th><th>Score</th><th>Net</th><th>Trades</th><th>Decision</th></tr></thead>
+            <thead><tr><th>ID</th><th>점수</th><th>수익률</th><th>거래수</th><th>결정</th></tr></thead>
             <tbody id="candidateRows"></tbody>
           </table>
         </div>
         <div class="stack">
           <div class="panel">
-            <h2><span>Failure Memory</span><span id="problemCount">-</span></h2>
+            <h2><span>실패 메모리</span><span id="problemCount">-</span></h2>
             <table>
-              <thead><tr><th>Iter</th><th>Kind</th><th>Diagnosis</th></tr></thead>
+              <thead><tr><th>회차</th><th>종류</th><th>진단</th></tr></thead>
               <tbody id="problemRows"></tbody>
             </table>
           </div>
           <div class="panel">
-            <h2><span>Repair Trail</span><span id="repairCount">-</span></h2>
+            <h2><span>수리 기록</span><span id="repairCount">-</span></h2>
             <table>
-              <thead><tr><th>Iter</th><th>Repair</th><th>Result</th></tr></thead>
+              <thead><tr><th>회차</th><th>수리</th><th>결과</th></tr></thead>
               <tbody id="repairRows"></tbody>
             </table>
           </div>
@@ -498,8 +519,8 @@ export function renderDashboardHtml(): string {
       </section>
 
       <div class="footer">
-        <span id="paths">local files only</span>
-        <span>auto refresh: 8s</span>
+        <span id="paths">로컬 파일만 사용</span>
+        <span>자동 갱신: 8초</span>
       </div>
     </main>
   </div>
@@ -530,6 +551,55 @@ export function renderDashboardHtml(): string {
       return value ? value.replace("cand-", "c-") : "-";
     }
 
+    function modeLabel(mode) {
+      return mode === "local_only" ? "로컬 전용" : "외부 자동";
+    }
+
+    function improvementLabel(status) {
+      if (status === "improving") return "개선 중";
+      if (status === "blocked") return "막힘";
+      return "관찰";
+    }
+
+    function decisionLabel(value) {
+      const labels = {
+        local_candidate_eligible: "로컬 적격",
+        tv_verified: "TV 검증 완료",
+        calibration_queued: "TV 검증 대기",
+        quarantined: "격리",
+        rejected: "제외",
+        failed: "실패",
+        skipped: "건너뜀"
+      };
+      return labels[value] || value || "-";
+    }
+
+    function queueStatusLabel(value) {
+      const labels = {
+        pending: "대기",
+        deferred: "보류",
+        queued: "큐 등록",
+        processed: "처리됨",
+        skipped: "건너뜀",
+        failed: "실패"
+      };
+      return labels[value] || value || "-";
+    }
+
+    function countKeyLabel(value) {
+      const labels = {
+        champion: "챔피언",
+        calibration_queued: "검증 대기",
+        quarantined: "격리",
+        matched: "일치",
+        major_drift: "큰 차이",
+        minor_drift: "작은 차이",
+        passed: "통과",
+        failed: "실패"
+      };
+      return labels[value] || value;
+    }
+
     function renderChipList(id, values) {
       const el = document.getElementById(id);
       if (!el) return;
@@ -556,7 +626,7 @@ export function renderDashboardHtml(): string {
         empty.setAttribute("y", "130");
         empty.setAttribute("font-family", "var(--mono)");
         empty.setAttribute("font-size", "13");
-        empty.textContent = "not enough score data";
+        empty.textContent = "점수 데이터가 부족합니다";
         svg.appendChild(empty);
         return;
       }
@@ -679,40 +749,50 @@ export function renderDashboardHtml(): string {
       const external = data.externalValidation || {};
       const latest = data.score.latest;
       const latestMetrics = latest && latest.metrics;
-      text("subline", "state " + data.project.stateRoot + " / " + new Date(data.generatedAt).toLocaleTimeString());
+      const returnProfile = data.score.returnProfile || {};
+      const latestReturn = returnProfile.latestPercent !== null && returnProfile.latestPercent !== undefined
+        ? returnProfile.latestPercent
+        : latestMetrics
+          ? latestMetrics.netProfitPercent
+          : null;
+      text("subline", "상태 " + data.project.stateRoot + " / " + new Date(data.generatedAt).toLocaleTimeString());
       text("generatedAt", new Date(data.generatedAt).toLocaleTimeString());
-      text("operatorMode", brief.mode === "local_only" ? "local only" : "external auto");
+      text("operatorMode", modeLabel(brief.mode));
       text("briefHeadline", brief.headline || "-");
       text("briefSummary", brief.summary || "-");
       renderOperatorEvidence(brief.evidence || []);
-      renderSimpleList("nextActionList", brief.nextActions || [], "No immediate action.");
+      renderSimpleList("nextActionList", brief.nextActions || [], "즉시 할 일 없음.");
       renderSimpleList("warningList", brief.warnings || [], "");
       renderCommands(brief.commands || []);
-      text("externalMode", external.autoProcessCalibration ? "auto calibration" : "manual");
+      text("externalMode", external.autoProcessCalibration ? "자동 검증" : "수동");
       renderRows("externalRows", [
-        row([{ value: "Calibration", className: "mono" }, { value: external.autoProcessCalibration ? "auto" : "manual", className: external.autoProcessCalibration ? "warnText" : "goodText" }]),
-        row([{ value: "Promotion verifier", className: "mono" }, { value: external.promotionVerificationExecutor || "none", className: external.promotionVerificationExecutor === "none" ? "goodText" : "warnText" }]),
-        row([{ value: "Pending queue", className: "mono" }, { value: String(external.pendingCount || 0), className: (external.pendingCount || 0) > 0 ? "warnText" : "goodText" }]),
-        row([{ value: "Pending IDs", className: "mono" }, { value: (external.pendingCandidateIds || []).map(shortId).join(", ") || "-" }])
+        row([{ value: "TV 큐 처리", className: "mono" }, { value: external.autoProcessCalibration ? "자동" : "수동", className: external.autoProcessCalibration ? "warnText" : "goodText" }]),
+        row([{ value: "승격 검증 실행기", className: "mono" }, { value: external.promotionVerificationExecutor || "없음", className: external.promotionVerificationExecutor === "none" ? "goodText" : "warnText" }]),
+        row([{ value: "대기 후보", className: "mono" }, { value: String(external.pendingCount || 0), className: (external.pendingCount || 0) > 0 ? "warnText" : "goodText" }]),
+        row([{ value: "대기 ID", className: "mono" }, { value: (external.pendingCandidateIds || []).map(shortId).join(", ") || "-" }])
       ]);
       text("latestScore", latest && latest.score !== null ? fmt(latest.score, 4) : "-");
-      text("latestDecision", latest ? shortId(latest.candidateId) + " / " + latest.decision : "-");
-      text("latestNet", latestMetrics ? pct(latestMetrics.netProfitPercent) : "-");
-      text("latestTrades", latestMetrics ? latestMetrics.totalTrades + " trades" : "-");
+      text("latestDecision", latest ? shortId(latest.candidateId) + " / " + decisionLabel(latest.decision) : "-");
+      text("latestNet", pct(latestReturn));
+      text("latestTrades", latestMetrics ? latestMetrics.totalTrades + "회 거래" : "-");
+      text("bestReturn", pct(returnProfile.recentBestPercent));
+      text("bestReturnId", returnProfile.recentBestCandidateId ? shortId(returnProfile.recentBestCandidateId) : "-");
+      text("averageReturn", pct(returnProfile.recentAveragePercent));
+      text("averageReturnDetail", "최근 로컬 후보 기준");
       text("latestPf", latestMetrics ? fmt(latestMetrics.profitFactor, 2) : "-");
-      text("latestDd", latestMetrics ? "DD " + pct(latestMetrics.maxDrawdownPercent) : "-");
+      text("latestDd", latestMetrics ? "최대 DD " + pct(latestMetrics.maxDrawdownPercent) : "-");
       text("championScore", data.score.activeChampion ? fmt(data.score.activeChampion.score, 4) : "-");
       text("championId", data.score.activeChampion ? shortId(data.score.activeChampion.candidateId) : "-");
       text("bestScore", data.score.bestEligible ? fmt(data.score.bestEligible.score, 4) : "-");
       text("bestId", data.score.bestEligible ? shortId(data.score.bestEligible.candidateId) : "-");
       text("healthValue", data.score.recentEligibleCount + "/10");
-      text("healthDetail", "eligible, sparse " + data.score.recentSparseProblemCount + ", repair " + data.score.recentPreflightRepairCount);
+      text("healthDetail", "적격 " + data.score.recentEligibleCount + ", 희소 " + data.score.recentSparseProblemCount + ", 수리 " + data.score.recentPreflightRepairCount);
       const memory = data.runtime.nodeMemory || {};
       text("memoryValue", memory.rssMB ? fmt(memory.rssMB, 0) + "MB" : "-");
-      text("memoryDetail", memory.heapUsedMB ? "heap " + fmt(memory.heapUsedMB, 0) + "MB / ratio " + fmt(memory.rssToSystemRatio || 0, 4) : "-");
+      text("memoryDetail", memory.heapUsedMB ? "heap " + fmt(memory.heapUsedMB, 0) + "MB / 비율 " + fmt(memory.rssToSystemRatio || 0, 4) : "-");
       text("storageValue", data.score.ledgerSizeMB !== undefined ? fmt(data.score.ledgerSizeMB, 1) + "MB" : "-");
-      text("storageDetail", data.score.artifactSizeMB !== undefined ? "artifacts " + fmt(data.score.artifactSizeMB, 1) + "MB" : "-");
-      text("chartMeta", (data.trend || []).length + " pts");
+      text("storageDetail", data.score.artifactSizeMB !== undefined ? "아티팩트 " + fmt(data.score.artifactSizeMB, 1) + "MB" : "-");
+      text("chartMeta", (data.trend || []).length + "개");
       text("improvementSummary", data.improvement.summary);
       renderChipList("nextFocus", data.improvement.nextFocus);
       text("paths", data.project.workspaceRoot);
@@ -720,18 +800,18 @@ export function renderDashboardHtml(): string {
       const verified = data.verifiedAutoresearch || {};
       text("verifiedCandidate", verified.verifiedPromotionCandidateId ? shortId(verified.verifiedPromotionCandidateId) : "-");
       renderRows("verifiedContractRows", [
-        row([{ value: "Verified score", className: "mono" }, { value: verified.verifiedPromotionScore === null || verified.verifiedPromotionScore === undefined ? "-" : fmt(verified.verifiedPromotionScore, 4), className: "mono" }]),
-        row([{ value: "Parity", className: "mono" }, { value: verified.parityStatus || "-", className: verified.parityStatus === "matched" ? "goodText" : "warnText" }]),
-        row([{ value: "Walk-forward", className: "mono" }, { value: verified.walkForwardStatus || "-", className: verified.walkForwardStatus === "passed" ? "goodText" : "warnText" }]),
-        row([{ value: "Quarantine", className: "mono" }, { value: String(verified.quarantineCount || 0), className: (verified.quarantineCount || 0) > 0 ? "badText" : "goodText" }]),
-        row([{ value: "Stages", className: "mono" }, { value: summarizeCounts(verified.researchStageCounts) }]),
-        row([{ value: "Parity counts", className: "mono" }, { value: summarizeCounts(verified.parityStatusCounts) }]),
-        row([{ value: "WF counts", className: "mono" }, { value: summarizeCounts(verified.walkForwardStatusCounts) }]),
-        row([{ value: "Trial pressure", className: "mono" }, { value: summarizeTrialPressure(verified.trialPressure) }])
+        row([{ value: "검증 점수", className: "mono" }, { value: verified.verifiedPromotionScore === null || verified.verifiedPromotionScore === undefined ? "-" : fmt(verified.verifiedPromotionScore, 4), className: "mono" }]),
+        row([{ value: "일치 상태", className: "mono" }, { value: queueStatusLabel(verified.parityStatus), className: verified.parityStatus === "matched" ? "goodText" : "warnText" }]),
+        row([{ value: "워크포워드", className: "mono" }, { value: queueStatusLabel(verified.walkForwardStatus), className: verified.walkForwardStatus === "passed" ? "goodText" : "warnText" }]),
+        row([{ value: "격리", className: "mono" }, { value: String(verified.quarantineCount || 0), className: (verified.quarantineCount || 0) > 0 ? "badText" : "goodText" }]),
+        row([{ value: "단계", className: "mono" }, { value: summarizeCounts(verified.researchStageCounts) }]),
+        row([{ value: "일치 집계", className: "mono" }, { value: summarizeCounts(verified.parityStatusCounts) }]),
+        row([{ value: "WF 집계", className: "mono" }, { value: summarizeCounts(verified.walkForwardStatusCounts) }]),
+        row([{ value: "시도 압력", className: "mono" }, { value: summarizeTrialPressure(verified.trialPressure) }])
       ]);
       const branchBudget = verified.branchBudget || {};
       const branchEntries = branchBudget.entries || [];
-      text("branchBudgetMeta", branchBudget.totalBranches === undefined ? "0 branches" : branchBudget.totalBranches + " branches");
+      text("branchBudgetMeta", branchBudget.totalBranches === undefined ? "0개 브랜치" : branchBudget.totalBranches + "개 브랜치");
       renderRows("branchBudgetRows", branchEntries.map(function(entry) {
         return row([
           { value: entry.branchKind || "-", className: "mono" },
@@ -741,11 +821,11 @@ export function renderDashboardHtml(): string {
         ]);
       }));
 
-      text("queueMeta", (external.pendingCount || 0) + " pending");
+      text("queueMeta", (external.pendingCount || 0) + "개 대기");
       renderRows("externalEventRows", (external.recentEvents || []).slice(0, 8).map(function(item) {
         return row([
           { value: shortId(item.candidateId), className: "mono" },
-          { value: item.status || "-", className: item.status === "processed" ? "goodText" : item.status === "skipped" || item.status === "failed" ? "badText" : "warnText" },
+          { value: queueStatusLabel(item.status), className: item.status === "processed" ? "goodText" : item.status === "skipped" || item.status === "failed" ? "badText" : "warnText" },
           { value: item.reason || item.tvDecision || item.parityStatus || "-" },
           { value: item.recordedAt ? new Date(item.recordedAt).toLocaleTimeString() : "-", className: "mono" }
         ]);
@@ -754,33 +834,33 @@ export function renderDashboardHtml(): string {
       const drift = external.latestDivergence;
       text("driftMeta", drift ? shortId(drift.candidateId) : "-");
       renderRows("driftRows", drift ? [
-        row([{ value: "Parity", className: "mono" }, { value: drift.parityStatus, className: drift.parityStatus === "major_drift" ? "badText" : "warnText" }]),
-        row([{ value: "Net delta", className: "mono" }, { value: drift.netProfitDelta === null || drift.netProfitDelta === undefined ? "-" : pct(drift.netProfitDelta), className: Math.abs(drift.netProfitDelta || 0) > 10 ? "badText" : "warnText" }]),
-        row([{ value: "Trade delta", className: "mono" }, { value: drift.tradeCountDelta === null || drift.tradeCountDelta === undefined ? "-" : String(drift.tradeCountDelta), className: Math.abs(drift.tradeCountDelta || 0) > 100 ? "badText" : "warnText" }]),
-        row([{ value: "Confidence after", className: "mono" }, { value: drift.confidenceAfter === null || drift.confidenceAfter === undefined ? "-" : fmt(drift.confidenceAfter, 2), className: (drift.confidenceAfter || 0) < 0.8 ? "warnText" : "goodText" }]),
-        row([{ value: "Recorded", className: "mono" }, { value: drift.recordedAt ? new Date(drift.recordedAt).toLocaleString() : "-" }])
+        row([{ value: "일치 상태", className: "mono" }, { value: queueStatusLabel(drift.parityStatus), className: drift.parityStatus === "major_drift" ? "badText" : "warnText" }]),
+        row([{ value: "수익률 차이", className: "mono" }, { value: drift.netProfitDelta === null || drift.netProfitDelta === undefined ? "-" : pct(drift.netProfitDelta), className: Math.abs(drift.netProfitDelta || 0) > 10 ? "badText" : "warnText" }]),
+        row([{ value: "거래수 차이", className: "mono" }, { value: drift.tradeCountDelta === null || drift.tradeCountDelta === undefined ? "-" : String(drift.tradeCountDelta), className: Math.abs(drift.tradeCountDelta || 0) > 100 ? "badText" : "warnText" }]),
+        row([{ value: "조정 후 신뢰도", className: "mono" }, { value: drift.confidenceAfter === null || drift.confidenceAfter === undefined ? "-" : fmt(drift.confidenceAfter, 2), className: (drift.confidenceAfter || 0) < 0.8 ? "warnText" : "goodText" }]),
+        row([{ value: "기록", className: "mono" }, { value: drift.recordedAt ? new Date(drift.recordedAt).toLocaleString() : "-" }])
       ] : [
-        row([{ value: "Status", className: "mono" }, { value: "No recent drift evidence." }])
+        row([{ value: "상태", className: "mono" }, { value: "최근 차이 증거 없음" }])
       ]);
 
       const loopClass = data.runtime.running ? "pill good" : data.runtime.stopRequested ? "pill warn" : "pill bad";
       cls("loopStatus", loopClass);
-      text("loopStatus", data.runtime.running ? "RUNNING pid " + data.runtime.pid : data.runtime.stopRequested ? "STOP REQUESTED" : "STOPPED");
+      text("loopStatus", data.runtime.running ? "실행 중 pid " + data.runtime.pid : data.runtime.stopRequested ? "중지 요청됨" : "중지됨");
       cls("improvementStatus", "pill " + (data.improvement.status === "improving" ? "good" : data.improvement.status === "blocked" ? "bad" : "warn"));
-      text("improvementStatus", data.improvement.status.toUpperCase());
-      text("refreshStatus", "UPDATED " + new Date().toLocaleTimeString());
+      text("improvementStatus", improvementLabel(data.improvement.status));
+      text("refreshStatus", "갱신 " + new Date().toLocaleTimeString());
 
       renderChart(data.trend || []);
 
       const strategy = data.bestStrategy;
       text("strategyId", strategy ? shortId(strategy.candidateId) : "-");
-      text("strategySummary", strategy ? (strategy.summary || strategy.title || "No summary available.") : "-");
+      text("strategySummary", strategy ? (strategy.summary || strategy.title || "요약 없음") : "-");
       renderChipList("strategyFeatures", strategy ? strategy.features : []);
       const strategyRows = [];
       if (strategy) {
-        strategyRows.push(row([{ value: "Entry", className: "mono" }, { value: strategy.entryShape }]));
-        strategyRows.push(row([{ value: "Exit", className: "mono" }, { value: strategy.exitShape }]));
-        strategyRows.push(row([{ value: "Risk", className: "mono" }, { value: strategy.riskShape }]));
+        strategyRows.push(row([{ value: "진입", className: "mono" }, { value: strategy.entryShape }]));
+        strategyRows.push(row([{ value: "청산", className: "mono" }, { value: strategy.exitShape }]));
+        strategyRows.push(row([{ value: "리스크", className: "mono" }, { value: strategy.riskShape }]));
         Object.keys(strategy.routeInputs || {}).forEach(function(key) {
           strategyRows.push(row([{ value: key, className: "mono" }, { value: strategy.routeInputs[key] === null ? "-" : String(strategy.routeInputs[key]) }]));
         });
@@ -793,11 +873,11 @@ export function renderDashboardHtml(): string {
       if (hypEl) {
         hypEl.innerHTML = "";
         [
-          ["Hypothesis", hyp && hyp.hypothesis],
-          ["Expected", hyp && hyp.expectedEffect],
-          ["Invalid If", hyp && hyp.invalidIf],
-          ["Route", hyp ? "preferred " + hyp.route.preferred.join(", ") + " / variant " + (hyp.route.variant || "-") : null],
-          ["Next", hyp && hyp.nextMutationDirection]
+          ["가설", hyp && hyp.hypothesis],
+          ["기대 효과", hyp && hyp.expectedEffect],
+          ["무효 조건", hyp && hyp.invalidIf],
+          ["경로", hyp ? "선호 " + hyp.route.preferred.join(", ") + " / 변형 " + (hyp.route.variant || "-") : null],
+          ["다음 방향", hyp && hyp.nextMutationDirection]
         ].forEach(function(pair) {
           const div = document.createElement("div");
           div.className = "hypothesis-row";
@@ -814,7 +894,7 @@ export function renderDashboardHtml(): string {
           { value: item.score === null ? "-" : fmt(item.score, 4), className: "mono" },
           { value: item.metrics ? pct(item.metrics.netProfitPercent) : "-", className: "mono" },
           { value: item.metrics ? String(item.metrics.totalTrades) : "-", className: "mono" },
-          { value: item.decision, className: item.eligible ? "goodText" : "warnText" }
+          { value: decisionLabel(item.decision), className: item.eligible ? "goodText" : "warnText" }
         ]);
       }));
 
@@ -840,7 +920,7 @@ export function renderDashboardHtml(): string {
     function summarizeCounts(counts) {
       const entries = Object.entries(counts || {}).filter(function(entry) { return Number(entry[1]) > 0; });
       if (entries.length === 0) return "-";
-      return entries.map(function(entry) { return entry[0] + ":" + entry[1]; }).join(" / ");
+      return entries.map(function(entry) { return countKeyLabel(entry[0]) + ":" + entry[1]; }).join(" / ");
     }
 
     function summarizeTrialPressure(pressure) {
@@ -850,7 +930,7 @@ export function renderDashboardHtml(): string {
       const threshold = pressure.minimumRequiredScore === undefined || pressure.minimumRequiredScore === null
         ? "-"
         : fmt(pressure.minimumRequiredScore, 2);
-      return "trials " + total + " / family " + family + " / min " + threshold;
+      return "전체 " + total + " / 계열 " + family + " / 최소 " + threshold;
     }
 
     async function load() {
@@ -861,7 +941,7 @@ export function renderDashboardHtml(): string {
         render(data);
       } catch (error) {
         cls("refreshStatus", "pill bad");
-        text("refreshStatus", "REFRESH FAILED");
+        text("refreshStatus", "갱신 실패");
         console.error(error);
       }
     }

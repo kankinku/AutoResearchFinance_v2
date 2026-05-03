@@ -50,6 +50,7 @@ export interface DashboardStatusPayload {
     recentPreflightRepairCount: number;
     ledgerSizeMB: number;
     artifactSizeMB: number;
+    returnProfile: DashboardReturnProfile;
   };
   trend: DashboardCandidatePoint[];
   recentCandidates: DashboardCandidatePoint[];
@@ -114,6 +115,13 @@ export interface DashboardMetrics {
   percentProfitable: number;
   totalTrades: number;
   avgTradePercent: number;
+}
+
+export interface DashboardReturnProfile {
+  latestPercent: number | null;
+  recentBestPercent: number | null;
+  recentBestCandidateId: string | null;
+  recentAveragePercent: number | null;
 }
 
 export interface DashboardLeaderboardEntry {
@@ -301,6 +309,10 @@ export async function buildDashboardStatus(
     .slice(-10)
     .filter((point) => point.eligible).length;
   const latestEligibleStreak = countLatestEligibleStreak(recentCandidatePoints);
+  const returnProfile = buildReturnProfile({
+    recentCandidatePoints,
+    latest,
+  });
   const improvement = buildImprovementStatus({
     recentCandidatePoints,
     recentSparseProblemCount,
@@ -334,6 +346,7 @@ export async function buildDashboardStatus(
     bestEligible,
     activeChampion,
     externalValidation,
+    returnProfile,
   });
 
   return {
@@ -356,6 +369,7 @@ export async function buildDashboardStatus(
       recentPreflightRepairCount,
       ledgerSizeMB: roundMb(ledgerBytes),
       artifactSizeMB: roundMb(artifactBytes),
+      returnProfile,
     },
     trend,
     recentCandidates: recentCandidatePoints.slice(-12).reverse(),
@@ -436,27 +450,30 @@ function buildOperatorBrief(input: {
   bestEligible: DashboardLeaderboardEntry | null;
   activeChampion: DashboardLeaderboardEntry | null;
   externalValidation: DashboardStatusPayload["externalValidation"];
+  returnProfile: DashboardReturnProfile;
 }): DashboardStatusPayload["operatorBrief"] {
   const manualExternal =
     !input.externalValidation.autoProcessCalibration &&
     input.externalValidation.promotionVerificationExecutor === "none";
   const mode = manualExternal ? "local_only" : "external_auto";
-  const latestScore = input.latest?.score == null ? "no score" : input.latest.score.toFixed(4);
-  const bestScore = input.bestEligible?.score == null ? "no eligible score" : input.bestEligible.score.toFixed(4);
+  const latestScore = input.latest?.score == null ? "점수 없음" : input.latest.score.toFixed(4);
+  const latestReturn = formatBriefPercent(input.returnProfile.latestPercent);
+  const bestScore = input.bestEligible?.score == null ? "적격 점수 없음" : input.bestEligible.score.toFixed(4);
+  const bestReturn = formatBriefPercent(input.returnProfile.recentBestPercent);
   const pending = input.externalValidation.pendingCount;
   const headline = manualExternal
-    ? "Local research is active; TradingView is manual."
-    : "External validation is enabled; watch TradingView surface health.";
+    ? "로컬 연구가 기준이며 TradingView는 수동 검증입니다."
+    : "외부 검증이 켜져 있으므로 TradingView 표면 상태를 같이 봐야 합니다.";
   const summary = [
     input.runtime.running
-      ? `Loop is running with latest local score ${latestScore}.`
+      ? `루프 실행 중입니다. 최신 로컬 점수는 ${latestScore}, 수익률은 ${latestReturn}입니다.`
       : input.runtime.stopRequested
-        ? `Loop is stopped by request; latest local score is ${latestScore}.`
-        : `Loop is not running; latest local score is ${latestScore}.`,
-    `Best local eligible score is ${bestScore}.`,
+        ? `사용자 요청으로 루프가 멈춰 있습니다. 최신 로컬 점수는 ${latestScore}, 수익률은 ${latestReturn}입니다.`
+        : `루프는 실행 중이 아닙니다. 최신 로컬 점수는 ${latestScore}, 수익률은 ${latestReturn}입니다.`,
+    `최고 로컬 적격 점수는 ${bestScore}, 최근 최고 수익률은 ${bestReturn}입니다.`,
     pending > 0
-      ? `${pending} candidates are waiting for manual TV calibration.`
-      : "No urgent manual TV calibration is pending.",
+      ? `${pending}개 후보가 수동 TradingView 검증을 기다립니다.`
+      : "긴급한 수동 TradingView 검증 대기는 없습니다.",
   ].join(" ");
   const warnings: string[] = [];
   if (input.improvement.status === "blocked") {
@@ -464,11 +481,11 @@ function buildOperatorBrief(input: {
   }
   if (input.externalValidation.latestDivergence?.parityStatus === "major_drift") {
     warnings.push(
-      `Latest TV divergence was major_drift on ${input.externalValidation.latestDivergence.candidateId}.`,
+      `최근 TV 비교에서 ${input.externalValidation.latestDivergence.candidateId}가 major_drift였습니다.`,
     );
   }
   if (input.externalValidation.autoProcessCalibration) {
-    warnings.push("TradingView queue auto-processing is enabled.");
+    warnings.push("TradingView 큐 자동 처리가 켜져 있습니다.");
   }
 
   return {
@@ -477,17 +494,17 @@ function buildOperatorBrief(input: {
     summary,
     evidence: [
       {
-        label: "Loop",
+        label: "루프",
         value: input.runtime.running
-          ? `running pid ${input.runtime.pid}`
+          ? `실행 중 pid ${input.runtime.pid}`
           : input.runtime.stopRequested
-            ? "stop requested"
-            : "stopped",
+            ? "중지 요청됨"
+            : "중지됨",
         status: input.runtime.running ? "good" : input.runtime.stopRequested ? "watch" : "neutral",
       },
       {
-        label: "Local trend",
-        value: input.improvement.status,
+        label: "로컬 추세",
+        value: translateImprovementStatus(input.improvement.status),
         status:
           input.improvement.status === "improving"
             ? "good"
@@ -496,51 +513,104 @@ function buildOperatorBrief(input: {
               : "watch",
       },
       {
-        label: "Best local",
+        label: "최고 로컬",
         value: input.bestEligible?.candidateId
           ? `${input.bestEligible.candidateId} / ${bestScore}`
-          : "none",
+          : "없음",
         status: input.bestEligible ? "good" : "watch",
       },
       {
-        label: "Active champion",
-        value: input.activeChampion?.candidateId ?? "none",
+        label: "최신 수익률",
+        value: latestReturn,
+        status: (input.returnProfile.latestPercent ?? 0) > 0 ? "good" : "watch",
+      },
+      {
+        label: "최근 최고 수익률",
+        value: input.returnProfile.recentBestCandidateId
+          ? `${bestReturn} / ${input.returnProfile.recentBestCandidateId}`
+          : bestReturn,
+        status: (input.returnProfile.recentBestPercent ?? 0) > 0 ? "good" : "watch",
+      },
+      {
+        label: "활성 챔피언",
+        value: input.activeChampion?.candidateId ?? "없음",
         status: input.activeChampion ? "good" : "neutral",
       },
       {
-        label: "TV mode",
-        value: manualExternal ? "manual" : "auto-enabled",
+        label: "TV 모드",
+        value: manualExternal ? "수동" : "자동 켜짐",
         status: manualExternal ? "good" : "watch",
       },
       {
-        label: "TV queue",
-        value: `${pending} pending`,
+        label: "TV 큐",
+        value: `${pending}개 대기`,
         status: pending > 0 ? "watch" : "good",
       },
     ],
     nextActions: [
       ...input.improvement.nextFocus.slice(0, 2),
       pending > 0
-        ? "When the local candidate set looks worth checking, run one manual TV calibration candidate."
-        : "Let the local loop gather more evidence before spending attention on TradingView.",
+        ? "로컬 후보 품질이 충분히 좋아 보일 때 수동 TV 검증을 1개만 실행합니다."
+        : "TradingView에 시간을 쓰기 전에 로컬 루프 증거를 더 모읍니다.",
     ],
     warnings,
     commands: [
       {
-        label: "Local loop",
+        label: "로컬 루프",
         command:
           "powershell -ExecutionPolicy Bypass -File scripts/run-autonomous-forever.ps1",
       },
       {
-        label: "Inspect TV queue",
+        label: "TV 큐 확인",
         command: "node dist/cli/index.js inspect-calibration-queue",
       },
       {
-        label: "Manual TV check",
+        label: "수동 TV 검증",
         command: "node dist/cli/index.js process-tv-calibration-queue --max-candidates 1",
       },
     ],
   };
+}
+
+function buildReturnProfile(input: {
+  recentCandidatePoints: DashboardCandidatePoint[];
+  latest: DashboardCandidatePoint | null;
+}): DashboardReturnProfile {
+  const returns = input.recentCandidatePoints
+    .filter((point) => point.metrics?.netProfitPercent != null)
+    .map((point) => ({
+      candidateId: point.candidateId,
+      value: point.metrics!.netProfitPercent,
+    }));
+  const recentTail = returns.slice(-12);
+  const best = [...recentTail].sort((a, b) => b.value - a.value)[0] ?? null;
+  const average = recentTail.length > 0
+    ? recentTail.reduce((sum, point) => sum + point.value, 0) / recentTail.length
+    : null;
+  return {
+    latestPercent: input.latest?.metrics?.netProfitPercent ?? null,
+    recentBestPercent: best?.value ?? null,
+    recentBestCandidateId: best?.candidateId ?? null,
+    recentAveragePercent: average,
+  };
+}
+
+function formatBriefPercent(value: number | null): string {
+  return value == null ? "수익률 없음" : `${value.toFixed(2)}%`;
+}
+
+function translateImprovementStatus(
+  status: DashboardStatusPayload["improvement"]["status"],
+): string {
+  switch (status) {
+    case "improving":
+      return "개선 중";
+    case "blocked":
+      return "막힘";
+    case "watch":
+    default:
+      return "관찰";
+  }
 }
 
 function buildVerifiedAutoresearchDashboard(
@@ -924,16 +994,16 @@ function buildImprovementStatus(input: {
     return {
       status: preflightStillHigh ? "watch" : "improving",
       summary: preflightStillHigh
-        ? "Trade-count stagnation is broken, but sparse-source preflight repair is still carrying the route."
-        : "Recent candidates are clearing local eligibility and the 31/7 cluster is no longer dominant.",
+        ? "거래 수 정체는 깨졌지만, 아직 희소 소스 사전 수리가 경로를 많이 보조하고 있습니다."
+        : "최근 후보가 로컬 적격 기준을 통과하고 있으며 31/7 거래 수 붕괴가 더 이상 지배적이지 않습니다.",
       nextFocus: preflightStillHigh
         ? [
-            "Reduce sparse-source generation so deterministic repair is a fallback, not the main path.",
-            "Keep explicit eventFloorBars/eventWindowBars/maxHoldBars route inputs in generated Pine.",
+            "희소 소스 생성을 줄여 결정적 수리가 주 경로가 아니라 예외 처리로만 쓰이게 합니다.",
+            "생성 Pine에는 eventFloorBars/eventWindowBars/maxHoldBars 입력을 계속 명시합니다.",
           ]
         : [
-            "Compare high-trade eligible candidates against the active champion for promotion readiness.",
-            "Watch drawdown and profit-factor stability before widening the route again.",
+            "거래 수가 충분한 적격 후보를 활성 챔피언과 비교해 승격 가능성을 확인합니다.",
+            "경로를 다시 넓히기 전에 낙폭과 수익 팩터 안정성을 봅니다.",
           ],
     };
   }
@@ -941,10 +1011,10 @@ function buildImprovementStatus(input: {
   if (sparseStillHigh) {
     return {
       status: "blocked",
-      summary: "Recent failures still include repeated sparse 31/7-style trade-count collapses.",
+      summary: "최근 실패에 31/7 형태의 거래 수 붕괴가 반복적으로 포함되어 있습니다.",
       nextFocus: [
-        "Suppress route shapes that do not expose route-aware inputs.",
-        "Force canonical dense event-floor entry before local evaluation.",
+        "경로 인식 입력을 노출하지 않는 형태를 억제합니다.",
+        "로컬 평가 전에 표준 dense event-floor 진입을 강제합니다.",
       ],
     };
   }
@@ -952,11 +1022,11 @@ function buildImprovementStatus(input: {
   return {
     status: "watch",
     summary: input.latest
-      ? "The loop is producing evaluable candidates, but recent eligibility density is not yet stable."
-      : "The loop is running, but there is not enough fresh local-evaluation evidence in the tail window.",
+      ? "루프가 평가 가능한 후보를 만들고 있지만 최근 적격 밀도는 아직 안정적이지 않습니다."
+      : "루프 상태는 확인되지만 tail window 안의 최신 로컬 평가 증거가 충분하지 않습니다.",
     nextFocus: [
-      "Collect a few more local candidates.",
-      "Keep local candidates in frontier/calibration until verified promotion evidence arrives.",
+      "로컬 후보를 몇 개 더 모읍니다.",
+      "검증된 승격 증거가 생길 때까지 후보를 frontier/calibration 단계에 둡니다.",
     ],
   };
 }

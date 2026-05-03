@@ -87,6 +87,57 @@ describe("buildDashboardStatus", () => {
       }),
       "utf8",
     );
+    await writeFile(
+      paths.experimentsPath,
+      [
+        {
+          iteration: 1,
+          candidateId: "cand-return-a",
+          decision: "local_candidate_eligible",
+          recordedAt: "2026-04-27T02:00:00.000Z",
+          candidateScore: 0.61,
+          testerMetrics: {
+            netProfitPercent: 1,
+            profitFactor: 1.2,
+            maxStrategyDrawdownPercent: 8,
+            percentProfitable: 51,
+            totalTrades: 80,
+            avgTradePercent: 0.05,
+          },
+        },
+        {
+          iteration: 2,
+          candidateId: "cand-return-b",
+          decision: "local_candidate_eligible",
+          recordedAt: "2026-04-27T03:00:00.000Z",
+          candidateScore: 0.64,
+          testerMetrics: {
+            netProfitPercent: 5,
+            profitFactor: 1.35,
+            maxStrategyDrawdownPercent: 7,
+            percentProfitable: 53,
+            totalTrades: 90,
+            avgTradePercent: 0.08,
+          },
+        },
+        {
+          iteration: 3,
+          candidateId: "cand-return-c",
+          decision: "local_candidate_eligible",
+          recordedAt: "2026-04-27T04:00:00.000Z",
+          candidateScore: 0.59,
+          testerMetrics: {
+            netProfitPercent: -3,
+            profitFactor: 0.92,
+            maxStrategyDrawdownPercent: 12,
+            percentProfitable: 47,
+            totalTrades: 75,
+            avgTradePercent: -0.04,
+          },
+        },
+      ].map((record) => JSON.stringify(record)).join("\n") + "\n",
+      "utf8",
+    );
 
     const status = await buildDashboardStatus({
       workspaceRoot: root,
@@ -118,7 +169,12 @@ describe("buildDashboardStatus", () => {
     expect(status.verifiedAutoresearch.trialPressure?.familyTrials).toBe(7);
     expect(status.verifiedAutoresearch.branchBudget?.totalBranches).toBe(2);
     expect(status.operatorBrief.mode).toBe("local_only");
-    expect(status.operatorBrief.headline).toContain("TradingView is manual");
+    expect(status.operatorBrief.headline).toContain("TradingView는 수동");
+    expect(status.operatorBrief.summary).toContain("수익률은 -3.00%");
+    expect(status.score.returnProfile.latestPercent).toBe(-3);
+    expect(status.score.returnProfile.recentBestPercent).toBe(5);
+    expect(status.score.returnProfile.recentBestCandidateId).toBe("cand-return-b");
+    expect(status.score.returnProfile.recentAveragePercent).toBeCloseTo(1);
     expect(status.externalValidation.pendingCount).toBe(1);
     expect(status.externalValidation.pendingCandidateIds).toEqual(["cand-queued"]);
     expect(status.externalValidation.latestDivergence).toEqual(
