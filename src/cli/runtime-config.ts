@@ -86,7 +86,7 @@ function parsePromotionVerificationExecutor(
     return value;
   }
 
-  return "tradingview-desktop-cdp";
+  return "none";
 }
 
 export function loadRuntimeEnvironment(options?: {

@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("runtime config", () => {
-  test("defaults promotion verification to TradingView and leaves calibration processing manual", async () => {
+  test("defaults external TradingView verification to opt-in manual paths", async () => {
     delete process.env.PINE_PROMOTION_VERIFICATION_EXECUTOR;
     delete process.env.AF_PROMOTION_VERIFICATION_EXECUTOR;
     delete process.env.AF_AUTO_PROCESS_CALIBRATION;
@@ -33,7 +33,7 @@ describe("runtime config", () => {
     });
 
     expect(env.evaluationExecutor).toBe("local-backtest");
-    expect(env.promotionVerificationExecutor).toBe("tradingview-desktop-cdp");
+    expect(env.promotionVerificationExecutor).toBe("none");
     expect(env.autoProcessCalibration).toBe(false);
     expect(env.calibrationBudget).toBe(3);
     expect(env.mutationSchemaMode).toBe("strict");
