@@ -61,6 +61,11 @@ interface StrategySnapshot {
   } | null;
 }
 
+interface StudyRemovalResult {
+  removedCount: number;
+  dismissedIndicatorLimitDialog: boolean;
+}
+
 const MONACO_MODULE_ID = 24292;
 const DEFAULT_PINE_EDITOR_WAIT_TIMEOUT_MS = 15_000;
 const PINE_EDITOR_HARD_RELOAD_WAIT_MS = 12_000;
@@ -75,6 +80,8 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
   private readonly pineEditorTimeoutMs: number;
   private lastCompile: CompileResult | null = null;
   private lastAttachDiagnostics: AttachDiagnostics | null = null;
+  private pendingStudyTitle: string | null = null;
+  private pendingAttachRecoveryActions: string[] = [];
 
   public constructor(config: TradingViewDesktopExecutorConfig) {
     this.client = new TradingViewDesktopCdpClient({
@@ -164,10 +171,26 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
 
   public async updateStrategySource(source: string): Promise<void> {
     await this.ensurePineEditorReady("Monaco editor ready");
+    this.pendingStudyTitle = extractStudyTitle(source);
+    this.pendingAttachRecoveryActions = [];
     await this.client.evaluate<boolean>(setMonacoSourceExpression(source));
   }
 
   public async compileStrategy(): Promise<CompileResult> {
+    if (this.pendingStudyTitle != null) {
+      const removal = await this.removeAttachedStrategyStudies(this.pendingStudyTitle);
+      if (removal.removedCount > 0) {
+        this.pendingAttachRecoveryActions.push(
+          "pre_removed_existing_strategy_studies",
+        );
+      }
+      if (removal.dismissedIndicatorLimitDialog) {
+        this.pendingAttachRecoveryActions.push(
+          "dismissed_indicator_limit_dialog",
+        );
+      }
+    }
+
     await this.client.evaluate<boolean>(focusMonacoEditorExpression());
     await this.client.dispatchCtrlEnter();
     await this.client.delay(4_000);
@@ -204,15 +227,21 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
       },
     );
 
+    const recoveryActions = [...this.pendingAttachRecoveryActions];
     let attachDiagnostics = buildAttachDiagnostics(
       expectedStudyTitle,
       strategySnapshot.attachedStudies,
       strategySnapshot.expectedStudy,
+      recoveryActions,
     );
-    const recoveryActions: string[] = [];
     if (expectedStudyTitle != null && !attachDiagnostics.exactTitleMatched) {
-      await this.removeAttachedStrategyStudies(expectedStudyTitle);
-      recoveryActions.push("removed_conflicting_strategy_studies");
+      const removal = await this.removeAttachedStrategyStudies(expectedStudyTitle);
+      if (removal.removedCount > 0) {
+        recoveryActions.push("removed_conflicting_strategy_studies");
+      }
+      if (removal.dismissedIndicatorLimitDialog) {
+        recoveryActions.push("dismissed_indicator_limit_dialog");
+      }
       await this.client.evaluate<boolean>(focusMonacoEditorExpression());
       await this.client.dispatchCtrlEnter();
       recoveryActions.push("retried_study_attachment");
@@ -374,8 +403,10 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
     );
   }
 
-  private async removeAttachedStrategyStudies(expectedStudyTitle: string | null): Promise<void> {
-    await this.client.evaluate<boolean>(
+  private async removeAttachedStrategyStudies(
+    expectedStudyTitle: string | null,
+  ): Promise<StudyRemovalResult> {
+    const removal = await this.client.evaluate<StudyRemovalResult>(
       removeAttachedStrategyStudiesExpression(expectedStudyTitle),
     );
     await this.client.waitFor(
@@ -394,6 +425,7 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
         label: "Remove stale strategy studies",
       },
     );
+    return removal;
   }
 
   private async ensurePineEditorReady(label: string): Promise<void> {
@@ -732,6 +764,100 @@ function removeAttachedStrategyStudiesExpression(expectedStudyTitle: string | nu
       }
       return normalized.split(" - ")[0]?.trim() ?? normalized;
     };
+    const dismissIndicatorLimitDialog = () => {
+      const dialogCandidates = Array.from(
+        document.querySelectorAll('[role="dialog"], [data-dialog-name], div'),
+      )
+        .filter((element) => {
+          const text = (element.textContent ?? '').replace(/\\s+/g, ' ');
+          return /\\uB354 \\uB9CE\\uC740 \\uC778\\uB514\\uCF00\\uC774\\uD130|\\uCD5C\\uB300\\uCE58\\uC778\\s*2\\uAC1C\\uC758 \\uC9C0\\uD45C|maximum.*indicators|too many indicators|indicator limit/i.test(text);
+        })
+        .map((element) => ({
+          element,
+          rect: element.getBoundingClientRect?.() ?? {
+            top: 0,
+            right: 0,
+            width: Number.MAX_SAFE_INTEGER,
+            height: Number.MAX_SAFE_INTEGER,
+          },
+        }))
+        .sort(
+          (left, right) =>
+            left.rect.width * left.rect.height - right.rect.width * right.rect.height,
+        );
+      const dialog = dialogCandidates[0]?.element ?? null;
+      if (!dialog) {
+        return false;
+      }
+      const dialogRect = dialog.getBoundingClientRect?.() ?? null;
+
+      const closeButtons = Array.from(
+        dialog.querySelectorAll('button, [role="button"], [aria-label], [title]'),
+      )
+        .map((element) => {
+          const rect = element.getBoundingClientRect?.() ?? null;
+          const text = [
+            element.getAttribute?.('aria-label') ?? '',
+            element.getAttribute?.('title') ?? '',
+            element.textContent ?? '',
+          ].join(' ').trim();
+          const closeLabelMatch = /close|dismiss|\\uB2EB\\uAE30|\\u00d7|x/i.test(text);
+          const topRightDistance =
+            dialogRect && rect
+              ? Math.abs(rect.top - dialogRect.top) + Math.abs(rect.right - dialogRect.right)
+              : Number.MAX_SAFE_INTEGER;
+          return {
+            element,
+            rect,
+            closeLabelMatch,
+            topRightDistance,
+          };
+        })
+        .filter((entry) => {
+          if (!entry.rect) {
+            return entry.closeLabelMatch;
+          }
+          return entry.rect.width > 0 && entry.rect.height > 0;
+        })
+        .sort((left, right) => {
+          if (left.closeLabelMatch !== right.closeLabelMatch) {
+            return left.closeLabelMatch ? -1 : 1;
+          }
+          return left.topRightDistance - right.topRightDistance;
+        });
+      const closeButton = closeButtons[0]?.element ?? null;
+      if (!closeButton) {
+        document.dispatchEvent?.(
+          new KeyboardEvent('keydown', {
+            key: 'Escape',
+            code: 'Escape',
+            keyCode: 27,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        return false;
+      }
+      const rect = closeButton.getBoundingClientRect?.() ?? null;
+      const eventOptions = rect
+        ? {
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.top + rect.height / 2,
+          }
+        : {
+            bubbles: true,
+            cancelable: true,
+          };
+      closeButton.dispatchEvent?.(new PointerEvent('pointerdown', eventOptions));
+      closeButton.dispatchEvent?.(new MouseEvent('mousedown', eventOptions));
+      closeButton.dispatchEvent?.(new PointerEvent('pointerup', eventOptions));
+      closeButton.dispatchEvent?.(new MouseEvent('mouseup', eventOptions));
+      closeButton.dispatchEvent?.(new MouseEvent('click', eventOptions));
+      closeButton.click?.();
+      return true;
+    };
     const expectedFamily = studyFamily(expectedStudyTitle);
     const collection = studyMarket?._chartWidgetCollection;
     const active = collection?.activeChartWidget?.value?.() ?? collection?.activeChartWidget ?? null;
@@ -754,7 +880,10 @@ function removeAttachedStrategyStudiesExpression(expectedStudyTitle: string | nu
     removable.forEach((source) => {
       model.removeSource?.(source, false);
     });
-    return true;
+    return {
+      removedCount: removable.length,
+      dismissedIndicatorLimitDialog: dismissIndicatorLimitDialog(),
+    };
   })()`;
 }
 
@@ -860,4 +989,5 @@ export const __test__ = {
   setMonacoSourceExpression,
   focusMonacoEditorExpression,
   readMonacoMarkersExpression,
+  removeAttachedStrategyStudiesExpression,
 };

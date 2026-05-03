@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:07:39.880Z",
+  "generatedAt": "2026-05-03T07:33:22.806Z",
   "entries": [
     {
       "candidateId": "cand-24b4021d",
@@ -36,6 +36,24 @@
       "noveltyScore": 0.2035,
       "autoSelectionScore": 0.8159,
       "recordHash": "179ad45bfe852b3719dcf85acdd323a547823347488a53b33efdd6aacb4c94f2"
+    },
+    {
+      "candidateId": "cand-77d60457",
+      "noveltyScore": 0.2008,
+      "autoSelectionScore": 0.4571,
+      "recordHash": "8165aec8fb4c0cb918391fdc75c14900ab1f38c12641f1e77c94e9db8f6f852b"
+    },
+    {
+      "candidateId": "cand-047d0e87",
+      "noveltyScore": 0.2008,
+      "autoSelectionScore": 0.4138,
+      "recordHash": "dd6b64f93ffd6347267363441882124d794b5a9a627ebe4f7f9642d16601ddf3"
+    },
+    {
+      "candidateId": "cand-3283b034",
+      "noveltyScore": 0.1958,
+      "autoSelectionScore": 0.5627,
+      "recordHash": "558dfaad502e2fd6d983bc69114ac9d28b95632c7fc83b7b0f8be5a814691c0b"
     },
     {
       "candidateId": "cand-aa831a28",
@@ -80,46 +98,28 @@
       "recordHash": "fbc3afd132e395c8a47ce1924a4cc633868f4666c724e263a145a8d5576fb65c"
     },
     {
+      "candidateId": "cand-933de2f1",
+      "noveltyScore": 0.1857,
+      "autoSelectionScore": 0.562,
+      "recordHash": "592a041e64776e12c0ff2acde0abb8d9c40858563017c1bc34dcc4de7ee7dc5f"
+    },
+    {
       "candidateId": "cand-6172d7d6",
       "noveltyScore": 0.1856,
       "autoSelectionScore": 0.5347,
       "recordHash": "f123b4a352688bebe97125eb49a9cc9b846a14708a2b75c59e8d16c9f1ea0549"
     },
     {
+      "candidateId": "cand-f1dd7924",
+      "noveltyScore": 0.1849,
+      "autoSelectionScore": 0.5385,
+      "recordHash": "5100fc187d856f421de80a795021c07204ae39417b63b50a56cac9d6debe672f"
+    },
+    {
       "candidateId": "cand-0c5cb65e",
       "noveltyScore": 0.1835,
       "autoSelectionScore": 0.9506,
       "recordHash": "5d446e69d478e286dc63effab029a00660fa7c6987a3281419d2fbd40bbaa042"
-    },
-    {
-      "candidateId": "cand-5309dcd0",
-      "noveltyScore": 0.1833,
-      "autoSelectionScore": 0.4626,
-      "recordHash": "10120aaad4c265c9690a3d72e3d8e456cca9ae41b719d684db613197a2c61a81"
-    },
-    {
-      "candidateId": "cand-967e090b",
-      "noveltyScore": 0.1822,
-      "autoSelectionScore": 0.501,
-      "recordHash": "e4e175bb20586b722e7dfe60b6f8dcd940dba110904383523f0b54c2ac28145a"
-    },
-    {
-      "candidateId": "cand-bac57a39",
-      "noveltyScore": 0.1814,
-      "autoSelectionScore": 0.319,
-      "recordHash": "0aadcd8dcda9492495efab70e6b449ab23514fd8dbd61fac69d6228dd844fb7c"
-    },
-    {
-      "candidateId": "cand-bc1d3a3d",
-      "noveltyScore": 0.1811,
-      "autoSelectionScore": 0.2435,
-      "recordHash": "1073942e961be1e9de845f6e98b8f6493dc0dfd7983b2b5037ab9f47e15f6c5e"
-    },
-    {
-      "candidateId": "cand-ff5409c4",
-      "noveltyScore": 0.1808,
-      "autoSelectionScore": 0.3709,
-      "recordHash": "f3bb7e83c1a309b5a5278a636e023c51999b8e729b171579456cd9e389037dcd"
     }
   ]
 }

@@ -1,0 +1,38 @@
+{
+  "version": "af-spec/v1",
+  "name": "AF Spec v1 [seed-balanced-range-exit-shift]",
+  "event": {
+    "source": "event_floor",
+    "L1": 9,
+    "L2": 12,
+    "L3": 14,
+    "confirmBars": 1,
+    "eventFloorBars": 2,
+    "eventWindowBars": 5
+  },
+  "regime": {
+    "trendMode": "Loose",
+    "useSupertrendFilter": false,
+    "riskOffRsi": 42,
+    "maxExtPct": 7
+  },
+  "entry": {
+    "primaryTrigger": "bull_event",
+    "cooldownBars": 0,
+    "allowBearRebound": true,
+    "applyFilterToB1": false
+  },
+  "slot": {
+    "slotPct": 15,
+    "maxSlots": 18,
+    "useReplacement": true,
+    "replaceMinRank": 2,
+    "replaceIfPnlBelow": -4
+  },
+  "exit": {
+    "weakRangeExit": true,
+    "maxHoldBars": 18,
+    "closeAllOnBearConfRiskOff": true,
+    "resetOnL3": true
+  }
+}

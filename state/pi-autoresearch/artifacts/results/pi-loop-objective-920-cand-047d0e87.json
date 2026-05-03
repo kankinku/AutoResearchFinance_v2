@@ -1,0 +1,68 @@
+{
+  "candidateId": "cand-047d0e87",
+  "decision": "local_candidate_rejected",
+  "score": 0.22003055099999996,
+  "objectiveBreakdown": {
+    "score": 0.22003055099999996,
+    "hardGatesPassed": false,
+    "softGuardrailBreached": false,
+    "hardGateReasons": [
+      "positive_post_fee_profit"
+    ],
+    "components": {
+      "netProfitPercent": {
+        "rawValue": -1.324315,
+        "normalizedValue": 0,
+        "weight": 0.45,
+        "contribution": 0
+      },
+      "profitFactor": {
+        "rawValue": 0.970583,
+        "normalizedValue": 0.32352766666666666,
+        "weight": 0.15,
+        "contribution": 0.04852915
+      },
+      "inverseMaxDrawdown": {
+        "rawValue": 12.538999,
+        "normalizedValue": 0.49844004,
+        "weight": 0.15,
+        "contribution": 0.074766006
+      },
+      "percentProfitable": {
+        "rawValue": 46.735395,
+        "normalizedValue": 0.46735394999999996,
+        "weight": 0.1,
+        "contribution": 0.046735395
+      },
+      "totalTrades": {
+        "rawValue": 582,
+        "normalizedValue": 1,
+        "weight": 0.05,
+        "contribution": 0.05
+      },
+      "avgTradePercent": {
+        "rawValue": -0.010521,
+        "normalizedValue": 0,
+        "weight": 0.1,
+        "contribution": 0
+      }
+    }
+  },
+  "strategyMetrics": {
+    "netProfitPercent": -1.324315,
+    "postFeeNetProfitPercent": -1.324315,
+    "profitFactor": 0.970583,
+    "maxStrategyDrawdownPercent": 12.538999,
+    "percentProfitable": 46.735395,
+    "totalTrades": 582,
+    "avgTradePercent": -0.010521
+  },
+  "verificationFailureReason": null,
+  "verificationRuntimeFailureKind": null,
+  "recoveryAttempts": [],
+  "fallbackEvaluation": null,
+  "promotionReady": false,
+  "screeningVsVerificationDiff": null,
+  "recordEra": "v2",
+  "generatedAt": "2026-05-03T07:13:23.189Z"
+}

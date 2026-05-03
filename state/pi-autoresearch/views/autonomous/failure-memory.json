@@ -1,73 +1,8 @@
 {
-  "generatedAt": "2026-05-03T07:07:39.887Z",
-  "problemEventCount": 451,
-  "repairAttemptCount": 283,
+  "generatedAt": "2026-05-03T07:33:22.813Z",
+  "problemEventCount": 456,
+  "repairAttemptCount": 287,
   "recentProblemEvents": [
-    {
-      "problemEventId": "problem-638fd06f",
-      "runId": "autonomous-1777779398401",
-      "iteration": 885,
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "diagnosis": "[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"entry\",\n      \"cooldownBars\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"slotPct\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"maxSlots\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]",
-      "evidenceHash": "6c5249eb53f2d3a6810b75fc6edb0f618d448b9b63c0160e61b5e6fe9c789301",
-      "suggestedRepairKind": "schema_repair",
-      "failureSignatureHash": "0f7af2f67f7584fd2fd18a5aa8f1a463d4e557eb2e8bcf26a54edb782c9fc73a",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:37:37.631Z"
-    },
-    {
-      "problemEventId": "problem-76cd416e",
-      "runId": "autonomous-1777779520541",
-      "iteration": 886,
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "diagnosis": "[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"slotPct\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"maxSlots\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  },\n  {\n    \"expected\": \"boolean\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"useReplacement\"\n    ],\n    \"message\": \"Invalid input: expected boolean, received string\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"replaceMinRank\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"replaceIfPnlBelow\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  },\n  {\n    \"expected\": \"boolean\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"exit\",\n      \"weakRangeExit\"\n    ],\n    \"message\": \"Invalid input: expected boolean, received object\"\n  },\n  {\n    \"expected\": \"boolean\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"exit\",\n      \"resetOnL3\"\n    ],\n    \"message\": \"Invalid input: expected boolean, received string\"\n  }\n]",
-      "evidenceHash": "6adc63c7e03feed1ba3af43ab6ffdfd0c8447060b573561a064c32c12d9f564c",
-      "suggestedRepairKind": "schema_repair",
-      "failureSignatureHash": "489eff709bdad5c2b6d6d6003b11264c6552d7c9e63882e403f384ec2dca5e5d",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:39:37.579Z"
-    },
-    {
-      "problemEventId": "problem-f32ffe4a",
-      "runId": "autonomous-1777779727071",
-      "iteration": 888,
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "diagnosis": "[\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"af_exhaustion\",\n      \"event_floor\",\n      \"reclaim\",\n      \"compression_release\"\n    ],\n    \"path\": [\n      \"event\",\n      \"source\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"af_exhaustion\\\"|\\\"event_floor\\\"|\\\"reclaim\\\"|\\\"compression_release\\\"\"\n  }\n]",
-      "evidenceHash": "57c42e17eb46c0aba8100f403efe1f9c3eef351052eab028db88a9279c02df80",
-      "suggestedRepairKind": "schema_repair",
-      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:43:10.734Z"
-    },
-    {
-      "problemEventId": "problem-aea17af5",
-      "runId": "autonomous-1777780339717",
-      "iteration": 894,
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "diagnosis": "[\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"af_exhaustion\",\n      \"event_floor\",\n      \"reclaim\",\n      \"compression_release\"\n    ],\n    \"path\": [\n      \"event\",\n      \"source\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"af_exhaustion\\\"|\\\"event_floor\\\"|\\\"reclaim\\\"|\\\"compression_release\\\"\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"slot\",\n      \"maxSlots\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]",
-      "evidenceHash": "a23209b23ddaae0a8c3cd31402a66988882def65789e2d37247954e5b9d0aab0",
-      "suggestedRepairKind": "schema_repair",
-      "failureSignatureHash": "44a968420f9228d0aeaae5c33ddf78d52c2bab20ea5adfc8262f7951ba9669b6",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:53:34.258Z"
-    },
-    {
-      "problemEventId": "problem-b1431ad6",
-      "runId": "autonomous-1777780466375",
-      "iteration": 895,
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "diagnosis": "[\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"entry\",\n      \"cooldownBars\"\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]",
-      "evidenceHash": "b9623687fe80ac817b12a6260b49240a5fd8a9a05e97bb93999b9bfcf8d30577",
-      "suggestedRepairKind": "schema_repair",
-      "failureSignatureHash": "5285af9ad8355b213ce9d5e7a68df60c482940097e030ac6a5e4becdbfd813cf",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:55:16.368Z"
-    },
     {
       "problemEventId": "problem-d04991b0",
       "runId": "autonomous-1777780566234",
@@ -262,77 +197,74 @@
       "failureSignatureHash": "d7449cea90067e06ec3760420098e26afc6d47a6485c09f0ea7c5bf7ea05a9b7",
       "structureFamily": null,
       "recordedAt": "2026-05-03T07:01:48.889Z"
+    },
+    {
+      "problemEventId": "problem-f3a7d3f3",
+      "runId": "autonomous-1777792263493",
+      "iteration": 920,
+      "candidateId": null,
+      "problemKind": "llm_schema_fail",
+      "diagnosis": "[\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"Strict\",\n      \"Balanced\",\n      \"Loose\"\n    ],\n    \"path\": [\n      \"regime\",\n      \"trendMode\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"Strict\\\"|\\\"Balanced\\\"|\\\"Loose\\\"\"\n  },\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"entry\",\n      \"cooldownBars\"\n    ],\n    \"message\": \"Invalid input: expected number, received object\"\n  },\n  {\n    \"expected\": \"boolean\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"exit\",\n      \"weakRangeExit\"\n    ],\n    \"message\": \"Invalid input: expected boolean, received object\"\n  }\n]",
+      "evidenceHash": "be58f36d71c30191929b56effb3072690f5beb99c988e3f660dfe271d53a327d",
+      "suggestedRepairKind": "schema_repair",
+      "failureSignatureHash": "8e991b8086e47e751dd99dc29a225643f79fc59785a31897d423cc642d935846",
+      "structureFamily": null,
+      "recordedAt": "2026-05-03T07:12:14.734Z"
+    },
+    {
+      "problemEventId": "problem-e212eb2c",
+      "runId": "autonomous-1777792263493",
+      "iteration": 920,
+      "candidateId": "cand-047d0e87",
+      "problemKind": "local_backtest_fail",
+      "diagnosis": "local_candidate_rejected | objective_hard_gate_fail | full_sample_hard_gate_fail | full_sample_trades=582 | oos_trades=172 | oos_post_fee_profit=3.090722",
+      "evidenceHash": "daa1e54190c28ae9f6307d899c6e7fa7140259953ff2d3e986fc61993d079392",
+      "suggestedRepairKind": "mutation_prompt_adjustment",
+      "failureSignatureHash": "ff1dfdfc33fa3f12d7c21b4afe58f76a95a390a534593b9f8490e705e47bbb99",
+      "structureFamily": "25d8a56e5c1d4e50bfafee4cf67d479dc23e89b0157f2c53dab949bf621ee13f",
+      "recordedAt": "2026-05-03T07:13:23.262Z"
+    },
+    {
+      "problemEventId": "problem-796fd199",
+      "runId": "autonomous-1777792263493",
+      "iteration": 920,
+      "candidateId": "cand-047d0e87",
+      "problemKind": "llm_schema_fail",
+      "diagnosis": "[\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"af_exhaustion\",\n      \"event_floor\",\n      \"reclaim\",\n      \"compression_release\"\n    ],\n    \"path\": [\n      \"event\",\n      \"source\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"af_exhaustion\\\"|\\\"event_floor\\\"|\\\"reclaim\\\"|\\\"compression_release\\\"\"\n  }\n]",
+      "evidenceHash": "6aaeb122a598f29ec6f59e7b2774cf13d938f751064fbd53c6be2aa1d3166f82",
+      "suggestedRepairKind": "schema_repair",
+      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
+      "structureFamily": null,
+      "recordedAt": "2026-05-03T07:13:57.861Z"
+    },
+    {
+      "problemEventId": "problem-acd1da6b",
+      "runId": "autonomous-1777792263493",
+      "iteration": 920,
+      "candidateId": "cand-77d60457",
+      "problemKind": "local_backtest_fail",
+      "diagnosis": "local_candidate_rejected | objective_hard_gate_fail | full_sample_hard_gate_fail | full_sample_trades=542 | oos_trades=160 | oos_post_fee_profit=2.170396",
+      "evidenceHash": "576aa7612a7419ff707d1d1e8d07e1bfbc5b079ba02f00223cf71a72ab9ad093",
+      "suggestedRepairKind": "mutation_prompt_adjustment",
+      "failureSignatureHash": "51481a61783860850e4b5ef409ac3406ffd0edce70bce5746668fa0d56b6e022",
+      "structureFamily": "945aab9b5439ffae702dbb33fe97bae2c2d730fa2f8cb14aa694c25d4d8ff7b3",
+      "recordedAt": "2026-05-03T07:14:32.221Z"
+    },
+    {
+      "problemEventId": "problem-145c302b",
+      "runId": "autonomous-1777792641015",
+      "iteration": 929,
+      "candidateId": "cand-c885d2f7",
+      "problemKind": "llm_schema_fail",
+      "diagnosis": "[\n  {\n    \"code\": \"invalid_value\",\n    \"values\": [\n      \"af_exhaustion\",\n      \"event_floor\",\n      \"reclaim\",\n      \"compression_release\"\n    ],\n    \"path\": [\n      \"event\",\n      \"source\"\n    ],\n    \"message\": \"Invalid option: expected one of \\\"af_exhaustion\\\"|\\\"event_floor\\\"|\\\"reclaim\\\"|\\\"compression_release\\\"\"\n  }\n]",
+      "evidenceHash": "87d07c8617f60ae05519b7c97afdd00e1632745deea00c857a42c834a59538b1",
+      "suggestedRepairKind": "schema_repair",
+      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
+      "structureFamily": null,
+      "recordedAt": "2026-05-03T07:17:45.250Z"
     }
   ],
   "recentRepairAttempts": [
-    {
-      "repairAttemptId": "repair-15ed7306",
-      "problemEventId": "problem-62052681",
-      "runId": "autonomous-1777779272762",
-      "iteration": 884,
-      "candidateId": null,
-      "repairedCandidateId": "cand-9a081476",
-      "repairKind": "schema_repair",
-      "llmPromptHash": "7cf57a3d89d39a4ab5270cf306aa22ca6753cbc982e6c550c92eb8790452a0ee",
-      "llmResponseHash": "6e0931124458687d66283ecb5d7bcc694a58e3ce207d1426ff00abf6975ce09c",
-      "result": "success",
-      "failureReason": null,
-      "summary": "Requested strict JSON schema repair for autonomous mutation.",
-      "failureSignatureHash": "6775752efa95d58d35e38e98c79ef293ed6c41d22d8ef5f2a26c09b3f6ed53a4",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:36:25.944Z"
-    },
-    {
-      "repairAttemptId": "repair-8d700d5c",
-      "problemEventId": "problem-638fd06f",
-      "runId": "autonomous-1777779398401",
-      "iteration": 885,
-      "candidateId": null,
-      "repairedCandidateId": "cand-de9c692a",
-      "repairKind": "schema_repair",
-      "llmPromptHash": "4cc7941188a1a0e1f62e9bb2dbd095a7db68fdaab8459ed94d099f9e6120b751",
-      "llmResponseHash": "8ba514058a84c3fb32ab28a95a1bccf1af4a61b5ed49f830164199d3dbfc3548",
-      "result": "success",
-      "failureReason": null,
-      "summary": "Requested strict JSON schema repair for autonomous mutation.",
-      "failureSignatureHash": "0f7af2f67f7584fd2fd18a5aa8f1a463d4e557eb2e8bcf26a54edb782c9fc73a",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:38:28.142Z"
-    },
-    {
-      "repairAttemptId": "repair-6f4f5679",
-      "problemEventId": "problem-76cd416e",
-      "runId": "autonomous-1777779520541",
-      "iteration": 886,
-      "candidateId": null,
-      "repairedCandidateId": "cand-3eef8756",
-      "repairKind": "schema_repair",
-      "llmPromptHash": "4aea870aa79ecc3de5b134941c179ec00606f445b5de09c0c64843b388e4a1a0",
-      "llmResponseHash": "616c479f1f8797ae9586145b1502f412a9a4b549117220514dba2a502bfc8b36",
-      "result": "success",
-      "failureReason": null,
-      "summary": "Requested strict JSON schema repair for autonomous mutation.",
-      "failureSignatureHash": "489eff709bdad5c2b6d6d6003b11264c6552d7c9e63882e403f384ec2dca5e5d",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:40:28.474Z"
-    },
-    {
-      "repairAttemptId": "repair-eecc2363",
-      "problemEventId": "problem-f32ffe4a",
-      "runId": "autonomous-1777779727071",
-      "iteration": 888,
-      "candidateId": null,
-      "repairedCandidateId": "cand-302f81b4",
-      "repairKind": "schema_repair",
-      "llmPromptHash": "6aeb29ae2727ebb8fa02e6985b7dea8c7a60d964f0fae29a5f7106a69cc1ceb2",
-      "llmResponseHash": "13e0066eb5fe7682900151043a03f0d57d0b4852145fca35f2511e806aa3e15f",
-      "result": "success",
-      "failureReason": null,
-      "summary": "Requested strict JSON schema repair for autonomous mutation.",
-      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
-      "structureFamily": null,
-      "recordedAt": "2026-05-03T03:44:14.051Z"
-    },
     {
       "repairAttemptId": "repair-d0cb813a",
       "problemEventId": "problem-aea17af5",
@@ -604,89 +536,77 @@
       "failureSignatureHash": "d7449cea90067e06ec3760420098e26afc6d47a6485c09f0ea7c5bf7ea05a9b7",
       "structureFamily": null,
       "recordedAt": "2026-05-03T07:02:49.625Z"
+    },
+    {
+      "repairAttemptId": "repair-fd2d9ff0",
+      "problemEventId": "problem-f3a7d3f3",
+      "runId": "autonomous-1777792263493",
+      "iteration": 920,
+      "candidateId": null,
+      "repairedCandidateId": "cand-047d0e87",
+      "repairKind": "schema_repair",
+      "llmPromptHash": "3c092a044b54fc4f1dcad748a32c45a45a0effdaa121b6a24ace6cfb81710b7d",
+      "llmResponseHash": "f6aa8dca015c59c714d2293a813c366c5e7002b753a0dd4eabbadc9d0b7afd69",
+      "result": "success",
+      "failureReason": null,
+      "summary": "Requested strict JSON schema repair for autonomous mutation.",
+      "failureSignatureHash": "8e991b8086e47e751dd99dc29a225643f79fc59785a31897d423cc642d935846",
+      "structureFamily": null,
+      "recordedAt": "2026-05-03T07:13:22.756Z"
+    },
+    {
+      "repairAttemptId": "repair-73f5f4dd",
+      "problemEventId": "problem-796fd199",
+      "runId": "autonomous-1777792263493",
+      "iteration": 920,
+      "candidateId": "cand-047d0e87",
+      "repairedCandidateId": "cand-77d60457",
+      "repairKind": "schema_repair",
+      "llmPromptHash": "0c6a5eb650792ead27c9faa5cb49e794096fccb9c1875dcd2a117a35907c07b0",
+      "llmResponseHash": "ab5cc650c5a2acd3d90ce06bafa1eae6bd86c64b0412bef6358d8795ec4e1402",
+      "result": "success",
+      "failureReason": null,
+      "summary": "Requested strict JSON schema repair for autonomous mutation.",
+      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
+      "structureFamily": null,
+      "recordedAt": "2026-05-03T07:14:31.683Z"
+    },
+    {
+      "repairAttemptId": "repair-1698a810",
+      "problemEventId": "problem-e212eb2c",
+      "runId": "autonomous-1777792263493",
+      "iteration": 920,
+      "candidateId": "cand-047d0e87",
+      "repairedCandidateId": "cand-77d60457",
+      "repairKind": "mutation_prompt_adjustment",
+      "llmPromptHash": "913eed89f8255ef588e6e39dc9cb76ebcd724b24638a659f663d04aa8e9f4f7b",
+      "llmResponseHash": "6aaeb122a598f29ec6f59e7b2774cf13d938f751064fbd53c6be2aa1d3166f82",
+      "result": "success",
+      "failureReason": null,
+      "summary": "Requested mutation_prompt_adjustment after local_backtest_fail.",
+      "failureSignatureHash": "ff1dfdfc33fa3f12d7c21b4afe58f76a95a390a534593b9f8490e705e47bbb99",
+      "structureFamily": "25d8a56e5c1d4e50bfafee4cf67d479dc23e89b0157f2c53dab949bf621ee13f",
+      "recordedAt": "2026-05-03T07:14:31.685Z"
+    },
+    {
+      "repairAttemptId": "repair-d1367386",
+      "problemEventId": "problem-145c302b",
+      "runId": "autonomous-1777792641015",
+      "iteration": 929,
+      "candidateId": "cand-c885d2f7",
+      "repairedCandidateId": "cand-3c82c489",
+      "repairKind": "schema_repair",
+      "llmPromptHash": "ff4dcc2795a34c87e504913e0bfd90ab16d6aef16e9fda2ff56c30e37e5cb3df",
+      "llmResponseHash": "cbe3b2eb56ec7a484d73a6771ff7d45a2d33167c0f45cc36afbb4cce0911a5da",
+      "result": "success",
+      "failureReason": null,
+      "summary": "Requested strict JSON schema repair for autonomous mutation.",
+      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
+      "structureFamily": null,
+      "recordedAt": "2026-05-03T07:18:08.690Z"
     }
   ],
   "recentFailureRepairChains": [
-    {
-      "problemEventId": "problem-638fd06f",
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "failureSignatureHash": "0f7af2f67f7584fd2fd18a5aa8f1a463d4e557eb2e8bcf26a54edb782c9fc73a",
-      "structureFamily": null,
-      "suggestedRepairKind": "schema_repair",
-      "repairAttempt": {
-        "repairAttemptId": "repair-8d700d5c",
-        "result": "success",
-        "repairedCandidateId": "cand-de9c692a",
-        "failureSignatureHash": "0f7af2f67f7584fd2fd18a5aa8f1a463d4e557eb2e8bcf26a54edb782c9fc73a",
-        "structureFamily": null,
-        "failureReason": null
-      }
-    },
-    {
-      "problemEventId": "problem-76cd416e",
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "failureSignatureHash": "489eff709bdad5c2b6d6d6003b11264c6552d7c9e63882e403f384ec2dca5e5d",
-      "structureFamily": null,
-      "suggestedRepairKind": "schema_repair",
-      "repairAttempt": {
-        "repairAttemptId": "repair-6f4f5679",
-        "result": "success",
-        "repairedCandidateId": "cand-3eef8756",
-        "failureSignatureHash": "489eff709bdad5c2b6d6d6003b11264c6552d7c9e63882e403f384ec2dca5e5d",
-        "structureFamily": null,
-        "failureReason": null
-      }
-    },
-    {
-      "problemEventId": "problem-f32ffe4a",
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
-      "structureFamily": null,
-      "suggestedRepairKind": "schema_repair",
-      "repairAttempt": {
-        "repairAttemptId": "repair-eecc2363",
-        "result": "success",
-        "repairedCandidateId": "cand-302f81b4",
-        "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
-        "structureFamily": null,
-        "failureReason": null
-      }
-    },
-    {
-      "problemEventId": "problem-aea17af5",
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "failureSignatureHash": "44a968420f9228d0aeaae5c33ddf78d52c2bab20ea5adfc8262f7951ba9669b6",
-      "structureFamily": null,
-      "suggestedRepairKind": "schema_repair",
-      "repairAttempt": {
-        "repairAttemptId": "repair-d0cb813a",
-        "result": "success",
-        "repairedCandidateId": "cand-9d323edb",
-        "failureSignatureHash": "44a968420f9228d0aeaae5c33ddf78d52c2bab20ea5adfc8262f7951ba9669b6",
-        "structureFamily": null,
-        "failureReason": null
-      }
-    },
-    {
-      "problemEventId": "problem-b1431ad6",
-      "candidateId": null,
-      "problemKind": "llm_schema_fail",
-      "failureSignatureHash": "5285af9ad8355b213ce9d5e7a68df60c482940097e030ac6a5e4becdbfd813cf",
-      "structureFamily": null,
-      "suggestedRepairKind": "schema_repair",
-      "repairAttempt": {
-        "repairAttemptId": "repair-97cc3f6d",
-        "result": "success",
-        "repairedCandidateId": "cand-131673d7",
-        "failureSignatureHash": "5285af9ad8355b213ce9d5e7a68df60c482940097e030ac6a5e4becdbfd813cf",
-        "structureFamily": null,
-        "failureReason": null
-      }
-    },
     {
       "problemEventId": "problem-d04991b0",
       "candidateId": "cand-d93a945e",
@@ -916,6 +836,79 @@
         "result": "success",
         "repairedCandidateId": "cand-185ff5a5",
         "failureSignatureHash": "d7449cea90067e06ec3760420098e26afc6d47a6485c09f0ea7c5bf7ea05a9b7",
+        "structureFamily": null,
+        "failureReason": null
+      }
+    },
+    {
+      "problemEventId": "problem-f3a7d3f3",
+      "candidateId": null,
+      "problemKind": "llm_schema_fail",
+      "failureSignatureHash": "8e991b8086e47e751dd99dc29a225643f79fc59785a31897d423cc642d935846",
+      "structureFamily": null,
+      "suggestedRepairKind": "schema_repair",
+      "repairAttempt": {
+        "repairAttemptId": "repair-fd2d9ff0",
+        "result": "success",
+        "repairedCandidateId": "cand-047d0e87",
+        "failureSignatureHash": "8e991b8086e47e751dd99dc29a225643f79fc59785a31897d423cc642d935846",
+        "structureFamily": null,
+        "failureReason": null
+      }
+    },
+    {
+      "problemEventId": "problem-e212eb2c",
+      "candidateId": "cand-047d0e87",
+      "problemKind": "local_backtest_fail",
+      "failureSignatureHash": "ff1dfdfc33fa3f12d7c21b4afe58f76a95a390a534593b9f8490e705e47bbb99",
+      "structureFamily": "25d8a56e5c1d4e50bfafee4cf67d479dc23e89b0157f2c53dab949bf621ee13f",
+      "suggestedRepairKind": "mutation_prompt_adjustment",
+      "repairAttempt": {
+        "repairAttemptId": "repair-1698a810",
+        "result": "success",
+        "repairedCandidateId": "cand-77d60457",
+        "failureSignatureHash": "ff1dfdfc33fa3f12d7c21b4afe58f76a95a390a534593b9f8490e705e47bbb99",
+        "structureFamily": "25d8a56e5c1d4e50bfafee4cf67d479dc23e89b0157f2c53dab949bf621ee13f",
+        "failureReason": null
+      }
+    },
+    {
+      "problemEventId": "problem-796fd199",
+      "candidateId": "cand-047d0e87",
+      "problemKind": "llm_schema_fail",
+      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
+      "structureFamily": null,
+      "suggestedRepairKind": "schema_repair",
+      "repairAttempt": {
+        "repairAttemptId": "repair-73f5f4dd",
+        "result": "success",
+        "repairedCandidateId": "cand-77d60457",
+        "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
+        "structureFamily": null,
+        "failureReason": null
+      }
+    },
+    {
+      "problemEventId": "problem-acd1da6b",
+      "candidateId": "cand-77d60457",
+      "problemKind": "local_backtest_fail",
+      "failureSignatureHash": "51481a61783860850e4b5ef409ac3406ffd0edce70bce5746668fa0d56b6e022",
+      "structureFamily": "945aab9b5439ffae702dbb33fe97bae2c2d730fa2f8cb14aa694c25d4d8ff7b3",
+      "suggestedRepairKind": "mutation_prompt_adjustment",
+      "repairAttempt": null
+    },
+    {
+      "problemEventId": "problem-145c302b",
+      "candidateId": "cand-c885d2f7",
+      "problemKind": "llm_schema_fail",
+      "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
+      "structureFamily": null,
+      "suggestedRepairKind": "schema_repair",
+      "repairAttempt": {
+        "repairAttemptId": "repair-d1367386",
+        "result": "success",
+        "repairedCandidateId": "cand-3c82c489",
+        "failureSignatureHash": "f3d79bc55e3d5f115aa18fd9916d12732a297251487e10599eb013efc2877c7b",
         "structureFamily": null,
         "failureReason": null
       }

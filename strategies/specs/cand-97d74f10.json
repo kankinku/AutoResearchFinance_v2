@@ -1,0 +1,38 @@
+{
+  "version": "af-spec/v1",
+  "name": "AF Spec v1 [breakout_event_rotation_reclaim_v1]",
+  "event": {
+    "source": "event_floor",
+    "L1": 9,
+    "L2": 12,
+    "L3": 14,
+    "confirmBars": 2,
+    "eventFloorBars": 2,
+    "eventWindowBars": 9
+  },
+  "regime": {
+    "trendMode": "Balanced",
+    "useSupertrendFilter": true,
+    "riskOffRsi": 42,
+    "maxExtPct": 8
+  },
+  "entry": {
+    "primaryTrigger": "bull_event_reclaim_window",
+    "cooldownBars": 0,
+    "allowBearRebound": true,
+    "applyFilterToB1": false
+  },
+  "slot": {
+    "slotPct": 15,
+    "maxSlots": 18,
+    "useReplacement": true,
+    "replaceMinRank": 2,
+    "replaceIfPnlBelow": -4
+  },
+  "exit": {
+    "weakRangeExit": true,
+    "maxHoldBars": 18,
+    "closeAllOnBearConfRiskOff": true,
+    "resetOnL3": false
+  }
+}

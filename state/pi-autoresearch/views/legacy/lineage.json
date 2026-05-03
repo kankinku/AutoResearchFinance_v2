@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:07:39.639Z",
+  "generatedAt": "2026-05-03T07:33:22.530Z",
   "acceptedHeadCandidateId": "manual-exhaustion-sample",
   "activeHeadCandidateId": null,
   "nodes": [
@@ -8271,6 +8271,213 @@
       "branchId": "branch-exploration_breakout-0ada4edf",
       "accepted": false,
       "score": 0.2949,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-047d0e87",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-1e4c06b6",
+      "accepted": false,
+      "score": 0.4138,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-77d60457",
+      "parentCandidateId": "cand-047d0e87",
+      "branchId": "branch-champion_exploit-1e4c06b6",
+      "accepted": false,
+      "score": 0.4571,
+      "decision": "local_candidate_rejected",
+      "reason": "local_candidate_rejected"
+    },
+    {
+      "candidateId": "cand-77d60457",
+      "parentCandidateId": "cand-047d0e87",
+      "branchId": "branch-champion_exploit-1e4c06b6",
+      "accepted": false,
+      "score": 0.4571,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-3283b034",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-adversarial_simplification-a1bd2e9f",
+      "accepted": false,
+      "score": 0.5627,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3283b034",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-adversarial_simplification-a1bd2e9f",
+      "accepted": false,
+      "score": 0.5627,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-58eb9518",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-35b6b17c",
+      "accepted": false,
+      "score": 0.55,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-58eb9518",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-35b6b17c",
+      "accepted": false,
+      "score": 0.55,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-ccb0caf0",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-7f4333aa",
+      "accepted": false,
+      "score": 0.5677,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-ccb0caf0",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-7f4333aa",
+      "accepted": false,
+      "score": 0.5677,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-3c82c489",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-exploration_breakout-0e086156",
+      "accepted": false,
+      "score": 0.5312,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-3c82c489",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-exploration_breakout-0e086156",
+      "accepted": false,
+      "score": 0.5312,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-7777ff53",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6252268f",
+      "accepted": false,
+      "score": 0.5739,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-7777ff53",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6252268f",
+      "accepted": false,
+      "score": 0.5739,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-dccda2fe",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6d791d7c",
+      "accepted": false,
+      "score": 0.5613,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-dccda2fe",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6d791d7c",
+      "accepted": false,
+      "score": 0.5613,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-933de2f1",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-a9dfa297",
+      "accepted": false,
+      "score": 0.562,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-933de2f1",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-a9dfa297",
+      "accepted": false,
+      "score": 0.562,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-e1c2c1a7",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-5f809f8b",
+      "accepted": false,
+      "score": 0.5507,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e1c2c1a7",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-5f809f8b",
+      "accepted": false,
+      "score": 0.5507,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-97d74f10",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-exploration_breakout-cb1b37a7",
+      "accepted": false,
+      "score": 0.5353,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-97d74f10",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-exploration_breakout-cb1b37a7",
+      "accepted": false,
+      "score": 0.5353,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
+    },
+    {
+      "candidateId": "cand-f1dd7924",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-0d559338",
+      "accepted": false,
+      "score": 0.5385,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-f1dd7924",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-0d559338",
+      "accepted": false,
+      "score": 0.5385,
       "decision": "tv_verified",
       "reason": "tv_verified"
     }

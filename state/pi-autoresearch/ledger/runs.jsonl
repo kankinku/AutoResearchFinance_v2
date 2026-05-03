@@ -601,3 +601,14 @@
 {"runId":"autonomous-1777791374850","startedAt":"2026-05-03T06:56:16.117Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
 {"runId":"autonomous-1777791512352","startedAt":"2026-05-03T06:58:33.655Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
 {"runId":"autonomous-1777791640094","startedAt":"2026-05-03T07:00:41.384Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792263493","startedAt":"2026-05-03T07:11:04.825Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792493533","startedAt":"2026-05-03T07:14:55.007Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792536984","startedAt":"2026-05-03T07:15:38.348Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792592516","startedAt":"2026-05-03T07:16:33.898Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792641015","startedAt":"2026-05-03T07:17:22.421Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792710123","startedAt":"2026-05-03T07:18:31.427Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792753605","startedAt":"2026-05-03T07:19:14.903Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792800883","startedAt":"2026-05-03T07:20:02.226Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792846465","startedAt":"2026-05-03T07:20:47.853Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792906883","startedAt":"2026-05-03T07:21:48.338Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"autonomous-1777792954329","startedAt":"2026-05-03T07:22:35.847Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}

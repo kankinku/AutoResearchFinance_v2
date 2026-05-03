@@ -217,4 +217,190 @@ describe("TradingView playwright driver expressions", () => {
     expect(focused).toBe(1);
     expect(currentValue).toContain("strategy(\"X\")");
   });
+
+  test("removes stale strategy studies and dismisses indicator-limit dialogs", () => {
+    const removed: unknown[] = [];
+    let closeClicked = false;
+    const staleStrategy = {
+      title() {
+        return "AF Spec v1 [cand-old]";
+      },
+      metaInfo() {
+        return { description: "AF Spec v1 [cand-old]" };
+      },
+      reportData() {
+        return { performance: { all: {} } };
+      },
+      ordersData() {
+        return [];
+      },
+    };
+    const unrelatedStudy = {
+      title() {
+        return "Volume";
+      },
+      metaInfo() {
+        return { description: "Volume" };
+      },
+      reportData() {
+        return null;
+      },
+    };
+    const closeButton = {
+      textContent: "×",
+      getAttribute() {
+        return null;
+      },
+      getBoundingClientRect() {
+        return {
+          top: 338,
+          right: 866,
+          left: 838,
+          width: 28,
+          height: 28,
+        };
+      },
+      dispatchEvent() {
+        return true;
+      },
+      click() {
+        closeClicked = true;
+      },
+    };
+    const dialog = {
+      textContent:
+        "더 많은 인디케이터, 더 많은 트레이딩 기회 현재 플랜에서 사용할 수 있는 최대치인 2개의 지표를 적용했습니다.",
+      querySelectorAll() {
+        return [closeButton];
+      },
+      getBoundingClientRect() {
+        return {
+          top: 330,
+          right: 874,
+          left: 266,
+          width: 608,
+          height: 700,
+        };
+      },
+    };
+    const context = {
+      studyMarket: {
+        _chartWidgetCollection: {
+          activeChartWidget: {
+            model() {
+              return {
+                dataSources() {
+                  return [staleStrategy, unrelatedStudy];
+                },
+                removeSource(source: unknown) {
+                  removed.push(source);
+                },
+              };
+            },
+          },
+        },
+      },
+      document: {
+        querySelectorAll(selector: string) {
+          if (selector === "[role=\"dialog\"], [data-dialog-name], div") {
+            return [dialog];
+          }
+          return [];
+        },
+      },
+      Array,
+      JSON,
+      RegExp,
+      KeyboardEvent: function KeyboardEvent() {
+        return {};
+      },
+      MouseEvent: function MouseEvent() {
+        return {};
+      },
+      PointerEvent: function PointerEvent() {
+        return {};
+      },
+    };
+
+    const result = runExpression<{ removedCount: number; dismissedIndicatorLimitDialog: boolean }>(
+      __test__.removeAttachedStrategyStudiesExpression("AF Spec v1 [cand-new]"),
+      context,
+    );
+
+    expect(result.removedCount).toBe(1);
+    expect(result.dismissedIndicatorLimitDialog).toBe(true);
+    expect(removed).toEqual([staleStrategy]);
+    expect(closeClicked).toBe(true);
+  });
+
+  test("pre-cleans TradingView studies before Ctrl+Enter can hit the indicator limit", async () => {
+    const events: string[] = [];
+    const evaluateSpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "evaluate")
+      .mockImplementation(async <T>(expression: string) => {
+        if (expression.includes("removeSource")) {
+          events.push("remove-studies");
+          return {
+            removedCount: 2,
+            dismissedIndicatorLimitDialog: true,
+          } as T;
+        }
+        if (expression.includes("getModelMarkers")) {
+          events.push("read-markers");
+          return [] as T;
+        }
+        events.push("evaluate");
+        return true as T;
+      });
+    const waitSpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "waitFor")
+      .mockImplementation(async <T>() => {
+        events.push("wait-clean");
+        return {
+          symbol: "QQQ",
+          timeframe: "120",
+          pineEditorOpen: true,
+          attachedStudies: [],
+        } as T;
+      });
+    const dispatchSpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "dispatchCtrlEnter")
+      .mockImplementation(async () => {
+        events.push("ctrl-enter");
+      });
+    const delaySpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "delay")
+      .mockResolvedValue();
+    const executor = new TradingViewDesktopExecutor({
+      cdpUrl: "http://127.0.0.1:65535",
+    });
+    (
+      executor as unknown as {
+        pendingStudyTitle: string | null;
+        pendingAttachRecoveryActions: string[];
+      }
+    ).pendingStudyTitle = "AF Spec v1 [cand-new]";
+
+    const result = await executor.compileStrategy();
+
+    expect(result.ok).toBe(true);
+    expect(events.indexOf("remove-studies")).toBeGreaterThanOrEqual(0);
+    expect(events.indexOf("ctrl-enter")).toBeGreaterThan(
+      events.indexOf("remove-studies"),
+    );
+    expect(
+      (
+        executor as unknown as {
+          pendingAttachRecoveryActions: string[];
+        }
+      ).pendingAttachRecoveryActions,
+    ).toEqual([
+      "pre_removed_existing_strategy_studies",
+      "dismissed_indicator_limit_dialog",
+    ]);
+    evaluateSpy.mockRestore();
+    waitSpy.mockRestore();
+    dispatchSpy.mockRestore();
+    delaySpy.mockRestore();
+  });
 });

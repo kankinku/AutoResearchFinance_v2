@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-03T07:07:39.879Z",
-  "totalUpdates": 36,
-  "familyCount": 33,
-  "recentCalibrationSummary": "Calibration history is active across 33 structure families and 36 confidence updates.",
+  "generatedAt": "2026-05-03T07:33:22.804Z",
+  "totalUpdates": 47,
+  "familyCount": 44,
+  "recentCalibrationSummary": "Calibration history is active across 44 structure families and 47 confidence updates.",
   "highDivergenceFamilies": [
-    "aec586511a0c61f3fca5d883ec4e654561941d65d3811c62f9dade9b05c1556f",
-    "7cd0fd39dd7022bbac366c59fae0f96c3739faca268cc72fc224ae90e90817fb",
-    "d2357071bc3247c88e7b7d6cac2e90a13e90f170f8a737431e646d683f849838",
-    "3c4a4b7df08ed5e82097055c86ce6dd962c7db625e7b75cfa3189001c39fdc65",
-    "0ec0f63cac3604cbf119da0906ef6300d7f8832f682335f864c9a32054bff86c"
+    "59a8529c3c821a01bde0f468cca44d4231723009833ec3825144b949c00e6ff9",
+    "78b0e6d11528d69f3c1db64f8d6a4b26f63f5a1053a0c1bfff30d78d582987b6",
+    "03331eae3d7adc7bcf87a8f43bd73b6c453bd296cbb4cc7d87b4342fac3c5a36",
+    "38ec8823943dc681536b7c383ef6e80a6abb61fdee93e06196150aaac310cc06",
+    "420e4fdb86dd8fac106253b7a0f7e35ee285e4660d19994496afb2cc3f42ab1b"
   ],
   "lowDivergenceFamilies": [
     "3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d",
@@ -18,8 +18,129 @@
     "52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a"
   ],
   "confidenceAdjustmentSummary": "Positive local confidence is active for 5 families; divergence penalties are active for 5 families with repeated drift.",
-  "calibrationAwareInstruction": "Prefer low-divergence families first: 3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d, 0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a, bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d, 350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6, 52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a. Be cautious with high-divergence families: aec586511a0c61f3fca5d883ec4e654561941d65d3811c62f9dade9b05c1556f, 7cd0fd39dd7022bbac366c59fae0f96c3739faca268cc72fc224ae90e90817fb, d2357071bc3247c88e7b7d6cac2e90a13e90f170f8a737431e646d683f849838, 3c4a4b7df08ed5e82097055c86ce6dd962c7db625e7b75cfa3189001c39fdc65, 0ec0f63cac3604cbf119da0906ef6300d7f8832f682335f864c9a32054bff86c.",
+  "calibrationAwareInstruction": "Prefer low-divergence families first: 3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d, 0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a, bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d, 350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6, 52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a. Be cautious with high-divergence families: 59a8529c3c821a01bde0f468cca44d4231723009833ec3825144b949c00e6ff9, 78b0e6d11528d69f3c1db64f8d6a4b26f63f5a1053a0c1bfff30d78d582987b6, 03331eae3d7adc7bcf87a8f43bd73b6c453bd296cbb4cc7d87b4342fac3c5a36, 38ec8823943dc681536b7c383ef6e80a6abb61fdee93e06196150aaac310cc06, 420e4fdb86dd8fac106253b7a0f7e35ee285e4660d19994496afb2cc3f42ab1b.",
   "families": [
+    {
+      "structureFamilyHash": "59a8529c3c821a01bde0f468cca44d4231723009833ec3825144b949c00e6ff9",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-f1dd7924",
+      "sourceCalibrationEventId": "calibration-06ed0576",
+      "recordedAt": "2026-05-03T07:23:18.159Z"
+    },
+    {
+      "structureFamilyHash": "78b0e6d11528d69f3c1db64f8d6a4b26f63f5a1053a0c1bfff30d78d582987b6",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-97d74f10",
+      "sourceCalibrationEventId": "calibration-9d05f3da",
+      "recordedAt": "2026-05-03T07:22:22.075Z"
+    },
+    {
+      "structureFamilyHash": "03331eae3d7adc7bcf87a8f43bd73b6c453bd296cbb4cc7d87b4342fac3c5a36",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-e1c2c1a7",
+      "sourceCalibrationEventId": "calibration-9e2dad26",
+      "recordedAt": "2026-05-03T07:21:34.797Z"
+    },
+    {
+      "structureFamilyHash": "38ec8823943dc681536b7c383ef6e80a6abb61fdee93e06196150aaac310cc06",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-933de2f1",
+      "sourceCalibrationEventId": "calibration-c28c9551",
+      "recordedAt": "2026-05-03T07:20:34.395Z"
+    },
+    {
+      "structureFamilyHash": "420e4fdb86dd8fac106253b7a0f7e35ee285e4660d19994496afb2cc3f42ab1b",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-dccda2fe",
+      "sourceCalibrationEventId": "calibration-0fe0cb72",
+      "recordedAt": "2026-05-03T07:19:48.831Z"
+    },
+    {
+      "structureFamilyHash": "4dc4cf397b45dba109ebfebef619afa978dbb78171479bedcd4a2834e7b933ab",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-7777ff53",
+      "sourceCalibrationEventId": "calibration-909a8203",
+      "recordedAt": "2026-05-03T07:19:01.651Z"
+    },
+    {
+      "structureFamilyHash": "08a0e00c3ee568f8f6981c14e7dac13aca1574a547a1953a629b3ea6de0ac48e",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-3c82c489",
+      "sourceCalibrationEventId": "calibration-c5f10cad",
+      "recordedAt": "2026-05-03T07:18:17.988Z"
+    },
+    {
+      "structureFamilyHash": "20363e133d3755a7ce387363044507ae2e12670ef2ebeb4290482dc42a85d9fc",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-ccb0caf0",
+      "sourceCalibrationEventId": "calibration-a2298698",
+      "recordedAt": "2026-05-03T07:17:08.903Z"
+    },
+    {
+      "structureFamilyHash": "790016f6e261994b2c22115df065d4345a497856cc5a96f44287cdc37726906d",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-58eb9518",
+      "sourceCalibrationEventId": "calibration-eb8d873f",
+      "recordedAt": "2026-05-03T07:16:20.418Z"
+    },
+    {
+      "structureFamilyHash": "3efec367d781320e2b54177e06a6c4ee7b2405bc368a96d4defef8968eb35ece",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-3283b034",
+      "sourceCalibrationEventId": "calibration-42b51ec8",
+      "recordedAt": "2026-05-03T07:15:24.890Z"
+    },
+    {
+      "structureFamilyHash": "945aab9b5439ffae702dbb33fe97bae2c2d730fa2f8cb14aa694c25d4d8ff7b3",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-77d60457",
+      "sourceCalibrationEventId": "calibration-1f5c81d9",
+      "recordedAt": "2026-05-03T07:14:41.189Z"
+    },
     {
       "structureFamilyHash": "aec586511a0c61f3fca5d883ec4e654561941d65d3811c62f9dade9b05c1556f",
       "currentConfidence": 0.5,

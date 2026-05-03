@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-03T07:07:39.884Z",
-  "localEvaluationCount": 689,
+  "generatedAt": "2026-05-03T07:33:22.810Z",
+  "localEvaluationCount": 701,
   "localUnsupportedCount": 23,
-  "localCandidateEligibleCount": 393,
-  "localCompatibleRate": 0.9666182873730044,
+  "localCandidateEligibleCount": 403,
+  "localCompatibleRate": 0.9671897289586305,
   "unsupportedReasonCounts": {
     "missing required AF inputs.": 4,
     "missing_input:useSupertrendFilter, missing_input:supertrendAtrPeriod, missing_input:supertrendFactor, missing_input:supertrendBlocksWeakBull, missing_input:supertrendRiskOffEnabled, missing_input:enableWeakRangeExit, missing_input:weakExitAtrLen, missing_input:weakExitBars, missing_input:weakRunupAtrMax, missing_input:weakLossAtrMin, missing_input:weakSlopeAtrMax": 1,

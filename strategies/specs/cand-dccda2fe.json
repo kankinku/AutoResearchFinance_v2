@@ -1,0 +1,38 @@
+{
+  "version": "af-spec/v1",
+  "name": "AF Spec v1 [cand-balanced-seed-range-repair]",
+  "event": {
+    "source": "event_floor",
+    "L1": 9,
+    "L2": 12,
+    "L3": 14,
+    "confirmBars": 2,
+    "eventFloorBars": 1,
+    "eventWindowBars": 6
+  },
+  "regime": {
+    "trendMode": "Loose",
+    "useSupertrendFilter": false,
+    "riskOffRsi": 42,
+    "maxExtPct": 8
+  },
+  "entry": {
+    "primaryTrigger": "bull_event",
+    "cooldownBars": 0,
+    "allowBearRebound": true,
+    "applyFilterToB1": false
+  },
+  "slot": {
+    "slotPct": 15,
+    "maxSlots": 18,
+    "useReplacement": true,
+    "replaceMinRank": 2,
+    "replaceIfPnlBelow": -4
+  },
+  "exit": {
+    "weakRangeExit": true,
+    "maxHoldBars": 20,
+    "closeAllOnBearConfRiskOff": true,
+    "resetOnL3": false
+  }
+}
