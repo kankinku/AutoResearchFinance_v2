@@ -58,7 +58,7 @@ const runtimeEnvironmentSchema = z.object({
   tvCalibrationMode: z.enum(["live", "mock-recovered"]).default("live"),
   mutationSchemaMode: z.enum(["strict", "legacy-recovery-test-only"]).default("strict"),
   autonomousBootstrapMode: z.enum(["auto", "disabled"]).default("auto"),
-  autoProcessCalibration: z.boolean().default(true),
+  autoProcessCalibration: z.boolean().default(false),
   calibrationBudget: z.number().int().positive().default(3),
   calibrationTimeoutMs: z.number().int().positive().default(30_000),
 });
@@ -204,7 +204,7 @@ export function loadRuntimeEnvironment(options?: {
         : "auto",
     autoProcessCalibration:
       process.env.AF_AUTO_PROCESS_CALIBRATION == null
-        ? true
+        ? false
         : process.env.AF_AUTO_PROCESS_CALIBRATION === "true",
     calibrationBudget: Number.parseInt(
       process.env.AF_CALIBRATION_BUDGET ?? "3",

@@ -1287,11 +1287,11 @@ program
 
 program
   .command("run-autonomous-loop")
-  .description("Run one or more v3 autonomous local-first iterations and update the active champion automatically.")
+  .description("Run one or more v3 autonomous local-first iterations; TradingView calibration stays queued unless explicitly enabled.")
   .option("--count <number>", "Iteration count", "1")
   .option(
     "--auto-process-calibration <boolean>",
-    "Automatically process the optional calibration queue after each iteration.",
+    "Opt in to processing the optional TradingView calibration queue after each iteration.",
   )
   .option(
     "--calibration-budget <number>",
