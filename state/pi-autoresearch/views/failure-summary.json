@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:56:16.501Z",
+  "generatedAt": "2026-05-03T08:20:16.227Z",
   "incidentCounts": {
     "task_runtime_failure": 12,
     "stale_attach_detected": 7,
@@ -36,10 +36,10 @@
     "apply_fail": 8,
     "local_unsupported": 23,
     "local_candidate_rejected": 275,
-    "local_candidate_eligible": 403,
+    "local_candidate_eligible": 409,
     "tv_verified": 47,
     "tv_surface_failure": 2,
-    "tv_portability_failure": 2
+    "tv_portability_failure": 8
   },
   "evaluationOutcomeCounts": {
     "legacy_screening_improvement": 4,
@@ -51,10 +51,10 @@
     "apply_fail": 8,
     "local_unsupported": 23,
     "local_candidate_rejected": 275,
-    "local_candidate_eligible": 403,
+    "local_candidate_eligible": 409,
     "tv_verified": 47,
     "tv_surface_failure": 2,
-    "tv_portability_failure": 2
+    "tv_portability_failure": 8
   },
   "verificationFailureReasonCounts": {},
   "verificationRuntimeFailureKindCounts": {},
@@ -66,7 +66,7 @@
     "title_too_long": 0,
     "na_type_assignment": 1
   },
-  "evaluatedCandidateCount": 509,
+  "evaluatedCandidateCount": 515,
   "hardGateFailReasonCounts": {
     "positive_post_fee_profit": 54,
     "minimum_total_trades": 46

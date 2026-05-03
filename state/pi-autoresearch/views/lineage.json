@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:56:16.496Z",
+  "generatedAt": "2026-05-03T08:20:16.223Z",
   "acceptedHeadCandidateId": "manual-exhaustion-sample",
   "activeHeadCandidateId": null,
   "nodes": [
@@ -8496,6 +8496,114 @@
       "branchId": "branch-champion_exploit-ee809a8d",
       "accepted": false,
       "score": 0.4353,
+      "decision": "tv_portability_failure",
+      "reason": "tv_portability_failure"
+    },
+    {
+      "candidateId": "cand-0719d794",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-2434f9b1",
+      "accepted": false,
+      "score": 0.546,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-0719d794",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-2434f9b1",
+      "accepted": false,
+      "score": 0.546,
+      "decision": "tv_portability_failure",
+      "reason": "tv_portability_failure"
+    },
+    {
+      "candidateId": "cand-18520bab",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6842e8d0",
+      "accepted": false,
+      "score": 0.5378,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-18520bab",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6842e8d0",
+      "accepted": false,
+      "score": 0.5378,
+      "decision": "tv_portability_failure",
+      "reason": "tv_portability_failure"
+    },
+    {
+      "candidateId": "cand-15437332",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-exploration_breakout-d0045327",
+      "accepted": false,
+      "score": 0.5536,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-15437332",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-exploration_breakout-d0045327",
+      "accepted": false,
+      "score": 0.5536,
+      "decision": "tv_portability_failure",
+      "reason": "tv_portability_failure"
+    },
+    {
+      "candidateId": "cand-599b0b06",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6fc3ca91",
+      "accepted": false,
+      "score": 0.5411,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-599b0b06",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-6fc3ca91",
+      "accepted": false,
+      "score": 0.5411,
+      "decision": "tv_portability_failure",
+      "reason": "tv_portability_failure"
+    },
+    {
+      "candidateId": "cand-db9b32b9",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-63cf21eb",
+      "accepted": false,
+      "score": 0.5231,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-db9b32b9",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-champion_exploit-63cf21eb",
+      "accepted": false,
+      "score": 0.5231,
+      "decision": "tv_portability_failure",
+      "reason": "tv_portability_failure"
+    },
+    {
+      "candidateId": "cand-6514d462",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-63b83212",
+      "accepted": false,
+      "score": 0.5136,
+      "decision": "local_candidate_eligible",
+      "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-6514d462",
+      "parentCandidateId": "cand-c885d2f7",
+      "branchId": "branch-frontier_exploit-63b83212",
+      "accepted": false,
+      "score": 0.5136,
       "decision": "tv_portability_failure",
       "reason": "tv_portability_failure"
     }

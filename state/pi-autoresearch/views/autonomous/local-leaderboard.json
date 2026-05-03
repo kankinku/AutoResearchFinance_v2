@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:56:16.751Z",
+  "generatedAt": "2026-05-03T08:20:16.503Z",
   "activeChampionCandidateId": null,
   "entries": [
     {
@@ -13196,6 +13196,34 @@
     },
     {
       "rank": 391,
+      "candidateId": "cand-15437332",
+      "autoSelectionScore": 0.5536,
+      "performanceScore": 0.5291,
+      "baseObjectiveScore": 0.5291,
+      "robustnessScore": 0,
+      "noveltyScore": 0.186,
+      "diversityScore": 0.0846,
+      "localConfidenceBonus": 0.05,
+      "riskPenalty": 0.1,
+      "overfitPenalty": 0.1161,
+      "complexityPenalty": 0.08,
+      "duplicatePenalty": 0,
+      "divergencePenalty": 0,
+      "duplicateClassification": "unique",
+      "eligible": true,
+      "bootstrapEligible": false,
+      "archiveEligible": true,
+      "calibrationEligible": true,
+      "selectionPhase": "steady_state",
+      "bootstrapSource": null,
+      "bootstrapReason": null,
+      "blockingReasons": [],
+      "recordHash": "20412c8dcf05c1873081a60b340164e86b75dbcd268428502e925d22fed3f248",
+      "iteration": 949,
+      "decision": "local_candidate_eligible"
+    },
+    {
+      "rank": 392,
       "candidateId": "cand-e1c2c1a7",
       "autoSelectionScore": 0.5507,
       "performanceScore": 0.5417,
@@ -13223,7 +13251,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 392,
+      "rank": 393,
       "candidateId": "cand-5e145275",
       "autoSelectionScore": 0.55,
       "performanceScore": 0.3575,
@@ -13251,7 +13279,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 393,
+      "rank": 394,
       "candidateId": "cand-58eb9518",
       "autoSelectionScore": 0.55,
       "performanceScore": 0.5398,
@@ -13279,7 +13307,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 394,
+      "rank": 395,
       "candidateId": "cand-d5f5067f",
       "autoSelectionScore": 0.5494,
       "performanceScore": 0.3929,
@@ -13307,7 +13335,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 395,
+      "rank": 396,
       "candidateId": "cand-3cf5198e",
       "autoSelectionScore": 0.5488,
       "performanceScore": 0.3372,
@@ -13335,7 +13363,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 396,
+      "rank": 397,
       "candidateId": "cand-a1034536",
       "autoSelectionScore": 0.5464,
       "performanceScore": 0.3655,
@@ -13363,7 +13391,35 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 397,
+      "rank": 398,
+      "candidateId": "cand-0719d794",
+      "autoSelectionScore": 0.546,
+      "performanceScore": 0.5417,
+      "baseObjectiveScore": 0.5417,
+      "robustnessScore": 0,
+      "noveltyScore": 0.174,
+      "diversityScore": 0.0417,
+      "localConfidenceBonus": 0.05,
+      "riskPenalty": 0.1,
+      "overfitPenalty": 0.1014,
+      "complexityPenalty": 0.06,
+      "duplicatePenalty": 0,
+      "divergencePenalty": 0,
+      "duplicateClassification": "unique",
+      "eligible": true,
+      "bootstrapEligible": false,
+      "archiveEligible": true,
+      "calibrationEligible": true,
+      "selectionPhase": "steady_state",
+      "bootstrapSource": null,
+      "bootstrapReason": null,
+      "blockingReasons": [],
+      "recordHash": "a0e5b775ad9656aaaa43ddef168a0e48aa718d092a9818af7482c31a2ba1c66f",
+      "iteration": 945,
+      "decision": "local_candidate_eligible"
+    },
+    {
+      "rank": 399,
       "candidateId": "cand-cdc0ec24",
       "autoSelectionScore": 0.5458,
       "performanceScore": 0.3297,
@@ -13391,7 +13447,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 398,
+      "rank": 400,
       "candidateId": "cand-b8e26ed1",
       "autoSelectionScore": 0.5444,
       "performanceScore": 0.3602,
@@ -13419,7 +13475,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 399,
+      "rank": 401,
       "candidateId": "cand-a32fd47a",
       "autoSelectionScore": 0.5429,
       "performanceScore": 0.3995,
@@ -13447,7 +13503,35 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 400,
+      "rank": 402,
+      "candidateId": "cand-599b0b06",
+      "autoSelectionScore": 0.5411,
+      "performanceScore": 0.5309,
+      "baseObjectiveScore": 0.5309,
+      "robustnessScore": 0,
+      "noveltyScore": 0.1815,
+      "diversityScore": 0.0593,
+      "localConfidenceBonus": 0.05,
+      "riskPenalty": 0.1,
+      "overfitPenalty": 0.1206,
+      "complexityPenalty": 0.06,
+      "duplicatePenalty": 0,
+      "divergencePenalty": 0,
+      "duplicateClassification": "unique",
+      "eligible": true,
+      "bootstrapEligible": false,
+      "archiveEligible": true,
+      "calibrationEligible": true,
+      "selectionPhase": "steady_state",
+      "bootstrapSource": null,
+      "bootstrapReason": null,
+      "blockingReasons": [],
+      "recordHash": "74b8b591ee8c42bc58a40793cb204017321ca92db85bf1d6e87601bc9c9946d1",
+      "iteration": 951,
+      "decision": "local_candidate_eligible"
+    },
+    {
+      "rank": 403,
       "candidateId": "cand-f1dd7924",
       "autoSelectionScore": 0.5385,
       "performanceScore": 0.5417,
@@ -13475,7 +13559,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 401,
+      "rank": 404,
       "candidateId": "cand-51b476d5",
       "autoSelectionScore": 0.5379,
       "performanceScore": 0.4441,
@@ -13503,7 +13587,35 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 402,
+      "rank": 405,
+      "candidateId": "cand-18520bab",
+      "autoSelectionScore": 0.5378,
+      "performanceScore": 0.5417,
+      "baseObjectiveScore": 0.5417,
+      "robustnessScore": 0,
+      "noveltyScore": 0.1842,
+      "diversityScore": 0.0333,
+      "localConfidenceBonus": 0.05,
+      "riskPenalty": 0.1,
+      "overfitPenalty": 0.1014,
+      "complexityPenalty": 0.07,
+      "duplicatePenalty": 0,
+      "divergencePenalty": 0,
+      "duplicateClassification": "unique",
+      "eligible": true,
+      "bootstrapEligible": false,
+      "archiveEligible": true,
+      "calibrationEligible": true,
+      "selectionPhase": "steady_state",
+      "bootstrapSource": null,
+      "bootstrapReason": null,
+      "blockingReasons": [],
+      "recordHash": "94057006f651b8cde849092d109a5cf31c1b50dc26766950914c9e995d9d4e87",
+      "iteration": 947,
+      "decision": "local_candidate_eligible"
+    },
+    {
+      "rank": 406,
       "candidateId": "cand-3eef8756",
       "autoSelectionScore": 0.5377,
       "performanceScore": 0.333,
@@ -13531,7 +13643,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 403,
+      "rank": 407,
       "candidateId": "cand-5ec517b7",
       "autoSelectionScore": 0.5374,
       "performanceScore": 0.3652,
@@ -13559,7 +13671,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 404,
+      "rank": 408,
       "candidateId": "cand-395b5139",
       "autoSelectionScore": 0.5359,
       "performanceScore": 0.3204,
@@ -13587,7 +13699,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 405,
+      "rank": 409,
       "candidateId": "cand-97d74f10",
       "autoSelectionScore": 0.5353,
       "performanceScore": 0.5309,
@@ -13615,7 +13727,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 406,
+      "rank": 410,
       "candidateId": "cand-d3505cb8",
       "autoSelectionScore": 0.5352,
       "performanceScore": 0.3301,
@@ -13643,7 +13755,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 407,
+      "rank": 411,
       "candidateId": "cand-6172d7d6",
       "autoSelectionScore": 0.5347,
       "performanceScore": 0.5348,
@@ -13671,7 +13783,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 408,
+      "rank": 412,
       "candidateId": "cand-9a081476",
       "autoSelectionScore": 0.5337,
       "performanceScore": 0.3334,
@@ -13699,7 +13811,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 409,
+      "rank": 413,
       "candidateId": "cand-afddafc8",
       "autoSelectionScore": 0.5333,
       "performanceScore": 0.2923,
@@ -13727,7 +13839,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 410,
+      "rank": 414,
       "candidateId": "cand-2d75d6c7",
       "autoSelectionScore": 0.5319,
       "performanceScore": 0.5181,
@@ -13755,7 +13867,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 411,
+      "rank": 415,
       "candidateId": "cand-efb4e627",
       "autoSelectionScore": 0.5314,
       "performanceScore": 0.4008,
@@ -13783,7 +13895,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 412,
+      "rank": 416,
       "candidateId": "cand-3c82c489",
       "autoSelectionScore": 0.5312,
       "performanceScore": 0.507,
@@ -13811,7 +13923,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 413,
+      "rank": 417,
       "candidateId": "cand-f35eb742",
       "autoSelectionScore": 0.5307,
       "performanceScore": 0.3467,
@@ -13839,7 +13951,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 414,
+      "rank": 418,
       "candidateId": "cand-1eb55f75",
       "autoSelectionScore": 0.5233,
       "performanceScore": 0.4879,
@@ -13867,7 +13979,35 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 415,
+      "rank": 419,
+      "candidateId": "cand-db9b32b9",
+      "autoSelectionScore": 0.5231,
+      "performanceScore": 0.507,
+      "baseObjectiveScore": 0.507,
+      "robustnessScore": 0,
+      "noveltyScore": 0.1813,
+      "diversityScore": 0.0444,
+      "localConfidenceBonus": 0.05,
+      "riskPenalty": 0.1,
+      "overfitPenalty": 0.0996,
+      "complexityPenalty": 0.06,
+      "duplicatePenalty": 0,
+      "divergencePenalty": 0,
+      "duplicateClassification": "unique",
+      "eligible": true,
+      "bootstrapEligible": false,
+      "archiveEligible": true,
+      "calibrationEligible": true,
+      "selectionPhase": "steady_state",
+      "bootstrapSource": null,
+      "bootstrapReason": null,
+      "blockingReasons": [],
+      "recordHash": "fe0fa17572196dacb9c1c37e6adc40d624275b5f720371c9e25671219b38b79d",
+      "iteration": 953,
+      "decision": "local_candidate_eligible"
+    },
+    {
+      "rank": 420,
       "candidateId": "cand-fb5eea34",
       "autoSelectionScore": 0.5226,
       "performanceScore": 0.532,
@@ -13895,7 +14035,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 416,
+      "rank": 421,
       "candidateId": "cand-916bb3cb",
       "autoSelectionScore": 0.5205,
       "performanceScore": 0.314,
@@ -13923,7 +14063,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 417,
+      "rank": 422,
       "candidateId": "cand-bc34720b",
       "autoSelectionScore": 0.5203,
       "performanceScore": 0.33,
@@ -13951,7 +14091,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 418,
+      "rank": 423,
       "candidateId": "cand-43144528",
       "autoSelectionScore": 0.5203,
       "performanceScore": 0.2771,
@@ -13990,7 +14130,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 419,
+      "rank": 424,
       "candidateId": "cand-72b907aa",
       "autoSelectionScore": 0.5193,
       "performanceScore": 0.3493,
@@ -14018,7 +14158,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 420,
+      "rank": 425,
       "candidateId": "cand-33c39497",
       "autoSelectionScore": 0.5178,
       "performanceScore": 0.3656,
@@ -14046,7 +14186,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 421,
+      "rank": 426,
       "candidateId": "cand-2721ae69",
       "autoSelectionScore": 0.5176,
       "performanceScore": 0.5344,
@@ -14074,7 +14214,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 422,
+      "rank": 427,
       "candidateId": "cand-f0b4cf14",
       "autoSelectionScore": 0.5175,
       "performanceScore": 0.5348,
@@ -14102,7 +14242,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 423,
+      "rank": 428,
       "candidateId": "cand-ac969016",
       "autoSelectionScore": 0.5157,
       "performanceScore": 0.4879,
@@ -14130,7 +14270,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 424,
+      "rank": 429,
       "candidateId": "cand-3f27c596",
       "autoSelectionScore": 0.5151,
       "performanceScore": 0.3657,
@@ -14158,7 +14298,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 425,
+      "rank": 430,
       "candidateId": "cand-fcc551b8",
       "autoSelectionScore": 0.5147,
       "performanceScore": 0.5348,
@@ -14186,7 +14326,35 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 426,
+      "rank": 431,
+      "candidateId": "cand-6514d462",
+      "autoSelectionScore": 0.5136,
+      "performanceScore": 0.5288,
+      "baseObjectiveScore": 0.5288,
+      "robustnessScore": 0,
+      "noveltyScore": 0.1796,
+      "diversityScore": 0.0308,
+      "localConfidenceBonus": 0.05,
+      "riskPenalty": 0.1,
+      "overfitPenalty": 0.1156,
+      "complexityPenalty": 0.06,
+      "duplicatePenalty": 0,
+      "divergencePenalty": 0,
+      "duplicateClassification": "unique",
+      "eligible": true,
+      "bootstrapEligible": false,
+      "archiveEligible": true,
+      "calibrationEligible": true,
+      "selectionPhase": "steady_state",
+      "bootstrapSource": null,
+      "bootstrapReason": null,
+      "blockingReasons": [],
+      "recordHash": "2c5768620d4b5e16afd04295bdcb6ee5ca4ebfde689d61e2db5141df7e1f4e5b",
+      "iteration": 955,
+      "decision": "local_candidate_eligible"
+    },
+    {
+      "rank": 432,
       "candidateId": "cand-baf7599a",
       "autoSelectionScore": 0.5082,
       "performanceScore": 0.3291,
@@ -14214,7 +14382,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 427,
+      "rank": 433,
       "candidateId": "cand-f9b63850",
       "autoSelectionScore": 0.507,
       "performanceScore": 0.5348,
@@ -14242,7 +14410,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 428,
+      "rank": 434,
       "candidateId": "cand-595d4025",
       "autoSelectionScore": 0.5058,
       "performanceScore": 0.2931,
@@ -14270,7 +14438,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 429,
+      "rank": 435,
       "candidateId": "cand-2c409867",
       "autoSelectionScore": 0.5058,
       "performanceScore": 0.293,
@@ -14298,7 +14466,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 430,
+      "rank": 436,
       "candidateId": "cand-a81712fe",
       "autoSelectionScore": 0.5057,
       "performanceScore": 0.4098,
@@ -14326,7 +14494,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 431,
+      "rank": 437,
       "candidateId": "cand-6655f831",
       "autoSelectionScore": 0.5056,
       "performanceScore": 0.5344,
@@ -14354,7 +14522,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 432,
+      "rank": 438,
       "candidateId": "cand-967e090b",
       "autoSelectionScore": 0.501,
       "performanceScore": 0.3499,
@@ -14382,7 +14550,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 433,
+      "rank": 439,
       "candidateId": "cand-23203453",
       "autoSelectionScore": 0.5006,
       "performanceScore": 0.3146,
@@ -14410,7 +14578,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 434,
+      "rank": 440,
       "candidateId": "cand-1f3d733a",
       "autoSelectionScore": 0.4996,
       "performanceScore": 0.3166,
@@ -14438,7 +14606,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 435,
+      "rank": 441,
       "candidateId": "cand-9521e7a1",
       "autoSelectionScore": 0.4996,
       "performanceScore": 0.3513,
@@ -14466,7 +14634,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 436,
+      "rank": 442,
       "candidateId": "cand-93147a7c",
       "autoSelectionScore": 0.499,
       "performanceScore": 0.5348,
@@ -14494,7 +14662,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 437,
+      "rank": 443,
       "candidateId": "cand-19b9feeb",
       "autoSelectionScore": 0.4939,
       "performanceScore": 0.3754,
@@ -14522,7 +14690,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 438,
+      "rank": 444,
       "candidateId": "cand-f2abc872",
       "autoSelectionScore": 0.4933,
       "performanceScore": 0.3044,
@@ -14550,7 +14718,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 439,
+      "rank": 445,
       "candidateId": "cand-3a9387ca",
       "autoSelectionScore": 0.4918,
       "performanceScore": 0.3366,
@@ -14578,7 +14746,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 440,
+      "rank": 446,
       "candidateId": "cand-990db2d3",
       "autoSelectionScore": 0.4886,
       "performanceScore": 0.3301,
@@ -14606,7 +14774,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 441,
+      "rank": 447,
       "candidateId": "cand-df4acc55",
       "autoSelectionScore": 0.487,
       "performanceScore": 0.3658,
@@ -14634,7 +14802,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 442,
+      "rank": 448,
       "candidateId": "cand-550a7d22",
       "autoSelectionScore": 0.4861,
       "performanceScore": 0.2933,
@@ -14662,7 +14830,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 443,
+      "rank": 449,
       "candidateId": "cand-8c77c5e2",
       "autoSelectionScore": 0.4851,
       "performanceScore": 0.344,
@@ -14690,7 +14858,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 444,
+      "rank": 450,
       "candidateId": "cand-8cfb97d5",
       "autoSelectionScore": 0.4842,
       "performanceScore": 0.3678,
@@ -14718,7 +14886,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 445,
+      "rank": 451,
       "candidateId": "cand-d1353981",
       "autoSelectionScore": 0.4788,
       "performanceScore": 0.2961,
@@ -14746,7 +14914,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 446,
+      "rank": 452,
       "candidateId": "cand-e22bd063",
       "autoSelectionScore": 0.4786,
       "performanceScore": 0.3643,
@@ -14774,7 +14942,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 447,
+      "rank": 453,
       "candidateId": "cand-6125b79f",
       "autoSelectionScore": 0.4774,
       "performanceScore": 0.3184,
@@ -14802,7 +14970,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 448,
+      "rank": 454,
       "candidateId": "cand-e3d11f5f",
       "autoSelectionScore": 0.477,
       "performanceScore": 0.3438,
@@ -14830,7 +14998,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 449,
+      "rank": 455,
       "candidateId": "cand-d3d1487e",
       "autoSelectionScore": 0.4753,
       "performanceScore": 0.3318,
@@ -14858,7 +15026,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 450,
+      "rank": 456,
       "candidateId": "cand-e038a7ef",
       "autoSelectionScore": 0.4734,
       "performanceScore": 0.3597,
@@ -14886,7 +15054,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 451,
+      "rank": 457,
       "candidateId": "cand-60aab7fe",
       "autoSelectionScore": 0.4733,
       "performanceScore": 0.3289,
@@ -14914,7 +15082,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 452,
+      "rank": 458,
       "candidateId": "cand-ac8537b2",
       "autoSelectionScore": 0.4724,
       "performanceScore": 0.3819,
@@ -14942,7 +15110,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 453,
+      "rank": 459,
       "candidateId": "cand-f7398180",
       "autoSelectionScore": 0.4723,
       "performanceScore": 0.391,
@@ -14970,7 +15138,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 454,
+      "rank": 460,
       "candidateId": "cand-6569ce26",
       "autoSelectionScore": 0.4721,
       "performanceScore": 0.3091,
@@ -14998,7 +15166,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 455,
+      "rank": 461,
       "candidateId": "cand-750047f9",
       "autoSelectionScore": 0.4711,
       "performanceScore": 0.4657,
@@ -15042,7 +15210,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 456,
+      "rank": 462,
       "candidateId": "cand-11091f3c",
       "autoSelectionScore": 0.4704,
       "performanceScore": 0.4036,
@@ -15070,7 +15238,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 457,
+      "rank": 463,
       "candidateId": "cand-6dc8f24d",
       "autoSelectionScore": 0.466,
       "performanceScore": 0.3351,
@@ -15098,7 +15266,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 458,
+      "rank": 464,
       "candidateId": "cand-81cb6faa",
       "autoSelectionScore": 0.4655,
       "performanceScore": 0.4046,
@@ -15126,7 +15294,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 459,
+      "rank": 465,
       "candidateId": "cand-13019569",
       "autoSelectionScore": 0.4646,
       "performanceScore": 0.3701,
@@ -15154,7 +15322,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 460,
+      "rank": 466,
       "candidateId": "cand-f255c40e",
       "autoSelectionScore": 0.4634,
       "performanceScore": 0.3437,
@@ -15182,7 +15350,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 461,
+      "rank": 467,
       "candidateId": "cand-3ea55d10",
       "autoSelectionScore": 0.4631,
       "performanceScore": 0.3151,
@@ -15210,7 +15378,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 462,
+      "rank": 468,
       "candidateId": "cand-f51d6023",
       "autoSelectionScore": 0.4631,
       "performanceScore": 0.2904,
@@ -15238,7 +15406,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 463,
+      "rank": 469,
       "candidateId": "cand-5309dcd0",
       "autoSelectionScore": 0.4626,
       "performanceScore": 0.2536,
@@ -15272,7 +15440,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 464,
+      "rank": 470,
       "candidateId": "cand-dc11d054",
       "autoSelectionScore": 0.4606,
       "performanceScore": 0.3357,
@@ -15300,7 +15468,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 465,
+      "rank": 471,
       "candidateId": "cand-c89f0008",
       "autoSelectionScore": 0.4601,
       "performanceScore": 0.3731,
@@ -15328,7 +15496,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 466,
+      "rank": 472,
       "candidateId": "cand-d8dce1c7",
       "autoSelectionScore": 0.4587,
       "performanceScore": 0.3568,
@@ -15356,7 +15524,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 467,
+      "rank": 473,
       "candidateId": "cand-59781639",
       "autoSelectionScore": 0.4582,
       "performanceScore": 0.3591,
@@ -15384,7 +15552,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 468,
+      "rank": 474,
       "candidateId": "cand-28c0b9c2",
       "autoSelectionScore": 0.4579,
       "performanceScore": 0.2717,
@@ -15428,7 +15596,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 469,
+      "rank": 475,
       "candidateId": "cand-77d60457",
       "autoSelectionScore": 0.4571,
       "performanceScore": 0.2483,
@@ -15462,7 +15630,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 470,
+      "rank": 476,
       "candidateId": "cand-21300a79",
       "autoSelectionScore": 0.4547,
       "performanceScore": 0.3344,
@@ -15490,7 +15658,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 471,
+      "rank": 477,
       "candidateId": "cand-4e6862d5",
       "autoSelectionScore": 0.4532,
       "performanceScore": 0.3721,
@@ -15518,7 +15686,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 472,
+      "rank": 478,
       "candidateId": "cand-fd410e35",
       "autoSelectionScore": 0.4526,
       "performanceScore": 0.2893,
@@ -15546,7 +15714,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 473,
+      "rank": 479,
       "candidateId": "cand-020a8b10",
       "autoSelectionScore": 0.4516,
       "performanceScore": 0.3201,
@@ -15574,7 +15742,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 474,
+      "rank": 480,
       "candidateId": "cand-97e78627",
       "autoSelectionScore": 0.451,
       "performanceScore": 0.3289,
@@ -15602,7 +15770,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 475,
+      "rank": 481,
       "candidateId": "cand-e8ac126e",
       "autoSelectionScore": 0.4506,
       "performanceScore": 0.2801,
@@ -15630,7 +15798,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 476,
+      "rank": 482,
       "candidateId": "cand-20c62eb7",
       "autoSelectionScore": 0.4493,
       "performanceScore": 0.3976,
@@ -15658,7 +15826,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 477,
+      "rank": 483,
       "candidateId": "cand-de4d3ae4",
       "autoSelectionScore": 0.449,
       "performanceScore": 0.3284,
@@ -15686,7 +15854,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 478,
+      "rank": 484,
       "candidateId": "cand-49bf1eca",
       "autoSelectionScore": 0.4487,
       "performanceScore": 0.252,
@@ -15730,7 +15898,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 479,
+      "rank": 485,
       "candidateId": "cand-e46dc612",
       "autoSelectionScore": 0.4471,
       "performanceScore": 0.3322,
@@ -15758,7 +15926,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 480,
+      "rank": 486,
       "candidateId": "cand-6f7e7135",
       "autoSelectionScore": 0.4462,
       "performanceScore": 0.3388,
@@ -15786,7 +15954,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 481,
+      "rank": 487,
       "candidateId": "cand-32fdba18",
       "autoSelectionScore": 0.4428,
       "performanceScore": 0.2929,
@@ -15814,7 +15982,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 482,
+      "rank": 488,
       "candidateId": "cand-c99b76d2",
       "autoSelectionScore": 0.4426,
       "performanceScore": 0.3289,
@@ -15842,7 +16010,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 483,
+      "rank": 489,
       "candidateId": "cand-dbf9d6ee",
       "autoSelectionScore": 0.442,
       "performanceScore": 0.2732,
@@ -15886,7 +16054,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 484,
+      "rank": 490,
       "candidateId": "cand-d9519491",
       "autoSelectionScore": 0.4407,
       "performanceScore": 0.3406,
@@ -15914,7 +16082,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 485,
+      "rank": 491,
       "candidateId": "cand-223b66c0",
       "autoSelectionScore": 0.4395,
       "performanceScore": 0.3717,
@@ -15942,7 +16110,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 486,
+      "rank": 492,
       "candidateId": "cand-f5452bfd",
       "autoSelectionScore": 0.4385,
       "performanceScore": 0.2997,
@@ -15981,7 +16149,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 487,
+      "rank": 493,
       "candidateId": "cand-385a5c98",
       "autoSelectionScore": 0.4363,
       "performanceScore": 0.2881,
@@ -16020,7 +16188,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 488,
+      "rank": 494,
       "candidateId": "cand-16d85966",
       "autoSelectionScore": 0.4358,
       "performanceScore": 0.3461,
@@ -16048,7 +16216,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 489,
+      "rank": 495,
       "candidateId": "cand-1b5527d4",
       "autoSelectionScore": 0.4356,
       "performanceScore": 0.3585,
@@ -16076,7 +16244,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 490,
+      "rank": 496,
       "candidateId": "cand-dbed99a3",
       "autoSelectionScore": 0.4356,
       "performanceScore": 0.2566,
@@ -16120,7 +16288,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 491,
+      "rank": 497,
       "candidateId": "cand-131673d7",
       "autoSelectionScore": 0.4353,
       "performanceScore": 0.5544,
@@ -16148,7 +16316,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 492,
+      "rank": 498,
       "candidateId": "cand-b24028f1",
       "autoSelectionScore": 0.4345,
       "performanceScore": 0.4472,
@@ -16176,7 +16344,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 493,
+      "rank": 499,
       "candidateId": "cand-c578e8f3",
       "autoSelectionScore": 0.4345,
       "performanceScore": 0.3375,
@@ -16204,7 +16372,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 494,
+      "rank": 500,
       "candidateId": "cand-ec4d095d",
       "autoSelectionScore": 0.433,
       "performanceScore": 0.3522,
@@ -16243,7 +16411,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 495,
+      "rank": 501,
       "candidateId": "cand-d7a58655",
       "autoSelectionScore": 0.4321,
       "performanceScore": 0.356,
@@ -16271,7 +16439,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 496,
+      "rank": 502,
       "candidateId": "cand-f803c3ef",
       "autoSelectionScore": 0.4319,
       "performanceScore": 0.343,
@@ -16299,7 +16467,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 497,
+      "rank": 503,
       "candidateId": "cand-a0cd5fa1",
       "autoSelectionScore": 0.4315,
       "performanceScore": 0.3461,
@@ -16327,7 +16495,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 498,
+      "rank": 504,
       "candidateId": "cand-e72f7455",
       "autoSelectionScore": 0.4307,
       "performanceScore": 0.2858,
@@ -16355,7 +16523,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 499,
+      "rank": 505,
       "candidateId": "cand-a5ddec79",
       "autoSelectionScore": 0.4295,
       "performanceScore": 0.2788,
@@ -16383,7 +16551,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 500,
+      "rank": 506,
       "candidateId": "cand-f8d9a14c",
       "autoSelectionScore": 0.4294,
       "performanceScore": 0.342,
@@ -16411,7 +16579,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 501,
+      "rank": 507,
       "candidateId": "cand-f3c67e81",
       "autoSelectionScore": 0.4286,
       "performanceScore": 0.3456,
@@ -16439,7 +16607,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 502,
+      "rank": 508,
       "candidateId": "cand-225c1344",
       "autoSelectionScore": 0.4283,
       "performanceScore": 0.296,
@@ -16478,7 +16646,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 503,
+      "rank": 509,
       "candidateId": "cand-3412de37",
       "autoSelectionScore": 0.4259,
       "performanceScore": 0.3417,
@@ -16506,7 +16674,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 504,
+      "rank": 510,
       "candidateId": "cand-e2491475",
       "autoSelectionScore": 0.4256,
       "performanceScore": 0.3584,
@@ -16534,7 +16702,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 505,
+      "rank": 511,
       "candidateId": "cand-f0a5a4c1",
       "autoSelectionScore": 0.4249,
       "performanceScore": 0.3142,
@@ -16573,7 +16741,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 506,
+      "rank": 512,
       "candidateId": "cand-600693d5",
       "autoSelectionScore": 0.4248,
       "performanceScore": 0.294,
@@ -16612,7 +16780,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 507,
+      "rank": 513,
       "candidateId": "cand-d4e735e4",
       "autoSelectionScore": 0.4237,
       "performanceScore": 0.251,
@@ -16646,7 +16814,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 508,
+      "rank": 514,
       "candidateId": "cand-e9cbf1f8",
       "autoSelectionScore": 0.4226,
       "performanceScore": 0.2881,
@@ -16685,7 +16853,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 509,
+      "rank": 515,
       "candidateId": "cand-2aaffa7f",
       "autoSelectionScore": 0.4225,
       "performanceScore": 0.3338,
@@ -16713,7 +16881,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 510,
+      "rank": 516,
       "candidateId": "cand-d9353a6a",
       "autoSelectionScore": 0.4223,
       "performanceScore": 0.2723,
@@ -16741,7 +16909,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 511,
+      "rank": 517,
       "candidateId": "cand-cc953fe9",
       "autoSelectionScore": 0.4208,
       "performanceScore": 0.2715,
@@ -16780,7 +16948,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 512,
+      "rank": 518,
       "candidateId": "cand-65524f8e",
       "autoSelectionScore": 0.4197,
       "performanceScore": 0.3173,
@@ -16808,7 +16976,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 513,
+      "rank": 519,
       "candidateId": "cand-354f062e",
       "autoSelectionScore": 0.4187,
       "performanceScore": 0.2653,
@@ -16836,7 +17004,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 514,
+      "rank": 520,
       "candidateId": "cand-93924d92",
       "autoSelectionScore": 0.4168,
       "performanceScore": 0.3304,
@@ -16864,7 +17032,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 515,
+      "rank": 521,
       "candidateId": "cand-5e746ec8",
       "autoSelectionScore": 0.4165,
       "performanceScore": 0.3246,
@@ -16892,7 +17060,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 516,
+      "rank": 522,
       "candidateId": "cand-cec287b8",
       "autoSelectionScore": 0.4152,
       "performanceScore": 0.3211,
@@ -16920,7 +17088,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 517,
+      "rank": 523,
       "candidateId": "cand-047d0e87",
       "autoSelectionScore": 0.4138,
       "performanceScore": 0.22,
@@ -16954,7 +17122,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 518,
+      "rank": 524,
       "candidateId": "cand-bd0b9f0a",
       "autoSelectionScore": 0.4133,
       "performanceScore": 0.3069,
@@ -16993,7 +17161,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 519,
+      "rank": 525,
       "candidateId": "cand-459935ed",
       "autoSelectionScore": 0.4129,
       "performanceScore": 0.3419,
@@ -17021,7 +17189,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 520,
+      "rank": 526,
       "candidateId": "cand-03a62626",
       "autoSelectionScore": 0.4126,
       "performanceScore": 0.4657,
@@ -17065,7 +17233,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 521,
+      "rank": 527,
       "candidateId": "cand-065ce4e4",
       "autoSelectionScore": 0.4112,
       "performanceScore": 0.2475,
@@ -17099,7 +17267,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 522,
+      "rank": 528,
       "candidateId": "cand-9d431a5b",
       "autoSelectionScore": 0.4104,
       "performanceScore": 0.2952,
@@ -17127,7 +17295,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 523,
+      "rank": 529,
       "candidateId": "cand-be588f7a",
       "autoSelectionScore": 0.4099,
       "performanceScore": 0.311,
@@ -17166,7 +17334,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 524,
+      "rank": 530,
       "candidateId": "cand-4c97cbfd",
       "autoSelectionScore": 0.4098,
       "performanceScore": 0.3317,
@@ -17194,7 +17362,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 525,
+      "rank": 531,
       "candidateId": "cand-d3580992",
       "autoSelectionScore": 0.4093,
       "performanceScore": 0.2837,
@@ -17222,7 +17390,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 526,
+      "rank": 532,
       "candidateId": "cand-aa6390a0",
       "autoSelectionScore": 0.4092,
       "performanceScore": 0.2879,
@@ -17261,7 +17429,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 527,
+      "rank": 533,
       "candidateId": "cand-cc2ebf60",
       "autoSelectionScore": 0.4088,
       "performanceScore": 0.2689,
@@ -17300,7 +17468,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 528,
+      "rank": 534,
       "candidateId": "cand-8d08674d",
       "autoSelectionScore": 0.4084,
       "performanceScore": 0.2919,
@@ -17328,7 +17496,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 529,
+      "rank": 535,
       "candidateId": "cand-ce602264",
       "autoSelectionScore": 0.4072,
       "performanceScore": 0.297,
@@ -17356,7 +17524,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 530,
+      "rank": 536,
       "candidateId": "cand-6bde64a7",
       "autoSelectionScore": 0.4068,
       "performanceScore": 0.2997,
@@ -17384,7 +17552,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 531,
+      "rank": 537,
       "candidateId": "cand-108cd93a",
       "autoSelectionScore": 0.4067,
       "performanceScore": 0.2334,
@@ -17412,7 +17580,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 532,
+      "rank": 538,
       "candidateId": "cand-3bde95a6",
       "autoSelectionScore": 0.4067,
       "performanceScore": 0.3323,
@@ -17440,7 +17608,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 533,
+      "rank": 539,
       "candidateId": "cand-04162f97",
       "autoSelectionScore": 0.4055,
       "performanceScore": 0.3527,
@@ -17468,7 +17636,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 534,
+      "rank": 540,
       "candidateId": "cand-222131f7",
       "autoSelectionScore": 0.405,
       "performanceScore": 0.3282,
@@ -17496,7 +17664,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 535,
+      "rank": 541,
       "candidateId": "cand-ed7049a5",
       "autoSelectionScore": 0.4036,
       "performanceScore": 0.3033,
@@ -17524,7 +17692,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 536,
+      "rank": 542,
       "candidateId": "cand-67f28513",
       "autoSelectionScore": 0.4024,
       "performanceScore": 0.3506,
@@ -17563,7 +17731,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 537,
+      "rank": 543,
       "candidateId": "cand-745343db",
       "autoSelectionScore": 0.4021,
       "performanceScore": 0.2718,
@@ -17602,7 +17770,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 538,
+      "rank": 544,
       "candidateId": "cand-93c45054",
       "autoSelectionScore": 0.4016,
       "performanceScore": 0.2835,
@@ -17641,7 +17809,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 539,
+      "rank": 545,
       "candidateId": "cand-880d9c3b",
       "autoSelectionScore": 0.4011,
       "performanceScore": 0.3386,
@@ -17669,7 +17837,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 540,
+      "rank": 546,
       "candidateId": "cand-b0a68a2d",
       "autoSelectionScore": 0.4011,
       "performanceScore": 0.3246,
@@ -17697,7 +17865,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 541,
+      "rank": 547,
       "candidateId": "cand-8df2d958",
       "autoSelectionScore": 0.4003,
       "performanceScore": 0.3114,
@@ -17736,7 +17904,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 542,
+      "rank": 548,
       "candidateId": "cand-2b4897af",
       "autoSelectionScore": 0.3991,
       "performanceScore": 0.2865,
@@ -17775,7 +17943,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 543,
+      "rank": 549,
       "candidateId": "cand-1430f563",
       "autoSelectionScore": 0.3975,
       "performanceScore": 0.3227,
@@ -17814,7 +17982,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 544,
+      "rank": 550,
       "candidateId": "cand-a0397b36",
       "autoSelectionScore": 0.3965,
       "performanceScore": 0.3243,
@@ -17842,7 +18010,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 545,
+      "rank": 551,
       "candidateId": "cand-faad06fe",
       "autoSelectionScore": 0.3964,
       "performanceScore": 0.2644,
@@ -17881,7 +18049,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 546,
+      "rank": 552,
       "candidateId": "cand-ab1f1219",
       "autoSelectionScore": 0.3958,
       "performanceScore": 0.2731,
@@ -17920,7 +18088,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 547,
+      "rank": 553,
       "candidateId": "cand-12dac189",
       "autoSelectionScore": 0.3957,
       "performanceScore": 0.32,
@@ -17959,7 +18127,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 548,
+      "rank": 554,
       "candidateId": "cand-764a1a2e",
       "autoSelectionScore": 0.394,
       "performanceScore": 0.2865,
@@ -17998,7 +18166,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 549,
+      "rank": 555,
       "candidateId": "cand-8a81d15e",
       "autoSelectionScore": 0.3924,
       "performanceScore": 0.3112,
@@ -18026,7 +18194,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 550,
+      "rank": 556,
       "candidateId": "cand-4a6036c4",
       "autoSelectionScore": 0.392,
       "performanceScore": 0.2576,
@@ -18054,7 +18222,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 551,
+      "rank": 557,
       "candidateId": "cand-f25446f4",
       "autoSelectionScore": 0.3905,
       "performanceScore": 0.3246,
@@ -18082,7 +18250,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 552,
+      "rank": 558,
       "candidateId": "cand-ce62380a",
       "autoSelectionScore": 0.3901,
       "performanceScore": 0.3065,
@@ -18121,7 +18289,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 553,
+      "rank": 559,
       "candidateId": "cand-94bfa124",
       "autoSelectionScore": 0.3887,
       "performanceScore": 0.328,
@@ -18149,7 +18317,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 554,
+      "rank": 560,
       "candidateId": "cand-883f1dbc",
       "autoSelectionScore": 0.3877,
       "performanceScore": 0.308,
@@ -18188,7 +18356,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 555,
+      "rank": 561,
       "candidateId": "cand-55eca9f3",
       "autoSelectionScore": 0.3874,
       "performanceScore": 0.3019,
@@ -18227,7 +18395,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 556,
+      "rank": 562,
       "candidateId": "cand-e18ef8db",
       "autoSelectionScore": 0.3868,
       "performanceScore": 0.2956,
@@ -18266,7 +18434,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 557,
+      "rank": 563,
       "candidateId": "cand-6e91e902",
       "autoSelectionScore": 0.3861,
       "performanceScore": 0.2698,
@@ -18305,7 +18473,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 558,
+      "rank": 564,
       "candidateId": "cand-1e7b740a",
       "autoSelectionScore": 0.3852,
       "performanceScore": 0.3127,
@@ -18344,7 +18512,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 559,
+      "rank": 565,
       "candidateId": "cand-a5656f61",
       "autoSelectionScore": 0.3849,
       "performanceScore": 0.3348,
@@ -18383,7 +18551,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 560,
+      "rank": 566,
       "candidateId": "cand-ea432069",
       "autoSelectionScore": 0.3842,
       "performanceScore": 0.2612,
@@ -18427,7 +18595,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 561,
+      "rank": 567,
       "candidateId": "cand-9d7bc4e8",
       "autoSelectionScore": 0.3829,
       "performanceScore": 0.3123,
@@ -18466,7 +18634,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 562,
+      "rank": 568,
       "candidateId": "cand-2ef40bbb",
       "autoSelectionScore": 0.3801,
       "performanceScore": 0.3185,
@@ -18505,7 +18673,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 563,
+      "rank": 569,
       "candidateId": "cand-0787953a",
       "autoSelectionScore": 0.3797,
       "performanceScore": 0.3281,
@@ -18533,7 +18701,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 564,
+      "rank": 570,
       "candidateId": "cand-2f1c6028",
       "autoSelectionScore": 0.3788,
       "performanceScore": 0.2334,
@@ -18561,7 +18729,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 565,
+      "rank": 571,
       "candidateId": "cand-42666d55",
       "autoSelectionScore": 0.377,
       "performanceScore": 0.2804,
@@ -18600,7 +18768,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 566,
+      "rank": 572,
       "candidateId": "cand-f50e2316",
       "autoSelectionScore": 0.3757,
       "performanceScore": 0.3081,
@@ -18639,7 +18807,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 567,
+      "rank": 573,
       "candidateId": "cand-46e79100",
       "autoSelectionScore": 0.3749,
       "performanceScore": 0.3329,
@@ -18678,7 +18846,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 568,
+      "rank": 574,
       "candidateId": "cand-8d4b91ef",
       "autoSelectionScore": 0.3748,
       "performanceScore": 0.3186,
@@ -18717,7 +18885,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 569,
+      "rank": 575,
       "candidateId": "cand-ff5409c4",
       "autoSelectionScore": 0.3709,
       "performanceScore": 0.2038,
@@ -18751,7 +18919,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 570,
+      "rank": 576,
       "candidateId": "cand-bf690779",
       "autoSelectionScore": 0.3707,
       "performanceScore": 0.3325,
@@ -18779,7 +18947,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 571,
+      "rank": 577,
       "candidateId": "cand-9ca5e6ce",
       "autoSelectionScore": 0.3682,
       "performanceScore": 0.2711,
@@ -18818,7 +18986,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 572,
+      "rank": 578,
       "candidateId": "cand-7f3aa203",
       "autoSelectionScore": 0.3673,
       "performanceScore": 0.3103,
@@ -18857,7 +19025,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 573,
+      "rank": 579,
       "candidateId": "cand-6cf92b32",
       "autoSelectionScore": 0.3672,
       "performanceScore": 0.2881,
@@ -18896,7 +19064,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 574,
+      "rank": 580,
       "candidateId": "cand-94ea5366",
       "autoSelectionScore": 0.3659,
       "performanceScore": 0.2995,
@@ -18935,7 +19103,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 575,
+      "rank": 581,
       "candidateId": "cand-f65e05df",
       "autoSelectionScore": 0.3658,
       "performanceScore": 0.3145,
@@ -18974,7 +19142,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 576,
+      "rank": 582,
       "candidateId": "cand-8e4b93b8",
       "autoSelectionScore": 0.3656,
       "performanceScore": 0.2948,
@@ -19013,7 +19181,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 577,
+      "rank": 583,
       "candidateId": "cand-80386733",
       "autoSelectionScore": 0.3645,
       "performanceScore": 0.2695,
@@ -19052,7 +19220,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 578,
+      "rank": 584,
       "candidateId": "cand-6a67a1ba",
       "autoSelectionScore": 0.3638,
       "performanceScore": 0.3056,
@@ -19091,7 +19259,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 579,
+      "rank": 585,
       "candidateId": "cand-c9f02feb",
       "autoSelectionScore": 0.3637,
       "performanceScore": 0.3116,
@@ -19130,7 +19298,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 580,
+      "rank": 586,
       "candidateId": "cand-390f0ec9",
       "autoSelectionScore": 0.3633,
       "performanceScore": 0.3121,
@@ -19169,7 +19337,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 581,
+      "rank": 587,
       "candidateId": "cand-52a7a50a",
       "autoSelectionScore": 0.362,
       "performanceScore": 0.257,
@@ -19203,7 +19371,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 582,
+      "rank": 588,
       "candidateId": "cand-5d57677a",
       "autoSelectionScore": 0.3609,
       "performanceScore": 0.283,
@@ -19242,7 +19410,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 583,
+      "rank": 589,
       "candidateId": "cand-d6d2f314",
       "autoSelectionScore": 0.3609,
       "performanceScore": 0.3021,
@@ -19281,7 +19449,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 584,
+      "rank": 590,
       "candidateId": "cand-87cad2c9",
       "autoSelectionScore": 0.3607,
       "performanceScore": 0.3219,
@@ -19320,7 +19488,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 585,
+      "rank": 591,
       "candidateId": "cand-b53c70d2",
       "autoSelectionScore": 0.359,
       "performanceScore": 0.3161,
@@ -19359,7 +19527,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 586,
+      "rank": 592,
       "candidateId": "cand-3d990470",
       "autoSelectionScore": 0.3587,
       "performanceScore": 0.3065,
@@ -19398,7 +19566,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 587,
+      "rank": 593,
       "candidateId": "cand-66301aac",
       "autoSelectionScore": 0.3573,
       "performanceScore": 0.4211,
@@ -19447,7 +19615,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 588,
+      "rank": 594,
       "candidateId": "cand-0871570d",
       "autoSelectionScore": 0.353,
       "performanceScore": 0.3004,
@@ -19486,7 +19654,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 589,
+      "rank": 595,
       "candidateId": "cand-4c67ca65",
       "autoSelectionScore": 0.3497,
       "performanceScore": 0.3192,
@@ -19525,7 +19693,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 590,
+      "rank": 596,
       "candidateId": "cand-7eebd51c",
       "autoSelectionScore": 0.3492,
       "performanceScore": 0.3352,
@@ -19564,7 +19732,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 591,
+      "rank": 597,
       "candidateId": "cand-52565c65",
       "autoSelectionScore": 0.3486,
       "performanceScore": 0.3179,
@@ -19603,7 +19771,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 592,
+      "rank": 598,
       "candidateId": "cand-7e6cbeb1",
       "autoSelectionScore": 0.3476,
       "performanceScore": 0.3181,
@@ -19642,7 +19810,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 593,
+      "rank": 599,
       "candidateId": "cand-fb4d71b1",
       "autoSelectionScore": 0.3438,
       "performanceScore": 0.3271,
@@ -19681,7 +19849,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 594,
+      "rank": 600,
       "candidateId": "cand-15e4a12e",
       "autoSelectionScore": 0.3435,
       "performanceScore": 0.3004,
@@ -19720,7 +19888,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 595,
+      "rank": 601,
       "candidateId": "cand-580f15ce",
       "autoSelectionScore": 0.3433,
       "performanceScore": 0.2994,
@@ -19759,7 +19927,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 596,
+      "rank": 602,
       "candidateId": "cand-d711b104",
       "autoSelectionScore": 0.3416,
       "performanceScore": 0.3163,
@@ -19798,7 +19966,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 597,
+      "rank": 603,
       "candidateId": "cand-f0e0793b",
       "autoSelectionScore": 0.3404,
       "performanceScore": 0.2995,
@@ -19837,7 +20005,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 598,
+      "rank": 604,
       "candidateId": "cand-848c69e6",
       "autoSelectionScore": 0.3392,
       "performanceScore": 0.3408,
@@ -19876,7 +20044,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 599,
+      "rank": 605,
       "candidateId": "cand-9a3c6534",
       "autoSelectionScore": 0.3384,
       "performanceScore": 0.3052,
@@ -19915,7 +20083,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 600,
+      "rank": 606,
       "candidateId": "cand-53725c7c",
       "autoSelectionScore": 0.3369,
       "performanceScore": 0.2836,
@@ -19954,7 +20122,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 601,
+      "rank": 607,
       "candidateId": "cand-ad169693",
       "autoSelectionScore": 0.3344,
       "performanceScore": 0.246,
@@ -19982,7 +20150,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 602,
+      "rank": 608,
       "candidateId": "cand-cbe9b1d0",
       "autoSelectionScore": 0.3336,
       "performanceScore": 0.3179,
@@ -20021,7 +20189,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 603,
+      "rank": 609,
       "candidateId": "cand-e2769815",
       "autoSelectionScore": 0.3288,
       "performanceScore": 0.3201,
@@ -20060,7 +20228,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 604,
+      "rank": 610,
       "candidateId": "cand-81c94427",
       "autoSelectionScore": 0.3281,
       "performanceScore": 0.3312,
@@ -20099,7 +20267,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 605,
+      "rank": 611,
       "candidateId": "cand-c067b5d5",
       "autoSelectionScore": 0.3267,
       "performanceScore": 0.2333,
@@ -20127,7 +20295,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 606,
+      "rank": 612,
       "candidateId": "cand-e6b23e9c",
       "autoSelectionScore": 0.3261,
       "performanceScore": 0.2998,
@@ -20166,7 +20334,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 607,
+      "rank": 613,
       "candidateId": "cand-bac57a39",
       "autoSelectionScore": 0.319,
       "performanceScore": 0.2309,
@@ -20194,7 +20362,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 608,
+      "rank": 614,
       "candidateId": "cand-4fbb1061",
       "autoSelectionScore": 0.3164,
       "performanceScore": 0.2179,
@@ -20228,7 +20396,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 609,
+      "rank": 615,
       "candidateId": "cand-8360a3a8",
       "autoSelectionScore": 0.3162,
       "performanceScore": 0.3562,
@@ -20277,7 +20445,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 610,
+      "rank": 616,
       "candidateId": "cand-bfc7c35f",
       "autoSelectionScore": 0.3161,
       "performanceScore": 0.3223,
@@ -20316,7 +20484,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 611,
+      "rank": 617,
       "candidateId": "cand-80a953a2",
       "autoSelectionScore": 0.3142,
       "performanceScore": 0.2309,
@@ -20344,7 +20512,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 612,
+      "rank": 618,
       "candidateId": "cand-8f7ede72",
       "autoSelectionScore": 0.3115,
       "performanceScore": 0.21,
@@ -20378,7 +20546,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 613,
+      "rank": 619,
       "candidateId": "cand-8c710851",
       "autoSelectionScore": 0.3107,
       "performanceScore": 0.4704,
@@ -20427,7 +20595,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 614,
+      "rank": 620,
       "candidateId": "cand-c7eab53f",
       "autoSelectionScore": 0.3041,
       "performanceScore": 0.2309,
@@ -20455,7 +20623,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 615,
+      "rank": 621,
       "candidateId": "cand-00c1dd18",
       "autoSelectionScore": 0.3034,
       "performanceScore": 0.4668,
@@ -20504,7 +20672,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 616,
+      "rank": 622,
       "candidateId": "cand-71b48689",
       "autoSelectionScore": 0.3021,
       "performanceScore": 0.4492,
@@ -20553,7 +20721,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 617,
+      "rank": 623,
       "candidateId": "cand-e7b7336e",
       "autoSelectionScore": 0.3019,
       "performanceScore": 0.2017,
@@ -20581,7 +20749,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 618,
+      "rank": 624,
       "candidateId": "cand-c00ad450",
       "autoSelectionScore": 0.3003,
       "performanceScore": 0.2017,
@@ -20609,7 +20777,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 619,
+      "rank": 625,
       "candidateId": "cand-185ff5a5",
       "autoSelectionScore": 0.2949,
       "performanceScore": 0.2078,
@@ -20637,7 +20805,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 620,
+      "rank": 626,
       "candidateId": "cand-1c96e9fd",
       "autoSelectionScore": 0.289,
       "performanceScore": 0.3562,
@@ -20686,7 +20854,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 621,
+      "rank": 627,
       "candidateId": "cand-2d4fa0ca",
       "autoSelectionScore": 0.2881,
       "performanceScore": 0.4705,
@@ -20735,7 +20903,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 622,
+      "rank": 628,
       "candidateId": "cand-fcfda848",
       "autoSelectionScore": 0.2876,
       "performanceScore": 0.3556,
@@ -20784,7 +20952,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 623,
+      "rank": 629,
       "candidateId": "cand-1abba143",
       "autoSelectionScore": 0.2814,
       "performanceScore": 0.452,
@@ -20833,7 +21001,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 624,
+      "rank": 630,
       "candidateId": "cand-93a15ca5",
       "autoSelectionScore": 0.2808,
       "performanceScore": 0.4492,
@@ -20882,7 +21050,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 625,
+      "rank": 631,
       "candidateId": "cand-e51fa567",
       "autoSelectionScore": 0.2702,
       "performanceScore": 0.2017,
@@ -20910,7 +21078,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 626,
+      "rank": 632,
       "candidateId": "cand-ea83485f",
       "autoSelectionScore": 0.2701,
       "performanceScore": 0.4703,
@@ -20959,7 +21127,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 627,
+      "rank": 633,
       "candidateId": "cand-423e67cc",
       "autoSelectionScore": 0.2687,
       "performanceScore": 0.452,
@@ -21008,7 +21176,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 628,
+      "rank": 634,
       "candidateId": "cand-5e2d07d1",
       "autoSelectionScore": 0.2683,
       "performanceScore": 0.3556,
@@ -21057,7 +21225,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 629,
+      "rank": 635,
       "candidateId": "cand-5f96d3ee",
       "autoSelectionScore": 0.2672,
       "performanceScore": 0.2017,
@@ -21085,7 +21253,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 630,
+      "rank": 636,
       "candidateId": "cand-ada28219",
       "autoSelectionScore": 0.2671,
       "performanceScore": 0.2017,
@@ -21113,7 +21281,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 631,
+      "rank": 637,
       "candidateId": "cand-b4321fd5",
       "autoSelectionScore": 0.2648,
       "performanceScore": 0.1723,
@@ -21141,7 +21309,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 632,
+      "rank": 638,
       "candidateId": "cand-bcee3c55",
       "autoSelectionScore": 0.2599,
       "performanceScore": 0.5312,
@@ -21175,7 +21343,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 633,
+      "rank": 639,
       "candidateId": "cand-df356506",
       "autoSelectionScore": 0.2588,
       "performanceScore": 0.2017,
@@ -21203,7 +21371,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 634,
+      "rank": 640,
       "candidateId": "cand-6d449b26",
       "autoSelectionScore": 0.2552,
       "performanceScore": 0.5312,
@@ -21237,7 +21405,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 635,
+      "rank": 641,
       "candidateId": "cand-55a65e2a",
       "autoSelectionScore": 0.2506,
       "performanceScore": 0.5312,
@@ -21271,7 +21439,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 636,
+      "rank": 642,
       "candidateId": "cand-83948a3f",
       "autoSelectionScore": 0.2487,
       "performanceScore": 0.5312,
@@ -21305,7 +21473,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 637,
+      "rank": 643,
       "candidateId": "cand-c4713b99",
       "autoSelectionScore": 0.2474,
       "performanceScore": 0.151,
@@ -21333,7 +21501,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 638,
+      "rank": 644,
       "candidateId": "cand-fcb82015",
       "autoSelectionScore": 0.2468,
       "performanceScore": 0.151,
@@ -21361,7 +21529,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 639,
+      "rank": 645,
       "candidateId": "cand-bc1d3a3d",
       "autoSelectionScore": 0.2435,
       "performanceScore": 0.151,
@@ -21389,7 +21557,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 640,
+      "rank": 646,
       "candidateId": "cand-e7b7295d",
       "autoSelectionScore": 0.2387,
       "performanceScore": 0.151,
@@ -21417,7 +21585,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 641,
+      "rank": 647,
       "candidateId": "cand-182fb36f",
       "autoSelectionScore": 0.2382,
       "performanceScore": 0.1723,
@@ -21445,7 +21613,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 642,
+      "rank": 648,
       "candidateId": "cand-b163d9ef",
       "autoSelectionScore": 0.2376,
       "performanceScore": 0.1411,
@@ -21473,7 +21641,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 643,
+      "rank": 649,
       "candidateId": "cand-6bbf6458",
       "autoSelectionScore": 0.2355,
       "performanceScore": 0.1723,
@@ -21501,7 +21669,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 644,
+      "rank": 650,
       "candidateId": "cand-f5e15c4c",
       "autoSelectionScore": 0.2349,
       "performanceScore": 0.1512,
@@ -21529,7 +21697,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 645,
+      "rank": 651,
       "candidateId": "cand-76ccb25f",
       "autoSelectionScore": 0.2336,
       "performanceScore": 0.151,
@@ -21557,7 +21725,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 646,
+      "rank": 652,
       "candidateId": "cand-6d2901b8",
       "autoSelectionScore": 0.2331,
       "performanceScore": 0.4703,
@@ -21606,7 +21774,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 647,
+      "rank": 653,
       "candidateId": "cand-f35e239c",
       "autoSelectionScore": 0.2321,
       "performanceScore": 0.5312,
@@ -21640,7 +21808,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 648,
+      "rank": 654,
       "candidateId": "cand-302f81b4",
       "autoSelectionScore": 0.232,
       "performanceScore": 0.151,
@@ -21668,7 +21836,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 649,
+      "rank": 655,
       "candidateId": "cand-5d023df9",
       "autoSelectionScore": 0.2308,
       "performanceScore": 0.5312,
@@ -21702,7 +21870,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 650,
+      "rank": 656,
       "candidateId": "cand-1dd30866",
       "autoSelectionScore": 0.2299,
       "performanceScore": 0.5312,
@@ -21736,7 +21904,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 651,
+      "rank": 657,
       "candidateId": "cand-5857be5a",
       "autoSelectionScore": 0.2252,
       "performanceScore": 0.5312,
@@ -21770,7 +21938,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 652,
+      "rank": 658,
       "candidateId": "cand-ea2d4d48",
       "autoSelectionScore": 0.2241,
       "performanceScore": 0.5312,
@@ -21804,7 +21972,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 653,
+      "rank": 659,
       "candidateId": "cand-f36311ec",
       "autoSelectionScore": 0.2217,
       "performanceScore": 0.5312,
@@ -21838,7 +22006,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 654,
+      "rank": 660,
       "candidateId": "cand-e723b414",
       "autoSelectionScore": 0.2217,
       "performanceScore": 0.5312,
@@ -21872,7 +22040,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 655,
+      "rank": 661,
       "candidateId": "cand-4c015de3",
       "autoSelectionScore": 0.2069,
       "performanceScore": 0.1411,
@@ -21900,7 +22068,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 656,
+      "rank": 662,
       "candidateId": "cand-35daab10",
       "autoSelectionScore": 0.2068,
       "performanceScore": 0.1411,
@@ -21928,7 +22096,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 657,
+      "rank": 663,
       "candidateId": "cand-e0d52b44",
       "autoSelectionScore": 0.1993,
       "performanceScore": 0.5312,
@@ -21962,7 +22130,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 658,
+      "rank": 664,
       "candidateId": "cand-6fd68c3f",
       "autoSelectionScore": 0.195,
       "performanceScore": 0.4316,
@@ -21996,7 +22164,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 659,
+      "rank": 665,
       "candidateId": "cand-2cb1b397",
       "autoSelectionScore": 0.159,
       "performanceScore": 0.1055,
@@ -22024,7 +22192,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 660,
+      "rank": 666,
       "candidateId": "cand-84081d99",
       "autoSelectionScore": 0.1467,
       "performanceScore": 0.1013,
@@ -22052,7 +22220,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 661,
+      "rank": 667,
       "candidateId": "cand-2131b5d8",
       "autoSelectionScore": 0.1362,
       "performanceScore": 0.0917,
@@ -22091,7 +22259,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 662,
+      "rank": 668,
       "candidateId": "cand-e27ffda1",
       "autoSelectionScore": 0.1219,
       "performanceScore": 0.0851,
@@ -22119,7 +22287,7 @@
       "decision": "local_candidate_eligible"
     },
     {
-      "rank": 663,
+      "rank": 669,
       "candidateId": "cand-61aafd53",
       "autoSelectionScore": 0.1059,
       "performanceScore": 0.0766,
@@ -22158,7 +22326,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 664,
+      "rank": 670,
       "candidateId": "cand-e0717945",
       "autoSelectionScore": 0.105,
       "performanceScore": 0.0766,
@@ -22197,7 +22365,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 665,
+      "rank": 671,
       "candidateId": "cand-14ed4f8f",
       "autoSelectionScore": 0.1034,
       "performanceScore": 0.0864,
@@ -22236,7 +22404,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 666,
+      "rank": 672,
       "candidateId": "cand-4e21422c",
       "autoSelectionScore": 0.1028,
       "performanceScore": 0.5096,
@@ -22285,7 +22453,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 667,
+      "rank": 673,
       "candidateId": "cand-f20838ec",
       "autoSelectionScore": 0.1003,
       "performanceScore": 0.0766,
@@ -22324,7 +22492,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 668,
+      "rank": 674,
       "candidateId": "cand-490935fa",
       "autoSelectionScore": 0.0991,
       "performanceScore": 0.0864,
@@ -22363,7 +22531,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 669,
+      "rank": 675,
       "candidateId": "cand-bf45bffc",
       "autoSelectionScore": 0.0974,
       "performanceScore": 0.5104,
@@ -22412,7 +22580,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 670,
+      "rank": 676,
       "candidateId": "cand-63e955bc",
       "autoSelectionScore": 0.0919,
       "performanceScore": 0.0766,
@@ -22451,7 +22619,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 671,
+      "rank": 677,
       "candidateId": "cand-26810cf7",
       "autoSelectionScore": 0.0868,
       "performanceScore": 0.5147,
@@ -22500,7 +22668,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 672,
+      "rank": 678,
       "candidateId": "cand-d04b7585",
       "autoSelectionScore": 0.0796,
       "performanceScore": 0.0646,
@@ -22539,7 +22707,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 673,
+      "rank": 679,
       "candidateId": "cand-3a5ca25b",
       "autoSelectionScore": 0.0745,
       "performanceScore": 0.0766,
@@ -22578,7 +22746,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 674,
+      "rank": 680,
       "candidateId": "cand-33a2318e",
       "autoSelectionScore": 0.0744,
       "performanceScore": 0.0864,
@@ -22617,7 +22785,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 675,
+      "rank": 681,
       "candidateId": "cand-d5cf3e85",
       "autoSelectionScore": 0.059,
       "performanceScore": 0.0612,
@@ -22656,7 +22824,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 676,
+      "rank": 682,
       "candidateId": "cand-3387ec21",
       "autoSelectionScore": 0.026,
       "performanceScore": 0.3366,
@@ -22690,7 +22858,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 677,
+      "rank": 683,
       "candidateId": "cand-c77cdb6a",
       "autoSelectionScore": -0.1216,
       "performanceScore": 0.3181,
@@ -22734,7 +22902,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 678,
+      "rank": 684,
       "candidateId": "cand-533202b3",
       "autoSelectionScore": -0.2768,
       "performanceScore": 0.1723,
@@ -22773,7 +22941,7 @@
       "decision": "local_candidate_rejected"
     },
     {
-      "rank": 679,
+      "rank": 685,
       "candidateId": "cand-85a850cc",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -22812,7 +22980,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 680,
+      "rank": 686,
       "candidateId": "cand-24dd5225",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -22851,7 +23019,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 681,
+      "rank": 687,
       "candidateId": "cand-2ce28af5",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -22890,7 +23058,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 682,
+      "rank": 688,
       "candidateId": "cand-e9848278",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -22929,7 +23097,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 683,
+      "rank": 689,
       "candidateId": "cand-0c26395e",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -22968,7 +23136,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 684,
+      "rank": 690,
       "candidateId": "cand-391e34f8",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23007,7 +23175,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 685,
+      "rank": 691,
       "candidateId": "cand-545631e3",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23046,7 +23214,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 686,
+      "rank": 692,
       "candidateId": "cand-59923cf4",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23085,7 +23253,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 687,
+      "rank": 693,
       "candidateId": "cand-d622543c",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23124,7 +23292,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 688,
+      "rank": 694,
       "candidateId": "cand-75aabaa3",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23163,7 +23331,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 689,
+      "rank": 695,
       "candidateId": "cand-a74c2152",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23202,7 +23370,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 690,
+      "rank": 696,
       "candidateId": "cand-59e9d8c2",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23241,7 +23409,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 691,
+      "rank": 697,
       "candidateId": "cand-1485cbc8",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23280,7 +23448,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 692,
+      "rank": 698,
       "candidateId": "cand-f1049237",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23319,7 +23487,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 693,
+      "rank": 699,
       "candidateId": "cand-72972f53",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23358,7 +23526,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 694,
+      "rank": 700,
       "candidateId": "cand-e1203c03",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23397,7 +23565,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 695,
+      "rank": 701,
       "candidateId": "cand-13c3b100",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23436,7 +23604,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 696,
+      "rank": 702,
       "candidateId": "cand-707be753",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23475,7 +23643,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 697,
+      "rank": 703,
       "candidateId": "seed_primary",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23559,7 +23727,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 698,
+      "rank": 704,
       "candidateId": "cand-560e2d3b",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23587,7 +23755,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 699,
+      "rank": 705,
       "candidateId": "cand-93a71a19",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23615,7 +23783,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 700,
+      "rank": 706,
       "candidateId": "cand-3f99a396",
       "autoSelectionScore": null,
       "performanceScore": null,
@@ -23643,7 +23811,7 @@
       "decision": "local_unsupported"
     },
     {
-      "rank": 701,
+      "rank": 707,
       "candidateId": "cand-f918d6d8",
       "autoSelectionScore": null,
       "performanceScore": null,

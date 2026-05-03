@@ -13,6 +13,7 @@ import {
   type ObjectiveConfig,
   type ExperimentRecord,
   type BacktestMetrics,
+  type ChartTarget,
   artifactBundleSchema,
   type ArtifactBundle,
 } from "../../contracts/types.js";
@@ -311,12 +312,12 @@ export async function processTvCalibrationQueue(input: {
     }
 
     const executor = input.executorFactory();
+    const chartTarget = {
+      symbol: input.env.chartSymbol,
+      timeframe: input.env.chartTimeframe,
+      chartType: input.env.chartType,
+    };
     try {
-      const chartTarget = {
-        symbol: input.env.chartSymbol,
-        timeframe: input.env.chartTimeframe,
-        chartType: input.env.chartType,
-      };
       await runCalibrationStep({
         label: "prepareChart",
         timeoutMs: input.env.calibrationTimeoutMs,
@@ -459,6 +460,7 @@ export async function processTvCalibrationQueue(input: {
         tvEventTrace: readEventTrace(artifactBundle.state),
       });
       const integrityIssue = diagnoseTvCalibrationIntegrityIssue({
+        chartTarget,
         candidateSource,
         localArtifactBundle,
         tvArtifactBundle: artifactBundle,
@@ -622,6 +624,21 @@ export async function processTvCalibrationQueue(input: {
       );
       processedCandidateIds.push(candidateId);
     } finally {
+      try {
+        await executor.prepareChart(chartTarget);
+      } catch (cleanupError) {
+        await input.monitor?.log(
+          "autonomous.tv_calibration_cleanup_failed",
+          "TradingView calibration cleanup failed",
+          {
+            candidateId,
+            detail:
+              cleanupError instanceof Error
+                ? cleanupError.message
+                : String(cleanupError),
+          },
+        );
+      }
       await executor.close?.();
     }
   }
@@ -700,12 +717,27 @@ function renderPineTimestamp(iso: string): string {
   return String(Date.parse(iso));
 }
 
-function diagnoseTvCalibrationIntegrityIssue(input: {
+export function diagnoseTvCalibrationIntegrityIssue(input: {
+  chartTarget: Pick<ChartTarget, "symbol" | "timeframe">;
   candidateSource: string;
   localArtifactBundle: ArtifactBundle | null;
   tvArtifactBundle: ArtifactBundle;
   parityStatus: string;
 }): string | null {
+  const state = input.tvArtifactBundle.state;
+  const actualSymbol =
+    typeof state.symbol === "string" ? state.symbol : null;
+  const actualTimeframe =
+    typeof state.timeframe === "string" ? state.timeframe : null;
+  if (
+    normalizeCalibrationSymbol(actualSymbol) !==
+      normalizeCalibrationSymbol(input.chartTarget.symbol) ||
+    normalizeCalibrationTimeframe(actualTimeframe) !==
+      normalizeCalibrationTimeframe(input.chartTarget.timeframe)
+  ) {
+    return `chart_target_mismatch:expected=${input.chartTarget.symbol}:${input.chartTarget.timeframe}:actual=${actualSymbol ?? "unknown"}:${actualTimeframe ?? "unknown"}`;
+  }
+
   const strategyStudyCount = countAttachedStrategyStudies(input.tvArtifactBundle.state);
   if (strategyStudyCount > 1) {
     return `duplicate_strategy_studies:${strategyStudyCount}`;
@@ -753,6 +785,23 @@ function firstTradeTime(artifactBundle: ArtifactBundle): string | null {
     .filter((time): time is string => typeof time === "string" && !Number.isNaN(Date.parse(time)))
     .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
   return first ? new Date(Date.parse(first)).toISOString() : null;
+}
+
+function normalizeCalibrationSymbol(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  return value.split(":").at(-1)?.toUpperCase() ?? value.toUpperCase();
+}
+
+function normalizeCalibrationTimeframe(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  if (value === "2H") {
+    return "120";
+  }
+  return value;
 }
 
 async function runCalibrationStep<T>(input: {

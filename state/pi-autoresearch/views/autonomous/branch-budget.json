@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-03T07:56:16.759Z",
+  "generatedAt": "2026-05-03T08:20:16.510Z",
   "summary": {
-    "totalBranches": 122,
-    "activeBranches": 121,
+    "totalBranches": 128,
+    "activeBranches": 127,
     "exhaustedBranches": 1,
     "targets": {
       "champion_exploit": 50,
@@ -15,36 +15,36 @@
       {
         "branchKind": "champion_exploit",
         "targetPct": 50,
-        "actualCount": 62,
-        "actualPct": 50.82,
-        "deficitPct": -0.82,
-        "activeCount": 62,
+        "actualCount": 65,
+        "actualPct": 50.78,
+        "deficitPct": -0.78,
+        "activeCount": 65,
         "exhaustedCount": 0
       },
       {
         "branchKind": "frontier_exploit",
         "targetPct": 20,
-        "actualCount": 25,
-        "actualPct": 20.49,
-        "deficitPct": -0.49,
-        "activeCount": 25,
+        "actualCount": 27,
+        "actualPct": 21.09,
+        "deficitPct": -1.09,
+        "activeCount": 27,
         "exhaustedCount": 0
       },
       {
         "branchKind": "exploration_breakout",
         "targetPct": 20,
-        "actualCount": 25,
-        "actualPct": 20.49,
-        "deficitPct": -0.49,
-        "activeCount": 25,
+        "actualCount": 26,
+        "actualPct": 20.31,
+        "deficitPct": -0.31,
+        "activeCount": 26,
         "exhaustedCount": 0
       },
       {
         "branchKind": "near_miss_repair",
         "targetPct": 5,
         "actualCount": 3,
-        "actualPct": 2.46,
-        "deficitPct": 2.54,
+        "actualPct": 2.34,
+        "deficitPct": 2.66,
         "activeCount": 2,
         "exhaustedCount": 1
       },
@@ -52,8 +52,8 @@
         "branchKind": "adversarial_simplification",
         "targetPct": 5,
         "actualCount": 7,
-        "actualPct": 5.74,
-        "deficitPct": -0.74,
+        "actualPct": 5.47,
+        "deficitPct": -0.47,
         "activeCount": 7,
         "exhaustedCount": 0
       }

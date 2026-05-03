@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 
-import { buildTradingViewCalibrationSource } from "../../src/research/autonomous/tv-calibration-phase.js";
+import {
+  buildTradingViewCalibrationSource,
+  diagnoseTvCalibrationIntegrityIssue,
+} from "../../src/research/autonomous/tv-calibration-phase.js";
 
 const generatedSpecPine = [
   "//@version=5",
@@ -64,5 +67,25 @@ describe("TradingView calibration phase", () => {
     });
 
     expect(twice).toBe(once);
+  });
+
+  test("flags TradingView artifacts from the wrong chart target", () => {
+    const issue = diagnoseTvCalibrationIntegrityIssue({
+      chartTarget: { symbol: "QQQ", timeframe: "120" },
+      candidateSource: generatedSpecPine,
+      localArtifactBundle: null,
+      tvArtifactBundle: {
+        state: {
+          symbol: "CRYPTO:BTCUSD",
+          timeframe: "120",
+          attachedStudies: [],
+        },
+        trades: [],
+      } as never,
+      parityStatus: "major_drift",
+    });
+
+    expect(issue).toContain("chart_target_mismatch");
+    expect(issue).toContain("actual=CRYPTO:BTCUSD:120");
   });
 });

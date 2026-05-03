@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:56:16.752Z",
+  "generatedAt": "2026-05-03T08:20:16.503Z",
   "entries": [
     {
       "candidateId": "cand-24b4021d",
@@ -92,6 +92,12 @@
       "recordHash": "aaa4a24b78a1b05892cba92bff79409a0f2457fab55f935b8aeb61bb19e8c288"
     },
     {
+      "candidateId": "cand-15437332",
+      "noveltyScore": 0.186,
+      "autoSelectionScore": 0.5536,
+      "recordHash": "20412c8dcf05c1873081a60b340164e86b75dbcd268428502e925d22fed3f248"
+    },
+    {
       "candidateId": "cand-c00ad450",
       "noveltyScore": 0.1858,
       "autoSelectionScore": 0.3003,
@@ -114,12 +120,6 @@
       "noveltyScore": 0.1849,
       "autoSelectionScore": 0.5385,
       "recordHash": "5100fc187d856f421de80a795021c07204ae39417b63b50a56cac9d6debe672f"
-    },
-    {
-      "candidateId": "cand-0c5cb65e",
-      "noveltyScore": 0.1835,
-      "autoSelectionScore": 0.9506,
-      "recordHash": "5d446e69d478e286dc63effab029a00660fa7c6987a3281419d2fbd40bbaa042"
     }
   ]
 }

@@ -1,0 +1,38 @@
+{
+  "version": "af-spec/v1",
+  "name": "AF Spec v1 [breakout-time-boxed-event-rotation-af01]",
+  "event": {
+    "source": "event_floor",
+    "L1": 9,
+    "L2": 12,
+    "L3": 14,
+    "confirmBars": 2,
+    "eventFloorBars": 2,
+    "eventWindowBars": 9
+  },
+  "regime": {
+    "trendMode": "Balanced",
+    "useSupertrendFilter": true,
+    "riskOffRsi": 44,
+    "maxExtPct": 8
+  },
+  "entry": {
+    "primaryTrigger": "bull_event_window_rotation",
+    "cooldownBars": 0,
+    "allowBearRebound": true,
+    "applyFilterToB1": true
+  },
+  "slot": {
+    "slotPct": 15,
+    "maxSlots": 18,
+    "useReplacement": true,
+    "replaceMinRank": 2,
+    "replaceIfPnlBelow": -4
+  },
+  "exit": {
+    "weakRangeExit": true,
+    "maxHoldBars": 18,
+    "closeAllOnBearConfRiskOff": true,
+    "resetOnL3": false
+  }
+}
