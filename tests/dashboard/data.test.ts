@@ -54,10 +54,45 @@ describe("buildDashboardStatus", () => {
       }),
       "utf8",
     );
+    await writeFile(
+      paths.tvCalibrationQueuePath,
+      JSON.stringify({
+        entries: [
+          {
+            candidateId: "cand-queued",
+            derivedStatus: "pending",
+            queueState: "queued",
+            queueReason: "novelty_frontier_candidate",
+            recordedAt: "2026-04-27T00:00:00.000Z",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    await writeFile(
+      paths.localTvDivergencePath,
+      JSON.stringify({
+        entries: [
+          {
+            candidateId: "cand-drift",
+            localConfidenceAfter: 0.6,
+            parity: {
+              status: "major_drift",
+              netProfitPctDelta: -20,
+              tradeCountDelta: -120,
+            },
+            recordedAt: "2026-04-27T01:00:00.000Z",
+          },
+        ],
+      }),
+      "utf8",
+    );
 
     const status = await buildDashboardStatus({
       workspaceRoot: root,
       stateRoot,
+      autoProcessCalibration: false,
+      promotionVerificationExecutor: "none",
       now: new Date("2026-04-28T00:00:00.000Z"),
     });
 
@@ -82,5 +117,16 @@ describe("buildDashboardStatus", () => {
     expect(status.verifiedAutoresearch.walkForwardStatusCounts.failed).toBe(1);
     expect(status.verifiedAutoresearch.trialPressure?.familyTrials).toBe(7);
     expect(status.verifiedAutoresearch.branchBudget?.totalBranches).toBe(2);
+    expect(status.operatorBrief.mode).toBe("local_only");
+    expect(status.operatorBrief.headline).toContain("TradingView is manual");
+    expect(status.externalValidation.pendingCount).toBe(1);
+    expect(status.externalValidation.pendingCandidateIds).toEqual(["cand-queued"]);
+    expect(status.externalValidation.latestDivergence).toEqual(
+      expect.objectContaining({
+        candidateId: "cand-drift",
+        parityStatus: "major_drift",
+        netProfitDelta: -20,
+      }),
+    );
   });
 });

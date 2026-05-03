@@ -7,16 +7,16 @@ export function renderDashboardHtml(): string {
   <title>AF Local Loop Dashboard</title>
   <style>
     :root {
-      --paper: #f4f1ea;
-      --ink: #171717;
-      --muted: #6d6a63;
-      --line: #c9c2b4;
-      --panel: #fffaf0;
-      --accent: #d9472f;
-      --good: #13795b;
-      --warn: #b7791f;
-      --bad: #9f1239;
-      --blue: #22577a;
+      --paper: #f6f7f9;
+      --ink: #111827;
+      --muted: #64748b;
+      --line: #cbd5e1;
+      --panel: #ffffff;
+      --accent: #2563eb;
+      --good: #0f766e;
+      --warn: #b45309;
+      --bad: #be123c;
+      --blue: #1d4ed8;
       --mono: "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
       --body: "Aptos", "Segoe UI", sans-serif;
     }
@@ -37,8 +37,8 @@ export function renderDashboardHtml(): string {
       pointer-events: none;
       opacity: 0.18;
       background-image:
-        repeating-linear-gradient(0deg, transparent 0 23px, rgba(23,23,23,0.05) 24px),
-        repeating-linear-gradient(90deg, transparent 0 47px, rgba(23,23,23,0.035) 48px);
+        repeating-linear-gradient(0deg, transparent 0 23px, rgba(15,23,42,0.035) 24px),
+        repeating-linear-gradient(90deg, transparent 0 47px, rgba(15,23,42,0.026) 48px);
     }
 
     .shell {
@@ -53,7 +53,7 @@ export function renderDashboardHtml(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      border-right: 3px solid var(--accent);
+      border-right: 3px solid var(--good);
     }
 
     .rail span {
@@ -122,6 +122,13 @@ export function renderDashboardHtml(): string {
       margin-top: 18px;
     }
 
+    .brief-band {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
     .metrics {
       display: grid;
       grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -169,6 +176,77 @@ export function renderDashboardHtml(): string {
     .panel {
       padding: 16px;
       min-width: 0;
+    }
+
+    .brief-title {
+      margin: 0 0 8px;
+      font-family: var(--mono);
+      font-size: 20px;
+      line-height: 1.15;
+    }
+
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .evidence {
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      padding: 9px;
+      min-height: 68px;
+    }
+
+    .evidence.good { border-left: 4px solid var(--good); }
+    .evidence.watch { border-left: 4px solid var(--warn); }
+    .evidence.bad { border-left: 4px solid var(--bad); }
+    .evidence.neutral { border-left: 4px solid var(--blue); }
+
+    .evidence .label {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .evidence .ev-value {
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .action-list,
+    .warning-list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .warning-list {
+      color: var(--bad);
+    }
+
+    .command-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .command {
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      padding: 9px;
+    }
+
+    .command code {
+      display: block;
+      margin-top: 5px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .panel h2 {
@@ -281,8 +359,9 @@ export function renderDashboardHtml(): string {
     @media (max-width: 1100px) {
       .shell { grid-template-columns: 1fr; }
       .rail { display: none; }
-      .grid, .two-col { grid-template-columns: 1fr; }
+      .grid, .two-col, .brief-band { grid-template-columns: 1fr; }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .evidence-grid { grid-template-columns: 1fr; }
       header { grid-template-columns: 1fr; }
       .status-strip { justify-content: flex-start; }
     }
@@ -303,6 +382,24 @@ export function renderDashboardHtml(): string {
           <span class="pill" id="refreshStatus">REFRESH</span>
         </div>
       </header>
+
+      <section class="brief-band">
+        <div class="panel">
+          <h2><span>Operator Brief</span><span id="operatorMode">-</span></h2>
+          <h3 class="brief-title" id="briefHeadline">-</h3>
+          <p class="copy" id="briefSummary">-</p>
+          <div class="evidence-grid" id="operatorEvidence"></div>
+          <ol class="action-list" id="nextActionList"></ol>
+          <ul class="warning-list" id="warningList"></ul>
+        </div>
+        <div class="panel">
+          <h2><span>External Validation</span><span id="externalMode">manual</span></h2>
+          <table>
+            <tbody id="externalRows"></tbody>
+          </table>
+          <div class="command-list" id="commandList"></div>
+        </div>
+      </section>
 
       <section class="metrics">
         <div class="metric"><div class="label">Latest Score</div><div class="value" id="latestScore">-</div><div class="delta" id="latestDecision">-</div></div>
@@ -339,6 +436,22 @@ export function renderDashboardHtml(): string {
           <table>
             <thead><tr><th>Branch</th><th>Target</th><th>Actual</th><th>Deficit</th></tr></thead>
             <tbody id="branchBudgetRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="two-col">
+        <div class="panel">
+          <h2><span>Manual TV Queue</span><span id="queueMeta">-</span></h2>
+          <table>
+            <thead><tr><th>ID</th><th>Status</th><th>Reason</th><th>Recorded</th></tr></thead>
+            <tbody id="externalEventRows"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2><span>Latest Local/TV Drift</span><span id="driftMeta">-</span></h2>
+          <table>
+            <tbody id="driftRows"></tbody>
           </table>
         </div>
       </section>
@@ -521,11 +634,67 @@ export function renderDashboardHtml(): string {
       rows.forEach(function(item) { body.appendChild(item); });
     }
 
+    function renderSimpleList(id, values, emptyText) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = "";
+      const items = values && values.length > 0 ? values : (emptyText ? [emptyText] : []);
+      items.forEach(function(value) {
+        const li = document.createElement("li");
+        li.textContent = value;
+        el.appendChild(li);
+      });
+    }
+
+    function renderOperatorEvidence(items) {
+      const el = document.getElementById("operatorEvidence");
+      if (!el) return;
+      el.innerHTML = "";
+      (items || []).forEach(function(item) {
+        const div = document.createElement("div");
+        div.className = "evidence " + (item.status || "neutral");
+        div.innerHTML = '<span class="label"></span><div class="ev-value"></div>';
+        div.querySelector(".label").textContent = item.label;
+        div.querySelector(".ev-value").textContent = item.value;
+        el.appendChild(div);
+      });
+    }
+
+    function renderCommands(commands) {
+      const el = document.getElementById("commandList");
+      if (!el) return;
+      el.innerHTML = "";
+      (commands || []).forEach(function(item) {
+        const div = document.createElement("div");
+        div.className = "command";
+        div.innerHTML = '<div class="label"></div><code></code>';
+        div.querySelector(".label").textContent = item.label;
+        div.querySelector("code").textContent = item.command;
+        el.appendChild(div);
+      });
+    }
+
     function render(data) {
+      const brief = data.operatorBrief || {};
+      const external = data.externalValidation || {};
       const latest = data.score.latest;
       const latestMetrics = latest && latest.metrics;
       text("subline", "state " + data.project.stateRoot + " / " + new Date(data.generatedAt).toLocaleTimeString());
       text("generatedAt", new Date(data.generatedAt).toLocaleTimeString());
+      text("operatorMode", brief.mode === "local_only" ? "local only" : "external auto");
+      text("briefHeadline", brief.headline || "-");
+      text("briefSummary", brief.summary || "-");
+      renderOperatorEvidence(brief.evidence || []);
+      renderSimpleList("nextActionList", brief.nextActions || [], "No immediate action.");
+      renderSimpleList("warningList", brief.warnings || [], "");
+      renderCommands(brief.commands || []);
+      text("externalMode", external.autoProcessCalibration ? "auto calibration" : "manual");
+      renderRows("externalRows", [
+        row([{ value: "Calibration", className: "mono" }, { value: external.autoProcessCalibration ? "auto" : "manual", className: external.autoProcessCalibration ? "warnText" : "goodText" }]),
+        row([{ value: "Promotion verifier", className: "mono" }, { value: external.promotionVerificationExecutor || "none", className: external.promotionVerificationExecutor === "none" ? "goodText" : "warnText" }]),
+        row([{ value: "Pending queue", className: "mono" }, { value: String(external.pendingCount || 0), className: (external.pendingCount || 0) > 0 ? "warnText" : "goodText" }]),
+        row([{ value: "Pending IDs", className: "mono" }, { value: (external.pendingCandidateIds || []).map(shortId).join(", ") || "-" }])
+      ]);
       text("latestScore", latest && latest.score !== null ? fmt(latest.score, 4) : "-");
       text("latestDecision", latest ? shortId(latest.candidateId) + " / " + latest.decision : "-");
       text("latestNet", latestMetrics ? pct(latestMetrics.netProfitPercent) : "-");
@@ -571,6 +740,28 @@ export function renderDashboardHtml(): string {
           { value: entry.deficitPct === undefined ? "-" : fmt(entry.deficitPct, 1) + "%", className: entry.deficitPct > 0 ? "warnText" : "goodText" }
         ]);
       }));
+
+      text("queueMeta", (external.pendingCount || 0) + " pending");
+      renderRows("externalEventRows", (external.recentEvents || []).slice(0, 8).map(function(item) {
+        return row([
+          { value: shortId(item.candidateId), className: "mono" },
+          { value: item.status || "-", className: item.status === "processed" ? "goodText" : item.status === "skipped" || item.status === "failed" ? "badText" : "warnText" },
+          { value: item.reason || item.tvDecision || item.parityStatus || "-" },
+          { value: item.recordedAt ? new Date(item.recordedAt).toLocaleTimeString() : "-", className: "mono" }
+        ]);
+      }));
+
+      const drift = external.latestDivergence;
+      text("driftMeta", drift ? shortId(drift.candidateId) : "-");
+      renderRows("driftRows", drift ? [
+        row([{ value: "Parity", className: "mono" }, { value: drift.parityStatus, className: drift.parityStatus === "major_drift" ? "badText" : "warnText" }]),
+        row([{ value: "Net delta", className: "mono" }, { value: drift.netProfitDelta === null || drift.netProfitDelta === undefined ? "-" : pct(drift.netProfitDelta), className: Math.abs(drift.netProfitDelta || 0) > 10 ? "badText" : "warnText" }]),
+        row([{ value: "Trade delta", className: "mono" }, { value: drift.tradeCountDelta === null || drift.tradeCountDelta === undefined ? "-" : String(drift.tradeCountDelta), className: Math.abs(drift.tradeCountDelta || 0) > 100 ? "badText" : "warnText" }]),
+        row([{ value: "Confidence after", className: "mono" }, { value: drift.confidenceAfter === null || drift.confidenceAfter === undefined ? "-" : fmt(drift.confidenceAfter, 2), className: (drift.confidenceAfter || 0) < 0.8 ? "warnText" : "goodText" }]),
+        row([{ value: "Recorded", className: "mono" }, { value: drift.recordedAt ? new Date(drift.recordedAt).toLocaleString() : "-" }])
+      ] : [
+        row([{ value: "Status", className: "mono" }, { value: "No recent drift evidence." }])
+      ]);
 
       const loopClass = data.runtime.running ? "pill good" : data.runtime.stopRequested ? "pill warn" : "pill bad";
       cls("loopStatus", loopClass);

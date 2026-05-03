@@ -6,6 +6,8 @@ import { renderDashboardHtml } from "./static.js";
 export interface DashboardServerOptions {
   workspaceRoot: string;
   stateRoot: string;
+  autoProcessCalibration?: boolean;
+  promotionVerificationExecutor?: string;
   host?: string;
   port?: number;
   open?: boolean;
@@ -44,12 +46,19 @@ export async function startDashboardServer(
         return;
       }
 
+      if (request.method === "GET" && url.pathname === "/favicon.ico") {
+        send(response, 204, "image/x-icon", "");
+        return;
+      }
+
       if (request.method === "GET" && url.pathname === "/api/status") {
         const now = Date.now();
         if (!cache || now - cache.generatedAtMs > 3_000) {
           const payload = await buildDashboardStatus({
             workspaceRoot: options.workspaceRoot,
             stateRoot: options.stateRoot,
+            autoProcessCalibration: options.autoProcessCalibration,
+            promotionVerificationExecutor: options.promotionVerificationExecutor,
           });
           cache = {
             generatedAtMs: now,

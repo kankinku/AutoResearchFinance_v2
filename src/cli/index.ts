@@ -1736,6 +1736,8 @@ program
     const server = await startDashboardServer({
       workspaceRoot: env.workspaceRoot,
       stateRoot: env.stateRoot,
+      autoProcessCalibration: env.autoProcessCalibration,
+      promotionVerificationExecutor: env.promotionVerificationExecutor,
       host: options.host,
       port,
       open,
