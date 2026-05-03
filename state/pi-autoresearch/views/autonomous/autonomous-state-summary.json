@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:33:22.812Z",
+  "generatedAt": "2026-05-03T07:56:16.758Z",
   "activeChampionCandidateId": null,
   "activeChampionScore": null,
   "activeChampionDecision": null,
@@ -47,17 +47,17 @@
     "tv_verified": 27,
     "promotion_candidate": 0,
     "champion": 0,
-    "quarantined": 22
+    "quarantined": 24
   },
-  "quarantineCount": 22,
+  "quarantineCount": 24,
   "parityStatusCounts": {
-    "major_drift": 20,
-    "missing": 2,
+    "major_drift": 21,
+    "missing": 3,
     "matched": 27
   },
   "walkForwardStatusCounts": {
     "failed": 20,
-    "missing": 29
+    "missing": 31
   },
   "branchBudget": {
     "totalBranches": 122,
@@ -125,7 +125,7 @@
   "objectivePolicyVersion": null,
   "headEventCount": 2,
   "archiveEventCount": 644,
-  "calibrationEventCount": 562,
+  "calibrationEventCount": 564,
   "calibrationCandidateCount": 513,
   "divergenceCount": 47,
   "localConfidenceUpdateCount": 47,
@@ -140,7 +140,7 @@
   "bootstrapReason": null,
   "localRejectedCount": 275,
   "topBlockingReason": "low_trade_count",
-  "pendingCalibrationCandidateCount": 464,
+  "pendingCalibrationCandidateCount": 462,
   "pendingCalibrationCandidateIds": [
     "cand-0e6a0180",
     "cand-9f33e80b",
@@ -603,9 +603,7 @@
     "cand-24dbbbeb",
     "cand-9608d598",
     "cand-6a5fcfc2",
-    "cand-9d323edb",
-    "cand-131673d7",
-    "cand-9bc447dd"
+    "cand-9d323edb"
   ],
   "recentProblemKinds": [
     "llm_schema_fail",
@@ -648,7 +646,7 @@
   ],
   "scoreFeedbackObserved": true,
   "stage6Readiness": {
-    "generatedAt": "2026-05-03T07:33:22.806Z",
+    "generatedAt": "2026-05-03T07:56:16.751Z",
     "evaluated": false,
     "passed": false,
     "activeChampionCandidateId": null,
@@ -669,7 +667,7 @@
     "evidence": {
       "localEvaluationCount": 701,
       "headEventCount": 2,
-      "calibrationEventCount": 562,
+      "calibrationEventCount": 564,
       "successfulRepairCount": 286,
       "successfulRepairsWithoutCandidateCount": 1
     }

@@ -173,6 +173,10 @@ export async function processTvCalibrationQueue(input: {
     const localEventTrace = readEventTrace(
       localArtifactBundle?.state ?? localRecord.artifactBundle?.state,
     );
+    const tvCandidateSource = buildTradingViewCalibrationSource({
+      source: candidateSource,
+      localArtifactBundle,
+    });
 
     if (input.env.tvCalibrationMode === "mock-recovered") {
       const mockTvMetrics = buildMockRecoveredMetrics(localRecord.testerMetrics);
@@ -321,7 +325,7 @@ export async function processTvCalibrationQueue(input: {
       await runCalibrationStep({
         label: "updateStrategySource",
         timeoutMs: input.env.calibrationTimeoutMs,
-        run: () => executor.updateStrategySource(candidateSource),
+        run: () => executor.updateStrategySource(tvCandidateSource),
       });
       const compile = await runCalibrationStep({
         label: "compileStrategy",
@@ -454,6 +458,58 @@ export async function processTvCalibrationQueue(input: {
         localEventTrace,
         tvEventTrace: readEventTrace(artifactBundle.state),
       });
+      const integrityIssue = diagnoseTvCalibrationIntegrityIssue({
+        candidateSource,
+        localArtifactBundle,
+        tvArtifactBundle: artifactBundle,
+        parityStatus: parity.status,
+      });
+      if (integrityIssue) {
+        const diagnosticArtifactBundle = artifactBundleSchema.parse({
+          ...artifactBundle,
+          state: {
+            ...artifactBundle.state,
+            calibrationIntegrityIssue: integrityIssue,
+          },
+        });
+        await appendTvRecord(input.stateRoot, {
+          localRecord,
+          runId: input.runId,
+          iteration: localRecord.iteration,
+          decision: "tv_portability_failure",
+          status: "portability_failed",
+          compile,
+          apply,
+          artifactValidation,
+          testerMetrics: diagnosticArtifactBundle.strategy ?? null,
+          artifactBundle: diagnosticArtifactBundle,
+          localTvParity: parity,
+          localConfidence: 0.5,
+          tvCalibrationStatus: buildTvCalibrationStatus({
+            decision: "tv_portability_failure",
+          }),
+        });
+        await appendCalibrationQueueStatusEvent(input.stateRoot, {
+          runId: input.runId,
+          iteration: localRecord.iteration,
+          candidateId,
+          localRecord,
+          queueState: "skipped",
+          queueReason: "unsupported_target",
+          tvHealthAtQueueTime: "healthy",
+        });
+        await input.monitor?.log(
+          "autonomous.tv_calibration_integrity_issue",
+          "TradingView calibration produced non-portable evidence",
+          {
+            candidateId,
+            issue: integrityIssue,
+            parityStatus: parity.status,
+          },
+        );
+        processedCandidateIds.push(candidateId);
+        continue;
+      }
       const localConfidenceAfter =
         parity.status === "matched"
           ? 1
@@ -573,6 +629,130 @@ export async function processTvCalibrationQueue(input: {
   return {
     processedCandidateIds,
   };
+}
+
+export function buildTradingViewCalibrationSource(input: {
+  source: string;
+  localArtifactBundle: ArtifactBundle | null;
+}): string {
+  if (
+    input.source.includes("AF_TV_CALIBRATION_WINDOW_START") ||
+    !input.source.includes("// AF_SPEC_VERSION=")
+  ) {
+    return input.source;
+  }
+
+  const window = inferLocalCalibrationWindow(input.localArtifactBundle);
+  if (!window) {
+    return input.source;
+  }
+
+  const guardLines = [
+    `// AF_TV_CALIBRATION_WINDOW_START=${window.start}`,
+    `// AF_TV_CALIBRATION_WINDOW_END=${window.end}`,
+    `afCalibrationStart = input.time(${renderPineTimestamp(window.start)}, "afCalibrationStart")`,
+    `afCalibrationEnd = input.time(${renderPineTimestamp(window.end)}, "afCalibrationEnd")`,
+    "afCalibrationInWindow = time >= afCalibrationStart and time <= afCalibrationEnd",
+    "afCalibrationWindowEnded = time > afCalibrationEnd and nz(time[1], time) <= afCalibrationEnd",
+    "",
+  ].join("\n");
+  let source = input.source.replace(
+    /(strategy\([^\r\n]*\)\r?\n)/,
+    `$1${guardLines}`,
+  );
+  source = source.replace(
+    /\nif entryPass(\r?\n\s+strategy\.entry)/,
+    "\nif afCalibrationInWindow and entryPass$1",
+  );
+  source = source.replace(
+    /\nif bearEvent and closeAllOnBearConfRiskOff(\r?\n\s+strategy\.close_all)/,
+    "\nif afCalibrationInWindow and bearEvent and closeAllOnBearConfRiskOff$1",
+  );
+  source = source.replace(
+    /\nif afCalibrationInWindow and entryPass/,
+    "\nif afCalibrationWindowEnded and strategy.opentrades > 0\n    strategy.close_all(comment=f_trace(\"exit\", \"calibration_window_end\"), alert_message=f_trace(\"exit\", \"calibration_window_end\"))\nif afCalibrationInWindow and entryPass",
+  );
+  return source;
+}
+
+function inferLocalCalibrationWindow(
+  artifactBundle: ArtifactBundle | null,
+): { start: string; end: string } | null {
+  const traceTimes = readEventTrace(artifactBundle?.state)
+    .map((entry) => (typeof entry.time === "string" ? entry.time : null))
+    .filter((time): time is string => time != null && !Number.isNaN(Date.parse(time)));
+  const tradeTimes = (artifactBundle?.trades ?? [])
+    .flatMap((trade) => [trade.entryTime, trade.exitTime])
+    .filter((time): time is string => typeof time === "string" && !Number.isNaN(Date.parse(time)));
+  const times = traceTimes.length > 0 ? traceTimes : tradeTimes;
+  if (times.length < 2) {
+    return null;
+  }
+
+  const sorted = [...times].sort((left, right) => Date.parse(left) - Date.parse(right));
+  return {
+    start: new Date(Date.parse(sorted[0])).toISOString(),
+    end: new Date(Date.parse(sorted[sorted.length - 1])).toISOString(),
+  };
+}
+
+function renderPineTimestamp(iso: string): string {
+  return String(Date.parse(iso));
+}
+
+function diagnoseTvCalibrationIntegrityIssue(input: {
+  candidateSource: string;
+  localArtifactBundle: ArtifactBundle | null;
+  tvArtifactBundle: ArtifactBundle;
+  parityStatus: string;
+}): string | null {
+  const strategyStudyCount = countAttachedStrategyStudies(input.tvArtifactBundle.state);
+  if (strategyStudyCount > 1) {
+    return `duplicate_strategy_studies:${strategyStudyCount}`;
+  }
+
+  const localWindow = inferLocalCalibrationWindow(input.localArtifactBundle);
+  const firstTvTradeTime = firstTradeTime(input.tvArtifactBundle);
+  if (
+    localWindow &&
+    firstTvTradeTime &&
+    Date.parse(firstTvTradeTime) < Date.parse(localWindow.start) - 6 * 60 * 60 * 1000
+  ) {
+    return `history_window_mismatch:local_start=${localWindow.start}:tv_first_trade=${firstTvTradeTime}`;
+  }
+
+  if (
+    input.parityStatus === "major_drift" &&
+    input.candidateSource.includes("// AF_SPEC_VERSION=") &&
+    input.candidateSource.includes("bullEvent = close < close[4]") &&
+    input.candidateSource.includes("strategy.entry(\"AF-L\"")
+  ) {
+    return "generated_pine_local_logic_gap";
+  }
+
+  return null;
+}
+
+function countAttachedStrategyStudies(state: Record<string, unknown>): number {
+  const attachedStudies = state.attachedStudies;
+  if (!Array.isArray(attachedStudies)) {
+    return 0;
+  }
+  return attachedStudies.filter(
+    (study) =>
+      typeof study === "object" &&
+      study !== null &&
+      "hasStrategyData" in study &&
+      study.hasStrategyData === true,
+  ).length;
+}
+
+function firstTradeTime(artifactBundle: ArtifactBundle): string | null {
+  const first = artifactBundle.trades
+    .flatMap((trade) => [trade.entryTime, trade.exitTime])
+    .filter((time): time is string => typeof time === "string" && !Number.isNaN(Date.parse(time)))
+    .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
+  return first ? new Date(Date.parse(first)).toISOString() : null;
 }
 
 async function runCalibrationStep<T>(input: {

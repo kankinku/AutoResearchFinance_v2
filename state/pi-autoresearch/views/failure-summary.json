@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:33:22.535Z",
+  "generatedAt": "2026-05-03T07:56:16.501Z",
   "incidentCounts": {
     "task_runtime_failure": 12,
     "stale_attach_detected": 7,
@@ -38,7 +38,8 @@
     "local_candidate_rejected": 275,
     "local_candidate_eligible": 403,
     "tv_verified": 47,
-    "tv_surface_failure": 2
+    "tv_surface_failure": 2,
+    "tv_portability_failure": 2
   },
   "evaluationOutcomeCounts": {
     "legacy_screening_improvement": 4,
@@ -52,7 +53,8 @@
     "local_candidate_rejected": 275,
     "local_candidate_eligible": 403,
     "tv_verified": 47,
-    "tv_surface_failure": 2
+    "tv_surface_failure": 2,
+    "tv_portability_failure": 2
   },
   "verificationFailureReasonCounts": {},
   "verificationRuntimeFailureKindCounts": {},

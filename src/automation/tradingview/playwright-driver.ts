@@ -167,6 +167,7 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
         label: "Chart target",
       },
     );
+    await this.removeAttachedStrategyStudies(null);
   }
 
   public async updateStrategySource(source: string): Promise<void> {
@@ -253,6 +254,40 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
           timeoutMs: 10_000,
           intervalMs: 500,
           label: "Recovered study attachment",
+        },
+      );
+      attachDiagnostics = buildAttachDiagnostics(
+        expectedStudyTitle,
+        strategySnapshot.attachedStudies,
+        strategySnapshot.expectedStudy,
+        recoveryActions,
+      );
+    }
+    if (
+      expectedStudyTitle != null &&
+      attachDiagnostics.exactTitleMatched &&
+      countMatchingStrategyStudies(strategySnapshot.attachedStudies, expectedStudyTitle) > 1
+    ) {
+      const removal = await this.removeAttachedStrategyStudies(expectedStudyTitle);
+      if (removal.removedCount > 0) {
+        recoveryActions.push("removed_duplicate_strategy_studies");
+      }
+      if (removal.dismissedIndicatorLimitDialog) {
+        recoveryActions.push("dismissed_indicator_limit_dialog");
+      }
+      await this.client.evaluate<boolean>(focusMonacoEditorExpression());
+      await this.client.dispatchCtrlEnter();
+      recoveryActions.push("reattached_single_strategy_study");
+      await this.client.delay(4_000);
+      strategySnapshot = await this.client.waitFor(
+        () => this.readStrategySnapshot(expectedStudyTitle),
+        (snapshot) =>
+          snapshot.expectedStudy !== null &&
+          countMatchingStrategyStudies(snapshot.attachedStudies, expectedStudyTitle) === 1,
+        {
+          timeoutMs: 10_000,
+          intervalMs: 500,
+          label: "Deduplicated study attachment",
         },
       );
       attachDiagnostics = buildAttachDiagnostics(
@@ -414,7 +449,7 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
       (state) =>
         !state.attachedStudies.some(
           (study) =>
-            study.hasStrategyData ||
+            isAutomationAttachedStudy(study) ||
             isSameStudyFamily(expectedStudyTitle, study.metaDescription) ||
             isSameStudyFamily(expectedStudyTitle, study.normalizedTitle) ||
             isSameStudyFamily(expectedStudyTitle, study.title),
@@ -764,6 +799,14 @@ function removeAttachedStrategyStudiesExpression(expectedStudyTitle: string | nu
       }
       return normalized.split(" - ")[0]?.trim() ?? normalized;
     };
+    const isAutomationStudyTitle = (title) => {
+      const normalized = normalizeTitle(title);
+      if (!normalized) {
+        return false;
+      }
+      return /^(AF Spec v1|AF Seed|Exhaustion Signal|AF Mock Candidate|AF Exploration)/i.test(normalized) ||
+        /\\[cand-[^\\]]+\\]/i.test(normalized);
+    };
     const dismissIndicatorLimitDialog = () => {
       const dialogCandidates = Array.from(
         document.querySelectorAll('[role="dialog"], [data-dialog-name], div'),
@@ -874,7 +917,12 @@ function removeAttachedStrategyStudiesExpression(expectedStudyTitle: string | nu
         const hasStrategyData =
           Boolean(reportData?.performance) || typeof source?.ordersData === "function";
         const sourceFamily = studyFamily(metaDescription) ?? studyFamily(title);
-        return hasStrategyData || (expectedFamily !== null && sourceFamily === expectedFamily);
+        return (
+          hasStrategyData ||
+          isAutomationStudyTitle(metaDescription) ||
+          isAutomationStudyTitle(title) ||
+          (expectedFamily !== null && sourceFamily === expectedFamily)
+        );
       });
 
     removable.forEach((source) => {
@@ -948,6 +996,28 @@ function isSameStudyFamily(
   return expectedFamily !== null && actualFamily !== null && expectedFamily === actualFamily;
 }
 
+function isAutomationAttachedStudy(study: AttachedStudySnapshot): boolean {
+  return (
+    study.hasStrategyData ||
+    isAutomationStudyTitle(study.metaDescription) ||
+    isAutomationStudyTitle(study.normalizedTitle) ||
+    isAutomationStudyTitle(study.title)
+  );
+}
+
+function isAutomationStudyTitle(title: string | null): boolean {
+  const normalized = normalizeAttachedStudyTitle(title);
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    /^(AF Spec v1|AF Seed|Exhaustion Signal|AF Mock Candidate|AF Exploration)/i.test(
+      normalized,
+    ) || /\[cand-[^\]]+\]/i.test(normalized)
+  );
+}
+
 function studyFamilyName(title: string | null): string | null {
   const normalized = normalizeAttachedStudyTitle(title)?.replace(
     /\s*\[cand-[^\]]+\]$/,
@@ -957,6 +1027,20 @@ function studyFamilyName(title: string | null): string | null {
     return null;
   }
   return normalized.split(" - ")[0]?.trim() ?? normalized;
+}
+
+function countMatchingStrategyStudies(
+  attachedStudies: AttachedStudySnapshot[],
+  expectedStudyTitle: string,
+): number {
+  return attachedStudies.filter(
+    (study) =>
+      study.hasStrategyData &&
+      (study.metaDescription === expectedStudyTitle ||
+        study.normalizedTitle === expectedStudyTitle ||
+        study.title === expectedStudyTitle ||
+        normalizeAttachedStudyTitle(study.title) === expectedStudyTitle),
+  ).length;
 }
 
 function normalizeResolution(value: string | null): string | null {

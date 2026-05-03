@@ -66,7 +66,7 @@ describe("TradingView playwright driver expressions", () => {
       ignoreCache: true,
       waitMs: 12_000,
     });
-    expect(waitCalls).toBe(3);
+    expect(waitCalls).toBe(4);
     evaluateSpy.mockRestore();
     reloadSpy.mockRestore();
     waitSpy.mockRestore();
@@ -331,6 +331,76 @@ describe("TradingView playwright driver expressions", () => {
     expect(result.dismissedIndicatorLimitDialog).toBe(true);
     expect(removed).toEqual([staleStrategy]);
     expect(closeClicked).toBe(true);
+  });
+
+  test("removes AF automation studies even when TradingView has no strategy report", () => {
+    const removed: unknown[] = [];
+    const staleAutomationStudy = {
+      title() {
+        return "AF Spec v1 [cand-185ff5a5]";
+      },
+      metaInfo() {
+        return { description: "AF Spec v1 [cand-185ff5a5]" };
+      },
+      reportData() {
+        return null;
+      },
+    };
+    const unrelatedStudy = {
+      title() {
+        return "Volume";
+      },
+      metaInfo() {
+        return { description: "Volume" };
+      },
+      reportData() {
+        return null;
+      },
+    };
+    const context = {
+      studyMarket: {
+        _chartWidgetCollection: {
+          activeChartWidget: {
+            model() {
+              return {
+                dataSources() {
+                  return [staleAutomationStudy, unrelatedStudy];
+                },
+                removeSource(source: unknown) {
+                  removed.push(source);
+                },
+              };
+            },
+          },
+        },
+      },
+      document: {
+        querySelectorAll() {
+          return [];
+        },
+      },
+      Array,
+      JSON,
+      RegExp,
+      KeyboardEvent: function KeyboardEvent() {
+        return {};
+      },
+      MouseEvent: function MouseEvent() {
+        return {};
+      },
+      PointerEvent: function PointerEvent() {
+        return {};
+      },
+    };
+
+    const result = runExpression<{ removedCount: number; dismissedIndicatorLimitDialog: boolean }>(
+      __test__.removeAttachedStrategyStudiesExpression(null),
+      context,
+    );
+
+    expect(result.removedCount).toBe(1);
+    expect(result.dismissedIndicatorLimitDialog).toBe(false);
+    expect(removed).toEqual([staleAutomationStudy]);
   });
 
   test("pre-cleans TradingView studies before Ctrl+Enter can hit the indicator limit", async () => {

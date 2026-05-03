@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:33:22.813Z",
+  "generatedAt": "2026-05-03T07:56:16.759Z",
   "entries": [
     {
       "candidateId": "cand-f1dd7924",
@@ -835,6 +835,32 @@
         "walk_forward:median_oos_profit_factor",
         "verified_score_below_threshold"
       ]
+    },
+    {
+      "candidateId": "cand-9bc447dd",
+      "iteration": 896,
+      "eligible": false,
+      "verifiedPromotionScore": null,
+      "minimumRequiredScore": null,
+      "parityStatus": "missing",
+      "tradeParityStatus": "missing",
+      "eventParityStatus": "missing",
+      "walkForwardStatus": "missing",
+      "trialLedgerStats": null,
+      "rejectionReasons": []
+    },
+    {
+      "candidateId": "cand-131673d7",
+      "iteration": 895,
+      "eligible": false,
+      "verifiedPromotionScore": null,
+      "minimumRequiredScore": null,
+      "parityStatus": "major_drift",
+      "tradeParityStatus": "major_drift",
+      "eventParityStatus": "major_drift",
+      "walkForwardStatus": "missing",
+      "trialLedgerStats": null,
+      "rejectionReasons": []
     },
     {
       "candidateId": "cand-c6235b65",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T07:33:22.807Z",
+  "generatedAt": "2026-05-03T07:56:16.752Z",
   "entries": [
     {
       "candidateId": "cand-24b4021d",
@@ -5395,23 +5395,23 @@
       "candidateId": "cand-131673d7",
       "fingerprintFamily": "1c6ec013d8b8aaaa44dd17e29aef16392f0a5e63383439d14cd75eb388e2ad4a",
       "structureFamilyHash": "a2adb1b01638c9cb89340a034b157dd3808921c2646fc6b0e565f1d3103d45fa",
-      "queueState": "queued",
-      "derivedStatus": "pending",
-      "queueReason": "novelty_frontier_candidate",
+      "queueState": "skipped",
+      "derivedStatus": "skipped",
+      "queueReason": "unsupported_target",
       "tvHealthAtQueueTime": "healthy",
       "localConfidenceBefore": 1,
-      "recordedAt": "2026-05-03T03:55:54.140Z"
+      "recordedAt": "2026-05-03T07:55:46.005Z"
     },
     {
       "candidateId": "cand-9bc447dd",
       "fingerprintFamily": "a1d8bdeb61fc4ae090a47356871e66259f54c0be4b93ce8d261f3490b160dfa1",
       "structureFamilyHash": "2668f39bca23350343c3970cc44968e7a239e738d2fa941c07512741784ee897",
-      "queueState": "queued",
-      "derivedStatus": "pending",
-      "queueReason": "novelty_frontier_candidate",
+      "queueState": "skipped",
+      "derivedStatus": "skipped",
+      "queueReason": "unsupported_target",
       "tvHealthAtQueueTime": "healthy",
       "localConfidenceBefore": 1,
-      "recordedAt": "2026-05-03T03:58:07.331Z"
+      "recordedAt": "2026-05-03T07:52:11.015Z"
     },
     {
       "candidateId": "cand-4a6036c4",
