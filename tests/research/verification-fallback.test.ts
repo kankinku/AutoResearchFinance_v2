@@ -85,6 +85,18 @@ describe("verification fallback helpers", () => {
         ),
       ),
     ).toBe("monaco_attach_timeout");
+    expect(
+      classifyTradingViewRuntimeFailure(
+        new Error(
+          "TradingView calibration step prepareChart timed out after 30000ms.",
+        ),
+      ),
+    ).toBe("chart_load_timeout");
+    expect(
+      classifyTradingViewRuntimeFailure(
+        new Error("TradingView active chart widget is not available."),
+      ),
+    ).toBe("chart_load_timeout");
   });
 
   test("uses executor-specific recoverSurface action when available", async () => {

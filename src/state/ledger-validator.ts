@@ -487,6 +487,19 @@ function normalizeDecisionCounts(records: ExperimentRecord[]): Record<string, nu
   }, {});
 }
 
+function countRecordsEqual(
+  left: Record<string, number>,
+  right: Record<string, number>,
+): boolean {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  for (const key of keys) {
+    if ((left[key] ?? 0) !== (right[key] ?? 0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function resolveLatestParityCounts(records: ExperimentRecord[]): Record<string, number> {
   const latestByCandidate = new Map<
     string,
@@ -929,10 +942,7 @@ export async function verifyDerivedViews(
   }
 
   const expectedParityCounts = resolveLatestParityCounts(experiments);
-  if (
-    JSON.stringify(localTvDivergenceSummary.parityStatusCounts) !==
-    JSON.stringify(expectedParityCounts)
-  ) {
+  if (!countRecordsEqual(localTvDivergenceSummary.parityStatusCounts, expectedParityCounts)) {
     pushIssue(issues, {
       severity: "error",
       scope: "local-tv-divergence-summary",

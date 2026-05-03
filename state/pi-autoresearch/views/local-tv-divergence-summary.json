@@ -1,9 +1,36 @@
 {
-  "generatedAt": "2026-05-03T05:58:07.333Z",
+  "generatedAt": "2026-05-03T06:34:29.493Z",
   "parityStatusCounts": {
+    "major_drift": 1,
     "matched": 27
   },
   "latestEntries": [
+    {
+      "candidateId": "cand-4a6036c4",
+      "iteration": 898,
+      "source": "authoritative",
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 373,
+        "netProfitPctDelta": -2.394638,
+        "maxDrawdownPctDelta": -9.229861999999999,
+        "profitFactorDelta": -0.18683755858897755,
+        "winRateDelta": 17.384415000000004,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.28,
+          "orderCountDelta": -769
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.105,
+          "entryPassMatchRatio": 0.5,
+          "exitReasonMatchRatio": 0.18
+        }
+      }
+    },
     {
       "candidateId": "cand-a64998af",
       "iteration": 272,
@@ -111,19 +138,6 @@
     {
       "candidateId": "cand-cc7aba92",
       "iteration": 256,
-      "source": "authoritative",
-      "parity": {
-        "status": "matched",
-        "tradeCountDelta": -2,
-        "netProfitPctDelta": -0.7999999999999998,
-        "maxDrawdownPctDelta": 0.6999999999999997,
-        "profitFactorDelta": -0.04999999999999982,
-        "winRateDelta": 0
-      }
-    },
-    {
-      "candidateId": "cand-f6ae3e86",
-      "iteration": 254,
       "source": "authoritative",
       "parity": {
         "status": "matched",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T05:58:07.539Z",
+  "generatedAt": "2026-05-03T06:34:29.707Z",
   "entries": [
     {
       "candidateId": "cand-24b4021d",
@@ -5417,23 +5417,23 @@
       "candidateId": "cand-4a6036c4",
       "fingerprintFamily": "8243dbe74abac53998860c44c900a267bf7c0fafd3d3644b1e6520ed1737770b",
       "structureFamilyHash": "e45dc0b6366e2daf032d61560dd43e88c6cf45a0876e0bef462e38073c992138",
-      "queueState": "queued",
-      "derivedStatus": "pending",
-      "queueReason": "champion_or_eligible_candidate",
+      "queueState": "processed",
+      "derivedStatus": "processed",
+      "queueReason": "tv_calibration_completed",
       "tvHealthAtQueueTime": "healthy",
       "localConfidenceBefore": 1,
-      "recordedAt": "2026-05-03T04:01:06.152Z"
+      "recordedAt": "2026-05-03T06:28:27.757Z"
     },
     {
       "candidateId": "cand-e27ffda1",
       "fingerprintFamily": "52367cc016ee8c76564ad1b3046ac282763a773811577fcb6df1691cf49cdd58",
       "structureFamilyHash": "e3a9335940f993994b1b335a5162295c252f298cba15c2404fe258ba3e8723b0",
-      "queueState": "queued",
-      "derivedStatus": "pending",
-      "queueReason": "novelty_frontier_candidate",
-      "tvHealthAtQueueTime": "healthy",
+      "queueState": "failed",
+      "derivedStatus": "failed",
+      "queueReason": "executor_unavailable",
+      "tvHealthAtQueueTime": "degraded",
       "localConfidenceBefore": 1,
-      "recordedAt": "2026-05-03T04:03:04.604Z"
+      "recordedAt": "2026-05-03T06:19:40.670Z"
     }
   ]
 }

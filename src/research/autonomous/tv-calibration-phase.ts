@@ -313,9 +313,21 @@ export async function processTvCalibrationQueue(input: {
         timeframe: input.env.chartTimeframe,
         chartType: input.env.chartType,
       };
-      await executor.prepareChart(chartTarget);
-      await executor.updateStrategySource(candidateSource);
-      const compile = await executor.compileStrategy();
+      await runCalibrationStep({
+        label: "prepareChart",
+        timeoutMs: input.env.calibrationTimeoutMs,
+        run: () => executor.prepareChart(chartTarget),
+      });
+      await runCalibrationStep({
+        label: "updateStrategySource",
+        timeoutMs: input.env.calibrationTimeoutMs,
+        run: () => executor.updateStrategySource(candidateSource),
+      });
+      const compile = await runCalibrationStep({
+        label: "compileStrategy",
+        timeoutMs: input.env.calibrationTimeoutMs,
+        run: () => executor.compileStrategy(),
+      });
       throwIfAborted(input.signal);
       if (!compile.ok) {
         await appendTvRecord(input.stateRoot, {
@@ -348,8 +360,13 @@ export async function processTvCalibrationQueue(input: {
         continue;
       }
 
-      const apply = await executor.applyStrategy({
-        expectedStudyTitle: localRecord.studyTitle,
+      const apply = await runCalibrationStep({
+        label: "applyStrategy",
+        timeoutMs: input.env.calibrationTimeoutMs,
+        run: () =>
+          executor.applyStrategy({
+            expectedStudyTitle: localRecord.studyTitle,
+          }),
       });
       throwIfAborted(input.signal);
       if (!apply.ok) {
@@ -383,9 +400,14 @@ export async function processTvCalibrationQueue(input: {
         continue;
       }
 
-      const artifactBundle = await executor.readArtifactBundle({
-        expectedStudyTitle: localRecord.studyTitle,
-        maxTrades: input.env.maxTrades,
+      const artifactBundle = await runCalibrationStep({
+        label: "readArtifactBundle",
+        timeoutMs: input.env.calibrationTimeoutMs,
+        run: () =>
+          executor.readArtifactBundle({
+            expectedStudyTitle: localRecord.studyTitle,
+            maxTrades: input.env.maxTrades,
+          }),
       });
       throwIfAborted(input.signal);
       const artifactValidation = validateArtifactBundle({
@@ -551,6 +573,35 @@ export async function processTvCalibrationQueue(input: {
   return {
     processedCandidateIds,
   };
+}
+
+async function runCalibrationStep<T>(input: {
+  label: string;
+  timeoutMs: number;
+  run: () => Promise<T>;
+}): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const operation = input.run();
+  operation.catch(() => undefined);
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(
+            new Error(
+              `TradingView calibration step ${input.label} timed out after ${input.timeoutMs}ms.`,
+            ),
+          );
+        }, input.timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
 }
 
 async function appendCalibrationQueueStatusEvent(

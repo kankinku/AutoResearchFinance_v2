@@ -591,3 +591,5 @@
 {"runId":"autonomous-1777780566234","startedAt":"2026-05-03T03:56:07.319Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
 {"runId":"autonomous-1777780699375","startedAt":"2026-05-03T03:58:20.454Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
 {"runId":"autonomous-1777780878217","startedAt":"2026-05-03T04:01:19.315Z","executor":"local-backtest","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"tv-calibration-1777789165446","startedAt":"2026-05-03T06:19:25.447Z","executor":"tradingview-desktop-cdp","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}
+{"runId":"tv-calibration-1777789703294","startedAt":"2026-05-03T06:28:23.296Z","executor":"tradingview-desktop-cdp","symbol":"QQQ","timeframe":"120","chartType":"candles","model":"gpt-5.4"}

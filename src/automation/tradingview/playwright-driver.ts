@@ -63,6 +63,7 @@ interface StrategySnapshot {
 
 const MONACO_MODULE_ID = 24292;
 const DEFAULT_PINE_EDITOR_WAIT_TIMEOUT_MS = 15_000;
+const PINE_EDITOR_HARD_RELOAD_WAIT_MS = 12_000;
 
 export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
   public readonly role = "external_calibration";
@@ -396,7 +397,7 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
   }
 
   private async ensurePineEditorReady(label: string): Promise<void> {
-    try {
+    const waitForEditor = async (attemptLabel: string) => {
       await this.client.waitFor(
         async () => {
           await this.client.evaluate<boolean>(openPineEditorExpression(), {
@@ -409,17 +410,33 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
         (editorCount) => editorCount > 0,
         {
           timeoutMs: this.pineEditorTimeoutMs,
-          label,
+          label: attemptLabel,
         },
       );
+    };
+
+    try {
+      await waitForEditor(label);
+      return;
     } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
       const timeoutKind = /monaco/i.test(label)
         ? "Monaco editor attach timeout"
         : "Pine editor open timeout";
-      throw new Error(
-        `${timeoutKind}: ${label} timed out after ${this.pineEditorTimeoutMs}ms while loading TradingView Pine editor. ${detail}`,
-      );
+      const detail = error instanceof Error ? error.message : String(error);
+      try {
+        await this.client.reloadPage({
+          ignoreCache: true,
+          waitMs: PINE_EDITOR_HARD_RELOAD_WAIT_MS,
+        });
+        await waitForEditor(`${label} after hard reload`);
+        return;
+      } catch (retryError) {
+        const retryDetail =
+          retryError instanceof Error ? retryError.message : String(retryError);
+        throw new Error(
+          `${timeoutKind}: ${label} timed out after ${this.pineEditorTimeoutMs}ms while loading TradingView Pine editor. ${detail} Hard reload recovery failed. ${retryDetail}`,
+        );
+      }
     }
   }
 }

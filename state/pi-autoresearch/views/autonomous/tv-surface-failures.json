@@ -1,6 +1,14 @@
 {
-  "generatedAt": "2026-05-03T05:58:07.539Z",
+  "generatedAt": "2026-05-03T06:34:29.707Z",
   "entries": [
+    {
+      "candidateId": "cand-e27ffda1",
+      "decision": "tv_surface_failure",
+      "iteration": 900,
+      "fingerprintFamily": "52367cc016ee8c76564ad1b3046ac282763a773811577fcb6df1691cf49cdd58",
+      "localConfidence": 1,
+      "recordedAt": "2026-05-03T06:19:40.657Z"
+    },
     {
       "candidateId": "cand-c6235b65",
       "decision": "tv_surface_failure",

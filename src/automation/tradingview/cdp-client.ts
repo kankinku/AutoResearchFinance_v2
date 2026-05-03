@@ -176,6 +176,23 @@ export class TradingViewDesktopCdpClient {
     });
   }
 
+  public async reloadPage(input?: {
+    ignoreCache?: boolean;
+    waitMs?: number;
+  }): Promise<void> {
+    await this.connect();
+    await this.send(
+      "Page.reload",
+      {
+        ignoreCache: input?.ignoreCache ?? true,
+      },
+      {
+        label: "Page.reload",
+      },
+    );
+    await delay(input?.waitMs ?? 12_000);
+  }
+
   public async waitFor<T>(
     action: () => Promise<T>,
     predicate: (value: T) => boolean,

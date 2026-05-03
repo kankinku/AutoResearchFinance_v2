@@ -1,9 +1,11 @@
 {
-  "generatedAt": "2026-05-03T05:58:07.537Z",
-  "totalUpdates": 27,
-  "familyCount": 24,
-  "recentCalibrationSummary": "Calibration history is active across 24 structure families and 27 confidence updates.",
-  "highDivergenceFamilies": [],
+  "generatedAt": "2026-05-03T06:34:29.706Z",
+  "totalUpdates": 28,
+  "familyCount": 25,
+  "recentCalibrationSummary": "Calibration history is active across 25 structure families and 28 confidence updates.",
+  "highDivergenceFamilies": [
+    "e45dc0b6366e2daf032d61560dd43e88c6cf45a0876e0bef462e38073c992138"
+  ],
   "lowDivergenceFamilies": [
     "3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d",
     "0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a",
@@ -11,9 +13,20 @@
     "350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6",
     "52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a"
   ],
-  "confidenceAdjustmentSummary": "Positive local confidence is active for 5 families; divergence penalties are active for 0 families with repeated drift.",
-  "calibrationAwareInstruction": "Prefer low-divergence families first: 3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d, 0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a, bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d, 350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6, 52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a. No high-divergence family is currently penalized.",
+  "confidenceAdjustmentSummary": "Positive local confidence is active for 5 families; divergence penalties are active for 1 families with repeated drift.",
+  "calibrationAwareInstruction": "Prefer low-divergence families first: 3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d, 0d474141524c19b68bdc18ded9cb2e29cde73619b420528c6d897783dd64b67a, bf08dd3599aa10a9d7f7a668f53d4ade46360a73dc3d1cf2bb9c425b07140f5d, 350b483363e72a27e3fce3257b94e6b429c5745ead2eec71817ecfa202619fb6, 52f2705119214f466dc88b03657bf3c407dab59d1aa0355b0d4c4a7acad4f87a. Be cautious with high-divergence families: e45dc0b6366e2daf032d61560dd43e88c6cf45a0876e0bef462e38073c992138.",
   "families": [
+    {
+      "structureFamilyHash": "e45dc0b6366e2daf032d61560dd43e88c6cf45a0876e0bef462e38073c992138",
+      "currentConfidence": 0.5,
+      "localConfidenceBonus": 0,
+      "divergencePenalty": 0.1,
+      "divergenceSeverity": "high",
+      "recentEventCount": 1,
+      "candidateId": "cand-4a6036c4",
+      "sourceCalibrationEventId": "calibration-582a93ea",
+      "recordedAt": "2026-05-03T06:28:27.761Z"
+    },
     {
       "structureFamilyHash": "3a901d4385c4e91ad8aed3342d3857fd27529bffc726f3d3d521af632a28846d",
       "currentConfidence": 1,

@@ -1,14 +1,77 @@
 import vm from "node:vm";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
-import { __test__ } from "../../src/automation/tradingview/playwright-driver.js";
+import { TradingViewDesktopCdpClient } from "../../src/automation/tradingview/cdp-client.js";
+import {
+  TradingViewDesktopExecutor,
+  __test__,
+} from "../../src/automation/tradingview/playwright-driver.js";
 
 function runExpression<T>(expression: string, context: Record<string, unknown>): T {
   return vm.runInNewContext(expression, context) as T;
 }
 
 describe("TradingView playwright driver expressions", () => {
+  test("closes the underlying CDP client through the executor contract", async () => {
+    const closeSpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "close")
+      .mockResolvedValue();
+    const executor = new TradingViewDesktopExecutor({
+      cdpUrl: "http://127.0.0.1:65535",
+    });
+
+    await executor.close();
+
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    closeSpy.mockRestore();
+  });
+
+  test("hard reloads the chart when Pine editor attachment stalls", async () => {
+    let waitCalls = 0;
+    const evaluateSpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "evaluate")
+      .mockImplementation(async <T>() => true as T);
+    const reloadSpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "reloadPage")
+      .mockResolvedValue();
+    const waitSpy = vi
+      .spyOn(TradingViewDesktopCdpClient.prototype, "waitFor")
+      .mockImplementation(async <T>() => {
+        waitCalls += 1;
+        if (waitCalls === 1) {
+          throw new Error("Pine editor open timed out after 15000ms.");
+        }
+        if (waitCalls === 3) {
+          return {
+            symbol: "QQQ",
+            timeframe: "120",
+            pineEditorOpen: true,
+            attachedStudies: [],
+          } as T;
+        }
+        return 1 as T;
+      });
+    const executor = new TradingViewDesktopExecutor({
+      cdpUrl: "http://127.0.0.1:65535",
+    });
+
+    await executor.prepareChart({
+      symbol: "QQQ",
+      timeframe: "120",
+      chartType: "candles",
+    });
+
+    expect(reloadSpy).toHaveBeenCalledWith({
+      ignoreCache: true,
+      waitMs: 12_000,
+    });
+    expect(waitCalls).toBe(3);
+    evaluateSpy.mockRestore();
+    reloadSpy.mockRestore();
+    waitSpy.mockRestore();
+  });
+
   test("opens the Pine editor through fallback clickable-element discovery", () => {
     let clicked = 0;
     const button = {

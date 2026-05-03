@@ -80,7 +80,11 @@ export function classifyTradingViewRuntimeFailure(
   if (/pine editor/.test(normalized)) {
     return "pine_editor_open_timeout";
   }
-  if (/chart target|chart load|loading chart/.test(normalized)) {
+  if (
+    /chart target|chart load|loading chart|active chart widget|preparechart/.test(
+      normalized,
+    )
+  ) {
     return "chart_load_timeout";
   }
   if (/setmonaco|source push|source update/.test(normalized)) {

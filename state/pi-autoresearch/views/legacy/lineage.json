@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T05:58:07.328Z",
+  "generatedAt": "2026-05-03T06:34:29.489Z",
   "acceptedHeadCandidateId": "manual-exhaustion-sample",
   "activeHeadCandidateId": null,
   "nodes": [
@@ -8102,6 +8102,24 @@
       "score": 0.1219,
       "decision": "local_candidate_eligible",
       "reason": "local_candidate_eligible"
+    },
+    {
+      "candidateId": "cand-e27ffda1",
+      "parentCandidateId": null,
+      "branchId": "branch-champion_exploit-e8d99824",
+      "accepted": false,
+      "score": 0.1219,
+      "decision": "tv_surface_failure",
+      "reason": "tv_surface_failure"
+    },
+    {
+      "candidateId": "cand-4a6036c4",
+      "parentCandidateId": "cand-33a2318e",
+      "branchId": "branch-exploration_breakout-4293dde4",
+      "accepted": false,
+      "score": 0.392,
+      "decision": "tv_verified",
+      "reason": "tv_verified"
     }
   ]
 }

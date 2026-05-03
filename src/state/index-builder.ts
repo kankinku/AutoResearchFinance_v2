@@ -150,6 +150,20 @@ function resolveLatestParityEntries(
   );
 }
 
+function buildParityStatusCounts(
+  entries: Array<{ parity: LocalTvParitySummary }>,
+): Record<string, number> {
+  const counts = entries.reduce<Record<string, number>>((accumulator, entry) => {
+    const status = entry.parity.status ?? "not_comparable";
+    accumulator[status] = (accumulator[status] ?? 0) + 1;
+    return accumulator;
+  }, {});
+
+  return Object.fromEntries(
+    Object.entries(counts).sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
 function resolveLatestTaskBatchRecords(
   records: TaskBatchRecord[],
 ): TaskBatchRecord[] {
@@ -547,11 +561,7 @@ export async function rebuildIndexes(stateRoot: string): Promise<void> {
 
   await writeJson(paths.localTvDivergenceSummaryPath, {
     generatedAt: new Date().toISOString(),
-    parityStatusCounts: latestParityEntries.reduce<Record<string, number>>((counts, entry) => {
-      const status = entry.parity.status ?? "not_comparable";
-      counts[status] = (counts[status] ?? 0) + 1;
-      return counts;
-    }, {}),
+    parityStatusCounts: buildParityStatusCounts(latestParityEntries),
     latestEntries: latestParityEntries.slice(0, 10).map((entry) => ({
       candidateId: entry.candidateId,
       iteration: entry.iteration,

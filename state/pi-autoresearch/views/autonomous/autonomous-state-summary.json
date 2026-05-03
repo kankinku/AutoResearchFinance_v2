@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-03T05:58:07.544Z",
+  "generatedAt": "2026-05-03T06:34:29.714Z",
   "activeChampionCandidateId": null,
   "activeChampionScore": null,
   "activeChampionDecision": null,
   "activeChampionResearchStage": null,
   "verifiedPromotionScore": null,
   "verifiedPromotionScoreBreakdown": null,
-  "verifiedPromotionCandidateId": "cand-c6235b65",
+  "verifiedPromotionCandidateId": "cand-e27ffda1",
   "verifiedPromotionEligibility": false,
   "parityStatus": null,
   "walkForwardStatus": null,
@@ -20,15 +20,17 @@
     "tv_verified": 27,
     "promotion_candidate": 0,
     "champion": 0,
-    "quarantined": 1
+    "quarantined": 3
   },
-  "quarantineCount": 1,
+  "quarantineCount": 3,
   "parityStatusCounts": {
-    "missing": 1,
+    "missing": 2,
+    "major_drift": 1,
     "matched": 27
   },
   "walkForwardStatusCounts": {
-    "missing": 28
+    "missing": 29,
+    "failed": 1
   },
   "branchBudget": {
     "totalBranches": 103,
@@ -96,10 +98,10 @@
   "objectivePolicyVersion": null,
   "headEventCount": 2,
   "archiveEventCount": 608,
-  "calibrationEventCount": 522,
+  "calibrationEventCount": 524,
   "calibrationCandidateCount": 494,
-  "divergenceCount": 27,
-  "localConfidenceUpdateCount": 27,
+  "divergenceCount": 28,
+  "localConfidenceUpdateCount": 28,
   "problemEventCount": 442,
   "repairAttemptCount": 275,
   "localEvaluationCount": 680,
@@ -111,7 +113,7 @@
   "bootstrapReason": null,
   "localRejectedCount": 271,
   "topBlockingReason": "low_trade_count",
-  "pendingCalibrationCandidateCount": 466,
+  "pendingCalibrationCandidateCount": 464,
   "pendingCalibrationCandidateIds": [
     "cand-0e6a0180",
     "cand-9f33e80b",
@@ -576,9 +578,7 @@
     "cand-6a5fcfc2",
     "cand-9d323edb",
     "cand-131673d7",
-    "cand-9bc447dd",
-    "cand-4a6036c4",
-    "cand-e27ffda1"
+    "cand-9bc447dd"
   ],
   "recentProblemKinds": [
     "llm_schema_fail",
@@ -621,7 +621,7 @@
   ],
   "scoreFeedbackObserved": true,
   "stage6Readiness": {
-    "generatedAt": "2026-05-03T05:58:07.538Z",
+    "generatedAt": "2026-05-03T06:34:29.706Z",
     "evaluated": false,
     "passed": false,
     "activeChampionCandidateId": null,
@@ -642,7 +642,7 @@
     "evidence": {
       "localEvaluationCount": 680,
       "headEventCount": 2,
-      "calibrationEventCount": 522,
+      "calibrationEventCount": 524,
       "successfulRepairCount": 274,
       "successfulRepairsWithoutCandidateCount": 1
     }

@@ -221,6 +221,68 @@ describe("ledger-validator", () => {
     ).toBe(true);
   });
 
+  test("verifies local-TV parity count records independent of key order", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-ledger-parity-counts-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+
+    await appendExperimentRecord(stateRoot, {
+      runId: "run-parity-order",
+      iteration: 1,
+      candidateId: "cand-matched",
+      parentCandidateId: null,
+      branchId: "main",
+      acceptedHeadCandidateId: null,
+      baselineCandidateId: "seed_primary",
+      candidateScore: 0.54,
+      decision: "verification_fail",
+      recordEra: "v2",
+      status: "evaluated",
+      localTvParity: {
+        status: "matched",
+        tradeCountDelta: 0,
+        netProfitPctDelta: 0,
+        maxDrawdownPctDelta: 0,
+        profitFactorDelta: 0,
+        winRateDelta: 0,
+      },
+    });
+    await appendExperimentRecord(stateRoot, {
+      runId: "run-parity-order",
+      iteration: 2,
+      candidateId: "cand-drift",
+      parentCandidateId: null,
+      branchId: "main",
+      acceptedHeadCandidateId: null,
+      baselineCandidateId: "seed_primary",
+      candidateScore: 0.56,
+      decision: "verification_fail",
+      recordEra: "v2",
+      status: "evaluated",
+      localTvParity: {
+        status: "major_drift",
+        tradeCountDelta: 12,
+        netProfitPctDelta: -1.4,
+        maxDrawdownPctDelta: 2.1,
+        profitFactorDelta: -0.2,
+        winRateDelta: -3.5,
+      },
+    });
+
+    await rebuildIndexes(stateRoot);
+
+    const verification = await verifyDerivedViews(stateRoot);
+    const divergenceSummary = JSON.parse(
+      await readFile(resolveKnowledgePaths(stateRoot).localTvDivergenceSummaryPath, "utf8"),
+    );
+
+    expect(verification.ok).toBe(true);
+    expect(divergenceSummary.parityStatusCounts).toEqual({
+      major_drift: 1,
+      matched: 1,
+    });
+    expect(divergenceSummary.latestEntries[0].candidateId).toBe("cand-drift");
+  });
+
   test("rejects fallback evidence records that violate the non-authoritative fallback contract", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-ledger-fallback-invalid-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-03T05:58:07.539Z",
+  "generatedAt": "2026-05-03T06:34:29.707Z",
   "entries": [
     {
       "candidateId": "cand-5e18a717",
@@ -459,6 +459,36 @@
       },
       "tvDecision": "tv_verified",
       "recordedAt": "2026-04-29T11:39:11.635Z"
+    },
+    {
+      "candidateId": "cand-4a6036c4",
+      "fingerprintFamily": "8243dbe74abac53998860c44c900a267bf7c0fafd3d3644b1e6520ed1737770b",
+      "structureFamilyHash": "e45dc0b6366e2daf032d61560dd43e88c6cf45a0876e0bef462e38073c992138",
+      "localConfidenceBefore": 1,
+      "localConfidenceAfter": 0.6,
+      "parity": {
+        "status": "major_drift",
+        "tradeCountDelta": 373,
+        "netProfitPctDelta": -2.394638,
+        "maxDrawdownPctDelta": -9.229861999999999,
+        "profitFactorDelta": -0.18683755858897755,
+        "winRateDelta": 17.384415000000004,
+        "tradeParity": {
+          "status": "major_drift",
+          "entryTimeMatchRatio": 0,
+          "exitTimeMatchRatio": 0,
+          "profitSignMatchRatio": 0.28,
+          "orderCountDelta": -769
+        },
+        "eventParity": {
+          "status": "major_drift",
+          "eventMatchRatio": 0.105,
+          "entryPassMatchRatio": 0.5,
+          "exitReasonMatchRatio": 0.18
+        }
+      },
+      "tvDecision": "tv_verified",
+      "recordedAt": "2026-05-03T06:28:27.757Z"
     }
   ]
 }
