@@ -4,7 +4,7 @@ export function renderDashboardHtml(): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AF 로컬 루프 대시보드</title>
+  <title>AF 투자 연구 대시보드</title>
   <style>
     :root {
       --paper: #f6f7f9;
@@ -384,6 +384,311 @@ export function renderDashboardHtml(): string {
       header { grid-template-columns: 1fr; }
       .status-strip { justify-content: flex-start; }
     }
+
+    /* Toss-inspired readability refresh: clean fintech hierarchy without copying product UI. */
+    :root {
+      --paper: #f7f8fa;
+      --ink: #191f28;
+      --muted: #8b95a1;
+      --line: #e5e8eb;
+      --panel: #ffffff;
+      --accent: #3182f6;
+      --good: #00a661;
+      --warn: #f59f00;
+      --bad: #e5484d;
+      --blue: #3182f6;
+      --positive: #f04452;
+      --negative: #3182f6;
+      --soft-blue: #eef6ff;
+      --soft-red: #fff0f1;
+      --soft-green: #eefbf4;
+      --mono: "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --body: "Inter", "Aptos", "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before,
+    .rail {
+      display: none;
+    }
+
+    .shell {
+      display: block;
+      min-height: 100vh;
+    }
+
+    main {
+      width: min(1320px, 100%);
+      padding: 32px 24px 40px;
+    }
+
+    header {
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid rgba(229, 232, 235, 0.8);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(25, 31, 40, 0.04);
+      padding: 26px 28px;
+    }
+
+    h1 {
+      font-family: var(--body);
+      font-size: clamp(28px, 3.2vw, 42px);
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .subline {
+      color: var(--muted);
+      font-family: var(--body);
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      border: 0;
+      border-radius: 8px;
+      background: #f2f4f6;
+      color: #4e5968;
+      font-family: var(--body);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 11px;
+    }
+
+    .pill.good { color: var(--good); background: var(--soft-green); }
+    .pill.warn { color: #b7791f; background: #fff7e6; }
+    .pill.bad { color: var(--bad); background: var(--soft-red); }
+
+    .brief-band,
+    .grid,
+    .two-col,
+    .metrics,
+    .stack {
+      gap: 14px;
+    }
+
+    .brief-band,
+    .grid,
+    .two-col,
+    .metrics {
+      margin-top: 14px;
+    }
+
+    .brief-band {
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    }
+
+    .metrics {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .metric,
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(229, 232, 235, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(25, 31, 40, 0.035);
+    }
+
+    .metric {
+      min-height: 118px;
+      padding: 18px;
+    }
+
+    .metrics .metric:nth-child(2),
+    .metrics .metric:nth-child(3),
+    .metrics .metric:nth-child(4) {
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+      border-color: #dce9fb;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .label,
+    th {
+      color: var(--muted);
+      font-family: var(--body);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .value {
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: clamp(26px, 2.6vw, 38px);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+      line-height: 1.05;
+    }
+
+    .value.positive { color: var(--positive); }
+    .value.negative { color: var(--negative); }
+
+    .delta {
+      color: var(--muted);
+      font-family: var(--body);
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: normal;
+    }
+
+    .brief-title {
+      font-family: var(--body);
+      font-size: clamp(19px, 2vw, 25px);
+      font-weight: 800;
+      letter-spacing: 0;
+      margin-bottom: 10px;
+    }
+
+    .copy {
+      color: #333d4b;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .panel h2 {
+      align-items: center;
+      border-bottom: 0;
+      color: #333d4b;
+      font-family: var(--body);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0;
+      margin-bottom: 16px;
+      padding-bottom: 0;
+      text-transform: none;
+    }
+
+    .panel h2 > span:last-child {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .evidence-grid {
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .evidence {
+      background: #f9fafb;
+      border: 1px solid var(--line);
+      border-left-width: 1px;
+      border-radius: 8px;
+      min-height: 76px;
+      padding: 12px;
+    }
+
+    .evidence.good { background: var(--soft-green); border-color: #c9f0dc; }
+    .evidence.watch { background: #fff8ea; border-color: #ffe2a8; }
+    .evidence.bad { background: var(--soft-red); border-color: #ffd1d6; }
+    .evidence.neutral { background: var(--soft-blue); border-color: #d8eaff; }
+
+    .evidence .ev-value,
+    .command code,
+    td.mono {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .action-list,
+    .warning-list {
+      color: #4e5968;
+      font-size: 14px;
+      line-height: 1.65;
+      margin-top: 14px;
+    }
+
+    .warning-list {
+      color: var(--bad);
+    }
+
+    .command {
+      background: #f9fafb;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .chart {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      height: 300px;
+    }
+
+    table {
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px 8px;
+    }
+
+    td {
+      color: #333d4b;
+    }
+
+    .goodText { color: var(--good); font-weight: 700; }
+    .warnText { color: var(--warn); font-weight: 700; }
+    .badText { color: var(--bad); font-weight: 700; }
+
+    .chip {
+      background: #f2f4f6;
+      border: 0;
+      border-radius: 8px;
+      color: #4e5968;
+      font-family: var(--body);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 9px;
+    }
+
+    .hypothesis-row {
+      background: #f9fafb;
+      border-left: 0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .footer {
+      border-top: 0;
+      color: var(--muted);
+      font-family: var(--body);
+      margin-top: 20px;
+      padding: 0 4px;
+    }
+
+    @media (max-width: 1100px) {
+      main { padding: 20px 14px 32px; }
+      header { padding: 22px; }
+      .brief-band, .grid, .two-col { grid-template-columns: minmax(0, 1fr); }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { padding: 18px; }
+    }
+
+    @media (max-width: 560px) {
+      .metrics { grid-template-columns: minmax(0, 1fr); }
+      .status-strip { gap: 6px; }
+      .pill { font-size: 12px; padding: 7px 9px; }
+      .value { font-size: 30px; }
+      th, td { padding: 10px 6px; }
+    }
   </style>
 </head>
 <body>
@@ -392,7 +697,7 @@ export function renderDashboardHtml(): string {
     <main>
       <header>
         <div>
-          <h1>자율 연구 대시보드</h1>
+          <h1>AF 자율 투자 연구</h1>
           <div class="subline" id="subline">로컬 상태를 불러오는 중...</div>
         </div>
         <div class="status-strip">
@@ -494,7 +799,7 @@ export function renderDashboardHtml(): string {
 
       <section class="grid">
         <div class="panel">
-          <h2><span>최근 후보</span><span>tail window</span></h2>
+          <h2><span>최근 후보</span><span>최근 구간</span></h2>
           <table>
             <thead><tr><th>ID</th><th>점수</th><th>수익률</th><th>거래수</th><th>결정</th></tr></thead>
             <tbody id="candidateRows"></tbody>
@@ -540,6 +845,21 @@ export function renderDashboardHtml(): string {
     function text(id, value) {
       const el = document.getElementById(id);
       if (el) el.textContent = value;
+    }
+
+    function toneValue(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const numeric = Number(value);
+      el.className = "value" + (
+        Number.isFinite(numeric)
+          ? numeric > 0
+            ? " positive"
+            : numeric < 0
+              ? " negative"
+              : ""
+          : ""
+      );
     }
 
     function cls(id, value) {
@@ -779,6 +1099,9 @@ export function renderDashboardHtml(): string {
       text("bestReturnId", returnProfile.recentBestCandidateId ? shortId(returnProfile.recentBestCandidateId) : "-");
       text("averageReturn", pct(returnProfile.recentAveragePercent));
       text("averageReturnDetail", "최근 로컬 후보 기준");
+      toneValue("latestNet", latestReturn);
+      toneValue("bestReturn", returnProfile.recentBestPercent);
+      toneValue("averageReturn", returnProfile.recentAveragePercent);
       text("latestPf", latestMetrics ? fmt(latestMetrics.profitFactor, 2) : "-");
       text("latestDd", latestMetrics ? "최대 DD " + pct(latestMetrics.maxDrawdownPercent) : "-");
       text("championScore", data.score.activeChampion ? fmt(data.score.activeChampion.score, 4) : "-");
