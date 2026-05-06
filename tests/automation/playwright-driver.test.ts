@@ -219,6 +219,78 @@ describe("TradingView playwright driver expressions", () => {
     });
   });
 
+  test("clicks the Pine Add to chart button inside the script editor", () => {
+    let clicked = 0;
+    const addButton = {
+      isConnected: true,
+      disabled: false,
+      textContent: "Add to chart",
+      getAttribute(name: string) {
+        if (name === "aria-disabled") {
+          return "false";
+        }
+        return null;
+      },
+      getBoundingClientRect() {
+        return { width: 120, height: 32 };
+      },
+      scrollIntoView() {},
+      dispatchEvent() {
+        clicked += 1;
+        return true;
+      },
+      click() {
+        clicked += 1;
+      },
+    };
+    const editorRoot = {
+      querySelectorAll(selector: string) {
+        if (
+          selector ===
+          'button, [role="button"], [data-name], [aria-label], [title]'
+        ) {
+          return [addButton];
+        }
+        return [];
+      },
+    };
+    const context = {
+      document: {
+        body: {},
+        querySelectorAll(selector: string) {
+          if (
+            selector ===
+            ".bottom-widgetbar-content.scripteditor"
+          ) {
+            return [editorRoot];
+          }
+          return [];
+        },
+      },
+      window: {
+        getComputedStyle() {
+          return { visibility: "visible", display: "block" };
+        },
+      },
+      PointerEvent: function PointerEvent() {
+        return {};
+      },
+      MouseEvent: function MouseEvent() {
+        return {};
+      },
+      Array,
+      Object,
+    };
+
+    const result = runExpression<boolean>(
+      __test__.clickAddToChartButtonExpression(),
+      context,
+    );
+
+    expect(result).toBe(true);
+    expect(clicked).toBeGreaterThan(0);
+  });
+
   test("resolves Monaco from webpack cache instead of relying on a single module id", () => {
     const monaco = {
       editor: {
@@ -305,6 +377,73 @@ describe("TradingView playwright driver expressions", () => {
     expect(result).toBe(true);
     expect(focused).toBe(1);
     expect(currentValue).toContain("strategy(\"X\")");
+  });
+
+  test("prefers the bottom web script editor when multiple Monaco editors exist", () => {
+    let sideValue = "";
+    let bottomValue = "";
+    const makeNode = (rootSelector: string) => ({
+      isConnected: true,
+      getBoundingClientRect() {
+        return { width: 640, height: 320 };
+      },
+      closest(selector: string) {
+        return selector.includes(rootSelector) ? {} : null;
+      },
+    });
+    const sideEditor = {
+      focus() {},
+      getDomNode() {
+        return makeNode('[data-name="pine-dialog"]');
+      },
+      getModel() {
+        return {
+          setValue(value: string) {
+            sideValue = value;
+          },
+        };
+      },
+    };
+    const bottomEditor = {
+      focus() {},
+      getDomNode() {
+        return makeNode(".bottom-widgetbar-content.scripteditor");
+      },
+      getModel() {
+        return {
+          setValue(value: string) {
+            bottomValue = value;
+          },
+        };
+      },
+    };
+    const context = {
+      window: {
+        monaco: {
+          editor: {
+            getEditors() {
+              return [sideEditor, bottomEditor];
+            },
+          },
+        },
+        getComputedStyle() {
+          return { visibility: "visible", display: "block" };
+        },
+      },
+      Symbol,
+      Array,
+      Object,
+      JSON,
+    };
+
+    const result = runExpression<boolean>(
+      __test__.setMonacoSourceExpression("//@version=5\nstrategy(\"Bottom\")"),
+      context,
+    );
+
+    expect(result).toBe(true);
+    expect(bottomValue).toContain("Bottom");
+    expect(sideValue).toBe("");
   });
 
   test("removes stale strategy studies and dismisses indicator-limit dialogs", () => {
@@ -502,6 +641,24 @@ describe("TradingView playwright driver expressions", () => {
           return {
             removedCount: 2,
             dismissedIndicatorLimitDialog: true,
+          } as T;
+        }
+        if (expression.includes("expectedStudy")) {
+          return {
+            attachedStudies: [
+              {
+                title: "AF Spec v1 [cand-new]",
+                normalizedTitle: "AF Spec v1 [cand-new]",
+                metaDescription: "AF Spec v1 [cand-new]",
+                hasStrategyData: true,
+              },
+            ],
+            expectedStudy: {
+              title: "AF Spec v1 [cand-new]",
+              normalizedTitle: "AF Spec v1 [cand-new]",
+              metaDescription: "AF Spec v1 [cand-new]",
+              reportData: { performance: { all: {} } },
+            },
           } as T;
         }
         if (expression.includes("getModelMarkers")) {

@@ -206,6 +206,28 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
     await this.client.dispatchCtrlEnter();
     await this.client.delay(4_000);
 
+    if (this.pendingStudyTitle != null) {
+      const snapshot = await this.readStrategySnapshot(this.pendingStudyTitle);
+      const attachDiagnostics = buildAttachDiagnostics(
+        this.pendingStudyTitle,
+        snapshot.attachedStudies,
+        snapshot.expectedStudy,
+      );
+      if (!attachDiagnostics.exactTitleMatched) {
+        const clickedAddButton = await this.client.evaluate<boolean>(
+          clickAddToChartButtonExpression(),
+        );
+        this.pendingAttachRecoveryActions.push(
+          clickedAddButton
+            ? "clicked_add_to_chart_button_after_ctrl_enter"
+            : "add_to_chart_button_unavailable_after_ctrl_enter",
+        );
+        if (clickedAddButton) {
+          await this.client.delay(4_000);
+        }
+      }
+    }
+
     const markers = await this.client.evaluate<
       Array<{ message: string; severity: number }>
     >(readMonacoMarkersExpression());
@@ -228,17 +250,45 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
     expectedStudyTitle?: string | null;
   }) {
     const expectedStudyTitle = input?.expectedStudyTitle ?? null;
-    let strategySnapshot = await this.client.waitFor(
-      () => this.readStrategySnapshot(expectedStudyTitle),
-      (snapshot) => snapshot.expectedStudy !== null || snapshot.attachedStudies.length > 0,
-      {
-        timeoutMs: 10_000,
-        intervalMs: 500,
-        label: "Study attachment",
-      },
-    );
-
     const recoveryActions = [...this.pendingAttachRecoveryActions];
+    let strategySnapshot: StrategySnapshot;
+    try {
+      strategySnapshot = await this.client.waitFor(
+        () => this.readStrategySnapshot(expectedStudyTitle),
+        (snapshot) => snapshot.expectedStudy !== null || snapshot.attachedStudies.length > 0,
+        {
+          timeoutMs: 10_000,
+          intervalMs: 500,
+          label: "Study attachment",
+        },
+      );
+    } catch {
+      const clickedAddButton = await this.client.evaluate<boolean>(
+        clickAddToChartButtonExpression(),
+      );
+      recoveryActions.push(
+        clickedAddButton
+          ? "clicked_add_to_chart_button_after_attachment_timeout"
+          : "add_to_chart_button_unavailable_after_attachment_timeout",
+      );
+      if (clickedAddButton) {
+        await this.client.delay(4_000);
+      }
+      try {
+        strategySnapshot = await this.client.waitFor(
+          () => this.readStrategySnapshot(expectedStudyTitle),
+          (snapshot) =>
+            snapshot.expectedStudy !== null || snapshot.attachedStudies.length > 0,
+          {
+            timeoutMs: 10_000,
+            intervalMs: 500,
+            label: "Study attachment after Add to chart",
+          },
+        );
+      } catch {
+        strategySnapshot = await this.readStrategySnapshot(expectedStudyTitle);
+      }
+    }
     let attachDiagnostics = buildAttachDiagnostics(
       expectedStudyTitle,
       strategySnapshot.attachedStudies,
@@ -257,6 +307,17 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
       await this.client.dispatchCtrlEnter();
       recoveryActions.push("retried_study_attachment");
       await this.client.delay(4_000);
+      const clickedAddButton = await this.client.evaluate<boolean>(
+        clickAddToChartButtonExpression(),
+      );
+      recoveryActions.push(
+        clickedAddButton
+          ? "clicked_add_to_chart_button_after_retry"
+          : "add_to_chart_button_unavailable_after_retry",
+      );
+      if (clickedAddButton) {
+        await this.client.delay(4_000);
+      }
       strategySnapshot = await this.client.waitFor(
         () => this.readStrategySnapshot(expectedStudyTitle),
         (snapshot) => snapshot.expectedStudy !== null,
@@ -289,6 +350,17 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
       await this.client.dispatchCtrlEnter();
       recoveryActions.push("reattached_single_strategy_study");
       await this.client.delay(4_000);
+      const clickedAddButton = await this.client.evaluate<boolean>(
+        clickAddToChartButtonExpression(),
+      );
+      recoveryActions.push(
+        clickedAddButton
+          ? "clicked_add_to_chart_button_after_dedup"
+          : "add_to_chart_button_unavailable_after_dedup",
+      );
+      if (clickedAddButton) {
+        await this.client.delay(4_000);
+      }
       strategySnapshot = await this.client.waitFor(
         () => this.readStrategySnapshot(expectedStudyTitle),
         (snapshot) =>
@@ -594,11 +666,6 @@ function openPineEditorExpression(): string {
 
 function openWebPineEditorExpression(): string {
   return `(() => (async () => {
-    const hasMonacoEditor = () => document.querySelectorAll('.monaco-editor').length > 0;
-    if (hasMonacoEditor()) {
-      return true;
-    }
-
     const closeSidePineDialog = () => {
       const sideDialog = document.querySelector('[data-name="pine-dialog"]');
       if (!sideDialog) {
@@ -622,10 +689,17 @@ function openWebPineEditorExpression(): string {
 
     closeSidePineDialog();
 
+    const hasBottomScriptEditor = () =>
+      document.querySelectorAll('.bottom-widgetbar-content.scripteditor .monaco-editor')
+        .length > 0;
+    if (hasBottomScriptEditor()) {
+      return true;
+    }
+
     const bar = window.TradingView?.bottomWidgetBar;
     if (!bar) {
       window.TVD?.setFocusPineEditor?.();
-      return hasMonacoEditor();
+      return hasBottomScriptEditor();
     }
 
     const run = async (operation) => {
@@ -718,6 +792,93 @@ function readMonacoMarkersExpression(): string {
   `);
 }
 
+function clickAddToChartButtonExpression(): string {
+  return `(() => {
+    const bottomRoots = Array.from(
+      document.querySelectorAll('.bottom-widgetbar-content.scripteditor'),
+    );
+    const dialogRoots = Array.from(
+      document.querySelectorAll(
+        '#pine-editor-dialog, .pine-dialog, [data-name="pine-dialog"], [data-name="pine-editor"]',
+      ),
+    );
+    const roots = bottomRoots.length > 0 ? bottomRoots : dialogRoots;
+    const searchRoots = roots.length > 0 ? roots : [document.body].filter(Boolean);
+    const isVisible = (element) => {
+      if (!element?.isConnected || typeof element.getBoundingClientRect !== 'function') {
+        return false;
+      }
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle?.(element);
+      return (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        style?.visibility !== 'hidden' &&
+        style?.display !== 'none' &&
+        element.getAttribute?.('aria-disabled') !== 'true' &&
+        element.disabled !== true
+      );
+    };
+    const labelFor = (element) =>
+      [
+        element.getAttribute?.('aria-label') ?? '',
+        element.getAttribute?.('title') ?? '',
+        element.getAttribute?.('data-name') ?? '',
+        element.getAttribute?.('data-tooltip') ?? '',
+        element.textContent ?? '',
+      ]
+        .join(' ')
+        .replace(/\\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    const matchesAddToChart = (element) => {
+      const label = labelFor(element);
+      return (
+        label.includes('add to chart') ||
+        label.includes('add script') ||
+        label.includes('apply to chart') ||
+        label.includes('\\ucc28\\ud2b8\\uc5d0 \\ucd94\\uac00')
+      );
+    };
+    const candidates = searchRoots.flatMap((root) =>
+      Array.from(
+        root.querySelectorAll?.(
+          'button, [role="button"], [data-name], [aria-label], [title]',
+        ) ?? [],
+      ),
+    );
+    const button = candidates.find(
+      (element) => isVisible(element) && matchesAddToChart(element),
+    );
+    if (!button) {
+      return false;
+    }
+
+    button.scrollIntoView?.({ block: 'center', inline: 'center' });
+    if (typeof PointerEvent === 'function') {
+      button.dispatchEvent?.(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      );
+      button.dispatchEvent?.(
+        new PointerEvent('pointerup', { bubbles: true, cancelable: true }),
+      );
+    }
+    if (typeof MouseEvent === 'function') {
+      button.dispatchEvent?.(
+        new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
+      );
+      button.dispatchEvent?.(
+        new MouseEvent('mouseup', { bubbles: true, cancelable: true }),
+      );
+      button.dispatchEvent?.(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      );
+    }
+    button.click?.();
+    return true;
+  })()`;
+}
+
 function buildMonacoBridgeExpression(body: string): string {
   return `(() => {
     const resolveMonaco = () => {
@@ -790,7 +951,14 @@ function buildMonacoBridgeExpression(body: string): string {
         const node = candidate?.getDomNode?.();
         return (
           isVisibleEditorNode(node) &&
-          Boolean(node.closest?.('.bottom-widgetbar-content.scripteditor, #pine-editor-dialog, [data-name="pine-dialog"]'))
+          Boolean(node.closest?.('.bottom-widgetbar-content.scripteditor'))
+        );
+      }) ??
+      editors.find((candidate) => {
+        const node = candidate?.getDomNode?.();
+        return (
+          isVisibleEditorNode(node) &&
+          Boolean(node.closest?.('#pine-editor-dialog, [data-name="pine-dialog"]'))
         );
       }) ??
       editors.find((candidate) => isVisibleEditorNode(candidate?.getDomNode?.())) ??
@@ -1195,5 +1363,6 @@ export const __test__ = {
   setMonacoSourceExpression,
   focusMonacoEditorExpression,
   readMonacoMarkersExpression,
+  clickAddToChartButtonExpression,
   removeAttachedStrategyStudiesExpression,
 };
