@@ -372,6 +372,7 @@ export function renderDashboardHtml(): string {
     .goodText { color: var(--good); font-weight: 700; }
     .warnText { color: var(--warn); font-weight: 700; }
     .badText { color: var(--bad); font-weight: 700; }
+    .mutedText { color: var(--muted); font-weight: 700; }
 
     .hypothesis-grid {
       display: grid;
@@ -810,7 +811,8 @@ export function renderDashboardHtml(): string {
         queued: "큐 등록",
         processed: "처리됨",
         skipped: "건너뜀",
-        failed: "실패"
+        failed: "실패",
+        deactivated: "비활성"
       };
       return labels[value] || value || "-";
     }
@@ -1152,7 +1154,7 @@ export function renderDashboardHtml(): string {
       renderRows("externalEventRows", (external.recentEvents || []).slice(0, 8).map(function(item) {
         return row([
           { value: shortId(item.candidateId), className: "mono" },
-          { value: queueStatusLabel(item.status), className: item.status === "processed" ? "goodText" : item.status === "skipped" || item.status === "failed" ? "badText" : "warnText" },
+          { value: queueStatusLabel(item.status), className: item.status === "processed" ? "goodText" : item.status === "skipped" || item.status === "failed" ? "badText" : item.status === "deactivated" ? "mutedText" : "warnText" },
           { value: item.reason || item.tvDecision || item.parityStatus || "-" },
           { value: item.recordedAt ? new Date(item.recordedAt).toLocaleTimeString() : "-", className: "mono" }
         ]);

@@ -1153,7 +1153,7 @@ describe("ledger CLI commands", () => {
     );
   });
 
-  test("inspect-autonomous-state reconciles stale runtime and reports calibration backpressure", async () => {
+  test("inspect-autonomous-state reconciles stale runtime and ignores unprocessable calibration events", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-cli-inspect-runtime-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");
     const runtimeRoot = path.join(stateRoot, "runtime");
@@ -1187,17 +1187,19 @@ describe("ledger CLI commands", () => {
     expect(result.code).toBe(0);
     expect(parseCliJson(result.stdout)).toEqual(
       expect.objectContaining({
-        nextPlannedAction: "process_tv_calibration_queue",
+        calibrationCandidateCount: 100,
+        pendingCalibrationCandidateCount: 0,
+        nextPlannedAction: "generate_next_candidate",
         runtimeStatus: expect.objectContaining({
           status: "stale",
           owner: "inspect-autonomous-state",
           staleReason: "pid_not_running",
         }),
         calibrationBackpressure: expect.objectContaining({
-          active: true,
-          pendingCalibrationCandidateCount: 100,
+          active: false,
+          pendingCalibrationCandidateCount: 0,
           threshold: 100,
-          recommendedAction: "process_tv_calibration_queue",
+          recommendedAction: null,
         }),
       }),
     );

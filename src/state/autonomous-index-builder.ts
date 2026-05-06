@@ -29,6 +29,18 @@ import {
   parseAfStrategyConfig,
   summarizeAfCompatibilityIssues,
 } from "../automation/local-backtest/af-config.js";
+import {
+  ACTIVE_TV_CALIBRATION_QUEUE_LIMIT,
+  selectActiveCalibrationQueueEvents,
+} from "../research/autonomous/tv-calibration-queue-phase.js";
+
+type CalibrationQueueDerivedStatus =
+  | "pending"
+  | "deferred"
+  | "processed"
+  | "skipped"
+  | "failed"
+  | "deactivated";
 
 export async function rebuildAutonomousViews(input: {
   stateRoot: string;
@@ -94,6 +106,7 @@ export function buildAutonomousViewPayloads(input: {
   const pendingCalibrationQueue = buildPendingCalibrationQueue(
     input.calibrationEvents,
     tvRecords,
+    input.experiments,
   );
   const localConfidenceSummary = buildLocalConfidenceSummary(
     input.confidenceEvents,
@@ -507,24 +520,44 @@ function buildPassiveStage6ReadinessPayload(input: {
 function buildPendingCalibrationQueue(
   calibrationEvents: CalibrationEventRecord[],
   tvRecords: ReturnType<typeof selectTvVerificationRecords>,
+  experiments: ExperimentRecord[],
 ) {
   const latestQueueByCandidate = new Map<string, CalibrationEventRecord>();
   for (const event of calibrationEvents.slice().sort(compareCalibrationEventsAscending)) {
     latestQueueByCandidate.set(event.candidateId, event);
   }
+  const activeQueueCandidateIds = new Set(
+    selectActiveCalibrationQueueEvents({
+      events: calibrationEvents,
+      experiments,
+      limit: ACTIVE_TV_CALIBRATION_QUEUE_LIMIT,
+    }).map((event) => event.candidateId),
+  );
 
   return [...latestQueueByCandidate.values()]
-    .map((event) => ({
-      candidateId: event.candidateId,
-      fingerprintFamily: event.fingerprintFamily,
-      structureFamilyHash: event.structureFamilyHash ?? event.fingerprintFamily,
-      queueState: event.queueState,
-      derivedStatus: deriveCalibrationQueueStatus(event, tvRecords),
-      queueReason: event.queueReason,
-      tvHealthAtQueueTime: event.tvHealthAtQueueTime,
-      localConfidenceBefore: event.localConfidenceBefore,
-      recordedAt: event.recordedAt ?? null,
-    }));
+    .map((event) => {
+      const derivedStatus = deriveCalibrationQueueStatus(event, tvRecords);
+      const deactivated =
+        (derivedStatus === "pending" || derivedStatus === "deferred") &&
+        !activeQueueCandidateIds.has(event.candidateId);
+      const displayStatus: CalibrationQueueDerivedStatus = deactivated
+        ? "deactivated"
+        : derivedStatus;
+      return {
+        candidateId: event.candidateId,
+        fingerprintFamily: event.fingerprintFamily,
+        structureFamilyHash: event.structureFamilyHash ?? event.fingerprintFamily,
+        queueState: event.queueState,
+        derivedStatus: displayStatus,
+        queueReason: event.queueReason,
+        deactivationReason: deactivated
+          ? `tv_queue_top_${ACTIVE_TV_CALIBRATION_QUEUE_LIMIT}_policy`
+          : null,
+        tvHealthAtQueueTime: event.tvHealthAtQueueTime,
+        localConfidenceBefore: event.localConfidenceBefore,
+        recordedAt: event.recordedAt ?? null,
+      };
+    });
 }
 
 function buildLocalCompatibilitySummary(
@@ -789,7 +822,7 @@ function buildAutonomousStateSummaryPayload(input: {
   activeChampionCandidateId: string | null;
   pendingCalibrationQueue: Array<{
     candidateId: string;
-    derivedStatus: "pending" | "deferred" | "processed" | "skipped" | "failed";
+    derivedStatus: CalibrationQueueDerivedStatus;
   }>;
   stage6Readiness: ReturnType<typeof buildPassiveStage6ReadinessPayload>;
 }) {
@@ -874,7 +907,7 @@ function buildAutonomousStateSummaryPayload(input: {
           ? "schema_prompt_hardening"
           : hasDeferredPromptAdjustment || localBacktestFailureCount > 0
             ? "mutation_prompt_adjustment"
-            : input.pendingCalibrationQueue.length > 0
+            : pendingCalibrationEntries.length > 0
               ? "process_tv_calibration_queue"
               : activeChampion
                 ? "archive_gap_exploration"

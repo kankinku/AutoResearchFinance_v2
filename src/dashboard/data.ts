@@ -474,7 +474,7 @@ function buildExternalValidationDashboard(input: {
   const recentEvents = queueEntries.slice(-10).reverse().map((entry) => ({
     candidateId: stringValue(entry.candidateId) ?? "-",
     status: stringValue(entry.derivedStatus) ?? stringValue(entry.queueState) ?? "-",
-    reason: stringValue(entry.queueReason),
+    reason: stringValue(entry.deactivationReason) ?? stringValue(entry.queueReason),
     parityStatus: stringValue(recordValue(entry.parity)?.status),
     tvDecision: stringValue(entry.tvDecision),
     recordedAt: stringValue(entry.recordedAt),
