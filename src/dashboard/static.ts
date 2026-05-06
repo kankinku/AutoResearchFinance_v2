@@ -13,11 +13,12 @@ export function renderDashboardHtml(): string {
       --line: #e5e8eb;
       --panel: #ffffff;
       --accent: #191f28;
-      --good: #f04452;
+      --good: #00c773;
       --warn: #ffb020;
-      --bad: #3182f6;
+      --bad: #f04452;
       --positive: #f04452;
       --negative: #3182f6;
+      --soft-good: #e9fbf2;
       --soft-red: #fef0f1;
       --soft-blue: #eef6ff;
       --soft-gray: #f2f4f6;
@@ -134,9 +135,9 @@ export function renderDashboardHtml(): string {
       color: #4e5968;
       white-space: nowrap;
     }
-    .pill.good { color: var(--good); background: var(--soft-red); }
+    .pill.good { color: var(--good); background: var(--soft-good); }
     .pill.warn { color: #b7791f; background: var(--soft-warn); }
-    .pill.bad { color: var(--bad); background: var(--soft-blue); }
+    .pill.bad { color: var(--bad); background: var(--soft-red); }
 
     .grid, .two-col, .brief-band {
       display: grid;
@@ -259,9 +260,9 @@ export function renderDashboardHtml(): string {
       justify-content: center;
     }
 
-    .evidence.good { background: var(--soft-red); }
+    .evidence.good { background: var(--soft-good); }
     .evidence.watch { background: var(--soft-warn); }
-    .evidence.bad { background: var(--soft-blue); }
+    .evidence.bad { background: var(--soft-red); }
     .evidence.neutral { background: var(--soft-gray); }
 
     .evidence .label {
@@ -525,7 +526,7 @@ export function renderDashboardHtml(): string {
     }
 
     .toss-toggle.active {
-      background: var(--blue, #3182f6);
+      background: var(--good);
     }
 
     .toss-toggle.active::after {
@@ -1111,11 +1112,11 @@ export function renderDashboardHtml(): string {
       const elExt = document.getElementById("externalMode");
       if(elExt) elExt.innerHTML = toggleHtml;
       renderRows("externalRows", [
-        row([{ value: "TV 큐 처리", className: "mono" }, { value: external.autoProcessCalibration ? "자동" : "수동", className: external.autoProcessCalibration ? "warnText" : "goodText" }]),
+        row([{ value: "TV 큐 처리", className: "mono" }, { value: external.autoProcessCalibration ? "자동" : "수동", className: external.autoProcessCalibration ? "goodText" : "mutedText" }]),
         row([{ value: "처리 방식", className: "mono" }, { value: workerMode, className: workerEnabled ? "goodText" : isAuto ? "warnText" : "mutedText" }]),
         row([{ value: "TV 워커", className: "mono" }, { value: workerLabel, className: workerRunning ? "goodText" : workerEnabled ? "warnText" : "mutedText" }]),
         row([{ value: "워커 상태", className: "mono" }, { value: (calibrationWorker.status || "-") + " / exit " + workerLastExit + " / " + workerCheckedAt, className: workerRunning ? "goodText" : "mono" }]),
-        row([{ value: "승격 검증 실행기", className: "mono" }, { value: external.promotionVerificationExecutor || "없음", className: external.promotionVerificationExecutor === "none" ? "goodText" : "warnText" }]),
+        row([{ value: "승격 검증 실행기", className: "mono" }, { value: external.promotionVerificationExecutor || "없음", className: external.promotionVerificationExecutor === "none" ? "mutedText" : "goodText" }]),
         row([{ value: "대기 후보", className: "mono" }, { value: String(external.pendingCount || 0), className: (external.pendingCount || 0) > 0 ? "warnText" : "goodText" }]),
         row([{ value: "대기 ID", className: "mono" }, { value: (external.pendingCandidateIds || []).map(shortId).join(", ") || "-" }])
       ]);
