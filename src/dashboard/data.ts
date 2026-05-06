@@ -56,6 +56,7 @@ export interface DashboardStatusPayload {
   trend: DashboardCandidatePoint[];
   recentCandidates: DashboardCandidatePoint[];
   bestStrategy: DashboardStrategyAnalysis | null;
+  bestReturnStrategy: DashboardStrategyAnalysis | null;
   hypothesis: DashboardHypothesis | null;
   improvement: {
     status: "improving" | "watch" | "blocked";
@@ -362,6 +363,22 @@ export async function buildDashboardStatus(
     externalValidation,
     returnProfile,
   });
+  const bestStrategy = strategyCandidateId
+    ? await analyzeStrategyCandidate({
+        workspaceRoot: input.workspaceRoot,
+        candidateId: strategyCandidateId,
+        candidateRecord: candidateById.get(strategyCandidateId) ?? null,
+      })
+    : null;
+  const bestReturnStrategy = returnProfile.recentBestCandidateId
+    ? returnProfile.recentBestCandidateId === bestStrategy?.candidateId
+      ? bestStrategy
+      : await analyzeStrategyCandidate({
+          workspaceRoot: input.workspaceRoot,
+          candidateId: returnProfile.recentBestCandidateId,
+          candidateRecord: candidateById.get(returnProfile.recentBestCandidateId) ?? null,
+        })
+    : null;
 
   return {
     generatedAt: now.toISOString(),
@@ -387,13 +404,8 @@ export async function buildDashboardStatus(
     },
     trend,
     recentCandidates: recentCandidatePoints.slice(-12).reverse(),
-    bestStrategy: strategyCandidateId
-      ? await analyzeStrategyCandidate({
-          workspaceRoot: input.workspaceRoot,
-          candidateId: strategyCandidateId,
-          candidateRecord: candidateById.get(strategyCandidateId) ?? null,
-        })
-      : null,
+    bestStrategy,
+    bestReturnStrategy,
     hypothesis: latestBrief ? toDashboardHypothesis(latestBrief) : null,
     improvement,
     researchMode: buildResearchModeDashboard({

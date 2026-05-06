@@ -87,6 +87,44 @@ export function renderDashboardHtml(): string {
       flex-wrap: wrap;
     }
 
+    .page-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 0 0 16px;
+      padding: 4px;
+      background: #e9edf2;
+      border-radius: 8px;
+    }
+
+    .page-tab {
+      appearance: none;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #4e5968;
+      cursor: pointer;
+      font-family: var(--body);
+      font-size: 14px;
+      font-weight: 800;
+      min-height: 38px;
+      padding: 9px 13px;
+    }
+
+    .page-tab.active {
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
     .pill {
       border-radius: 8px;
       padding: 8px 12px;
@@ -121,7 +159,7 @@ export function renderDashboardHtml(): string {
     .metric,
     .panel {
       background: var(--panel);
-      border-radius: 20px;
+      border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.01);
       border: 1px solid rgba(229, 232, 235, 0.5);
     }
@@ -342,8 +380,56 @@ export function renderDashboardHtml(): string {
 
     .hypothesis-row {
       background: var(--soft-gray);
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 16px;
+    }
+
+    .record-hero {
+      background: #0064ff;
+      color: #ffffff;
+    }
+
+    .record-hero .label,
+    .record-hero .copy,
+    .record-hero .delta,
+    .record-hero .value {
+      color: #ffffff;
+    }
+
+    .record-hero .copy,
+    .record-hero .delta {
+      opacity: 0.86;
+    }
+
+    .record-stat-grid,
+    .explain-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .record-stat-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .record-stat,
+    .explain-row {
+      background: var(--soft-gray);
+      border-radius: 8px;
+      padding: 14px;
+      min-width: 0;
+    }
+
+    .record-hero .record-stat {
+      background: rgba(255,255,255,0.14);
+    }
+
+    .source-path {
+      margin-top: 14px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow-wrap: anywhere;
     }
 
     .footer {
@@ -367,6 +453,9 @@ export function renderDashboardHtml(): string {
       main { padding: 20px 16px 40px; }
       .metrics { grid-template-columns: minmax(0, 1fr); }
       .evidence-grid { grid-template-columns: 1fr; }
+      .page-nav { position: sticky; top: 0; z-index: 2; }
+      .page-tab { flex: 1 1 auto; font-size: 13px; padding: 8px 10px; }
+      .record-stat-grid { grid-template-columns: minmax(0, 1fr); }
       .panel { padding: 20px; }
       .metric { padding: 20px; min-height: auto; }
       table { display: block; overflow-x: auto; }
@@ -459,120 +548,188 @@ export function renderDashboardHtml(): string {
         </div>
       </header>
 
-      <section class="brief-band">
-        <div class="panel">
-          <h2><span>운영 브리프</span><span id="operatorMode">-</span></h2>
-          <h3 class="brief-title" id="briefHeadline">-</h3>
-          <p class="copy" id="briefSummary">-</p>
-          <div class="evidence-grid" id="operatorEvidence"></div>
-          <ol class="action-list" id="nextActionList"></ol>
-          <ul class="warning-list" id="warningList"></ul>
-        </div>
-        <div class="panel">
-          <h2><span>외부 검증</span><span id="externalMode">수동</span></h2>
-          <table>
-            <tbody id="externalRows"></tbody>
-          </table>
-          <div class="command-list" id="commandList"></div>
-        </div>
-      </section>
+      <nav class="page-nav" aria-label="대시보드 페이지">
+        <button class="page-tab active" type="button" data-page-target="overview">요약</button>
+        <button class="page-tab" type="button" data-page-target="strategy">최고 기록</button>
+        <button class="page-tab" type="button" data-page-target="explain">쉬운 해설</button>
+        <button class="page-tab" type="button" data-page-target="validation">검증</button>
+        <button class="page-tab" type="button" data-page-target="history">기록</button>
+      </nav>
 
-      <section class="metrics">
-        <div class="metric"><div class="label">최신 점수</div><div class="value" id="latestScore">-</div><div class="delta" id="latestDecision">-</div></div>
-        <div class="metric"><div class="label">최신 수익률</div><div class="value" id="latestNet">-</div><div class="delta" id="latestTrades">-</div></div>
-        <div class="metric"><div class="label">최근 최고 수익률</div><div class="value" id="bestReturn">-</div><div class="delta" id="bestReturnId">-</div></div>
-        <div class="metric"><div class="label">최근 평균 수익률</div><div class="value" id="averageReturn">-</div><div class="delta" id="averageReturnDetail">최근 12개 후보</div></div>
-        <div class="metric"><div class="label">수익 팩터</div><div class="value" id="latestPf">-</div><div class="delta" id="latestDd">-</div></div>
-        <div class="metric"><div class="label">활성 챔피언</div><div class="value" id="championScore">-</div><div class="delta" id="championId">-</div></div>
-        <div class="metric"><div class="label">최고 적격 후보</div><div class="value" id="bestScore">-</div><div class="delta" id="bestId">-</div></div>
-        <div class="metric"><div class="label">최근 상태</div><div class="value" id="healthValue">-</div><div class="delta" id="healthDetail">-</div></div>
-        <div class="metric"><div class="label">Node 메모리</div><div class="value" id="memoryValue">-</div><div class="delta" id="memoryDetail">-</div></div>
-        <div class="metric"><div class="label">저장소</div><div class="value" id="storageValue">-</div><div class="delta" id="storageDetail">-</div></div>
-      </section>
-
-      <section class="grid">
-        <div class="panel">
-          <h2><span>최근 점수 추적</span><span id="chartMeta">-</span></h2>
-          <svg class="chart" id="scoreChart" role="img" aria-label="최근 점수 추세"></svg>
-        </div>
-        <div class="panel">
-          <h2><span>개선 상태</span><span id="generatedAt">-</span></h2>
-          <p class="copy" id="improvementSummary">-</p>
-          <div class="feature-list" id="nextFocus"></div>
-        </div>
-      </section>
-
-      <section class="two-col">
-        <div class="panel">
-          <h2><span>검증 승격 조건</span><span id="verifiedCandidate">-</span></h2>
-          <table>
-            <tbody id="verifiedContractRows"></tbody>
-          </table>
-        </div>
-        <div class="panel">
-          <h2><span>브랜치 배분</span><span id="branchBudgetMeta">-</span></h2>
-          <table>
-            <thead><tr><th>브랜치</th><th>목표</th><th>실제</th><th>부족분</th></tr></thead>
-            <tbody id="branchBudgetRows"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="two-col">
-        <div class="panel">
-          <h2><span>수동 TV 큐</span><span id="queueMeta">-</span></h2>
-          <table>
-            <thead><tr><th>ID</th><th>상태</th><th>사유</th><th>기록</th></tr></thead>
-            <tbody id="externalEventRows"></tbody>
-          </table>
-        </div>
-        <div class="panel">
-          <h2><span>최신 로컬/TV 차이</span><span id="driftMeta">-</span></h2>
-          <table>
-            <tbody id="driftRows"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="two-col">
-        <div class="panel">
-          <h2><span>최고 전략 분석</span><span id="strategyId">-</span></h2>
-          <p class="copy" id="strategySummary">-</p>
-          <div class="feature-list" id="strategyFeatures"></div>
-          <table style="margin-top: 12px">
-            <tbody id="strategyTable"></tbody>
-          </table>
-        </div>
-        <div class="panel">
-          <h2><span>현재 가설</span><span id="repairMode">-</span></h2>
-          <div class="hypothesis-grid" id="hypothesisGrid"></div>
-        </div>
-      </section>
-
-      <section class="grid">
-        <div class="panel">
-          <h2><span>최근 후보</span><span>최근 구간</span></h2>
-          <table>
-            <thead><tr><th>ID</th><th>점수</th><th>수익률</th><th>거래수</th><th>결정</th></tr></thead>
-            <tbody id="candidateRows"></tbody>
-          </table>
-        </div>
-        <div class="stack">
+      <section class="page active" data-page="overview">
+        <section class="brief-band">
           <div class="panel">
-            <h2><span>실패 메모리</span><span id="problemCount">-</span></h2>
+            <h2><span>운영 브리프</span><span id="operatorMode">-</span></h2>
+            <h3 class="brief-title" id="briefHeadline">-</h3>
+            <p class="copy" id="briefSummary">-</p>
+            <div class="evidence-grid" id="operatorEvidence"></div>
+            <ol class="action-list" id="nextActionList"></ol>
+            <ul class="warning-list" id="warningList"></ul>
+          </div>
+          <div class="panel">
+            <h2><span>외부 검증</span><span id="externalMode">수동</span></h2>
             <table>
-              <thead><tr><th>회차</th><th>종류</th><th>진단</th></tr></thead>
-              <tbody id="problemRows"></tbody>
+              <tbody id="externalRows"></tbody>
+            </table>
+            <div class="command-list" id="commandList"></div>
+          </div>
+        </section>
+
+        <section class="metrics">
+          <div class="metric"><div class="label">최신 점수</div><div class="value" id="latestScore">-</div><div class="delta" id="latestDecision">-</div></div>
+          <div class="metric"><div class="label">최신 수익률</div><div class="value" id="latestNet">-</div><div class="delta" id="latestTrades">-</div></div>
+          <div class="metric"><div class="label">최근 최고 수익률</div><div class="value" id="bestReturn">-</div><div class="delta" id="bestReturnId">-</div></div>
+          <div class="metric"><div class="label">최근 평균 수익률</div><div class="value" id="averageReturn">-</div><div class="delta" id="averageReturnDetail">최근 12개 후보</div></div>
+          <div class="metric"><div class="label">수익 팩터</div><div class="value" id="latestPf">-</div><div class="delta" id="latestDd">-</div></div>
+          <div class="metric"><div class="label">활성 챔피언</div><div class="value" id="championScore">-</div><div class="delta" id="championId">-</div></div>
+          <div class="metric"><div class="label">최고 적격 후보</div><div class="value" id="bestScore">-</div><div class="delta" id="bestId">-</div></div>
+          <div class="metric"><div class="label">최근 상태</div><div class="value" id="healthValue">-</div><div class="delta" id="healthDetail">-</div></div>
+          <div class="metric"><div class="label">Node 메모리</div><div class="value" id="memoryValue">-</div><div class="delta" id="memoryDetail">-</div></div>
+          <div class="metric"><div class="label">저장소</div><div class="value" id="storageValue">-</div><div class="delta" id="storageDetail">-</div></div>
+        </section>
+
+        <section class="grid">
+          <div class="panel">
+            <h2><span>최근 점수 추적</span><span id="chartMeta">-</span></h2>
+            <svg class="chart" id="scoreChart" role="img" aria-label="최근 점수 추세"></svg>
+          </div>
+          <div class="panel">
+            <h2><span>개선 상태</span><span id="generatedAt">-</span></h2>
+            <p class="copy" id="improvementSummary">-</p>
+            <div class="feature-list" id="nextFocus"></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="page" data-page="strategy">
+        <section class="grid">
+          <div class="panel record-hero">
+            <h2><span>현재 최고 수익률 기록</span><span id="recordCandidateId">-</span></h2>
+            <div class="label">최근 로컬 후보 기준</div>
+            <div class="value" id="recordReturn">-</div>
+            <p class="copy" id="recordSummary">-</p>
+            <div class="record-stat-grid">
+              <div class="record-stat"><div class="label">점수</div><div class="delta" id="recordScore">-</div></div>
+              <div class="record-stat"><div class="label">거래</div><div class="delta" id="recordTrades">-</div></div>
+              <div class="record-stat"><div class="label">낙폭</div><div class="delta" id="recordDrawdown">-</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h2><span>최고 기록 전략</span><span id="recordStrategyId">-</span></h2>
+            <p class="copy" id="recordStrategySummary">-</p>
+            <div class="feature-list" id="recordStrategyFeatures"></div>
+            <table style="margin-top: 12px">
+              <tbody id="recordStrategyTable"></tbody>
+            </table>
+            <div class="source-path" id="recordStrategySource">-</div>
+          </div>
+        </section>
+
+        <section class="two-col">
+          <div class="panel">
+            <h2><span>최고 적격 전략</span><span id="strategyId">-</span></h2>
+            <p class="copy" id="strategySummary">-</p>
+            <div class="feature-list" id="strategyFeatures"></div>
+            <table style="margin-top: 12px">
+              <tbody id="strategyTable"></tbody>
             </table>
           </div>
           <div class="panel">
-            <h2><span>수리 기록</span><span id="repairCount">-</span></h2>
+            <h2><span>성과 비교</span><span>점수 vs 수익률</span></h2>
             <table>
-              <thead><tr><th>회차</th><th>수리</th><th>결과</th></tr></thead>
-              <tbody id="repairRows"></tbody>
+              <tbody id="recordCompareRows"></tbody>
             </table>
           </div>
-        </div>
+        </section>
+      </section>
+
+      <section class="page" data-page="explain">
+        <section class="grid">
+          <div class="panel">
+            <h2><span>쉬운 전략 해설</span><span id="explainStrategyId">-</span></h2>
+            <p class="copy" id="explanationSummary">-</p>
+            <div class="explain-grid" id="explainRows"></div>
+          </div>
+          <div class="panel">
+            <h2><span>운영 체크리스트</span><span>읽기용</span></h2>
+            <ol class="action-list" id="explainChecklist"></ol>
+          </div>
+        </section>
+
+        <section class="two-col">
+          <div class="panel">
+            <h2><span>현재 가설</span><span id="repairMode">-</span></h2>
+            <div class="hypothesis-grid" id="hypothesisGrid"></div>
+          </div>
+          <div class="panel">
+            <h2><span>핵심 파라미터</span><span id="explainParamMeta">-</span></h2>
+            <table>
+              <tbody id="explainParamRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="page" data-page="validation">
+        <section class="two-col">
+          <div class="panel">
+            <h2><span>검증 승격 조건</span><span id="verifiedCandidate">-</span></h2>
+            <table>
+              <tbody id="verifiedContractRows"></tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h2><span>브랜치 배분</span><span id="branchBudgetMeta">-</span></h2>
+            <table>
+              <thead><tr><th>브랜치</th><th>목표</th><th>실제</th><th>부족분</th></tr></thead>
+              <tbody id="branchBudgetRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="two-col">
+          <div class="panel">
+            <h2><span>수동 TV 큐</span><span id="queueMeta">-</span></h2>
+            <table>
+              <thead><tr><th>ID</th><th>상태</th><th>사유</th><th>기록</th></tr></thead>
+              <tbody id="externalEventRows"></tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h2><span>최신 로컬/TV 차이</span><span id="driftMeta">-</span></h2>
+            <table>
+              <tbody id="driftRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="page" data-page="history">
+        <section class="grid">
+          <div class="panel">
+            <h2><span>최근 후보</span><span>최근 구간</span></h2>
+            <table>
+              <thead><tr><th>ID</th><th>점수</th><th>수익률</th><th>거래수</th><th>결정</th></tr></thead>
+              <tbody id="candidateRows"></tbody>
+            </table>
+          </div>
+          <div class="stack">
+            <div class="panel">
+              <h2><span>실패 메모리</span><span id="problemCount">-</span></h2>
+              <table>
+                <thead><tr><th>회차</th><th>종류</th><th>진단</th></tr></thead>
+                <tbody id="problemRows"></tbody>
+              </table>
+            </div>
+            <div class="panel">
+              <h2><span>수리 기록</span><span id="repairCount">-</span></h2>
+              <table>
+                <thead><tr><th>회차</th><th>수리</th><th>결과</th></tr></thead>
+                <tbody id="repairRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       </section>
 
       <div class="footer">
@@ -816,6 +973,98 @@ export function renderDashboardHtml(): string {
       });
     }
 
+    function findCandidatePoint(data, candidateId) {
+      if (!candidateId) return null;
+      const pools = []
+        .concat(data.recentCandidates || [])
+        .concat(data.trend || [])
+        .concat(data.score && data.score.latest ? [data.score.latest] : []);
+      for (let i = pools.length - 1; i >= 0; i -= 1) {
+        if (pools[i] && pools[i].candidateId === candidateId) return pools[i];
+      }
+      return null;
+    }
+
+    function renderStrategyAnalysis(prefix, strategy) {
+      text(prefix + "Id", strategy ? shortId(strategy.candidateId) : "-");
+      text(prefix + "Summary", strategy ? (strategy.summary || strategy.title || "요약 없음") : "-");
+      renderChipList(prefix + "Features", strategy ? strategy.features : []);
+      const rows = [];
+      if (strategy) {
+        rows.push(row([{ value: "진입", className: "mono" }, { value: strategy.entryShape || "-" }]));
+        rows.push(row([{ value: "청산", className: "mono" }, { value: strategy.exitShape || "-" }]));
+        rows.push(row([{ value: "리스크", className: "mono" }, { value: strategy.riskShape || "-" }]));
+        Object.keys(strategy.routeInputs || {}).forEach(function(key) {
+          rows.push(row([{ value: key, className: "mono" }, { value: strategy.routeInputs[key] === null ? "-" : String(strategy.routeInputs[key]) }]));
+        });
+      }
+      renderRows(prefix + "Table", rows);
+    }
+
+    function explainStrategy(strategy, recordPoint) {
+      if (!strategy) {
+        return {
+          summary: "분석할 전략 파일이 아직 없습니다.",
+          rows: [],
+          checklist: ["최고 수익률 후보가 생성되면 전략 구조를 자동으로 요약합니다."]
+        };
+      }
+      const metrics = recordPoint && recordPoint.metrics;
+      const drawdown = metrics ? metrics.maxDrawdownPercent : null;
+      const highDrawdown = drawdown !== null && drawdown !== undefined && drawdown >= 35;
+      const entryWindow = strategy.routeInputs && strategy.routeInputs.eventWindowBars !== null && strategy.routeInputs.eventWindowBars !== undefined
+        ? strategy.routeInputs.eventWindowBars + "봉"
+        : "최근 이벤트 구간";
+      const summary = "이 전략은 AF 이벤트가 최근에 발생한 구간에서만 롱 진입을 허용하고, 여러 슬롯을 나눠 보유한 뒤 약한 포지션부터 정리하는 구조입니다.";
+      return {
+        summary: summary,
+        rows: [
+          ["진입", (strategy.entryShape || "AF 이벤트 진입") + ": 이벤트 발생 후 " + entryWindow + " 안에서만 참여해 신호가 오래된 구간을 피합니다."],
+          ["포지션", (strategy.features || []).indexOf("slot replacement") >= 0 ? "여러 슬롯을 나눠 잡고, 더 강한 신호가 나오면 약한 슬롯을 교체합니다." : "여러 진입을 분산해 한 번의 신호에 과하게 의존하지 않습니다."],
+          ["청산", (strategy.exitShape || "약한 포지션 정리") + ": 오래 버티지 못하는 손실 슬롯을 먼저 줄여 전체 변동성을 낮추는 쪽입니다."],
+          ["리스크", (strategy.riskShape || "위험 회피 조건") + ": 추세가 약하거나 위험 신호가 강하면 추가 진입과 보유를 제한합니다."],
+          ["주의", highDrawdown ? "수익률은 강하지만 최대 낙폭이 큽니다. 실제 적용 전 수동 TradingView 검증과 구간별 손실 확인이 필요합니다." : "낙폭은 상대적으로 억제되어 있지만, TradingView 수동 검증 전까지는 로컬 결과로만 봐야 합니다."]
+        ],
+        checklist: [
+          "최근 최고 수익률 후보와 최고 점수 후보가 같은지 먼저 확인합니다.",
+          "수익률만 보지 말고 거래 수, 수익 팩터, 최대 낙폭을 같이 봅니다.",
+          "TradingView는 수동 검증으로만 돌리고, major_drift가 있으면 실전 판단에서 보류합니다."
+        ]
+      };
+    }
+
+    function renderExplanation(strategy, recordPoint) {
+      const explanation = explainStrategy(strategy, recordPoint);
+      text("explanationSummary", explanation.summary);
+      const el = document.getElementById("explainRows");
+      if (el) {
+        el.innerHTML = "";
+        explanation.rows.forEach(function(pair) {
+          const div = document.createElement("div");
+          div.className = "explain-row";
+          div.innerHTML = '<div class="label"></div><p class="copy"></p>';
+          div.querySelector(".label").textContent = pair[0];
+          div.querySelector(".copy").textContent = pair[1];
+          el.appendChild(div);
+        });
+      }
+      renderSimpleList("explainChecklist", explanation.checklist, "체크리스트 없음.");
+    }
+
+    function setupPageTabs() {
+      document.querySelectorAll(".page-tab").forEach(function(tab) {
+        tab.addEventListener("click", function() {
+          const target = tab.getAttribute("data-page-target");
+          document.querySelectorAll(".page-tab").forEach(function(item) {
+            item.classList.toggle("active", item === tab);
+          });
+          document.querySelectorAll(".page").forEach(function(page) {
+            page.classList.toggle("active", page.getAttribute("data-page") === target);
+          });
+        });
+      });
+    }
+
     function render(data) {
       const brief = data.operatorBrief || {};
       const external = data.externalValidation || {};
@@ -931,19 +1180,33 @@ export function renderDashboardHtml(): string {
       renderChart(data.trend || []);
 
       const strategy = data.bestStrategy;
-      text("strategyId", strategy ? shortId(strategy.candidateId) : "-");
-      text("strategySummary", strategy ? (strategy.summary || strategy.title || "요약 없음") : "-");
-      renderChipList("strategyFeatures", strategy ? strategy.features : []);
-      const strategyRows = [];
-      if (strategy) {
-        strategyRows.push(row([{ value: "진입", className: "mono" }, { value: strategy.entryShape }]));
-        strategyRows.push(row([{ value: "청산", className: "mono" }, { value: strategy.exitShape }]));
-        strategyRows.push(row([{ value: "리스크", className: "mono" }, { value: strategy.riskShape }]));
-        Object.keys(strategy.routeInputs || {}).forEach(function(key) {
-          strategyRows.push(row([{ value: key, className: "mono" }, { value: strategy.routeInputs[key] === null ? "-" : String(strategy.routeInputs[key]) }]));
-        });
-      }
-      renderRows("strategyTable", strategyRows);
+      const recordStrategy = data.bestReturnStrategy || strategy;
+      const recordCandidateId = returnProfile.recentBestCandidateId || (recordStrategy && recordStrategy.candidateId);
+      const recordPoint = findCandidatePoint(data, recordCandidateId);
+      const recordMetrics = recordPoint && recordPoint.metrics;
+      text("recordCandidateId", recordCandidateId ? shortId(recordCandidateId) : "-");
+      text("recordReturn", pct(returnProfile.recentBestPercent));
+      text("recordSummary", recordCandidateId
+        ? "최근 후보 구간에서 가장 높은 수익률을 낸 기록입니다. 이 페이지는 그 후보의 전략 구조와 최고 점수 전략을 분리해서 보여줍니다."
+        : "최근 최고 수익률 후보가 아직 없습니다.");
+      text("recordScore", recordPoint && recordPoint.score !== null ? fmt(recordPoint.score, 4) : "-");
+      text("recordTrades", recordMetrics ? recordMetrics.totalTrades + "회 / PF " + fmt(recordMetrics.profitFactor, 2) : "-");
+      text("recordDrawdown", recordMetrics ? "최대 DD " + pct(recordMetrics.maxDrawdownPercent) : "-");
+      renderStrategyAnalysis("recordStrategy", recordStrategy);
+      text("recordStrategySource", recordStrategy && recordStrategy.sourcePath ? recordStrategy.sourcePath : "-");
+      renderStrategyAnalysis("strategy", strategy);
+      renderRows("recordCompareRows", [
+        row([{ value: "최근 최고 수익률", className: "mono" }, { value: (recordCandidateId ? shortId(recordCandidateId) + " / " : "") + pct(returnProfile.recentBestPercent), className: "goodText" }]),
+        row([{ value: "최고 적격 점수", className: "mono" }, { value: data.score.bestEligible ? shortId(data.score.bestEligible.candidateId) + " / " + fmt(data.score.bestEligible.score, 4) : "-" }]),
+        row([{ value: "최근 평균 수익률", className: "mono" }, { value: pct(returnProfile.recentAveragePercent) }]),
+        row([{ value: "차이 해석", className: "mono" }, { value: recordCandidateId && data.score.bestEligible && recordCandidateId !== data.score.bestEligible.candidateId ? "수익률 최고와 점수 최고가 다릅니다. 수익률 후보는 낙폭/검증을 더 봐야 합니다." : "수익률 최고와 점수 최고가 같은 후보입니다." }])
+      ]);
+      text("explainStrategyId", recordStrategy ? shortId(recordStrategy.candidateId) : "-");
+      renderExplanation(recordStrategy, recordPoint);
+      text("explainParamMeta", recordStrategy ? shortId(recordStrategy.candidateId) : "-");
+      renderRows("explainParamRows", recordStrategy ? Object.keys(recordStrategy.routeInputs || {}).map(function(key) {
+        return row([{ value: key, className: "mono" }, { value: recordStrategy.routeInputs[key] === null ? "-" : String(recordStrategy.routeInputs[key]) }]);
+      }) : []);
 
       const hyp = data.hypothesis;
       text("repairMode", hyp ? hyp.repairMode : "-");
@@ -1024,6 +1287,7 @@ export function renderDashboardHtml(): string {
       }
     }
 
+    setupPageTabs();
     load();
     state.timer = setInterval(load, 8000);
   </script>
