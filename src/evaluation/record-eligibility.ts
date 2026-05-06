@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 
 import {
+  type ExperimentArtifactPaths,
   type ExperimentRecord,
   type MutationProvenance,
   type RecordEra,
@@ -102,7 +103,7 @@ export function resolveRecordEra(record: {
   return "v2";
 }
 
-function collectPromotionEvidenceIssueDetails(
+export function collectPromotionEvidenceIssueDetails(
   record: EvidenceLike,
 ): EligibilityIssue[] {
   const issues: EligibilityIssue[] = [];
@@ -141,7 +142,7 @@ function collectPromotionEvidenceIssueDetails(
     );
   }
 
-  for (const [artifactKey, artifactPath] of Object.entries(record.artifactPaths ?? {})) {
+  for (const [artifactKey, artifactPath] of artifactPathEntries(record.artifactPaths)) {
     if (!existsSync(artifactPath)) {
       pushIssue(
         issues,
@@ -152,6 +153,14 @@ function collectPromotionEvidenceIssueDetails(
   }
 
   return issues;
+}
+
+function artifactPathEntries(
+  artifactPaths?: ExperimentArtifactPaths,
+): Array<[string, string]> {
+  return Object.entries(artifactPaths ?? {}).filter(
+    (entry): entry is [string, string] => typeof entry[1] === "string",
+  );
 }
 
 export function collectPromotionEvidenceIssues(record: EvidenceLike): string[] {

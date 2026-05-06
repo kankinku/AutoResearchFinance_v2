@@ -24,6 +24,7 @@ import {
 } from "./autonomous-state.js";
 import { buildLocalConfidenceSummary } from "../research/autonomous/divergence-update-phase.js";
 import { AUTONOMOUS_BRANCH_BUDGETS } from "../research/autonomous/branch-scheduler.js";
+import { buildCalibrationBackpressure } from "../research/autonomous/calibration-backpressure.js";
 import {
   parseAfStrategyConfig,
   summarizeAfCompatibilityIssues,
@@ -857,6 +858,27 @@ function buildAutonomousStateSummaryPayload(input: {
       (breakdown?.divergencePenalty ?? 0) !== 0
     );
   });
+  const parityStatusCounts = buildParityStatusCounts(input.tvRecords);
+  const calibrationBackpressure = buildCalibrationBackpressure({
+    pendingCalibrationCandidateCount: pendingCalibrationEntries.length,
+    parityStatusCounts,
+    repairTraceabilityStatus: input.stage6Readiness.repairTraceabilityStatus,
+  });
+  const nextPlannedAction = calibrationBackpressure.recommendedAction
+    ? calibrationBackpressure.recommendedAction
+    : activeChampion?.selectionPhase === "bootstrap"
+      ? "mutate_beyond_bootstrap_seed"
+      : localUnsupportedCount > 0
+        ? "local_compatibility_repair"
+        : hasMutationGenerationFailure
+          ? "schema_prompt_hardening"
+          : hasDeferredPromptAdjustment || localBacktestFailureCount > 0
+            ? "mutation_prompt_adjustment"
+            : input.pendingCalibrationQueue.length > 0
+              ? "process_tv_calibration_queue"
+              : activeChampion
+                ? "archive_gap_exploration"
+                : "generate_next_candidate";
 
   return {
     generatedAt: new Date().toISOString(),
@@ -913,7 +935,7 @@ function buildAutonomousStateSummaryPayload(input: {
           },
     researchStageCounts,
     quarantineCount: researchStageCounts.quarantined ?? 0,
-    parityStatusCounts: buildParityStatusCounts(input.tvRecords),
+    parityStatusCounts,
     walkForwardStatusCounts: buildWalkForwardStatusCounts(input.tvRecords),
     branchBudget: branchBudget.summary,
     championOrigin:
@@ -960,6 +982,7 @@ function buildAutonomousStateSummaryPayload(input: {
     pendingCalibrationCandidateIds: pendingCalibrationEntries.map(
       (entry) => entry.candidateId,
     ),
+    calibrationBackpressure,
     recentProblemKinds: input.problemEvents.slice(-5).map((event) => event.problemKind),
     recentRepairResults: input.repairAttempts.slice(-5).map((attempt) => ({
       repairKind: attempt.repairKind,
@@ -975,20 +998,7 @@ function buildAutonomousStateSummaryPayload(input: {
     rootIsolationStatus: input.stage6Readiness.rootIsolationStatus,
     repairTraceabilityStatus: input.stage6Readiness.repairTraceabilityStatus,
     feedbackClosureStatus: input.stage6Readiness.feedbackClosureStatus,
-    nextPlannedAction:
-      activeChampion?.selectionPhase === "bootstrap"
-        ? "mutate_beyond_bootstrap_seed"
-        : localUnsupportedCount > 0
-        ? "local_compatibility_repair"
-        : hasMutationGenerationFailure
-          ? "schema_prompt_hardening"
-        : hasDeferredPromptAdjustment || localBacktestFailureCount > 0
-          ? "mutation_prompt_adjustment"
-          : input.pendingCalibrationQueue.length > 0
-            ? "process_tv_calibration_queue"
-            : activeChampion
-              ? "archive_gap_exploration"
-              : "generate_next_candidate",
+    nextPlannedAction,
     loopMode: "verified-promotion-first",
     defaultOperationalView:
       input.records.length > 0 ? "v4_verified_autoresearch" : "legacy_v2",

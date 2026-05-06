@@ -23,6 +23,7 @@ import {
   type AutonomousIterationLearningRecord,
   type CandidateLedgerRecord,
   type ExperimentRecord,
+  type ExperimentArtifactPaths,
   type ArtifactBundleRef,
   type ArtifactSummary,
   type IncidentRecord,
@@ -379,7 +380,7 @@ async function compactExperimentRecordForStorage(
       return {
         ...record,
         artifactPaths: buildArtifactPathsForBundleRef(
-          record.artifactPaths as Record<string, string> | undefined,
+          record.artifactPaths as ExperimentArtifactPaths | undefined,
           artifactBundleRef.path,
         ),
       };
@@ -396,7 +397,7 @@ async function compactExperimentRecordForStorage(
     writeArtifacts: options.writeArtifacts,
   });
   const artifactPaths = buildArtifactPathsForBundleRef(
-    record.artifactPaths as Record<string, string> | undefined,
+    record.artifactPaths as ExperimentArtifactPaths | undefined,
     artifactBundleRef.path,
   );
   const recordMeta = {
@@ -429,12 +430,12 @@ async function compactExperimentRecordForStorage(
 }
 
 function buildArtifactPathsForBundleRef(
-  artifactPaths: Record<string, string> | undefined,
+  artifactPaths: ExperimentArtifactPaths | undefined,
   artifactBundlePath: string,
-): Record<string, string> {
+): ExperimentArtifactPaths {
   const existingArtifactPaths = artifactPaths ?? {};
   const existingBacktestArtifact = existingArtifactPaths.backtestArtifact;
-  const normalizedArtifactPaths: Record<string, string> = {
+  const normalizedArtifactPaths: ExperimentArtifactPaths = {
     ...existingArtifactPaths,
     backtestArtifact: artifactBundlePath,
     artifactBundle: artifactBundlePath,

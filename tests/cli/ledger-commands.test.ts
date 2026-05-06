@@ -22,6 +22,7 @@ import { runLocalEvaluationPhase } from "../../src/research/autonomous/local-eva
 import { initializeWorkspace } from "../../src/research/workspace.js";
 import {
   readExperimentRecords,
+  appendCalibrationEventRecord,
   appendExperimentRecord,
   appendHeadEventRecord,
   appendRepairAttemptRecord,
@@ -800,7 +801,7 @@ describe("ledger CLI commands", () => {
   });
 
   test(
-    "promote rejects missing candidate source file and artifact file",
+    "promote rejects missing candidate source file and artifact files by canonical key",
     { timeout: 20_000 },
     async () => {
       const root = await mkdtemp(path.join(tmpdir(), "af-cli-promote-files-"));
@@ -818,17 +819,36 @@ describe("ledger CLI commands", () => {
       expect(sourceResult.code).not.toBe(0);
       expect(sourceResult.stderr).toMatch(/source file is missing/i);
 
-      const missingArtifact = await buildVerifiedExperimentInput(root, "cand-missing-artifact");
-      await appendExperimentRecord(stateRoot, missingArtifact);
-      await unlink((missingArtifact.artifactPaths as { backtestArtifact: string }).backtestArtifact);
+      const missingPrimary = await buildVerifiedExperimentInput(root, "cand-missing-primary");
+      const storedPrimary = await appendExperimentRecord(stateRoot, missingPrimary);
+      await unlink(storedPrimary.artifactPaths?.backtestArtifact as string);
 
-      const artifactResult = await runCliCommand(root, [
+      const primaryResult = await runCliCommand(root, [
         "promote",
         "--candidate",
-        "cand-missing-artifact",
+        "cand-missing-primary",
       ]);
-      expect(artifactResult.code).not.toBe(0);
-      expect(artifactResult.stderr).toMatch(/artifact path "backtestArtifact" is missing/i);
+      expect(primaryResult.code).not.toBe(0);
+      expect(primaryResult.stderr).toMatch(/artifact path "backtestArtifact" is missing/i);
+
+      const missingLocalAlias = await buildVerifiedExperimentInput(
+        root,
+        "cand-missing-local-alias",
+      );
+      const localBacktestArtifact = (
+        missingLocalAlias.artifactPaths as { backtestArtifact: string }
+      ).backtestArtifact;
+      const storedAlias = await appendExperimentRecord(stateRoot, missingLocalAlias);
+      expect(storedAlias.artifactPaths?.localBacktestArtifact).toBe(localBacktestArtifact);
+      await unlink(localBacktestArtifact);
+
+      const aliasResult = await runCliCommand(root, [
+        "promote",
+        "--candidate",
+        "cand-missing-local-alias",
+      ]);
+      expect(aliasResult.code).not.toBe(0);
+      expect(aliasResult.stderr).toMatch(/artifact path "localBacktestArtifact" is missing/i);
     },
   );
 
@@ -1128,6 +1148,56 @@ describe("ledger CLI commands", () => {
           targets: expect.objectContaining({
             champion_exploit: 50,
           }),
+        }),
+      }),
+    );
+  });
+
+  test("inspect-autonomous-state reconciles stale runtime and reports calibration backpressure", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-cli-inspect-runtime-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const runtimeRoot = path.join(stateRoot, "runtime");
+    await mkdir(runtimeRoot, { recursive: true });
+    await writeFile(path.join(runtimeRoot, "autonomous-loop.pid"), "99999999\n", "utf8");
+    await writeFile(
+      path.join(runtimeRoot, "autonomous-loop-heartbeat.json"),
+      `${JSON.stringify({ pid: 99999999, status: "running" })}\n`,
+      "utf8",
+    );
+
+    for (let index = 0; index < 100; index += 1) {
+      await appendCalibrationEventRecord(stateRoot, {
+        runId: "calibration-backpressure",
+        iteration: index + 1,
+        eventKind: "calibration_candidate_added",
+        candidateId: `cand-pending-${index}`,
+        fingerprintFamily: null,
+        queueState: "queued",
+        queueReason: "test pending calibration backpressure",
+        tvHealthAtQueueTime: null,
+        localConfidenceBefore: null,
+        localConfidenceAfter: null,
+        parity: null,
+        tvDecision: null,
+      });
+    }
+
+    const result = await runCliCommand(root, ["inspect-autonomous-state"]);
+
+    expect(result.code).toBe(0);
+    expect(parseCliJson(result.stdout)).toEqual(
+      expect.objectContaining({
+        nextPlannedAction: "process_tv_calibration_queue",
+        runtimeStatus: expect.objectContaining({
+          status: "stale",
+          owner: "inspect-autonomous-state",
+          staleReason: "pid_not_running",
+        }),
+        calibrationBackpressure: expect.objectContaining({
+          active: true,
+          pendingCalibrationCandidateCount: 100,
+          threshold: 100,
+          recommendedAction: "process_tv_calibration_queue",
         }),
       }),
     );

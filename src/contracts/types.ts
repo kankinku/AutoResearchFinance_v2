@@ -1006,6 +1006,16 @@ export const taskHypothesisSchema = z.object({
   acceptedHeadCandidateId: z.string().nullable(),
 });
 
+export const experimentArtifactPathsSchema = z
+  .object({
+    backtestArtifact: z.string().optional(),
+    artifactBundle: z.string().optional(),
+    localBacktestArtifact: z.string().optional(),
+    latestBacktestArtifact: z.string().optional(),
+    candidate: z.string().optional(),
+  })
+  .catchall(z.string());
+
 export const taskExecutionSummarySchema = z.object({
   candidateId: z.string().nullable(),
   studyTitle: z.string().nullable(),
@@ -1020,7 +1030,7 @@ export const taskExecutionSummarySchema = z.object({
   decision: z.string().min(1),
   compileOk: z.boolean().nullable(),
   applyOk: z.boolean().nullable(),
-  artifactPaths: z.record(z.string(), z.string()).default({}),
+  artifactPaths: experimentArtifactPathsSchema.default({}),
   executorCapability: executorCapabilitySchema.nullable().default(null),
   artifactValidation: artifactValidationResultSchema.nullable().default(null),
 });
@@ -1156,7 +1166,7 @@ export const experimentRecordSchema = z
     lossAnalysisSummary: lossAnalysisSummarySchema.optional(),
     topLossZones: z.array(z.string()).optional(),
     repairPriorities: z.array(z.string()).optional(),
-    artifactPaths: z.record(z.string(), z.string()).optional(),
+    artifactPaths: experimentArtifactPathsSchema.optional(),
     recordMeta: recordMetaSchema.optional(),
     recordedAt: z.string().datetime().optional(),
   })
@@ -1314,6 +1324,7 @@ export type TaskAnalysisSummary = z.infer<typeof taskAnalysisSummarySchema>;
 export type TaskRecord = z.infer<typeof taskRecordSchema>;
 export type TaskBatchRecord = z.infer<typeof taskBatchRecordSchema>;
 export type CandidateLedgerRecord = z.infer<typeof candidateLedgerRecordSchema>;
+export type ExperimentArtifactPaths = z.infer<typeof experimentArtifactPathsSchema>;
 export type ExperimentRecord = z.infer<typeof experimentRecordSchema>;
 export type IncidentRecord = z.infer<typeof incidentRecordSchema>;
 export type LineageNode = z.infer<typeof lineageNodeSchema>;

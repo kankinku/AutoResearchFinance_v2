@@ -16,6 +16,36 @@ $LogFile = Join-Path $LogRoot ("codex-supervised-loop-{0}.log" -f (Get-Date -For
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
 Remove-Item -LiteralPath $StopPath -Force -ErrorAction SilentlyContinue
+
+function Write-StaleHeartbeat {
+  param(
+    $Pid,
+    [string]$Reason
+  )
+  [pscustomobject]@{
+    pid = $Pid
+    status = "stale"
+    owner = "codex-supervised-loop"
+    staleReason = $Reason
+    lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
+    heartbeatPath = $HeartbeatPath
+    pidPath = $PidPath
+  } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatPath -Encoding UTF8
+}
+
+if (Test-Path -LiteralPath $PidPath) {
+  $existingPid = Get-Content -LiteralPath $PidPath -ErrorAction SilentlyContinue | Select-Object -First 1
+  [int]$existingPidValue = 0
+  $hasValidPid = [int]::TryParse([string]$existingPid, [ref]$existingPidValue)
+  if ($hasValidPid -and (Get-Process -Id $existingPidValue -ErrorAction SilentlyContinue)) {
+    throw "Autonomous loop already appears to be running with PID $existingPidValue."
+  }
+  $staleReason = if ($hasValidPid) { "pid_not_running" } else { "pid_file_invalid" }
+  $stalePid = if ($hasValidPid) { $existingPidValue } else { $null }
+  Write-StaleHeartbeat -Pid $stalePid -Reason $staleReason
+  Remove-Item -LiteralPath $PidPath -Force
+}
+
 Set-Content -LiteralPath $PidPath -Value $PID -Encoding UTF8
 
 Push-Location $ProjectRoot
@@ -48,6 +78,9 @@ try {
       pid = $PID
       status = "sleeping"
       supervisor = "codex"
+      owner = "codex-supervised-loop"
+      staleReason = $null
+      lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
       iteration = $iteration
       generatedAt = (Get-Date).ToUniversalTime().ToString("o")
       lastRunExit = $exitCode

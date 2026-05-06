@@ -25,6 +25,7 @@ import {
   isArtifactVerificationReady,
   validateArtifactBundle,
 } from "../evaluation/artifact-validation.js";
+import { collectPromotionEvidenceIssueDetails } from "../evaluation/record-eligibility.js";
 import { extractStudyTitle } from "../automation/tradingview/pine-study.js";
 import {
   type ArtifactValidationResult,
@@ -72,6 +73,7 @@ import {
   processTvCalibrationQueue,
   selectPendingCalibrationCandidates,
 } from "../research/autonomous/tv-calibration-phase.js";
+import { buildCalibrationBackpressure } from "../research/autonomous/calibration-backpressure.js";
 import { resolveTvHealthStatus } from "../research/autonomous/tv-health-phase.js";
 import {
   prepareMutationContext,
@@ -137,6 +139,7 @@ import {
   type RuntimeEnvironment,
   loadRuntimeEnvironment,
 } from "./runtime-config.js";
+import { reconcileAutonomousLoopRuntime } from "./runtime-heartbeat.js";
 import { startDashboardServer } from "../dashboard/server.js";
 
 const program = new Command();
@@ -572,18 +575,17 @@ function parseStage6CalibrationMode(value: string): Stage6CalibrationMode {
 }
 
 async function assertPromotionEvidenceFilesExist(
-  record: Pick<ExperimentRecord, "candidatePath" | "artifactPaths">,
+  record: ExperimentRecord,
 ): Promise<void> {
-  const issues: string[] = [];
-  if (!record.candidatePath || !(await fileExists(record.candidatePath))) {
-    issues.push("Candidate source file is missing.");
-  }
-
-  for (const [artifactKey, artifactPath] of Object.entries(record.artifactPaths ?? {})) {
-    if (!(await fileExists(artifactPath))) {
-      issues.push(`Artifact path "${artifactKey}" is missing.`);
-    }
-  }
+  const fileIssueCodes = new Set([
+    "candidate_path_missing",
+    "candidate_file_missing",
+    "backtest_artifact_path_missing",
+    "artifact_file_missing",
+  ]);
+  const issues = collectPromotionEvidenceIssueDetails(record)
+    .filter((issue) => fileIssueCodes.has(issue.code))
+    .map((issue) => issue.message);
 
   if (issues.length > 0) {
     throw new Error(issues.join(" "));
@@ -744,6 +746,19 @@ async function buildAutonomousStateSummary(input: {
   ).catch(() => null);
   const stage6Readiness = (persistedStage6Readiness ??
     views.stage6Readiness) as Record<string, unknown>;
+  const runtimeRoot = input.env.runtimeRoot ?? knowledgePaths.runtimeDir;
+  const runtimeStatus = await reconcileAutonomousLoopRuntime({
+    runtimeRoot,
+    owner: "inspect-autonomous-state",
+  });
+  const calibrationBackpressure = buildCalibrationBackpressure({
+    pendingCalibrationCandidateCount:
+      views.autonomousStateSummary.pendingCalibrationCandidateCount ?? 0,
+    parityStatusCounts: views.autonomousStateSummary.parityStatusCounts,
+    repairTraceabilityStatus:
+      stage6Readiness.repairTraceabilityStatus ??
+      views.autonomousStateSummary.repairTraceabilityStatus,
+  });
   const localEvaluations = selectLocalEvaluationRecords(experiments);
   const tvVerifications = selectTvVerificationRecords(experiments);
   const lastTvSurfaceFailure =
@@ -761,9 +776,18 @@ async function buildAutonomousStateSummary(input: {
         }
         return right.iteration - left.iteration;
       })[0] ?? null;
+  const nextPlannedAction = calibrationBackpressure.recommendedAction
+    ? calibrationBackpressure.recommendedAction
+    : !input.env.autoProcessCalibration &&
+        views.autonomousStateSummary.nextPlannedAction === "process_tv_calibration_queue"
+      ? "continue_local_first_research"
+      : views.autonomousStateSummary.nextPlannedAction;
+
   return {
     ...views.autonomousStateSummary,
+    calibrationBackpressure,
     stage6Readiness,
+    runtimeStatus,
     lastStage6GatePassed:
       stage6Readiness.evaluated === true ? stage6Readiness.passed === true : null,
     rootIsolationStatus:
@@ -781,16 +805,12 @@ async function buildAutonomousStateSummary(input: {
     traceRoot: input.env.traceRoot ?? knowledgePaths.tracesDir,
     artifactRoot: input.env.artifactRoot ?? knowledgePaths.artifactDir,
     evidenceRoot: input.env.evidenceRoot ?? knowledgePaths.evidenceDir,
-    runtimeRoot: input.env.runtimeRoot ?? knowledgePaths.runtimeDir,
+    runtimeRoot,
     tvVerificationCount: tvVerifications.length,
     tvHealth: resolveTvHealthStatus(input.env),
     calibrationAutoProcess: input.env.autoProcessCalibration,
     calibrationMode: input.env.autoProcessCalibration ? "auto_process" : "queue_only",
-    nextPlannedAction:
-      !input.env.autoProcessCalibration &&
-      views.autonomousStateSummary.nextPlannedAction === "process_tv_calibration_queue"
-        ? "continue_local_first_research"
-        : views.autonomousStateSummary.nextPlannedAction,
+    nextPlannedAction,
     lastTvSurfaceFailure: lastTvSurfaceFailure
       ? {
           candidateId: lastTvSurfaceFailure.candidateId,

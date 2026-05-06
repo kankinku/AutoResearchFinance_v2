@@ -17,11 +17,33 @@ $HeartbeatFile = Join-Path $RuntimeRoot "autonomous-loop-heartbeat.json"
 $LogFile = Join-Path $LogRoot ("autonomous-loop-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
+
+function Write-StaleHeartbeat {
+  param(
+    $Pid,
+    [string]$Reason
+  )
+  @{
+    pid = $Pid
+    status = "stale"
+    owner = "run-autonomous-forever"
+    staleReason = $Reason
+    lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
+    heartbeatPath = $HeartbeatFile
+    pidPath = $PidFile
+  } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+}
+
 if (Test-Path -LiteralPath $PidFile) {
   $existingPid = Get-Content -LiteralPath $PidFile -ErrorAction SilentlyContinue | Select-Object -First 1
-  if ($existingPid -and (Get-Process -Id ([int]$existingPid) -ErrorAction SilentlyContinue)) {
-    throw "Autonomous loop already appears to be running with PID $existingPid."
+  [int]$existingPidValue = 0
+  $hasValidPid = [int]::TryParse([string]$existingPid, [ref]$existingPidValue)
+  if ($hasValidPid -and (Get-Process -Id $existingPidValue -ErrorAction SilentlyContinue)) {
+    throw "Autonomous loop already appears to be running with PID $existingPidValue."
   }
+  $staleReason = if ($hasValidPid) { "pid_not_running" } else { "pid_file_invalid" }
+  $stalePid = if ($hasValidPid) { $existingPidValue } else { $null }
+  Write-StaleHeartbeat -Pid $stalePid -Reason $staleReason
   Remove-Item -LiteralPath $PidFile -Force
 }
 if (Test-Path -LiteralPath $StopFile) {
@@ -109,6 +131,9 @@ try {
       pid = $PID
       iteration = $iteration
       status = "running"
+      owner = "run-autonomous-forever"
+      staleReason = $null
+      lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
       startedAt = $startedAt.ToUniversalTime().ToString("o")
       logFile = $LogFile
       memory = $memory
@@ -157,6 +182,9 @@ try {
       pid = $PID
       iteration = $iteration
       status = "sleeping"
+      owner = "run-autonomous-forever"
+      staleReason = $null
+      lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
       lastRunExit = $runExit
       completedAt = $completedAt.ToUniversalTime().ToString("o")
       durationSeconds = [math]::Round(($completedAt - $startedAt).TotalSeconds, 3)
@@ -179,6 +207,9 @@ try {
     pid = $PID
     iteration = $iteration
     status = "failed"
+    owner = "run-autonomous-forever"
+    staleReason = $null
+    lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
     error = $_.Exception.Message
     logFile = $LogFile
   } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
