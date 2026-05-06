@@ -1088,11 +1088,33 @@ export function renderDashboardHtml(): string {
       renderSimpleList("warningList", brief.warnings || [], "");
       renderCommands(brief.commands || []);
       const isAuto = external.autoProcessCalibration;
+      const calibrationWorker = (data.runtime && data.runtime.calibrationWorker) || {};
+      const workerEnabled = !!calibrationWorker.enabled;
+      const workerRunning = !!calibrationWorker.running;
+      const workerLastExit = calibrationWorker.lastExitCode === null || calibrationWorker.lastExitCode === undefined
+        ? "-"
+        : String(calibrationWorker.lastExitCode);
+      const workerCheckedAt = calibrationWorker.heartbeat && calibrationWorker.heartbeat.lastCheckedAt
+        ? new Date(calibrationWorker.heartbeat.lastCheckedAt).toLocaleTimeString()
+        : "-";
+      const workerMode = workerEnabled
+        ? "병렬 워커"
+        : isAuto
+          ? "인라인"
+          : "큐 보관";
+      const workerLabel = workerRunning
+        ? "실행 중 pid " + calibrationWorker.pid
+        : workerEnabled
+          ? "대기/중지"
+          : "비활성";
       const toggleHtml = '<div class="toggle-wrapper"><div class="toss-toggle ' + (isAuto ? 'active' : '') + '"></div><span>' + (isAuto ? '자동 검증' : '수동') + '</span></div>';
       const elExt = document.getElementById("externalMode");
       if(elExt) elExt.innerHTML = toggleHtml;
       renderRows("externalRows", [
         row([{ value: "TV 큐 처리", className: "mono" }, { value: external.autoProcessCalibration ? "자동" : "수동", className: external.autoProcessCalibration ? "warnText" : "goodText" }]),
+        row([{ value: "처리 방식", className: "mono" }, { value: workerMode, className: workerEnabled ? "goodText" : isAuto ? "warnText" : "mutedText" }]),
+        row([{ value: "TV 워커", className: "mono" }, { value: workerLabel, className: workerRunning ? "goodText" : workerEnabled ? "warnText" : "mutedText" }]),
+        row([{ value: "워커 상태", className: "mono" }, { value: (calibrationWorker.status || "-") + " / exit " + workerLastExit + " / " + workerCheckedAt, className: workerRunning ? "goodText" : "mono" }]),
         row([{ value: "승격 검증 실행기", className: "mono" }, { value: external.promotionVerificationExecutor || "없음", className: external.promotionVerificationExecutor === "none" ? "goodText" : "warnText" }]),
         row([{ value: "대기 후보", className: "mono" }, { value: String(external.pendingCount || 0), className: (external.pendingCount || 0) > 0 ? "warnText" : "goodText" }]),
         row([{ value: "대기 ID", className: "mono" }, { value: (external.pendingCandidateIds || []).map(shortId).join(", ") || "-" }])

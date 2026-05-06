@@ -4,6 +4,7 @@ param(
   [int]$OpenAiMaxRetries = 2,
   [int]$VerifyEvery = 10,
   [switch]$AutoProcessCalibration,
+  [switch]$InlineCalibration,
   [int]$CalibrationBudget = 1,
   [int]$CalibrationTimeoutMs = 60000,
   [string]$PromotionVerificationExecutor = "",
@@ -19,6 +20,8 @@ $LogRoot = Join-Path $StateRoot "logs"
 $StopFile = Join-Path $RuntimeRoot "STOP_AUTONOMOUS_LOOP"
 $PidFile = Join-Path $RuntimeRoot "autonomous-loop.pid"
 $HeartbeatFile = Join-Path $RuntimeRoot "autonomous-loop-heartbeat.json"
+$CalibrationWorkerPidFile = Join-Path $RuntimeRoot "tv-calibration-worker.pid"
+$CalibrationWorkerHeartbeatFile = Join-Path $RuntimeRoot "tv-calibration-worker-heartbeat.json"
 $LogFile = Join-Path $LogRoot ("autonomous-loop-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
@@ -59,6 +62,8 @@ Set-Content -LiteralPath $PidFile -Value $PID -Encoding ASCII
 
 $env:PINE_EVALUATION_EXECUTOR = "local-backtest"
 $autoProcessCalibrationValue = if ($AutoProcessCalibration.IsPresent) { "true" } else { "false" }
+$parallelCalibration = $AutoProcessCalibration.IsPresent -and -not $InlineCalibration.IsPresent
+$loopAutoProcessCalibrationValue = if ($AutoProcessCalibration.IsPresent -and $InlineCalibration.IsPresent) { "true" } else { "false" }
 $env:AF_AUTO_PROCESS_CALIBRATION = $autoProcessCalibrationValue
 $env:AF_CALIBRATION_BUDGET = [string]$CalibrationBudget
 $env:AF_CALIBRATION_TIMEOUT_MS = [string]$CalibrationTimeoutMs
@@ -135,9 +140,84 @@ function Get-NodeTelemetry {
   }
 }
 
+function Get-CalibrationWorkerStatus {
+  $workerHeartbeat = $null
+  if (Test-Path -LiteralPath $CalibrationWorkerHeartbeatFile) {
+    try {
+      $workerHeartbeat = Get-Content -LiteralPath $CalibrationWorkerHeartbeatFile -Raw | ConvertFrom-Json
+    } catch {
+      $workerHeartbeat = $null
+    }
+  }
+  $workerPid = $null
+  if ($workerHeartbeat -and $workerHeartbeat.pid) {
+    $workerPid = [int]$workerHeartbeat.pid
+  } elseif (Test-Path -LiteralPath $CalibrationWorkerPidFile) {
+    [int]$pidValue = 0
+    $pidRaw = Get-Content -LiteralPath $CalibrationWorkerPidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ([int]::TryParse([string]$pidRaw, [ref]$pidValue)) {
+      $workerPid = $pidValue
+    }
+  }
+  $alive = $false
+  if ($workerPid) {
+    $alive = [bool](Get-Process -Id $workerPid -ErrorAction SilentlyContinue)
+  }
+  return @{
+    enabled = $parallelCalibration
+    mode = if ($parallelCalibration) { "parallel_worker" } elseif ($AutoProcessCalibration.IsPresent) { "inline" } else { "queue_only" }
+    pid = $workerPid
+    running = $alive
+    heartbeat = $workerHeartbeat
+    pidPath = $CalibrationWorkerPidFile
+    heartbeatPath = $CalibrationWorkerHeartbeatFile
+  }
+}
+
+function Start-CalibrationWorkerIfNeeded {
+  if (-not $parallelCalibration) {
+    return
+  }
+
+  $status = Get-CalibrationWorkerStatus
+  if ($status.running) {
+    Write-LoopLog "parallel tv calibration worker already running; pid=$($status.pid)"
+    return
+  }
+
+  if (Test-Path -LiteralPath $CalibrationWorkerPidFile) {
+    Remove-Item -LiteralPath $CalibrationWorkerPidFile -Force -ErrorAction SilentlyContinue
+  }
+
+  $workerArgs = @(
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "scripts/run-tv-calibration-worker.ps1",
+    "-SleepSeconds",
+    [string]$SleepSeconds,
+    "-CalibrationBudget",
+    [string]$CalibrationBudget,
+    "-CalibrationTimeoutMs",
+    [string]$CalibrationTimeoutMs,
+    "-PromotionVerificationExecutor",
+    $env:AF_PROMOTION_VERIFICATION_EXECUTOR,
+    "-TradingViewWebCdpUrl",
+    $TradingViewWebCdpUrl
+  )
+  $worker = Start-Process `
+    -FilePath "powershell.exe" `
+    -ArgumentList $workerArgs `
+    -WorkingDirectory $ProjectRoot `
+    -WindowStyle Hidden `
+    -PassThru
+  Write-LoopLog "parallel tv calibration worker started; pid=$($worker.Id)"
+}
+
 $iteration = 0
 $memoryWarningTimes = @()
-Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; autoProcessCalibration=$autoProcessCalibrationValue; calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
+Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; autoProcessCalibration=$autoProcessCalibrationValue; loopAutoProcessCalibration=$loopAutoProcessCalibrationValue; calibrationMode=$(if ($parallelCalibration) { 'parallel_worker' } elseif ($AutoProcessCalibration.IsPresent) { 'inline' } else { 'queue_only' }); calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
 Write-LoopLog "stop file: $StopFile"
 
 try {
@@ -146,6 +226,8 @@ try {
       Write-LoopLog "stop file detected; exiting"
       break
     }
+
+    Start-CalibrationWorkerIfNeeded
 
     $iteration += 1
     $startedAt = Get-Date
@@ -161,6 +243,7 @@ try {
       logFile = $LogFile
       memory = $memory
       nodeMemory = Get-NodeTelemetry
+      calibrationWorker = Get-CalibrationWorkerStatus
     } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
 
     Write-LoopLog "iteration ${iteration}: run-autonomous-loop start"
@@ -169,7 +252,7 @@ try {
       "--count",
       "1",
       "--auto-process-calibration",
-      $autoProcessCalibrationValue,
+      $loopAutoProcessCalibrationValue,
       "--calibration-budget",
       [string]$CalibrationBudget
     )
@@ -223,6 +306,7 @@ try {
       logFile = $LogFile
       memory = $memory
       nodeMemory = Get-NodeTelemetry
+      calibrationWorker = Get-CalibrationWorkerStatus
       verifyEvery = $effectiveVerifyEvery
       selfHealingActive = $selfHealingActive
       lastLedgerExit = $ledgerExit
@@ -247,6 +331,23 @@ try {
   } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
   throw
 } finally {
+  if ($parallelCalibration) {
+    $WorkerStopFile = Join-Path $RuntimeRoot "STOP_TV_CALIBRATION_WORKER"
+    New-Item -ItemType File -Force -Path $WorkerStopFile | Out-Null
+    $workerStatus = Get-CalibrationWorkerStatus
+    if ($workerStatus.running -and $workerStatus.pid) {
+      $deadline = (Get-Date).AddSeconds(30)
+      do {
+        Start-Sleep -Seconds 1
+        $stillRunning = [bool](Get-Process -Id $workerStatus.pid -ErrorAction SilentlyContinue)
+      } while ($stillRunning -and (Get-Date) -lt $deadline)
+      if ($stillRunning) {
+        Write-LoopLog "parallel tv calibration worker still running after stop request; pid=$($workerStatus.pid)"
+      } else {
+        Write-LoopLog "parallel tv calibration worker stopped"
+      }
+    }
+  }
   if (Test-Path -LiteralPath $PidFile) {
     Remove-Item -LiteralPath $PidFile -Force
   }

@@ -35,6 +35,16 @@ export interface DashboardStatusPayload {
   runtime: {
     heartbeat: Record<string, unknown> | null;
     nodeMemory: Record<string, unknown> | null;
+    calibrationWorker: {
+      heartbeat: Record<string, unknown> | null;
+      enabled: boolean;
+      mode: string | null;
+      running: boolean;
+      pid: number | null;
+      status: string | null;
+      lastExitCode: number | null;
+      logFile: string | null;
+    };
     running: boolean;
     stopRequested: boolean;
     pid: number | null;
@@ -249,6 +259,7 @@ export async function buildDashboardStatus(
     explorationArchive,
     heartbeat,
     nodeMemory,
+    calibrationWorkerHeartbeat,
     autonomousSummary,
     tvCalibrationQueue,
     localTvDivergence,
@@ -265,6 +276,7 @@ export async function buildDashboardStatus(
     readJsonSafe<ExplorationArchiveView>(paths.explorationArchivePath),
     readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "autonomous-loop-heartbeat.json")),
     readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "node-memory-telemetry.json")),
+    readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "tv-calibration-worker-heartbeat.json")),
     readJsonSafe<Record<string, unknown>>(paths.autonomousStateSummaryPath),
     readJsonSafe<TvCalibrationQueueView>(paths.tvCalibrationQueuePath),
     readJsonSafe<LocalTvDivergenceView>(paths.localTvDivergencePath),
@@ -334,9 +346,31 @@ export async function buildDashboardStatus(
     recentPreflightRepairCount,
     latest,
   });
+  const loopCalibrationWorker = recordValue(heartbeat?.calibrationWorker);
+  const calibrationWorkerPayload =
+    calibrationWorkerHeartbeat ?? recordValue(loopCalibrationWorker?.heartbeat);
+  const calibrationWorkerPid =
+    numberValue(calibrationWorkerPayload?.pid) ??
+    numberValue(loopCalibrationWorker?.pid);
+  const calibrationWorkerRunning =
+    calibrationWorkerPid != null
+      ? isPidAlive(calibrationWorkerPid)
+      : booleanValue(loopCalibrationWorker?.running) ?? false;
   const runtime = {
     heartbeat: heartbeat ?? null,
     nodeMemory: nodeMemory ?? null,
+    calibrationWorker: {
+      heartbeat: calibrationWorkerPayload ?? null,
+      enabled: booleanValue(loopCalibrationWorker?.enabled) ?? false,
+      mode: stringValue(loopCalibrationWorker?.mode),
+      running: calibrationWorkerRunning,
+      pid: calibrationWorkerPid,
+      status:
+        stringValue(calibrationWorkerPayload?.status) ??
+        (calibrationWorkerRunning ? "running" : null),
+      lastExitCode: numberValue(calibrationWorkerPayload?.lastExitCode),
+      logFile: stringValue(calibrationWorkerPayload?.logFile),
+    },
     running: pid != null && isPidAlive(pid),
     stopRequested,
     pid,
@@ -529,6 +563,14 @@ function buildOperatorBrief(input: {
   const bestScore = input.bestEligible?.score == null ? "적격 점수 없음" : input.bestEligible.score.toFixed(4);
   const bestReturn = formatBriefPercent(input.returnProfile.recentBestPercent);
   const pending = input.externalValidation.pendingCount;
+  const calibrationWorker = input.runtime.calibrationWorker;
+  const calibrationWorkerValue = calibrationWorker.enabled
+    ? calibrationWorker.running
+      ? `병렬 실행 pid ${calibrationWorker.pid}`
+      : "병렬 워커 중지"
+    : autoCalibration
+      ? "인라인 처리"
+      : "비활성";
   const headline = manualExternal
     ? "로컬 연구가 기준이며 TradingView는 수동 검증입니다."
     : autoCalibration
@@ -614,6 +656,17 @@ function buildOperatorBrief(input: {
         label: "TV 모드",
         value: autoCalibration ? "자동 검증" : manualExternal ? "수동" : "외부 검증",
         status: autoCalibration ? "good" : manualExternal ? "good" : "watch",
+      },
+      {
+        label: "TV 워커",
+        value: calibrationWorkerValue,
+        status: calibrationWorker.enabled
+          ? calibrationWorker.running
+            ? "good"
+            : "watch"
+          : autoCalibration
+            ? "watch"
+            : "neutral",
       },
       {
         label: "TV 큐",
