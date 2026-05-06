@@ -592,8 +592,8 @@ export function renderDashboardHtml(): string {
 
         <section class="grid">
           <div class="panel">
-            <h2><span>최근 점수 추적</span><span id="chartMeta">-</span></h2>
-            <svg class="chart" id="scoreChart" role="img" aria-label="최근 점수 추세"></svg>
+            <h2><span>최근 로컬 점수 추적</span><span id="chartMeta">-</span></h2>
+            <svg class="chart" id="scoreChart" role="img" aria-label="최근 로컬 점수 추세"></svg>
           </div>
           <div class="panel">
             <h2><span>개선 상태</span><span id="generatedAt">-</span></h2>
@@ -673,6 +673,19 @@ export function renderDashboardHtml(): string {
       </section>
 
       <section class="page" data-page="validation">
+        <section class="grid">
+          <div class="panel">
+            <h2><span>TradingView 최종 모델 결과</span><span id="tvResultMeta">-</span></h2>
+            <svg class="chart" id="tvResultChart" role="img" aria-label="TradingView 최종 모델 결과"></svg>
+          </div>
+          <div class="panel">
+            <h2><span>TV 결과 요약</span><span id="tvResultSummaryMeta">-</span></h2>
+            <table>
+              <tbody id="tvResultSummaryRows"></tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="two-col">
           <div class="panel">
             <h2><span>검증 승격 조건</span><span id="verifiedCandidate">-</span></h2>
@@ -918,6 +931,110 @@ export function renderDashboardHtml(): string {
       svg.appendChild(maxLabel);
     }
 
+    function renderTvResultChart(points) {
+      const svg = document.getElementById("tvResultChart");
+      if (!svg) return;
+      svg.innerHTML = "";
+      const width = 820;
+      const height = 270;
+      svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+      const pad = { left: 48, right: 18, top: 20, bottom: 38 };
+      const rows = (points || []).filter(function(p) {
+        return typeof p.tvReturnPercent === "number" || typeof p.netProfitDelta === "number";
+      });
+      if (rows.length < 1) {
+        const empty = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        empty.setAttribute("x", "30");
+        empty.setAttribute("y", "130");
+        empty.setAttribute("font-family", "var(--mono)");
+        empty.setAttribute("font-size", "13");
+        empty.textContent = "TradingView 검증 결과가 아직 없습니다";
+        svg.appendChild(empty);
+        return;
+      }
+      const deltas = rows
+        .map(function(p) { return typeof p.netProfitDelta === "number" ? p.netProfitDelta : 0; });
+      const min = Math.min(-1, Math.min.apply(null, deltas));
+      const max = Math.max(1, Math.max.apply(null, deltas));
+      const span = Math.max(1, max - min);
+      const usableW = width - pad.left - pad.right;
+      const usableH = height - pad.top - pad.bottom;
+      const zeroY = pad.top + (max - 0) * usableH / span;
+
+      for (let i = 0; i <= 4; i += 1) {
+        const y = pad.top + i * usableH / 4;
+        const grid = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        grid.setAttribute("x1", String(pad.left));
+        grid.setAttribute("x2", String(width - pad.right));
+        grid.setAttribute("y1", String(y));
+        grid.setAttribute("y2", String(y));
+        grid.setAttribute("stroke", "#e5e8eb");
+        grid.setAttribute("stroke-width", "1");
+        svg.appendChild(grid);
+      }
+
+      const zero = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      zero.setAttribute("x1", String(pad.left));
+      zero.setAttribute("x2", String(width - pad.right));
+      zero.setAttribute("y1", String(zeroY));
+      zero.setAttribute("y2", String(zeroY));
+      zero.setAttribute("stroke", "#8b95a1");
+      zero.setAttribute("stroke-width", "1.5");
+      svg.appendChild(zero);
+
+      const gap = 5;
+      const barW = Math.max(8, (usableW / Math.max(1, rows.length)) - gap);
+      rows.forEach(function(p, index) {
+        const delta = typeof p.netProfitDelta === "number" ? p.netProfitDelta : 0;
+        const x = pad.left + index * usableW / rows.length + gap / 2;
+        const y = pad.top + (max - delta) * usableH / span;
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", String(x));
+        rect.setAttribute("y", String(Math.min(y, zeroY)));
+        rect.setAttribute("width", String(barW));
+        rect.setAttribute("height", String(Math.max(2, Math.abs(zeroY - y))));
+        rect.setAttribute("rx", "4");
+        rect.setAttribute("fill", delta >= 0 ? "var(--positive)" : "var(--negative)");
+        rect.setAttribute("opacity", p.parityStatus === "matched" ? "0.65" : "0.9");
+        svg.appendChild(rect);
+
+        const confidence = typeof p.confidenceAfter === "number" ? p.confidenceAfter : null;
+        if (confidence !== null) {
+          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          dot.setAttribute("cx", String(x + barW / 2));
+          dot.setAttribute("cy", String(pad.top + (1 - confidence) * usableH));
+          dot.setAttribute("r", p.parityStatus === "matched" ? "5" : "4");
+          dot.setAttribute("fill", p.parityStatus === "matched" ? "var(--good)" : "var(--warn)");
+          svg.appendChild(dot);
+        }
+      });
+
+      const minLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      minLabel.setAttribute("x", "8");
+      minLabel.setAttribute("y", String(height - pad.bottom));
+      minLabel.setAttribute("font-family", "var(--mono)");
+      minLabel.setAttribute("font-size", "11");
+      minLabel.textContent = fmt(min, 1) + "%";
+      svg.appendChild(minLabel);
+
+      const maxLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      maxLabel.setAttribute("x", "8");
+      maxLabel.setAttribute("y", String(pad.top + 4));
+      maxLabel.setAttribute("font-family", "var(--mono)");
+      maxLabel.setAttribute("font-size", "11");
+      maxLabel.textContent = fmt(max, 1) + "%";
+      svg.appendChild(maxLabel);
+
+      const caption = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      caption.setAttribute("x", String(pad.left));
+      caption.setAttribute("y", String(height - 10));
+      caption.setAttribute("font-family", "var(--mono)");
+      caption.setAttribute("font-size", "11");
+      caption.setAttribute("fill", "#4e5968");
+      caption.textContent = "막대: TV-로컬 수익률 차이, 점: 검증 신뢰도";
+      svg.appendChild(caption);
+    }
+
     function row(cells) {
       const tr = document.createElement("tr");
       cells.forEach(function(cell) {
@@ -960,6 +1077,12 @@ export function renderDashboardHtml(): string {
         div.querySelector(".ev-value").textContent = item.value;
         el.appendChild(div);
       });
+    }
+
+    function averageNumber(values) {
+      const nums = (values || []).filter(function(value) { return typeof value === "number" && Number.isFinite(value); });
+      if (nums.length === 0) return null;
+      return nums.reduce(function(sum, value) { return sum + value; }, 0) / nums.length;
     }
 
     function renderCommands(commands) {
@@ -1144,7 +1267,7 @@ export function renderDashboardHtml(): string {
       text("memoryDetail", memory.heapUsedMB ? "heap " + fmt(memory.heapUsedMB, 0) + "MB / 비율 " + fmt(memory.rssToSystemRatio || 0, 4) : "-");
       text("storageValue", data.score.ledgerSizeMB !== undefined ? fmt(data.score.ledgerSizeMB, 1) + "MB" : "-");
       text("storageDetail", data.score.artifactSizeMB !== undefined ? "아티팩트 " + fmt(data.score.artifactSizeMB, 1) + "MB" : "-");
-      text("chartMeta", (data.trend || []).length + "개");
+      text("chartMeta", "로컬 " + (data.trend || []).length + "개");
       text("improvementSummary", data.improvement.summary);
       renderChipList("nextFocus", data.improvement.nextFocus);
       text("paths", data.project.workspaceRoot);
@@ -1174,6 +1297,21 @@ export function renderDashboardHtml(): string {
       }));
 
       text("queueMeta", (external.pendingCount || 0) + "개 대기");
+      const tvResults = external.tvResults || [];
+      const tvMatched = tvResults.filter(function(item) { return item.parityStatus === "matched"; }).length;
+      const tvMajorDrift = tvResults.filter(function(item) { return item.parityStatus === "major_drift"; }).length;
+      const avgTvReturn = averageNumber(tvResults.map(function(item) { return item.tvReturnPercent; }));
+      const avgNetDelta = averageNumber(tvResults.map(function(item) { return item.netProfitDelta; }));
+      const avgTradeDelta = averageNumber(tvResults.map(function(item) { return item.tradeCountDelta; }));
+      text("tvResultMeta", tvResults.length + "개");
+      text("tvResultSummaryMeta", tvMatched + "일치 / " + tvMajorDrift + "큰 차이");
+      renderTvResultChart(tvResults);
+      renderRows("tvResultSummaryRows", [
+        row([{ value: "최근 TV 수익률 평균", className: "mono" }, { value: pct(avgTvReturn), className: avgTvReturn !== null && avgTvReturn >= 0 ? "goodText" : "badText" }]),
+        row([{ value: "평균 수익률 차이", className: "mono" }, { value: pct(avgNetDelta), className: avgNetDelta !== null && Math.abs(avgNetDelta) <= 2 ? "goodText" : "warnText" }]),
+        row([{ value: "평균 거래수 차이", className: "mono" }, { value: avgTradeDelta === null ? "-" : fmt(avgTradeDelta, 1), className: avgTradeDelta !== null && Math.abs(avgTradeDelta) <= 25 ? "goodText" : "warnText" }]),
+        row([{ value: "일치 / 큰 차이", className: "mono" }, { value: tvMatched + " / " + tvMajorDrift, className: tvMajorDrift > 0 ? "warnText" : "goodText" }])
+      ]);
       renderRows("externalEventRows", (external.recentEvents || []).slice(0, 8).map(function(item) {
         return row([
           { value: shortId(item.candidateId), className: "mono" },

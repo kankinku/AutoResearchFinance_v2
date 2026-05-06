@@ -97,6 +97,7 @@ export interface DashboardStatusPayload {
     pendingCount: number;
     pendingCandidateIds: string[];
     recentEvents: DashboardExternalValidationEvent[];
+    tvResults: DashboardTvValidationPoint[];
     latestDivergence: DashboardExternalDivergence | null;
   };
   failureMemory: {
@@ -209,6 +210,20 @@ export interface DashboardExternalValidationEvent {
   recordedAt: string | null;
 }
 
+export interface DashboardTvValidationPoint {
+  candidateId: string;
+  recordedAt: string | null;
+  tvScore: number | null;
+  tvReturnPercent: number | null;
+  tvTradeCount: number | null;
+  tvProfitFactor: number | null;
+  tvDrawdownPercent: number | null;
+  parityStatus: string | null;
+  netProfitDelta: number | null;
+  tradeCountDelta: number | null;
+  confidenceAfter: number | null;
+}
+
 export interface DashboardExternalDivergence {
   candidateId: string;
   parityStatus: string;
@@ -267,7 +282,7 @@ export async function buildDashboardStatus(
     ledgerBytes,
     artifactBytes,
   ] = await Promise.all([
-    readJsonlTail<ExperimentRecord>(paths.experimentsPath, 48, 16 * 1024 * 1024),
+    readJsonlTail<ExperimentRecord>(paths.experimentsPath, 240, 16 * 1024 * 1024),
     readJsonlTail<CandidateLedgerRecord>(paths.candidatesPath, 200, 8 * 1024 * 1024),
     readJsonlTail<MutationBriefRecord>(paths.mutationBriefsPath, 60, 8 * 1024 * 1024),
     readJsonlTail<ProblemEventRecord>(paths.problemEventsPath, 120, 8 * 1024 * 1024),
@@ -293,14 +308,12 @@ export async function buildDashboardStatus(
     path.join(runtimeDir, "STOP_AUTONOMOUS_LOOP"),
   );
   const pid = numberValue(heartbeat?.pid) ?? null;
-  const recentCandidatePoints = recentExperiments
+  const localEvaluationRecords = recentExperiments.filter(isLocalEvaluationRecord);
+  const recentCandidatePoints = localEvaluationRecords
     .map(toCandidatePoint)
     .filter((point): point is DashboardCandidatePoint => point != null)
     .sort((a, b) => a.iteration - b.iteration);
-  const archiveTrend = buildArchiveTrend(explorationArchive);
-  const trend = recentCandidatePoints.length >= 6
-    ? recentCandidatePoints.slice(-40)
-    : archiveTrend.slice(-40);
+  const trend = recentCandidatePoints.slice(-40);
   const latest = [...recentCandidatePoints].reverse().find(
     (point) => point.metrics != null || point.score != null,
   ) ?? null;
@@ -385,6 +398,7 @@ export async function buildDashboardStatus(
       input.promotionVerificationExecutor ??
       stringValue(autonomousSummary?.promotionVerificationExecutor) ??
       "none",
+    recentExperiments,
     tvCalibrationQueue,
     localTvDivergence,
   });
@@ -495,6 +509,7 @@ function buildResearchModeDashboard(input: {
 function buildExternalValidationDashboard(input: {
   autoProcessCalibration: boolean;
   promotionVerificationExecutor: string;
+  recentExperiments: ExperimentRecord[];
   tvCalibrationQueue: TvCalibrationQueueView | null;
   localTvDivergence: LocalTvDivergenceView | null;
 }): DashboardStatusPayload["externalValidation"] {
@@ -522,6 +537,10 @@ function buildExternalValidationDashboard(input: {
     return status === "major_drift" || status === "minor_drift";
   });
   const latestParity = recordValue(latestDivergenceEntry?.parity);
+  const tvResults = buildTvValidationResults({
+    recentExperiments: input.recentExperiments,
+    divergenceEntries,
+  });
   return {
     autoProcessCalibration: input.autoProcessCalibration,
     promotionVerificationExecutor: input.promotionVerificationExecutor,
@@ -531,6 +550,7 @@ function buildExternalValidationDashboard(input: {
       .filter((candidateId): candidateId is string => candidateId != null)
       .slice(-8),
     recentEvents,
+    tvResults,
     latestDivergence: latestDivergenceEntry && latestParity
       ? {
           candidateId: stringValue(latestDivergenceEntry.candidateId) ?? "-",
@@ -542,6 +562,51 @@ function buildExternalValidationDashboard(input: {
         }
       : null,
   };
+}
+
+function buildTvValidationResults(input: {
+  recentExperiments: ExperimentRecord[];
+  divergenceEntries: Array<Record<string, unknown>>;
+}): DashboardTvValidationPoint[] {
+  const divergenceByCandidateId = new Map(
+    input.divergenceEntries
+      .map((entry) => [stringValue(entry.candidateId), entry] as const)
+      .filter((entry): entry is readonly [string, Record<string, unknown>] => entry[0] != null),
+  );
+  return input.recentExperiments
+    .filter(isTvVerificationRecord)
+    .map((record) => {
+      const rawRecord = record as unknown as Record<string, unknown>;
+      const metrics = toDashboardMetrics(
+        record.testerMetrics ??
+          record.artifactSummary?.strategy ??
+          record.artifactBundle?.strategy,
+      );
+      const divergence = divergenceByCandidateId.get(record.candidateId);
+      const parity =
+        recordValue(rawRecord.localTvParity) ??
+        recordValue(divergence?.parity);
+      return {
+        candidateId: record.candidateId,
+        recordedAt: record.recordedAt ?? null,
+        tvScore:
+          numberValue(rawRecord.verifiedPromotionScore) ??
+          numberValue(record.candidateScore) ??
+          numberValue(record.objectiveBreakdown?.score),
+        tvReturnPercent: metrics?.netProfitPercent ?? null,
+        tvTradeCount: metrics?.totalTrades ?? null,
+        tvProfitFactor: metrics?.profitFactor ?? null,
+        tvDrawdownPercent: metrics?.maxDrawdownPercent ?? null,
+        parityStatus: stringValue(parity?.status),
+        netProfitDelta: numberValue(parity?.netProfitPctDelta),
+        tradeCountDelta: numberValue(parity?.tradeCountDelta),
+        confidenceAfter:
+          numberValue(rawRecord.localConfidence) ??
+          numberValue(divergence?.localConfidenceAfter),
+      };
+    })
+    .filter((point) => point.tvReturnPercent != null || point.netProfitDelta != null)
+    .slice(-32);
 }
 
 function buildOperatorBrief(input: {
@@ -850,6 +915,27 @@ function buildArchiveTrend(view: ExplorationArchiveView | null): DashboardCandid
       metrics: null,
     }];
   });
+}
+
+function isLocalEvaluationRecord(record: ExperimentRecord): boolean {
+  const rawRecord = record as unknown as Record<string, unknown>;
+  return (
+    stringValue(rawRecord.recordKind) !== "tv_verification" &&
+    stringValue(rawRecord.executorRole) !== "external_calibration" &&
+    stringValue(rawRecord.evidenceAuthority) !== "external_tv" &&
+    stringValue(rawRecord.evaluationMode) !== "tv_calibration"
+  );
+}
+
+function isTvVerificationRecord(record: ExperimentRecord): boolean {
+  const rawRecord = record as unknown as Record<string, unknown>;
+  return (
+    stringValue(rawRecord.recordKind) === "tv_verification" ||
+    stringValue(rawRecord.executorRole) === "external_calibration" ||
+    stringValue(rawRecord.evidenceAuthority) === "external_tv" ||
+    stringValue(rawRecord.evaluationMode) === "tv_calibration" ||
+    record.decision === "tv_verified"
+  );
 }
 
 function buildActiveChampion(summary: Record<string, unknown> | null): DashboardLeaderboardEntry | null {
