@@ -33,6 +33,7 @@ export function selectNextAutonomousBranch(input: {
   branches: AutonomousBranchRecord[];
   experiments: ExperimentRecord[];
   parentCandidateId?: string | null;
+  branchKindBias?: BranchKind | null;
 }): BranchSelection {
   const parentCandidateId = input.parentCandidateId ?? null;
   const totalSelections = input.branches.length;
@@ -49,9 +50,10 @@ export function selectNextAutonomousBranch(input: {
       (branch) => branch.branchKind === budget.branchKind,
     ).length;
     const expectedCount = ((totalSelections + 1) * budget.budgetPct) / 100;
+    const biasBonus = input.branchKindBias === budget.branchKind ? 0.5 : 0;
     return {
       ...budget,
-      deficit: expectedCount - actualCount,
+      deficit: expectedCount - actualCount + biasBonus,
       index,
     };
   });

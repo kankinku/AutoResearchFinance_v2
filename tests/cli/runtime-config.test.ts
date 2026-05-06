@@ -37,5 +37,119 @@ describe("runtime config", () => {
     expect(env.autoProcessCalibration).toBe(false);
     expect(env.calibrationBudget).toBe(3);
     expect(env.mutationSchemaMode).toBe("strict");
+    expect(env.researchModeConfig).toEqual({
+      mode: "continuous_improvement",
+      source: "default",
+    });
+  });
+
+  test("resolves research mode from CLI before environment", async () => {
+    process.env.AF_RESEARCH_MODE = "continuous_improvement";
+    process.env.AF_RESEARCH_CRITERION = "trade_count";
+
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-mode-"));
+    const env = loadRuntimeEnvironment({
+      argv: [
+        "run-autonomous-loop",
+        "--research-mode",
+        "criterion_focus",
+        "--criterion",
+        "local_tv_parity",
+      ],
+      cwd: workspaceRoot,
+      overrides: {
+        projectRoot: process.cwd(),
+        workspaceRoot,
+        stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+      },
+    });
+
+    expect(env.researchModeConfig).toEqual({
+      mode: "criterion_focus",
+      criterion: "local_tv_parity",
+      source: "cli",
+    });
+  });
+
+  test("infers indicator request mode from CLI indicator goal", async () => {
+    process.env.AF_RESEARCH_MODE = "criterion_focus";
+    process.env.AF_RESEARCH_CRITERION = "trade_count";
+
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-indicator-"));
+    const env = loadRuntimeEnvironment({
+      argv: [
+        "generate-indicator",
+        "--indicator-goal",
+        "short-term peak confirmation",
+      ],
+      cwd: workspaceRoot,
+      overrides: {
+        projectRoot: process.cwd(),
+        workspaceRoot,
+        stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+      },
+    });
+
+    expect(env.researchModeConfig).toEqual({
+      mode: "indicator_request",
+      indicatorRequest: "short-term peak confirmation",
+      source: "cli",
+    });
+  });
+
+  test("rejects unknown research criteria", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-bad-criterion-"));
+
+    expect(() =>
+      loadRuntimeEnvironment({
+        argv: ["run-autonomous-loop", "--research-mode", "criterion_focus", "--criterion", "sharpe"],
+        cwd: workspaceRoot,
+        overrides: {
+          projectRoot: process.cwd(),
+          workspaceRoot,
+          stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+        },
+      }),
+    ).toThrow(/Invalid criterion "sharpe"/);
+  });
+
+  test("rejects criteria outside criterion focus mode", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-bad-combo-"));
+
+    expect(() =>
+      loadRuntimeEnvironment({
+        argv: [
+          "generate-indicator",
+          "--research-mode",
+          "indicator_request",
+          "--criterion",
+          "trade_count",
+          "--indicator-goal",
+          "short-term peak confirmation",
+        ],
+        cwd: workspaceRoot,
+        overrides: {
+          projectRoot: process.cwd(),
+          workspaceRoot,
+          stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+        },
+      }),
+    ).toThrow(/--criterion is only valid/);
+  });
+
+  test("rejects indicator request mode without a goal", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-missing-goal-"));
+
+    expect(() =>
+      loadRuntimeEnvironment({
+        argv: ["generate-indicator", "--research-mode", "indicator_request"],
+        cwd: workspaceRoot,
+        overrides: {
+          projectRoot: process.cwd(),
+          workspaceRoot,
+          stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+        },
+      }),
+    ).toThrow(/indicator_request mode requires/);
   });
 });

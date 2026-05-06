@@ -87,6 +87,7 @@ import {
 } from "../research/verification-fallback.js";
 import { loadSeedStrategyReference } from "../research/seed-strategy.js";
 import { runTaskBatch } from "../research/task-batch-runner.js";
+import { generateIndicatorArtifact } from "../research/indicator-generator.js";
 import { initializeWorkspace } from "../research/workspace.js";
 import { rebuildIndexes } from "../state/index-builder.js";
 import { findBestAcceptedRecord, findLegacyAcceptedRecord } from "../state/accepted-head.js";
@@ -109,7 +110,9 @@ import {
   readCandidateLedgerRecords,
   readExperimentRecords,
   readHeadEventRecords,
+  readIndicatorArtifactRecords,
   readLocalConfidenceEventRecords,
+  readMutationBriefRecords,
   readProblemEventRecords,
   readRepairAttemptRecords,
   resolveStatePaths,
@@ -732,6 +735,7 @@ async function buildAutonomousStateSummary(input: {
   const confidenceEvents = await readLocalConfidenceEventRecords(input.stateRoot);
   const problemEvents = await readProblemEventRecords(input.stateRoot);
   const repairAttempts = await readRepairAttemptRecords(input.stateRoot);
+  const indicatorArtifacts = await readIndicatorArtifactRecords(input.stateRoot);
   const views = buildAutonomousViewPayloads({
     experiments,
     headEvents,
@@ -782,9 +786,26 @@ async function buildAutonomousStateSummary(input: {
         views.autonomousStateSummary.nextPlannedAction === "process_tv_calibration_queue"
       ? "continue_local_first_research"
       : views.autonomousStateSummary.nextPlannedAction;
+  const latestIndicatorArtifact =
+    [...indicatorArtifacts].sort((left, right) => {
+      const leftTime = Date.parse(left.createdAt ?? "");
+      const rightTime = Date.parse(right.createdAt ?? "");
+      return rightTime - leftTime;
+    })[0] ?? null;
+  const nextPlannedActionReason = calibrationBackpressure.active
+    ? calibrationBackpressure.reasons.join(" | ")
+    : input.env.researchModeConfig.mode === "criterion_focus"
+      ? `criterion_focus:${input.env.researchModeConfig.criterion ?? "auto"}`
+      : input.env.researchModeConfig.mode;
 
   return {
     ...views.autonomousStateSummary,
+    researchMode: input.env.researchModeConfig,
+    activeCriterion:
+      input.env.researchModeConfig.mode === "criterion_focus"
+        ? input.env.researchModeConfig.criterion ?? "auto"
+        : null,
+    latestIndicatorArtifact,
     calibrationBackpressure,
     stage6Readiness,
     runtimeStatus,
@@ -811,6 +832,7 @@ async function buildAutonomousStateSummary(input: {
     calibrationAutoProcess: input.env.autoProcessCalibration,
     calibrationMode: input.env.autoProcessCalibration ? "auto_process" : "queue_only",
     nextPlannedAction,
+    nextPlannedActionReason,
     lastTvSurfaceFailure: lastTvSurfaceFailure
       ? {
           candidateId: lastTvSurfaceFailure.candidateId,
@@ -846,6 +868,22 @@ async function initializeWorkspaceForEnv(
   });
 }
 
+function validateAutonomousResearchMode(env: RuntimeEnvironment): void {
+  if (env.researchModeConfig.mode === "indicator_request") {
+    throw new Error(
+      "run-autonomous-loop does not support research mode indicator_request. Use generate-indicator.",
+    );
+  }
+  if (
+    env.researchModeConfig.criterion &&
+    env.researchModeConfig.mode !== "criterion_focus"
+  ) {
+    throw new Error(
+      "--criterion or AF_RESEARCH_CRITERION is only valid with research mode criterion_focus.",
+    );
+  }
+}
+
 function createPromotionVerificationExecutorFactory(
   env: ReturnType<typeof loadRuntimeEnvironment>,
 ): (() => ReturnType<typeof createPineEvaluationExecutor>) | undefined {
@@ -875,6 +913,13 @@ function createLazyMutationLlmClient(
   return {
     async generateMutation(input) {
       return (await getClient()).generateMutation(input);
+    },
+    async generateIndicator(input) {
+      const client = await getClient();
+      if (!client.generateIndicator) {
+        throw new Error("Configured LLM client does not support indicator generation.");
+      }
+      return client.generateIndicator(input);
     },
     async generateConditionAblation(input) {
       return (await getClient()).generateConditionAblation(input);
@@ -1306,9 +1351,114 @@ program
   });
 
 program
+  .command("generate-indicator")
+  .description("Generate a user-requested TradingView Pine indicator artifact without entering the strategy promotion pipeline.")
+  .requiredOption("--indicator-goal <text>", "User goal for the indicator, for example short-term top detection.")
+  .option("--output <path>", "Optional output path under strategies/indicators.")
+  .option(
+    "--research-mode <mode>",
+    "Research mode. This command accepts indicator_request only when provided.",
+  )
+  .action(async (options: {
+    indicatorGoal: string;
+    output?: string;
+    researchMode?: string;
+  }) => {
+    const env = loadRuntimeEnvironment();
+    if (options.researchMode && options.researchMode !== "indicator_request") {
+      throw new Error("generate-indicator requires research mode indicator_request.");
+    }
+    if (
+      env.researchModeConfig.mode !== "continuous_improvement" &&
+      env.researchModeConfig.mode !== "indicator_request"
+    ) {
+      throw new Error(
+        `generate-indicator cannot run while AF_RESEARCH_MODE=${env.researchModeConfig.mode}.`,
+      );
+    }
+    await withCliMonitor(
+      {
+        workspaceRoot: env.workspaceRoot,
+        commandName: "generate-indicator",
+      },
+      async (monitor) => {
+        await initializeWorkspace(env.workspaceRoot);
+        const [experiments, mutationBriefs] = await Promise.all([
+          readExperimentRecords(env.stateRoot),
+          readMutationBriefRecords(env.stateRoot),
+        ]);
+        const latestExperiment = [...experiments].sort(
+          (left, right) => right.iteration - left.iteration,
+        )[0] ?? null;
+        const latestBrief = mutationBriefs.at(-1) ?? null;
+        const llmClient = createLazyMutationLlmClient(() =>
+          createMutationLlmClient(env),
+        );
+        const result = await generateIndicatorArtifact({
+          workspaceRoot: env.workspaceRoot,
+          stateRoot: env.stateRoot,
+          llmClient,
+          goal: options.indicatorGoal,
+          outputPath: options.output,
+          sourceContext: {
+            researchMode: {
+              mode: "indicator_request",
+              indicatorRequest: options.indicatorGoal,
+              source: options.researchMode ? "cli" : env.researchModeConfig.source,
+            },
+            latestExperiment: latestExperiment
+              ? {
+                  candidateId: latestExperiment.candidateId,
+                  decision: latestExperiment.decision,
+                  score:
+                    latestExperiment.autoSelectionScore ??
+                    latestExperiment.candidateScore ??
+                    null,
+                  metrics:
+                    latestExperiment.testerMetrics ??
+                    latestExperiment.artifactSummary?.strategy ??
+                    null,
+                }
+              : null,
+            latestMutationBrief: latestBrief
+              ? {
+                  repairMode: latestBrief.brief.repairMode,
+                  nextMutationDirection: latestBrief.brief.nextMutationDirection,
+                  activeCriterion: latestBrief.brief.criterionDirective?.criterion ?? null,
+                }
+              : null,
+          },
+        });
+        await monitor.log("indicator.generated", "Indicator artifact generated", {
+          indicatorId: result.record.indicatorId,
+          pinePath: result.record.pinePath,
+          goal: result.record.goal,
+        });
+        console.log(
+          JSON.stringify(
+            {
+              ...result.record,
+              indicatorSummary: result.indicatorSummary,
+              nextSteps: result.nextSteps,
+              tracePath: monitor.tracePath,
+            },
+            null,
+            2,
+          ),
+        );
+      },
+    );
+  });
+
+program
   .command("run-autonomous-loop")
   .description("Run one or more v3 autonomous local-first iterations; TradingView calibration stays queued unless explicitly enabled.")
   .option("--count <number>", "Iteration count", "1")
+  .option(
+    "--research-mode <mode>",
+    "Research mode: continuous_improvement or criterion_focus. indicator_request uses generate-indicator.",
+  )
+  .option("--criterion <criterion>", "Criterion key used by criterion_focus mode.")
   .option(
     "--auto-process-calibration <boolean>",
     "Opt in to processing the optional TradingView calibration queue after each iteration.",
@@ -1319,10 +1469,16 @@ program
   )
   .action(async (options: {
     count: string;
+    researchMode?: string;
+    criterion?: string;
     autoProcessCalibration?: string;
     calibrationBudget?: string;
   }) => {
     const env = loadRuntimeEnvironment();
+    validateAutonomousResearchMode(env);
+    if (options.criterion && env.researchModeConfig.mode !== "criterion_focus") {
+      throw new Error("--criterion is only valid when --research-mode criterion_focus is active.");
+    }
     await withCliMonitor(
       {
         workspaceRoot: env.workspaceRoot,
@@ -1360,6 +1516,7 @@ program
           tvHealth: resolveTvHealthStatus(env),
           autoProcessCalibration,
           calibrationBudget,
+          researchMode: loopEnv.researchModeConfig,
         });
         const iterationRun = await runAutonomousIterations({
           workspaceRoot: env.workspaceRoot,
@@ -1758,6 +1915,7 @@ program
       stateRoot: env.stateRoot,
       autoProcessCalibration: env.autoProcessCalibration,
       promotionVerificationExecutor: env.promotionVerificationExecutor,
+      researchModeConfig: env.researchModeConfig,
       host: options.host,
       port,
       open,

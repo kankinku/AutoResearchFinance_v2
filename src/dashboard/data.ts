@@ -6,6 +6,7 @@ import {
   type BacktestMetrics,
   type CandidateLedgerRecord,
   type ExperimentRecord,
+  type IndicatorArtifactRecord,
   type MutationBriefRecord,
 } from "../contracts/types.js";
 import {
@@ -60,6 +61,12 @@ export interface DashboardStatusPayload {
     status: "improving" | "watch" | "blocked";
     summary: string;
     nextFocus: string[];
+  };
+  researchMode: {
+    mode: string;
+    activeCriterion: string | null;
+    nextPlannedActionReason: string | null;
+    latestIndicatorArtifact: Record<string, unknown> | null;
   };
   verifiedAutoresearch: {
     researchStageCounts: Record<string, number>;
@@ -206,6 +213,7 @@ interface DashboardBuildInput {
   now?: Date;
   autoProcessCalibration?: boolean;
   promotionVerificationExecutor?: string;
+  researchModeConfig?: Record<string, unknown>;
 }
 
 interface LocalLeaderboardView {
@@ -243,6 +251,7 @@ export async function buildDashboardStatus(
     autonomousSummary,
     tvCalibrationQueue,
     localTvDivergence,
+    indicatorArtifacts,
     ledgerBytes,
     artifactBytes,
   ] = await Promise.all([
@@ -258,6 +267,11 @@ export async function buildDashboardStatus(
     readJsonSafe<Record<string, unknown>>(paths.autonomousStateSummaryPath),
     readJsonSafe<TvCalibrationQueueView>(paths.tvCalibrationQueuePath),
     readJsonSafe<LocalTvDivergenceView>(paths.localTvDivergencePath),
+    readJsonlTail<IndicatorArtifactRecord>(
+      paths.indicatorArtifactsPath,
+      10,
+      1024 * 1024,
+    ),
     getFileSize(paths.experimentsPath),
     getDirectorySize(path.join(input.stateRoot, "artifacts")),
   ]);
@@ -382,12 +396,53 @@ export async function buildDashboardStatus(
       : null,
     hypothesis: latestBrief ? toDashboardHypothesis(latestBrief) : null,
     improvement,
+    researchMode: buildResearchModeDashboard({
+      autonomousSummary,
+      researchModeConfig: input.researchModeConfig,
+      indicatorArtifacts,
+    }),
     verifiedAutoresearch: buildVerifiedAutoresearchDashboard(autonomousSummary),
     externalValidation,
     failureMemory: {
       recentProblems,
       recentRepairs,
     },
+  };
+}
+
+function buildResearchModeDashboard(input: {
+  autonomousSummary: Record<string, unknown> | null;
+  researchModeConfig?: Record<string, unknown>;
+  indicatorArtifacts: IndicatorArtifactRecord[];
+}): DashboardStatusPayload["researchMode"] {
+  const researchMode =
+    recordValue(input.autonomousSummary?.researchMode) ??
+    input.researchModeConfig ??
+    null;
+  const latestIndicatorArtifact =
+    recordValue(input.autonomousSummary?.latestIndicatorArtifact) ??
+    input.indicatorArtifacts
+      .slice()
+      .sort(
+        (left, right) =>
+          Date.parse(right.createdAt ?? "") - Date.parse(left.createdAt ?? ""),
+      )[0] ??
+    null;
+  return {
+    mode: stringValue(researchMode?.mode) ?? "continuous_improvement",
+    activeCriterion: stringValue(input.autonomousSummary?.activeCriterion),
+    nextPlannedActionReason: stringValue(
+      input.autonomousSummary?.nextPlannedActionReason,
+    ),
+    latestIndicatorArtifact: latestIndicatorArtifact
+      ? {
+          indicatorId: stringValue(latestIndicatorArtifact.indicatorId),
+          goal: stringValue(latestIndicatorArtifact.goal),
+          pinePath: stringValue(latestIndicatorArtifact.pinePath),
+          validationStatus: stringValue(latestIndicatorArtifact.validationStatus),
+          createdAt: stringValue(latestIndicatorArtifact.createdAt),
+        }
+      : null,
   };
 }
 

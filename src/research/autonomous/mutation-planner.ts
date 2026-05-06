@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import {
   lossZoneDetailSchema,
   tradeLifecycleSummarySchema,
+  type CriterionDirective,
   type ExperimentRecord,
   type AutonomousIterationLearningRecord,
   type LocalCompatibilityIssue,
@@ -12,6 +13,7 @@ import {
   type MutationProvenance,
   type ObjectiveConfig,
   type ParsedMutationResponse,
+  type ResearchModeConfig,
   type SeedStrategyReference,
 } from "../../contracts/types.js";
 import {
@@ -226,6 +228,8 @@ export async function prepareAutonomousMutationPlan(input: {
   iterationRecords?: AutonomousIterationLearningRecord[];
   ignoreCalibrationGuidance?: boolean;
   selectedBranch?: AutonomousBranchRecord | null;
+  researchModeConfig?: ResearchModeConfig;
+  criterionDirective?: CriterionDirective | null;
 }): Promise<AutonomousMutationPlan> {
   const seedStrategy = await loadSeedStrategyReference(input.workspaceRoot);
   const localCompatibilityContract = getAfLocalCompatibilityContract();
@@ -339,6 +343,11 @@ export async function prepareAutonomousMutationPlan(input: {
   const unsupportedReasonSummary = summarizeUnsupportedReasons(
     input.problemEvents ?? [],
   );
+  const researchModeConfig = input.researchModeConfig ?? {
+    mode: "continuous_improvement" as const,
+    source: "default" as const,
+  };
+  const criterionDirective = input.criterionDirective ?? null;
   const candidateBehaviorChangeSummary = buildCandidateBehaviorChangeSummary({
     confidenceSummary,
     unsupportedReasonSummary,
@@ -389,6 +398,9 @@ export async function prepareAutonomousMutationPlan(input: {
         ? "Use only ledger-derived evidence. Improve out-of-sample stability and post-fee profitability before adding more feature complexity."
       : "Use only ledger-derived evidence. Explore a materially distinct AF-compatible structure from the seed and optimize for novelty plus robustness without relying on generic trading heuristics.";
   const nextMutationDirection = [
+    criterionDirective
+      ? `Research mode criterion_focus is active. ${criterionDirective.nextMutationDirection} Current status: ${criterionDirective.statusSummary} Weakness: ${criterionDirective.weaknessSummary} Success criteria: ${criterionDirective.successCriteria}.`
+      : null,
     baseNextMutationDirection,
     buildPromotionDiagnosticInstruction(promotionDiagnostics),
     `Exploration budget is fixed for planner reasoning: champion exploit ${DEFAULT_EXPLORATION_BUDGET.championExploitPct}%, frontier exploit ${DEFAULT_EXPLORATION_BUDGET.frontierExploitPct}%, breakout ${DEFAULT_EXPLORATION_BUDGET.breakoutPct}%, near-miss repair ${DEFAULT_EXPLORATION_BUDGET.nearMissRepairPct}%, simplification ${DEFAULT_EXPLORATION_BUDGET.simplificationPct}%.`,
@@ -419,6 +431,8 @@ export async function prepareAutonomousMutationPlan(input: {
   const brief: MutationBrief = {
     objective:
       "Autonomous local-first research. Optimize the existing objective score while increasing novelty and out-of-sample robustness. Use only ledger-derived evidence from the provided context; do not rely on generic human trading intuition.",
+    researchMode: researchModeConfig,
+    criterionDirective: criterionDirective ?? undefined,
     guardrails: {
       minimumTotalTrades: input.objective.hardGates.minimumTotalTrades,
       minimumPostFeeNetProfitPercent:
@@ -429,11 +443,12 @@ export async function prepareAutonomousMutationPlan(input: {
     repairMode:
       explorationBreakoutActive
         ? "exploration_breakout"
-        : repeatedLocalUnsupported || problemPressure.repeatedLowTradeCount
-        ? "entry_recovery"
-        : problemPressure.repeatedOosFailure
-          ? "exit_profit_repair"
-          : "balanced",
+        : resolveCriterionRepairMode(criterionDirective) ??
+          (repeatedLocalUnsupported || problemPressure.repeatedLowTradeCount
+            ? "entry_recovery"
+            : problemPressure.repeatedOosFailure
+              ? "exit_profit_repair"
+              : "balanced"),
     acceptedHead: activeChampion
       ? {
           candidateId: activeChampion.candidateId,
@@ -505,6 +520,7 @@ export async function prepareAutonomousMutationPlan(input: {
     },
     lossHotZones: [],
     repairPriorities: [
+      ...(criterionDirective?.repairPriorities ?? []),
       ...(explorationBreakoutActive
         ? [
             "exploration_breakout",
@@ -551,6 +567,7 @@ export async function prepareAutonomousMutationPlan(input: {
     ],
     stagnationSignals:
       [
+        ...(criterionDirective ? [`criterion_${criterionDirective.criterion}`] : []),
         ...(stagnationSummary.championPlateau ? ["champion_plateau"] : []),
         ...(explorationBreakoutActive ? ["exploration_breakout_active"] : []),
         ...(ignoreCalibrationGuidance ? ["calibration_guidance_skipped"] : []),
@@ -580,11 +597,15 @@ export async function prepareAutonomousMutationPlan(input: {
     nextMutationDirection,
     analysisGuidance: {
       hypothesis:
-        explorationBreakoutActive
+        criterionDirective
+          ? `Improve the active criterion ${criterionDirective.criterion}: ${criterionDirective.weaknessSummary}`
+          : explorationBreakoutActive
           ? "Generate a compile-ready AF mutation from a materially different structure family while keeping sufficient trade count, local compatibility, and positive post-fee profitability."
           : "Generate a compile-ready AF mutation that is measurably different from recent archive entries while keeping sufficient trade count, local compatibility, and positive post-fee profitability.",
       expectedEffect:
-        explorationBreakoutActive
+        criterionDirective
+          ? criterionDirective.successCriteria
+          : explorationBreakoutActive
           ? "Break out of the current plateau by increasing structural diversity before returning to score exploitation."
           : "Increase autonomous selection score through better OOS robustness and structural novelty.",
       invalidIf:
@@ -607,6 +628,7 @@ export async function prepareAutonomousMutationPlan(input: {
       },
     },
     forbiddenPatterns: [
+      ...(criterionDirective?.forbiddenPatterns ?? []),
       "Do not rely on generic human trading advice or conventional chartist narratives.",
       "Do not emit a near-duplicate of the current champion or recent archive fingerprints.",
       "Do not sacrifice out-of-sample trade count below the configured minimum.",
@@ -1138,6 +1160,26 @@ function buildSelectedBranchGoal(branch: AutonomousBranchRecord): string {
       return "Repair a near-miss candidate within the three-follow-up branch limit.";
     case "adversarial_simplification":
       return "Reduce complexity and filter count while preserving OOS viability.";
+  }
+}
+
+function resolveCriterionRepairMode(
+  directive: CriterionDirective | null,
+): MutationBrief["repairMode"] | null {
+  switch (directive?.criterion) {
+    case "trade_count":
+    case "entry_frequency":
+      return "entry_recovery";
+    case "drawdown":
+    case "exit_quality":
+    case "oos_robustness":
+    case "profitability":
+      return "exit_profit_repair";
+    case "complexity":
+    case "local_tv_parity":
+    case "novelty":
+    case undefined:
+      return null;
   }
 }
 

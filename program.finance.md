@@ -14,9 +14,10 @@ The LLM may propose only these research artifacts:
 Autonomous candidate artifacts may be written only under:
 
 - `strategies/candidates/`
+- `strategies/indicators/`
 - `strategies/specs/`
 
-The LLM must not hand-author Pine as the source of truth. Pine is generated deterministically from `strategySpec`.
+The LLM must not hand-author strategy Pine as the source of truth. Strategy Pine is generated deterministically from `strategySpec`. Indicator-request mode may create standalone Pine indicators under `strategies/indicators/`; those artifacts are not promotion candidates, champions, leaderboard entries, or calibration-queue inputs.
 
 ## Evaluation Firewall
 

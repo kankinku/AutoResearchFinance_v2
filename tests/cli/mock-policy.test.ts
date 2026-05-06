@@ -43,6 +43,10 @@ function createRuntimeEnv(overrides?: Partial<RuntimeEnvironment>): RuntimeEnvir
     calibrationBudget: 1,
     calibrationTimeoutMs: 30_000,
     ...overrides,
+    researchModeConfig: overrides?.researchModeConfig ?? {
+      mode: "continuous_improvement",
+      source: "default",
+    },
   };
 }
 

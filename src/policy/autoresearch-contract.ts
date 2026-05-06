@@ -16,6 +16,7 @@ export const EVALUATION_FIREWALL_PATHS = [
 export const EDITABLE_RESEARCH_PATHS = [
   "strategies/candidates/",
   "strategies/specs/",
+  "strategies/indicators/",
 ] as const;
 
 export type MutationSchemaMode = "strict" | "legacy-recovery-test-only";

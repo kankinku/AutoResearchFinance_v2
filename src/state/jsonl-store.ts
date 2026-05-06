@@ -12,6 +12,7 @@ import {
   experimentRecordSchema,
   incidentRecordSchema,
   mutationBriefRecordSchema,
+  indicatorArtifactRecordSchema,
   researchKnowledgeRecordSchema,
   runRecordSchema,
   taskBatchRecordSchema,
@@ -21,12 +22,14 @@ import {
   type CompactTradeSummary,
   autonomousIterationLearningRecordSchema,
   type AutonomousIterationLearningRecord,
+  type AutonomousIterationLearningRecordInput,
   type CandidateLedgerRecord,
   type ExperimentRecord,
   type ExperimentArtifactPaths,
   type ArtifactBundleRef,
   type ArtifactSummary,
   type IncidentRecord,
+  type IndicatorArtifactRecord,
   type MutationBriefRecord,
   type RecordMeta,
   type ResearchKnowledgeRecord,
@@ -72,6 +75,7 @@ export function resolveStatePaths(stateRoot: string): {
   tasksPath: string;
   mutationBriefsPath: string;
   autonomousIterationRecordsPath: string;
+  indicatorArtifactsPath: string;
   candidatesPath: string;
   researchKnowledgePath: string;
   headEventsPath: string;
@@ -120,6 +124,7 @@ export function resolveStatePaths(stateRoot: string): {
     tasksPath: knowledgePaths.tasksPath,
     mutationBriefsPath: knowledgePaths.mutationBriefsPath,
     autonomousIterationRecordsPath: knowledgePaths.autonomousIterationRecordsPath,
+    indicatorArtifactsPath: knowledgePaths.indicatorArtifactsPath,
     candidatesPath: knowledgePaths.candidatesPath,
     researchKnowledgePath: knowledgePaths.researchKnowledgePath,
     headEventsPath: knowledgePaths.headEventsPath,
@@ -682,9 +687,7 @@ export async function appendMutationBriefRecord(
 
 export async function appendAutonomousIterationRecord(
   stateRoot: string,
-  record: Omit<AutonomousIterationLearningRecord, "recordedAt"> & {
-    recordedAt?: string;
-  },
+  record: AutonomousIterationLearningRecordInput,
 ): Promise<AutonomousIterationLearningRecord> {
   await ensureStateRoot(stateRoot);
   const normalized = autonomousIterationLearningRecordSchema.parse({
@@ -695,6 +698,19 @@ export async function appendAutonomousIterationRecord(
     resolveStatePaths(stateRoot).autonomousIterationRecordsPath,
     normalized,
   );
+  return normalized;
+}
+
+export async function appendIndicatorArtifactRecord(
+  stateRoot: string,
+  record: Omit<IndicatorArtifactRecord, "createdAt"> & { createdAt?: string },
+): Promise<IndicatorArtifactRecord> {
+  await ensureStateRoot(stateRoot);
+  const normalized = indicatorArtifactRecordSchema.parse({
+    ...record,
+    createdAt: record.createdAt ?? new Date().toISOString(),
+  });
+  await appendJsonlAtomic(resolveStatePaths(stateRoot).indicatorArtifactsPath, normalized);
   return normalized;
 }
 
@@ -945,6 +961,16 @@ export async function readRecentAutonomousIterationRecords(
     const parsed = autonomousIterationLearningRecordSchema.safeParse(record);
     return parsed.success ? [parsed.data] : [];
   });
+}
+
+export async function readIndicatorArtifactRecords(
+  stateRoot: string,
+): Promise<IndicatorArtifactRecord[]> {
+  await ensureStateRoot(stateRoot);
+  return readTypedJsonl(
+    resolveStatePaths(stateRoot).indicatorArtifactsPath,
+    indicatorArtifactRecordSchema,
+  );
 }
 
 export async function readCandidateLedgerRecords(

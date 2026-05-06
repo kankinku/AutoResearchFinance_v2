@@ -8,6 +8,7 @@ export interface DashboardServerOptions {
   stateRoot: string;
   autoProcessCalibration?: boolean;
   promotionVerificationExecutor?: string;
+  researchModeConfig?: Record<string, unknown>;
   host?: string;
   port?: number;
   open?: boolean;
@@ -59,6 +60,7 @@ export async function startDashboardServer(
             stateRoot: options.stateRoot,
             autoProcessCalibration: options.autoProcessCalibration,
             promotionVerificationExecutor: options.promotionVerificationExecutor,
+            researchModeConfig: options.researchModeConfig,
           });
           cache = {
             generatedAtMs: now,

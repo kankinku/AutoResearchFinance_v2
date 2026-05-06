@@ -28,6 +28,7 @@ $DefaultPathspecs = @(
 
 $ResearchArtifactPathspecs = @(
   "strategies/candidates",
+  "strategies/indicators",
   "strategies/specs",
   "strategies/source",
   "state/pi-autoresearch/ledger",

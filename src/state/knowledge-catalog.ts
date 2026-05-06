@@ -134,6 +134,19 @@ export function buildKnowledgeCatalogEntries(stateRoot: string): KnowledgeCatalo
       description: "Structured mutation brief history used to drive candidate generation.",
     },
     {
+      id: "ledger.indicator_artifacts",
+      storageClass: "ledger",
+      relativePath: relativeToRoot(paths.indicatorArtifactsPath, stateRoot),
+      format: "jsonl",
+      sourceOfTruth: true,
+      producer: "research.indicator-generator",
+      consumers: ["dashboard.autonomous", "operator review"],
+      rebuildRule: "append per generated indicator artifact",
+      retention: "append-only",
+      description:
+        "Standalone Pine indicator artifact ledger kept outside strategy promotion and calibration.",
+    },
+    {
       id: "ledger.candidates",
       storageClass: "ledger",
       relativePath: relativeToRoot(paths.candidatesPath, stateRoot),

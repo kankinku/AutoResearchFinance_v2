@@ -14,6 +14,14 @@ import { resolveKnowledgePaths } from "../state/knowledge-paths.js";
 import {
   parseMutationSchemaMode,
 } from "../policy/autoresearch-contract.js";
+import {
+  criterionKeySchema,
+  researchModeConfigSchema,
+  researchModeSchema,
+  type CriterionKey,
+  type ResearchMode,
+  type ResearchModeConfig,
+} from "../contracts/types.js";
 
 loadDotEnv();
 
@@ -57,6 +65,10 @@ const runtimeEnvironmentSchema = z.object({
   alphaXivSessionFilePath: z.string().optional(),
   tvCalibrationMode: z.enum(["live", "mock-recovered"]).default("live"),
   mutationSchemaMode: z.enum(["strict", "legacy-recovery-test-only"]).default("strict"),
+  researchModeConfig: researchModeConfigSchema.default({
+    mode: "continuous_improvement",
+    source: "default",
+  }),
   autonomousBootstrapMode: z.enum(["auto", "disabled"]).default("auto"),
   autoProcessCalibration: z.boolean().default(false),
   calibrationBudget: z.number().int().positive().default(3),
@@ -198,6 +210,10 @@ export function loadRuntimeEnvironment(options?: {
         ? "mock-recovered"
         : "live",
     mutationSchemaMode: parseMutationSchemaMode(process.env.AF_MUTATION_SCHEMA_MODE),
+    researchModeConfig: resolveResearchModeConfig({
+      argv,
+      env: process.env,
+    }),
     autonomousBootstrapMode:
       process.env.AF_AUTONOMOUS_BOOTSTRAP_MODE === "disabled"
         ? "disabled"
@@ -219,6 +235,82 @@ export function loadRuntimeEnvironment(options?: {
   assertNoLegacyExecutorConfig();
   assertNoMockPolicy(env);
   return env;
+}
+
+export function resolveResearchModeConfig(input: {
+  argv?: string[];
+  env?: NodeJS.ProcessEnv;
+} = {}): ResearchModeConfig {
+  const argv = input.argv ?? [];
+  const env = input.env ?? process.env;
+  const cliMode = readCliOption(argv, "--research-mode");
+  const envMode = env.AF_RESEARCH_MODE;
+  const cliCriterion = readCliOption(argv, "--criterion");
+  const cliIndicatorRequest = readCliOption(argv, "--indicator-goal");
+  const envCriterion = env.AF_RESEARCH_CRITERION;
+  const envIndicatorRequest = env.AF_INDICATOR_GOAL;
+  const source: ResearchModeConfig["source"] =
+    cliMode || cliCriterion || cliIndicatorRequest
+    ? "cli"
+    : envMode || envCriterion || envIndicatorRequest
+      ? "env"
+      : "default";
+  const mode = parseResearchMode(
+    cliMode ??
+      (cliIndicatorRequest
+        ? "indicator_request"
+        : envMode ?? (envIndicatorRequest ? "indicator_request" : "continuous_improvement")),
+  );
+  const criterion = parseOptionalCriterion(
+    cliCriterion ?? (cliIndicatorRequest ? undefined : envCriterion),
+  );
+  const indicatorRequest =
+    cliIndicatorRequest ?? (cliCriterion ? undefined : envIndicatorRequest) ?? undefined;
+
+  if (criterion && mode !== "criterion_focus") {
+    throw new Error("--criterion is only valid when research mode is criterion_focus.");
+  }
+  if (mode === "indicator_request" && criterion) {
+    throw new Error("indicator_request mode cannot be combined with --criterion.");
+  }
+  if (mode === "indicator_request" && !indicatorRequest) {
+    throw new Error("indicator_request mode requires --indicator-goal or AF_INDICATOR_GOAL.");
+  }
+  if (indicatorRequest && mode !== "indicator_request") {
+    throw new Error("--indicator-goal is only valid when research mode is indicator_request.");
+  }
+
+  return researchModeConfigSchema.parse({
+    mode,
+    criterion,
+    indicatorRequest,
+    source,
+  });
+}
+
+export function parseResearchMode(value: string): ResearchMode {
+  const parsed = researchModeSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid research mode "${value}". Expected continuous_improvement, criterion_focus, or indicator_request.`,
+    );
+  }
+  return parsed.data;
+}
+
+export function parseOptionalCriterion(
+  value: string | undefined,
+): CriterionKey | undefined {
+  if (value == null || value.trim() === "") {
+    return undefined;
+  }
+  const parsed = criterionKeySchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid criterion "${value}". Expected one of ${criterionKeySchema.options.join(", ")}.`,
+    );
+  }
+  return parsed.data;
 }
 
 export function assertNoMockPolicy(env: RuntimeEnvironment): void {

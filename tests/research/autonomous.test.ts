@@ -116,6 +116,10 @@ function createRuntimeEnv(
     calibrationBudget: 1,
     calibrationTimeoutMs: 30_000,
     ...overrides,
+    researchModeConfig: overrides?.researchModeConfig ?? {
+      mode: "continuous_improvement",
+      source: "default",
+    },
   };
 }
 
@@ -1666,6 +1670,15 @@ describe("autonomous tv-verified v4", () => {
       {
         runId: "run-record-1",
         iteration: 41,
+        researchMode: {
+          mode: "continuous_improvement",
+          source: "default",
+        },
+        activeCriterion: null,
+        criterionBefore: null,
+        criterionAfter: null,
+        criterionDelta: null,
+        criterionVerdict: null,
         acceptedHeadCandidateId: "cand-42ed2fa4",
         candidateId: "cand-record-1",
         briefHash: "brief-record-1",

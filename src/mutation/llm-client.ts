@@ -8,6 +8,11 @@ export interface MutationLlmClient {
     baselinePine: string;
     signal?: AbortSignal;
   }): Promise<string>;
+  generateIndicator?(input: {
+    goal: string;
+    context?: Record<string, unknown>;
+    signal?: AbortSignal;
+  }): Promise<string>;
   generateConditionAblation(input: {
     brief: MutationBrief;
     candidatePine: string;
@@ -35,6 +40,9 @@ export function createStaticLlmClient(
   return {
     async generateMutation() {
       return normalizeStaticMutationResponse(response);
+    },
+    async generateIndicator() {
+      return repairResponse ?? response;
     },
     async generateConditionAblation(input) {
       return normalizeStaticMutationResponse(
@@ -244,6 +252,35 @@ export function createOpenAiCompatibleLlmClient(config: {
         {
           role: "user",
           content: JSON.stringify(withStrategySpecContext(input, "baselinePine"), null, 2),
+        },
+      ], input.signal);
+    },
+    async generateIndicator(input) {
+      return await completeJson([
+        {
+          role: "system",
+          content:
+            [
+              "You are generating a TradingView Pine v5 indicator, not a strategy.",
+              "Return JSON only.",
+              "Required top-level keys: indicatorSummary: string, pineScript: string, nextSteps: string[].",
+              "pineScript must start with //@version=5 and must declare indicator(...).",
+              "Do not use strategy(), strategy.entry, strategy.exit, strategy.order, strategy.close, or any strategy namespace call.",
+              "Use at least one of plot(), plotshape(), or alertcondition().",
+              "Tailor the indicator to the user's stated goal and keep inputs readable.",
+              "Do not emit markdown fences, placeholder text, or TODO markers.",
+            ].join(" "),
+        },
+        {
+          role: "user",
+          content: JSON.stringify(
+            {
+              goal: input.goal,
+              context: input.context ?? {},
+            },
+            null,
+            2,
+          ),
         },
       ], input.signal);
     },

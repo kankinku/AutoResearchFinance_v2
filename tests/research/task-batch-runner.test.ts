@@ -128,6 +128,10 @@ describe("runTaskBatch", () => {
         autoProcessCalibration: false,
         calibrationBudget: 1,
         calibrationTimeoutMs: 30_000,
+        researchModeConfig: {
+          mode: "continuous_improvement",
+          source: "default",
+        },
       },
       researchRefreshEveryTasks: 3,
       researchRefreshRunner: async (input) => {

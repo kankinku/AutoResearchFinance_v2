@@ -31,6 +31,9 @@ describe("knowledge catalog", () => {
       catalog.entries.some((entry: { id: string }) => entry.id === "ledger.research_knowledge"),
     ).toBe(true);
     expect(
+      catalog.entries.some((entry: { id: string }) => entry.id === "ledger.indicator_artifacts"),
+    ).toBe(true);
+    expect(
       catalog.entries.some((entry: { id: string }) => entry.id === "views.research_summary"),
     ).toBe(true);
     expect(audit.ok).toBe(true);

@@ -21,6 +21,7 @@ export interface KnowledgePaths {
   tasksPath: string;
   mutationBriefsPath: string;
   autonomousIterationRecordsPath: string;
+  indicatorArtifactsPath: string;
   candidatesPath: string;
   researchKnowledgePath: string;
   headEventsPath: string;
@@ -103,6 +104,7 @@ export function resolveKnowledgePaths(stateRoot: string): KnowledgePaths {
       ledgerDir,
       "autonomous-iteration-records.jsonl",
     ),
+    indicatorArtifactsPath: path.join(ledgerDir, "indicator-artifacts.jsonl"),
     candidatesPath: path.join(ledgerDir, "candidates.jsonl"),
     researchKnowledgePath: path.join(ledgerDir, "research-knowledge.jsonl"),
     headEventsPath: path.join(ledgerDir, "head-events.jsonl"),

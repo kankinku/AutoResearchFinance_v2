@@ -27,6 +27,14 @@ export async function createMutationLlmClient(
     generateMutation(input) {
       return withOpenAiAuthRetry(env, () => liveClient.generateMutation(input));
     },
+    generateIndicator(input) {
+      return withOpenAiAuthRetry(env, () => {
+        if (!liveClient.generateIndicator) {
+          throw new Error("Live LLM client does not support indicator generation.");
+        }
+        return liveClient.generateIndicator(input);
+      });
+    },
     generateConditionAblation(input) {
       return withOpenAiAuthRetry(env, () =>
         liveClient.generateConditionAblation(input),

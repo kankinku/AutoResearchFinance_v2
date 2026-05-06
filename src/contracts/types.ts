@@ -784,6 +784,44 @@ export const branchKindSchema = z.enum([
   "adversarial_simplification",
 ]);
 
+export const researchModeSchema = z.enum([
+  "continuous_improvement",
+  "criterion_focus",
+  "indicator_request",
+]);
+
+export const criterionKeySchema = z.enum([
+  "trade_count",
+  "oos_robustness",
+  "drawdown",
+  "profitability",
+  "local_tv_parity",
+  "complexity",
+  "novelty",
+  "entry_frequency",
+  "exit_quality",
+]);
+
+export const researchModeConfigSchema = z.object({
+  mode: researchModeSchema.default("continuous_improvement"),
+  criterion: criterionKeySchema.nullable().optional(),
+  indicatorRequest: z.string().min(1).nullable().optional(),
+  source: z.enum(["default", "env", "cli"]).default("default"),
+});
+
+export const criterionDirectiveSchema = z.object({
+  criterion: criterionKeySchema,
+  statusSummary: z.string().min(1),
+  weaknessSummary: z.string().min(1),
+  successCriteria: z.string().min(1),
+  metricBefore: z.number().nullable().default(null),
+  metricDirection: z.enum(["increase", "decrease"]).default("increase"),
+  branchBias: branchKindSchema.nullable().default(null),
+  repairPriorities: z.array(z.string()).default([]),
+  forbiddenPatterns: z.array(z.string()).default([]),
+  nextMutationDirection: z.string().min(1),
+});
+
 export const foldFailureMapEntrySchema = z.object({
   candidateId: z.string().min(1),
   failedFolds: z.array(z.string()).default([]),
@@ -805,6 +843,8 @@ export const promotionDiagnosticsSchema = z.object({
 
 export const mutationBriefSchema = z.object({
   objective: z.string().min(1),
+  researchMode: researchModeConfigSchema.optional(),
+  criterionDirective: criterionDirectiveSchema.optional(),
   guardrails: z.object({
     minimumTotalTrades: z.number().nonnegative(),
     minimumPostFeeNetProfitPercent: z.number(),
@@ -976,6 +1016,18 @@ export const mutationBriefRecordSchema = z.object({
 export const autonomousIterationLearningRecordSchema = z.object({
   runId: z.string().min(1),
   iteration: z.number().int().positive(),
+  researchMode: researchModeConfigSchema.default({
+    mode: "continuous_improvement",
+    source: "default",
+  }),
+  activeCriterion: criterionKeySchema.nullable().default(null),
+  criterionBefore: z.number().nullable().default(null),
+  criterionAfter: z.number().nullable().default(null),
+  criterionDelta: z.number().nullable().default(null),
+  criterionVerdict: z
+    .enum(["improved", "regressed", "unchanged", "not_applicable"])
+    .nullable()
+    .default(null),
   acceptedHeadCandidateId: z.string().nullable().default(null),
   candidateId: z.string().nullable().default(null),
   briefHash: z.string().nullable().default(null),
@@ -1112,6 +1164,18 @@ export const candidateLedgerRecordSchema = z.object({
   candidateSummary: z.string().min(1),
   nextMutationHints: z.array(z.string()),
   recordedAt: z.string().datetime().optional(),
+});
+
+export const indicatorArtifactRecordSchema = z.object({
+  indicatorId: z.string().min(1),
+  goal: z.string().min(1),
+  pinePath: z.string().min(1),
+  pineHash: z.string().min(1),
+  studyTitle: z.string().nullable().default(null),
+  sourceContextHash: z.string().min(1),
+  validationStatus: z.enum(["valid", "invalid"]),
+  validationIssues: z.array(z.string()).default([]),
+  createdAt: z.string().datetime().optional(),
 });
 
 export const experimentRecordSchema = z
@@ -1308,6 +1372,10 @@ export type FallbackEvaluation = z.infer<typeof fallbackEvaluationSchema>;
 export type ConditionContribution = z.infer<typeof conditionContributionSchema>;
 export type ExplorationBudget = z.infer<typeof explorationBudgetSchema>;
 export type BranchKind = z.infer<typeof branchKindSchema>;
+export type ResearchMode = z.infer<typeof researchModeSchema>;
+export type CriterionKey = z.infer<typeof criterionKeySchema>;
+export type ResearchModeConfig = z.infer<typeof researchModeConfigSchema>;
+export type CriterionDirective = z.infer<typeof criterionDirectiveSchema>;
 export type FoldFailureMapEntry = z.infer<typeof foldFailureMapEntrySchema>;
 export type PromotionDiagnostics = z.infer<typeof promotionDiagnosticsSchema>;
 export type MutationBrief = z.infer<typeof mutationBriefSchema>;
@@ -1318,12 +1386,16 @@ export type MutationBriefRecord = z.infer<typeof mutationBriefRecordSchema>;
 export type AutonomousIterationLearningRecord = z.infer<
   typeof autonomousIterationLearningRecordSchema
 >;
+export type AutonomousIterationLearningRecordInput = z.input<
+  typeof autonomousIterationLearningRecordSchema
+>;
 export type TaskHypothesis = z.infer<typeof taskHypothesisSchema>;
 export type TaskExecutionSummary = z.infer<typeof taskExecutionSummarySchema>;
 export type TaskAnalysisSummary = z.infer<typeof taskAnalysisSummarySchema>;
 export type TaskRecord = z.infer<typeof taskRecordSchema>;
 export type TaskBatchRecord = z.infer<typeof taskBatchRecordSchema>;
 export type CandidateLedgerRecord = z.infer<typeof candidateLedgerRecordSchema>;
+export type IndicatorArtifactRecord = z.infer<typeof indicatorArtifactRecordSchema>;
 export type ExperimentArtifactPaths = z.infer<typeof experimentArtifactPathsSchema>;
 export type ExperimentRecord = z.infer<typeof experimentRecordSchema>;
 export type IncidentRecord = z.infer<typeof incidentRecordSchema>;

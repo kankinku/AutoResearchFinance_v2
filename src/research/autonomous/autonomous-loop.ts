@@ -56,8 +56,13 @@ import { type ProblemEventRecord, type RepairKind } from "../../contracts/autono
 import { createCandidateId, sha256 } from "../../utils/fs.js";
 import {
   type AutonomousIterationLearningRecord,
+  type CriterionDirective,
   type MutationBrief,
 } from "../../contracts/types.js";
+import {
+  buildCriterionDirective,
+  buildCriterionOutcome,
+} from "./criterion-analysis-phase.js";
 
 interface MonitorLike {
   log: (
@@ -106,6 +111,11 @@ export async function runAutonomousLoop(input: {
 }): Promise<AutonomousLoopResult> {
   const stateRoot = input.env.stateRoot;
   const runId = `autonomous-${Date.now()}`;
+  if (input.env.researchModeConfig.mode === "indicator_request") {
+    throw new Error(
+      "research mode indicator_request does not run autonomous strategy improvement. Use generate-indicator instead.",
+    );
+  }
   const phaseTimeouts = resolvePhaseTimeouts(
     input.env.openAiRequestTimeoutMs,
     input.env.calibrationTimeoutMs,
@@ -159,6 +169,16 @@ export async function runAutonomousLoop(input: {
   const iterationRecords = await readRecentAutonomousIterationRecords(stateRoot);
   const branchRecords = await readAutonomousBranchRecords(stateRoot);
   const iteration = previousExperiments.length + 1;
+  const criterionDirective =
+    input.env.researchModeConfig.mode === "criterion_focus"
+      ? buildCriterionDirective({
+          criterion: input.env.researchModeConfig.criterion,
+          experiments: previousExperiments,
+          calibrationEvents,
+          problemEvents,
+          objective,
+        })
+      : null;
 
   await appendRunRecord(stateRoot, {
     runId,
@@ -277,6 +297,7 @@ export async function runAutonomousLoop(input: {
     const selectedBranch = selectNextAutonomousBranch({
       branches: branchRecords,
       experiments: previousExperiments,
+      branchKindBias: criterionDirective?.branchBias ?? null,
     });
     const selectedBranchRecord = buildAutonomousBranchRecord({
       selection: selectedBranch,
@@ -296,6 +317,8 @@ export async function runAutonomousLoop(input: {
       mutationBriefs,
       iterationRecords,
       selectedBranch: selectedBranchRecord,
+      researchModeConfig: input.env.researchModeConfig,
+      criterionDirective,
       ignoreCalibrationGuidance:
         input.env.tvCalibrationMode !== "mock-recovered" &&
         (!input.env.autoProcessCalibration ||
@@ -546,6 +569,7 @@ export async function runAutonomousLoop(input: {
       runId,
       iteration,
       plan,
+      criterionDirective,
       localEvaluation,
       selection,
       monitor: input.monitor,
@@ -1202,6 +1226,7 @@ async function recordAutonomousIterationLearning(input: {
   runId: string;
   iteration: number;
   plan: AutonomousMutationPlan;
+  criterionDirective?: CriterionDirective | null;
   localEvaluation: Awaited<ReturnType<typeof runLocalEvaluationPhase>>;
   selection: {
     activeChampionChanged: boolean;
@@ -1248,6 +1273,7 @@ function buildAutonomousIterationLearningRecord(input: {
   runId: string;
   iteration: number;
   plan: AutonomousMutationPlan;
+  criterionDirective?: CriterionDirective | null;
   localEvaluation: Awaited<ReturnType<typeof runLocalEvaluationPhase>>;
   selection: {
     activeChampionChanged: boolean;
@@ -1264,10 +1290,20 @@ function buildAutonomousIterationLearningRecord(input: {
     ) ?? [];
   const score = record.autoSelectionScore ?? record.candidateScore ?? null;
   const eligible = record.eligibility?.autoSelectionEligible ?? null;
+  const criterionOutcome = buildCriterionOutcome({
+    directive: input.criterionDirective,
+    record,
+  });
 
   return {
     runId: input.runId,
     iteration: input.iteration,
+    researchMode: brief.researchMode ?? {
+      mode: "continuous_improvement",
+      source: "default",
+    },
+    activeCriterion: input.criterionDirective?.criterion ?? null,
+    ...criterionOutcome,
     acceptedHeadCandidateId: brief.acceptedHead?.candidateId ?? null,
     candidateId: record.candidateId,
     briefHash: input.plan.briefHash,
