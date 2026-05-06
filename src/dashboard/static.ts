@@ -372,6 +372,75 @@ export function renderDashboardHtml(): string {
       table { display: block; overflow-x: auto; }
       th, td { white-space: nowrap; }
     }
+      /* Hover & Interactive Styles (Toss UI feel) */
+    .metric,
+    .panel {
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+    
+    .metric:hover,
+    .panel:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .chip, .pill, .evidence, .command {
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      cursor: default;
+    }
+
+    .chip:hover, .evidence:hover, .command:hover {
+      transform: scale(1.01);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .chip:active, .metric:active, .panel:active {
+      transform: scale(0.99);
+    }
+
+    tbody tr {
+      transition: background-color 0.15s ease;
+    }
+    tbody tr:hover td {
+      background-color: #f9fafb;
+    }
+
+    /* Toss Blue Toggle Switch Style */
+    .toggle-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toss-toggle {
+      width: 44px;
+      height: 24px;
+      background: var(--line);
+      border-radius: 12px;
+      position: relative;
+      transition: background-color 0.3s ease;
+    }
+
+    .toss-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.4, 1.2);
+    }
+
+    .toss-toggle.active {
+      background: var(--blue, #3182f6);
+    }
+
+    .toss-toggle.active::after {
+      transform: translateX(20px);
+    }
   </style>
 </head>
 <body>
@@ -767,7 +836,10 @@ export function renderDashboardHtml(): string {
       renderSimpleList("nextActionList", brief.nextActions || [], "즉시 할 일 없음.");
       renderSimpleList("warningList", brief.warnings || [], "");
       renderCommands(brief.commands || []);
-      text("externalMode", external.autoProcessCalibration ? "자동 검증" : "수동");
+      const isAuto = external.autoProcessCalibration;
+      const toggleHtml = '<div class="toggle-wrapper"><div class="toss-toggle ' + (isAuto ? 'active' : '') + '"></div><span>' + (isAuto ? '자동 검증' : '수동') + '</span></div>';
+      const elExt = document.getElementById("externalMode");
+      if(elExt) elExt.innerHTML = toggleHtml;
       renderRows("externalRows", [
         row([{ value: "TV 큐 처리", className: "mono" }, { value: external.autoProcessCalibration ? "자동" : "수동", className: external.autoProcessCalibration ? "warnText" : "goodText" }]),
         row([{ value: "승격 검증 실행기", className: "mono" }, { value: external.promotionVerificationExecutor || "없음", className: external.promotionVerificationExecutor === "none" ? "goodText" : "warnText" }]),
