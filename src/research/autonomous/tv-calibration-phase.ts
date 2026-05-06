@@ -652,44 +652,122 @@ export function buildTradingViewCalibrationSource(input: {
   source: string;
   localArtifactBundle: ArtifactBundle | null;
 }): string {
-  if (
-    input.source.includes("AF_TV_CALIBRATION_WINDOW_START") ||
-    !input.source.includes("// AF_SPEC_VERSION=")
-  ) {
+  if (input.source.includes("AF_TV_CALIBRATION_WINDOW_START")) {
     return input.source;
   }
 
-  const window = inferLocalCalibrationWindow(input.localArtifactBundle);
-  if (!window) {
+  const calibrationWindow = inferLocalCalibrationWindow(input.localArtifactBundle);
+  if (!calibrationWindow) {
     return input.source;
   }
 
+  const eol = input.source.includes("\r\n") ? "\r\n" : "\n";
   const guardLines = [
-    `// AF_TV_CALIBRATION_WINDOW_START=${window.start}`,
-    `// AF_TV_CALIBRATION_WINDOW_END=${window.end}`,
-    `afCalibrationStart = input.time(${renderPineTimestamp(window.start)}, "afCalibrationStart")`,
-    `afCalibrationEnd = input.time(${renderPineTimestamp(window.end)}, "afCalibrationEnd")`,
+    `// AF_TV_CALIBRATION_WINDOW_START=${calibrationWindow.start}`,
+    `// AF_TV_CALIBRATION_WINDOW_END=${calibrationWindow.end}`,
+    `afCalibrationStart = input.time(${renderPineTimestamp(calibrationWindow.start)}, "afCalibrationStart")`,
+    `afCalibrationEnd = input.time(${renderPineTimestamp(calibrationWindow.end)}, "afCalibrationEnd")`,
     "afCalibrationInWindow = time >= afCalibrationStart and time <= afCalibrationEnd",
     "afCalibrationWindowEnded = time > afCalibrationEnd and nz(time[1], time) <= afCalibrationEnd",
+    "if afCalibrationWindowEnded and strategy.opentrades > 0",
+    '    strategy.close_all(comment="af_calibration_window_end", alert_message="af_calibration_window_end")',
     "",
-  ].join("\n");
-  let source = input.source.replace(
-    /(strategy\([^\r\n]*\)\r?\n)/,
-    `$1${guardLines}`,
-  );
-  source = source.replace(
-    /\nif entryPass(\r?\n\s+strategy\.entry)/,
-    "\nif afCalibrationInWindow and entryPass$1",
-  );
-  source = source.replace(
-    /\nif bearEvent and closeAllOnBearConfRiskOff(\r?\n\s+strategy\.close_all)/,
-    "\nif afCalibrationInWindow and bearEvent and closeAllOnBearConfRiskOff$1",
-  );
-  source = source.replace(
-    /\nif afCalibrationInWindow and entryPass/,
-    "\nif afCalibrationWindowEnded and strategy.opentrades > 0\n    strategy.close_all(comment=f_trace(\"exit\", \"calibration_window_end\"), alert_message=f_trace(\"exit\", \"calibration_window_end\"))\nif afCalibrationInWindow and entryPass",
-  );
-  return source;
+  ].join(eol);
+  const sourceWithGuard = insertAfterStrategyDeclaration(input.source, guardLines, eol);
+  if (!sourceWithGuard) {
+    return input.source;
+  }
+  return gateStrategyEntryCalls(sourceWithGuard, eol);
+}
+
+function insertAfterStrategyDeclaration(
+  source: string,
+  insertion: string,
+  eol: string,
+): string | null {
+  const match = /\bstrategy\s*\(/.exec(source);
+  if (!match) {
+    return null;
+  }
+
+  let depth = 1;
+  let inString = false;
+  for (let index = match.index + match[0].length; index < source.length; index += 1) {
+    const char = source[index];
+    const previous = index > 0 ? source[index - 1] : "";
+    if (char === '"' && previous !== "\\") {
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      continue;
+    }
+    if (char === "(") {
+      depth += 1;
+    } else if (char === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        const lineEnd = source.indexOf("\n", index);
+        const insertAt = lineEnd === -1 ? source.length : lineEnd + 1;
+        const prefix = lineEnd === -1 ? eol : "";
+        return `${source.slice(0, insertAt)}${prefix}${insertion}${source.slice(insertAt)}`;
+      }
+    }
+  }
+
+  return null;
+}
+
+function gateStrategyEntryCalls(source: string, eol: string): string {
+  const lines = source.split(/\r?\n/);
+  const gated: string[] = [];
+  let entryCallDepth = 0;
+
+  for (const line of lines) {
+    if (entryCallDepth > 0) {
+      gated.push(`    ${line}`);
+      entryCallDepth += pineParenBalance(line);
+      continue;
+    }
+
+    if (isStrategyEntryCommandLine(line) && !line.includes("afCalibrationInWindow")) {
+      const indent = line.match(/^\s*/)?.[0] ?? "";
+      gated.push(`${indent}if afCalibrationInWindow`);
+      gated.push(`${indent}    ${line.slice(indent.length)}`);
+      entryCallDepth = Math.max(0, pineParenBalance(line));
+      continue;
+    }
+
+    gated.push(line);
+  }
+
+  return gated.join(eol);
+}
+
+function isStrategyEntryCommandLine(line: string): boolean {
+  return /^\s*strategy\.(entry|order)\s*\(/.test(line);
+}
+
+function pineParenBalance(line: string): number {
+  let balance = 0;
+  let inString = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const previous = index > 0 ? line[index - 1] : "";
+    if (char === '"' && previous !== "\\") {
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      continue;
+    }
+    if (char === "(") {
+      balance += 1;
+    } else if (char === ")") {
+      balance -= 1;
+    }
+  }
+  return balance;
 }
 
 function inferLocalCalibrationWindow(

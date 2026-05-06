@@ -37,9 +37,42 @@ describe("TradingView calibration phase", () => {
 
     expect(source).toContain("AF_TV_CALIBRATION_WINDOW_START=2023-05-31T13:30:00.000Z");
     expect(source).toContain("afCalibrationStart = input.time(1685539800000");
-    expect(source).toContain("if afCalibrationInWindow and entryPass");
-    expect(source).toContain("if afCalibrationInWindow and bearEvent and closeAllOnBearConfRiskOff");
+    expect(source).toContain("if entryPass\n    if afCalibrationInWindow\n        strategy.entry");
     expect(source).toContain("calibration_window_end");
+  });
+
+  test("adds the calibration window guard to non-AF_SPEC Pine candidates", () => {
+    const source = buildTradingViewCalibrationSource({
+      source: [
+        "//@version=5",
+        "strategy(\"AF Seed 01 - Resolved Bull Event Recovery [cand-mut] [cand-95b5fcb4]\", overlay=true, pyramiding=30)",
+        "if allowBull and array.size(slotIds) < maxSlots",
+        "    strategy.entry(newId, strategy.long, qty=qtyNow)",
+        "if useReplacement",
+        "    strategy.order(",
+        "        repId,",
+        "        strategy.long,",
+        "        qty=qtyNow",
+        "    )",
+        "",
+      ].join("\n"),
+      localArtifactBundle: {
+        state: {
+          eventTrace: [
+            { time: "2023-06-07T18:30:00.000Z" },
+            { time: "2026-04-15T14:30:00.000Z" },
+          ],
+        },
+      } as never,
+    });
+
+    expect(source).toContain("AF_TV_CALIBRATION_WINDOW_START=2023-06-07T18:30:00.000Z");
+    expect(source).toContain(
+      "if allowBull and array.size(slotIds) < maxSlots\n    if afCalibrationInWindow\n        strategy.entry(newId, strategy.long, qty=qtyNow)",
+    );
+    expect(source).toContain(
+      "if useReplacement\n    if afCalibrationInWindow\n        strategy.order(\n            repId,",
+    );
   });
 
   test("does not add the calibration guard twice", () => {

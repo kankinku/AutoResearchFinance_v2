@@ -255,7 +255,7 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
     try {
       strategySnapshot = await this.client.waitFor(
         () => this.readStrategySnapshot(expectedStudyTitle),
-        (snapshot) => snapshot.expectedStudy !== null || snapshot.attachedStudies.length > 0,
+        (snapshot) => hasRelevantStrategySnapshot(snapshot, expectedStudyTitle),
         {
           timeoutMs: 10_000,
           intervalMs: 500,
@@ -277,8 +277,7 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
       try {
         strategySnapshot = await this.client.waitFor(
           () => this.readStrategySnapshot(expectedStudyTitle),
-          (snapshot) =>
-            snapshot.expectedStudy !== null || snapshot.attachedStudies.length > 0,
+          (snapshot) => hasRelevantStrategySnapshot(snapshot, expectedStudyTitle),
           {
             timeoutMs: 10_000,
             intervalMs: 500,
@@ -1224,6 +1223,25 @@ function removeAttachedStrategyStudiesExpression(expectedStudyTitle: string | nu
   })()`;
 }
 
+function hasRelevantStrategySnapshot(
+  snapshot: StrategySnapshot,
+  expectedStudyTitle: string | null,
+): boolean {
+  if (snapshot.expectedStudy !== null) {
+    return true;
+  }
+  return snapshot.attachedStudies.some((study) => {
+    if (expectedStudyTitle == null) {
+      return study.hasStrategyData;
+    }
+    return (
+      isSameStudyFamily(expectedStudyTitle, study.metaDescription) ||
+      isSameStudyFamily(expectedStudyTitle, study.normalizedTitle) ||
+      isSameStudyFamily(expectedStudyTitle, study.title)
+    );
+  });
+}
+
 function buildAttachDiagnostics(
   expectedStudyTitle: string | null,
   attachedStudies: AttachedStudySnapshot[],
@@ -1365,4 +1383,5 @@ export const __test__ = {
   readMonacoMarkersExpression,
   clickAddToChartButtonExpression,
   removeAttachedStrategyStudiesExpression,
+  hasRelevantStrategySnapshot,
 };

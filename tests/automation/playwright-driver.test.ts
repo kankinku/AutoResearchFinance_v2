@@ -631,6 +631,48 @@ describe("TradingView playwright driver expressions", () => {
     expect(removed).toEqual([staleAutomationStudy]);
   });
 
+  test("does not treat TradingView metadata studies as attachment progress", () => {
+    const expectedStudyTitle = "AF Seed 01 - Candidate [cand-new]";
+    const metadataOnlySnapshot = {
+      expectedStudy: null,
+      attachedStudies: [
+        {
+          title: "Dividends",
+          normalizedTitle: "Dividends",
+          metaDescription: "Dividends",
+          hasStrategyData: false,
+        },
+        {
+          title: "Earnings",
+          normalizedTitle: "Earnings",
+          metaDescription: "Earnings",
+          hasStrategyData: false,
+        },
+      ],
+    };
+    const sameFamilySnapshot = {
+      expectedStudy: null,
+      attachedStudies: [
+        {
+          title: "AF Seed 01 - Candidate [cand-old]",
+          normalizedTitle: "AF Seed 01 - Candidate [cand-old]",
+          metaDescription: "AF Seed 01 - Candidate [cand-old]",
+          hasStrategyData: false,
+        },
+      ],
+    };
+
+    expect(
+      __test__.hasRelevantStrategySnapshot(
+        metadataOnlySnapshot,
+        expectedStudyTitle,
+      ),
+    ).toBe(false);
+    expect(
+      __test__.hasRelevantStrategySnapshot(sameFamilySnapshot, expectedStudyTitle),
+    ).toBe(true);
+  });
+
   test("pre-cleans TradingView studies before Ctrl+Enter can hit the indicator limit", async () => {
     const events: string[] = [];
     const evaluateSpy = vi
