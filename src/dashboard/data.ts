@@ -65,6 +65,9 @@ export interface DashboardStatusPayload {
   };
   trend: DashboardCandidatePoint[];
   recentCandidates: DashboardCandidatePoint[];
+  history: {
+    topCandidates: DashboardTopCandidateAnalysis[];
+  };
   bestStrategy: DashboardStrategyAnalysis | null;
   bestReturnStrategy: DashboardStrategyAnalysis | null;
   hypothesis: DashboardHypothesis | null;
@@ -153,6 +156,42 @@ export interface DashboardLeaderboardEntry {
   decision: string | null;
   iteration: number | null;
   rank: number | null;
+}
+
+export interface DashboardTopCandidateAnalysis {
+  rank: number | null;
+  candidateId: string;
+  iteration: number | null;
+  decision: string | null;
+  recordedAt: string | null;
+  score: number | null;
+  autoSelectionScore: number | null;
+  performanceScore: number | null;
+  noveltyScore: number | null;
+  robustnessScore: number | null;
+  localReturnPercent: number | null;
+  localProfitFactor: number | null;
+  localDrawdownPercent: number | null;
+  localTradeCount: number | null;
+  localWinRate: number | null;
+  localAvgTradePercent: number | null;
+  tvReturnPercent: number | null;
+  tvScore: number | null;
+  tvProfitFactor: number | null;
+  tvDrawdownPercent: number | null;
+  tvTradeCount: number | null;
+  tvParityStatus: string | null;
+  tvNetProfitDelta: number | null;
+  tvTradeCountDelta: number | null;
+  walkForwardStatus: string | null;
+  verifiedEligible: boolean | null;
+  minimumRequiredScore: number | null;
+  riskLabel: string;
+  riskTone: "good" | "warn" | "bad" | "neutral";
+  summary: string;
+  strengths: string[];
+  cautions: string[];
+  sourcePath: string | null;
 }
 
 export interface DashboardStrategyAnalysis {
@@ -258,6 +297,10 @@ interface LocalTvDivergenceView {
   entries?: Array<Record<string, unknown>>;
 }
 
+interface VerifiedPromotionReadinessView {
+  entries?: Array<Record<string, unknown>>;
+}
+
 export async function buildDashboardStatus(
   input: DashboardBuildInput,
 ): Promise<DashboardStatusPayload> {
@@ -278,11 +321,12 @@ export async function buildDashboardStatus(
     autonomousSummary,
     tvCalibrationQueue,
     localTvDivergence,
+    verifiedPromotionReadiness,
     indicatorArtifacts,
     ledgerBytes,
     artifactBytes,
   ] = await Promise.all([
-    readJsonlTail<ExperimentRecord>(paths.experimentsPath, 240, 16 * 1024 * 1024),
+    readJsonlTail<ExperimentRecord>(paths.experimentsPath, 5000, 64 * 1024 * 1024),
     readJsonlTail<CandidateLedgerRecord>(paths.candidatesPath, 200, 8 * 1024 * 1024),
     readJsonlTail<MutationBriefRecord>(paths.mutationBriefsPath, 60, 8 * 1024 * 1024),
     readJsonlTail<ProblemEventRecord>(paths.problemEventsPath, 120, 8 * 1024 * 1024),
@@ -295,6 +339,9 @@ export async function buildDashboardStatus(
     readJsonSafe<Record<string, unknown>>(paths.autonomousStateSummaryPath),
     readJsonSafe<TvCalibrationQueueView>(paths.tvCalibrationQueuePath),
     readJsonSafe<LocalTvDivergenceView>(paths.localTvDivergencePath),
+    readJsonSafe<VerifiedPromotionReadinessView>(
+      path.join(input.stateRoot, "views", "autonomous", "verified-promotion-readiness.json"),
+    ),
     readJsonlTail<IndicatorArtifactRecord>(
       paths.indicatorArtifactsPath,
       10,
@@ -402,6 +449,15 @@ export async function buildDashboardStatus(
     tvCalibrationQueue,
     localTvDivergence,
   });
+  const topCandidates = buildTopCandidateAnalyses({
+    workspaceRoot: input.workspaceRoot,
+    localLeaderboard,
+    localEvaluationRecords,
+    recentExperiments,
+    candidates,
+    localTvDivergence,
+    verifiedPromotionReadiness,
+  });
   const operatorBrief = buildOperatorBrief({
     runtime,
     improvement,
@@ -452,6 +508,9 @@ export async function buildDashboardStatus(
     },
     trend,
     recentCandidates: recentCandidatePoints.slice(-12).reverse(),
+    history: {
+      topCandidates,
+    },
     bestStrategy,
     bestReturnStrategy,
     hypothesis: latestBrief ? toDashboardHypothesis(latestBrief) : null,
@@ -607,6 +666,247 @@ function buildTvValidationResults(input: {
     })
     .filter((point) => point.tvReturnPercent != null || point.netProfitDelta != null)
     .slice(-32);
+}
+
+function buildTopCandidateAnalyses(input: {
+  workspaceRoot: string;
+  localLeaderboard: LocalLeaderboardView | null;
+  localEvaluationRecords: ExperimentRecord[];
+  recentExperiments: ExperimentRecord[];
+  candidates: CandidateLedgerRecord[];
+  localTvDivergence: LocalTvDivergenceView | null;
+  verifiedPromotionReadiness: VerifiedPromotionReadinessView | null;
+}): DashboardTopCandidateAnalysis[] {
+  const localRecordByCandidateId = new Map<string, ExperimentRecord>();
+  input.localEvaluationRecords.forEach((record) => {
+    localRecordByCandidateId.set(record.candidateId, record);
+  });
+
+  const tvRecordByCandidateId = new Map<string, ExperimentRecord>();
+  input.recentExperiments
+    .filter(isTvVerificationRecord)
+    .forEach((record) => {
+      tvRecordByCandidateId.set(record.candidateId, record);
+    });
+
+  const divergenceByCandidateId = new Map(
+    (input.localTvDivergence?.entries ?? [])
+      .map((entry) => [stringValue(entry.candidateId), entry] as const)
+      .filter((entry): entry is readonly [string, Record<string, unknown>] => entry[0] != null),
+  );
+  const readinessByCandidateId = new Map(
+    (input.verifiedPromotionReadiness?.entries ?? [])
+      .map((entry) => [stringValue(entry.candidateId), entry] as const)
+      .filter((entry): entry is readonly [string, Record<string, unknown>] => entry[0] != null),
+  );
+  const candidateLedgerById = new Map(
+    input.candidates.map((candidate) => [
+      candidate.candidateId,
+      candidate as unknown as Record<string, unknown>,
+    ]),
+  );
+
+  return (input.localLeaderboard?.entries ?? [])
+    .slice(0, 20)
+    .flatMap((entry, index) => {
+      const leaderboard = buildLeaderboardEntry(entry);
+      if (!leaderboard) {
+        return [];
+      }
+
+      const localRecord = localRecordByCandidateId.get(leaderboard.candidateId);
+      const localMetrics = toDashboardMetrics(
+        localRecord?.testerMetrics ??
+          localRecord?.artifactSummary?.strategy ??
+          localRecord?.artifactBundle?.strategy,
+      );
+      const tvRecord = tvRecordByCandidateId.get(leaderboard.candidateId);
+      const tvMetrics = toDashboardMetrics(
+        tvRecord?.testerMetrics ??
+          tvRecord?.artifactSummary?.strategy ??
+          tvRecord?.artifactBundle?.strategy,
+      );
+      const rawTvRecord = tvRecord as unknown as Record<string, unknown> | undefined;
+      const divergence = divergenceByCandidateId.get(leaderboard.candidateId);
+      const parity =
+        recordValue(rawTvRecord?.localTvParity) ??
+        recordValue(divergence?.parity);
+      const readiness = readinessByCandidateId.get(leaderboard.candidateId);
+      const readinessReasons = stringArray(readiness?.rejectionReasons);
+      const candidateRecord = candidateLedgerById.get(leaderboard.candidateId);
+      const sourcePath =
+        stringValue(localRecord?.candidatePath) ??
+        stringValue(candidateRecord?.candidatePath) ??
+        path.join(input.workspaceRoot, "strategies", "candidates", `${leaderboard.candidateId}.pine`);
+
+      const tvParityStatus =
+        stringValue(parity?.status) ??
+        stringValue(readiness?.parityStatus);
+      const walkForwardStatus = stringValue(readiness?.walkForwardStatus);
+      const verifiedEligible = booleanValue(readiness?.eligible);
+      const risk = classifyTopCandidateRisk({
+        metrics: localMetrics,
+        tvParityStatus,
+        walkForwardStatus,
+        verifiedEligible,
+        decision: leaderboard.decision,
+      });
+      const note = buildTopCandidateNote({
+        candidateId: leaderboard.candidateId,
+        rank: leaderboard.rank ?? index + 1,
+        metrics: localMetrics,
+        tvMetrics,
+        tvParityStatus,
+        walkForwardStatus,
+        verifiedEligible,
+        decision: leaderboard.decision,
+        readinessReasons,
+      });
+
+      return [{
+        rank: leaderboard.rank ?? index + 1,
+        candidateId: leaderboard.candidateId,
+        iteration: leaderboard.iteration ?? numberValue(localRecord?.iteration),
+        decision: leaderboard.decision ?? localRecord?.decision ?? null,
+        recordedAt: localRecord?.recordedAt ?? null,
+        score: leaderboard.score,
+        autoSelectionScore: leaderboard.autoSelectionScore,
+        performanceScore: leaderboard.performanceScore,
+        noveltyScore: leaderboard.noveltyScore,
+        robustnessScore: leaderboard.robustnessScore,
+        localReturnPercent: localMetrics?.netProfitPercent ?? null,
+        localProfitFactor: localMetrics?.profitFactor ?? null,
+        localDrawdownPercent: localMetrics?.maxDrawdownPercent ?? null,
+        localTradeCount: localMetrics?.totalTrades ?? null,
+        localWinRate: localMetrics?.percentProfitable ?? null,
+        localAvgTradePercent: localMetrics?.avgTradePercent ?? null,
+        tvReturnPercent: tvMetrics?.netProfitPercent ?? null,
+        tvScore:
+          numberValue(rawTvRecord?.verifiedPromotionScore) ??
+          numberValue(tvRecord?.candidateScore) ??
+          numberValue(tvRecord?.objectiveBreakdown?.score),
+        tvProfitFactor: tvMetrics?.profitFactor ?? null,
+        tvDrawdownPercent: tvMetrics?.maxDrawdownPercent ?? null,
+        tvTradeCount: tvMetrics?.totalTrades ?? null,
+        tvParityStatus,
+        tvNetProfitDelta: numberValue(parity?.netProfitPctDelta),
+        tvTradeCountDelta: numberValue(parity?.tradeCountDelta),
+        walkForwardStatus,
+        verifiedEligible,
+        minimumRequiredScore: numberValue(readiness?.minimumRequiredScore),
+        riskLabel: risk.label,
+        riskTone: risk.tone,
+        summary: note.summary,
+        strengths: note.strengths,
+        cautions: note.cautions,
+        sourcePath,
+      }];
+    });
+}
+
+function classifyTopCandidateRisk(input: {
+  metrics: DashboardMetrics | null;
+  tvParityStatus: string | null;
+  walkForwardStatus: string | null;
+  verifiedEligible: boolean | null;
+  decision: string | null;
+}): { label: string; tone: DashboardTopCandidateAnalysis["riskTone"] } {
+  if (input.verifiedEligible === true) {
+    return { label: "승격 가능", tone: "good" };
+  }
+  if (
+    input.tvParityStatus === "major_drift" ||
+    input.walkForwardStatus === "failed" ||
+    (input.metrics?.maxDrawdownPercent ?? 0) >= 45
+  ) {
+    return { label: "검증 보류", tone: "bad" };
+  }
+  if (
+    !input.tvParityStatus ||
+    input.tvParityStatus === "missing" ||
+    input.decision !== "local_candidate_eligible" ||
+    (input.metrics?.maxDrawdownPercent ?? 0) >= 35
+  ) {
+    return { label: "관찰", tone: "warn" };
+  }
+  if (input.tvParityStatus === "matched" || input.walkForwardStatus === "passed") {
+    return { label: "검증 양호", tone: "good" };
+  }
+  return { label: "정보 부족", tone: "neutral" };
+}
+
+function buildTopCandidateNote(input: {
+  candidateId: string;
+  rank: number;
+  metrics: DashboardMetrics | null;
+  tvMetrics: DashboardMetrics | null;
+  tvParityStatus: string | null;
+  walkForwardStatus: string | null;
+  verifiedEligible: boolean | null;
+  decision: string | null;
+  readinessReasons: string[];
+}): { summary: string; strengths: string[]; cautions: string[] } {
+  const strengths: string[] = [`로컬 리더보드 ${input.rank}위 후보입니다.`];
+  const cautions: string[] = [];
+  const localReturn = input.metrics?.netProfitPercent;
+  if (localReturn != null) {
+    if (localReturn >= 200) {
+      strengths.push(`로컬 수익률이 ${localReturn.toFixed(2)}%로 200%대입니다.`);
+    } else if (localReturn >= 50) {
+      strengths.push(`로컬 수익률이 ${localReturn.toFixed(2)}%로 최근 후보 대비 높습니다.`);
+    }
+  }
+  if ((input.metrics?.profitFactor ?? 0) >= 3) {
+    strengths.push(`수익 팩터가 ${input.metrics!.profitFactor.toFixed(2)}로 강합니다.`);
+  }
+  if ((input.metrics?.totalTrades ?? 0) >= 300) {
+    strengths.push(`거래 수가 ${input.metrics!.totalTrades}회로 표본이 충분합니다.`);
+  }
+  if ((input.metrics?.maxDrawdownPercent ?? Infinity) <= 35) {
+    strengths.push(`최대 낙폭이 ${input.metrics!.maxDrawdownPercent.toFixed(2)}%로 상위권 중 비교적 낮습니다.`);
+  }
+
+  if (!input.metrics) {
+    cautions.push("로컬 상세 성과 지표를 아직 찾지 못했습니다.");
+  } else if (input.metrics.maxDrawdownPercent >= 45) {
+    cautions.push(`최대 낙폭이 ${input.metrics.maxDrawdownPercent.toFixed(2)}%로 큽니다.`);
+  }
+  if (!input.tvMetrics) {
+    cautions.push("TradingView 자동 검증 결과가 아직 없습니다.");
+  }
+  if (input.tvParityStatus === "major_drift") {
+    cautions.push("TradingView와 local 결과 차이가 커서 최종 모델로 승격할 수 없습니다.");
+  } else if (input.tvParityStatus === "matched") {
+    strengths.push("TradingView와 local 결과가 일치한 기록이 있습니다.");
+  }
+  if (input.walkForwardStatus === "failed") {
+    cautions.push("워크포워드 조건을 통과하지 못했습니다.");
+  } else if (input.walkForwardStatus === "passed") {
+    strengths.push("워크포워드 조건은 통과했습니다.");
+  }
+  if (input.verifiedEligible === false) {
+    cautions.push("검증 승격 조건 기준으로는 아직 부적격입니다.");
+  }
+  if (input.decision !== "local_candidate_eligible") {
+    cautions.push(`최신 로컬 결정이 ${input.decision ?? "미확인"}입니다.`);
+  }
+  input.readinessReasons.slice(0, 2).forEach((reason) => {
+    cautions.push(`승격 보류 사유: ${reason}`);
+  });
+
+  const summary = input.verifiedEligible
+    ? "로컬 성과와 검증 조건이 모두 강한 후보입니다. 실제 승격 후보로 우선 확인할 가치가 있습니다."
+    : input.tvParityStatus === "major_drift"
+      ? "로컬 순위는 높지만 TradingView 검증 차이가 커서 실전 기준으로는 보류해야 합니다."
+      : input.tvMetrics
+        ? "TradingView 검증 결과가 있는 상위 후보입니다. 수익률보다 드리프트와 워크포워드를 같이 봐야 합니다."
+        : "로컬 리더보드 상위 후보입니다. TradingView 검증 전까지는 baseline 후보로만 다루는 편이 안전합니다.";
+
+  return {
+    summary,
+    strengths: strengths.slice(0, 5),
+    cautions: cautions.slice(0, 6),
+  };
 }
 
 function buildOperatorBrief(input: {
@@ -1285,6 +1585,12 @@ function recordValue(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
+    : [];
 }
 
 function recordNumberMap(value: unknown): Record<string, number> {

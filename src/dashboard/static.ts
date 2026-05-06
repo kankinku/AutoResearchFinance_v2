@@ -422,6 +422,117 @@ export function renderDashboardHtml(): string {
       min-width: 0;
     }
 
+    .leaderboard-table th:nth-child(1),
+    .leaderboard-table td:nth-child(1) { width: 58px; }
+    .leaderboard-table th:nth-child(2),
+    .leaderboard-table td:nth-child(2) { width: 112px; }
+
+    .candidate-detail-list {
+      display: grid;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .candidate-detail {
+      background: var(--panel);
+      border: 1px solid rgba(229, 232, 235, 0.75);
+      border-radius: 8px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.01);
+    }
+
+    .candidate-detail-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .rank-badge {
+      min-width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--soft-blue);
+      color: #0064ff;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .candidate-name {
+      margin: 0 0 6px;
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+    }
+
+    .risk-badge {
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      background: var(--soft-gray);
+      color: #4e5968;
+    }
+    .risk-badge.good { color: var(--good); background: var(--soft-good); }
+    .risk-badge.warn { color: #b7791f; background: var(--soft-warn); }
+    .risk-badge.bad { color: var(--bad); background: var(--soft-red); }
+
+    .detail-metrics {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(110px, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .detail-metric {
+      background: var(--soft-gray);
+      border-radius: 8px;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .detail-metric .metric-value {
+      margin-top: 5px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+    }
+
+    .detail-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .detail-section {
+      background: var(--soft-gray);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .detail-section ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: #333d4b;
+      line-height: 1.5;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .candidate-detail .source-path {
+      margin-top: 12px;
+    }
+
     .record-hero .record-stat {
       background: rgba(255,255,255,0.14);
     }
@@ -458,6 +569,9 @@ export function renderDashboardHtml(): string {
       .page-nav { position: sticky; top: 0; z-index: 2; }
       .page-tab { flex: 1 1 auto; font-size: 13px; padding: 8px 10px; }
       .record-stat-grid { grid-template-columns: minmax(0, 1fr); }
+      .candidate-detail-head,
+      .detail-columns,
+      .detail-metrics { grid-template-columns: minmax(0, 1fr); }
       .panel { padding: 20px; }
       .metric { padding: 20px; min-height: auto; }
       table { display: block; overflow-x: auto; }
@@ -720,6 +834,24 @@ export function renderDashboardHtml(): string {
       </section>
 
       <section class="page" data-page="history">
+        <section class="grid">
+          <div class="panel">
+            <h2><span>상위 20개 후보 분석</span><span id="topCandidateMeta">-</span></h2>
+            <table class="leaderboard-table">
+              <thead><tr><th>순위</th><th>ID</th><th>로컬 수익률</th><th>TV 수익률</th><th>점수</th><th>검증</th></tr></thead>
+              <tbody id="topCandidateRows"></tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h2><span>상위 후보 요약</span><span id="topCandidateSummaryMeta">-</span></h2>
+            <table>
+              <tbody id="topCandidateSummaryRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="candidate-detail-list" id="topCandidateDetails"></section>
+
         <section class="grid">
           <div class="panel">
             <h2><span>최근 후보</span><span>최근 구간</span></h2>
@@ -1051,6 +1183,111 @@ export function renderDashboardHtml(): string {
       if (!body) return;
       body.innerHTML = "";
       rows.forEach(function(item) { body.appendChild(item); });
+    }
+
+    function metricBox(label, value, className) {
+      const box = document.createElement("div");
+      box.className = "detail-metric";
+      const labelEl = document.createElement("div");
+      labelEl.className = "label";
+      labelEl.textContent = label;
+      const valueEl = document.createElement("div");
+      valueEl.className = "metric-value" + (className ? " " + className : "");
+      valueEl.textContent = value;
+      box.appendChild(labelEl);
+      box.appendChild(valueEl);
+      return box;
+    }
+
+    function detailList(title, values, fallback) {
+      const section = document.createElement("div");
+      section.className = "detail-section";
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = title;
+      const list = document.createElement("ul");
+      const items = values && values.length > 0 ? values : [fallback || "-"];
+      items.forEach(function(value) {
+        const li = document.createElement("li");
+        li.textContent = value;
+        list.appendChild(li);
+      });
+      section.appendChild(label);
+      section.appendChild(list);
+      return section;
+    }
+
+    function riskClass(tone) {
+      if (tone === "good") return "good";
+      if (tone === "bad") return "bad";
+      if (tone === "warn") return "warn";
+      return "";
+    }
+
+    function renderTopCandidateDetails(items) {
+      const el = document.getElementById("topCandidateDetails");
+      if (!el) return;
+      el.innerHTML = "";
+      if (!items || items.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "candidate-detail";
+        empty.textContent = "상위 후보 데이터가 아직 없습니다.";
+        el.appendChild(empty);
+        return;
+      }
+      items.forEach(function(item) {
+        const card = document.createElement("article");
+        card.className = "candidate-detail";
+
+        const head = document.createElement("div");
+        head.className = "candidate-detail-head";
+        const rank = document.createElement("div");
+        rank.className = "rank-badge";
+        rank.textContent = "#" + (item.rank || "-");
+        const titleWrap = document.createElement("div");
+        const title = document.createElement("h3");
+        title.className = "candidate-name";
+        title.textContent = shortId(item.candidateId);
+        const summary = document.createElement("p");
+        summary.className = "copy";
+        summary.textContent = item.summary || "-";
+        titleWrap.appendChild(title);
+        titleWrap.appendChild(summary);
+        const risk = document.createElement("span");
+        risk.className = "risk-badge " + riskClass(item.riskTone);
+        risk.textContent = item.riskLabel || "-";
+        head.appendChild(rank);
+        head.appendChild(titleWrap);
+        head.appendChild(risk);
+        card.appendChild(head);
+
+        const metrics = document.createElement("div");
+        metrics.className = "detail-metrics";
+        metrics.appendChild(metricBox("로컬 수익률", pct(item.localReturnPercent), item.localReturnPercent === null || item.localReturnPercent === undefined ? "" : item.localReturnPercent >= 0 ? "goodText" : "badText"));
+        metrics.appendChild(metricBox("TV 수익률", pct(item.tvReturnPercent), item.tvReturnPercent === null || item.tvReturnPercent === undefined ? "" : item.tvReturnPercent >= 0 ? "goodText" : "badText"));
+        metrics.appendChild(metricBox("점수", item.score === null || item.score === undefined ? "-" : fmt(item.score, 4), "mono"));
+        metrics.appendChild(metricBox("PF / 거래", (item.localProfitFactor === null || item.localProfitFactor === undefined ? "-" : fmt(item.localProfitFactor, 2)) + " / " + (item.localTradeCount || "-"), "mono"));
+        metrics.appendChild(metricBox("DD / 승률", pct(item.localDrawdownPercent) + " / " + pct(item.localWinRate), item.localDrawdownPercent >= 45 ? "badText" : "mono"));
+        metrics.appendChild(metricBox("TV 차이", pct(item.tvNetProfitDelta) + " / " + (item.tvTradeCountDelta === null || item.tvTradeCountDelta === undefined ? "-" : item.tvTradeCountDelta), item.tvParityStatus === "major_drift" ? "badText" : "mono"));
+        card.appendChild(metrics);
+
+        const columns = document.createElement("div");
+        columns.className = "detail-columns";
+        columns.appendChild(detailList("강점", item.strengths, "강점 요약 없음"));
+        columns.appendChild(detailList("주의", item.cautions, "주의 항목 없음"));
+        card.appendChild(columns);
+
+        const source = document.createElement("div");
+        source.className = "source-path";
+        source.textContent = [
+          "결정 " + decisionLabel(item.decision),
+          "TV " + queueStatusLabel(item.tvParityStatus),
+          "WF " + queueStatusLabel(item.walkForwardStatus),
+          item.sourcePath || "-"
+        ].join(" / ");
+        card.appendChild(source);
+        el.appendChild(card);
+      });
     }
 
     function renderSimpleList(id, values, emptyText) {
@@ -1391,6 +1628,36 @@ export function renderDashboardHtml(): string {
           hypEl.appendChild(div);
         });
       }
+
+      const topCandidates = (data.history && data.history.topCandidates) || [];
+      const topWithTv = topCandidates.filter(function(item) { return item.tvReturnPercent !== null && item.tvReturnPercent !== undefined; });
+      const topMajorDrift = topCandidates.filter(function(item) { return item.tvParityStatus === "major_drift"; });
+      const topVerified = topCandidates.filter(function(item) { return item.verifiedEligible === true; });
+      const topAvgReturn = averageNumber(topCandidates.map(function(item) { return item.localReturnPercent; }));
+      const topBestReturn = topCandidates.reduce(function(best, item) {
+        if (item.localReturnPercent === null || item.localReturnPercent === undefined) return best;
+        if (!best || item.localReturnPercent > best.localReturnPercent) return item;
+        return best;
+      }, null);
+      text("topCandidateMeta", topCandidates.length + "개");
+      text("topCandidateSummaryMeta", topVerified.length + "승격 / " + topMajorDrift.length + "드리프트");
+      renderRows("topCandidateRows", topCandidates.map(function(item) {
+        return row([
+          { value: item.rank === null || item.rank === undefined ? "-" : String(item.rank), className: "mono" },
+          { value: shortId(item.candidateId), className: "mono" },
+          { value: pct(item.localReturnPercent), className: item.localReturnPercent !== null && item.localReturnPercent >= 150 ? "goodText" : "mono" },
+          { value: pct(item.tvReturnPercent), className: item.tvReturnPercent !== null && item.tvReturnPercent >= 150 ? "goodText" : "mono" },
+          { value: item.score === null || item.score === undefined ? "-" : fmt(item.score, 4), className: "mono" },
+          { value: item.riskLabel, className: item.riskTone === "good" ? "goodText" : item.riskTone === "bad" ? "badText" : item.riskTone === "warn" ? "warnText" : "mutedText" }
+        ]);
+      }));
+      renderRows("topCandidateSummaryRows", [
+        row([{ value: "상위 평균 로컬 수익률", className: "mono" }, { value: pct(topAvgReturn), className: topAvgReturn !== null && topAvgReturn >= 0 ? "goodText" : "badText" }]),
+        row([{ value: "최고 로컬 수익률", className: "mono" }, { value: topBestReturn ? shortId(topBestReturn.candidateId) + " / " + pct(topBestReturn.localReturnPercent) : "-", className: "goodText" }]),
+        row([{ value: "TV 결과 보유", className: "mono" }, { value: topWithTv.length + " / " + topCandidates.length, className: topWithTv.length > 0 ? "goodText" : "warnText" }]),
+        row([{ value: "major_drift", className: "mono" }, { value: String(topMajorDrift.length), className: topMajorDrift.length > 0 ? "badText" : "goodText" }])
+      ]);
+      renderTopCandidateDetails(topCandidates);
 
       renderRows("candidateRows", (data.recentCandidates || []).map(function(item) {
         return row([
