@@ -71,6 +71,26 @@ describe("runtime config", () => {
     });
   });
 
+  test("accepts TradingView web Playwright as an opt-in verification executor", async () => {
+    process.env.AF_PROMOTION_VERIFICATION_EXECUTOR = "tradingview-web-playwright";
+    process.env.TRADINGVIEW_WEB_CDP_URL = "http://127.0.0.1:9223";
+    process.env.TRADINGVIEW_WEB_CHART_URL = "https://www.tradingview.com/chart/";
+
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-web-tv-"));
+    const env = loadRuntimeEnvironment({
+      cwd: workspaceRoot,
+      overrides: {
+        projectRoot: process.cwd(),
+        workspaceRoot,
+        stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+      },
+    });
+
+    expect(env.promotionVerificationExecutor).toBe("tradingview-web-playwright");
+    expect(env.tradingViewWebCdpUrl).toBe("http://127.0.0.1:9223");
+    expect(env.tradingViewWebChartUrl).toBe("https://www.tradingview.com/chart/");
+  });
+
   test("infers indicator request mode from CLI indicator goal", async () => {
     process.env.AF_RESEARCH_MODE = "criterion_focus";
     process.env.AF_RESEARCH_CRITERION = "trade_count";

@@ -990,6 +990,7 @@ export const candidateArtifactSchema = z.object({
 export const evaluationExecutorNameSchema = z.enum([
   "local-backtest",
   "tradingview-desktop-cdp",
+  "tradingview-web-playwright",
 ]);
 
 export const runRecordSchema = z.object({

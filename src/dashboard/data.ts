@@ -522,6 +522,7 @@ function buildOperatorBrief(input: {
   const manualExternal =
     !input.externalValidation.autoProcessCalibration &&
     input.externalValidation.promotionVerificationExecutor === "none";
+  const autoCalibration = input.externalValidation.autoProcessCalibration;
   const mode = manualExternal ? "local_only" : "external_auto";
   const latestScore = input.latest?.score == null ? "점수 없음" : input.latest.score.toFixed(4);
   const latestReturn = formatBriefPercent(input.returnProfile.latestPercent);
@@ -530,7 +531,9 @@ function buildOperatorBrief(input: {
   const pending = input.externalValidation.pendingCount;
   const headline = manualExternal
     ? "로컬 연구가 기준이며 TradingView는 수동 검증입니다."
-    : "외부 검증이 켜져 있으므로 TradingView 표면 상태를 같이 봐야 합니다.";
+    : autoCalibration
+      ? "TradingView 큐 자동 검증이 웹 모드로 켜져 있습니다."
+      : "외부 검증이 켜져 있으므로 TradingView 표면 상태를 같이 봐야 합니다.";
   const summary = [
     input.runtime.running
       ? `루프 실행 중입니다. 최신 로컬 점수는 ${latestScore}, 수익률은 ${latestReturn}입니다.`
@@ -539,8 +542,12 @@ function buildOperatorBrief(input: {
         : `루프는 실행 중이 아닙니다. 최신 로컬 점수는 ${latestScore}, 수익률은 ${latestReturn}입니다.`,
     `최고 로컬 적격 점수는 ${bestScore}, 최근 최고 수익률은 ${bestReturn}입니다.`,
     pending > 0
-      ? `${pending}개 후보가 수동 TradingView 검증을 기다립니다.`
-      : "긴급한 수동 TradingView 검증 대기는 없습니다.",
+      ? autoCalibration
+        ? `${pending}개 후보가 자동 TradingView 검증 큐에 남아 있습니다.`
+        : `${pending}개 후보가 수동 TradingView 검증을 기다립니다.`
+      : autoCalibration
+        ? "자동 TradingView 검증 큐 대기는 없습니다."
+        : "긴급한 수동 TradingView 검증 대기는 없습니다.",
   ].join(" ");
   const warnings: string[] = [];
   if (input.improvement.status === "blocked") {
@@ -605,8 +612,8 @@ function buildOperatorBrief(input: {
       },
       {
         label: "TV 모드",
-        value: manualExternal ? "수동" : "자동 켜짐",
-        status: manualExternal ? "good" : "watch",
+        value: autoCalibration ? "자동 검증" : manualExternal ? "수동" : "외부 검증",
+        status: autoCalibration ? "good" : manualExternal ? "good" : "watch",
       },
       {
         label: "TV 큐",
@@ -616,7 +623,9 @@ function buildOperatorBrief(input: {
     ],
     nextActions: [
       ...input.improvement.nextFocus.slice(0, 2),
-      pending > 0
+      autoCalibration && pending > 0
+        ? "자동 검증 결과에서 major_drift가 반복되면 로컬-파인 변환 차이를 우선 줄입니다."
+        : pending > 0
         ? "로컬 후보 품질이 충분히 좋아 보일 때 수동 TV 검증을 1개만 실행합니다."
         : "TradingView에 시간을 쓰기 전에 로컬 루프 증거를 더 모읍니다.",
     ],
@@ -624,15 +633,16 @@ function buildOperatorBrief(input: {
     commands: [
       {
         label: "로컬 루프",
-        command:
-          "powershell -ExecutionPolicy Bypass -File scripts/run-autonomous-forever.ps1",
+        command: autoCalibration
+          ? "powershell -ExecutionPolicy Bypass -File scripts/run-autonomous-forever.ps1 -AutoProcessCalibration -PromotionVerificationExecutor tradingview-web-playwright"
+          : "powershell -ExecutionPolicy Bypass -File scripts/run-autonomous-forever.ps1",
       },
       {
         label: "TV 큐 확인",
         command: "node dist/cli/index.js inspect-calibration-queue",
       },
       {
-        label: "수동 TV 검증",
+        label: autoCalibration ? "TV 즉시 검증" : "수동 TV 검증",
         command: "node dist/cli/index.js process-tv-calibration-queue --max-candidates 1",
       },
     ],

@@ -130,6 +130,95 @@ describe("TradingView playwright driver expressions", () => {
     expect(clicked).toBeGreaterThan(0);
   });
 
+  test("opens the web Pine editor through the bottom script editor widget", async () => {
+    const calls: string[] = [];
+    const pineEditor = {
+      open: vi.fn(async () => {
+        calls.push("open-pine-editor");
+      }),
+    };
+    const bar = {
+      waitForWidgetsInitialized: vi.fn(async () => {
+        calls.push("wait");
+      }),
+      setWidgetAvailability: vi.fn(() => {
+        calls.push("available");
+      }),
+      _isHidden: {
+        setValue: vi.fn(() => {
+          calls.push("visible-container");
+        }),
+      },
+      _isVisible: {
+        setValue: vi.fn(),
+      },
+      _isBridgeVisible: {
+        setValue: vi.fn(),
+      },
+      show: vi.fn(),
+      setNormalHeight: vi.fn(),
+      setMode: vi.fn(),
+      open: vi.fn(),
+      _activeWidget: {
+        setValue(value: string) {
+          calls.push(`active:${value}`);
+        },
+      },
+      _createWidgetBarAPI: vi.fn(() => ({ widgetBarApi: true })),
+      _updateActiveWidget: vi.fn(async () => {
+        calls.push("update-active-widget");
+      }),
+      getWidgetByName: vi.fn((name: string) =>
+        name === "scripteditor" ? pineEditor : null,
+      ),
+      _config: {
+        scripteditor: {
+          ctor: {
+            hasInstance: vi.fn(() => false),
+          },
+        },
+      },
+    };
+
+    const context = {
+      window: {
+        TradingView: {
+          bottomWidgetBar: bar,
+        },
+      },
+      document: {
+        querySelector(selector: string) {
+          if (selector === "[data-name=\"pine-dialog\"]") {
+            return null;
+          }
+          return null;
+        },
+        querySelectorAll(selector: string) {
+          if (selector === ".monaco-editor") {
+            return [];
+          }
+          return [];
+        },
+      },
+      Array,
+      Date,
+      Object,
+      Promise,
+    };
+
+    const result = await runExpression<Promise<boolean>>(
+      __test__.openWebPineEditorExpression(),
+      context,
+    );
+
+    expect(result).toBe(true);
+    expect(calls).toContain("active:scripteditor");
+    expect(calls).toContain("update-active-widget");
+    expect(pineEditor.open).toHaveBeenCalledWith(null, {
+      source: "af_web_calibration",
+    });
+  });
+
   test("resolves Monaco from webpack cache instead of relying on a single module id", () => {
     const monaco = {
       editor: {

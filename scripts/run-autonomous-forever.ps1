@@ -2,7 +2,12 @@ param(
   [int]$SleepSeconds = 10,
   [int]$OpenAiTimeoutMs = 180000,
   [int]$OpenAiMaxRetries = 2,
-  [int]$VerifyEvery = 10
+  [int]$VerifyEvery = 10,
+  [switch]$AutoProcessCalibration,
+  [int]$CalibrationBudget = 1,
+  [int]$CalibrationTimeoutMs = 60000,
+  [string]$PromotionVerificationExecutor = "",
+  [string]$TradingViewWebCdpUrl = "http://127.0.0.1:9223"
 )
 
 $ErrorActionPreference = "Stop"
@@ -53,7 +58,25 @@ if (Test-Path -LiteralPath $StopFile) {
 Set-Content -LiteralPath $PidFile -Value $PID -Encoding ASCII
 
 $env:PINE_EVALUATION_EXECUTOR = "local-backtest"
-$env:AF_AUTO_PROCESS_CALIBRATION = "false"
+$autoProcessCalibrationValue = if ($AutoProcessCalibration.IsPresent) { "true" } else { "false" }
+$env:AF_AUTO_PROCESS_CALIBRATION = $autoProcessCalibrationValue
+$env:AF_CALIBRATION_BUDGET = [string]$CalibrationBudget
+$env:AF_CALIBRATION_TIMEOUT_MS = [string]$CalibrationTimeoutMs
+$env:AF_TV_CALIBRATION_MODE = "live"
+if ($AutoProcessCalibration.IsPresent) {
+  if ([string]::IsNullOrWhiteSpace($PromotionVerificationExecutor) -and [string]::IsNullOrWhiteSpace($env:AF_PROMOTION_VERIFICATION_EXECUTOR)) {
+    $PromotionVerificationExecutor = "tradingview-web-playwright"
+  }
+  if (-not [string]::IsNullOrWhiteSpace($PromotionVerificationExecutor)) {
+    $env:AF_PROMOTION_VERIFICATION_EXECUTOR = $PromotionVerificationExecutor
+  }
+  if (-not [string]::IsNullOrWhiteSpace($TradingViewWebCdpUrl)) {
+    $env:TRADINGVIEW_WEB_CDP_URL = $TradingViewWebCdpUrl
+  }
+  if ([string]::IsNullOrWhiteSpace($env:TRADINGVIEW_WEB_CHART_URL)) {
+    $env:TRADINGVIEW_WEB_CHART_URL = "https://www.tradingview.com/chart/"
+  }
+}
 $env:OPENAI_REQUEST_TIMEOUT_MS = [string]$OpenAiTimeoutMs
 $env:OPENAI_MAX_RETRIES = [string]$OpenAiMaxRetries
 
@@ -114,7 +137,7 @@ function Get-NodeTelemetry {
 
 $iteration = 0
 $memoryWarningTimes = @()
-Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot"
+Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; autoProcessCalibration=$autoProcessCalibrationValue; calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
 Write-LoopLog "stop file: $StopFile"
 
 try {
@@ -141,7 +164,16 @@ try {
     } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
 
     Write-LoopLog "iteration ${iteration}: run-autonomous-loop start"
-    $runExit = Invoke-Af -Arguments @("run-autonomous-loop", "--count", "1", "--auto-process-calibration", "false")
+    $runArguments = @(
+      "run-autonomous-loop",
+      "--count",
+      "1",
+      "--auto-process-calibration",
+      $autoProcessCalibrationValue,
+      "--calibration-budget",
+      [string]$CalibrationBudget
+    )
+    $runExit = Invoke-Af -Arguments $runArguments
     Write-LoopLog "iteration ${iteration}: run-autonomous-loop exit=$runExit"
 
     $memory = Get-LoopTelemetry

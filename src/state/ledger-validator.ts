@@ -102,6 +102,7 @@ const legacyRunRecordSchema = z.object({
   executor: z.union([
     z.literal("local-backtest"),
     z.literal("tradingview-desktop-cdp"),
+    z.literal("tradingview-web-playwright"),
     z.literal("playwright-tradingview"),
   ]),
   symbol: z.string().min(1),

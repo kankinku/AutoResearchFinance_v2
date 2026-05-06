@@ -16,9 +16,11 @@ import {
 } from "../policy/autoresearch-contract.js";
 import {
   criterionKeySchema,
+  evaluationExecutorNameSchema,
   researchModeConfigSchema,
   researchModeSchema,
   type CriterionKey,
+  type EvaluationExecutorName,
   type ResearchMode,
   type ResearchModeConfig,
 } from "../contracts/types.js";
@@ -44,14 +46,20 @@ const runtimeEnvironmentSchema = z.object({
   openAiOauthAuthFilePath: z.string().optional(),
   mutationStaticResponsePath: z.string().optional(),
   evaluationUseMock: z.boolean(),
-  evaluationExecutor: z.enum(["local-backtest", "tradingview-desktop-cdp"]),
+  evaluationExecutor: evaluationExecutorNameSchema,
   promotionVerificationExecutor: z.enum([
     "none",
     "local-backtest",
     "tradingview-desktop-cdp",
+    "tradingview-web-playwright",
   ]),
   tradingViewDesktopPath: z.string().optional(),
   tradingViewCdpUrl: z.string().optional(),
+  tradingViewWebCdpUrl: z.string().optional(),
+  tradingViewWebProfileDir: z.string().optional(),
+  tradingViewWebChartUrl: z.string().optional(),
+  tradingViewWebBrowserPath: z.string().optional(),
+  tradingViewWebHeadless: z.boolean().optional(),
   pineEditorTimeoutMs: z.number().int().positive().default(15_000),
   tradingViewCdpCommandTimeoutMs: z.number().int().positive().default(8_000),
   chartSymbol: z.string().default("QQQ"),
@@ -83,17 +91,20 @@ export interface RuntimePathOverrides {
   stateRoot?: string;
 }
 
-function parseEvaluationExecutor(value: string | undefined): "local-backtest" | "tradingview-desktop-cdp" {
-  return value === "tradingview-desktop-cdp" ? "tradingview-desktop-cdp" : "local-backtest";
+function parseEvaluationExecutor(value: string | undefined): EvaluationExecutorName {
+  return evaluationExecutorNameSchema.safeParse(value).success
+    ? (value as EvaluationExecutorName)
+    : "local-backtest";
 }
 
 function parsePromotionVerificationExecutor(
   value: string | undefined,
-): "none" | "local-backtest" | "tradingview-desktop-cdp" {
+): "none" | EvaluationExecutorName {
   if (
     value === "none" ||
     value === "local-backtest" ||
-    value === "tradingview-desktop-cdp"
+    value === "tradingview-desktop-cdp" ||
+    value === "tradingview-web-playwright"
   ) {
     return value;
   }
@@ -182,6 +193,17 @@ export function loadRuntimeEnvironment(options?: {
     ),
     tradingViewDesktopPath: process.env.TRADINGVIEW_DESKTOP_PATH || undefined,
     tradingViewCdpUrl: process.env.TRADINGVIEW_CDP_URL || undefined,
+    tradingViewWebCdpUrl: process.env.TRADINGVIEW_WEB_CDP_URL || undefined,
+    tradingViewWebProfileDir: process.env.TRADINGVIEW_WEB_PROFILE_DIR
+      ? path.resolve(process.env.TRADINGVIEW_WEB_PROFILE_DIR)
+      : undefined,
+    tradingViewWebChartUrl: process.env.TRADINGVIEW_WEB_CHART_URL || undefined,
+    tradingViewWebBrowserPath:
+      process.env.TRADINGVIEW_WEB_BROWSER_PATH || undefined,
+    tradingViewWebHeadless:
+      process.env.TRADINGVIEW_WEB_HEADLESS == null
+        ? undefined
+        : process.env.TRADINGVIEW_WEB_HEADLESS === "true",
     pineEditorTimeoutMs: Number.parseInt(
       process.env.AF_PINE_EDITOR_TIMEOUT_MS ??
         process.env.TRADINGVIEW_PINE_EDITOR_TIMEOUT_MS ??
@@ -330,7 +352,7 @@ export function assertNoMockPolicy(env: RuntimeEnvironment): void {
 function assertNoLegacyExecutorConfig(): void {
   if (process.env.TRADINGVIEW_DRIVER) {
     throw new Error(
-      "TRADINGVIEW_DRIVER is no longer configurable. AF uses the built-in tradingview-desktop-cdp executor.",
+      "TRADINGVIEW_DRIVER is no longer configurable. AF uses the built-in TradingView CDP executors.",
     );
   }
 

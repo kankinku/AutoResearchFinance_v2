@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { LocalAfBacktestExecutor } from "../automation/local-backtest/executor.js";
 import { TradingViewDesktopExecutor } from "../automation/tradingview/playwright-driver.js";
 import { type PineEvaluationExecutor } from "../automation/common/executor.js";
@@ -20,9 +22,20 @@ export function createPineEvaluationExecutor(
     });
   }
 
+  const isWebTradingView = executorName === "tradingview-web-playwright";
   return new TradingViewDesktopExecutor({
-    executablePath: env.tradingViewDesktopPath,
-    cdpUrl: env.tradingViewCdpUrl,
+    surface: isWebTradingView ? "web" : "desktop",
+    executablePath: isWebTradingView
+      ? env.tradingViewWebBrowserPath
+      : env.tradingViewDesktopPath,
+    cdpUrl: isWebTradingView
+      ? env.tradingViewWebCdpUrl
+      : env.tradingViewCdpUrl,
+    webProfileDir:
+      env.tradingViewWebProfileDir ??
+      path.join(env.runtimeRoot ?? env.stateRoot, "tradingview-web-profile"),
+    webChartUrl: env.tradingViewWebChartUrl,
+    webHeadless: env.tradingViewWebHeadless,
     pineEditorTimeoutMs: env.pineEditorTimeoutMs,
     cdpCommandTimeoutMs: env.tradingViewCdpCommandTimeoutMs,
   });

@@ -33,6 +33,7 @@ import {
   type BacktestMetrics,
   type CompileResult,
   type DecisionCode,
+  type EvaluationExecutorName,
   type ExperimentRecord,
   type ExecutorCapability,
   type FallbackEvaluation,
@@ -887,12 +888,39 @@ function validateAutonomousResearchMode(env: RuntimeEnvironment): void {
 function createPromotionVerificationExecutorFactory(
   env: ReturnType<typeof loadRuntimeEnvironment>,
 ): (() => ReturnType<typeof createPineEvaluationExecutor>) | undefined {
-  if (env.promotionVerificationExecutor !== "tradingview-desktop-cdp") {
+  if (!isTradingViewExecutorName(env.promotionVerificationExecutor)) {
     return undefined;
   }
 
   const executorName = env.promotionVerificationExecutor;
   return () => createPineEvaluationExecutor(env, executorName);
+}
+
+function isTradingViewExecutorName(
+  value: RuntimeEnvironment["evaluationExecutor"] | RuntimeEnvironment["promotionVerificationExecutor"],
+): value is Extract<
+  EvaluationExecutorName,
+  "tradingview-desktop-cdp" | "tradingview-web-playwright"
+> {
+  return (
+    value === "tradingview-desktop-cdp" ||
+    value === "tradingview-web-playwright"
+  );
+}
+
+function resolveTradingViewExecutorName(
+  env: ReturnType<typeof loadRuntimeEnvironment>,
+): Extract<
+  EvaluationExecutorName,
+  "tradingview-desktop-cdp" | "tradingview-web-playwright"
+> | null {
+  if (isTradingViewExecutorName(env.promotionVerificationExecutor)) {
+    return env.promotionVerificationExecutor;
+  }
+  if (isTradingViewExecutorName(env.evaluationExecutor)) {
+    return env.evaluationExecutor;
+  }
+  return null;
 }
 
 function createLocalFallbackExecutorFactory(
@@ -932,14 +960,8 @@ function createLazyMutationLlmClient(
 
 function resolveAuthoritativeExecutorName(
   env: ReturnType<typeof loadRuntimeEnvironment>,
-): "local-backtest" | "tradingview-desktop-cdp" | null {
-  if (env.promotionVerificationExecutor === "tradingview-desktop-cdp") {
-    return env.promotionVerificationExecutor;
-  }
-  if (env.evaluationExecutor === "tradingview-desktop-cdp") {
-    return env.evaluationExecutor;
-  }
-  return null;
+): EvaluationExecutorName | null {
+  return resolveTradingViewExecutorName(env);
 }
 
 function mapDecisionToExperimentStatus(decision: DecisionCode): string {
@@ -1508,6 +1530,8 @@ program
           autoProcessCalibration,
           calibrationBudget,
         };
+        const calibrationExecutorName =
+          resolveTradingViewExecutorName(loopEnv) ?? "tradingview-desktop-cdp";
         await monitor.log("autonomous.loop.start", "Starting autonomous local-first loop", {
           count,
           workspaceRoot: env.workspaceRoot,
@@ -1525,7 +1549,7 @@ program
           localExecutorFactory: () =>
             createPineEvaluationExecutor(env, "local-backtest"),
           calibrationExecutorFactory: autoProcessCalibration
-            ? () => createPineEvaluationExecutor(env, "tradingview-desktop-cdp")
+            ? () => createPineEvaluationExecutor(loopEnv, calibrationExecutorName)
             : undefined,
           count,
           monitor,
@@ -2125,11 +2149,13 @@ program
         const objective = await loadObjectiveConfig(env.workspaceRoot);
         const runId = `tv-calibration-${Date.now()}`;
         const confidenceEvents = await readLocalConfidenceEventRecords(stateRoot);
+        const calibrationExecutorName =
+          resolveTradingViewExecutorName(env) ?? "tradingview-desktop-cdp";
 
         await appendRunRecord(stateRoot, {
           runId,
           startedAt: new Date().toISOString(),
-          executor: "tradingview-desktop-cdp",
+          executor: calibrationExecutorName,
           symbol: env.chartSymbol,
           timeframe: env.chartTimeframe,
           chartType: env.chartType,
@@ -2146,7 +2172,7 @@ program
           calibrationEvents,
           confidenceEvents,
           executorFactory: () =>
-            createPineEvaluationExecutor(env, "tradingview-desktop-cdp"),
+            createPineEvaluationExecutor(env, calibrationExecutorName),
           maxCandidates: options.maxCandidates
             ? parsePositiveInteger(options.maxCandidates, "maxCandidates")
             : undefined,
@@ -2279,7 +2305,7 @@ program
         const authoritativeExecutorName = resolveAuthoritativeExecutorName(env);
         if (!authoritativeExecutorName) {
           throw new Error(
-            "No authoritative executor is configured. Set AF_PROMOTION_VERIFICATION_EXECUTOR=tradingview-desktop-cdp or use TradingView as the primary executor.",
+            "No authoritative executor is configured. Set AF_PROMOTION_VERIFICATION_EXECUTOR=tradingview-web-playwright or tradingview-desktop-cdp, or use TradingView as the primary executor.",
           );
         }
 

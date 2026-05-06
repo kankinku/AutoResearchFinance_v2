@@ -1,6 +1,8 @@
 import path from "node:path";
-import { access } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { execFile, spawn } from "node:child_process";
+
+import { chromium } from "playwright";
 
 interface CdpTargetInfo {
   title: string;
@@ -33,8 +35,12 @@ interface CdpResponse {
 }
 
 interface TradingViewDesktopCdpClientConfig {
+  surface?: "desktop" | "web";
   cdpUrl?: string;
   executablePath?: string;
+  webProfileDir?: string;
+  webChartUrl?: string;
+  webHeadless?: boolean;
   connectTimeoutMs?: number;
   commandTimeoutMs?: number;
 }
@@ -54,6 +60,8 @@ interface WebSocketLike {
 }
 
 const DEFAULT_CDP_URL = "http://127.0.0.1:9222";
+const DEFAULT_WEB_CDP_URL = "http://127.0.0.1:9223";
+const DEFAULT_TRADINGVIEW_WEB_CHART_URL = "https://www.tradingview.com/chart/";
 const DEFAULT_CONNECT_TIMEOUT_MS = 20_000;
 const DEFAULT_COMMAND_TIMEOUT_MS = 8_000;
 const CHART_TARGET_PATTERN = /tradingview\.com\/chart\//i;
@@ -62,6 +70,7 @@ const TRADINGVIEW_PROCESS_IMAGE = "TradingView.exe";
 
 export class TradingViewDesktopCdpClient {
   private readonly cdpBaseUrl: string;
+  private readonly surface: "desktop" | "web";
   private readonly connectTimeoutMs: number;
   private readonly commandTimeoutMs: number;
   private socket: WebSocketLike | null = null;
@@ -69,7 +78,8 @@ export class TradingViewDesktopCdpClient {
   private readonly pending = new Map<number, PendingMessage>();
 
   public constructor(private readonly config: TradingViewDesktopCdpClientConfig) {
-    this.cdpBaseUrl = normalizeCdpBaseUrl(config.cdpUrl);
+    this.surface = config.surface ?? "desktop";
+    this.cdpBaseUrl = normalizeCdpBaseUrl(config.cdpUrl, this.surface);
     this.connectTimeoutMs = config.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
     this.commandTimeoutMs = config.commandTimeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS;
   }
@@ -79,11 +89,27 @@ export class TradingViewDesktopCdpClient {
       return;
     }
 
-    await ensureDesktopDebugEndpoint({
-      cdpBaseUrl: this.cdpBaseUrl,
-      executablePath: this.config.executablePath,
-      connectTimeoutMs: this.connectTimeoutMs,
-    });
+    if (this.surface === "web") {
+      await ensureWebDebugEndpoint({
+        cdpBaseUrl: this.cdpBaseUrl,
+        executablePath: this.config.executablePath,
+        profileDir: this.config.webProfileDir,
+        chartUrl: this.config.webChartUrl,
+        headless: this.config.webHeadless,
+        connectTimeoutMs: this.connectTimeoutMs,
+      });
+      await ensureChartTargetOpen({
+        cdpBaseUrl: this.cdpBaseUrl,
+        chartUrl: this.config.webChartUrl,
+        connectTimeoutMs: this.connectTimeoutMs,
+      });
+    } else {
+      await ensureDesktopDebugEndpoint({
+        cdpBaseUrl: this.cdpBaseUrl,
+        executablePath: this.config.executablePath,
+        connectTimeoutMs: this.connectTimeoutMs,
+      });
+    }
 
     const target = await waitForChartTarget(this.cdpBaseUrl, this.connectTimeoutMs);
     this.socket = await openSocket(target.webSocketDebuggerUrl, this.connectTimeoutMs);
@@ -340,6 +366,126 @@ async function ensureDesktopDebugEndpoint(input: {
   );
 }
 
+async function ensureWebDebugEndpoint(input: {
+  cdpBaseUrl: string;
+  executablePath?: string;
+  profileDir?: string;
+  chartUrl?: string;
+  headless?: boolean;
+  connectTimeoutMs: number;
+}): Promise<void> {
+  if (await isCdpReachable(input.cdpBaseUrl)) {
+    return;
+  }
+
+  const port = new URL(input.cdpBaseUrl).port || "9223";
+  const profileDir =
+    input.profileDir ?? path.join(process.cwd(), ".af-tradingview-web-profile");
+  await mkdir(profileDir, { recursive: true });
+
+  launchTradingViewWebBrowser({
+    executablePath: await resolveWebBrowserExecutablePath(input.executablePath),
+    port,
+    profileDir,
+    chartUrl: input.chartUrl ?? DEFAULT_TRADINGVIEW_WEB_CHART_URL,
+    headless: input.headless ?? false,
+  });
+
+  const deadline = Date.now() + input.connectTimeoutMs;
+  while (Date.now() < deadline) {
+    if (await isCdpReachable(input.cdpBaseUrl)) {
+      return;
+    }
+    await delay(500);
+  }
+
+  throw new Error(
+    `TradingView web browser was launched, but CDP did not become reachable at ${input.cdpBaseUrl}.`,
+  );
+}
+
+async function resolveWebBrowserExecutablePath(
+  configuredPath?: string,
+): Promise<string> {
+  const candidates = [
+    configuredPath,
+    chromium.executablePath(),
+    process.env.ProgramFiles
+      ? path.join(process.env.ProgramFiles, "Google", "Chrome", "Application", "chrome.exe")
+      : undefined,
+    process.env.ProgramFiles
+      ? path.join(process.env.ProgramFiles, "Microsoft", "Edge", "Application", "msedge.exe")
+      : undefined,
+    process.env["ProgramFiles(x86)"]
+      ? path.join(
+          process.env["ProgramFiles(x86)"]!,
+          "Google",
+          "Chrome",
+          "Application",
+          "chrome.exe",
+        )
+      : undefined,
+    process.env["ProgramFiles(x86)"]
+      ? path.join(
+          process.env["ProgramFiles(x86)"]!,
+          "Microsoft",
+          "Edge",
+          "Application",
+          "msedge.exe",
+        )
+      : undefined,
+    process.env.LOCALAPPDATA
+      ? path.join(
+          process.env.LOCALAPPDATA,
+          "Google",
+          "Chrome",
+          "Application",
+          "chrome.exe",
+        )
+      : undefined,
+    process.env.LOCALAPPDATA
+      ? path.join(
+          process.env.LOCALAPPDATA,
+          "Microsoft",
+          "Edge",
+          "Application",
+          "msedge.exe",
+        )
+      : undefined,
+  ];
+
+  for (const candidate of [...new Set(candidates.filter(Boolean))]) {
+    if (await isAccessiblePath(candidate as string)) {
+      return candidate as string;
+    }
+  }
+
+  throw new Error(
+    "TradingView web browser executable was not found. Configure TRADINGVIEW_WEB_BROWSER_PATH to Chrome or Edge.",
+  );
+}
+
+async function ensureChartTargetOpen(input: {
+  cdpBaseUrl: string;
+  chartUrl?: string;
+  connectTimeoutMs: number;
+}): Promise<void> {
+  if (await findChartTarget(input.cdpBaseUrl)) {
+    return;
+  }
+
+  const chartUrl = input.chartUrl ?? DEFAULT_TRADINGVIEW_WEB_CHART_URL;
+  await openCdpTab(input.cdpBaseUrl, chartUrl);
+
+  const deadline = Date.now() + input.connectTimeoutMs;
+  while (Date.now() < deadline) {
+    if (await findChartTarget(input.cdpBaseUrl)) {
+      return;
+    }
+    await delay(500);
+  }
+}
+
 export function buildTradingViewExecutableCandidates(input?: {
   configuredPath?: string;
   appxInstallLocation?: string | null;
@@ -465,6 +611,38 @@ function launchTradingViewDesktop(executablePath: string, port: string): void {
   child.unref();
 }
 
+function launchTradingViewWebBrowser(input: {
+  executablePath: string;
+  port: string;
+  profileDir: string;
+  chartUrl: string;
+  headless: boolean;
+}): void {
+  const args = [
+    `--remote-debugging-port=${input.port}`,
+    `--user-data-dir=${input.profileDir}`,
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-timer-throttling",
+    "--disable-renderer-backgrounding",
+    "--new-window",
+    input.chartUrl,
+  ];
+  if (input.headless) {
+    args.unshift("--headless=new");
+  }
+
+  const child = spawn(input.executablePath, args, {
+    detached: true,
+    stdio: "ignore",
+    windowsHide: input.headless,
+  });
+  child.on("error", () => {
+    // The caller detects launch failure by waiting for the CDP endpoint.
+  });
+  child.unref();
+}
+
 async function execFileStdout(command: string, args: string[]): Promise<string> {
   return await new Promise((resolve, reject) => {
     execFile(command, args, { windowsHide: true }, (error, stdout) => {
@@ -484,6 +662,25 @@ async function isCdpReachable(cdpBaseUrl: string): Promise<boolean> {
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+async function openCdpTab(cdpBaseUrl: string, url: string): Promise<void> {
+  const endpoint = `${cdpBaseUrl}/json/new?${encodeURIComponent(url)}`;
+  try {
+    const putResponse = await fetch(endpoint, { method: "PUT" });
+    if (putResponse.ok) {
+      return;
+    }
+  } catch {
+    // Older Chromium builds accepted GET here; try it before giving up.
+  }
+
+  try {
+    await fetch(endpoint);
+  } catch {
+    // The caller still waits for a chart target because the browser may have
+    // been launched with the chart URL already.
   }
 }
 
@@ -554,9 +751,9 @@ async function openSocket(url: string, timeoutMs: number): Promise<WebSocketLike
   });
 }
 
-function normalizeCdpBaseUrl(url?: string): string {
+function normalizeCdpBaseUrl(url?: string, surface: "desktop" | "web" = "desktop"): string {
   if (!url) {
-    return DEFAULT_CDP_URL;
+    return surface === "web" ? DEFAULT_WEB_CDP_URL : DEFAULT_CDP_URL;
   }
 
   return url.replace(/\/$/, "");

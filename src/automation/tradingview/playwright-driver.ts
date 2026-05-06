@@ -31,8 +31,12 @@ import { TradingViewDesktopCdpClient } from "./cdp-client.js";
 import { sha256 } from "../../utils/fs.js";
 
 interface TradingViewDesktopExecutorConfig {
+  surface?: "desktop" | "web";
   executablePath?: string;
   cdpUrl?: string;
+  webProfileDir?: string;
+  webChartUrl?: string;
+  webHeadless?: boolean;
   pineEditorTimeoutMs?: number;
   cdpCommandTimeoutMs?: number;
 }
@@ -77,6 +81,7 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
   public readonly supportedSymbols: string[] = [];
   public readonly supportedTimeframes: string[] = [];
   private readonly client: TradingViewDesktopCdpClient;
+  private readonly surface: "desktop" | "web";
   private readonly pineEditorTimeoutMs: number;
   private lastCompile: CompileResult | null = null;
   private lastAttachDiagnostics: AttachDiagnostics | null = null;
@@ -84,9 +89,14 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
   private pendingAttachRecoveryActions: string[] = [];
 
   public constructor(config: TradingViewDesktopExecutorConfig) {
+    this.surface = config.surface ?? "desktop";
     this.client = new TradingViewDesktopCdpClient({
+      surface: this.surface,
       executablePath: config.executablePath,
       cdpUrl: config.cdpUrl,
+      webProfileDir: config.webProfileDir,
+      webChartUrl: config.webChartUrl,
+      webHeadless: config.webHeadless,
       commandTimeoutMs: config.cdpCommandTimeoutMs,
     });
     this.pineEditorTimeoutMs =
@@ -464,10 +474,14 @@ export class TradingViewDesktopExecutor implements PineEvaluationExecutor {
   }
 
   private async ensurePineEditorReady(label: string): Promise<void> {
+    const openEditorExpression =
+      this.surface === "web"
+        ? openWebPineEditorExpression()
+        : openPineEditorExpression();
     const waitForEditor = async (attemptLabel: string) => {
       await this.client.waitFor(
         async () => {
-          await this.client.evaluate<boolean>(openPineEditorExpression(), {
+          await this.client.evaluate<boolean>(openEditorExpression, {
             label: "Pine editor open command",
           });
           return await this.client.evaluate<number>(monacoEditorCountExpression(), {
@@ -578,6 +592,86 @@ function openPineEditorExpression(): string {
   })()`;
 }
 
+function openWebPineEditorExpression(): string {
+  return `(() => (async () => {
+    const hasMonacoEditor = () => document.querySelectorAll('.monaco-editor').length > 0;
+    if (hasMonacoEditor()) {
+      return true;
+    }
+
+    const closeSidePineDialog = () => {
+      const sideDialog = document.querySelector('[data-name="pine-dialog"]');
+      if (!sideDialog) {
+        return;
+      }
+      const closeButton =
+        sideDialog.querySelector('[data-name="close"], [aria-label*="close" i], [title*="close" i]') ??
+        Array.from(sideDialog.querySelectorAll('button, [role="button"]')).find((element) => {
+          const text = [
+            element.getAttribute?.('aria-label') ?? '',
+            element.getAttribute?.('title') ?? '',
+            element.getAttribute?.('data-name') ?? '',
+          ]
+            .join(' ')
+            .toLowerCase();
+          return text.includes('close') || text.includes('dismiss');
+        }) ??
+        null;
+      closeButton?.click?.();
+    };
+
+    closeSidePineDialog();
+
+    const bar = window.TradingView?.bottomWidgetBar;
+    if (!bar) {
+      window.TVD?.setFocusPineEditor?.();
+      return hasMonacoEditor();
+    }
+
+    const run = async (operation) => {
+      try {
+        return await operation?.();
+      } catch {
+        return undefined;
+      }
+    };
+
+    await run(() => bar.waitForWidgetsInitialized?.());
+    await run(() => bar.setWidgetAvailability?.('scripteditor', true));
+    await run(() => bar._isHidden?.setValue?.(false));
+    await run(() => bar._isVisible?.setValue?.(true));
+    await run(() => bar._isBridgeVisible?.setValue?.(true));
+    await run(() => bar.show?.());
+    await run(() => bar.setNormalHeight?.(520));
+    await run(() => bar.setMode?.('normal'));
+    await run(() => bar.open?.());
+
+    await run(() => bar._activeWidget?.setValue?.('scripteditor'));
+    await run(() =>
+      bar._updateActiveWidget?.(
+        typeof bar._createWidgetBarAPI === 'function' ? bar._createWidgetBarAPI() : {},
+      ),
+    );
+
+    const pineEditor =
+      bar.getWidgetByName?.('scripteditor') ??
+      (bar._config?.scripteditor?.ctor?.hasInstance?.()
+        ? bar._config.scripteditor.ctor.getInstance?.()
+        : null);
+    const now = Date.now();
+    if (
+      pineEditor?.open &&
+      (!window.__afPineEditorOpenRequestedAt ||
+        now - window.__afPineEditorOpenRequestedAt > 3_000)
+    ) {
+      window.__afPineEditorOpenRequestedAt = now;
+      Promise.resolve(pineEditor.open(null, { source: 'af_web_calibration' })).catch(() => {});
+    }
+
+    return true;
+  })())()`;
+}
+
 function monacoEditorCountExpression(): string {
   return buildMonacoBridgeExpression(
     "return monaco?.editor?.getEditors?.().length ?? 0;",
@@ -677,7 +771,31 @@ function buildMonacoBridgeExpression(body: string): string {
     };
 
     const monaco = resolveMonaco();
-    const editor = monaco?.editor?.getEditors?.()?.[0] ?? null;
+    const isVisibleEditorNode = (node) => {
+      if (!node?.isConnected || typeof node.getBoundingClientRect !== 'function') {
+        return false;
+      }
+      const rect = node.getBoundingClientRect();
+      const style = window.getComputedStyle?.(node);
+      return (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        style?.visibility !== 'hidden' &&
+        style?.display !== 'none'
+      );
+    };
+    const editors = monaco?.editor?.getEditors?.() ?? [];
+    const editor =
+      editors.find((candidate) => {
+        const node = candidate?.getDomNode?.();
+        return (
+          isVisibleEditorNode(node) &&
+          Boolean(node.closest?.('.bottom-widgetbar-content.scripteditor, #pine-editor-dialog, [data-name="pine-dialog"]'))
+        );
+      }) ??
+      editors.find((candidate) => isVisibleEditorNode(candidate?.getDomNode?.())) ??
+      editors[0] ??
+      null;
     ${body}
   })()`;
 }
@@ -725,7 +843,10 @@ function readChartStateExpression(): string {
     return {
       symbol: active?.getSymbol?.() ?? null,
       timeframe: active?.getResolution?.() ?? null,
-      pineEditorOpen: document.querySelectorAll('.pine-dialog').length > 0,
+      pineEditorOpen:
+        document.querySelectorAll(
+          '.pine-dialog, .monaco-editor, .bottom-widgetbar-content.scripteditor, [data-name="pine-editor"]',
+        ).length > 0,
       attachedStudies,
     };
   })()`;
@@ -1069,6 +1190,7 @@ function deduplicateErrors(errors: string[]): string[] {
 
 export const __test__ = {
   openPineEditorExpression,
+  openWebPineEditorExpression,
   monacoEditorCountExpression,
   setMonacoSourceExpression,
   focusMonacoEditorExpression,
