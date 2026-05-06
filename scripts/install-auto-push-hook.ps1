@@ -18,7 +18,12 @@ $HookLines = @(
   "  exit 0",
   "fi",
   "",
-  "git push origin HEAD:master"
+  "branch=`$(git branch --show-current)",
+  "if [ -z `"`$branch`" ]; then",
+  "  exit 0",
+  "fi",
+  "",
+  "git push origin HEAD:`"`$branch`""
 )
 
 $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)

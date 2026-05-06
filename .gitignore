@@ -1,9 +1,12 @@
 node_modules/
 dist/
 .env
+.playwright-mcp/
 playwright-report/
 test-results/
 coverage/
+artifacts/autonomous-run/
+artifacts/dashboard/
 state/**/backups/
 state/**/*.pre-compact-*.jsonl
 state/**/logs/
