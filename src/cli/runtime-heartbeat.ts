@@ -1,5 +1,7 @@
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+
+import { writeJson } from "../utils/fs.js";
 
 export type AutonomousLoopRuntimeState = "missing" | "active" | "stale";
 
@@ -12,6 +14,7 @@ export interface AutonomousLoopRuntimeStatus {
   staleReason: string | null;
   lastCheckedAt: string;
   heartbeat: Record<string, unknown> | null;
+  heartbeatReadError: string | null;
 }
 
 export async function reconcileAutonomousLoopRuntime(input: {
@@ -23,7 +26,8 @@ export async function reconcileAutonomousLoopRuntime(input: {
   const pidPath = path.join(runtimeRoot, "autonomous-loop.pid");
   const heartbeatPath = path.join(runtimeRoot, "autonomous-loop-heartbeat.json");
   const lastCheckedAt = new Date().toISOString();
-  const heartbeat = await readHeartbeat(heartbeatPath);
+  const heartbeatRead = await readHeartbeat(heartbeatPath);
+  const heartbeat = heartbeatRead.heartbeat;
   const rawPid = await readFile(pidPath, "utf8").catch(() => null);
 
   if (rawPid == null) {
@@ -36,6 +40,7 @@ export async function reconcileAutonomousLoopRuntime(input: {
       staleReason: null,
       lastCheckedAt,
       heartbeat,
+      heartbeatReadError: heartbeatRead.error,
     };
   }
 
@@ -56,6 +61,7 @@ export async function reconcileAutonomousLoopRuntime(input: {
       staleReason: null,
       lastCheckedAt,
       heartbeat,
+      heartbeatReadError: heartbeatRead.error,
     };
   }
 
@@ -69,8 +75,7 @@ export async function reconcileAutonomousLoopRuntime(input: {
     lastCheckedAt,
   };
   if (input.writeStaleHeartbeat ?? true) {
-    await mkdir(runtimeRoot, { recursive: true });
-    await writeFile(heartbeatPath, `${JSON.stringify(staleHeartbeat)}\n`, "utf8");
+    await writeJson(heartbeatPath, staleHeartbeat);
   }
 
   return {
@@ -82,19 +87,27 @@ export async function reconcileAutonomousLoopRuntime(input: {
     staleReason,
     lastCheckedAt,
     heartbeat: staleHeartbeat,
+    heartbeatReadError: heartbeatRead.error,
   };
 }
 
 async function readHeartbeat(
   heartbeatPath: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<{ heartbeat: Record<string, unknown> | null; error: string | null }> {
   try {
     const parsed = JSON.parse(await readFile(heartbeatPath, "utf8"));
-    return parsed && typeof parsed === "object"
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
+    return {
+      heartbeat:
+        parsed && typeof parsed === "object"
+          ? (parsed as Record<string, unknown>)
+          : null,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      heartbeat: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 

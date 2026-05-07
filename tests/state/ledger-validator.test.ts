@@ -100,6 +100,78 @@ async function writePromotionArtifacts(root: string, candidateId: string) {
 }
 
 describe("ledger-validator", () => {
+  test("defaults to fast validation and reserves artifact hash checks for deep mode", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-ledger-fast-deep-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const artifactBundle = createPromotableArtifactBundle();
+    const { candidatePath } = await writePromotionArtifacts(root, "cand-fast");
+
+    const appended = await appendExperimentRecord(stateRoot, {
+      runId: "run-fast",
+      iteration: 1,
+      candidateId: "cand-fast",
+      parentCandidateId: null,
+      branchId: "main",
+      acceptedHeadCandidateId: null,
+      baselineCandidateId: "seed_primary",
+      candidatePath,
+      candidateHash: "cand-fast-hash",
+      candidateScore: 0.4,
+      decision: "valid_no_promotion",
+      status: "evaluated",
+      artifactBundle,
+    });
+    await writeFile(
+      appended.artifactBundleRef?.path ?? "",
+      `${JSON.stringify({ corrupted: true })}\n`,
+      "utf8",
+    );
+
+    const fast = await validateLedger(stateRoot);
+    const deep = await validateLedger(stateRoot, { mode: "deep" });
+
+    expect(fast.summary.mode).toBe("fast");
+    expect(fast.ok).toBe(true);
+    expect(deep.summary.mode).toBe("deep");
+    expect(deep.ok).toBe(false);
+    expect(
+      deep.issues.some((issue) =>
+        issue.message.includes("artifactBundleHash does not match referenced artifactBundleRef content"),
+      ),
+    ).toBe(true);
+  });
+
+  test("reuses deep artifact hash results from the validation manifest", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-ledger-manifest-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const artifactBundle = createPromotableArtifactBundle();
+    const { candidatePath } = await writePromotionArtifacts(root, "cand-cache");
+
+    await appendExperimentRecord(stateRoot, {
+      runId: "run-cache",
+      iteration: 1,
+      candidateId: "cand-cache",
+      parentCandidateId: null,
+      branchId: "main",
+      acceptedHeadCandidateId: null,
+      baselineCandidateId: "seed_primary",
+      candidatePath,
+      candidateHash: "cand-cache-hash",
+      candidateScore: 0.4,
+      decision: "valid_no_promotion",
+      status: "evaluated",
+      artifactBundle,
+    });
+
+    const first = await validateLedger(stateRoot, { mode: "deep" });
+    const second = await validateLedger(stateRoot, { mode: "deep" });
+
+    expect(first.ok).toBe(true);
+    expect(first.summary.artifactHashesComputed).toBe(1);
+    expect(second.ok).toBe(true);
+    expect(second.summary.artifactHashesReused).toBe(1);
+  });
+
   test("accepts legacy run and mutation brief records during ledger validation", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-ledger-legacy-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");

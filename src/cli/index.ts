@@ -122,7 +122,16 @@ import {
   AUTORESEARCH_CONTRACT_VERSION,
   STRATEGY_SPEC_MUTATION_AUTHORITY,
 } from "../policy/autoresearch-contract.js";
-import { validateLedger, verifyDerivedViews } from "../state/ledger-validator.js";
+import {
+  validateLedger,
+  verifyDerivedViews,
+  type LedgerValidationMode,
+} from "../state/ledger-validator.js";
+import {
+  buildArtifactRetentionReport,
+  buildSystemHealthReport,
+  cleanupRuntime,
+} from "../state/operational-reports.js";
 import {
   auditKnowledgeTree,
   migrateLegacyKnowledgeLayout,
@@ -576,6 +585,16 @@ function parseStage6CalibrationMode(value: string): Stage6CalibrationMode {
     return value;
   }
   throw new Error('calibration mode must be "mock-recovered" or "live".');
+}
+
+function parseLedgerValidationMode(value: string | undefined): LedgerValidationMode {
+  if (value == null || value === "") {
+    return "fast";
+  }
+  if (value === "fast" || value === "deep") {
+    return value;
+  }
+  throw new Error('ledger validation mode must be "fast" or "deep".');
 }
 
 async function assertPromotionEvidenceFilesExist(
@@ -3523,7 +3542,12 @@ program
   .command("rebuild-indexes")
   .description("Rebuild layered derived views from the experiment and incident ledgers.")
   .option("--verify", "Verify derived views against the ledger after rebuilding.")
-  .action(async (options: { verify?: boolean }) => {
+  .option(
+    "--validation-mode <mode>",
+    "Ledger validation mode used by --verify: fast or deep.",
+    "fast",
+  )
+  .action(async (options: { verify?: boolean; validationMode?: string }) => {
     const env = loadRuntimeEnvironment();
     await withCliMonitor(
       {
@@ -3536,15 +3560,17 @@ program
           stateRoot: env.stateRoot,
         });
         await rebuildIndexes(env.stateRoot);
+        const validationMode = parseLedgerValidationMode(options.validationMode);
         const autonomousState = await buildAutonomousStateSummary({
           stateRoot: env.stateRoot,
           env,
         });
         const verification = options.verify
-          ? await verifyDerivedViews(env.stateRoot)
+          ? await verifyDerivedViews(env.stateRoot, { validationMode })
           : null;
         await monitor.log("indexes.done", "Derived indexes rebuilt", {
           stateRoot: env.stateRoot,
+          validationMode: options.verify ? validationMode : null,
           verificationOk: verification?.ok ?? null,
         });
         if (options.verify && verification && !verification.ok) {
@@ -3571,8 +3597,10 @@ program
 
 program
   .command("validate-ledger")
-  .description("Validate JSONL ledgers, record hashes, artifact existence, and duplicate candidate hashes.")
-  .action(async () => {
+  .description("Validate JSONL ledgers. Defaults to fast metadata checks; use --deep for artifact hash verification.")
+  .option("--mode <mode>", "Validation mode: fast or deep.", "fast")
+  .option("--deep", "Run deep artifact hash validation.")
+  .action(async (options: { mode?: string; deep?: boolean }) => {
     const env = loadRuntimeEnvironment();
     await withCliMonitor(
       {
@@ -3582,9 +3610,11 @@ program
       async (monitor) => {
         const stateRoot = env.stateRoot;
         await ensureStateRoot(stateRoot);
-        const validation = await validateLedger(stateRoot);
+        const mode = options.deep ? "deep" : parseLedgerValidationMode(options.mode);
+        const validation = await validateLedger(stateRoot, { mode });
         await monitor.log("ledger.validation", "Ledger validation completed", {
           stateRoot,
+          mode,
           ok: validation.ok,
           errorCount: validation.errorCount,
           warningCount: validation.warningCount,
@@ -3593,7 +3623,138 @@ program
           JSON.stringify(
             {
               ...validation,
+              mode,
               stateRoot,
+              tracePath: monitor.tracePath,
+            },
+            null,
+            2,
+          ),
+        );
+      },
+    );
+  });
+
+program
+  .command("artifact-retention-report")
+  .description("Classify referenced artifacts for retention review without deleting files.")
+  .option("--json", "Emit JSON output.", true)
+  .option("--output <path>", "Optional path to write the JSON report.")
+  .action(async (options: { json?: boolean; output?: string }) => {
+    const env = loadRuntimeEnvironment();
+    await withCliMonitor(
+      {
+        workspaceRoot: env.workspaceRoot,
+        commandName: "artifact-retention-report",
+      },
+      async (monitor) => {
+        await ensureStateRoot(env.stateRoot);
+        const outputPath = options.output
+          ? path.resolve(options.output)
+          : undefined;
+        const report = await buildArtifactRetentionReport({
+          stateRoot: env.stateRoot,
+          outputPath,
+        });
+        await monitor.log("artifact_retention.report", "Artifact retention report generated", {
+          stateRoot: env.stateRoot,
+          outputPath: outputPath ?? null,
+          totalArtifacts: report.summary.totalArtifacts,
+          totalSizeBytes: report.summary.totalSizeBytes,
+        });
+        console.log(
+          JSON.stringify(
+            {
+              ...report,
+              outputPath: outputPath ?? null,
+              tracePath: monitor.tracePath,
+            },
+            null,
+            2,
+          ),
+        );
+      },
+    );
+  });
+
+program
+  .command("cleanup-runtime")
+  .description("Inspect or clean safe runtime cache files without touching TradingView login/session data.")
+  .option("--dry-run", "Only report cleanup candidates; this is the default.")
+  .option("--confirm", "Delete allowlisted cache candidates.")
+  .option("--target <target>", "Cleanup target. Currently only tradingview-cache.", "tradingview-cache")
+  .action(
+    async (options: {
+      dryRun?: boolean;
+      confirm?: boolean;
+      target?: string;
+    }) => {
+      const env = loadRuntimeEnvironment();
+      await withCliMonitor(
+        {
+          workspaceRoot: env.workspaceRoot,
+          commandName: "cleanup-runtime",
+        },
+        async (monitor) => {
+          const target = options.target ?? "tradingview-cache";
+          if (target !== "tradingview-cache") {
+            throw new Error("cleanup-runtime target must be tradingview-cache.");
+          }
+          await ensureStateRoot(env.stateRoot);
+          const report = await cleanupRuntime({
+            stateRoot: env.stateRoot,
+            target,
+            dryRun: options.dryRun ?? options.confirm !== true,
+            confirm: options.confirm === true,
+          });
+          await monitor.log("runtime_cleanup.report", "Runtime cleanup report completed", {
+            stateRoot: env.stateRoot,
+            target,
+            dryRun: report.dryRun,
+            deletedCount: report.deletedCount,
+            deletedBytes: report.deletedBytes,
+            candidateCount: report.candidates.length,
+          });
+          console.log(
+            JSON.stringify(
+              {
+                ...report,
+                tracePath: monitor.tracePath,
+              },
+              null,
+              2,
+            ),
+          );
+        },
+      );
+    },
+  );
+
+program
+  .command("system-health-report")
+  .description("Summarize loop bottlenecks, storage pressure, heartbeat state, and index freshness.")
+  .option("--json", "Emit JSON output.", true)
+  .action(async () => {
+    const env = loadRuntimeEnvironment();
+    await withCliMonitor(
+      {
+        workspaceRoot: env.workspaceRoot,
+        commandName: "system-health-report",
+      },
+      async (monitor) => {
+        await ensureStateRoot(env.stateRoot);
+        const report = await buildSystemHealthReport({ stateRoot: env.stateRoot });
+        await monitor.log("system_health.report", "System health report generated", {
+          stateRoot: env.stateRoot,
+          artifactBytes: report.sizes.artifactBytes,
+          runtimeBytes: report.sizes.runtimeBytes,
+          heartbeatStatus: report.heartbeat.status,
+          longestPhase: report.latestTrace.longestPhase?.phase ?? null,
+        });
+        console.log(
+          JSON.stringify(
+            {
+              ...report,
               tracePath: monitor.tracePath,
             },
             null,

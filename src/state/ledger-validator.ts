@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 
 import { z } from "zod";
 
@@ -44,6 +44,7 @@ import {
   readJson,
   scanJsonlTolerant,
   sha256Json,
+  writeJson,
 } from "../utils/fs.js";
 import {
   validateAutonomousLedger,
@@ -64,8 +65,33 @@ import {
   readTaskBatchRecords,
   resolveStatePaths,
 } from "./jsonl-store.js";
+import { resolveKnowledgePaths } from "./knowledge-paths.js";
 
 type ValidationSeverity = "error" | "warning";
+export type LedgerValidationMode = "fast" | "deep";
+export type RetentionClass =
+  | "full"
+  | "compact"
+  | "latest"
+  | "archived"
+  | "purge_candidate";
+
+export interface ArtifactValidationManifestEntry {
+  artifactPath: string;
+  sizeBytes: number;
+  modifiedTimeMs: number;
+  hash: string;
+  verifiedAt: string;
+  candidateId: string | null;
+  artifactType: string;
+  retentionClass: RetentionClass;
+}
+
+interface ArtifactValidationManifest {
+  schemaVersion: "artifact-validation-manifest/v1";
+  generatedAt: string;
+  entries: Record<string, ArtifactValidationManifestEntry>;
+}
 
 export interface LedgerValidationIssue {
   severity: ValidationSeverity;
@@ -85,15 +111,28 @@ export interface LedgerValidationResult {
   warningCount: number;
   issues: LedgerValidationIssue[];
   summary: {
+    mode: LedgerValidationMode;
     experiments: number;
     candidates: number;
     taskBatches: number;
+    artifactManifestEntries?: number;
+    artifactHashesReused?: number;
+    artifactHashesComputed?: number;
   };
 }
 
 export interface IndexVerificationResult {
   ok: boolean;
   issues: LedgerValidationIssue[];
+}
+
+export interface LedgerValidationOptions {
+  mode?: LedgerValidationMode;
+  manifestPath?: string;
+}
+
+export interface IndexVerificationOptions {
+  validationMode?: LedgerValidationMode;
 }
 
 const legacyRunRecordSchema = z.object({
@@ -306,11 +345,31 @@ async function validateJsonlSchemas(stateRoot: string): Promise<JsonlSchemaScanS
   };
 }
 
+interface ArtifactValidationSummary {
+  manifestEntries: number;
+  hashesReused: number;
+  hashesComputed: number;
+}
+
 async function validateArtifacts(
+  stateRoot: string,
   experiments: ExperimentRecord[],
   candidates: CandidateLedgerRecord[],
-): Promise<LedgerValidationIssue[]> {
+  options: Required<Pick<LedgerValidationOptions, "mode">> &
+    Pick<LedgerValidationOptions, "manifestPath">,
+): Promise<{
+  issues: LedgerValidationIssue[];
+  summary: ArtifactValidationSummary;
+}> {
   const issues: LedgerValidationIssue[] = [];
+  const manifest =
+    options.mode === "deep"
+      ? await readArtifactValidationManifest(
+          options.manifestPath ?? defaultArtifactManifestPath(stateRoot),
+        )
+      : null;
+  let hashesReused = 0;
+  let hashesComputed = 0;
 
   for (const candidate of candidates) {
     if (!(await fileExists(candidate.candidatePath))) {
@@ -349,7 +408,7 @@ async function validateArtifacts(
 
     const artifactBundleHash =
       record.recordMeta?.artifactBundleHash ?? record.artifactBundleHash ?? null;
-    if (artifactBundleHash && record.artifactBundle) {
+    if (options.mode === "deep" && artifactBundleHash && record.artifactBundle) {
       const actualHash = sha256Json(record.artifactBundle);
       if (actualHash !== artifactBundleHash) {
         pushIssue(issues, {
@@ -360,12 +419,33 @@ async function validateArtifacts(
         });
       }
     }
-    if (artifactBundleHash && record.artifactBundleRef?.path) {
+    if (record.artifactBundleRef?.path) {
+      const exists = await fileExists(record.artifactBundleRef.path);
+      if (!exists) {
+        pushIssue(issues, {
+          severity: "error",
+          scope: "experiment-artifact",
+          recordId: record.candidateId,
+          filePath: record.artifactBundleRef.path,
+          message: "Referenced artifactBundleRef is missing.",
+        });
+      }
+    }
+    if (options.mode === "deep" && artifactBundleHash && record.artifactBundleRef?.path) {
       try {
-        const referencedBundle = JSON.parse(
-          await readFile(record.artifactBundleRef.path, "utf8"),
-        ) as unknown;
-        const actualHash = sha256Json(referencedBundle);
+        const hashResult = await resolveArtifactHash({
+          manifest,
+          artifactPath: record.artifactBundleRef.path,
+          candidateId: record.candidateId,
+          artifactType: "artifactBundleRef",
+          retentionClass: inferRetentionClass(record),
+        });
+        if (hashResult.reused) {
+          hashesReused += 1;
+        } else {
+          hashesComputed += 1;
+        }
+        const actualHash = hashResult.hash;
         if (actualHash !== artifactBundleHash) {
           pushIssue(issues, {
             severity: "error",
@@ -402,7 +482,180 @@ async function validateArtifacts(
     }
   }
 
-  return issues;
+  if (options.mode === "deep" && manifest) {
+    issues.push(...(await validateOrphanArtifacts(stateRoot, experiments)));
+    await writeArtifactValidationManifest(
+      options.manifestPath ?? defaultArtifactManifestPath(stateRoot),
+      manifest,
+    );
+  }
+
+  return {
+    issues,
+    summary: {
+      manifestEntries: manifest ? Object.keys(manifest.entries).length : 0,
+      hashesReused,
+      hashesComputed,
+    },
+  };
+}
+
+function defaultArtifactManifestPath(stateRoot: string): string {
+  return `${resolveKnowledgePaths(stateRoot).runtimeDir}/artifact-validation-manifest.json`;
+}
+
+async function readArtifactValidationManifest(
+  manifestPath: string,
+): Promise<ArtifactValidationManifest> {
+  if (!(await fileExists(manifestPath))) {
+    return {
+      schemaVersion: "artifact-validation-manifest/v1",
+      generatedAt: new Date().toISOString(),
+      entries: {},
+    };
+  }
+
+  try {
+    const parsed = await readJson<Partial<ArtifactValidationManifest>>(manifestPath);
+    if (
+      parsed.schemaVersion === "artifact-validation-manifest/v1" &&
+      parsed.entries &&
+      typeof parsed.entries === "object"
+    ) {
+      return {
+        schemaVersion: "artifact-validation-manifest/v1",
+        generatedAt: parsed.generatedAt ?? new Date().toISOString(),
+        entries: parsed.entries as Record<string, ArtifactValidationManifestEntry>,
+      };
+    }
+  } catch {
+    // Corrupt validation caches are derived state. Rebuild them instead of failing validation.
+  }
+
+  return {
+    schemaVersion: "artifact-validation-manifest/v1",
+    generatedAt: new Date().toISOString(),
+    entries: {},
+  };
+}
+
+async function writeArtifactValidationManifest(
+  manifestPath: string,
+  manifest: ArtifactValidationManifest,
+): Promise<void> {
+  await writeJson(manifestPath, {
+    ...manifest,
+    generatedAt: new Date().toISOString(),
+    entries: Object.fromEntries(
+      Object.entries(manifest.entries).sort(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    ),
+  });
+}
+
+async function resolveArtifactHash(input: {
+  manifest: ArtifactValidationManifest | null;
+  artifactPath: string;
+  candidateId: string | null;
+  artifactType: string;
+  retentionClass: RetentionClass;
+}): Promise<{ hash: string; reused: boolean }> {
+  const fileStat = await stat(input.artifactPath);
+  const existing = input.manifest?.entries[input.artifactPath];
+  if (
+    existing &&
+    existing.sizeBytes === fileStat.size &&
+    existing.modifiedTimeMs === fileStat.mtimeMs &&
+    existing.hash
+  ) {
+    return { hash: existing.hash, reused: true };
+  }
+
+  const referencedBundle = JSON.parse(await readFile(input.artifactPath, "utf8")) as unknown;
+  if (!referencedBundle || typeof referencedBundle !== "object") {
+    throw new Error("Referenced artifactBundleRef content is not a JSON object.");
+  }
+  const hash = sha256Json(referencedBundle);
+  if (input.manifest) {
+    input.manifest.entries[input.artifactPath] = {
+      artifactPath: input.artifactPath,
+      sizeBytes: fileStat.size,
+      modifiedTimeMs: fileStat.mtimeMs,
+      hash,
+      verifiedAt: new Date().toISOString(),
+      candidateId: input.candidateId,
+      artifactType: input.artifactType,
+      retentionClass: input.retentionClass,
+    };
+  }
+  return { hash, reused: false };
+}
+
+async function validateOrphanArtifacts(
+  stateRoot: string,
+  experiments: ExperimentRecord[],
+): Promise<LedgerValidationIssue[]> {
+  const paths = resolveKnowledgePaths(stateRoot);
+  if (!(await fileExists(paths.artifactDir))) {
+    return [];
+  }
+  const referenced = new Set<string>();
+  for (const record of experiments) {
+    if (record.artifactBundleRef?.path) {
+      referenced.add(pathNormalize(record.artifactBundleRef.path));
+    }
+    for (const artifactPath of Object.values(record.artifactPaths ?? {})) {
+      referenced.add(pathNormalize(artifactPath));
+    }
+  }
+  const orphanIssues: LedgerValidationIssue[] = [];
+  for (const artifactPath of await listJsonFiles(paths.artifactDir)) {
+    if (referenced.has(pathNormalize(artifactPath))) {
+      continue;
+    }
+    pushIssue(orphanIssues, {
+      severity: "warning",
+      scope: "orphan-artifact",
+      filePath: artifactPath,
+      message: "Artifact file is not referenced by the experiment ledger.",
+    });
+  }
+  return orphanIssues;
+}
+
+async function listJsonFiles(rootDir: string): Promise<string[]> {
+  const { readdir } = await import("node:fs/promises");
+  const entries = await readdir(rootDir, { withFileTypes: true }).catch(() => []);
+  const files: string[] = [];
+  for (const entry of entries) {
+    const fullPath = `${rootDir}/${entry.name}`;
+    if (entry.isDirectory()) {
+      files.push(...(await listJsonFiles(fullPath)));
+    } else if (entry.isFile() && entry.name.endsWith(".json")) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+function pathNormalize(filePath: string): string {
+  return filePath.replaceAll("\\", "/").toLowerCase();
+}
+
+function inferRetentionClass(record: ExperimentRecord): RetentionClass {
+  if (
+    record.decision === "promoted_head" ||
+    record.decision === "verified_improvement" ||
+    record.verificationStatus === "verified" ||
+    record.promotionReady === true
+  ) {
+    return "full";
+  }
+  if (record.decision.includes("fail") || record.candidateScore == null) {
+    return "compact";
+  }
+  return "latest";
 }
 
 function validateDuplicateCandidateHashes(
@@ -445,11 +698,23 @@ function validateDuplicateCandidateHashes(
   return issues;
 }
 
-export async function validateLedger(stateRoot: string): Promise<LedgerValidationResult> {
+export async function validateLedger(
+  stateRoot: string,
+  options: LedgerValidationOptions = {},
+): Promise<LedgerValidationResult> {
+  const mode = options.mode ?? "fast";
   const schemaScan = await validateJsonlSchemas(stateRoot);
   const experiments = schemaScan.experiments;
   const candidates = schemaScan.candidates;
-  const artifactIssues = await validateArtifacts(experiments, candidates);
+  const artifactValidation = await validateArtifacts(
+    stateRoot,
+    experiments,
+    candidates,
+    {
+      mode,
+      manifestPath: options.manifestPath,
+    },
+  );
   const duplicateIssues = validateDuplicateCandidateHashes(experiments, candidates);
   const legacyIssues = validateLegacySeparation(experiments);
   const fallbackIssues = validateFallbackSemantics(experiments);
@@ -458,7 +723,7 @@ export async function validateLedger(stateRoot: string): Promise<LedgerValidatio
   const autonomousIssues = await validateAutonomousLedger(stateRoot);
   const issues = [
     ...schemaScan.issues,
-    ...artifactIssues,
+    ...artifactValidation.issues,
     ...duplicateIssues,
     ...legacyIssues,
     ...fallbackIssues,
@@ -475,9 +740,13 @@ export async function validateLedger(stateRoot: string): Promise<LedgerValidatio
     warningCount,
     issues,
     summary: {
+      mode,
       experiments: experiments.length,
       candidates: candidates.length,
       taskBatches: schemaScan.taskBatches.length,
+      artifactManifestEntries: artifactValidation.summary.manifestEntries,
+      artifactHashesReused: artifactValidation.summary.hashesReused,
+      artifactHashesComputed: artifactValidation.summary.hashesComputed,
     },
   };
 }
@@ -611,9 +880,12 @@ function buildRankedViewEntry(
 
 export async function verifyDerivedViews(
   stateRoot: string,
+  options: IndexVerificationOptions = {},
 ): Promise<IndexVerificationResult> {
   const issues: LedgerValidationIssue[] = [];
-  const ledgerValidation = await validateLedger(stateRoot);
+  const ledgerValidation = await validateLedger(stateRoot, {
+    mode: options.validationMode ?? "fast",
+  });
   if (!ledgerValidation.ok) {
     pushIssue(issues, {
       severity: "error",

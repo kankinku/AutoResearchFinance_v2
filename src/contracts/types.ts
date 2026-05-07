@@ -611,6 +611,16 @@ export const mutationProvenanceSchema = z.object({
   inventorySource: inventorySourceSchema.nullable().default(null),
   inferredFields: z.array(z.string()).default([]),
   missingFields: z.array(z.string()).default([]),
+  durationMs: z.number().nonnegative().optional(),
+  promptBytes: z.number().int().nonnegative().optional(),
+  responseBytes: z.number().int().nonnegative().optional(),
+  schemaFailureKind: z
+    .enum(["json_parse", "missing_field", "type_mismatch", "enum_mismatch", "unknown"])
+    .nullable()
+    .optional(),
+  repairCount: z.number().int().nonnegative().optional(),
+  repairDurationMs: z.number().nonnegative().optional(),
+  failurePolicy: z.enum(["none", "repair_once_fail_fast"]).optional(),
 });
 
 export const compileResultSchema = z.object({

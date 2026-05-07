@@ -1,4 +1,5 @@
 import path from "node:path";
+import { open, stat } from "node:fs/promises";
 
 import {
   type ExperimentRecord,
@@ -17,7 +18,7 @@ import {
   selectVerifiedViewRecords,
 } from "../evaluation/record-eligibility.js";
 import { buildCompileFailureClassCounts } from "../mutation/compile-failure.js";
-import { readJson, writeJson } from "../utils/fs.js";
+import { fileExists, readJson, writeJson } from "../utils/fs.js";
 import {
   readArchiveEventRecords,
   readCalibrationEventRecords,
@@ -41,6 +42,42 @@ import {
   findLegacyAcceptedRecord,
 } from "./accepted-head.js";
 import { resolveRecordEra } from "../evaluation/decision.js";
+import { resolveKnowledgePaths } from "./knowledge-paths.js";
+
+export type IndexUpdateMode = "incremental" | "full";
+export interface RebuildIndexesOptions {
+  mode?: IndexUpdateMode;
+}
+
+interface IndexLedgerSnapshot {
+  records: ExperimentRecord[];
+  incidents: IncidentRecord[];
+  headEvents: Awaited<ReturnType<typeof readHeadEventRecords>>;
+  archiveEvents: Awaited<ReturnType<typeof readArchiveEventRecords>>;
+  calibrationEvents: Awaited<ReturnType<typeof readCalibrationEventRecords>>;
+  confidenceEvents: Awaited<ReturnType<typeof readLocalConfidenceEventRecords>>;
+  problemEvents: Awaited<ReturnType<typeof readProblemEventRecords>>;
+  repairAttempts: Awaited<ReturnType<typeof readRepairAttemptRecords>>;
+  branchRecords: Awaited<ReturnType<typeof readAutonomousBranchRecords>>;
+  researchKnowledge: Awaited<ReturnType<typeof readResearchKnowledgeRecords>>;
+  taskBatches: TaskBatchRecord[];
+  tasks: TaskRecord[];
+}
+
+interface IndexManifest {
+  schemaVersion: "autonomous-index-manifest/v1";
+  mode: IndexUpdateMode;
+  lastUpdatedAt: string;
+  fallbackReason: string | null;
+  ledgers: Record<string, { path: string; sizeBytes: number }>;
+  cachePath: string;
+}
+
+type IndexLedgerKey = keyof IndexLedgerSnapshot;
+type IndexLedgerSpecs = Record<
+  IndexLedgerKey,
+  { path: string; reader: (stateRoot: string) => Promise<unknown[]> }
+>;
 
 function sortExperiments(records: ExperimentRecord[]): ExperimentRecord[] {
   return [...records].sort((left, right) => {
@@ -338,19 +375,26 @@ function buildHardGateFailPatterns(
     .map(([label, count]) => ({ label, count }));
 }
 
-export async function rebuildIndexes(stateRoot: string): Promise<void> {
-  const records = await readExperimentRecords(stateRoot);
-  const incidents = await readIncidentRecords(stateRoot);
-  const headEvents = await readHeadEventRecords(stateRoot);
-  const archiveEvents = await readArchiveEventRecords(stateRoot);
-  const calibrationEvents = await readCalibrationEventRecords(stateRoot);
-  const confidenceEvents = await readLocalConfidenceEventRecords(stateRoot);
-  const problemEvents = await readProblemEventRecords(stateRoot);
-  const repairAttempts = await readRepairAttemptRecords(stateRoot);
-  const branchRecords = await readAutonomousBranchRecords(stateRoot);
-  const researchKnowledge = await readResearchKnowledgeRecords(stateRoot);
-  const taskBatches = await readTaskBatchRecords(stateRoot);
-  const tasks = await readTaskRecords(stateRoot);
+export async function rebuildIndexes(
+  stateRoot: string,
+  options: RebuildIndexesOptions = {},
+): Promise<void> {
+  const snapshot =
+    options.mode === "incremental"
+      ? await loadIndexLedgerSnapshot(stateRoot)
+      : await readFullIndexSnapshot(stateRoot);
+  const records = snapshot.records;
+  const incidents = snapshot.incidents;
+  const headEvents = snapshot.headEvents;
+  const archiveEvents = snapshot.archiveEvents;
+  const calibrationEvents = snapshot.calibrationEvents;
+  const confidenceEvents = snapshot.confidenceEvents;
+  const problemEvents = snapshot.problemEvents;
+  const repairAttempts = snapshot.repairAttempts;
+  const branchRecords = snapshot.branchRecords;
+  const researchKnowledge = snapshot.researchKnowledge;
+  const taskBatches = snapshot.taskBatches;
+  const tasks = snapshot.tasks;
   const sorted = sortExperiments(records);
   const nonFallbackRecords = sorted.filter((record) => !hasFallbackEvaluation(record));
   const acceptedHeadRecord = findBestAcceptedRecord(records);
@@ -661,6 +705,223 @@ export async function rebuildIndexes(stateRoot: string): Promise<void> {
     repairAttempts,
     branchRecords,
   });
+}
+
+async function loadIndexLedgerSnapshot(stateRoot: string): Promise<IndexLedgerSnapshot> {
+  const paths = resolveStatePaths(stateRoot);
+  const knowledgePaths = resolveKnowledgePaths(stateRoot);
+  const manifestPath = path.join(
+    knowledgePaths.runtimeDir,
+    "autonomous-index-manifest.json",
+  );
+  const cachePath = path.join(knowledgePaths.runtimeDir, "autonomous-index-cache.json");
+  const ledgerSpecs: IndexLedgerSpecs = {
+    records: { path: paths.experimentsPath, reader: readExperimentRecords },
+    incidents: { path: paths.incidentsPath, reader: readIncidentRecords },
+    headEvents: { path: paths.headEventsPath, reader: readHeadEventRecords },
+    archiveEvents: { path: paths.archiveEventsPath, reader: readArchiveEventRecords },
+    calibrationEvents: {
+      path: paths.calibrationEventsPath,
+      reader: readCalibrationEventRecords,
+    },
+    confidenceEvents: {
+      path: paths.localConfidenceEventsPath,
+      reader: readLocalConfidenceEventRecords,
+    },
+    problemEvents: { path: paths.problemEventsPath, reader: readProblemEventRecords },
+    repairAttempts: {
+      path: paths.repairAttemptsPath,
+      reader: readRepairAttemptRecords,
+    },
+    branchRecords: { path: paths.branchesPath, reader: readAutonomousBranchRecords },
+    researchKnowledge: {
+      path: paths.researchKnowledgePath,
+      reader: readResearchKnowledgeRecords,
+    },
+    taskBatches: { path: paths.taskBatchesPath, reader: readTaskBatchRecords },
+    tasks: { path: paths.tasksPath, reader: readTaskRecords },
+  } as const;
+
+  const manifest = await readJson<IndexManifest>(manifestPath).catch(() => null);
+  const cached = await readJson<IndexLedgerSnapshot>(cachePath).catch(() => null);
+  if (
+    manifest?.schemaVersion === "autonomous-index-manifest/v1" &&
+    cached &&
+    manifest.cachePath === cachePath
+  ) {
+    try {
+      const appended = await readAppendedIndexRecords(ledgerSpecs, manifest);
+      const snapshot = mergeIndexSnapshots(cached, appended.snapshot);
+      await persistIndexSnapshot({
+        stateRoot,
+        cachePath,
+        manifestPath,
+        snapshot,
+        ledgerSpecs,
+        mode: "incremental",
+        fallbackReason: null,
+      });
+      return snapshot;
+    } catch (error) {
+      const snapshot = await readFullIndexSnapshot(stateRoot);
+      await persistIndexSnapshot({
+        stateRoot,
+        cachePath,
+        manifestPath,
+        snapshot,
+        ledgerSpecs,
+        mode: "full",
+        fallbackReason: error instanceof Error ? error.message : String(error),
+      });
+      return snapshot;
+    }
+  }
+
+  const snapshot = await readFullIndexSnapshot(stateRoot);
+  await persistIndexSnapshot({
+    stateRoot,
+    cachePath,
+    manifestPath,
+    snapshot,
+    ledgerSpecs,
+    mode: "full",
+    fallbackReason: manifest ? "index_cache_missing_or_schema_mismatch" : null,
+  });
+  return snapshot;
+}
+
+async function readFullIndexSnapshot(stateRoot: string): Promise<IndexLedgerSnapshot> {
+  return {
+    records: await readExperimentRecords(stateRoot),
+    incidents: await readIncidentRecords(stateRoot),
+    headEvents: await readHeadEventRecords(stateRoot),
+    archiveEvents: await readArchiveEventRecords(stateRoot),
+    calibrationEvents: await readCalibrationEventRecords(stateRoot),
+    confidenceEvents: await readLocalConfidenceEventRecords(stateRoot),
+    problemEvents: await readProblemEventRecords(stateRoot),
+    repairAttempts: await readRepairAttemptRecords(stateRoot),
+    branchRecords: await readAutonomousBranchRecords(stateRoot),
+    researchKnowledge: await readResearchKnowledgeRecords(stateRoot),
+    taskBatches: await readTaskBatchRecords(stateRoot),
+    tasks: await readTaskRecords(stateRoot),
+  };
+}
+
+async function readAppendedIndexRecords(
+  ledgerSpecs: IndexLedgerSpecs,
+  manifest: IndexManifest,
+): Promise<{ snapshot: IndexLedgerSnapshot }> {
+  const empty = emptyIndexSnapshot();
+  for (const [key, spec] of Object.entries(ledgerSpecs)) {
+    const previous = manifest.ledgers[key];
+    const currentSize = await getFileSize(spec.path);
+    if (!previous) {
+      throw new Error(`index manifest missing ledger entry: ${key}`);
+    }
+    if (currentSize < previous.sizeBytes) {
+      throw new Error(`ledger shrank since last index update: ${key}`);
+    }
+    if (currentSize === previous.sizeBytes) {
+      continue;
+    }
+    const appended = await readJsonlFromOffset(spec.path, previous.sizeBytes);
+    (empty as unknown as Record<string, unknown[]>)[key] = appended;
+  }
+  return { snapshot: empty };
+}
+
+function mergeIndexSnapshots(
+  cached: IndexLedgerSnapshot,
+  appended: IndexLedgerSnapshot,
+): IndexLedgerSnapshot {
+  return {
+    records: [...cached.records, ...appended.records],
+    incidents: [...cached.incidents, ...appended.incidents],
+    headEvents: [...cached.headEvents, ...appended.headEvents],
+    archiveEvents: [...cached.archiveEvents, ...appended.archiveEvents],
+    calibrationEvents: [...cached.calibrationEvents, ...appended.calibrationEvents],
+    confidenceEvents: [...cached.confidenceEvents, ...appended.confidenceEvents],
+    problemEvents: [...cached.problemEvents, ...appended.problemEvents],
+    repairAttempts: [...cached.repairAttempts, ...appended.repairAttempts],
+    branchRecords: [...cached.branchRecords, ...appended.branchRecords],
+    researchKnowledge: [...cached.researchKnowledge, ...appended.researchKnowledge],
+    taskBatches: [...cached.taskBatches, ...appended.taskBatches],
+    tasks: [...cached.tasks, ...appended.tasks],
+  };
+}
+
+function emptyIndexSnapshot(): IndexLedgerSnapshot {
+  return {
+    records: [],
+    incidents: [],
+    headEvents: [],
+    archiveEvents: [],
+    calibrationEvents: [],
+    confidenceEvents: [],
+    problemEvents: [],
+    repairAttempts: [],
+    branchRecords: [],
+    researchKnowledge: [],
+    taskBatches: [],
+    tasks: [],
+  };
+}
+
+async function persistIndexSnapshot(input: {
+  stateRoot: string;
+  cachePath: string;
+  manifestPath: string;
+  snapshot: IndexLedgerSnapshot;
+  ledgerSpecs: IndexLedgerSpecs;
+  mode: IndexUpdateMode;
+  fallbackReason: string | null;
+}): Promise<void> {
+  await writeJson(input.cachePath, input.snapshot);
+  const ledgers: IndexManifest["ledgers"] = {};
+  for (const [key, spec] of Object.entries(input.ledgerSpecs)) {
+    ledgers[key] = {
+      path: spec.path,
+      sizeBytes: await getFileSize(spec.path),
+    };
+  }
+  await writeJson(input.manifestPath, {
+    schemaVersion: "autonomous-index-manifest/v1",
+    mode: input.mode,
+    lastUpdatedAt: new Date().toISOString(),
+    fallbackReason: input.fallbackReason,
+    ledgers,
+    cachePath: input.cachePath,
+  } satisfies IndexManifest);
+  void input.stateRoot;
+}
+
+async function readJsonlFromOffset(filePath: string, offset: number): Promise<unknown[]> {
+  if (!(await fileExists(filePath))) {
+    return [];
+  }
+  const fileHandle = await open(filePath, "r");
+  try {
+    const stream = fileHandle.createReadStream({
+      encoding: "utf8",
+      start: offset,
+    });
+    const chunks: string[] = [];
+    for await (const chunk of stream) {
+      chunks.push(String(chunk));
+    }
+    return chunks
+      .join("")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as unknown);
+  } finally {
+    await fileHandle.close();
+  }
+}
+
+async function getFileSize(filePath: string): Promise<number> {
+  return (await stat(filePath).catch(() => ({ size: 0 }))).size;
 }
 
 async function mirrorLegacyViews(

@@ -99,6 +99,57 @@ async function writePromotionArtifacts(root: string, candidateId: string) {
 }
 
 describe("rebuildIndexes", () => {
+  test("uses index cache for append-only incremental updates after an initial full build", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-index-incremental-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const knowledgePaths = resolveKnowledgePaths(stateRoot);
+    const manifestPath = path.join(
+      knowledgePaths.runtimeDir,
+      "autonomous-index-manifest.json",
+    );
+
+    await appendExperimentRecord(stateRoot, {
+      runId: "run-incremental",
+      iteration: 1,
+      candidateId: "cand-first",
+      parentCandidateId: null,
+      branchId: "main",
+      acceptedHeadCandidateId: null,
+      baselineCandidateId: "seed_primary",
+      candidateScore: 0.35,
+      decision: "accepted_no_improvement",
+      recordEra: "legacy",
+      status: "evaluated",
+    });
+    await rebuildIndexes(stateRoot, { mode: "incremental" });
+    const firstManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    expect(firstManifest.mode).toBe("full");
+
+    await appendExperimentRecord(stateRoot, {
+      runId: "run-incremental",
+      iteration: 2,
+      candidateId: "cand-second",
+      parentCandidateId: "cand-first",
+      branchId: "main",
+      acceptedHeadCandidateId: "cand-first",
+      baselineCandidateId: "seed_primary",
+      candidateScore: 0.47,
+      decision: "accepted_improvement",
+      recordEra: "legacy",
+      status: "evaluated",
+    });
+    await rebuildIndexes(stateRoot, { mode: "incremental" });
+
+    const secondManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    const leaderboard = JSON.parse(
+      await readFile(knowledgePaths.leaderboardPath, "utf8"),
+    );
+
+    expect(secondManifest.mode).toBe("incremental");
+    expect(secondManifest.fallbackReason).toBeNull();
+    expect(leaderboard.entries[0].candidateId).toBe("cand-second");
+  });
+
   test("rebuilds leaderboard, lineage, and frontier deterministically from experiments.jsonl", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-indexes-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");

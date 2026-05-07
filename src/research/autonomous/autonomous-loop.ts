@@ -1215,7 +1215,7 @@ async function finalizeAutonomousLocalEvaluation(input: {
     message: "Rebuilding derived autonomous views",
     timeoutMs: input.phaseTimeouts.rebuildIndexesMs,
     signal: input.signal,
-    run: () => rebuildIndexes(input.stateRoot),
+    run: () => rebuildIndexes(input.stateRoot, { mode: "incremental" }),
   });
 
   return selection;

@@ -672,6 +672,34 @@ describe("ledger CLI commands", () => {
     );
   });
 
+  test(
+    "validate-ledger defaults to fast mode",
+    async () => {
+      const root = await mkdtemp(path.join(tmpdir(), "af-cli-validate-fast-deep-"));
+      const stateRoot = path.join(root, "state", "pi-autoresearch");
+      const appended = await appendExperimentRecord(
+        stateRoot,
+        await buildVerifiedExperimentInput(root, "cand-fast-deep"),
+      );
+      await writeFile(
+        appended.artifactBundleRef?.path ?? "",
+        `${JSON.stringify({ corrupted: true })}\n`,
+        "utf8",
+      );
+
+      const fast = await runCliCommand(root, ["validate-ledger"]);
+
+      expect(fast.code).toBe(0);
+      expect(parseCliJson(fast.stdout)).toEqual(
+        expect.objectContaining({
+          ok: true,
+          mode: "fast",
+        }),
+      );
+    },
+    10000,
+  );
+
   test("validate-ledger reports malformed middle line", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-cli-validate-middle-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");

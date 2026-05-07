@@ -59,11 +59,16 @@ import {
 import { buildLocalConfidenceSummary } from "./divergence-update-phase.js";
 import {
   buildSchemaHardeningSummary,
-  buildSchemaRegenerateBrief,
 } from "./llm-repair-phase.js";
 import { type MutationSchemaMode } from "../../policy/autoresearch-contract.js";
 
 const RESPONSE_SCHEMA_VERSION = "parsed-mutation-response/v2";
+export type MutationSchemaFailureKind =
+  | "json_parse"
+  | "missing_field"
+  | "type_mismatch"
+  | "enum_mismatch"
+  | "unknown";
 const STAGNATION_MIN_ITERATIONS_WITHOUT_CHAMPION = 24;
 const STAGNATION_MIN_RECENT_EVALUATIONS = 10;
 const STAGNATION_MIN_RECENT_ELIGIBLE = 3;
@@ -194,6 +199,13 @@ interface PendingSuccessfulRepairAttempt {
   summary: string;
   failureSignatureHash?: string | null;
   structureFamily?: string | null;
+}
+
+interface MutationSchemaTelemetry {
+  schemaFailureKind: MutationSchemaFailureKind | null;
+  repairCount: number;
+  repairDurationMs: number;
+  failurePolicy: "none" | "repair_once_fail_fast";
 }
 
 export interface AutonomousMutationPlan {
@@ -691,10 +703,19 @@ export async function generateAutonomousCandidate(input: {
   signal?: AbortSignal;
   monitor?: MonitorLike;
 }): Promise<AutonomousMutationOutput> {
+  const generationStartedAt = Date.now();
+  const promptBytes = Buffer.byteLength(
+    JSON.stringify({
+      brief: input.plan.brief,
+      baselinePine: input.plan.baselinePine,
+    }),
+    "utf8",
+  );
   await input.monitor?.log("autonomous.mutation.request", "Sending autonomous mutation request", {
     iteration: input.iteration,
     baselineLength: input.plan.baselinePine.length,
     parentCandidateId: input.parentCandidateId,
+    promptBytes,
   });
 
   let response = await input.llmClient.generateMutation({
@@ -739,6 +760,7 @@ export async function generateAutonomousCandidate(input: {
   });
   response = schemaRepair.response;
   let parsed = schemaRepair.parsed;
+  let schemaTelemetry = schemaRepair.telemetry;
   const pendingRepairAttempts = [...schemaRepair.pendingRepairAttempts];
 
   let preflight = inspectGeneratedMutation(parsed, {
@@ -871,6 +893,7 @@ export async function generateAutonomousCandidate(input: {
         });
         response = schemaRepair.response;
         parsed = schemaRepair.parsed;
+        schemaTelemetry = mergeSchemaTelemetry(schemaTelemetry, schemaRepair.telemetry);
         pendingRepairAttempts.push(...schemaRepair.pendingRepairAttempts);
         preflight = inspectGeneratedMutation(parsed, {
           breakoutVariantDirective: input.plan.brief.breakoutVariantDirective,
@@ -942,6 +965,15 @@ export async function generateAutonomousCandidate(input: {
     brief: input.plan.brief,
     briefHash: input.plan.briefHash,
     response,
+    generationTelemetry: {
+      durationMs: Date.now() - generationStartedAt,
+      promptBytes,
+      responseBytes: Buffer.byteLength(response, "utf8"),
+      schemaFailureKind: schemaTelemetry.schemaFailureKind,
+      repairCount: schemaTelemetry.repairCount,
+      repairDurationMs: schemaTelemetry.repairDurationMs,
+      failurePolicy: schemaTelemetry.failurePolicy,
+    },
     signal: input.signal,
   });
   await appendPendingSuccessfulRepairAttempts({
@@ -2837,25 +2869,35 @@ async function parseWithSchemaRepair(input: {
   parsed: ParsedMutationResponse;
   response: string;
   pendingRepairAttempts: PendingSuccessfulRepairAttempt[];
+  telemetry: MutationSchemaTelemetry;
 }> {
   try {
     return {
       parsed: parseMutationResponseStrict(input.response),
       response: input.response,
       pendingRepairAttempts: [],
+      telemetry: {
+        schemaFailureKind: null,
+        repairCount: 0,
+        repairDurationMs: 0,
+        failurePolicy: "none",
+      },
     };
   } catch (error) {
     const diagnosis = error instanceof Error ? error.message : String(error);
+    const schemaFailureKind = classifyMutationSchemaFailure(diagnosis);
     const failureSignatureHash = sha256(
       JSON.stringify({
         problemKind: "llm_schema_fail",
         diagnosis,
+        schemaFailureKind,
       }),
     );
     await input.monitor?.log("autonomous.mutation.schema_fail", "Strict mutation schema parse failed", {
       iteration: input.iteration,
       candidateId: input.candidateId,
       diagnosis,
+      schemaFailureKind,
     });
     throwIfAborted(input.signal);
     const problemEvent = await appendProblemEventRecord(input.stateRoot, {
@@ -2902,6 +2944,12 @@ async function parseWithSchemaRepair(input: {
           parsed: recovered,
           response: input.response,
           pendingRepairAttempts: [pendingRepairAttempt],
+          telemetry: {
+            schemaFailureKind,
+            repairCount: 1,
+            repairDurationMs: 0,
+            failurePolicy: "repair_once_fail_fast",
+          },
         };
       } catch {
         // Fall through to LLM-driven schema repair when local salvage is impossible.
@@ -2912,6 +2960,7 @@ async function parseWithSchemaRepair(input: {
       "Do not change the strategy idea. Re-emit strict JSON only with required keys candidateSummary, nextMutationHints, strategySpec, specPatch, inventory.",
       "Use rawFailedResponse only as intent context; do not fall back to hand-written Pine.",
     ];
+    const repairStartedAt = Date.now();
     const repairResponse = await input.llmClient.repairMutation({
       brief: input.brief,
       candidatePine: input.response,
@@ -2944,6 +2993,12 @@ async function parseWithSchemaRepair(input: {
         parsed,
         response: repairResponse,
         pendingRepairAttempts: [pendingRepairAttempt],
+        telemetry: {
+          schemaFailureKind,
+          repairCount: 1,
+          repairDurationMs: Date.now() - repairStartedAt,
+          failurePolicy: "repair_once_fail_fast",
+        },
       };
     } catch (repairError) {
       throwIfAborted(input.signal);
@@ -2963,62 +3018,66 @@ async function parseWithSchemaRepair(input: {
         summary: "Strict JSON schema repair response was still invalid.",
         failureSignatureHash,
       });
-      const regenerateBrief = buildSchemaRegenerateBrief(input.brief, diagnosis);
-      const regenerateResponse = await input.llmClient.generateMutation({
-        brief: regenerateBrief,
-        baselinePine: input.baselinePine,
-        signal: input.signal,
-      });
-      throwIfAborted(input.signal);
-      const regeneratePromptHash = sha256(
-        JSON.stringify({
-          operation: "generateMutation",
-          brief: regenerateBrief,
-          baselinePine: input.baselinePine,
-        }),
-      );
-      try {
-        const parsed = parseMutationResponseStrict(regenerateResponse);
-        const pendingRepairAttempt: PendingSuccessfulRepairAttempt = {
-          problemEventId: problemEvent.problemEventId,
-          candidateId: input.candidateId,
-          repairKind: "schema_regenerate",
-          llmPromptHash: regeneratePromptHash,
-          llmResponseHash: sha256(regenerateResponse),
-          summary:
-            "Requested strict schema regenerate after schema repair remained invalid.",
-          failureSignatureHash,
-        };
-        return {
-          parsed,
-          response: regenerateResponse,
-          pendingRepairAttempts: [pendingRepairAttempt],
-        };
-      } catch (regenerateError) {
-        throwIfAborted(input.signal);
-        await appendRepairAttemptRecord(input.stateRoot, {
-          repairAttemptId: createCandidateId("repair"),
-          problemEventId: problemEvent.problemEventId,
-          runId: input.runId,
+      await input.monitor?.log(
+        "autonomous.mutation.schema_fail_fast",
+        "Schema repair failed once; failing fast without schema regenerate",
+        {
           iteration: input.iteration,
           candidateId: input.candidateId,
-          repairedCandidateId: null,
-          repairKind: "schema_regenerate",
-          llmPromptHash: regeneratePromptHash,
-          llmResponseHash: sha256(regenerateResponse),
-          result: "failed",
-          failureReason:
-            regenerateError instanceof Error
-              ? regenerateError.message
-              : String(regenerateError),
-          summary:
-            "Strict schema regenerate also failed to produce a valid mutation payload.",
-          failureSignatureHash,
-        });
-        throw regenerateError;
-      }
+          schemaFailureKind,
+          repairDurationMs: Date.now() - repairStartedAt,
+        },
+      );
+      throw repairError;
     }
   }
+}
+
+function classifyMutationSchemaFailure(
+  diagnosis: string,
+): MutationSchemaFailureKind {
+  const lower = diagnosis.toLowerCase();
+  if (
+    lower.includes("json") ||
+    lower.includes("parse") ||
+    lower.includes("unexpected token")
+  ) {
+    return "json_parse";
+  }
+  if (
+    lower.includes("required") ||
+    lower.includes("missing") ||
+    lower.includes("received undefined")
+  ) {
+    return "missing_field";
+  }
+  if (lower.includes("invalid enum") || lower.includes("enum")) {
+    return "enum_mismatch";
+  }
+  if (
+    lower.includes("expected") ||
+    lower.includes("received") ||
+    lower.includes("invalid_type")
+  ) {
+    return "type_mismatch";
+  }
+  return "unknown";
+}
+
+function mergeSchemaTelemetry(
+  left: MutationSchemaTelemetry,
+  right: MutationSchemaTelemetry,
+): MutationSchemaTelemetry {
+  return {
+    schemaFailureKind: left.schemaFailureKind ?? right.schemaFailureKind,
+    repairCount: left.repairCount + right.repairCount,
+    repairDurationMs: left.repairDurationMs + right.repairDurationMs,
+    failurePolicy:
+      left.failurePolicy === "repair_once_fail_fast" ||
+      right.failurePolicy === "repair_once_fail_fast"
+        ? "repair_once_fail_fast"
+        : "none",
+  };
 }
 
 async function appendPendingSuccessfulRepairAttempts(input: {
@@ -3163,6 +3222,15 @@ async function persistGeneratedCandidate(input: {
   brief: MutationBrief;
   briefHash: string;
   response: string;
+  generationTelemetry?: {
+    durationMs: number;
+    promptBytes: number;
+    responseBytes: number;
+    schemaFailureKind: MutationSchemaFailureKind | null;
+    repairCount: number;
+    repairDurationMs: number;
+    failurePolicy: "none" | "repair_once_fail_fast";
+  };
   signal?: AbortSignal;
 }): Promise<AutonomousMutationOutput> {
   throwIfAborted(input.signal);
@@ -3212,6 +3280,13 @@ async function persistGeneratedCandidate(input: {
       inventorySource: input.parsed.inventorySource,
       inferredFields: input.parsed.inferredFields,
       missingFields: input.parsed.missingFields,
+      durationMs: input.generationTelemetry?.durationMs,
+      promptBytes: input.generationTelemetry?.promptBytes,
+      responseBytes: input.generationTelemetry?.responseBytes,
+      schemaFailureKind: input.generationTelemetry?.schemaFailureKind,
+      repairCount: input.generationTelemetry?.repairCount,
+      repairDurationMs: input.generationTelemetry?.repairDurationMs,
+      failurePolicy: input.generationTelemetry?.failurePolicy,
     },
     brief: input.brief,
     briefHash: input.briefHash,

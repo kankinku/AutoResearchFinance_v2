@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "runtime-json.ps1")
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
@@ -56,7 +57,7 @@ function Write-WorkerHeartbeat {
   if (-not [string]::IsNullOrWhiteSpace($ErrorMessage)) {
     $payload.error = $ErrorMessage
   }
-  $payload | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+  Write-AtomicJson -LiteralPath $HeartbeatFile -Value $payload
 }
 
 function Stop-StaleWorkerPid {

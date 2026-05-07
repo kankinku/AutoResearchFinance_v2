@@ -758,6 +758,44 @@ describe("autonomous tv-verified v4", () => {
     expect(schemaRepair?.repairedCandidateId).toBe(result.candidateId);
   });
 
+  test("schema repair failure fails fast without a regenerate request", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-schema-fail-fast-"));
+    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    await initializeWorkspace(workspaceRoot);
+    let generateCalls = 0;
+
+    const llmClient = {
+      async generateMutation() {
+        generateCalls += 1;
+        return "not-json";
+      },
+      async generateConditionAblation() {
+        throw new Error("condition ablation should not be called");
+      },
+      async repairMutation() {
+        return "still-not-json";
+      },
+    };
+
+    const result = await runAutonomousLoop({
+      workspaceRoot,
+      env: createRuntimeEnv(workspaceRoot),
+      llmClient,
+      localExecutorFactory: () => createLocalMockExecutor(createStrongMetrics()),
+    });
+
+    const repairAttempts = await readRepairAttemptRecords(stateRoot);
+
+    expect(result.candidateId).toBeNull();
+    expect(generateCalls).toBe(1);
+    expect(
+      repairAttempts.filter((attempt) => attempt.repairKind === "schema_repair"),
+    ).toHaveLength(1);
+    expect(
+      repairAttempts.some((attempt) => attempt.repairKind === "schema_regenerate"),
+    ).toBe(false);
+  });
+
   test("runAutonomousLoop keeps calibration candidates queued when TradingView is unavailable", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-queue-"));
     const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");

@@ -12,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "runtime-json.ps1")
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
@@ -31,7 +32,7 @@ function Write-StaleHeartbeat {
     $Pid,
     [string]$Reason
   )
-  @{
+  Write-AtomicJson -LiteralPath $HeartbeatFile -Value @{
     pid = $Pid
     status = "stale"
     owner = "run-autonomous-forever"
@@ -39,7 +40,7 @@ function Write-StaleHeartbeat {
     lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
     heartbeatPath = $HeartbeatFile
     pidPath = $PidFile
-  } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+  }
 }
 
 if (Test-Path -LiteralPath $PidFile) {
@@ -232,7 +233,7 @@ try {
     $iteration += 1
     $startedAt = Get-Date
     $memory = Get-LoopTelemetry
-    @{
+    Write-AtomicJson -LiteralPath $HeartbeatFile -Value @{
       pid = $PID
       iteration = $iteration
       status = "running"
@@ -244,7 +245,7 @@ try {
       memory = $memory
       nodeMemory = Get-NodeTelemetry
       calibrationWorker = Get-CalibrationWorkerStatus
-    } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+    }
 
     Write-LoopLog "iteration ${iteration}: run-autonomous-loop start"
     $runArguments = @(
@@ -293,7 +294,7 @@ try {
     }
 
     $completedAt = Get-Date
-    @{
+    Write-AtomicJson -LiteralPath $HeartbeatFile -Value @{
       pid = $PID
       iteration = $iteration
       status = "sleeping"
@@ -313,13 +314,13 @@ try {
       lastIndexExit = $indexExit
       lastValidateDurationSeconds = $validateDurationSeconds
       lastRebuildDurationSeconds = $rebuildDurationSeconds
-    } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+    }
 
     Start-Sleep -Seconds $effectiveSleepSeconds
   }
 } catch {
   Write-LoopLog ("fatal error: {0}" -f $_.Exception.Message)
-  @{
+  Write-AtomicJson -LiteralPath $HeartbeatFile -Value @{
     pid = $PID
     iteration = $iteration
     status = "failed"
@@ -328,7 +329,7 @@ try {
     lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
     error = $_.Exception.Message
     logFile = $LogFile
-  } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatFile -Encoding ASCII
+  }
   throw
 } finally {
   if ($parallelCalibration) {
