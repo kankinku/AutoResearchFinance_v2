@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 import {
   buildTwoHourBars,
   classifyMarketRegime,
+  ensureMarketContext,
   ensureQqqTwoHourContext,
 } from "../../src/research/market-context.js";
 import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
@@ -105,5 +106,58 @@ describe("market context", () => {
         ),
       ),
     ).rejects.toThrow();
+  });
+
+  test("uses target-specific cache files for BTC 15m context", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-market-workspace-"));
+    const stateRoot = await mkdtemp(path.join(tmpdir(), "af-market-state-"));
+    const cachePath = path.join(
+      stateRoot,
+      "artifacts",
+      "results",
+      "btc-15m-context.json",
+    );
+    const cachedBars = [
+      {
+        time: "2026-04-20T00:00:00.000Z",
+        open: 65000,
+        high: 65100,
+        low: 64900,
+        close: 65050,
+        volume: 10,
+        ema20: null,
+        ema50: null,
+        ema200: null,
+        atr14: null,
+        atrPercent: null,
+        rsi14: null,
+        bbWidth: null,
+        ret3: null,
+        ret10: null,
+        regime: "range",
+      },
+    ];
+    await mkdir(path.dirname(cachePath), {
+      recursive: true,
+    });
+    await writeFile(cachePath, JSON.stringify({ bars: cachedBars }), "utf8");
+
+    const result = await ensureMarketContext(
+      workspaceRoot,
+      {
+        symbol: "BTCUSD",
+        timeframe: "15",
+      },
+      {
+        stateRoot,
+        fetchImpl: async () => {
+          throw new Error("target cache should avoid fetching");
+        },
+      },
+    );
+
+    expect(result.cachePath).toBe(cachePath);
+    expect(result.fromCache).toBe(true);
+    expect(result.bars).toEqual(cachedBars);
   });
 });

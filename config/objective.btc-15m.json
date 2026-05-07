@@ -1,0 +1,28 @@
+{
+  "symbol": "BTCUSD",
+  "timeframe": "15",
+  "hardGates": {
+    "minimumTotalTrades": 80,
+    "minimumPostFeeNetProfitPercent": 0
+  },
+  "softGuardrails": {
+    "maximumStrategyDrawdownPercent": 35,
+    "softGuardrailPenalty": 0.1
+  },
+  "weights": {
+    "netProfitPercent": 0.4,
+    "profitFactor": 0.15,
+    "inverseMaxDrawdown": 0.15,
+    "percentProfitable": 0.1,
+    "totalTrades": 0.08,
+    "avgTradePercent": 0.12
+  },
+  "normalizationCaps": {
+    "netProfitPercent": 120,
+    "profitFactor": 3.5,
+    "maxStrategyDrawdownPercent": 45,
+    "percentProfitable": 100,
+    "totalTrades": 500,
+    "avgTradePercent": 1.5
+  }
+}

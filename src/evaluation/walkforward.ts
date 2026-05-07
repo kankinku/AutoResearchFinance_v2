@@ -75,7 +75,7 @@ export async function evaluateWalkForward(input: {
   foldCount?: number;
   embargoBars?: number;
 }): Promise<WalkForwardEvaluation> {
-  const policy = await loadWalkForwardPolicy(input.workspaceRoot);
+  const policy = await loadWalkForwardPolicy(input.workspaceRoot, input.objective);
   const effectivePolicy = {
     ...policy,
     foldCount: input.foldCount ?? policy.foldCount,
@@ -91,6 +91,10 @@ export async function evaluateWalkForward(input: {
 
   const bars = await loadLocalBacktestBars(input.workspaceRoot, {
     stateRoot: input.stateRoot,
+    chartTarget: {
+      symbol: input.objective.symbol,
+      timeframe: input.objective.timeframe,
+    },
   });
   const coverage = computeCoverageSummary(bars);
   if ((coverage.coverageDays ?? 0) < effectivePolicy.minimumCoverageDays) {
@@ -168,14 +172,49 @@ export async function evaluateWalkForward(input: {
 
 export async function loadWalkForwardPolicy(
   workspaceRoot: string,
+  target?: Pick<ObjectiveConfig, "symbol" | "timeframe">,
 ): Promise<WalkForwardPolicy> {
-  const policyPath = path.join(workspaceRoot, "config", "walkforward.qqq-120m.json");
-  try {
-    const parsed = JSON.parse(await readFile(policyPath, "utf8")) as unknown;
-    return walkForwardPolicySchema.parse(parsed);
-  } catch {
-    return DEFAULT_WALK_FORWARD_POLICY;
+  const candidatePaths = [
+    target
+      ? path.join(
+          workspaceRoot,
+          "config",
+          `walkforward.${formatPolicyTargetKey(target)}.json`,
+        )
+      : null,
+    path.join(workspaceRoot, "config", "walkforward.qqq-120m.json"),
+  ].filter((value): value is string => value != null);
+
+  for (const policyPath of candidatePaths) {
+    try {
+      const parsed = JSON.parse(await readFile(policyPath, "utf8")) as unknown;
+      return walkForwardPolicySchema.parse(parsed);
+    } catch {
+      continue;
+    }
   }
+
+  return DEFAULT_WALK_FORWARD_POLICY;
+}
+
+function formatPolicyTargetKey(target: Pick<ObjectiveConfig, "symbol" | "timeframe">): string {
+  const symbol = target.symbol.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const timeframe = normalizePolicyTimeframe(target.timeframe);
+  return `${symbol}-${timeframe}`;
+}
+
+function normalizePolicyTimeframe(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "120" || normalized === "120m") {
+    return "120m";
+  }
+  if (normalized === "15") {
+    return "15m";
+  }
+  if (/^\d+$/.test(normalized)) {
+    return `${normalized}m`;
+  }
+  return normalized;
 }
 
 function resolveConfig(

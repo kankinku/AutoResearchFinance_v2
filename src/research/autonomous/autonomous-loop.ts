@@ -45,7 +45,7 @@ import {
   buildAutonomousBranchRecord,
   selectNextAutonomousBranch,
 } from "./branch-scheduler.js";
-import { ensureQqqTwoHourContext } from "../market-context.js";
+import { ensureMarketContext } from "../market-context.js";
 import {
   initializeWorkspace,
   type WorkspaceBootstrapDiagnostics,
@@ -224,9 +224,14 @@ export async function runAutonomousLoop(input: {
         run: async (signal) => {
           const localCapability = localExecutor.getCapability();
           if (localCapability.kind === "local-af-backtest") {
-            const ensuredContext = await ensureQqqTwoHourContext(input.workspaceRoot, {
-              stateRoot,
-            });
+            const ensuredContext = await ensureMarketContext(
+              input.workspaceRoot,
+              {
+                symbol: input.env.chartSymbol,
+                timeframe: input.env.chartTimeframe,
+              },
+              { stateRoot },
+            );
             await input.monitor?.log(
               "autonomous.market_context_ready",
               "Local-first market context is ready",
@@ -392,9 +397,14 @@ export async function runAutonomousLoop(input: {
         run: async (signal) => {
           const localCapability = localExecutor.getCapability();
           if (localCapability.kind === "local-af-backtest") {
-            const ensuredContext = await ensureQqqTwoHourContext(input.workspaceRoot, {
-              stateRoot,
-            });
+            const ensuredContext = await ensureMarketContext(
+              input.workspaceRoot,
+              {
+                symbol: input.env.chartSymbol,
+                timeframe: input.env.chartTimeframe,
+              },
+              { stateRoot },
+            );
             await input.monitor?.log(
               "autonomous.market_context_ready",
               "Local-first market context is ready",
@@ -505,9 +515,14 @@ export async function runAutonomousLoop(input: {
             run: async (signal) => {
               const localCapability = localExecutor.getCapability();
               if (localCapability.kind === "local-af-backtest") {
-                const ensuredContext = await ensureQqqTwoHourContext(input.workspaceRoot, {
-                  stateRoot,
-                });
+                const ensuredContext = await ensureMarketContext(
+                  input.workspaceRoot,
+                  {
+                    symbol: input.env.chartSymbol,
+                    timeframe: input.env.chartTimeframe,
+                  },
+                  { stateRoot },
+                );
                 await input.monitor?.log(
                   "autonomous.market_context_ready",
                   "Local-first market context is ready",

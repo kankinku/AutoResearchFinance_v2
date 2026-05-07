@@ -14,6 +14,21 @@ interface HourlyBar {
   volume: number;
 }
 
+export interface MarketContextTarget {
+  symbol: string;
+  timeframe: string;
+}
+
+interface MarketContextRequest {
+  yahooSymbol: string;
+  interval: string;
+  range: string;
+  aggregationBars: number;
+  timeframeMinutes: number;
+  normalizedSymbol: string;
+  normalizedTimeframe: string;
+}
+
 function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
@@ -149,7 +164,7 @@ function computeReturn(values: number[], lookback: number): Array<number | null>
   });
 }
 
-function enrichTwoHourBars(bars: HourlyBar[]): MarketContextBar[] {
+function enrichMarketBars(bars: HourlyBar[]): MarketContextBar[] {
   const closes = bars.map((bar) => bar.close);
   const ema20 = computeEma(closes, 20);
   const ema50 = computeEma(closes, 50);
@@ -220,20 +235,35 @@ function extractHourlyBars(payload: any): HourlyBar[] {
 }
 
 export function buildTwoHourBars(hourlyBars: HourlyBar[]): HourlyBar[] {
+  return buildAggregatedBars(hourlyBars, 2);
+}
+
+export function buildAggregatedBars(
+  sourceBars: HourlyBar[],
+  aggregationBars: number,
+): HourlyBar[] {
+  if (aggregationBars <= 1) {
+    return sourceBars;
+  }
+
   const result: HourlyBar[] = [];
-  for (let index = 0; index < hourlyBars.length; index += 2) {
-    const first = hourlyBars[index];
-    const second = hourlyBars[index + 1];
-    if (!first || !second) {
+  for (let index = 0; index < sourceBars.length; index += aggregationBars) {
+    const window = sourceBars.slice(index, index + aggregationBars);
+    if (window.length < aggregationBars) {
+      break;
+    }
+    const first = window[0];
+    const last = window.at(-1);
+    if (!first || !last) {
       break;
     }
     result.push({
       time: first.time,
       open: first.open,
-      high: Math.max(first.high, second.high),
-      low: Math.min(first.low, second.low),
-      close: second.close,
-      volume: first.volume + second.volume,
+      high: Math.max(...window.map((bar) => bar.high)),
+      low: Math.min(...window.map((bar) => bar.low)),
+      close: last.close,
+      volume: window.reduce((sum, bar) => sum + bar.volume, 0),
     });
   }
   return result;
@@ -284,8 +314,45 @@ export async function loadQqqTwoHourContext(
     stateRoot?: string;
   },
 ): Promise<{ bars: MarketContextBar[]; cachePath: string; fromCache: boolean }> {
+  return loadMarketContext(
+    workspaceRoot,
+    {
+      symbol: "QQQ",
+      timeframe: "120",
+    },
+    options,
+  );
+}
+
+export async function ensureQqqTwoHourContext(
+  workspaceRoot: string,
+  options?: {
+    fetchImpl?: typeof fetch;
+    stateRoot?: string;
+  },
+): Promise<{ bars: MarketContextBar[]; cachePath: string; fromCache: boolean }> {
+  return ensureMarketContext(
+    workspaceRoot,
+    {
+      symbol: "QQQ",
+      timeframe: "120",
+    },
+    options,
+  );
+}
+
+export async function loadMarketContext(
+  workspaceRoot: string,
+  target: MarketContextTarget,
+  options?: {
+    fetchImpl?: typeof fetch;
+    forceRefresh?: boolean;
+    stateRoot?: string;
+  },
+): Promise<{ bars: MarketContextBar[]; cachePath: string; fromCache: boolean }> {
   const stateRoot = resolveMarketContextStateRoot(workspaceRoot, options?.stateRoot);
-  const cachePath = resolveKnowledgePaths(stateRoot).qqqTwoHourContextPath;
+  const request = resolveMarketContextRequest(target);
+  const cachePath = resolveMarketContextCachePath(stateRoot, request);
 
   if (!options?.forceRefresh && (await fileExists(cachePath))) {
     const cached = await readJson<{ bars: MarketContextBar[] }>(cachePath);
@@ -297,9 +364,12 @@ export async function loadQqqTwoHourContext(
   }
 
   const fetchImpl = options?.fetchImpl ?? fetch;
-  const response = await fetchImpl(
-    "https://query1.finance.yahoo.com/v8/finance/chart/QQQ?range=730d&interval=1h",
+  const query = new URL(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(request.yahooSymbol)}`,
   );
+  query.searchParams.set("range", request.range);
+  query.searchParams.set("interval", request.interval);
+  const response = await fetchImpl(query);
   if (!response.ok) {
     if (await fileExists(cachePath)) {
       const cached = JSON.parse(await readFile(cachePath, "utf8")) as {
@@ -311,16 +381,23 @@ export async function loadQqqTwoHourContext(
         fromCache: true,
       };
     }
-    throw new Error(`Failed to fetch QQQ 1h context: ${response.status}`);
+    throw new Error(
+      `Failed to fetch ${request.normalizedSymbol} ${request.interval} context: ${response.status}`,
+    );
   }
 
   const payload = await response.json();
-  const hourlyBars = extractHourlyBars(payload);
-  const bars = enrichTwoHourBars(buildTwoHourBars(hourlyBars));
+  const sourceBars = extractHourlyBars(payload);
+  const bars = enrichMarketBars(
+    buildAggregatedBars(sourceBars, request.aggregationBars),
+  );
   await writeJson(cachePath, {
     generatedAt: new Date().toISOString(),
-    symbol: "QQQ",
-    timeframe: "2h",
+    symbol: request.normalizedSymbol,
+    timeframe: request.normalizedTimeframe,
+    yahooSymbol: request.yahooSymbol,
+    sourceInterval: request.interval,
+    sourceRange: request.range,
     bars,
   });
   return {
@@ -330,15 +407,17 @@ export async function loadQqqTwoHourContext(
   };
 }
 
-export async function ensureQqqTwoHourContext(
+export async function ensureMarketContext(
   workspaceRoot: string,
+  target: MarketContextTarget,
   options?: {
     fetchImpl?: typeof fetch;
     stateRoot?: string;
   },
 ): Promise<{ bars: MarketContextBar[]; cachePath: string; fromCache: boolean }> {
   const stateRoot = resolveMarketContextStateRoot(workspaceRoot, options?.stateRoot);
-  const cachePath = resolveKnowledgePaths(stateRoot).qqqTwoHourContextPath;
+  const request = resolveMarketContextRequest(target);
+  const cachePath = resolveMarketContextCachePath(stateRoot, request);
 
   if (await fileExists(cachePath)) {
     try {
@@ -355,11 +434,91 @@ export async function ensureQqqTwoHourContext(
     }
   }
 
-  return loadQqqTwoHourContext(workspaceRoot, {
+  return loadMarketContext(workspaceRoot, target, {
     fetchImpl: options?.fetchImpl,
     forceRefresh: true,
     stateRoot,
   });
+}
+
+function resolveMarketContextRequest(target: MarketContextTarget): MarketContextRequest {
+  const timeframeMinutes = normalizeTimeframeMinutes(target.timeframe);
+  const normalizedSymbol = normalizeMarketSymbol(target.symbol);
+  const yahooSymbol = resolveYahooSymbol(normalizedSymbol);
+  const sourceMinutes = timeframeMinutes <= 30 ? timeframeMinutes : 60;
+  const aggregationBars = Math.max(1, Math.round(timeframeMinutes / sourceMinutes));
+  const interval =
+    sourceMinutes < 60 ? `${sourceMinutes}m` : sourceMinutes === 60 ? "1h" : `${sourceMinutes}m`;
+  const range = timeframeMinutes <= 30 ? "60d" : "730d";
+
+  return {
+    yahooSymbol,
+    interval,
+    range,
+    aggregationBars,
+    timeframeMinutes,
+    normalizedSymbol,
+    normalizedTimeframe: formatTimeframe(timeframeMinutes),
+  };
+}
+
+function resolveMarketContextCachePath(
+  stateRoot: string,
+  request: MarketContextRequest,
+): string {
+  const paths = resolveKnowledgePaths(stateRoot);
+  if (request.normalizedSymbol === "QQQ" && request.timeframeMinutes === 120) {
+    return paths.qqqTwoHourContextPath;
+  }
+
+  const symbolKey = request.normalizedSymbol.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return path.join(
+    paths.resultsDir,
+    `${symbolKey}-${request.normalizedTimeframe}-context.json`,
+  );
+}
+
+function normalizeMarketSymbol(value: string): string {
+  const bare = value.trim().toUpperCase().split(":").at(-1) ?? value.trim().toUpperCase();
+  if (bare === "BTC" || bare === "BTCUSD" || bare === "BTCUSDT" || bare === "BTC-USD") {
+    return "BTC";
+  }
+  return bare;
+}
+
+function resolveYahooSymbol(normalizedSymbol: string): string {
+  if (normalizedSymbol === "BTC") {
+    return "BTC-USD";
+  }
+  return normalizedSymbol;
+}
+
+function normalizeTimeframeMinutes(value: string): number {
+  const normalized = value.trim().toLowerCase();
+  if (normalized.endsWith("h")) {
+    const hours = Number.parseFloat(normalized.slice(0, -1));
+    if (Number.isFinite(hours) && hours > 0) {
+      return Math.round(hours * 60);
+    }
+  }
+  if (normalized.endsWith("m")) {
+    const minutes = Number.parseInt(normalized.slice(0, -1), 10);
+    if (Number.isFinite(minutes) && minutes > 0) {
+      return minutes;
+    }
+  }
+  const minutes = Number.parseInt(normalized, 10);
+  if (Number.isFinite(minutes) && minutes > 0) {
+    return minutes;
+  }
+  throw new Error(`Unsupported market context timeframe: ${value}`);
+}
+
+function formatTimeframe(minutes: number): string {
+  if (minutes % 60 === 0) {
+    return `${minutes / 60}h`;
+  }
+  return `${minutes}m`;
 }
 
 function resolveMarketContextStateRoot(

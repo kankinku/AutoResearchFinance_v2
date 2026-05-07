@@ -35,8 +35,8 @@ export class LocalAfBacktestExecutor implements PineEvaluationExecutor {
   public readonly role = "primary_local_backtest";
   public readonly evidenceAuthority = "local_model";
   public readonly supportedStrategyFamilies = ["AF"];
-  public readonly supportedSymbols = ["QQQ"];
-  public readonly supportedTimeframes = ["120m", "2h", "120"];
+  public readonly supportedSymbols = ["QQQ", "BTC", "BTCUSD", "BTCUSDT"];
+  public readonly supportedTimeframes = ["15", "15m", "120m", "2h", "120"];
   private readonly workspaceRoot: string;
   private readonly stateRoot: string | undefined;
   private currentSource = "";
@@ -81,14 +81,10 @@ export class LocalAfBacktestExecutor implements PineEvaluationExecutor {
   public async prepareChart(input: ChartTarget): Promise<void> {
     this.lastChartTarget = input;
     const normalizedTimeframe = normalizeTimeframe(input.timeframe);
-    if (!isSupportedLocalInterval(normalizedTimeframe)) {
+    const normalizedSymbol = normalizeSymbol(input.symbol);
+    if (!isSupportedLocalTarget(normalizedSymbol, normalizedTimeframe)) {
       throw new Error(
-        `Local backtest executor does not support timeframe ${input.timeframe}.`,
-      );
-    }
-    if (normalizeSymbol(input.symbol) !== "QQQ") {
-      throw new Error(
-        `Local backtest executor currently supports only QQQ. received=${input.symbol}`,
+        `Local backtest executor does not support chart target ${input.symbol}:${input.timeframe}.`,
       );
     }
   }
@@ -104,33 +100,18 @@ export class LocalAfBacktestExecutor implements PineEvaluationExecutor {
     chartTarget: ChartTarget;
   }) {
     const normalizedTimeframe = normalizeTimeframe(input.chartTarget.timeframe);
-    if (!isSupportedLocalInterval(normalizedTimeframe)) {
+    const normalizedSymbol = normalizeSymbol(input.chartTarget.symbol);
+    if (!isSupportedLocalTarget(normalizedSymbol, normalizedTimeframe)) {
       return executorCompatibilityResultSchema.parse({
         supported: false,
         reasonCode: "unsupported_chart_target",
-        detail: `Local backtest executor does not support timeframe ${input.chartTarget.timeframe}.`,
+        detail: `Local backtest executor does not support chart target ${input.chartTarget.symbol}:${input.chartTarget.timeframe}.`,
         issues: [
           {
             kind: "unsupported_pattern",
-            code: "unsupported_chart_target:timeframe",
-            field: "timeframe",
-            detail: `Local backtest executor does not support timeframe ${input.chartTarget.timeframe}.`,
-          },
-        ],
-      });
-    }
-
-    if (normalizeSymbol(input.chartTarget.symbol) !== "QQQ") {
-      return executorCompatibilityResultSchema.parse({
-        supported: false,
-        reasonCode: "unsupported_chart_target",
-        detail: `Local backtest executor currently supports only QQQ. received=${input.chartTarget.symbol}`,
-        issues: [
-          {
-            kind: "unsupported_pattern",
-            code: "unsupported_chart_target:symbol",
-            field: "symbol",
-            detail: `Local backtest executor currently supports only QQQ. received=${input.chartTarget.symbol}`,
+            code: "unsupported_chart_target",
+            field: "chartTarget",
+            detail: `Local backtest executor does not support chart target ${input.chartTarget.symbol}:${input.chartTarget.timeframe}.`,
           },
         ],
       });
@@ -260,6 +241,7 @@ export class LocalAfBacktestExecutor implements PineEvaluationExecutor {
   private async loadBars() {
     return loadLocalBacktestBars(this.workspaceRoot, {
       stateRoot: this.stateRoot,
+      chartTarget: this.lastChartTarget ?? undefined,
     });
   }
 
@@ -279,13 +261,27 @@ export class LocalAfBacktestExecutor implements PineEvaluationExecutor {
 }
 
 function normalizeSymbol(value: string): string {
-  return value.trim().toUpperCase();
+  const bare = value.trim().toUpperCase().split(":").at(-1) ?? value.trim().toUpperCase();
+  if (bare === "BTC" || bare === "BTCUSD" || bare === "BTCUSDT" || bare === "BTC-USD") {
+    return "BTC";
+  }
+  return bare;
 }
 
 function normalizeTimeframe(value: string): string {
-  return value === "120" ? "2h" : value.toLowerCase();
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "120" || normalized === "120m") {
+    return "2h";
+  }
+  if (normalized === "15") {
+    return "15m";
+  }
+  return normalized;
 }
 
-function isSupportedLocalInterval(value: string): boolean {
-  return value === "2h";
+function isSupportedLocalTarget(symbol: string, timeframe: string): boolean {
+  return (
+    (symbol === "QQQ" && timeframe === "2h") ||
+    (symbol === "BTC" && timeframe === "15m")
+  );
 }

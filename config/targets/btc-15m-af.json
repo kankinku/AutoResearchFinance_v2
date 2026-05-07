@@ -1,0 +1,11 @@
+{
+  "id": "btc-15m-af",
+  "symbol": "BTCUSD",
+  "timeframe": "15",
+  "strategyFamily": "AF",
+  "primaryExecutor": "local-af-backtest",
+  "externalCalibrationExecutor": "tradingview",
+  "objectivePolicyFile": "objective.btc-15m.json",
+  "noveltyPolicy": "autonomous-local-first/v3",
+  "calibrationPolicy": "tv-optional-top20-only/v2"
+}

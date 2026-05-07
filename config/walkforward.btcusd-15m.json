@@ -1,0 +1,17 @@
+{
+  "policyVersion": "walk-forward-oos/v1",
+  "foldCount": 5,
+  "embargoBars": 16,
+  "requiredPositiveOosFolds": 4,
+  "minimumTradesPerFold": 12,
+  "minimumTotalOosTrades": 70,
+  "maximumWorstFoldDrawdownPercent": 30,
+  "minimumMedianOosProfitFactor": 1.05,
+  "minimumCoverageDays": 45,
+  "canaryHoldout": {
+    "policyVersion": "canary-holdout/v1",
+    "mode": "sealed",
+    "exposed": false,
+    "reason": "BTC 15m autonomous promotion uses rolling walk-forward folds; sealed canary review remains manual."
+  }
+}

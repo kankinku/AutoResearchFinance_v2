@@ -4,14 +4,26 @@ param(
   [int]$CalibrationTimeoutMs = 60000,
   [string]$PromotionVerificationExecutor = "tradingview-web-playwright",
   [string]$TradingViewWebCdpUrl = "http://127.0.0.1:9223",
-  [string]$TradingViewWebChartUrl = "https://www.tradingview.com/chart/"
+  [string]$TradingViewWebChartUrl = "https://www.tradingview.com/chart/",
+  [string]$StateRoot = "",
+  [string]$ResearchTargetId = "",
+  [string]$ChartSymbol = "",
+  [string]$ChartTimeframe = "",
+  [string]$ChartType = ""
 )
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "runtime-json.ps1")
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+$ConfiguredStateRoot = $StateRoot
+if ([string]::IsNullOrWhiteSpace($ConfiguredStateRoot)) {
+  $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+} elseif ([System.IO.Path]::IsPathRooted($ConfiguredStateRoot)) {
+  $StateRoot = [System.IO.Path]::GetFullPath($ConfiguredStateRoot)
+} else {
+  $StateRoot = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $ConfiguredStateRoot))
+}
 $RuntimeRoot = Join-Path $StateRoot "runtime"
 $LogRoot = Join-Path $StateRoot "logs"
 $GlobalStopFile = Join-Path $RuntimeRoot "STOP_AUTONOMOUS_LOOP"
@@ -43,6 +55,10 @@ function Write-WorkerHeartbeat {
     owner = "tv-calibration-worker"
     lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
     logFile = $LogFile
+    stateRoot = $StateRoot
+    researchTargetId = $env:AF_RESEARCH_TARGET_ID
+    chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
+    chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
     calibrationBudget = $CalibrationBudget
     calibrationTimeoutMs = $CalibrationTimeoutMs
     promotionVerificationExecutor = $env:AF_PROMOTION_VERIFICATION_EXECUTOR
@@ -121,6 +137,19 @@ if (Test-Path -LiteralPath $WorkerStopFile) {
 Set-Content -LiteralPath $PidFile -Value $PID -Encoding ASCII
 
 $env:PINE_EVALUATION_EXECUTOR = "local-backtest"
+$env:AF_STATE_ROOT = [string]$StateRoot
+if (-not [string]::IsNullOrWhiteSpace($ResearchTargetId)) {
+  $env:AF_RESEARCH_TARGET_ID = $ResearchTargetId
+}
+if (-not [string]::IsNullOrWhiteSpace($ChartSymbol)) {
+  $env:TRADINGVIEW_CHART_SYMBOL = $ChartSymbol
+}
+if (-not [string]::IsNullOrWhiteSpace($ChartTimeframe)) {
+  $env:TRADINGVIEW_CHART_TIMEFRAME = $ChartTimeframe
+}
+if (-not [string]::IsNullOrWhiteSpace($ChartType)) {
+  $env:TRADINGVIEW_CHART_TYPE = $ChartType
+}
 $env:AF_AUTO_PROCESS_CALIBRATION = "true"
 $env:AF_CALIBRATION_BUDGET = [string]$CalibrationBudget
 $env:AF_CALIBRATION_TIMEOUT_MS = [string]$CalibrationTimeoutMs
@@ -138,7 +167,7 @@ if (-not [string]::IsNullOrWhiteSpace($TradingViewWebChartUrl)) {
 $iteration = 0
 $lastExitCode = $null
 $lastDurationSeconds = $null
-Write-WorkerLog "tv calibration worker started; pid=$PID; project=$ProjectRoot; calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
+Write-WorkerLog "tv calibration worker started; pid=$PID; project=$ProjectRoot; stateRoot=$StateRoot; target=$env:AF_RESEARCH_TARGET_ID; chart=$($env:TRADINGVIEW_CHART_SYMBOL):$($env:TRADINGVIEW_CHART_TIMEFRAME); calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
 Write-WorkerLog "stop files: $GlobalStopFile / $WorkerStopFile"
 
 try {

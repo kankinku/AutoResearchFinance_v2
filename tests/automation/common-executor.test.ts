@@ -46,7 +46,7 @@ describe("common executor interface", () => {
     expect(executor.role).toBe("primary_local_backtest");
     expect(executor.evidenceAuthority).toBe("local_model");
     expect(executor.supportedStrategyFamilies).toEqual(["AF"]);
-    expect(executor.supportedSymbols).toEqual(["QQQ"]);
+    expect(executor.supportedSymbols).toEqual(["QQQ", "BTC", "BTCUSD", "BTCUSDT"]);
     expect(await executor.healthCheck()).toEqual({
       healthy: true,
       status: "ready",

@@ -77,7 +77,7 @@ import {
   createNoTradesLossAnalysis,
   summarizeLossZones,
 } from "./loss-analysis.js";
-import { loadQqqTwoHourContext } from "./market-context.js";
+import { loadMarketContext } from "./market-context.js";
 import {
   prepareMutationContext,
   resolveMutationSourcePine,
@@ -1957,7 +1957,7 @@ export async function runSingleIteration(
 
     let lossAnalysis: LossAnalysisSummary;
     let tradeContextArtifact: Record<string, unknown> | undefined;
-    let qqqTwoHourContextPath: string | null = null;
+    let marketContextPath: string | null = null;
     if (!finalArtifactBundle || finalArtifactBundle.trades.length === 0) {
       tradeContextArtifact = {
         generatedAt: new Date().toISOString(),
@@ -1968,8 +1968,11 @@ export async function runSingleIteration(
       lossAnalysis = createNoTradesLossAnalysis();
     } else {
       try {
-        const marketContext = await loadQqqTwoHourContext(input.workspaceRoot);
-        qqqTwoHourContextPath = marketContext.cachePath;
+        const marketContext = await loadMarketContext(input.workspaceRoot, {
+          symbol: objective.symbol,
+          timeframe: objective.timeframe,
+        });
+        marketContextPath = marketContext.cachePath;
         const enrichedTrades = enrichTradesWithMarketContext(
           finalArtifactBundle.trades,
           marketContext.bars,
@@ -2095,8 +2098,8 @@ export async function runSingleIteration(
           ...(currentBaseExperiment.artifactPaths ?? {}),
           ...artifactPaths,
           ...executorArtifactPaths,
-          ...(qqqTwoHourContextPath
-            ? { qqqTwoHourContext: qqqTwoHourContextPath }
+          ...(marketContextPath
+            ? { marketContext: marketContextPath }
             : {}),
         },
         ...buildExperimentV2Fields({
@@ -2330,9 +2333,9 @@ export async function runSingleIteration(
         ...(currentBaseExperiment.artifactPaths ?? {}),
         ...artifactPaths,
         ...executorArtifactPaths,
-        ...(qqqTwoHourContextPath
-          ? { qqqTwoHourContext: qqqTwoHourContextPath }
-          : {}),
+          ...(marketContextPath
+            ? { marketContext: marketContextPath }
+            : {}),
       },
         ...buildExperimentV2Fields({
           mutationParseStatus: currentMutationParseStatus,

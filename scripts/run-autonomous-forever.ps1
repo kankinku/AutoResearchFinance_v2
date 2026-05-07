@@ -8,14 +8,26 @@ param(
   [int]$CalibrationBudget = 1,
   [int]$CalibrationTimeoutMs = 60000,
   [string]$PromotionVerificationExecutor = "",
-  [string]$TradingViewWebCdpUrl = "http://127.0.0.1:9223"
+  [string]$TradingViewWebCdpUrl = "http://127.0.0.1:9223",
+  [string]$StateRoot = "",
+  [string]$ResearchTargetId = "",
+  [string]$ChartSymbol = "",
+  [string]$ChartTimeframe = "",
+  [string]$ChartType = ""
 )
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "runtime-json.ps1")
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+$ConfiguredStateRoot = $StateRoot
+if ([string]::IsNullOrWhiteSpace($ConfiguredStateRoot)) {
+  $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+} elseif ([System.IO.Path]::IsPathRooted($ConfiguredStateRoot)) {
+  $StateRoot = [System.IO.Path]::GetFullPath($ConfiguredStateRoot)
+} else {
+  $StateRoot = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $ConfiguredStateRoot))
+}
 $RuntimeRoot = Join-Path $StateRoot "runtime"
 $LogRoot = Join-Path $StateRoot "logs"
 $StopFile = Join-Path $RuntimeRoot "STOP_AUTONOMOUS_LOOP"
@@ -62,6 +74,19 @@ if (Test-Path -LiteralPath $StopFile) {
 Set-Content -LiteralPath $PidFile -Value $PID -Encoding ASCII
 
 $env:PINE_EVALUATION_EXECUTOR = "local-backtest"
+$env:AF_STATE_ROOT = [string]$StateRoot
+if (-not [string]::IsNullOrWhiteSpace($ResearchTargetId)) {
+  $env:AF_RESEARCH_TARGET_ID = $ResearchTargetId
+}
+if (-not [string]::IsNullOrWhiteSpace($ChartSymbol)) {
+  $env:TRADINGVIEW_CHART_SYMBOL = $ChartSymbol
+}
+if (-not [string]::IsNullOrWhiteSpace($ChartTimeframe)) {
+  $env:TRADINGVIEW_CHART_TIMEFRAME = $ChartTimeframe
+}
+if (-not [string]::IsNullOrWhiteSpace($ChartType)) {
+  $env:TRADINGVIEW_CHART_TYPE = $ChartType
+}
 $autoProcessCalibrationValue = if ($AutoProcessCalibration.IsPresent) { "true" } else { "false" }
 $parallelCalibration = $AutoProcessCalibration.IsPresent -and -not $InlineCalibration.IsPresent
 $loopAutoProcessCalibrationValue = if ($AutoProcessCalibration.IsPresent -and $InlineCalibration.IsPresent) { "true" } else { "false" }
@@ -205,7 +230,17 @@ function Start-CalibrationWorkerIfNeeded {
     "-PromotionVerificationExecutor",
     $env:AF_PROMOTION_VERIFICATION_EXECUTOR,
     "-TradingViewWebCdpUrl",
-    $TradingViewWebCdpUrl
+    $TradingViewWebCdpUrl,
+    "-StateRoot",
+    [string]$StateRoot,
+    "-ResearchTargetId",
+    [string]$env:AF_RESEARCH_TARGET_ID,
+    "-ChartSymbol",
+    [string]$env:TRADINGVIEW_CHART_SYMBOL,
+    "-ChartTimeframe",
+    [string]$env:TRADINGVIEW_CHART_TIMEFRAME,
+    "-ChartType",
+    [string]$env:TRADINGVIEW_CHART_TYPE
   )
   $worker = Start-Process `
     -FilePath "powershell.exe" `
@@ -218,7 +253,7 @@ function Start-CalibrationWorkerIfNeeded {
 
 $iteration = 0
 $memoryWarningTimes = @()
-Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; autoProcessCalibration=$autoProcessCalibrationValue; loopAutoProcessCalibration=$loopAutoProcessCalibrationValue; calibrationMode=$(if ($parallelCalibration) { 'parallel_worker' } elseif ($AutoProcessCalibration.IsPresent) { 'inline' } else { 'queue_only' }); calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
+Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; stateRoot=$StateRoot; target=$env:AF_RESEARCH_TARGET_ID; chart=$($env:TRADINGVIEW_CHART_SYMBOL):$($env:TRADINGVIEW_CHART_TIMEFRAME); autoProcessCalibration=$autoProcessCalibrationValue; loopAutoProcessCalibration=$loopAutoProcessCalibrationValue; calibrationMode=$(if ($parallelCalibration) { 'parallel_worker' } elseif ($AutoProcessCalibration.IsPresent) { 'inline' } else { 'queue_only' }); calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
 Write-LoopLog "stop file: $StopFile"
 
 try {
@@ -242,6 +277,10 @@ try {
       lastCheckedAt = (Get-Date).ToUniversalTime().ToString("o")
       startedAt = $startedAt.ToUniversalTime().ToString("o")
       logFile = $LogFile
+      stateRoot = $StateRoot
+      researchTargetId = $env:AF_RESEARCH_TARGET_ID
+      chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
+      chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
       memory = $memory
       nodeMemory = Get-NodeTelemetry
       calibrationWorker = Get-CalibrationWorkerStatus
@@ -305,6 +344,10 @@ try {
       completedAt = $completedAt.ToUniversalTime().ToString("o")
       durationSeconds = [math]::Round(($completedAt - $startedAt).TotalSeconds, 3)
       logFile = $LogFile
+      stateRoot = $StateRoot
+      researchTargetId = $env:AF_RESEARCH_TARGET_ID
+      chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
+      chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
       memory = $memory
       nodeMemory = Get-NodeTelemetry
       calibrationWorker = Get-CalibrationWorkerStatus

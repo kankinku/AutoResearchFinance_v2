@@ -77,6 +77,18 @@ export async function initializeWorkspace(
       target: path.join(normalizedInput.workspaceRoot, "config", "objective.qqq-60m.json"),
     },
     {
+      source: path.join(normalizedInput.projectRoot, "config", "objective.btc-15m.json"),
+      target: path.join(normalizedInput.workspaceRoot, "config", "objective.btc-15m.json"),
+    },
+    {
+      source: path.join(normalizedInput.projectRoot, "config", "walkforward.qqq-120m.json"),
+      target: path.join(normalizedInput.workspaceRoot, "config", "walkforward.qqq-120m.json"),
+    },
+    {
+      source: path.join(normalizedInput.projectRoot, "config", "walkforward.btcusd-15m.json"),
+      target: path.join(normalizedInput.workspaceRoot, "config", "walkforward.btcusd-15m.json"),
+    },
+    {
       source: path.join(
         normalizedInput.projectRoot,
         "config",
@@ -88,6 +100,20 @@ export async function initializeWorkspace(
         "config",
         "targets",
         "qqq-120m-af.json",
+      ),
+    },
+    {
+      source: path.join(
+        normalizedInput.projectRoot,
+        "config",
+        "targets",
+        "btc-15m-af.json",
+      ),
+      target: path.join(
+        normalizedInput.workspaceRoot,
+        "config",
+        "targets",
+        "btc-15m-af.json",
       ),
     },
     {
