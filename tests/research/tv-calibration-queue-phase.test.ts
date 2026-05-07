@@ -67,6 +67,23 @@ describe("tv calibration queue priority", () => {
       ACTIVE_TV_CALIBRATION_QUEUE_LIMIT,
     );
   });
+
+  test("does not verify queued candidates outside the local leaderboard top 20", () => {
+    const calibrationEvents = [20, 21, 22, 23, 24].map(createCalibrationEvent);
+    const experiments = Array.from({ length: 25 }, (_, index) =>
+      createLocalExperiment(index, {
+        autoSelectionScore: 25 - index,
+        postFeeNetProfitPercent: 25 - index,
+      }),
+    );
+
+    const selected = selectPendingCalibrationCandidateIds({
+      events: calibrationEvents,
+      experiments,
+    });
+
+    expect(selected).toEqual([]);
+  });
 });
 
 function createCalibrationEvent(index: number): CalibrationEventRecord {

@@ -3,7 +3,10 @@ import {
   type CalibrationEventRecord,
 } from "../../contracts/autonomous.js";
 import { type ExperimentRecord } from "../../contracts/types.js";
-import { selectLocalEvaluationRecords } from "../../state/autonomous-state.js";
+import {
+  compareAutonomousChampion,
+  selectLocalEvaluationRecords,
+} from "../../state/autonomous-state.js";
 
 export const ACTIVE_TV_CALIBRATION_QUEUE_LIMIT = 20;
 
@@ -33,6 +36,10 @@ function buildRankedPendingCalibrationQueue(input: {
 }> {
   const localRecords = selectLocalEvaluationRecords(input.experiments);
   const bestRecordByCandidate = selectBestLocalRecordByCandidate(localRecords);
+  const activeLocalCandidateIds = selectActiveLocalCandidateIds(
+    [...bestRecordByCandidate.values()],
+    ACTIVE_TV_CALIBRATION_QUEUE_LIMIT,
+  );
   const latestQueueByCandidate = new Map<string, CalibrationEventRecord>();
 
   for (const event of input.events.slice().sort(compareCalibrationEventAscending)) {
@@ -43,9 +50,24 @@ function buildRankedPendingCalibrationQueue(input: {
     .filter((event) => event.queueState === "queued")
     .flatMap((event) => {
       const record = bestRecordByCandidate.get(event.candidateId);
-      return record ? [{ event, record }] : [];
+      return record && activeLocalCandidateIds.has(event.candidateId)
+        ? [{ event, record }]
+        : [];
     })
     .sort(compareRankedCalibrationQueueEntries);
+}
+
+function selectActiveLocalCandidateIds(
+  records: AutonomousExperimentRecord[],
+  limit: number,
+): Set<string> {
+  return new Set(
+    records
+      .slice()
+      .sort(compareAutonomousChampion)
+      .slice(0, limit)
+      .map((record) => record.candidateId),
+  );
 }
 
 function selectBestLocalRecordByCandidate(
