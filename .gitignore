@@ -8,6 +8,7 @@ coverage/
 artifacts/autonomous-run/
 artifacts/dashboard/
 state/**/backups/
+state/btc-15m-autoresearch/
 state/**/*.pre-compact-*.jsonl
 state/**/logs/
 state/**/runtime/
