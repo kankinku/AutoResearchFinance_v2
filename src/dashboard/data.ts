@@ -436,11 +436,13 @@ export async function buildDashboardStatus(
     pid,
     logFile: stringValue(heartbeat?.logFile),
   };
+  const parallelCalibrationActive =
+    runtime.calibrationWorker.enabled || runtime.calibrationWorker.running;
   const externalValidation = buildExternalValidationDashboard({
     autoProcessCalibration:
-      input.autoProcessCalibration ??
-      booleanValue(autonomousSummary?.calibrationAutoProcess) ??
-      false,
+      (input.autoProcessCalibration ??
+        booleanValue(autonomousSummary?.calibrationAutoProcess) ??
+        false) || parallelCalibrationActive,
     promotionVerificationExecutor:
       input.promotionVerificationExecutor ??
       stringValue(autonomousSummary?.promotionVerificationExecutor) ??
