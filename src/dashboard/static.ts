@@ -887,7 +887,14 @@ export function renderDashboardHtml(): string {
   </div>
 
   <script>
-    const state = { timer: null };
+    const state = {
+      timer: null,
+      loading: false,
+      failures: 0,
+      refreshIntervalMs: 8000,
+      requestTimeoutMs: 6000,
+      lastDataGeneratedAt: null
+    };
 
     function fmt(value, digits) {
       if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
@@ -1575,7 +1582,7 @@ export function renderDashboardHtml(): string {
       text("loopStatus", data.runtime.running ? "실행 중 pid " + data.runtime.pid : data.runtime.stopRequested ? "중지 요청됨" : "중지됨");
       cls("improvementStatus", "pill " + (data.improvement.status === "improving" ? "good" : data.improvement.status === "blocked" ? "bad" : "warn"));
       text("improvementStatus", improvementLabel(data.improvement.status));
-      text("refreshStatus", "갱신 " + new Date().toLocaleTimeString());
+      setRefreshStatus("good", "갱신 " + new Date().toLocaleTimeString());
 
       renderChart(data.trend || []);
 
@@ -1704,22 +1711,63 @@ export function renderDashboardHtml(): string {
       return "전체 " + total + " / 계열 " + family + " / 최소 " + threshold;
     }
 
+    function setRefreshStatus(tone, value) {
+      const className = tone === "bad" ? "pill bad" : tone === "warn" ? "pill warn" : "pill good";
+      cls("refreshStatus", className);
+      text("refreshStatus", value);
+    }
+
+    function scheduleNextLoad(delayMs) {
+      if (state.timer) {
+        clearTimeout(state.timer);
+      }
+      state.timer = setTimeout(load, delayMs);
+    }
+
     async function load() {
+      if (state.loading) {
+        scheduleNextLoad(1000);
+        return;
+      }
+      state.loading = true;
+      const controller = new AbortController();
+      const timeout = setTimeout(function() {
+        controller.abort();
+      }, state.requestTimeoutMs);
       try {
-        const response = await fetch("/api/status", { cache: "no-store" });
+        setRefreshStatus("warn", "갱신 중 " + new Date().toLocaleTimeString());
+        const response = await fetch("/api/status?ts=" + Date.now(), {
+          cache: "no-store",
+          signal: controller.signal
+        });
         if (!response.ok) throw new Error("HTTP " + response.status);
         const data = await response.json();
+        state.failures = 0;
+        state.lastDataGeneratedAt = data.generatedAt || state.lastDataGeneratedAt;
         render(data);
       } catch (error) {
-        cls("refreshStatus", "pill bad");
-        text("refreshStatus", "갱신 실패");
+        state.failures += 1;
+        setRefreshStatus("bad", "갱신 실패 " + state.failures + "회");
         console.error(error);
+      } finally {
+        clearTimeout(timeout);
+        state.loading = false;
+        scheduleNextLoad(state.refreshIntervalMs);
       }
     }
 
+    window.addEventListener("focus", function() {
+      load();
+    });
+    document.addEventListener("visibilitychange", function() {
+      if (!document.hidden) load();
+    });
+    window.addEventListener("online", function() {
+      load();
+    });
+
     setupPageTabs();
     load();
-    state.timer = setInterval(load, 8000);
   </script>
 </body>
 </html>`;
