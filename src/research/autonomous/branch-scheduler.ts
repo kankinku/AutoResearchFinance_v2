@@ -35,6 +35,7 @@ export function selectNextAutonomousBranch(input: {
   parentCandidateId?: string | null;
   branchKindBias?: BranchKind | null;
   suppressedFamilies?: string[];
+  suppressedBranchKinds?: BranchKind[];
 }): BranchSelection {
   const parentCandidateId = input.parentCandidateId ?? null;
   const experiments = filterSuppressedFamilyExperiments(
@@ -42,7 +43,8 @@ export function selectNextAutonomousBranch(input: {
     input.suppressedFamilies ?? [],
   );
   const totalSelections = input.branches.length;
-  const candidates = AUTONOMOUS_BRANCH_BUDGETS.filter((budget) =>
+  const suppressedBranchKinds = new Set(input.suppressedBranchKinds ?? []);
+  const allowedCandidates = AUTONOMOUS_BRANCH_BUDGETS.filter((budget) =>
     isBranchKindCurrentlyAllowed({
       branchKind: budget.branchKind,
       branches: input.branches,
@@ -50,6 +52,11 @@ export function selectNextAutonomousBranch(input: {
       parentCandidateId,
     }),
   );
+  const unsuppressedCandidates = allowedCandidates.filter(
+    (budget) => !suppressedBranchKinds.has(budget.branchKind),
+  );
+  const candidates =
+    unsuppressedCandidates.length > 0 ? unsuppressedCandidates : allowedCandidates;
   const scored = candidates.map((budget, index) => {
     const actualCount = input.branches.filter(
       (branch) => branch.branchKind === budget.branchKind,

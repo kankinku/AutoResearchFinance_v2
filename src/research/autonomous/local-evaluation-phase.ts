@@ -67,6 +67,10 @@ export async function runLocalEvaluationPhase(input: {
   workspaceRoot: string;
   stateRoot: string;
   targetId?: string | null;
+  symbol?: string | null;
+  timeframe?: string | null;
+  goalMode?: AutonomousExperimentRecord["goalMode"];
+  goalProfileId?: string | null;
   runId: string;
   iteration: number;
   executor: PineEvaluationExecutor;
@@ -154,6 +158,10 @@ export async function runLocalEvaluationPhase(input: {
 
   const baseRecord = {
     targetId: input.targetId ?? null,
+    symbol: input.symbol ?? input.objective.symbol,
+    timeframe: input.timeframe ?? input.objective.timeframe,
+    goalMode: input.goalMode,
+    goalProfileId: input.goalProfileId ?? undefined,
     runId: input.runId,
     iteration: input.iteration,
     candidateId: input.candidateArtifact.candidateId,

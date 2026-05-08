@@ -23,6 +23,7 @@ import {
 } from "../../state/jsonl-store.js";
 import { rebuildIndexes } from "../../state/index-builder.js";
 import { loadObjectiveConfig } from "../../config/objective.js";
+import { type ResearchRunContext } from "../../config/research-run-context.js";
 import {
   prepareAutonomousMutationPlan,
   generateAutonomousCandidate,
@@ -111,6 +112,7 @@ export interface AutonomousIterationFailure {
 export async function runAutonomousLoop(input: {
   workspaceRoot: string;
   env: RuntimeEnvironment;
+  researchRunContext?: ResearchRunContext;
   llmClient: MutationLlmClient;
   localExecutorFactory: () => PineEvaluationExecutor;
   calibrationExecutorFactory?: () => PineEvaluationExecutor;
@@ -120,6 +122,9 @@ export async function runAutonomousLoop(input: {
 }): Promise<AutonomousLoopResult> {
   const stateRoot = input.env.stateRoot;
   const runId = `autonomous-${Date.now()}`;
+  const targetId = input.researchRunContext?.targetId ?? input.env.researchTargetId;
+  const goalMode = input.researchRunContext?.goalMode;
+  const goalProfileId = input.researchRunContext?.goalProfileId;
   if (input.env.researchModeConfig.mode === "indicator_request") {
     throw new Error(
       "research mode indicator_request does not run autonomous strategy improvement. Use generate-indicator instead.",
@@ -144,7 +149,7 @@ export async function runAutonomousLoop(input: {
           projectRoot: input.env.projectRoot,
           workspaceRoot: input.workspaceRoot,
           stateRoot,
-          targetId: input.env.researchTargetId,
+          targetId,
         }),
     });
   } catch (error) {
@@ -167,10 +172,11 @@ export async function runAutonomousLoop(input: {
     throw error;
   }
 
-  const objective = await loadObjectiveConfig(
-    input.workspaceRoot,
-    input.env.researchTargetId,
-  );
+  const objective =
+    input.researchRunContext?.objective ??
+    (await loadObjectiveConfig(input.workspaceRoot, targetId));
+  const runSymbol = input.researchRunContext?.symbol ?? objective.symbol;
+  const runTimeframe = input.researchRunContext?.timeframe ?? objective.timeframe;
   const previousExperiments = await readExperimentRecords(stateRoot);
   const headEvents = await readHeadEventRecords(stateRoot);
   const archiveEvents = await readArchiveEventRecords(stateRoot);
@@ -184,7 +190,7 @@ export async function runAutonomousLoop(input: {
   const branchRecords = await readAutonomousBranchRecords(stateRoot);
   const targetExperiments = filterStrategyReviewRecordsForTarget(
     previousExperiments,
-    input.env.researchTargetId,
+    targetId,
     objective,
   );
   const targetCandidateIds = buildCandidateIdSet(targetExperiments);
@@ -212,6 +218,7 @@ export async function runAutonomousLoop(input: {
     targetCandidateIds,
   );
   const iteration = previousExperiments.length + 1;
+  const goalCriterion = input.researchRunContext?.criterionDirectiveSeed ?? null;
   const criterionDirective =
     input.env.researchModeConfig.mode === "criterion_focus"
       ? buildCriterionDirective({
@@ -221,25 +228,36 @@ export async function runAutonomousLoop(input: {
           problemEvents: targetProblemEvents,
           objective,
         })
+      : goalCriterion
+        ? buildCriterionDirective({
+            criterion: goalCriterion,
+            experiments: targetExperiments,
+            calibrationEvents: targetCalibrationEvents,
+            problemEvents: targetProblemEvents,
+            objective,
+          })
       : null;
   const strategyReviewDirective = selectLatestStrategyReviewDirective({
     records: strategyReviewRecords,
-    targetId: input.env.researchTargetId,
+    targetId,
     minConfidence: input.env.strategyReviewMinConfidence,
     quarantineConfidence: input.env.strategyReviewQuarantineConfidence,
   });
   const reviewSuppressedFamilies = collectSuppressedFamiliesFromReviews({
     records: strategyReviewRecords,
-    targetId: input.env.researchTargetId,
+    targetId,
     quarantineConfidence: input.env.strategyReviewQuarantineConfidence,
   });
 
   await appendRunRecord(stateRoot, {
     runId,
+    targetId,
     startedAt: new Date().toISOString(),
     executor: "local-backtest",
-    symbol: input.env.chartSymbol,
-    timeframe: input.env.chartTimeframe,
+    symbol: runSymbol,
+    timeframe: runTimeframe,
+    goalMode,
+    goalProfileId,
     chartType: input.env.chartType,
     model: input.env.openAiModel,
   });
@@ -281,8 +299,8 @@ export async function runAutonomousLoop(input: {
             const ensuredContext = await ensureMarketContext(
               input.workspaceRoot,
               {
-                symbol: input.env.chartSymbol,
-                timeframe: input.env.chartTimeframe,
+                symbol: runSymbol,
+                timeframe: runTimeframe,
               },
               { stateRoot },
             );
@@ -304,7 +322,11 @@ export async function runAutonomousLoop(input: {
             iteration,
             executor: localExecutor,
             objective,
-            targetId: input.env.researchTargetId,
+            targetId,
+            symbol: runSymbol,
+            timeframe: runTimeframe,
+            goalMode,
+            goalProfileId,
             parsedMutation: bootstrapSeed.parsedMutation,
             candidateArtifact: bootstrapSeed.candidateArtifact,
             mutationProvenance: bootstrapSeed.mutationProvenance,
@@ -335,6 +357,7 @@ export async function runAutonomousLoop(input: {
           env: input.env,
           calibrationExecutorFactory: input.calibrationExecutorFactory,
           llmClient: input.llmClient,
+          runContext: input.researchRunContext,
           localEvaluation: bootstrapEvaluation,
           monitor: input.monitor,
           phaseTimeouts,
@@ -359,8 +382,12 @@ export async function runAutonomousLoop(input: {
       branches: targetBranchRecords,
       experiments: targetExperiments,
       branchKindBias:
-        criterionDirective?.branchBias ?? strategyReviewDirective?.branchKindBias ?? null,
+        criterionDirective?.branchBias ??
+        strategyReviewDirective?.branchKindBias ??
+        input.researchRunContext?.branchBudgetBias ??
+        null,
       suppressedFamilies: reviewSuppressedFamilies,
+      suppressedBranchKinds: input.researchRunContext?.suppressedBranchKinds ?? [],
     });
     const selectedBranchRecord = buildAutonomousBranchRecord({
       selection: selectedBranch,
@@ -380,6 +407,7 @@ export async function runAutonomousLoop(input: {
       mutationBriefs: targetMutationBriefs,
       iterationRecords,
       selectedBranch: selectedBranchRecord,
+      researchRunContext: input.researchRunContext,
       researchModeConfig: input.env.researchModeConfig,
       criterionDirective,
       strategyReviewDirective,
@@ -459,8 +487,8 @@ export async function runAutonomousLoop(input: {
             const ensuredContext = await ensureMarketContext(
               input.workspaceRoot,
               {
-                symbol: input.env.chartSymbol,
-                timeframe: input.env.chartTimeframe,
+                symbol: runSymbol,
+                timeframe: runTimeframe,
               },
               { stateRoot },
             );
@@ -482,7 +510,11 @@ export async function runAutonomousLoop(input: {
             iteration,
             executor: localExecutor,
             objective,
-            targetId: input.env.researchTargetId,
+            targetId,
+            symbol: runSymbol,
+            timeframe: runTimeframe,
+            goalMode,
+            goalProfileId,
             parsedMutation: mutation.parsedMutation,
             candidateArtifact: mutation.candidateArtifact,
             mutationProvenance: mutation.mutationProvenance,
@@ -568,7 +600,7 @@ export async function runAutonomousLoop(input: {
           const repairAttemptsAfterRepair = await readRepairAttemptRecords(stateRoot);
           const targetExperimentsAfterRepair = filterStrategyReviewRecordsForTarget(
             experimentsAfterRepair,
-            input.env.researchTargetId,
+            targetId,
             objective,
           );
           const targetCandidateIdsAfterRepair = buildCandidateIdSet(
@@ -586,8 +618,8 @@ export async function runAutonomousLoop(input: {
                 const ensuredContext = await ensureMarketContext(
                   input.workspaceRoot,
                   {
-                    symbol: input.env.chartSymbol,
-                    timeframe: input.env.chartTimeframe,
+                    symbol: runSymbol,
+                    timeframe: runTimeframe,
                   },
                   { stateRoot },
                 );
@@ -608,7 +640,11 @@ export async function runAutonomousLoop(input: {
                 iteration,
                 executor: localExecutor,
                 objective,
-                targetId: input.env.researchTargetId,
+                targetId,
+                symbol: runSymbol,
+                timeframe: runTimeframe,
+                goalMode,
+                goalProfileId,
                 parsedMutation: repairedMutation.parsedMutation,
                 candidateArtifact: repairedMutation.candidateArtifact,
                 mutationProvenance: repairedMutation.mutationProvenance,
@@ -645,6 +681,7 @@ export async function runAutonomousLoop(input: {
       env: input.env,
       calibrationExecutorFactory: input.calibrationExecutorFactory,
       llmClient: input.llmClient,
+      runContext: input.researchRunContext,
       localEvaluation,
       monitor: input.monitor,
       phaseTimeouts,
@@ -699,6 +736,7 @@ export async function runAutonomousLoop(input: {
 export async function runAutonomousIterations(input: {
   workspaceRoot: string;
   env: RuntimeEnvironment;
+  researchRunContext?: ResearchRunContext;
   llmClient: MutationLlmClient;
   localExecutorFactory: () => PineEvaluationExecutor;
   calibrationExecutorFactory?: () => PineEvaluationExecutor;
@@ -751,6 +789,7 @@ export async function runAutonomousIterations(input: {
           runAutonomousLoop({
             workspaceRoot: input.workspaceRoot,
             env: input.env,
+            researchRunContext: input.researchRunContext,
             llmClient: input.llmClient,
             localExecutorFactory: input.localExecutorFactory,
             calibrationExecutorFactory: input.calibrationExecutorFactory,
@@ -1293,6 +1332,7 @@ async function finalizeAutonomousLocalEvaluation(input: {
   env: RuntimeEnvironment;
   calibrationExecutorFactory?: () => PineEvaluationExecutor;
   llmClient: MutationLlmClient;
+  runContext?: ResearchRunContext;
   localEvaluation: Awaited<ReturnType<typeof runLocalEvaluationPhase>>;
   phaseTimeouts: AutonomousLoopPhaseTimeouts;
   signal?: AbortSignal;
@@ -1345,8 +1385,9 @@ async function finalizeAutonomousLocalEvaluation(input: {
         stateRoot: input.stateRoot,
         runId: input.runId,
         iteration: input.iteration,
-        targetId: input.env.researchTargetId,
+        targetId: input.runContext?.targetId ?? input.env.researchTargetId,
         objective: input.objective,
+        runContext: input.runContext,
         record: input.localEvaluation.record,
         experiments,
         headEvents,
@@ -1420,9 +1461,10 @@ async function finalizeAutonomousLocalEvaluation(input: {
 
   const experimentsAfterLocal = await readExperimentRecords(input.stateRoot);
   const headEventsAfterLocal = await readHeadEventRecords(input.stateRoot);
+  const targetId = input.runContext?.targetId ?? input.env.researchTargetId;
   const targetExperimentsAfterLocal = filterStrategyReviewRecordsForTarget(
     experimentsAfterLocal,
-    input.env.researchTargetId,
+    targetId,
     input.objective,
   );
   const targetCandidateIdsAfterLocal = buildCandidateIdSet(targetExperimentsAfterLocal);
@@ -1443,7 +1485,7 @@ async function finalizeAutonomousLocalEvaluation(input: {
         iteration: input.iteration,
         experiments: targetExperimentsAfterLocal,
         headEvents: targetHeadEventsAfterLocal,
-        targetId: input.env.researchTargetId,
+        targetId,
         strategyReviewRecords: await readStrategyReviewRecords(input.stateRoot),
         strategyReviewQuarantineConfidence:
           input.env.strategyReviewQuarantineConfidence,
@@ -1539,6 +1581,11 @@ function buildAutonomousIterationLearningRecord(input: {
   return {
     runId: input.runId,
     iteration: input.iteration,
+    targetId: record.targetId ?? null,
+    symbol: record.symbol ?? brief.symbol ?? null,
+    timeframe: record.timeframe ?? brief.timeframe ?? null,
+    goalMode: brief.goalMode,
+    goalProfileId: brief.goalProfileId,
     researchMode: brief.researchMode ?? {
       mode: "continuous_improvement",
       source: "default",

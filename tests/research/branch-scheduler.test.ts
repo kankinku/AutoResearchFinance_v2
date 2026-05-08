@@ -122,6 +122,18 @@ describe("autonomous branch scheduler", () => {
     expect(selection.branchKind).toBe("near_miss_repair");
   });
 
+  test("suppresses branch kinds when a goal profile forbids them", () => {
+    const selection = selectNextAutonomousBranch({
+      branches: [],
+      experiments: [createNearMissExperiment()],
+      parentCandidateId: "parent-a",
+      branchKindBias: "exploration_breakout",
+      suppressedBranchKinds: ["exploration_breakout"],
+    });
+
+    expect(selection.branchKind).not.toBe("exploration_breakout");
+  });
+
   test("requires simplification branch candidates to reduce complexity and filters", () => {
     const parent = {
       candidateId: "parent",

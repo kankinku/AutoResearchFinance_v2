@@ -131,6 +131,11 @@ export function buildAutonomousViewPayloads(input: {
       entries: localRecords.map((record, index) => ({
         rank: index + 1,
         candidateId: record.candidateId,
+        targetId: record.targetId ?? null,
+        symbol: record.symbol ?? null,
+        timeframe: record.timeframe ?? null,
+        goalMode: record.goalMode ?? null,
+        goalProfileId: record.goalProfileId ?? null,
         autoSelectionScore: record.autoSelectionScore,
         performanceScore:
           record.autoSelectionBreakdown?.performanceScore ??
@@ -833,6 +838,18 @@ function buildAutonomousStateSummaryPayload(input: {
   stage6Readiness: ReturnType<typeof buildPassiveStage6ReadinessPayload>;
 }) {
   const activeChampion = input.activeChampionRecord;
+  const latestContextRecord =
+    [...input.records]
+      .filter(
+        (record) =>
+          record.targetId != null ||
+          record.symbol != null ||
+          record.goalMode != null ||
+          record.goalProfileId != null,
+      )
+      .sort((left, right) => right.iteration - left.iteration)[0] ??
+    activeChampion ??
+    null;
   const researchStageCounts = buildResearchStageCounts({
     records: input.records,
     headEvents: input.headEvents,
@@ -922,6 +939,13 @@ function buildAutonomousStateSummaryPayload(input: {
   return {
     generatedAt: new Date().toISOString(),
     activeChampionCandidateId: input.activeChampionCandidateId,
+    researchContext: {
+      targetId: latestContextRecord?.targetId ?? null,
+      symbol: latestContextRecord?.symbol ?? null,
+      timeframe: latestContextRecord?.timeframe ?? null,
+      goalMode: latestContextRecord?.goalMode ?? null,
+      goalProfileId: latestContextRecord?.goalProfileId ?? null,
+    },
     activeChampionScore:
       activeChampion?.verifiedPromotionScore ??
       activeChampion?.verifiedPromotion?.score ??
@@ -1405,9 +1429,10 @@ async function writeAutonomousNamespaceViews(
 function buildStrategyReviewBoard(records: StrategyReviewRecord[]) {
   const byTarget = new Map<string, StrategyReviewRecord[]>();
   for (const record of records) {
-    const targetRecords = byTarget.get(record.targetId) ?? [];
+    const groupKey = `${record.targetId}:${record.goalMode ?? "legacy"}`;
+    const targetRecords = byTarget.get(groupKey) ?? [];
     targetRecords.push(record);
-    byTarget.set(record.targetId, targetRecords);
+    byTarget.set(groupKey, targetRecords);
   }
 
   return {
@@ -1415,8 +1440,10 @@ function buildStrategyReviewBoard(records: StrategyReviewRecord[]) {
     generatedAt: new Date().toISOString(),
     targets: [...byTarget.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([targetId, targetRecords]) => {
+      .map(([, targetRecords]) => {
         const sorted = [...targetRecords].sort(compareStrategyReviewRecency);
+        const latestReview = sorted[0] ?? null;
+        const targetId = latestReview?.targetId ?? targetRecords[0]!.targetId;
         const decisionCounts: Record<string, number> = {};
         const suppressedFamilies = new Set<string>();
         for (const record of targetRecords) {
@@ -1434,9 +1461,12 @@ function buildStrategyReviewBoard(records: StrategyReviewRecord[]) {
             }
           }
         }
-        const latestReview = sorted[0] ?? null;
         return {
           targetId,
+          symbol: latestReview?.symbol ?? null,
+          timeframe: latestReview?.timeframe ?? null,
+          goalMode: latestReview?.goalMode,
+          goalProfileId: latestReview?.goalProfileId,
           latestReview,
           decisionCounts,
           suppressedFamilies: [...suppressedFamilies].sort(),

@@ -22,6 +22,7 @@ import {
   type StrategyReviewRecord,
 } from "../../contracts/strategy-review.js";
 import { type ResearchTarget } from "../../config/target-registry.js";
+import { type ResearchRunContext } from "../../config/research-run-context.js";
 import { type MutationLlmClient } from "../../mutation/llm-client.js";
 import {
   appendIncidentRecord,
@@ -60,6 +61,7 @@ export interface RunStrategyReviewPhaseInput {
   iteration: number;
   targetId: string;
   objective: ObjectiveConfig;
+  runContext?: ResearchRunContext;
   record: ExperimentRecord | AutonomousExperimentRecord;
   experiments: ExperimentRecord[];
   headEvents?: HeadEventRecord[];
@@ -79,6 +81,7 @@ export interface RunStrategyReviewBatchInput {
   stateRoot: string;
   targetId: string;
   objective: ObjectiveConfig;
+  runContext?: ResearchRunContext;
   llmClient?: MutationLlmClient;
   mode?: StrategyReviewRunMode;
   deepBudget?: number;
@@ -113,6 +116,7 @@ export async function runStrategyReviewPhase(
   const evidence = buildStrategyReviewEvidence({
     targetId: input.targetId,
     objective: input.objective,
+    runContext: input.runContext,
     record: input.record,
     experiments: targetExperiments,
     headEvents,
@@ -121,6 +125,10 @@ export async function runStrategyReviewPhase(
     repairAttempts,
     mutationBriefs,
     researchKnowledge,
+  });
+  const recordMetadata = buildStrategyReviewRecordMetadata({
+    evidence,
+    runContext: input.runContext,
   });
   const shouldRunDeep =
     (input.deepBudget ?? 0) > 0 &&
@@ -135,6 +143,7 @@ export async function runStrategyReviewPhase(
     return appendStrategyReviewRecord(input.stateRoot, {
       ...deterministic,
       targetId: input.targetId,
+      ...recordMetadata,
       runId: input.runId,
       iteration: input.iteration,
       candidateId: evidence.candidate.candidateId,
@@ -169,6 +178,7 @@ export async function runStrategyReviewPhase(
       return appendStrategyReviewRecord(input.stateRoot, {
         ...fallback,
         targetId: input.targetId,
+        ...recordMetadata,
         runId: input.runId,
         iteration: input.iteration,
         candidateId: evidence.candidate.candidateId,
@@ -184,6 +194,7 @@ export async function runStrategyReviewPhase(
     return appendStrategyReviewRecord(input.stateRoot, {
       schemaVersion: "strategy-review-record/v1",
       targetId: input.targetId,
+      ...recordMetadata,
       runId: input.runId,
       iteration: input.iteration,
       candidateId: evidence.candidate.candidateId,
@@ -213,6 +224,7 @@ export async function runStrategyReviewPhase(
     return appendStrategyReviewRecord(input.stateRoot, {
       ...fallback,
       targetId: input.targetId,
+      ...recordMetadata,
       runId: input.runId,
       iteration: input.iteration,
       candidateId: evidence.candidate.candidateId,
@@ -240,6 +252,11 @@ export async function runStrategyReviewBatchForTarget(
   const alreadyReviewed = new Set(
     existingReviews
       .filter((review) => review.targetId === input.targetId)
+      .filter((review) =>
+        input.runContext
+          ? review.goalMode == null || review.goalMode === input.runContext.goalMode
+          : true,
+      )
       .map((review) => `${review.candidateId}:${review.candidateHash ?? ""}:${review.iteration}`),
   );
   let remainingDeepBudget = input.deepBudget ?? 3;
@@ -267,6 +284,7 @@ export async function runStrategyReviewBatchForTarget(
       iteration: record.iteration,
       targetId: input.targetId,
       objective: input.objective,
+      runContext: input.runContext,
       record,
       experiments,
       headEvents,
@@ -294,6 +312,7 @@ export async function runStrategyReviewBatchForTarget(
 export function buildStrategyReviewEvidence(input: {
   targetId: string;
   objective: ObjectiveConfig;
+  runContext?: ResearchRunContext;
   record: ExperimentRecord | AutonomousExperimentRecord;
   experiments: ExperimentRecord[];
   headEvents?: HeadEventRecord[];
@@ -374,8 +393,22 @@ export function buildStrategyReviewEvidence(input: {
     schemaVersion: "strategy-review-evidence/v1",
     target: {
       targetId: input.targetId,
-      symbol: input.objective.symbol,
-      timeframe: input.objective.timeframe,
+      symbol:
+        input.runContext?.symbol ??
+        autonomousRecord?.symbol ??
+        stringValue(raw.symbol) ??
+        input.objective.symbol,
+      timeframe:
+        input.runContext?.timeframe ??
+        autonomousRecord?.timeframe ??
+        stringValue(raw.timeframe) ??
+        input.objective.timeframe,
+      goalMode:
+        input.runContext?.goalMode ?? autonomousRecord?.goalMode ?? latestBrief?.brief.goalMode,
+      goalProfileId:
+        input.runContext?.goalProfileId ??
+        autonomousRecord?.goalProfileId ??
+        latestBrief?.brief.goalProfileId,
     },
     runId: stringValue(raw.runId) ?? "unknown-run",
     iteration: numberValue(raw.iteration) ?? 0,
@@ -482,6 +515,22 @@ export function shouldRunDeepStrategyReview(input: {
   return input.evidence.triage.deepReviewRecommended;
 }
 
+function buildStrategyReviewRecordMetadata(input: {
+  evidence: StrategyReviewEvidence;
+  runContext?: ResearchRunContext;
+}): Pick<
+  StrategyReviewRecord,
+  "symbol" | "timeframe" | "goalMode" | "goalProfileId"
+> {
+  return {
+    symbol: input.runContext?.symbol ?? input.evidence.target.symbol,
+    timeframe: input.runContext?.timeframe ?? input.evidence.target.timeframe,
+    goalMode: input.runContext?.goalMode ?? input.evidence.target.goalMode,
+    goalProfileId:
+      input.runContext?.goalProfileId ?? input.evidence.target.goalProfileId,
+  };
+}
+
 export function parseStrategyReviewResponse(
   response: string,
 ):
@@ -566,14 +615,17 @@ export function collectSuppressedFamiliesFromReviews(input: {
 export function buildStrategyReviewBoard(records: StrategyReviewRecord[]): StrategyReviewBoard {
   const byTarget = new Map<string, StrategyReviewRecord[]>();
   for (const record of records) {
-    const entries = byTarget.get(record.targetId) ?? [];
+    const groupKey = `${record.targetId}:${record.goalMode ?? "legacy"}`;
+    const entries = byTarget.get(groupKey) ?? [];
     entries.push(record);
-    byTarget.set(record.targetId, entries);
+    byTarget.set(groupKey, entries);
   }
   const targets = [...byTarget.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([targetId, targetRecords]) => {
+    .map(([, targetRecords]) => {
       const sorted = [...targetRecords].sort(compareReviewRecency);
+      const latestReview = sorted[0] ?? null;
+      const targetId = latestReview?.targetId ?? targetRecords[0]!.targetId;
       const decisionCounts: Record<string, number> = {};
       for (const record of targetRecords) {
         decisionCounts[record.reviewDecision] =
@@ -583,9 +635,12 @@ export function buildStrategyReviewBoard(records: StrategyReviewRecord[]): Strat
         records: targetRecords,
         targetId,
       });
-      const latestReview = sorted[0] ?? null;
       return {
         targetId,
+        symbol: latestReview?.symbol ?? null,
+        timeframe: latestReview?.timeframe ?? null,
+        goalMode: latestReview?.goalMode,
+        goalProfileId: latestReview?.goalProfileId,
         latestReview,
         decisionCounts,
         suppressedFamilies,

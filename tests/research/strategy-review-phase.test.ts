@@ -9,6 +9,7 @@ import {
   type AutonomousExperimentRecord,
 } from "../../src/contracts/autonomous.js";
 import { type ExperimentRecord, type ObjectiveConfig } from "../../src/contracts/types.js";
+import { resolveResearchRunContext } from "../../src/config/research-run-context.js";
 import { type MutationLlmClient } from "../../src/mutation/llm-client.js";
 import {
   buildStrategyReviewEvidence,
@@ -217,6 +218,11 @@ describe("strategy review phase", () => {
 
   test("runs a deep review and persists a repair_near_miss directive", async () => {
     const stateRoot = await mkdtemp(path.join(tmpdir(), "af-strategy-review-"));
+    const runContext = await resolveResearchRunContext({
+      projectRoot: process.cwd(),
+      targetId: "qqq-120m-af",
+      mode: "calibrate",
+    });
     const record = createAutonomousRecord({
       candidateId: "near",
       iteration: 2,
@@ -266,6 +272,7 @@ describe("strategy review phase", () => {
       iteration: 2,
       targetId: "qqq-120m-af",
       objective,
+      runContext,
       record,
       experiments: [
         createAutonomousRecord({
@@ -283,6 +290,8 @@ describe("strategy review phase", () => {
 
     expect(review?.reviewMode).toBe("deep_llm");
     expect(review?.reviewDecision).toBe("repair_near_miss");
+    expect(review?.goalMode).toBe("calibrate");
+    expect(review?.goalProfileId).toBe("calibrate/v1");
     const persisted = await readStrategyReviewRecords(stateRoot);
     expect(persisted).toHaveLength(1);
     expect(

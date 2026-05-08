@@ -800,6 +800,14 @@ export const researchModeSchema = z.enum([
   "indicator_request",
 ]);
 
+export const researchGoalModeSchema = z.enum([
+  "explore",
+  "improve",
+  "repair",
+  "calibrate",
+  "promote",
+]);
+
 export const criterionKeySchema = z.enum([
   "trade_count",
   "oos_robustness",
@@ -863,6 +871,12 @@ export const promotionDiagnosticsSchema = z.object({
 
 export const mutationBriefSchema = z.object({
   objective: z.string().min(1),
+  symbol: z.string().min(1).optional(),
+  timeframe: z.string().min(1).optional(),
+  goalMode: researchGoalModeSchema.optional(),
+  goalProfileId: z.string().min(1).optional(),
+  objectiveFocus: z.string().min(1).optional(),
+  strategyReviewFocus: z.array(z.string()).default([]).optional(),
   researchMode: researchModeConfigSchema.optional(),
   criterionDirective: criterionDirectiveSchema.optional(),
   guardrails: z.object({
@@ -1019,10 +1033,13 @@ export const evaluationExecutorNameSchema = z.enum([
 
 export const runRecordSchema = z.object({
   runId: z.string().min(1),
+  targetId: z.string().min(1).nullable().optional(),
   startedAt: z.string().datetime(),
   executor: evaluationExecutorNameSchema,
   symbol: z.string().min(1),
   timeframe: z.string().min(1),
+  goalMode: researchGoalModeSchema.optional(),
+  goalProfileId: z.string().min(1).optional(),
   chartType: z.string().min(1),
   model: z.string().min(1),
 });
@@ -1041,6 +1058,11 @@ export const mutationBriefRecordSchema = z.object({
 export const autonomousIterationLearningRecordSchema = z.object({
   runId: z.string().min(1),
   iteration: z.number().int().positive(),
+  targetId: z.string().min(1).nullable().optional(),
+  symbol: z.string().min(1).nullable().optional(),
+  timeframe: z.string().min(1).nullable().optional(),
+  goalMode: researchGoalModeSchema.optional(),
+  goalProfileId: z.string().min(1).optional(),
   researchMode: researchModeConfigSchema.default({
     mode: "continuous_improvement",
     source: "default",
@@ -1401,6 +1423,7 @@ export type MutationStrategyReviewDirective = z.infer<
   typeof mutationStrategyReviewDirectiveSchema
 >;
 export type ResearchMode = z.infer<typeof researchModeSchema>;
+export type ResearchGoalMode = z.infer<typeof researchGoalModeSchema>;
 export type CriterionKey = z.infer<typeof criterionKeySchema>;
 export type ResearchModeConfig = z.infer<typeof researchModeConfigSchema>;
 export type CriterionDirective = z.infer<typeof criterionDirectiveSchema>;

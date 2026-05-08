@@ -10,6 +10,8 @@ param(
   [string]$PromotionVerificationExecutor = "",
   [string]$TradingViewWebCdpUrl = "http://127.0.0.1:9223",
   [string]$StateRoot = "",
+  [string]$Symbol = "",
+  [string]$GoalMode = "",
   [string]$ResearchTargetId = "",
   [string]$ChartSymbol = "",
   [string]$ChartTimeframe = "",
@@ -77,6 +79,12 @@ $env:PINE_EVALUATION_EXECUTOR = "local-backtest"
 $env:AF_STATE_ROOT = [string]$StateRoot
 if (-not [string]::IsNullOrWhiteSpace($ResearchTargetId)) {
   $env:AF_RESEARCH_TARGET_ID = $ResearchTargetId
+}
+if (-not [string]::IsNullOrWhiteSpace($Symbol) -and -not [string]::IsNullOrWhiteSpace($ResearchTargetId)) {
+  throw "Use either -Symbol or -ResearchTargetId, not both."
+}
+if (-not [string]::IsNullOrWhiteSpace($GoalMode)) {
+  $env:AF_RESEARCH_GOAL_MODE = $GoalMode
 }
 if (-not [string]::IsNullOrWhiteSpace($ChartSymbol)) {
   $env:TRADINGVIEW_CHART_SYMBOL = $ChartSymbol
@@ -253,7 +261,7 @@ function Start-CalibrationWorkerIfNeeded {
 
 $iteration = 0
 $memoryWarningTimes = @()
-Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; stateRoot=$StateRoot; target=$env:AF_RESEARCH_TARGET_ID; chart=$($env:TRADINGVIEW_CHART_SYMBOL):$($env:TRADINGVIEW_CHART_TIMEFRAME); autoProcessCalibration=$autoProcessCalibrationValue; loopAutoProcessCalibration=$loopAutoProcessCalibrationValue; calibrationMode=$(if ($parallelCalibration) { 'parallel_worker' } elseif ($AutoProcessCalibration.IsPresent) { 'inline' } else { 'queue_only' }); calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
+Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; stateRoot=$StateRoot; symbol=$Symbol; goalMode=$env:AF_RESEARCH_GOAL_MODE; target=$env:AF_RESEARCH_TARGET_ID; chart=$($env:TRADINGVIEW_CHART_SYMBOL):$($env:TRADINGVIEW_CHART_TIMEFRAME); autoProcessCalibration=$autoProcessCalibrationValue; loopAutoProcessCalibration=$loopAutoProcessCalibrationValue; calibrationMode=$(if ($parallelCalibration) { 'parallel_worker' } elseif ($AutoProcessCalibration.IsPresent) { 'inline' } else { 'queue_only' }); calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
 Write-LoopLog "stop file: $StopFile"
 
 try {
@@ -278,6 +286,8 @@ try {
       startedAt = $startedAt.ToUniversalTime().ToString("o")
       logFile = $LogFile
       stateRoot = $StateRoot
+      researchSymbol = $Symbol
+      goalMode = $env:AF_RESEARCH_GOAL_MODE
       researchTargetId = $env:AF_RESEARCH_TARGET_ID
       chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
       chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
@@ -296,6 +306,14 @@ try {
       "--calibration-budget",
       [string]$CalibrationBudget
     )
+    if (-not [string]::IsNullOrWhiteSpace($ResearchTargetId)) {
+      $runArguments += @("--target", [string]$ResearchTargetId)
+    } elseif (-not [string]::IsNullOrWhiteSpace($Symbol)) {
+      $runArguments += @("--symbol", [string]$Symbol)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($GoalMode)) {
+      $runArguments += @("--mode", [string]$GoalMode)
+    }
     $runExit = Invoke-Af -Arguments $runArguments
     Write-LoopLog "iteration ${iteration}: run-autonomous-loop exit=$runExit"
 
@@ -345,6 +363,8 @@ try {
       durationSeconds = [math]::Round(($completedAt - $startedAt).TotalSeconds, 3)
       logFile = $LogFile
       stateRoot = $StateRoot
+      researchSymbol = $Symbol
+      goalMode = $env:AF_RESEARCH_GOAL_MODE
       researchTargetId = $env:AF_RESEARCH_TARGET_ID
       chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
       chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME

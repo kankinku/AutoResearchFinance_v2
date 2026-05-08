@@ -8,7 +8,11 @@ import process from "node:process";
 import { Command } from "commander";
 
 import { loadObjectiveConfig } from "../config/objective.js";
-import { loadAllResearchTargets } from "../config/target-registry.js";
+import {
+  resolveResearchRunContext,
+  resolveResearchRunContexts,
+  type ResearchRunContext,
+} from "../config/research-run-context.js";
 import { evaluateObjective } from "../evaluation/objective.js";
 import {
   assertPromotionEligible,
@@ -180,19 +184,47 @@ function loadRuntimeEnvironmentForTarget(targetId: string): RuntimeEnvironment {
   }
 }
 
-function resolveTargetIds(baseEnv: RuntimeEnvironment, targetOption?: string): string[] {
-  const requested = targetOption ?? baseEnv.researchTargetId;
-  if (requested !== "all") {
-    return [requested];
+type RuntimeEnvironmentWithResearchContext = RuntimeEnvironment & {
+  researchRunContext?: ResearchRunContext;
+  researchGoalMode?: ResearchRunContext["goalMode"];
+  researchGoalProfileId?: string;
+};
+
+function attachResearchRunContext(
+  env: RuntimeEnvironment,
+  context: ResearchRunContext,
+): RuntimeEnvironmentWithResearchContext {
+  return {
+    ...env,
+    researchTargetId: context.targetId,
+    chartSymbol: context.symbol,
+    chartTimeframe: context.timeframe,
+    researchRunContext: context,
+    researchGoalMode: context.goalMode,
+    researchGoalProfileId: context.goalProfileId,
+  };
+}
+
+function loadRuntimeEnvironmentForContext(
+  context: ResearchRunContext,
+): RuntimeEnvironmentWithResearchContext {
+  return attachResearchRunContext(loadRuntimeEnvironmentForTarget(context.targetId), context);
+}
+
+async function resolveCliResearchContexts(
+  baseEnv: RuntimeEnvironment,
+  options: { symbol?: string; target?: string; mode?: string },
+): Promise<ResearchRunContext[]> {
+  if (options.symbol && options.target) {
+    throw new Error("Use either --symbol or --target, not both.");
   }
-  const targets = loadAllResearchTargets({
+  return resolveResearchRunContexts({
     projectRoot: baseEnv.projectRoot,
     workspaceRoot: baseEnv.workspaceRoot,
+    symbol: options.symbol,
+    targetId: options.target,
+    mode: options.mode,
   });
-  if (targets.length === 0) {
-    throw new Error("No research targets were found under config/targets.");
-  }
-  return targets.map((target) => target.id);
 }
 
 async function writeNodeRuntimeTelemetry(input: {
@@ -1543,6 +1575,8 @@ program
   .command("run-autonomous-loop")
   .description("Run one or more v3 autonomous local-first iterations; TradingView calibration stays queued unless explicitly enabled.")
   .option("--count <number>", "Iteration count", "1")
+  .option("--symbol <symbol|all>", "Research symbol, or all symbols.")
+  .option("--mode <mode>", "Goal mode: explore, improve, repair, calibrate, or promote.")
   .option("--target <id|all>", "Research target id, or all to run target configs sequentially.")
   .option(
     "--research-mode <mode>",
@@ -1559,6 +1593,8 @@ program
   )
   .action(async (options: {
     count: string;
+    symbol?: string;
+    mode?: string;
     target?: string;
     researchMode?: string;
     criterion?: string;
@@ -1566,7 +1602,7 @@ program
     calibrationBudget?: string;
   }) => {
     const baseEnv = loadRuntimeEnvironment();
-    const targetIds = resolveTargetIds(baseEnv, options.target);
+    const contexts = await resolveCliResearchContexts(baseEnv, options);
     if (options.criterion && baseEnv.researchModeConfig.mode !== "criterion_focus") {
       throw new Error("--criterion is only valid when --research-mode criterion_focus is active.");
     }
@@ -1578,11 +1614,8 @@ program
       async (monitor) => {
         const count = parsePositiveInteger(options.count, "count");
         const targetRuns = [];
-        for (const targetId of targetIds) {
-          const env =
-            targetId === baseEnv.researchTargetId
-              ? baseEnv
-              : loadRuntimeEnvironmentForTarget(targetId);
+        for (const context of contexts) {
+          const env = loadRuntimeEnvironmentForContext(context);
           validateAutonomousResearchMode(env);
           const autoProcessCalibration =
             options.autoProcessCalibration == null
@@ -1610,7 +1643,11 @@ program
             resolveTradingViewExecutorName(loopEnv) ?? "tradingview-desktop-cdp";
           await monitor.log("autonomous.loop.start", "Starting autonomous local-first loop", {
             count,
-            targetId,
+            targetId: context.targetId,
+            symbol: context.symbol,
+            timeframe: context.timeframe,
+            goalMode: context.goalMode,
+            goalProfileId: context.goalProfileId,
             workspaceRoot: env.workspaceRoot,
             stateRoot: env.stateRoot,
             projectRoot: env.projectRoot,
@@ -1622,9 +1659,10 @@ program
           const iterationRun = await runAutonomousIterations({
             workspaceRoot: env.workspaceRoot,
             env: loopEnv,
+            researchRunContext: context,
             llmClient,
             localExecutorFactory: () =>
-              createPineEvaluationExecutor(env, "local-backtest"),
+              createPineEvaluationExecutor(loopEnv, "local-backtest"),
             calibrationExecutorFactory: autoProcessCalibration
               ? () => createPineEvaluationExecutor(loopEnv, calibrationExecutorName)
               : undefined,
@@ -1636,7 +1674,11 @@ program
             env: loopEnv,
           });
           targetRuns.push({
-            targetId,
+            targetId: context.targetId,
+            symbol: context.symbol,
+            timeframe: context.timeframe,
+            goalMode: context.goalMode,
+            goalProfileId: context.goalProfileId,
             ...iterationRun,
             autonomousState,
           });
@@ -1681,11 +1723,21 @@ program
 program
   .command("review-strategies")
   .description("Run deterministic triage and selective deep strategy reviews for autonomous candidates.")
-  .option("--target <id|all>", "Research target id, or all target configs.", "all")
+  .option("--symbol <symbol|all>", "Research symbol, or all symbols.")
+  .option("--mode <mode>", "Goal mode: explore, improve, repair, calibrate, or promote.")
+  .option("--target <id|all>", "Deprecated: research target id, or all target configs.")
   .option("--deep-budget <number>", "Maximum deep LLM reviews per target.")
-  .action(async (options: { target: string; deepBudget?: string }) => {
+  .action(async (options: {
+    symbol?: string;
+    mode?: string;
+    target?: string;
+    deepBudget?: string;
+  }) => {
     const baseEnv = loadRuntimeEnvironment();
-    const targetIds = resolveTargetIds(baseEnv, options.target);
+    const contexts = await resolveCliResearchContexts(baseEnv, {
+      ...options,
+      symbol: options.symbol ?? (options.target ? undefined : "all"),
+    });
     await withCliMonitor(
       {
         workspaceRoot: baseEnv.workspaceRoot,
@@ -1693,12 +1745,8 @@ program
       },
       async (monitor) => {
         const results = [];
-        for (const targetId of targetIds) {
-          const env =
-            targetId === baseEnv.researchTargetId
-              ? baseEnv
-              : loadRuntimeEnvironmentForTarget(targetId);
-          const objective = await loadObjectiveConfig(env.workspaceRoot, targetId);
+        for (const context of contexts) {
+          const env = loadRuntimeEnvironmentForContext(context);
           const deepBudget =
             options.deepBudget == null
               ? env.strategyReviewDeepBudget
@@ -1709,15 +1757,20 @@ program
               : undefined;
           const reviews = await runStrategyReviewBatchForTarget({
             stateRoot: env.stateRoot,
-            targetId,
-            objective,
+            targetId: context.targetId,
+            objective: context.objective,
+            runContext: context,
             llmClient,
             mode: env.strategyReviewMode,
             deepBudget,
             monitor,
           });
           results.push({
-            targetId,
+            targetId: context.targetId,
+            symbol: context.symbol,
+            timeframe: context.timeframe,
+            goalMode: context.goalMode,
+            goalProfileId: context.goalProfileId,
             reviewCount: reviews.length,
             deepReviewCount: reviews.filter((review) => review.reviewMode === "deep_llm")
               .length,
@@ -1742,13 +1795,31 @@ program
 
 program
   .command("inspect-strategy-reviews")
-  .description("Inspect strategy review ledger entries for a target and optional candidate.")
-  .requiredOption("--target <id>", "Research target id.")
+  .description("Inspect strategy review ledger entries for a symbol/target and optional candidate.")
+  .option("--symbol <symbol>", "Research symbol.")
+  .option("--mode <mode>", "Goal mode filter.")
+  .option("--target <id>", "Deprecated: research target id.")
   .option("--candidate <candidateId>", "Candidate id filter.")
-  .action(async (options: { target: string; candidate?: string }) => {
-    const env = loadRuntimeEnvironmentForTarget(options.target);
+  .action(async (options: {
+    symbol?: string;
+    mode?: string;
+    target?: string;
+    candidate?: string;
+  }) => {
+    const baseEnv = loadRuntimeEnvironment();
+    const context = await resolveResearchRunContext({
+      projectRoot: baseEnv.projectRoot,
+      workspaceRoot: baseEnv.workspaceRoot,
+      symbol: options.symbol,
+      targetId: options.target,
+      mode: options.mode,
+    });
+    const env = loadRuntimeEnvironmentForContext(context);
     const reviews = (await readStrategyReviewRecords(env.stateRoot))
-      .filter((review) => review.targetId === options.target)
+      .filter((review) => review.targetId === context.targetId)
+      .filter((review) =>
+        options.mode ? review.goalMode == null || review.goalMode === context.goalMode : true,
+      )
       .filter((review) =>
         options.candidate ? review.candidateId === options.candidate : true,
       )
@@ -1760,7 +1831,11 @@ program
     console.log(
       JSON.stringify(
         {
-          targetId: options.target,
+          targetId: context.targetId,
+          symbol: context.symbol,
+          timeframe: context.timeframe,
+          goalMode: context.goalMode,
+          goalProfileId: context.goalProfileId,
           candidateId: options.candidate ?? null,
           count: reviews.length,
           reviews: reviews.slice(0, 50),

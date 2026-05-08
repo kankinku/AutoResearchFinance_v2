@@ -11,6 +11,7 @@ import {
   mutationProvenanceSchema,
   objectiveBreakdownSchema,
   recordMetaSchema,
+  researchGoalModeSchema,
   tradeRecordSchema,
   equitySummarySchema,
   mutationAuthoritySchema,
@@ -296,6 +297,10 @@ export const autonomousEligibilitySchema = z.object({
 
 export const autonomousExperimentSchema = z.object({
   targetId: z.string().min(1).nullable().default(null),
+  symbol: z.string().min(1).nullable().optional(),
+  timeframe: z.string().min(1).nullable().optional(),
+  goalMode: researchGoalModeSchema.optional(),
+  goalProfileId: z.string().min(1).optional(),
   runId: z.string().min(1),
   iteration: z.number().int().positive(),
   candidateId: z.string().min(1),

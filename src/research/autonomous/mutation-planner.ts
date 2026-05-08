@@ -62,6 +62,7 @@ import {
   buildSchemaHardeningSummary,
 } from "./llm-repair-phase.js";
 import { type MutationSchemaMode } from "../../policy/autoresearch-contract.js";
+import { type ResearchRunContext } from "../../config/research-run-context.js";
 
 const RESPONSE_SCHEMA_VERSION = "parsed-mutation-response/v2";
 export type MutationSchemaFailureKind =
@@ -241,6 +242,7 @@ export async function prepareAutonomousMutationPlan(input: {
   iterationRecords?: AutonomousIterationLearningRecord[];
   ignoreCalibrationGuidance?: boolean;
   selectedBranch?: AutonomousBranchRecord | null;
+  researchRunContext?: ResearchRunContext;
   researchModeConfig?: ResearchModeConfig;
   criterionDirective?: CriterionDirective | null;
   strategyReviewDirective?: MutationStrategyReviewDirective | null;
@@ -386,6 +388,7 @@ export async function prepareAutonomousMutationPlan(input: {
     mode: "continuous_improvement" as const,
     source: "default" as const,
   };
+  const goalContext = input.researchRunContext ?? null;
   const criterionDirective = input.criterionDirective ?? null;
   const candidateBehaviorChangeSummary = buildCandidateBehaviorChangeSummary({
     confidenceSummary,
@@ -437,8 +440,11 @@ export async function prepareAutonomousMutationPlan(input: {
         ? "Use only ledger-derived evidence. Improve out-of-sample stability and post-fee profitability before adding more feature complexity."
       : "Use only ledger-derived evidence. Explore a materially distinct AF-compatible structure from the seed and optimize for novelty plus robustness without relying on generic trading heuristics.";
   const nextMutationDirection = [
+    goalContext
+      ? `Goal mode ${goalContext.goalMode} is active (${goalContext.goalProfileId}). Objective focus: ${goalContext.objectiveFocus}. Strategy review focus: ${goalContext.strategyReviewFocus.join(", ") || "none"}.`
+      : null,
     criterionDirective
-      ? `Research mode criterion_focus is active. ${criterionDirective.nextMutationDirection} Current status: ${criterionDirective.statusSummary} Weakness: ${criterionDirective.weaknessSummary} Success criteria: ${criterionDirective.successCriteria}.`
+      ? `${researchModeConfig.mode === "criterion_focus" ? "Research mode criterion_focus" : "Goal-mode criterion seed"} is active. ${criterionDirective.nextMutationDirection} Current status: ${criterionDirective.statusSummary} Weakness: ${criterionDirective.weaknessSummary} Success criteria: ${criterionDirective.successCriteria}.`
       : null,
     strategyReviewDirective
       ? `Strategy review directive is active. Reason: ${strategyReviewDirective.reason}. Required changes: ${strategyReviewDirective.requiredChanges.join(", ") || "none"}. Validation focus: ${strategyReviewDirective.validationFocus.join(", ") || "none"}. Suppressed families: ${strategyReviewDirective.suppressedFamilies.join(", ") || "none"}.`
@@ -473,6 +479,12 @@ export async function prepareAutonomousMutationPlan(input: {
   const brief: MutationBrief = {
     objective:
       "Autonomous local-first research. Optimize the existing objective score while increasing novelty and out-of-sample robustness. Use only ledger-derived evidence from the provided context; do not rely on generic human trading intuition.",
+    symbol: goalContext?.symbol ?? input.objective.symbol,
+    timeframe: goalContext?.timeframe ?? input.objective.timeframe,
+    goalMode: goalContext?.goalMode,
+    goalProfileId: goalContext?.goalProfileId,
+    objectiveFocus: goalContext?.objectiveFocus,
+    strategyReviewFocus: goalContext?.strategyReviewFocus,
     researchMode: researchModeConfig,
     criterionDirective: criterionDirective ?? undefined,
     guardrails: {

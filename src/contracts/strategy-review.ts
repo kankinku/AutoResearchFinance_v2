@@ -5,6 +5,7 @@ import {
   branchKindSchema,
   objectiveConfigSchema,
   objectiveBreakdownSchema,
+  researchGoalModeSchema,
 } from "./types.js";
 
 export const strategyReviewDecisionSchema = z.enum([
@@ -66,6 +67,8 @@ export const strategyReviewEvidenceSchema = z.object({
     targetId: z.string().min(1),
     symbol: z.string().min(1),
     timeframe: z.string().min(1),
+    goalMode: researchGoalModeSchema.optional(),
+    goalProfileId: z.string().min(1).optional(),
   }),
   runId: z.string().min(1),
   iteration: z.number().int().nonnegative(),
@@ -154,6 +157,10 @@ export const strategyReviewLlmResponseSchema = z.object({
 export const strategyReviewRecordSchema = strategyReviewLlmResponseSchema.extend({
   schemaVersion: z.literal("strategy-review-record/v1"),
   targetId: z.string().min(1),
+  symbol: z.string().min(1).nullable().optional(),
+  timeframe: z.string().min(1).nullable().optional(),
+  goalMode: researchGoalModeSchema.optional(),
+  goalProfileId: z.string().min(1).optional(),
   runId: z.string().min(1),
   iteration: z.number().int().nonnegative(),
   candidateId: z.string().min(1),
@@ -173,6 +180,10 @@ export const strategyReviewBoardSchema = z.object({
   targets: z.array(
     z.object({
       targetId: z.string().min(1),
+      symbol: z.string().min(1).nullable().optional(),
+      timeframe: z.string().min(1).nullable().optional(),
+      goalMode: researchGoalModeSchema.optional(),
+      goalProfileId: z.string().min(1).optional(),
       latestReview: strategyReviewRecordSchema.nullable().default(null),
       decisionCounts: z.record(z.string(), z.number().int().nonnegative()).default({}),
       suppressedFamilies: z.array(z.string()).default([]),

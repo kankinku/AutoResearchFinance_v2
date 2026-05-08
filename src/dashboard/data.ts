@@ -78,6 +78,11 @@ export interface DashboardStatusPayload {
   };
   researchMode: {
     mode: string;
+    symbol: string | null;
+    timeframe: string | null;
+    goalMode: string | null;
+    goalProfileId: string | null;
+    objectiveFocus: string | null;
     activeCriterion: string | null;
     nextPlannedActionReason: string | null;
     latestIndicatorArtifact: Record<string, unknown> | null;
@@ -534,6 +539,7 @@ export async function buildDashboardStatus(
     researchMode: buildResearchModeDashboard({
       autonomousSummary,
       researchModeConfig: input.researchModeConfig,
+      latestMutationBrief: latestBrief,
       indicatorArtifacts,
     }),
     strategyReview: buildStrategyReviewDashboard(strategyReviewBoard),
@@ -549,12 +555,14 @@ export async function buildDashboardStatus(
 function buildResearchModeDashboard(input: {
   autonomousSummary: Record<string, unknown> | null;
   researchModeConfig?: Record<string, unknown>;
+  latestMutationBrief: MutationBriefRecord | null;
   indicatorArtifacts: IndicatorArtifactRecord[];
 }): DashboardStatusPayload["researchMode"] {
   const researchMode =
     recordValue(input.autonomousSummary?.researchMode) ??
     input.researchModeConfig ??
     null;
+  const researchContext = recordValue(input.autonomousSummary?.researchContext);
   const latestIndicatorArtifact =
     recordValue(input.autonomousSummary?.latestIndicatorArtifact) ??
     input.indicatorArtifacts
@@ -566,6 +574,15 @@ function buildResearchModeDashboard(input: {
     null;
   return {
     mode: stringValue(researchMode?.mode) ?? "continuous_improvement",
+    symbol: stringValue(researchContext?.symbol),
+    timeframe: stringValue(researchContext?.timeframe),
+    goalMode:
+      stringValue(researchContext?.goalMode) ??
+      stringValue(input.latestMutationBrief?.brief.goalMode),
+    goalProfileId:
+      stringValue(researchContext?.goalProfileId) ??
+      stringValue(input.latestMutationBrief?.brief.goalProfileId),
+    objectiveFocus: stringValue(input.latestMutationBrief?.brief.objectiveFocus),
     activeCriterion: stringValue(input.autonomousSummary?.activeCriterion),
     nextPlannedActionReason: stringValue(
       input.autonomousSummary?.nextPlannedActionReason,
@@ -585,11 +602,24 @@ function buildResearchModeDashboard(input: {
 function buildStrategyReviewDashboard(
   board: StrategyReviewBoardView | null,
 ): DashboardStatusPayload["strategyReview"] {
+  const latestReviewFromRecent = board?.recentReviews
+    ?.map(recordValue)
+    .filter((value): value is Record<string, unknown> => value != null)[0] ?? null;
   const latestTarget = board?.targets
     ?.map(recordValue)
     .filter((value): value is Record<string, unknown> => value != null)
-    .find((target) => recordValue(target.latestReview) != null);
-  const latestReview = latestTarget ? recordValue(latestTarget.latestReview) : null;
+    .find((target) => {
+      const targetReview = recordValue(target.latestReview);
+      if (!targetReview) {
+        return false;
+      }
+      return latestReviewFromRecent
+        ? stringValue(targetReview.candidateId) ===
+            stringValue(latestReviewFromRecent.candidateId)
+        : true;
+    });
+  const latestReview =
+    latestReviewFromRecent ?? (latestTarget ? recordValue(latestTarget.latestReview) : null);
   return {
     latestDecision: stringValue(latestReview?.reviewDecision),
     latestCandidateId: stringValue(latestReview?.candidateId),
