@@ -331,6 +331,27 @@ export function renderDashboardHtml(): string {
       margin-top: 16px;
     }
 
+    .context-band {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+      gap: 16px;
+      margin: 0 0 16px;
+      min-width: 0;
+    }
+
+    .context-title {
+      font-family: var(--mono);
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 4px 0 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .context-rows {
+      margin-top: 16px;
+    }
+
     .chip {
       font-size: 13px;
       font-weight: 600;
@@ -558,7 +579,7 @@ export function renderDashboardHtml(): string {
     }
 
     @media (max-width: 1100px) {
-      .grid, .two-col, .brief-band { grid-template-columns: minmax(0, 1fr); }
+      .grid, .two-col, .brief-band, .context-band { grid-template-columns: minmax(0, 1fr); }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
@@ -671,6 +692,27 @@ export function renderDashboardHtml(): string {
         <button class="page-tab" type="button" data-page-target="validation">검증</button>
         <button class="page-tab" type="button" data-page-target="history">기록</button>
       </nav>
+
+      <section class="context-band" aria-label="현재 연구 컨텍스트">
+        <div class="panel">
+          <h2><span>연구 컨텍스트</span><span id="researchModeBadge">-</span></h2>
+          <div class="context-title" id="researchTargetLabel">-</div>
+          <p class="copy" id="researchObjectiveFocus">-</p>
+          <div class="feature-list" id="researchFocusChips"></div>
+          <table class="context-rows">
+            <tbody id="researchContextRows"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2><span>전략 리뷰 지시</span><span id="strategyReviewConfidence">-</span></h2>
+          <div class="context-title" id="strategyReviewDecision">-</div>
+          <p class="copy" id="strategyReviewReason">-</p>
+          <div class="feature-list" id="strategyReviewFocus"></div>
+          <table class="context-rows">
+            <tbody id="strategyReviewRows"></tbody>
+          </table>
+        </div>
+      </section>
 
       <section class="page active" data-page="overview">
         <section class="brief-band">
@@ -936,6 +978,40 @@ export function renderDashboardHtml(): string {
 
     function modeLabel(mode) {
       return mode === "local_only" ? "로컬 전용" : "외부 자동";
+    }
+
+    function goalModeLabel(value) {
+      const labels = {
+        explore: "탐색",
+        improve: "개선",
+        repair: "수리",
+        calibrate: "보정",
+        promote: "승격"
+      };
+      return labels[value] || value || "-";
+    }
+
+    function calibrationPolicyLabel(value) {
+      const labels = {
+        target_default: "기본",
+        queue_only: "큐 보관",
+        tv_priority: "TV 우선",
+        promotion_readiness: "승격 준비"
+      };
+      return labels[value] || value || "-";
+    }
+
+    function reviewDecisionLabel(value) {
+      const labels = {
+        exploit_parent: "부모 활용",
+        repair_near_miss: "근접 후보 수리",
+        redirect_family: "패밀리 전환",
+        simplify_family: "단순화",
+        quarantine_family: "패밀리 격리",
+        calibrate_candidate: "후보 보정",
+        no_action: "조치 없음"
+      };
+      return labels[value] || value || "-";
     }
 
     function improvementLabel(status) {
@@ -1446,8 +1522,39 @@ export function renderDashboardHtml(): string {
         : latestMetrics
           ? latestMetrics.netProfitPercent
           : null;
+      const researchMode = data.researchMode || {};
+      const strategyReview = data.strategyReview || {};
+      const targetLabel = [researchMode.symbol, researchMode.timeframe ? researchMode.timeframe + "m" : null]
+        .filter(Boolean)
+        .join(" / ") || "-";
       text("subline", "상태 " + data.project.stateRoot + " / " + new Date(data.generatedAt).toLocaleTimeString());
       text("generatedAt", new Date(data.generatedAt).toLocaleTimeString());
+      text("researchModeBadge", goalModeLabel(researchMode.goalMode));
+      text("researchTargetLabel", targetLabel);
+      text("researchObjectiveFocus", researchMode.objectiveFocus || "목표 profile을 기다리는 중입니다.");
+      renderChipList("researchFocusChips", researchMode.strategyReviewFocus || []);
+      renderRows("researchContextRows", [
+        row([{ value: "target", className: "mono" }, { value: researchMode.targetId || "-", className: "mono" }]),
+        row([{ value: "profile", className: "mono" }, { value: researchMode.goalProfileId || "-", className: "mono" }]),
+        row([{ value: "branch bias", className: "mono" }, { value: researchMode.branchKindBias || "balanced", className: researchMode.branchKindBias ? "goodText" : "mutedText" }]),
+        row([{ value: "criterion seed", className: "mono" }, { value: researchMode.criterionDirectiveSeed || "-", className: researchMode.criterionDirectiveSeed ? "goodText" : "mutedText" }]),
+        row([{ value: "calibration", className: "mono" }, { value: calibrationPolicyLabel(researchMode.calibrationPolicy), className: "mono" }]),
+        row([{ value: "suppressed branch", className: "mono" }, { value: (researchMode.suppressedBranchKinds || []).join(", ") || "-", className: (researchMode.suppressedBranchKinds || []).length ? "warnText" : "mutedText" }])
+      ]);
+      text("strategyReviewConfidence", strategyReview.confidence === null || strategyReview.confidence === undefined ? "대기" : fmt(strategyReview.confidence * 100, 0) + "%");
+      text("strategyReviewDecision", reviewDecisionLabel(strategyReview.latestDecision));
+      text("strategyReviewReason", strategyReview.reason || strategyReview.debateSummary || "아직 적용 가능한 전략 리뷰 지시가 없습니다.");
+      renderChipList("strategyReviewFocus", strategyReview.nextMutationFocus || []);
+      renderRows("strategyReviewRows", [
+        row([{ value: "candidate", className: "mono" }, { value: strategyReview.latestCandidateId ? shortId(strategyReview.latestCandidateId) : "-", className: "mono" }]),
+        row([{ value: "review mode", className: "mono" }, { value: strategyReview.reviewMode || "-", className: "mono" }]),
+        row([{ value: "branch bias", className: "mono" }, { value: strategyReview.branchKindBias || "-", className: strategyReview.branchKindBias ? "goodText" : "mutedText" }]),
+        row([{ value: "parent", className: "mono" }, { value: strategyReview.parentCandidateId ? shortId(strategyReview.parentCandidateId) : "-", className: "mono" }]),
+        row([{ value: "required", className: "mono" }, { value: (strategyReview.requiredChanges || []).join(", ") || "-" }]),
+        row([{ value: "validation", className: "mono" }, { value: (strategyReview.validationFocus || []).join(", ") || "-" }]),
+        row([{ value: "forbidden", className: "mono" }, { value: (strategyReview.forbiddenPatterns || []).join(", ") || "-", className: (strategyReview.forbiddenPatterns || []).length ? "warnText" : "mutedText" }]),
+        row([{ value: "suppressed family", className: "mono" }, { value: (strategyReview.suppressedFamilies || []).join(", ") || "-", className: (strategyReview.suppressedFamilies || []).length ? "badText" : "mutedText" }])
+      ]);
       text("operatorMode", modeLabel(brief.mode));
       text("briefHeadline", brief.headline || "-");
       text("briefSummary", brief.summary || "-");

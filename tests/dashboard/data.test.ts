@@ -185,4 +185,95 @@ describe("buildDashboardStatus", () => {
       }),
     );
   });
+
+  test("exposes symbol mode context and matching strategy review directive", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-dashboard-mode-"));
+    const stateRoot = path.join(root, "state", "btc-15m-autoresearch");
+    const paths = resolveKnowledgePaths(stateRoot);
+    await mkdir(paths.viewsDir, { recursive: true });
+    await mkdir(path.dirname(paths.strategyReviewBoardPath), { recursive: true });
+    await mkdir(paths.ledgerDir, { recursive: true });
+    await mkdir(paths.runtimeDir, { recursive: true });
+    await mkdir(paths.artifactDir, { recursive: true });
+    await writeFile(
+      path.join(paths.runtimeDir, "autonomous-loop-heartbeat.json"),
+      JSON.stringify({
+        pid: 12345,
+        status: "running",
+        researchSymbol: "BTCUSD",
+        chartSymbol: "BTCUSD",
+        chartTimeframe: "15",
+        goalMode: "repair",
+      }),
+      "utf8",
+    );
+    await writeFile(
+      paths.strategyReviewBoardPath,
+      JSON.stringify({
+        targets: [
+          {
+            targetId: "btc-15m-af",
+            symbol: "BTCUSD",
+            timeframe: "15",
+            goalMode: "repair",
+            latestReview: {
+              reviewDecision: "repair_near_miss",
+              confidence: 0.82,
+              reviewMode: "deterministic",
+              candidateId: "cand-near",
+              mutationDirective: {
+                branchKindBias: "near_miss_repair",
+                parentCandidateId: "cand-near",
+                requiredChanges: ["recover_trade_density"],
+                forbiddenPatterns: ["broad_rewrite"],
+                suppressedFamilies: ["family-a"],
+                validationFocus: ["walk_forward"],
+                reason: "repair repeated OOS failure",
+              },
+              recordedAt: "2026-05-08T00:00:00.000Z",
+            },
+            suppressedFamilies: ["family-a"],
+            nextMutationFocus: ["recover_trade_density", "walk_forward"],
+          },
+        ],
+        recentReviews: [],
+      }),
+      "utf8",
+    );
+
+    const status = await buildDashboardStatus({
+      workspaceRoot: root,
+      stateRoot,
+      autoProcessCalibration: false,
+      promotionVerificationExecutor: "none",
+      now: new Date("2026-05-08T00:00:00.000Z"),
+    });
+
+    expect(status.researchMode).toEqual(
+      expect.objectContaining({
+        symbol: "BTCUSD",
+        timeframe: "15",
+        goalMode: "repair",
+        goalProfileId: "repair/v1",
+        branchKindBias: "near_miss_repair",
+        criterionDirectiveSeed: "oos_robustness",
+        calibrationPolicy: "target_default",
+      }),
+    );
+    expect(status.researchMode.strategyReviewFocus).toContain("near_miss");
+    expect(status.strategyReview).toEqual(
+      expect.objectContaining({
+        latestDecision: "repair_near_miss",
+        latestCandidateId: "cand-near",
+        confidence: 0.82,
+        branchKindBias: "near_miss_repair",
+        parentCandidateId: "cand-near",
+        reason: "repair repeated OOS failure",
+        suppressedFamilies: ["family-a"],
+        nextMutationFocus: ["recover_trade_density", "walk_forward"],
+      }),
+    );
+    expect(status.strategyReview.requiredChanges).toEqual(["recover_trade_density"]);
+    expect(status.strategyReview.validationFocus).toEqual(["walk_forward"]);
+  });
 });

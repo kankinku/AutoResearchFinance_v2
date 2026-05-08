@@ -13,6 +13,7 @@ import {
   type ProblemEventRecord,
   type RepairAttemptRecord,
 } from "../contracts/autonomous.js";
+import { RESEARCH_GOAL_PROFILES } from "../config/research-run-context.js";
 import { resolveStatePaths } from "../state/jsonl-store.js";
 import { fileExists, readJson, readJsonlTail } from "../utils/fs.js";
 
@@ -78,11 +79,17 @@ export interface DashboardStatusPayload {
   };
   researchMode: {
     mode: string;
+    targetId: string | null;
     symbol: string | null;
     timeframe: string | null;
     goalMode: string | null;
     goalProfileId: string | null;
     objectiveFocus: string | null;
+    branchKindBias: string | null;
+    suppressedBranchKinds: string[];
+    criterionDirectiveSeed: string | null;
+    calibrationPolicy: string | null;
+    strategyReviewFocus: string[];
     activeCriterion: string | null;
     nextPlannedActionReason: string | null;
     latestIndicatorArtifact: Record<string, unknown> | null;
@@ -91,6 +98,15 @@ export interface DashboardStatusPayload {
     latestDecision: string | null;
     latestCandidateId: string | null;
     confidence: number | null;
+    reviewMode: string | null;
+    branchKindBias: string | null;
+    parentCandidateId: string | null;
+    requiredChanges: string[];
+    forbiddenPatterns: string[];
+    validationFocus: string[];
+    reason: string | null;
+    debateSummary: string | null;
+    recordedAt: string | null;
     suppressedFamilies: string[];
     nextMutationFocus: string[];
   };
@@ -505,6 +521,14 @@ export async function buildDashboardStatus(
         })
     : null;
 
+  const researchMode = buildResearchModeDashboard({
+    autonomousSummary,
+    heartbeat,
+    researchModeConfig: input.researchModeConfig,
+    latestMutationBrief: latestBrief,
+    indicatorArtifacts,
+  });
+
   return {
     generatedAt: now.toISOString(),
     project: {
@@ -536,13 +560,8 @@ export async function buildDashboardStatus(
     bestReturnStrategy,
     hypothesis: latestBrief ? toDashboardHypothesis(latestBrief) : null,
     improvement,
-    researchMode: buildResearchModeDashboard({
-      autonomousSummary,
-      researchModeConfig: input.researchModeConfig,
-      latestMutationBrief: latestBrief,
-      indicatorArtifacts,
-    }),
-    strategyReview: buildStrategyReviewDashboard(strategyReviewBoard),
+    researchMode,
+    strategyReview: buildStrategyReviewDashboard(strategyReviewBoard, researchMode),
     verifiedAutoresearch: buildVerifiedAutoresearchDashboard(autonomousSummary),
     externalValidation,
     failureMemory: {
@@ -554,6 +573,7 @@ export async function buildDashboardStatus(
 
 function buildResearchModeDashboard(input: {
   autonomousSummary: Record<string, unknown> | null;
+  heartbeat: Record<string, unknown> | null;
   researchModeConfig?: Record<string, unknown>;
   latestMutationBrief: MutationBriefRecord | null;
   indicatorArtifacts: IndicatorArtifactRecord[];
@@ -563,6 +583,15 @@ function buildResearchModeDashboard(input: {
     input.researchModeConfig ??
     null;
   const researchContext = recordValue(input.autonomousSummary?.researchContext);
+  const latestBrief = input.latestMutationBrief?.brief;
+  const goalMode =
+    stringValue(researchContext?.goalMode) ??
+    stringValue(latestBrief?.goalMode) ??
+    stringValue(input.heartbeat?.goalMode);
+  const goalProfile = goalMode
+    ? RESEARCH_GOAL_PROFILES[goalMode as keyof typeof RESEARCH_GOAL_PROFILES] ?? null
+    : null;
+  const strategyReviewFocus = stringArray(latestBrief?.strategyReviewFocus);
   const latestIndicatorArtifact =
     recordValue(input.autonomousSummary?.latestIndicatorArtifact) ??
     input.indicatorArtifacts
@@ -574,15 +603,36 @@ function buildResearchModeDashboard(input: {
     null;
   return {
     mode: stringValue(researchMode?.mode) ?? "continuous_improvement",
-    symbol: stringValue(researchContext?.symbol),
-    timeframe: stringValue(researchContext?.timeframe),
-    goalMode:
-      stringValue(researchContext?.goalMode) ??
-      stringValue(input.latestMutationBrief?.brief.goalMode),
+    targetId:
+      stringValue(researchContext?.targetId) ??
+      stringValue(input.heartbeat?.researchTargetId),
+    symbol:
+      stringValue(researchContext?.symbol) ??
+      stringValue(latestBrief?.symbol) ??
+      stringValue(input.heartbeat?.researchSymbol) ??
+      stringValue(input.heartbeat?.chartSymbol),
+    timeframe:
+      stringValue(researchContext?.timeframe) ??
+      stringValue(latestBrief?.timeframe) ??
+      stringValue(input.heartbeat?.chartTimeframe),
+    goalMode,
     goalProfileId:
       stringValue(researchContext?.goalProfileId) ??
-      stringValue(input.latestMutationBrief?.brief.goalProfileId),
-    objectiveFocus: stringValue(input.latestMutationBrief?.brief.objectiveFocus),
+      stringValue(latestBrief?.goalProfileId) ??
+      goalProfile?.id ??
+      null,
+    objectiveFocus:
+      stringValue(latestBrief?.objectiveFocus) ??
+      goalProfile?.objectiveFocus ??
+      null,
+    branchKindBias: goalProfile?.branchKindBias ?? null,
+    suppressedBranchKinds: goalProfile?.suppressedBranchKinds ?? [],
+    criterionDirectiveSeed: goalProfile?.criterionDirectiveSeed ?? null,
+    calibrationPolicy: goalProfile?.calibrationPolicy ?? null,
+    strategyReviewFocus:
+      strategyReviewFocus.length > 0
+        ? strategyReviewFocus
+        : goalProfile?.strategyReviewFocus ?? [],
     activeCriterion: stringValue(input.autonomousSummary?.activeCriterion),
     nextPlannedActionReason: stringValue(
       input.autonomousSummary?.nextPlannedActionReason,
@@ -601,14 +651,37 @@ function buildResearchModeDashboard(input: {
 
 function buildStrategyReviewDashboard(
   board: StrategyReviewBoardView | null,
+  researchMode?: DashboardStatusPayload["researchMode"],
 ): DashboardStatusPayload["strategyReview"] {
-  const latestReviewFromRecent = board?.recentReviews
-    ?.map(recordValue)
-    .filter((value): value is Record<string, unknown> => value != null)[0] ?? null;
-  const latestTarget = board?.targets
+  const matchesCurrentContext = (value: Record<string, unknown>): boolean => {
+    if (!researchMode) {
+      return true;
+    }
+    const targetId = stringValue(value.targetId);
+    const symbol = stringValue(value.symbol);
+    const timeframe = stringValue(value.timeframe);
+    const goalMode = stringValue(value.goalMode);
+    if (researchMode.targetId && targetId && targetId !== researchMode.targetId) {
+      return false;
+    }
+    if (researchMode.symbol && symbol && symbol !== researchMode.symbol) {
+      return false;
+    }
+    if (researchMode.timeframe && timeframe && timeframe !== researchMode.timeframe) {
+      return false;
+    }
+    return !(researchMode.goalMode && goalMode && goalMode !== researchMode.goalMode);
+  };
+  const recentReviews = board?.recentReviews
     ?.map(recordValue)
     .filter((value): value is Record<string, unknown> => value != null)
-    .find((target) => {
+    .filter(matchesCurrentContext) ?? [];
+  const latestReviewFromRecent = recentReviews[0] ?? null;
+  const targets = board?.targets
+    ?.map(recordValue)
+    .filter((value): value is Record<string, unknown> => value != null)
+    .filter(matchesCurrentContext) ?? [];
+  const latestTarget = targets.find((target) => {
       const targetReview = recordValue(target.latestReview);
       if (!targetReview) {
         return false;
@@ -620,12 +693,31 @@ function buildStrategyReviewDashboard(
     });
   const latestReview =
     latestReviewFromRecent ?? (latestTarget ? recordValue(latestTarget.latestReview) : null);
+  const mutationDirective = recordValue(latestReview?.mutationDirective);
+  const requiredChanges = stringArray(mutationDirective?.requiredChanges);
+  const validationFocus = stringArray(mutationDirective?.validationFocus);
+  const directiveSuppressedFamilies = stringArray(mutationDirective?.suppressedFamilies);
   return {
     latestDecision: stringValue(latestReview?.reviewDecision),
     latestCandidateId: stringValue(latestReview?.candidateId),
     confidence: numberValue(latestReview?.confidence),
-    suppressedFamilies: stringArray(latestTarget?.suppressedFamilies),
-    nextMutationFocus: stringArray(latestTarget?.nextMutationFocus),
+    reviewMode: stringValue(latestReview?.reviewMode),
+    branchKindBias: stringValue(mutationDirective?.branchKindBias),
+    parentCandidateId: stringValue(mutationDirective?.parentCandidateId),
+    requiredChanges,
+    forbiddenPatterns: stringArray(mutationDirective?.forbiddenPatterns),
+    validationFocus,
+    reason: stringValue(mutationDirective?.reason),
+    debateSummary: stringValue(latestReview?.debateSummary),
+    recordedAt: stringValue(latestReview?.recordedAt),
+    suppressedFamilies:
+      stringArray(latestTarget?.suppressedFamilies).length > 0
+        ? stringArray(latestTarget?.suppressedFamilies)
+        : directiveSuppressedFamilies,
+    nextMutationFocus:
+      stringArray(latestTarget?.nextMutationFocus).length > 0
+        ? stringArray(latestTarget?.nextMutationFocus)
+        : [...requiredChanges, ...validationFocus],
   };
 }
 
