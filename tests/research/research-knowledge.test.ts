@@ -46,6 +46,10 @@ const testEnv = {
   autoProcessCalibration: false,
   calibrationBudget: 1,
   calibrationTimeoutMs: 30_000,
+  strategyReviewMode: "selective" as const,
+  strategyReviewDeepBudget: 3,
+  strategyReviewMinConfidence: 0.7,
+  strategyReviewQuarantineConfidence: 0.85,
   researchModeConfig: {
     mode: "continuous_improvement" as const,
     source: "default" as const,

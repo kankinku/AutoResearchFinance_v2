@@ -8,6 +8,7 @@ import process from "node:process";
 import { Command } from "commander";
 
 import { loadObjectiveConfig } from "../config/objective.js";
+import { loadAllResearchTargets } from "../config/target-registry.js";
 import { evaluateObjective } from "../evaluation/objective.js";
 import {
   assertPromotionEligible,
@@ -63,6 +64,7 @@ import { buildObjectiveArtifact, writeIterationArtifacts } from "../research/art
 import { ingestResearchKnowledge } from "../research/research-knowledge.js";
 import { runSingleIteration } from "../research/iteration-runner.js";
 import { runAutonomousIterations } from "../research/autonomous/autonomous-loop.js";
+import { runStrategyReviewBatchForTarget } from "../research/autonomous/strategy-review-phase.js";
 import { runAutoSelectionPhase } from "../research/autonomous/auto-selection-phase.js";
 import { runLocalEvaluationPhase } from "../research/autonomous/local-evaluation-phase.js";
 import {
@@ -116,6 +118,7 @@ import {
   readMutationBriefRecords,
   readProblemEventRecords,
   readRepairAttemptRecords,
+  readStrategyReviewRecords,
   resolveStatePaths,
 } from "../state/jsonl-store.js";
 import {
@@ -162,6 +165,35 @@ program
   .option("--workspace-root <path>", "Override the workspace root used for runtime artifacts")
   .option("--state-root <path>", "Override the layered state root used for ledgers and views");
 const DEFAULT_TASK_BATCH_COUNT = 3;
+
+function loadRuntimeEnvironmentForTarget(targetId: string): RuntimeEnvironment {
+  const previousTargetId = process.env.AF_RESEARCH_TARGET_ID;
+  process.env.AF_RESEARCH_TARGET_ID = targetId;
+  try {
+    return loadRuntimeEnvironment();
+  } finally {
+    if (previousTargetId == null) {
+      delete process.env.AF_RESEARCH_TARGET_ID;
+    } else {
+      process.env.AF_RESEARCH_TARGET_ID = previousTargetId;
+    }
+  }
+}
+
+function resolveTargetIds(baseEnv: RuntimeEnvironment, targetOption?: string): string[] {
+  const requested = targetOption ?? baseEnv.researchTargetId;
+  if (requested !== "all") {
+    return [requested];
+  }
+  const targets = loadAllResearchTargets({
+    projectRoot: baseEnv.projectRoot,
+    workspaceRoot: baseEnv.workspaceRoot,
+  });
+  if (targets.length === 0) {
+    throw new Error("No research targets were found under config/targets.");
+  }
+  return targets.map((target) => target.id);
+}
 
 async function writeNodeRuntimeTelemetry(input: {
   stateRoot: string;
@@ -563,6 +595,14 @@ function parsePositiveInteger(value: string, label: string): number {
   return parsed;
 }
 
+function parseNonNegativeInteger(value: string, label: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a non-negative integer.`);
+  }
+  return parsed;
+}
+
 function parseBoolean(value: string, label: string): boolean {
   if (value === "true") {
     return true;
@@ -885,6 +925,7 @@ async function initializeWorkspaceForEnv(
     projectRoot: env.projectRoot,
     workspaceRoot: env.workspaceRoot,
     stateRoot: env.stateRoot,
+    targetId: env.researchTargetId,
   });
 }
 
@@ -973,6 +1014,13 @@ function createLazyMutationLlmClient(
     },
     async repairMutation(input) {
       return (await getClient()).repairMutation(input);
+    },
+    async reviewStrategy(input) {
+      const client = await getClient();
+      if (!client.reviewStrategy) {
+        throw new Error("Configured LLM client does not support strategy review.");
+      }
+      return client.reviewStrategy(input);
     },
   };
 }
@@ -1495,6 +1543,7 @@ program
   .command("run-autonomous-loop")
   .description("Run one or more v3 autonomous local-first iterations; TradingView calibration stays queued unless explicitly enabled.")
   .option("--count <number>", "Iteration count", "1")
+  .option("--target <id|all>", "Research target id, or all to run target configs sequentially.")
   .option(
     "--research-mode <mode>",
     "Research mode: continuous_improvement or criterion_focus. indicator_request uses generate-indicator.",
@@ -1510,91 +1559,177 @@ program
   )
   .action(async (options: {
     count: string;
+    target?: string;
     researchMode?: string;
     criterion?: string;
     autoProcessCalibration?: string;
     calibrationBudget?: string;
   }) => {
-    const env = loadRuntimeEnvironment();
-    validateAutonomousResearchMode(env);
-    if (options.criterion && env.researchModeConfig.mode !== "criterion_focus") {
+    const baseEnv = loadRuntimeEnvironment();
+    const targetIds = resolveTargetIds(baseEnv, options.target);
+    if (options.criterion && baseEnv.researchModeConfig.mode !== "criterion_focus") {
       throw new Error("--criterion is only valid when --research-mode criterion_focus is active.");
     }
     await withCliMonitor(
       {
-        workspaceRoot: env.workspaceRoot,
+        workspaceRoot: baseEnv.workspaceRoot,
         commandName: "run-autonomous-loop",
       },
       async (monitor) => {
         const count = parsePositiveInteger(options.count, "count");
-        const autoProcessCalibration =
-          options.autoProcessCalibration == null
-            ? env.autoProcessCalibration
-            : parseBoolean(
-                options.autoProcessCalibration,
-                "auto-process-calibration",
-              );
-        const calibrationBudget =
-          options.calibrationBudget == null
-            ? env.calibrationBudget
-            : parsePositiveInteger(
-                options.calibrationBudget,
-                "calibration-budget",
-              );
-        const llmClient = createLazyMutationLlmClient(() =>
-          createMutationLlmClient(env),
-        );
-        const loopEnv = {
-          ...env,
-          autoProcessCalibration,
-          calibrationBudget,
-        };
-        const calibrationExecutorName =
-          resolveTradingViewExecutorName(loopEnv) ?? "tradingview-desktop-cdp";
-        await monitor.log("autonomous.loop.start", "Starting autonomous local-first loop", {
-          count,
-          workspaceRoot: env.workspaceRoot,
-          stateRoot: env.stateRoot,
-          projectRoot: env.projectRoot,
-          tvHealth: resolveTvHealthStatus(env),
-          autoProcessCalibration,
-          calibrationBudget,
-          researchMode: loopEnv.researchModeConfig,
-        });
-        const iterationRun = await runAutonomousIterations({
-          workspaceRoot: env.workspaceRoot,
-          env: loopEnv,
-          llmClient,
-          localExecutorFactory: () =>
-            createPineEvaluationExecutor(env, "local-backtest"),
-          calibrationExecutorFactory: autoProcessCalibration
-            ? () => createPineEvaluationExecutor(loopEnv, calibrationExecutorName)
-            : undefined,
-          count,
-          monitor,
-        });
+        const targetRuns = [];
+        for (const targetId of targetIds) {
+          const env =
+            targetId === baseEnv.researchTargetId
+              ? baseEnv
+              : loadRuntimeEnvironmentForTarget(targetId);
+          validateAutonomousResearchMode(env);
+          const autoProcessCalibration =
+            options.autoProcessCalibration == null
+              ? env.autoProcessCalibration
+              : parseBoolean(
+                  options.autoProcessCalibration,
+                  "auto-process-calibration",
+                );
+          const calibrationBudget =
+            options.calibrationBudget == null
+              ? env.calibrationBudget
+              : parsePositiveInteger(
+                  options.calibrationBudget,
+                  "calibration-budget",
+                );
+          const llmClient = createLazyMutationLlmClient(() =>
+            createMutationLlmClient(env),
+          );
+          const loopEnv = {
+            ...env,
+            autoProcessCalibration,
+            calibrationBudget,
+          };
+          const calibrationExecutorName =
+            resolveTradingViewExecutorName(loopEnv) ?? "tradingview-desktop-cdp";
+          await monitor.log("autonomous.loop.start", "Starting autonomous local-first loop", {
+            count,
+            targetId,
+            workspaceRoot: env.workspaceRoot,
+            stateRoot: env.stateRoot,
+            projectRoot: env.projectRoot,
+            tvHealth: resolveTvHealthStatus(env),
+            autoProcessCalibration,
+            calibrationBudget,
+            researchMode: loopEnv.researchModeConfig,
+          });
+          const iterationRun = await runAutonomousIterations({
+            workspaceRoot: env.workspaceRoot,
+            env: loopEnv,
+            llmClient,
+            localExecutorFactory: () =>
+              createPineEvaluationExecutor(env, "local-backtest"),
+            calibrationExecutorFactory: autoProcessCalibration
+              ? () => createPineEvaluationExecutor(loopEnv, calibrationExecutorName)
+              : undefined,
+            count,
+            monitor,
+          });
+          const autonomousState = await buildAutonomousStateSummary({
+            stateRoot: env.stateRoot,
+            env: loopEnv,
+          });
+          targetRuns.push({
+            targetId,
+            ...iterationRun,
+            autonomousState,
+          });
+        }
         monitor.clearTask();
-        const autonomousState = await buildAutonomousStateSummary({
-          stateRoot: env.stateRoot,
-          env: loopEnv,
-        });
         const memoryTelemetry = await writeNodeRuntimeTelemetry({
-          stateRoot: env.stateRoot,
+          stateRoot: baseEnv.stateRoot,
           commandName: "run-autonomous-loop",
           phase: "completed",
           extra: {
             count,
-            countCompleted: iterationRun.countCompleted,
-            countFailed: iterationRun.countFailed,
+            targetCount: targetRuns.length,
+            countCompleted: targetRuns.reduce(
+              (total, run) => total + run.countCompleted,
+              0,
+            ),
+            countFailed: targetRuns.reduce((total, run) => total + run.countFailed, 0),
           },
         });
 
         console.log(
           JSON.stringify(
+            targetRuns.length === 1
+              ? {
+                  ...targetRuns[0],
+                  memoryTelemetry,
+                  tracePath: monitor.tracePath,
+                }
+              : {
+                  targetRuns,
+                  memoryTelemetry,
+                  tracePath: monitor.tracePath,
+                },
+            null,
+            2,
+          ),
+        );
+      },
+    );
+  });
+
+program
+  .command("review-strategies")
+  .description("Run deterministic triage and selective deep strategy reviews for autonomous candidates.")
+  .option("--target <id|all>", "Research target id, or all target configs.", "all")
+  .option("--deep-budget <number>", "Maximum deep LLM reviews per target.")
+  .action(async (options: { target: string; deepBudget?: string }) => {
+    const baseEnv = loadRuntimeEnvironment();
+    const targetIds = resolveTargetIds(baseEnv, options.target);
+    await withCliMonitor(
+      {
+        workspaceRoot: baseEnv.workspaceRoot,
+        commandName: "review-strategies",
+      },
+      async (monitor) => {
+        const results = [];
+        for (const targetId of targetIds) {
+          const env =
+            targetId === baseEnv.researchTargetId
+              ? baseEnv
+              : loadRuntimeEnvironmentForTarget(targetId);
+          const objective = await loadObjectiveConfig(env.workspaceRoot, targetId);
+          const deepBudget =
+            options.deepBudget == null
+              ? env.strategyReviewDeepBudget
+              : parseNonNegativeInteger(options.deepBudget, "deep-budget");
+          const llmClient =
+            deepBudget > 0 && env.strategyReviewMode !== "off"
+              ? createLazyMutationLlmClient(() => createMutationLlmClient(env))
+              : undefined;
+          const reviews = await runStrategyReviewBatchForTarget({
+            stateRoot: env.stateRoot,
+            targetId,
+            objective,
+            llmClient,
+            mode: env.strategyReviewMode,
+            deepBudget,
+            monitor,
+          });
+          results.push({
+            targetId,
+            reviewCount: reviews.length,
+            deepReviewCount: reviews.filter((review) => review.reviewMode === "deep_llm")
+              .length,
+            latestDecision: reviews[0]?.reviewDecision ?? null,
+          });
+        }
+        await rebuildIndexes(baseEnv.stateRoot, { mode: "incremental" });
+        monitor.clearTask();
+        console.log(
+          JSON.stringify(
             {
-              ...iterationRun,
-              autonomousState,
-              memoryTelemetry,
+              results,
               tracePath: monitor.tracePath,
             },
             null,
@@ -1602,6 +1737,37 @@ program
           ),
         );
       },
+    );
+  });
+
+program
+  .command("inspect-strategy-reviews")
+  .description("Inspect strategy review ledger entries for a target and optional candidate.")
+  .requiredOption("--target <id>", "Research target id.")
+  .option("--candidate <candidateId>", "Candidate id filter.")
+  .action(async (options: { target: string; candidate?: string }) => {
+    const env = loadRuntimeEnvironmentForTarget(options.target);
+    const reviews = (await readStrategyReviewRecords(env.stateRoot))
+      .filter((review) => review.targetId === options.target)
+      .filter((review) =>
+        options.candidate ? review.candidateId === options.candidate : true,
+      )
+      .sort(
+        (left, right) =>
+          Date.parse(right.recordedAt) - Date.parse(left.recordedAt) ||
+          right.iteration - left.iteration,
+      );
+    console.log(
+      JSON.stringify(
+        {
+          targetId: options.target,
+          candidateId: options.candidate ?? null,
+          count: reviews.length,
+          reviews: reviews.slice(0, 50),
+        },
+        null,
+        2,
+      ),
     );
   });
 

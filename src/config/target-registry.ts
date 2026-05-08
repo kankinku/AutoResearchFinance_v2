@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { z } from "zod";
@@ -43,4 +43,35 @@ export function loadResearchTarget(input: {
   }
 
   throw new Error(`Unable to load research target config for ${targetId}.`);
+}
+
+export function loadAllResearchTargets(input: {
+  projectRoot: string;
+  workspaceRoot?: string;
+}): ResearchTarget[] {
+  const targetDirs = [
+    path.join(input.projectRoot, "config", "targets"),
+    input.workspaceRoot ? path.join(input.workspaceRoot, "config", "targets") : null,
+  ].filter((value): value is string => value != null);
+  const byId = new Map<string, ResearchTarget>();
+
+  for (const targetDir of targetDirs) {
+    if (!existsSync(targetDir)) {
+      continue;
+    }
+    for (const entry of readdirSync(targetDir, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".json")) {
+        continue;
+      }
+      try {
+        const raw = readFileSync(path.join(targetDir, entry.name), "utf8");
+        const target = researchTargetSchema.parse(JSON.parse(raw));
+        byId.set(target.id, target);
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  return [...byId.values()].sort((left, right) => left.id.localeCompare(right.id));
 }

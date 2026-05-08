@@ -3,7 +3,11 @@ import path from "node:path";
 
 import { type ExperimentRecord } from "../contracts/types.js";
 import { fileExists, readJson, writeJson } from "../utils/fs.js";
-import { readExperimentRecords, resolveStatePaths } from "./jsonl-store.js";
+import {
+  readExperimentRecords,
+  readIncidentRecords,
+  resolveStatePaths,
+} from "./jsonl-store.js";
 import { resolveKnowledgePaths } from "./knowledge-paths.js";
 import { type RetentionClass } from "./ledger-validator.js";
 
@@ -70,6 +74,9 @@ export interface SystemHealthReport {
     experiments: number;
     candidates: number;
     artifactRefs: number;
+    strategyReviews: number;
+    strategyReviewFailures: number;
+    strategyReviewParseFailures: number;
   };
   heartbeat: {
     status: "missing" | "ok" | "read_error";
@@ -218,6 +225,7 @@ export async function buildSystemHealthReport(input: {
   const knowledgePaths = resolveKnowledgePaths(input.stateRoot);
   const statePaths = resolveStatePaths(input.stateRoot);
   const experiments = await readExperimentRecords(input.stateRoot);
+  const incidents = await readIncidentRecords(input.stateRoot);
   const heartbeatPath = path.join(
     knowledgePaths.runtimeDir,
     "autonomous-loop-heartbeat.json",
@@ -243,6 +251,13 @@ export async function buildSystemHealthReport(input: {
       experiments: experiments.length,
       candidates: await countJsonlRecords(statePaths.candidatesPath),
       artifactRefs: countArtifactRefs(experiments),
+      strategyReviews: await countJsonlRecords(statePaths.strategyReviewsPath),
+      strategyReviewFailures: incidents.filter((incident) =>
+        incident.incidentType.startsWith("strategy_review_"),
+      ).length,
+      strategyReviewParseFailures: incidents.filter(
+        (incident) => incident.incidentType === "strategy_review_parse_failed",
+      ).length,
     },
     heartbeat: await readHeartbeatSummary(heartbeatPath),
     latestTrace,

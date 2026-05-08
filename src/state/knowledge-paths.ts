@@ -31,6 +31,7 @@ export interface KnowledgePaths {
   problemEventsPath: string;
   repairAttemptsPath: string;
   branchesPath: string;
+  strategyReviewsPath: string;
   leaderboardPath: string;
   lineagePath: string;
   frontierPath: string;
@@ -60,6 +61,7 @@ export interface KnowledgePaths {
   stage6ReadinessPath: string;
   localConfidenceSummaryPath: string;
   failureMemoryPath: string;
+  strategyReviewBoardPath: string;
   objectivePolicyPath: string;
   decisionCodesPath: string;
   incidentTypesPath: string;
@@ -117,6 +119,7 @@ export function resolveKnowledgePaths(stateRoot: string): KnowledgePaths {
     problemEventsPath: path.join(ledgerDir, "problem-events.jsonl"),
     repairAttemptsPath: path.join(ledgerDir, "repair-attempts.jsonl"),
     branchesPath: path.join(ledgerDir, "branches.jsonl"),
+    strategyReviewsPath: path.join(ledgerDir, "strategy-reviews.jsonl"),
     leaderboardPath: path.join(viewsDir, "leaderboard.json"),
     lineagePath: path.join(viewsDir, "lineage.json"),
     frontierPath: path.join(viewsDir, "frontier.json"),
@@ -152,6 +155,11 @@ export function resolveKnowledgePaths(stateRoot: string): KnowledgePaths {
       "local-confidence-summary.json",
     ),
     failureMemoryPath: path.join(viewsDir, "failure-memory.json"),
+    strategyReviewBoardPath: path.join(
+      viewsDir,
+      "autonomous",
+      "strategy-review-board.json",
+    ),
     objectivePolicyPath: path.join(policyDir, "objective.current.json"),
     decisionCodesPath: path.join(taxonomyDir, "decision-codes.json"),
     incidentTypesPath: path.join(taxonomyDir, "incident-types.json"),

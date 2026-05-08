@@ -11,6 +11,7 @@ import {
   type MutationBrief,
   type MutationBriefRecord,
   type MutationProvenance,
+  type MutationStrategyReviewDirective,
   type ObjectiveConfig,
   type ParsedMutationResponse,
   type ResearchModeConfig,
@@ -242,6 +243,7 @@ export async function prepareAutonomousMutationPlan(input: {
   selectedBranch?: AutonomousBranchRecord | null;
   researchModeConfig?: ResearchModeConfig;
   criterionDirective?: CriterionDirective | null;
+  strategyReviewDirective?: MutationStrategyReviewDirective | null;
 }): Promise<AutonomousMutationPlan> {
   const seedStrategy = await loadSeedStrategyReference(input.workspaceRoot);
   const localCompatibilityContract = getAfLocalCompatibilityContract();
@@ -310,7 +312,22 @@ export async function prepareAutonomousMutationPlan(input: {
     input.iterationRecords ?? [],
   );
   const promotionDiagnostics = buildPromotionDiagnostics(input.experiments);
-  const explorationDirective = resolveExplorationDirective({
+  const strategyReviewDirective = input.strategyReviewDirective ?? null;
+  const strategyReviewExplorationDirective =
+    strategyReviewDirective?.branchKindBias === "exploration_breakout"
+      ? {
+          mode: "structure_breakout" as const,
+          routeId: "strategy_review_redirect",
+          routeSummary:
+            strategyReviewDirective.reason ||
+            "Strategy review requested a family redirect.",
+          reason:
+            strategyReviewDirective.reason ||
+            "Latest strategy review directive requested exploration breakout.",
+          ignoredCalibrationGuidance: false,
+        }
+      : null;
+  const explorationDirective = strategyReviewExplorationDirective ?? resolveExplorationDirective({
     experiments: input.experiments,
     activeChampion,
     problemPressure,
@@ -335,9 +352,19 @@ export async function prepareAutonomousMutationPlan(input: {
           experiments: input.experiments,
           confidenceSummary,
         });
+  const reviewParentCandidate =
+    !explorationBreakoutActive && strategyReviewDirective?.parentCandidateId
+      ? input.experiments.find(
+          (record) =>
+            record.candidateId === strategyReviewDirective.parentCandidateId &&
+            typeof record.candidatePath === "string" &&
+            record.candidatePath.length > 0,
+        ) ?? null
+      : null;
   const baselineCandidate = explorationBreakoutActive
     ? null
-    : calibrationBaselineCandidate ??
+    : reviewParentCandidate ??
+      calibrationBaselineCandidate ??
       (activeChampion?.candidatePath != null ? activeChampion : null);
   const baselineCandidateId = baselineCandidate?.candidateId ?? null;
   const baselinePine =
@@ -412,6 +439,9 @@ export async function prepareAutonomousMutationPlan(input: {
   const nextMutationDirection = [
     criterionDirective
       ? `Research mode criterion_focus is active. ${criterionDirective.nextMutationDirection} Current status: ${criterionDirective.statusSummary} Weakness: ${criterionDirective.weaknessSummary} Success criteria: ${criterionDirective.successCriteria}.`
+      : null,
+    strategyReviewDirective
+      ? `Strategy review directive is active. Reason: ${strategyReviewDirective.reason}. Required changes: ${strategyReviewDirective.requiredChanges.join(", ") || "none"}. Validation focus: ${strategyReviewDirective.validationFocus.join(", ") || "none"}. Suppressed families: ${strategyReviewDirective.suppressedFamilies.join(", ") || "none"}.`
       : null,
     baseNextMutationDirection,
     buildPromotionDiagnosticInstruction(promotionDiagnostics),
@@ -509,6 +539,7 @@ export async function prepareAutonomousMutationPlan(input: {
     branchGoal: input.selectedBranch
       ? buildSelectedBranchGoal(input.selectedBranch)
       : undefined,
+    strategyReviewDirective,
     followUpRemaining: input.selectedBranch?.followUpRemaining,
     promotionDiagnostics,
     recentCompileErrors: [],
@@ -533,6 +564,10 @@ export async function prepareAutonomousMutationPlan(input: {
     lossHotZones: [],
     repairPriorities: [
       ...(criterionDirective?.repairPriorities ?? []),
+      ...(strategyReviewDirective?.requiredChanges ?? []),
+      ...(strategyReviewDirective?.validationFocus.map(
+        (focus) => `review_validation_${focus}`,
+      ) ?? []),
       ...(explorationBreakoutActive
         ? [
             "exploration_breakout",
@@ -580,6 +615,14 @@ export async function prepareAutonomousMutationPlan(input: {
     stagnationSignals:
       [
         ...(criterionDirective ? [`criterion_${criterionDirective.criterion}`] : []),
+        ...(strategyReviewDirective
+          ? [
+              "strategy_review_directive",
+              ...(strategyReviewDirective.branchKindBias
+                ? [`strategy_review_${strategyReviewDirective.branchKindBias}`]
+                : []),
+            ]
+          : []),
         ...(stagnationSummary.championPlateau ? ["champion_plateau"] : []),
         ...(explorationBreakoutActive ? ["exploration_breakout_active"] : []),
         ...(ignoreCalibrationGuidance ? ["calibration_guidance_skipped"] : []),
@@ -641,6 +684,10 @@ export async function prepareAutonomousMutationPlan(input: {
     },
     forbiddenPatterns: [
       ...(criterionDirective?.forbiddenPatterns ?? []),
+      ...(strategyReviewDirective?.forbiddenPatterns ?? []),
+      ...(strategyReviewDirective?.suppressedFamilies.map(
+        (family) => `Do not generate another candidate in suppressed strategy review family ${family}.`,
+      ) ?? []),
       "Do not rely on generic human trading advice or conventional chartist narratives.",
       "Do not emit a near-duplicate of the current champion or recent archive fingerprints.",
       "Do not sacrifice out-of-sample trade count below the configured minimum.",

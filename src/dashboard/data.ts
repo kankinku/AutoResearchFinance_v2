@@ -82,6 +82,13 @@ export interface DashboardStatusPayload {
     nextPlannedActionReason: string | null;
     latestIndicatorArtifact: Record<string, unknown> | null;
   };
+  strategyReview: {
+    latestDecision: string | null;
+    latestCandidateId: string | null;
+    confidence: number | null;
+    suppressedFamilies: string[];
+    nextMutationFocus: string[];
+  };
   verifiedAutoresearch: {
     researchStageCounts: Record<string, number>;
     quarantineCount: number;
@@ -301,6 +308,11 @@ interface VerifiedPromotionReadinessView {
   entries?: Array<Record<string, unknown>>;
 }
 
+interface StrategyReviewBoardView {
+  targets?: Array<Record<string, unknown>>;
+  recentReviews?: Array<Record<string, unknown>>;
+}
+
 export async function buildDashboardStatus(
   input: DashboardBuildInput,
 ): Promise<DashboardStatusPayload> {
@@ -322,6 +334,7 @@ export async function buildDashboardStatus(
     tvCalibrationQueue,
     localTvDivergence,
     verifiedPromotionReadiness,
+    strategyReviewBoard,
     indicatorArtifacts,
     ledgerBytes,
     artifactBytes,
@@ -342,6 +355,7 @@ export async function buildDashboardStatus(
     readJsonSafe<VerifiedPromotionReadinessView>(
       path.join(input.stateRoot, "views", "autonomous", "verified-promotion-readiness.json"),
     ),
+    readJsonSafe<StrategyReviewBoardView>(paths.strategyReviewBoardPath),
     readJsonlTail<IndicatorArtifactRecord>(
       paths.indicatorArtifactsPath,
       10,
@@ -522,6 +536,7 @@ export async function buildDashboardStatus(
       researchModeConfig: input.researchModeConfig,
       indicatorArtifacts,
     }),
+    strategyReview: buildStrategyReviewDashboard(strategyReviewBoard),
     verifiedAutoresearch: buildVerifiedAutoresearchDashboard(autonomousSummary),
     externalValidation,
     failureMemory: {
@@ -564,6 +579,23 @@ function buildResearchModeDashboard(input: {
           createdAt: stringValue(latestIndicatorArtifact.createdAt),
         }
       : null,
+  };
+}
+
+function buildStrategyReviewDashboard(
+  board: StrategyReviewBoardView | null,
+): DashboardStatusPayload["strategyReview"] {
+  const latestTarget = board?.targets
+    ?.map(recordValue)
+    .filter((value): value is Record<string, unknown> => value != null)
+    .find((target) => recordValue(target.latestReview) != null);
+  const latestReview = latestTarget ? recordValue(latestTarget.latestReview) : null;
+  return {
+    latestDecision: stringValue(latestReview?.reviewDecision),
+    latestCandidateId: stringValue(latestReview?.candidateId),
+    confidence: numberValue(latestReview?.confidence),
+    suppressedFamilies: stringArray(latestTarget?.suppressedFamilies),
+    nextMutationFocus: stringArray(latestTarget?.nextMutationFocus),
   };
 }
 

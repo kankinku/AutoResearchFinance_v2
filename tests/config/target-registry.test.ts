@@ -1,10 +1,12 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { describe, expect, test } from "vitest";
 
 import {
   DEFAULT_RESEARCH_TARGET_ID,
+  loadAllResearchTargets,
   loadResearchTarget,
 } from "../../src/config/target-registry.js";
 
@@ -54,5 +56,60 @@ describe("target registry", () => {
         targetId: "missing-target",
       }),
     ).toThrowError(/Unable to load research target config for missing-target/i);
+  });
+
+  test("loads all configured research targets", () => {
+    const targets = loadAllResearchTargets({
+      projectRoot: process.cwd(),
+    });
+
+    expect(targets.map((target) => target.id)).toEqual(
+      expect.arrayContaining(["btc-15m-af", "qqq-60m-af-dryrun", "qqq-120m-af"]),
+    );
+  });
+
+  test("workspace target definitions override project definitions when loading all", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-target-registry-"));
+    const projectRoot = path.join(root, "project");
+    const workspaceRoot = path.join(root, "workspace");
+    const projectTargetDir = path.join(projectRoot, "config", "targets");
+    const workspaceTargetDir = path.join(workspaceRoot, "config", "targets");
+    await mkdir(projectTargetDir, { recursive: true });
+    await mkdir(workspaceTargetDir, { recursive: true });
+
+    const baseTarget = {
+      id: "shared-af",
+      symbol: "QQQ",
+      timeframe: "120",
+      strategyFamily: "AF",
+      primaryExecutor: "local-af-backtest",
+      externalCalibrationExecutor: "tradingview",
+      objectivePolicyFile: "objective.project.json",
+      noveltyPolicy: "novelty.project.json",
+      calibrationPolicy: "calibration.project.json",
+    };
+    await writeFile(
+      path.join(projectTargetDir, "shared-af.json"),
+      JSON.stringify(baseTarget),
+    );
+    await writeFile(
+      path.join(workspaceTargetDir, "shared-af.json"),
+      JSON.stringify({
+        ...baseTarget,
+        symbol: "BTC",
+        timeframe: "15",
+        objectivePolicyFile: "objective.workspace.json",
+      }),
+    );
+
+    const targets = loadAllResearchTargets({ projectRoot, workspaceRoot });
+
+    expect(targets).toHaveLength(1);
+    expect(targets[0]).toMatchObject({
+      id: "shared-af",
+      symbol: "BTC",
+      timeframe: "15",
+      objectivePolicyFile: "objective.workspace.json",
+    });
   });
 });

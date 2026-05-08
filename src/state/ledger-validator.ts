@@ -21,6 +21,7 @@ import {
   problemEventRecordSchema,
   repairAttemptRecordSchema,
 } from "../contracts/autonomous.js";
+import { strategyReviewRecordSchema } from "../contracts/strategy-review.js";
 import {
   normalizeDecisionCode,
   resolveRecordEra,
@@ -248,6 +249,7 @@ const LEDGER_SCHEMAS = [
   { scope: "researchKnowledge", fileKey: "researchKnowledgePath", schema: researchKnowledgeRecordSchema },
   { scope: "problemEvents", fileKey: "problemEventsPath", schema: problemEventRecordSchema },
   { scope: "repairAttempts", fileKey: "repairAttemptsPath", schema: repairAttemptRecordSchema },
+  { scope: "strategyReviews", fileKey: "strategyReviewsPath", schema: strategyReviewRecordSchema },
 ] as const;
 
 function pushIssue(

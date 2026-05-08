@@ -128,6 +128,10 @@ describe("runTaskBatch", () => {
         autoProcessCalibration: false,
         calibrationBudget: 1,
         calibrationTimeoutMs: 30_000,
+        strategyReviewMode: "selective",
+        strategyReviewDeepBudget: 3,
+        strategyReviewMinConfidence: 0.7,
+        strategyReviewQuarantineConfidence: 0.85,
         researchModeConfig: {
           mode: "continuous_improvement",
           source: "default",

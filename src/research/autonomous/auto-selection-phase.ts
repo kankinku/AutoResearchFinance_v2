@@ -8,6 +8,10 @@ import {
   readHeadEventRecords,
 } from "../../state/jsonl-store.js";
 import {
+  collectSuppressedFamiliesFromReviews,
+} from "./strategy-review-phase.js";
+import { type StrategyReviewRecord } from "../../contracts/strategy-review.js";
+import {
   buildSelectionEvidenceHash,
   compareAutonomousChampion,
   compareVerifiedPromotionCandidate,
@@ -24,29 +28,41 @@ export async function runAutoSelectionPhase(input: {
   iteration: number;
   experiments: ExperimentRecord[];
   headEvents?: HeadEventRecord[];
+  targetId?: string;
+  strategyReviewRecords?: StrategyReviewRecord[];
+  strategyReviewQuarantineConfidence?: number;
 }): Promise<{
   activeChampionChanged: boolean;
   selectedCandidateId: string | null;
 }> {
   const headEvents = input.headEvents ?? (await readHeadEventRecords(input.stateRoot));
+  const suppressedFamilies = collectSuppressedFamiliesFromReviews({
+    records: input.strategyReviewRecords ?? [],
+    targetId: input.targetId,
+    quarantineConfidence: input.strategyReviewQuarantineConfidence,
+  });
+  const selectableExperiments = filterSuppressedFamilyExperiments(
+    input.experiments,
+    suppressedFamilies,
+  );
   const currentChampion = findActiveChampionRecord({
     records: input.experiments,
     headEvents,
   });
   const bootstrapTransitionCandidate = selectBootstrapTransitionCandidate({
-    experiments: input.experiments,
+    experiments: selectableExperiments,
     currentChampion,
   });
   const bootstrapTransitionApplied = bootstrapTransitionCandidate != null;
   const bestCandidate =
     bootstrapTransitionCandidate ??
-    selectBestChampionCandidate(input.experiments) ??
+    selectBestChampionCandidate(selectableExperiments) ??
     (!currentChampion
-      ? [...selectLocalEvaluationRecords(input.experiments)]
+      ? [...selectLocalEvaluationRecords(selectableExperiments)]
           .filter((record) => record.eligibility?.bootstrapEligible === true)
           .sort(compareAutonomousChampion)[0] ?? null
       : null);
-  const localRecords = selectLocalEvaluationRecords(input.experiments);
+  const localRecords = selectLocalEvaluationRecords(selectableExperiments);
   const bestCandidateIsVerified =
     bestCandidate != null &&
     isVerifiedPromotionEligible({ record: bestCandidate, localRecords });
@@ -192,4 +208,25 @@ function getChampionScore(record: AutonomousExperimentRecord): number {
     record.autoSelectionScore ??
     Number.NEGATIVE_INFINITY
   );
+}
+
+function filterSuppressedFamilyExperiments(
+  experiments: ExperimentRecord[],
+  suppressedFamilies: string[],
+): ExperimentRecord[] {
+  if (suppressedFamilies.length === 0) {
+    return experiments;
+  }
+  const suppressed = new Set(suppressedFamilies);
+  return experiments.filter((record) => {
+    const raw = record as Record<string, unknown>;
+    const structureFamilyHash =
+      typeof raw.structureFamilyHash === "string" ? raw.structureFamilyHash : null;
+    const fingerprintFamily =
+      typeof raw.fingerprintFamily === "string" ? raw.fingerprintFamily : null;
+    return !(
+      (structureFamilyHash && suppressed.has(structureFamilyHash)) ||
+      (fingerprintFamily && suppressed.has(fingerprintFamily))
+    );
+  });
 }

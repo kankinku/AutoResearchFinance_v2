@@ -12,6 +12,7 @@ import {
   type AutonomousExperimentRecord,
   type AutonomousResearchStage,
 } from "../contracts/autonomous.js";
+import { type StrategyReviewRecord } from "../contracts/strategy-review.js";
 import { type BranchKind, type ExperimentRecord } from "../contracts/types.js";
 import { writeJson } from "../utils/fs.js";
 import { resolveStatePaths } from "./jsonl-store.js";
@@ -52,6 +53,7 @@ export async function rebuildAutonomousViews(input: {
   problemEvents: ProblemEventRecord[];
   repairAttempts: RepairAttemptRecord[];
   branchRecords?: AutonomousBranchRecord[];
+  strategyReviews?: StrategyReviewRecord[];
 }): Promise<void> {
   const views = buildAutonomousViewPayloads({
     experiments: input.experiments,
@@ -62,6 +64,7 @@ export async function rebuildAutonomousViews(input: {
     problemEvents: input.problemEvents,
     repairAttempts: input.repairAttempts,
     branchRecords: input.branchRecords,
+    strategyReviews: input.strategyReviews,
   });
   const paths = resolveStatePaths(input.stateRoot);
   await writeJson(paths.localLeaderboardPath, views.localLeaderboard);
@@ -78,6 +81,7 @@ export async function rebuildAutonomousViews(input: {
   await writeJson(paths.autonomousStateSummaryPath, views.autonomousStateSummary);
   await writeJson(paths.localConfidenceSummaryPath, views.localConfidenceSummary);
   await writeJson(paths.failureMemoryPath, views.failureMemory);
+  await writeJson(paths.strategyReviewBoardPath, views.strategyReviewBoard);
   await writeAutonomousNamespaceViews(input.stateRoot, views);
 }
 
@@ -90,6 +94,7 @@ export function buildAutonomousViewPayloads(input: {
   problemEvents: ProblemEventRecord[];
   repairAttempts: RepairAttemptRecord[];
   branchRecords?: AutonomousBranchRecord[];
+  strategyReviews?: StrategyReviewRecord[];
 }) {
   const localRecords = [...selectLocalEvaluationRecords(input.experiments)].sort(
     compareAutonomousChampion,
@@ -351,6 +356,7 @@ export function buildAutonomousViewPayloads(input: {
       }),
     ),
     failureMemory: buildFailureMemorySummary(input.problemEvents, input.repairAttempts),
+    strategyReviewBoard: buildStrategyReviewBoard(input.strategyReviews ?? []),
   };
 }
 
@@ -1390,4 +1396,70 @@ async function writeAutonomousNamespaceViews(
     views.verifiedPromotionReadiness,
   );
   await writeJson(path.join(autonomousDir, "failure-memory.json"), views.failureMemory);
+  await writeJson(
+    path.join(autonomousDir, "strategy-review-board.json"),
+    views.strategyReviewBoard,
+  );
+}
+
+function buildStrategyReviewBoard(records: StrategyReviewRecord[]) {
+  const byTarget = new Map<string, StrategyReviewRecord[]>();
+  for (const record of records) {
+    const targetRecords = byTarget.get(record.targetId) ?? [];
+    targetRecords.push(record);
+    byTarget.set(record.targetId, targetRecords);
+  }
+
+  return {
+    schemaVersion: "strategy-review-board/v1" as const,
+    generatedAt: new Date().toISOString(),
+    targets: [...byTarget.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([targetId, targetRecords]) => {
+        const sorted = [...targetRecords].sort(compareStrategyReviewRecency);
+        const decisionCounts: Record<string, number> = {};
+        const suppressedFamilies = new Set<string>();
+        for (const record of targetRecords) {
+          decisionCounts[record.reviewDecision] =
+            (decisionCounts[record.reviewDecision] ?? 0) + 1;
+          if (record.reviewDecision === "quarantine_family" && record.confidence >= 0.85) {
+            for (const family of [
+              record.structureFamilyHash,
+              record.fingerprintFamily,
+              ...record.mutationDirective.suppressedFamilies,
+            ]) {
+              if (family) {
+                suppressedFamilies.add(family);
+              }
+            }
+          }
+        }
+        const latestReview = sorted[0] ?? null;
+        return {
+          targetId,
+          latestReview,
+          decisionCounts,
+          suppressedFamilies: [...suppressedFamilies].sort(),
+          nextMutationFocus: latestReview
+            ? [
+                ...latestReview.mutationDirective.requiredChanges,
+                ...latestReview.mutationDirective.validationFocus,
+              ].slice(0, 8)
+            : [],
+        };
+      }),
+    recentReviews: [...records].sort(compareStrategyReviewRecency).slice(0, 50),
+  };
+}
+
+function compareStrategyReviewRecency(
+  left: StrategyReviewRecord,
+  right: StrategyReviewRecord,
+): number {
+  const leftTime = Date.parse(left.recordedAt);
+  const rightTime = Date.parse(right.recordedAt);
+  if (leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+  return right.iteration - left.iteration;
 }

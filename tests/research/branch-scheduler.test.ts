@@ -111,6 +111,17 @@ describe("autonomous branch scheduler", () => {
     expect(selection.branchKind).not.toBe("near_miss_repair");
   });
 
+  test("honors review branch bias when the biased branch is allowed", () => {
+    const selection = selectNextAutonomousBranch({
+      branches: [],
+      experiments: [createNearMissExperiment()],
+      parentCandidateId: "parent-a",
+      branchKindBias: "near_miss_repair",
+    });
+
+    expect(selection.branchKind).toBe("near_miss_repair");
+  });
+
   test("requires simplification branch candidates to reduce complexity and filters", () => {
     const parent = {
       candidateId: "parent",

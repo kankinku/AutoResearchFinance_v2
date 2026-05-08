@@ -66,6 +66,7 @@ export interface LocalEvaluationPhaseResult {
 export async function runLocalEvaluationPhase(input: {
   workspaceRoot: string;
   stateRoot: string;
+  targetId?: string | null;
   runId: string;
   iteration: number;
   executor: PineEvaluationExecutor;
@@ -152,6 +153,7 @@ export async function runLocalEvaluationPhase(input: {
     localConfidenceSignal.currentConfidence ?? estimatedLocalConfidence;
 
   const baseRecord = {
+    targetId: input.targetId ?? null,
     runId: input.runId,
     iteration: input.iteration,
     candidateId: input.candidateArtifact.candidateId,

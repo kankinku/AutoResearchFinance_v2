@@ -52,6 +52,10 @@ function createRuntimeEnv(overrides?: Partial<RuntimeEnvironment>): RuntimeEnvir
     autoProcessCalibration: false,
     calibrationBudget: 1,
     calibrationTimeoutMs: 30_000,
+    strategyReviewMode: "selective",
+    strategyReviewDeepBudget: 3,
+    strategyReviewMinConfidence: 0.7,
+    strategyReviewQuarantineConfidence: 0.85,
     ...overrides,
     researchModeConfig: overrides?.researchModeConfig ?? {
       mode: "continuous_improvement",

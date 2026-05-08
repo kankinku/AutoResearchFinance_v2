@@ -1,4 +1,5 @@
 import { type ConditionInventoryItem, type MutationBrief } from "../contracts/types.js";
+import { type StrategyReviewEvidence } from "../contracts/strategy-review.js";
 import { afStrategySpecFromPine } from "../strategy-spec/to-af-config.js";
 import { parseAfStrategySpec } from "../strategy-spec/schema.js";
 
@@ -30,6 +31,10 @@ export interface MutationLlmClient {
     rawFailedResponse?: string;
     signal?: AbortSignal;
   }): Promise<string>;
+  reviewStrategy?(input: {
+    evidence: StrategyReviewEvidence;
+    signal?: AbortSignal;
+  }): Promise<string>;
 }
 
 export function createStaticLlmClient(
@@ -51,6 +56,31 @@ export function createStaticLlmClient(
     },
     async repairMutation() {
       return normalizeStaticMutationResponse(repairResponse ?? response);
+    },
+    async reviewStrategy() {
+      return JSON.stringify({
+        reviewDecision: "no_action",
+        confidence: 0.7,
+        agentReports: {
+          performance: "Static review fixture.",
+          robustness: "Static review fixture.",
+          risk: "Static review fixture.",
+          novelty: "Static review fixture.",
+          calibration: "Static review fixture.",
+          bull: "Static review fixture.",
+          bear: "Static review fixture.",
+        },
+        debateSummary: "Static review fixture selected no_action.",
+        mutationDirective: {
+          branchKindBias: null,
+          parentCandidateId: null,
+          requiredChanges: [],
+          forbiddenPatterns: [],
+          suppressedFamilies: [],
+          validationFocus: [],
+          reason: "static review fixture",
+        },
+      });
     },
   };
 }
@@ -221,6 +251,7 @@ export function createOpenAiCompatibleLlmClient(config: {
               "If brief.repairMode is exit_profit_repair, keep changes inside exit, risk, loser-management, replacement, or slot-management blocks and do not use broad entry expansion as the main change.",
               "If brief.repairMode is exploration_breakout, do not repair the current family by loosening it. Generate a materially different AF-compatible structure from brief.explorationDirective, allow coordinated entry/exit/risk changes, and keep only local compatibility plus trade-count guardrails as hard preservation targets.",
               "If brief.repairMode is balanced, keep changes localized and avoid multi-block rewrites.",
+              "If brief.strategyReviewDirective is present, treat it as a high-priority autonomous review directive: prefer branchKindBias, parentCandidateId, requiredChanges, validationFocus, and reason, while treating forbiddenPatterns and suppressedFamilies as hard anti-repetition constraints.",
               "If brief.recentCompileFailureClasses is non-empty, prioritize avoiding those normalized compile-failure classes before considering raw compiler strings.",
               "If brief.recentCompileErrors is non-empty, treat those exact compiler messages as anti-patterns that must not reappear in the new candidate.",
               "When brief.recentLossAnalysis.status is available and brief.repairPriorities is non-empty, prioritize those targeted repair priorities before broad entry-loosening changes.",
@@ -332,6 +363,7 @@ export function createOpenAiCompatibleLlmClient(config: {
               "If brief.repairMode is exit_profit_repair, keep changes inside exit, risk, loser-management, replacement, or slot-management blocks and do not use broad entry expansion as the main change.",
               "If brief.repairMode is exploration_breakout, do not repair the current family by loosening it. Regenerate into a materially different AF-compatible structure from brief.explorationDirective, and preserve only local compatibility plus trade-count guardrails.",
               "If brief.repairMode is balanced, keep changes localized and avoid multi-block rewrites.",
+              "If brief.strategyReviewDirective is present, treat it as a high-priority autonomous review directive and do not reintroduce forbiddenPatterns or suppressedFamilies.",
               "Respect brief.recentCompileFailureClasses as normalized compiler anti-patterns that must be removed.",
               "If compileErrors mention minimum trade counts or out-of-sample trade deficits, increase trade opportunity density and preserve positive post-fee profitability.",
               "If brief.repairPriorities includes stabilize_trade_retention_cluster, aggressive_trade_recovery, or lift_oos_trade_floor, aggressively simplify entry logic: use one primary entry trigger, at most one lightweight regime filter, remove cooldown-heavy logic, and do not preserve stacked confirmations or sparse gating.",
@@ -354,6 +386,35 @@ export function createOpenAiCompatibleLlmClient(config: {
         {
           role: "user",
           content: JSON.stringify(withStrategySpecContext(input, "candidatePine"), null, 2),
+        },
+      ], input.signal);
+    },
+    async reviewStrategy(input) {
+      return await completeJson([
+        {
+          role: "system",
+          content:
+            [
+              "You are the StrategyReviewManager for an autonomous AF strategy research loop.",
+              "Use a TradingAgents-style review process internally: PerformanceAnalyst, RobustnessAnalyst, RiskAnalyst, NoveltyAnalyst, CalibrationAnalyst, BullReviewer, BearReviewer, then StrategyReviewManager.",
+              "Use only the provided ledger evidence. Do not use generic trading intuition or external market claims.",
+              "You may steer the next mutation and branch choice, but you must not relax promotion gates, TradingView parity, walk-forward, or score thresholds.",
+              "Return strict JSON only.",
+              "Required top-level keys:",
+              "reviewDecision: one of exploit_parent, repair_near_miss, redirect_family, simplify_family, quarantine_family, calibrate_candidate, no_action.",
+              "confidence: number from 0 to 1.",
+              "agentReports: object with string keys performance, robustness, risk, novelty, calibration, bull, bear.",
+              "debateSummary: string.",
+              "mutationDirective: object with branchKindBias, parentCandidateId, requiredChanges, forbiddenPatterns, suppressedFamilies, validationFocus, reason.",
+              "branchKindBias must be null or one of champion_exploit, frontier_exploit, exploration_breakout, near_miss_repair, adversarial_simplification.",
+              "Use quarantine_family only when the same family has strong repeated failure evidence; otherwise prefer redirect_family.",
+              "Use repair_near_miss when the candidate is close to champion score but blocked by repairable gates.",
+              "Use calibrate_candidate when local evidence is promising but TV/parity evidence is missing or pending.",
+            ].join(" "),
+        },
+        {
+          role: "user",
+          content: JSON.stringify(input.evidence, null, 2),
         },
       ], input.signal);
     },

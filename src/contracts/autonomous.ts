@@ -295,6 +295,7 @@ export const autonomousEligibilitySchema = z.object({
 });
 
 export const autonomousExperimentSchema = z.object({
+  targetId: z.string().min(1).nullable().default(null),
   runId: z.string().min(1),
   iteration: z.number().int().positive(),
   candidateId: z.string().min(1),

@@ -18,6 +18,8 @@ import {
   readProblemEventRecords,
   readRecentAutonomousIterationRecords,
   readRepairAttemptRecords,
+  readResearchKnowledgeRecords,
+  readStrategyReviewRecords,
 } from "../../state/jsonl-store.js";
 import { rebuildIndexes } from "../../state/index-builder.js";
 import { loadObjectiveConfig } from "../../config/objective.js";
@@ -63,6 +65,12 @@ import {
   buildCriterionDirective,
   buildCriterionOutcome,
 } from "./criterion-analysis-phase.js";
+import {
+  collectSuppressedFamiliesFromReviews,
+  filterStrategyReviewRecordsForTarget,
+  runStrategyReviewPhase,
+  selectLatestStrategyReviewDirective,
+} from "./strategy-review-phase.js";
 
 interface MonitorLike {
   log: (
@@ -89,6 +97,7 @@ export interface AutonomousLoopPhaseTimeouts {
   archiveUpdateMs: number;
   calibrationEnqueueMs: number;
   calibrationProcessMs: number;
+  strategyReviewMs: number;
   autoSelectionMs: number;
   rebuildIndexesMs: number;
 }
@@ -135,6 +144,7 @@ export async function runAutonomousLoop(input: {
           projectRoot: input.env.projectRoot,
           workspaceRoot: input.workspaceRoot,
           stateRoot,
+          targetId: input.env.researchTargetId,
         }),
     });
   } catch (error) {
@@ -157,7 +167,10 @@ export async function runAutonomousLoop(input: {
     throw error;
   }
 
-  const objective = await loadObjectiveConfig(input.workspaceRoot);
+  const objective = await loadObjectiveConfig(
+    input.workspaceRoot,
+    input.env.researchTargetId,
+  );
   const previousExperiments = await readExperimentRecords(stateRoot);
   const headEvents = await readHeadEventRecords(stateRoot);
   const archiveEvents = await readArchiveEventRecords(stateRoot);
@@ -166,19 +179,60 @@ export async function runAutonomousLoop(input: {
   const problemEvents = await readProblemEventRecords(stateRoot);
   const repairAttempts = await readRepairAttemptRecords(stateRoot);
   const mutationBriefs = await readMutationBriefRecords(stateRoot);
+  const strategyReviewRecords = await readStrategyReviewRecords(stateRoot);
   const iterationRecords = await readRecentAutonomousIterationRecords(stateRoot);
   const branchRecords = await readAutonomousBranchRecords(stateRoot);
+  const targetExperiments = filterStrategyReviewRecordsForTarget(
+    previousExperiments,
+    input.env.researchTargetId,
+    objective,
+  );
+  const targetCandidateIds = buildCandidateIdSet(targetExperiments);
+  const targetHeadEvents = filterHeadEventsForTarget(headEvents, targetCandidateIds);
+  const targetArchiveEvents = filterByCandidateId(archiveEvents, targetCandidateIds);
+  const targetCalibrationEvents = filterByCandidateId(
+    calibrationEvents,
+    targetCandidateIds,
+  );
+  const targetConfidenceEvents = filterByCandidateId(
+    confidenceEvents,
+    targetCandidateIds,
+  );
+  const targetProblemEvents = filterByCandidateId(problemEvents, targetCandidateIds);
+  const targetRepairAttempts = filterRepairAttemptsForTarget(
+    repairAttempts,
+    targetCandidateIds,
+  );
+  const targetMutationBriefs = filterMutationBriefsForTarget(
+    mutationBriefs,
+    targetCandidateIds,
+  );
+  const targetBranchRecords = filterBranchRecordsForTarget(
+    branchRecords,
+    targetCandidateIds,
+  );
   const iteration = previousExperiments.length + 1;
   const criterionDirective =
     input.env.researchModeConfig.mode === "criterion_focus"
       ? buildCriterionDirective({
           criterion: input.env.researchModeConfig.criterion,
-          experiments: previousExperiments,
-          calibrationEvents,
-          problemEvents,
+          experiments: targetExperiments,
+          calibrationEvents: targetCalibrationEvents,
+          problemEvents: targetProblemEvents,
           objective,
         })
       : null;
+  const strategyReviewDirective = selectLatestStrategyReviewDirective({
+    records: strategyReviewRecords,
+    targetId: input.env.researchTargetId,
+    minConfidence: input.env.strategyReviewMinConfidence,
+    quarantineConfidence: input.env.strategyReviewQuarantineConfidence,
+  });
+  const reviewSuppressedFamilies = collectSuppressedFamiliesFromReviews({
+    records: strategyReviewRecords,
+    targetId: input.env.researchTargetId,
+    quarantineConfidence: input.env.strategyReviewQuarantineConfidence,
+  });
 
   await appendRunRecord(stateRoot, {
     runId,
@@ -193,8 +247,8 @@ export async function runAutonomousLoop(input: {
   if (
     input.env.autonomousBootstrapMode === "auto" &&
     shouldRunBootstrapSeed({
-      experiments: previousExperiments,
-      headEvents,
+      experiments: targetExperiments,
+      headEvents: targetHeadEvents,
     })
   ) {
     const bootstrapSeed = await runPhase({
@@ -250,13 +304,14 @@ export async function runAutonomousLoop(input: {
             iteration,
             executor: localExecutor,
             objective,
+            targetId: input.env.researchTargetId,
             parsedMutation: bootstrapSeed.parsedMutation,
             candidateArtifact: bootstrapSeed.candidateArtifact,
             mutationProvenance: bootstrapSeed.mutationProvenance,
-            previousExperiments,
-            previousConfidenceEvents: confidenceEvents,
-            previousProblemEvents: problemEvents,
-            previousRepairAttempts: repairAttempts,
+            previousExperiments: targetExperiments,
+            previousConfidenceEvents: targetConfidenceEvents,
+            previousProblemEvents: targetProblemEvents,
+            previousRepairAttempts: targetRepairAttempts,
             bootstrapMetadata: {
               source: "local_compatible_seed",
               reason: "fresh_state_without_active_champion",
@@ -279,6 +334,7 @@ export async function runAutonomousLoop(input: {
           objective,
           env: input.env,
           calibrationExecutorFactory: input.calibrationExecutorFactory,
+          llmClient: input.llmClient,
           localEvaluation: bootstrapEvaluation,
           monitor: input.monitor,
           phaseTimeouts,
@@ -300,9 +356,11 @@ export async function runAutonomousLoop(input: {
 
   try {
     const selectedBranch = selectNextAutonomousBranch({
-      branches: branchRecords,
-      experiments: previousExperiments,
-      branchKindBias: criterionDirective?.branchBias ?? null,
+      branches: targetBranchRecords,
+      experiments: targetExperiments,
+      branchKindBias:
+        criterionDirective?.branchBias ?? strategyReviewDirective?.branchKindBias ?? null,
+      suppressedFamilies: reviewSuppressedFamilies,
     });
     const selectedBranchRecord = buildAutonomousBranchRecord({
       selection: selectedBranch,
@@ -312,18 +370,19 @@ export async function runAutonomousLoop(input: {
     const plan = await prepareAutonomousMutationPlan({
       workspaceRoot: input.workspaceRoot,
       objective,
-      experiments: previousExperiments,
-      headEvents,
-      archiveEvents,
-      calibrationEvents,
-      confidenceEvents,
-      problemEvents,
-      repairAttempts,
-      mutationBriefs,
+      experiments: targetExperiments,
+      headEvents: targetHeadEvents,
+      archiveEvents: targetArchiveEvents,
+      calibrationEvents: targetCalibrationEvents,
+      confidenceEvents: targetConfidenceEvents,
+      problemEvents: targetProblemEvents,
+      repairAttempts: targetRepairAttempts,
+      mutationBriefs: targetMutationBriefs,
       iterationRecords,
       selectedBranch: selectedBranchRecord,
       researchModeConfig: input.env.researchModeConfig,
       criterionDirective,
+      strategyReviewDirective,
       ignoreCalibrationGuidance:
         input.env.tvCalibrationMode !== "mock-recovered" &&
         (!input.env.autoProcessCalibration ||
@@ -423,13 +482,14 @@ export async function runAutonomousLoop(input: {
             iteration,
             executor: localExecutor,
             objective,
+            targetId: input.env.researchTargetId,
             parsedMutation: mutation.parsedMutation,
             candidateArtifact: mutation.candidateArtifact,
             mutationProvenance: mutation.mutationProvenance,
-            previousExperiments,
-            previousConfidenceEvents: confidenceEvents,
-            previousProblemEvents: problemEvents,
-            previousRepairAttempts: repairAttempts,
+            previousExperiments: targetExperiments,
+            previousConfidenceEvents: targetConfidenceEvents,
+            previousProblemEvents: targetProblemEvents,
+            previousRepairAttempts: targetRepairAttempts,
             signal,
             monitor: input.monitor,
           });
@@ -506,6 +566,14 @@ export async function runAutonomousLoop(input: {
             await readLocalConfidenceEventRecords(stateRoot);
           const problemEventsAfterRepair = await readProblemEventRecords(stateRoot);
           const repairAttemptsAfterRepair = await readRepairAttemptRecords(stateRoot);
+          const targetExperimentsAfterRepair = filterStrategyReviewRecordsForTarget(
+            experimentsAfterRepair,
+            input.env.researchTargetId,
+            objective,
+          );
+          const targetCandidateIdsAfterRepair = buildCandidateIdSet(
+            targetExperimentsAfterRepair,
+          );
           localEvaluation = await runPhase({
             monitor: input.monitor,
             phase: "repair_local_evaluation",
@@ -540,13 +608,23 @@ export async function runAutonomousLoop(input: {
                 iteration,
                 executor: localExecutor,
                 objective,
+                targetId: input.env.researchTargetId,
                 parsedMutation: repairedMutation.parsedMutation,
                 candidateArtifact: repairedMutation.candidateArtifact,
                 mutationProvenance: repairedMutation.mutationProvenance,
-                previousExperiments: experimentsAfterRepair,
-                previousConfidenceEvents: confidenceEventsAfterRepair,
-                previousProblemEvents: problemEventsAfterRepair,
-                previousRepairAttempts: repairAttemptsAfterRepair,
+                previousExperiments: targetExperimentsAfterRepair,
+                previousConfidenceEvents: filterByCandidateId(
+                  confidenceEventsAfterRepair,
+                  targetCandidateIdsAfterRepair,
+                ),
+                previousProblemEvents: filterByCandidateId(
+                  problemEventsAfterRepair,
+                  targetCandidateIdsAfterRepair,
+                ),
+                previousRepairAttempts: filterRepairAttemptsForTarget(
+                  repairAttemptsAfterRepair,
+                  targetCandidateIdsAfterRepair,
+                ),
                 signal,
                 monitor: input.monitor,
               });
@@ -566,6 +644,7 @@ export async function runAutonomousLoop(input: {
       objective,
       env: input.env,
       calibrationExecutorFactory: input.calibrationExecutorFactory,
+      llmClient: input.llmClient,
       localEvaluation,
       monitor: input.monitor,
       phaseTimeouts,
@@ -650,6 +729,7 @@ export async function runAutonomousIterations(input: {
       phaseTimeouts.archiveUpdateMs +
       phaseTimeouts.calibrationEnqueueMs +
       phaseTimeouts.calibrationProcessMs +
+      phaseTimeouts.strategyReviewMs +
       phaseTimeouts.autoSelectionMs +
       phaseTimeouts.rebuildIndexesMs;
 
@@ -1018,10 +1098,94 @@ function resolvePhaseTimeouts(
     archiveUpdateMs: 15_000,
     calibrationEnqueueMs: 15_000,
     calibrationProcessMs: calibrationTimeoutMs,
+    strategyReviewMs: openAiRequestTimeoutMs,
     autoSelectionMs: 15_000,
     rebuildIndexesMs: 20_000,
     ...overrides,
   };
+}
+
+function buildCandidateIdSet(records: Array<{ candidateId: string }>): Set<string> {
+  return new Set(records.map((record) => record.candidateId));
+}
+
+function filterByCandidateId<T extends { candidateId?: string | null }>(
+  records: T[],
+  candidateIds: Set<string>,
+): T[] {
+  if (candidateIds.size === 0) {
+    return [];
+  }
+  return records.filter((record) =>
+    record.candidateId != null && candidateIds.has(record.candidateId),
+  );
+}
+
+function filterHeadEventsForTarget<T extends {
+  candidateId: string;
+  previousChampionId?: string | null;
+}>(
+  records: T[],
+  candidateIds: Set<string>,
+): T[] {
+  if (candidateIds.size === 0) {
+    return [];
+  }
+  return records.filter(
+    (record) =>
+      candidateIds.has(record.candidateId) ||
+      (record.previousChampionId != null && candidateIds.has(record.previousChampionId)),
+  );
+}
+
+function filterRepairAttemptsForTarget<T extends {
+  candidateId?: string | null;
+  repairedCandidateId?: string | null;
+}>(
+  records: T[],
+  candidateIds: Set<string>,
+): T[] {
+  if (candidateIds.size === 0) {
+    return [];
+  }
+  return records.filter(
+    (record) =>
+      (record.candidateId != null && candidateIds.has(record.candidateId)) ||
+      (record.repairedCandidateId != null && candidateIds.has(record.repairedCandidateId)),
+  );
+}
+
+function filterMutationBriefsForTarget<T extends {
+  acceptedHeadCandidateId?: string | null;
+}>(
+  records: T[],
+  candidateIds: Set<string>,
+): T[] {
+  if (candidateIds.size === 0) {
+    return [];
+  }
+  return records.filter(
+    (record) =>
+      record.acceptedHeadCandidateId != null &&
+      candidateIds.has(record.acceptedHeadCandidateId),
+  );
+}
+
+function filterBranchRecordsForTarget<T extends {
+  parentCandidateId?: string | null;
+  lastCandidateId?: string | null;
+}>(
+  records: T[],
+  candidateIds: Set<string>,
+): T[] {
+  if (candidateIds.size === 0) {
+    return [];
+  }
+  return records.filter(
+    (record) =>
+      (record.parentCandidateId != null && candidateIds.has(record.parentCandidateId)) ||
+      (record.lastCandidateId != null && candidateIds.has(record.lastCandidateId)),
+  );
 }
 
 async function maybeAutoProcessCalibration(input: {
@@ -1128,6 +1292,7 @@ async function finalizeAutonomousLocalEvaluation(input: {
   objective: Awaited<ReturnType<typeof loadObjectiveConfig>>;
   env: RuntimeEnvironment;
   calibrationExecutorFactory?: () => PineEvaluationExecutor;
+  llmClient: MutationLlmClient;
   localEvaluation: Awaited<ReturnType<typeof runLocalEvaluationPhase>>;
   phaseTimeouts: AutonomousLoopPhaseTimeouts;
   signal?: AbortSignal;
@@ -1150,6 +1315,53 @@ async function finalizeAutonomousLocalEvaluation(input: {
         evaluation: input.localEvaluation.record,
         shouldArchive: input.localEvaluation.shouldArchive,
       }),
+  });
+
+  await runPhase({
+    monitor: input.monitor,
+    phase: "strategy_review",
+    message: "Reviewing strategy candidate for next mutation guidance",
+    timeoutMs: input.phaseTimeouts.strategyReviewMs,
+    signal: input.signal,
+    run: async (signal) => {
+      const [
+        experiments,
+        headEvents,
+        calibrationEvents,
+        problemEvents,
+        repairAttempts,
+        mutationBriefs,
+        researchKnowledge,
+      ] = await Promise.all([
+        readExperimentRecords(input.stateRoot),
+        readHeadEventRecords(input.stateRoot),
+        readCalibrationEventRecords(input.stateRoot),
+        readProblemEventRecords(input.stateRoot),
+        readRepairAttemptRecords(input.stateRoot),
+        readMutationBriefRecords(input.stateRoot),
+        readResearchKnowledgeRecords(input.stateRoot),
+      ]);
+      await runStrategyReviewPhase({
+        stateRoot: input.stateRoot,
+        runId: input.runId,
+        iteration: input.iteration,
+        targetId: input.env.researchTargetId,
+        objective: input.objective,
+        record: input.localEvaluation.record,
+        experiments,
+        headEvents,
+        calibrationEvents,
+        problemEvents,
+        repairAttempts,
+        mutationBriefs,
+        researchKnowledge,
+        llmClient: input.llmClient,
+        mode: input.env.strategyReviewMode,
+        deepBudget: input.env.strategyReviewDeepBudget,
+        signal,
+        monitor: input.monitor,
+      });
+    },
   });
 
   if (
@@ -1208,19 +1420,33 @@ async function finalizeAutonomousLocalEvaluation(input: {
 
   const experimentsAfterLocal = await readExperimentRecords(input.stateRoot);
   const headEventsAfterLocal = await readHeadEventRecords(input.stateRoot);
+  const targetExperimentsAfterLocal = filterStrategyReviewRecordsForTarget(
+    experimentsAfterLocal,
+    input.env.researchTargetId,
+    input.objective,
+  );
+  const targetCandidateIdsAfterLocal = buildCandidateIdSet(targetExperimentsAfterLocal);
+  const targetHeadEventsAfterLocal = filterHeadEventsForTarget(
+    headEventsAfterLocal,
+    targetCandidateIdsAfterLocal,
+  );
   const selection = await runPhase({
     monitor: input.monitor,
     phase: "auto_selection",
     message: "Selecting active autonomous champion",
     timeoutMs: input.phaseTimeouts.autoSelectionMs,
     signal: input.signal,
-    run: () =>
+    run: async () =>
       runAutoSelectionPhase({
         stateRoot: input.stateRoot,
         runId: input.runId,
         iteration: input.iteration,
-        experiments: experimentsAfterLocal,
-        headEvents: headEventsAfterLocal,
+        experiments: targetExperimentsAfterLocal,
+        headEvents: targetHeadEventsAfterLocal,
+        targetId: input.env.researchTargetId,
+        strategyReviewRecords: await readStrategyReviewRecords(input.stateRoot),
+        strategyReviewQuarantineConfidence:
+          input.env.strategyReviewQuarantineConfidence,
       }),
   });
 

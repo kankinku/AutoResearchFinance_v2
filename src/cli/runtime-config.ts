@@ -81,6 +81,10 @@ const runtimeEnvironmentSchema = z.object({
   autoProcessCalibration: z.boolean().default(false),
   calibrationBudget: z.number().int().positive().default(3),
   calibrationTimeoutMs: z.number().int().positive().default(30_000),
+  strategyReviewMode: z.enum(["off", "selective", "all"]).default("selective"),
+  strategyReviewDeepBudget: z.number().int().nonnegative().default(3),
+  strategyReviewMinConfidence: z.number().min(0).max(1).default(0.7),
+  strategyReviewQuarantineConfidence: z.number().min(0).max(1).default(0.85),
 });
 
 export type RuntimeEnvironment = z.infer<typeof runtimeEnvironmentSchema>;
@@ -252,6 +256,17 @@ export function loadRuntimeEnvironment(options?: {
       process.env.AF_CALIBRATION_TIMEOUT_MS ?? "30000",
       10,
     ),
+    strategyReviewMode: parseStrategyReviewMode(process.env.AF_STRATEGY_REVIEW_MODE),
+    strategyReviewDeepBudget: Number.parseInt(
+      process.env.AF_STRATEGY_REVIEW_DEEP_BUDGET ?? "3",
+      10,
+    ),
+    strategyReviewMinConfidence: Number.parseFloat(
+      process.env.AF_STRATEGY_REVIEW_MIN_CONFIDENCE ?? "0.70",
+    ),
+    strategyReviewQuarantineConfidence: Number.parseFloat(
+      process.env.AF_STRATEGY_REVIEW_QUARANTINE_CONFIDENCE ?? "0.85",
+    ),
   });
 
   assertNoLegacyExecutorConfig();
@@ -333,6 +348,13 @@ export function parseOptionalCriterion(
     );
   }
   return parsed.data;
+}
+
+function parseStrategyReviewMode(value: string | undefined): "off" | "selective" | "all" {
+  if (value === "off" || value === "all") {
+    return value;
+  }
+  return "selective";
 }
 
 export function assertNoMockPolicy(env: RuntimeEnvironment): void {

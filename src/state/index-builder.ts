@@ -29,6 +29,7 @@ import {
   readProblemEventRecords,
   readRepairAttemptRecords,
   readResearchKnowledgeRecords,
+  readStrategyReviewRecords,
   readTaskBatchRecords,
   readTaskRecords,
   readAutonomousBranchRecords,
@@ -59,6 +60,7 @@ interface IndexLedgerSnapshot {
   problemEvents: Awaited<ReturnType<typeof readProblemEventRecords>>;
   repairAttempts: Awaited<ReturnType<typeof readRepairAttemptRecords>>;
   branchRecords: Awaited<ReturnType<typeof readAutonomousBranchRecords>>;
+  strategyReviews: Awaited<ReturnType<typeof readStrategyReviewRecords>>;
   researchKnowledge: Awaited<ReturnType<typeof readResearchKnowledgeRecords>>;
   taskBatches: TaskBatchRecord[];
   tasks: TaskRecord[];
@@ -704,6 +706,7 @@ export async function rebuildIndexes(
     problemEvents,
     repairAttempts,
     branchRecords,
+    strategyReviews: snapshot.strategyReviews,
   });
 }
 
@@ -734,6 +737,10 @@ async function loadIndexLedgerSnapshot(stateRoot: string): Promise<IndexLedgerSn
       reader: readRepairAttemptRecords,
     },
     branchRecords: { path: paths.branchesPath, reader: readAutonomousBranchRecords },
+    strategyReviews: {
+      path: paths.strategyReviewsPath,
+      reader: readStrategyReviewRecords,
+    },
     researchKnowledge: {
       path: paths.researchKnowledgePath,
       reader: readResearchKnowledgeRecords,
@@ -801,6 +808,7 @@ async function readFullIndexSnapshot(stateRoot: string): Promise<IndexLedgerSnap
     problemEvents: await readProblemEventRecords(stateRoot),
     repairAttempts: await readRepairAttemptRecords(stateRoot),
     branchRecords: await readAutonomousBranchRecords(stateRoot),
+    strategyReviews: await readStrategyReviewRecords(stateRoot),
     researchKnowledge: await readResearchKnowledgeRecords(stateRoot),
     taskBatches: await readTaskBatchRecords(stateRoot),
     tasks: await readTaskRecords(stateRoot),
@@ -844,6 +852,7 @@ function mergeIndexSnapshots(
     problemEvents: [...cached.problemEvents, ...appended.problemEvents],
     repairAttempts: [...cached.repairAttempts, ...appended.repairAttempts],
     branchRecords: [...cached.branchRecords, ...appended.branchRecords],
+    strategyReviews: [...cached.strategyReviews, ...appended.strategyReviews],
     researchKnowledge: [...cached.researchKnowledge, ...appended.researchKnowledge],
     taskBatches: [...cached.taskBatches, ...appended.taskBatches],
     tasks: [...cached.tasks, ...appended.tasks],
@@ -861,6 +870,7 @@ function emptyIndexSnapshot(): IndexLedgerSnapshot {
     problemEvents: [],
     repairAttempts: [],
     branchRecords: [],
+    strategyReviews: [],
     researchKnowledge: [],
     taskBatches: [],
     tasks: [],

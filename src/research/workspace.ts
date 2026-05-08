@@ -15,6 +15,7 @@ export interface WorkspaceInitializationInput {
   projectRoot?: string;
   workspaceRoot: string;
   stateRoot?: string;
+  targetId?: string;
 }
 
 export interface WorkspaceBootstrapDiagnostics {
@@ -164,7 +165,10 @@ export async function initializeWorkspace(
 
   await ensureActiveSeedBaseline(normalizedInput.workspaceRoot);
 
-  const objective = await loadObjectiveConfig(normalizedInput.workspaceRoot);
+  const objective = await loadObjectiveConfig(
+    normalizedInput.workspaceRoot,
+    normalizedInput.targetId,
+  );
   await syncKnowledgeCatalog(normalizedInput.workspaceRoot, objective);
   await migrateLegacyKnowledgeLayout(normalizedInput.workspaceRoot);
   await rebuildIndexes(normalizedInput.stateRoot);
@@ -190,15 +194,22 @@ export async function readRuntimeTarget(
   return readFile(runtimeTargetPath, "utf8");
 }
 
+type NormalizedWorkspaceInitializationInput = Required<
+  Omit<WorkspaceInitializationInput, "targetId">
+> & {
+  targetId?: string;
+};
+
 function normalizeWorkspaceInitializationInput(
   input: string | WorkspaceInitializationInput,
-): Required<WorkspaceInitializationInput> {
+): NormalizedWorkspaceInitializationInput {
   if (typeof input === "string") {
     const workspaceRoot = path.resolve(process.env.AF_WORKSPACE_ROOT ?? input);
     return {
       projectRoot: path.resolve(process.env.AF_PROJECT_ROOT ?? resolveDefaultProjectRoot()),
       workspaceRoot,
       stateRoot: path.resolve(process.env.AF_STATE_ROOT ?? resolveStateRoot(workspaceRoot)),
+      targetId: process.env.AF_RESEARCH_TARGET_ID,
     };
   }
 
@@ -206,11 +217,12 @@ function normalizeWorkspaceInitializationInput(
     projectRoot: path.resolve(input.projectRoot ?? resolveDefaultProjectRoot()),
     workspaceRoot: path.resolve(input.workspaceRoot),
     stateRoot: path.resolve(input.stateRoot ?? resolveStateRoot(input.workspaceRoot)),
+    targetId: input.targetId,
   };
 }
 
 async function seedRuntimeContext(
-  input: Required<WorkspaceInitializationInput>,
+  input: NormalizedWorkspaceInitializationInput,
   diagnostics: WorkspaceBootstrapDiagnostics,
 ): Promise<void> {
   const targetPath = resolveKnowledgePaths(input.stateRoot).qqqTwoHourContextPath;

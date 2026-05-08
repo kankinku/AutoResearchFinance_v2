@@ -34,14 +34,19 @@ export function selectNextAutonomousBranch(input: {
   experiments: ExperimentRecord[];
   parentCandidateId?: string | null;
   branchKindBias?: BranchKind | null;
+  suppressedFamilies?: string[];
 }): BranchSelection {
   const parentCandidateId = input.parentCandidateId ?? null;
+  const experiments = filterSuppressedFamilyExperiments(
+    input.experiments,
+    input.suppressedFamilies ?? [],
+  );
   const totalSelections = input.branches.length;
   const candidates = AUTONOMOUS_BRANCH_BUDGETS.filter((budget) =>
     isBranchKindCurrentlyAllowed({
       branchKind: budget.branchKind,
       branches: input.branches,
-      experiments: input.experiments,
+      experiments,
       parentCandidateId,
     }),
   );
@@ -50,7 +55,7 @@ export function selectNextAutonomousBranch(input: {
       (branch) => branch.branchKind === budget.branchKind,
     ).length;
     const expectedCount = ((totalSelections + 1) * budget.budgetPct) / 100;
-    const biasBonus = input.branchKindBias === budget.branchKind ? 0.5 : 0;
+    const biasBonus = input.branchKindBias === budget.branchKind ? 100 : 0;
     return {
       ...budget,
       deficit: expectedCount - actualCount + biasBonus,
@@ -189,6 +194,27 @@ function countFeatureFlags(record: ExperimentRecord | null | undefined): number 
   const fingerprint = (record as Record<string, unknown> | null | undefined)
     ?.noveltyFingerprint as { featureFlags?: unknown } | undefined;
   return Array.isArray(fingerprint?.featureFlags) ? fingerprint.featureFlags.length : 0;
+}
+
+function filterSuppressedFamilyExperiments(
+  experiments: ExperimentRecord[],
+  suppressedFamilies: string[],
+): ExperimentRecord[] {
+  if (suppressedFamilies.length === 0) {
+    return experiments;
+  }
+  const suppressed = new Set(suppressedFamilies);
+  return experiments.filter((record) => {
+    const raw = record as Record<string, unknown>;
+    const structureFamilyHash =
+      typeof raw.structureFamilyHash === "string" ? raw.structureFamilyHash : null;
+    const fingerprintFamily =
+      typeof raw.fingerprintFamily === "string" ? raw.fingerprintFamily : null;
+    return !(
+      (structureFamilyHash && suppressed.has(structureFamilyHash)) ||
+      (fingerprintFamily && suppressed.has(fingerprintFamily))
+    );
+  });
 }
 
 function readNumber(value: unknown): number {

@@ -832,6 +832,16 @@ export const criterionDirectiveSchema = z.object({
   nextMutationDirection: z.string().min(1),
 });
 
+export const mutationStrategyReviewDirectiveSchema = z.object({
+  branchKindBias: branchKindSchema.nullable().default(null),
+  parentCandidateId: z.string().nullable().default(null),
+  requiredChanges: z.array(z.string()).default([]),
+  forbiddenPatterns: z.array(z.string()).default([]),
+  suppressedFamilies: z.array(z.string()).default([]),
+  validationFocus: z.array(z.string()).default([]),
+  reason: z.string().min(1),
+});
+
 export const foldFailureMapEntrySchema = z.object({
   candidateId: z.string().min(1),
   failedFolds: z.array(z.string()).default([]),
@@ -942,6 +952,10 @@ export const mutationBriefSchema = z.object({
   explorationBudget: explorationBudgetSchema.optional(),
   branchKind: branchKindSchema.optional(),
   branchGoal: z.string().min(1).optional(),
+  strategyReviewDirective: mutationStrategyReviewDirectiveSchema
+    .nullable()
+    .default(null)
+    .optional(),
   followUpRemaining: z.number().int().nonnegative().optional(),
   promotionDiagnostics: promotionDiagnosticsSchema.optional(),
   recentCompileErrors: z.array(z.string()).default([]),
@@ -1383,6 +1397,9 @@ export type FallbackEvaluation = z.infer<typeof fallbackEvaluationSchema>;
 export type ConditionContribution = z.infer<typeof conditionContributionSchema>;
 export type ExplorationBudget = z.infer<typeof explorationBudgetSchema>;
 export type BranchKind = z.infer<typeof branchKindSchema>;
+export type MutationStrategyReviewDirective = z.infer<
+  typeof mutationStrategyReviewDirectiveSchema
+>;
 export type ResearchMode = z.infer<typeof researchModeSchema>;
 export type CriterionKey = z.infer<typeof criterionKeySchema>;
 export type ResearchModeConfig = z.infer<typeof researchModeConfigSchema>;

@@ -54,6 +54,10 @@ import {
   type RepairAttemptRecord,
 } from "../contracts/autonomous.js";
 import {
+  strategyReviewRecordSchema,
+  type StrategyReviewRecord,
+} from "../contracts/strategy-review.js";
+import {
   appendJsonlAtomic,
   ensureDir,
   fileExists,
@@ -85,6 +89,7 @@ export function resolveStatePaths(stateRoot: string): {
   problemEventsPath: string;
   repairAttemptsPath: string;
   branchesPath: string;
+  strategyReviewsPath: string;
   leaderboardPath: string;
   lineagePath: string;
   frontierPath: string;
@@ -114,6 +119,7 @@ export function resolveStatePaths(stateRoot: string): {
   stage6ReadinessPath: string;
   localConfidenceSummaryPath: string;
   failureMemoryPath: string;
+  strategyReviewBoardPath: string;
 } {
   const knowledgePaths = resolveKnowledgePaths(stateRoot);
   return {
@@ -134,6 +140,7 @@ export function resolveStatePaths(stateRoot: string): {
     problemEventsPath: knowledgePaths.problemEventsPath,
     repairAttemptsPath: knowledgePaths.repairAttemptsPath,
     branchesPath: knowledgePaths.branchesPath,
+    strategyReviewsPath: knowledgePaths.strategyReviewsPath,
     leaderboardPath: knowledgePaths.leaderboardPath,
     lineagePath: knowledgePaths.lineagePath,
     frontierPath: knowledgePaths.frontierPath,
@@ -163,6 +170,7 @@ export function resolveStatePaths(stateRoot: string): {
     stage6ReadinessPath: knowledgePaths.stage6ReadinessPath,
     localConfidenceSummaryPath: knowledgePaths.localConfidenceSummaryPath,
     failureMemoryPath: knowledgePaths.failureMemoryPath,
+    strategyReviewBoardPath: knowledgePaths.strategyReviewBoardPath,
   };
 }
 
@@ -874,6 +882,19 @@ export async function appendAutonomousBranchRecord(
   return normalized;
 }
 
+export async function appendStrategyReviewRecord(
+  stateRoot: string,
+  record: Omit<StrategyReviewRecord, "recordedAt"> & { recordedAt?: string },
+): Promise<StrategyReviewRecord> {
+  await ensureStateRoot(stateRoot);
+  const normalized = strategyReviewRecordSchema.parse({
+    ...record,
+    recordedAt: record.recordedAt ?? new Date().toISOString(),
+  });
+  await appendJsonlAtomic(resolveStatePaths(stateRoot).strategyReviewsPath, normalized);
+  return normalized;
+}
+
 export async function readExperimentRecords(stateRoot: string): Promise<ExperimentRecord[]> {
   await ensureStateRoot(stateRoot);
   return readJsonlStream<ExperimentRecord>(
@@ -1052,6 +1073,16 @@ export async function readAutonomousBranchRecords(
   return readTypedJsonl(
     resolveStatePaths(stateRoot).branchesPath,
     autonomousBranchRecordSchema,
+  );
+}
+
+export async function readStrategyReviewRecords(
+  stateRoot: string,
+): Promise<StrategyReviewRecord[]> {
+  await ensureStateRoot(stateRoot);
+  return readTypedJsonl(
+    resolveStatePaths(stateRoot).strategyReviewsPath,
+    strategyReviewRecordSchema,
   );
 }
 

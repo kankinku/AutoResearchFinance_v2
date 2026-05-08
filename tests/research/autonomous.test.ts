@@ -115,6 +115,10 @@ function createRuntimeEnv(
     autoProcessCalibration: false,
     calibrationBudget: 1,
     calibrationTimeoutMs: 30_000,
+    strategyReviewMode: "selective" as const,
+    strategyReviewDeepBudget: 0,
+    strategyReviewMinConfidence: 0.7,
+    strategyReviewQuarantineConfidence: 0.85,
     ...overrides,
     researchModeConfig: overrides?.researchModeConfig ?? {
       mode: "continuous_improvement",

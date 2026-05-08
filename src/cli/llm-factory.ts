@@ -43,6 +43,14 @@ export async function createMutationLlmClient(
     repairMutation(input) {
       return withOpenAiAuthRetry(env, () => liveClient.repairMutation(input));
     },
+    reviewStrategy(input) {
+      return withOpenAiAuthRetry(env, () => {
+        if (!liveClient.reviewStrategy) {
+          throw new Error("Live LLM client does not support strategy review.");
+        }
+        return liveClient.reviewStrategy(input);
+      });
+    },
   };
 }
 
