@@ -7,34 +7,44 @@ export function renderDashboardHtml(): string {
   <title>AF 투자 연구 대시보드</title>
     <style>
     :root {
-      --paper: #f2f4f6;
-      --ink: #191f28;
-      --muted: #8b95a1;
-      --line: #e5e8eb;
+      --paper: #f6f7f9;
+      --ink: #151922;
+      --muted: #647183;
+      --line: #dfe4ea;
       --panel: #ffffff;
-      --accent: #191f28;
-      --good: #00c773;
-      --warn: #ffb020;
-      --bad: #f04452;
-      --positive: #f04452;
-      --negative: #3182f6;
-      --soft-good: #e9fbf2;
-      --soft-red: #fef0f1;
-      --soft-blue: #eef6ff;
-      --soft-gray: #f2f4f6;
-      --soft-warn: #fff7e6;
-      --mono: "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-      --body: "Pretendard", "-apple-system", "BlinkMacSystemFont", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      --accent: #1e40af;
+      --good: #008f5d;
+      --warn: #b7791f;
+      --bad: #d92d3d;
+      --positive: #d92d3d;
+      --negative: #2563eb;
+      --soft-good: #e7f8ef;
+      --soft-red: #fdecee;
+      --soft-blue: #eaf2ff;
+      --soft-gray: #eef2f6;
+      --soft-warn: #fff5dd;
+      --display: "Pretendard Variable", "Pretendard", "Noto Sans KR", "SUIT", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      --body: "Pretendard Variable", "Pretendard", "Noto Sans KR", "SUIT", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      --mono: "D2Coding", "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
     }
 
     * { box-sizing: border-box; }
+    html {
+      font-size: 15px;
+      text-size-adjust: 100%;
+      word-break: keep-all;
+    }
+
     body {
       margin: 0;
       background: var(--paper);
       color: var(--ink);
       font-family: var(--body);
+      font-size: 15px;
+      line-height: 1.65;
       -webkit-font-smoothing: antialiased;
-      letter-spacing: -0.01em;
+      text-rendering: optimizeLegibility;
+      letter-spacing: 0;
     }
 
     .shell {
@@ -45,9 +55,9 @@ export function renderDashboardHtml(): string {
     .rail { display: none; }
 
     main {
-      width: min(1200px, 100%);
+      width: min(1280px, 100%);
       margin: 0 auto;
-      padding: 32px 24px 60px;
+      padding: 34px 28px 64px;
       min-width: 0;
     }
 
@@ -68,18 +78,21 @@ export function renderDashboardHtml(): string {
 
     h1 {
       margin: 0;
-      font-size: clamp(26px, 3.5vw, 36px);
+      font-family: var(--display);
+      font-size: 34px;
       font-weight: 800;
-      line-height: 1.3;
-      letter-spacing: -0.02em;
+      line-height: 1.25;
+      letter-spacing: 0;
     }
 
     .subline {
       margin-top: 6px;
       color: var(--muted);
       font-size: 14px;
-      font-weight: 500;
+      line-height: 1.55;
+      font-weight: 600;
       overflow-wrap: anywhere;
+      word-break: break-all;
     }
 
     .status-strip {
@@ -108,6 +121,7 @@ export function renderDashboardHtml(): string {
       font-family: var(--body);
       font-size: 14px;
       font-weight: 800;
+      line-height: 1.35;
       min-height: 38px;
       padding: 9px 13px;
     }
@@ -131,6 +145,7 @@ export function renderDashboardHtml(): string {
       padding: 8px 12px;
       font-size: 13px;
       font-weight: 700;
+      line-height: 1.35;
       background: var(--soft-gray);
       color: #4e5968;
       white-space: nowrap;
@@ -141,7 +156,7 @@ export function renderDashboardHtml(): string {
 
     .grid, .two-col, .brief-band {
       display: grid;
-      gap: 16px;
+      gap: 18px;
       margin-top: 16px;
       min-width: 0;
     }
@@ -152,9 +167,9 @@ export function renderDashboardHtml(): string {
 
     .metrics {
       display: grid;
-      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
-      margin-top: 16px;
+      margin-top: 18px;
     }
 
     .metric,
@@ -181,15 +196,17 @@ export function renderDashboardHtml(): string {
     .label, th {
       color: var(--muted);
       font-size: 13px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
+      font-weight: 700;
+      line-height: 1.45;
+      letter-spacing: 0;
     }
 
     .value {
-      font-size: clamp(24px, 2.5vw, 36px);
+      font-family: var(--display);
+      font-size: 34px;
       font-weight: 800;
-      letter-spacing: -0.02em;
-      line-height: 1.2;
+      letter-spacing: 0;
+      line-height: 1.15;
       margin: 8px 0;
       font-variant-numeric: tabular-nums;
     }
@@ -200,16 +217,17 @@ export function renderDashboardHtml(): string {
     .delta {
       color: var(--muted);
       font-size: 13px;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-weight: 600;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
     }
 
     .panel h2 {
       margin: 0 0 20px;
       font-size: 18px;
       font-weight: 800;
+      line-height: 1.4;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -220,6 +238,7 @@ export function renderDashboardHtml(): string {
     .panel h2 > span:last-child {
       font-size: 13px;
       font-weight: 600;
+      line-height: 1.35;
       color: var(--muted);
       background: var(--soft-gray);
       padding: 6px 10px;
@@ -230,14 +249,14 @@ export function renderDashboardHtml(): string {
       margin: 0 0 12px;
       font-size: 22px;
       font-weight: 800;
-      line-height: 1.3;
-      letter-spacing: -0.02em;
+      line-height: 1.4;
+      letter-spacing: 0;
     }
 
     .copy {
       margin: 0;
       color: #333d4b;
-      line-height: 1.6;
+      line-height: 1.75;
       font-size: 15px;
       overflow-wrap: anywhere;
       font-weight: 500;
@@ -245,7 +264,7 @@ export function renderDashboardHtml(): string {
 
     .evidence-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 10px;
       margin-top: 20px;
     }
@@ -254,7 +273,7 @@ export function renderDashboardHtml(): string {
       background: var(--soft-gray);
       border-radius: 12px;
       padding: 16px;
-      min-height: 76px;
+      min-height: 84px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -273,6 +292,7 @@ export function renderDashboardHtml(): string {
     .evidence .ev-value {
       font-family: var(--mono);
       font-size: 13px;
+      line-height: 1.45;
       font-weight: 700;
       color: var(--ink);
       overflow-wrap: anywhere;
@@ -284,7 +304,7 @@ export function renderDashboardHtml(): string {
     .action-list, .warning-list {
       margin: 16px 0 0;
       padding-left: 20px;
-      line-height: 1.6;
+      line-height: 1.75;
       font-size: 14px;
       font-weight: 500;
       color: #333d4b;
@@ -312,6 +332,7 @@ export function renderDashboardHtml(): string {
       color: var(--ink);
       font-family: var(--mono);
       font-size: 13px;
+      line-height: 1.55;
       white-space: normal;
       overflow-wrap: anywhere;
     }
@@ -334,18 +355,19 @@ export function renderDashboardHtml(): string {
     .context-band {
       display: grid;
       grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
-      gap: 16px;
-      margin: 0 0 16px;
+      gap: 18px;
+      margin: 0 0 18px;
       min-width: 0;
     }
 
     .context-title {
-      font-family: var(--mono);
-      font-size: clamp(22px, 3vw, 34px);
+      font-family: var(--display);
+      font-size: 30px;
       font-weight: 800;
-      line-height: 1.2;
+      line-height: 1.25;
       margin: 4px 0 12px;
       overflow-wrap: anywhere;
+      font-variant-numeric: tabular-nums;
     }
 
     .context-rows {
@@ -355,12 +377,14 @@ export function renderDashboardHtml(): string {
     .chip {
       font-size: 13px;
       font-weight: 600;
+      line-height: 1.45;
       border-radius: 8px;
-      padding: 6px 10px;
+      padding: 7px 10px;
       background: var(--soft-gray);
       color: #4e5968;
       min-width: 0;
       overflow-wrap: anywhere;
+      word-break: keep-all;
     }
 
     table {
@@ -368,6 +392,7 @@ export function renderDashboardHtml(): string {
       border-collapse: separate;
       border-spacing: 0;
       font-size: 14px;
+      line-height: 1.55;
       table-layout: fixed;
     }
 
@@ -377,6 +402,7 @@ export function renderDashboardHtml(): string {
       border-bottom: 1px solid var(--line);
       vertical-align: top;
       overflow-wrap: anywhere;
+      word-break: keep-all;
       color: #333d4b;
       font-weight: 500;
     }
@@ -481,6 +507,7 @@ export function renderDashboardHtml(): string {
       font-family: var(--mono);
       font-weight: 800;
       font-size: 14px;
+      line-height: 1;
     }
 
     .candidate-name {
@@ -488,6 +515,7 @@ export function renderDashboardHtml(): string {
       font-family: var(--mono);
       font-size: 16px;
       font-weight: 800;
+      line-height: 1.35;
       color: var(--ink);
       overflow-wrap: anywhere;
     }
@@ -497,6 +525,7 @@ export function renderDashboardHtml(): string {
       padding: 7px 10px;
       font-size: 12px;
       font-weight: 800;
+      line-height: 1.3;
       white-space: nowrap;
       background: var(--soft-gray);
       color: #4e5968;
@@ -524,6 +553,7 @@ export function renderDashboardHtml(): string {
       font-family: var(--mono);
       font-size: 13px;
       font-weight: 800;
+      line-height: 1.35;
       color: var(--ink);
       overflow-wrap: anywhere;
     }
@@ -545,7 +575,7 @@ export function renderDashboardHtml(): string {
       margin: 8px 0 0;
       padding-left: 18px;
       color: #333d4b;
-      line-height: 1.5;
+      line-height: 1.65;
       font-size: 13px;
       font-weight: 500;
     }
@@ -563,6 +593,7 @@ export function renderDashboardHtml(): string {
       color: var(--muted);
       font-family: var(--mono);
       font-size: 12px;
+      line-height: 1.55;
       overflow-wrap: anywhere;
     }
 
@@ -589,6 +620,9 @@ export function renderDashboardHtml(): string {
       .evidence-grid { grid-template-columns: 1fr; }
       .page-nav { position: sticky; top: 0; z-index: 2; }
       .page-tab { flex: 1 1 auto; font-size: 13px; padding: 8px 10px; }
+      h1 { font-size: 28px; }
+      .value { font-size: 30px; }
+      .context-title { font-size: 26px; }
       .record-stat-grid { grid-template-columns: minmax(0, 1fr); }
       .candidate-detail-head,
       .detail-columns,
@@ -596,7 +630,7 @@ export function renderDashboardHtml(): string {
       .panel { padding: 20px; }
       .metric { padding: 20px; min-height: auto; }
       table { display: block; overflow-x: auto; }
-      th, td { white-space: nowrap; }
+      th, td { white-space: normal; }
     }
       /* Hover & Interactive Styles (Toss UI feel) */
     .metric,
@@ -980,6 +1014,75 @@ export function renderDashboardHtml(): string {
       return mode === "local_only" ? "로컬 전용" : "외부 자동";
     }
 
+    function tokenLabel(value) {
+      const labels = {
+        balanced_improvement: "균형 개선",
+        preserve_hard_gates: "하드 게이트 유지",
+        duplicate_pressure: "중복 압력",
+        family_redirect: "계열 전환",
+        near_miss: "근접 후보",
+        repeated_failure: "반복 실패",
+        drawdown: "낙폭",
+        exit_quality: "청산 품질",
+        local_tv_parity: "로컬/TV 일치",
+        low_divergence_family: "낮은 괴리 계열",
+        tradingview_queue: "TradingView 큐",
+        verified_promotion_readiness: "검증 승격 준비",
+        parity: "일치성",
+        walk_forward: "워크포워드",
+        score_threshold: "점수 기준",
+        novelty: "신규성",
+        repair_blocking_gate_failure: "막힌 게이트 수리",
+        preserve_near_miss_strengths: "근접 후보 강점 유지",
+        hard_gates: "하드 게이트",
+        trade_count: "거래 수",
+        broad_rewrite: "대규모 재작성 금지",
+        add_filters_before_recovering_trades: "거래 회복 전 필터 추가 금지",
+        oos_robustness: "OOS 견고성"
+      };
+      return labels[value] || (value ? String(value).replace(/_/g, " ") : "-");
+    }
+
+    function tokenList(values) {
+      return (values || []).map(tokenLabel).join(", ") || "-";
+    }
+
+    function branchKindLabel(value) {
+      const labels = {
+        exploration_breakout: "새 구조 탐색",
+        near_miss_repair: "근접 후보 수리",
+        frontier_exploit: "프론티어 활용",
+        champion_exploit: "챔피언 활용",
+        calibration_recheck: "보정 재검토",
+        balanced: "균형 배분"
+      };
+      return labels[value] || tokenLabel(value);
+    }
+
+    function objectiveFocusLabel(mode, fallback) {
+      const labels = {
+        explore: "새로운 전략 계열과 신규성을 우선 탐색합니다. 단, 하드 게이트는 그대로 유지합니다.",
+        improve: "현재 목표를 기준으로 균형 잡힌 브랜치 배분을 유지하며 성능을 개선합니다.",
+        repair: "근접 후보와 반복 실패를 중심으로 낙폭, OOS, 청산 품질을 수리합니다.",
+        calibrate: "로컬 결과와 TradingView 결과의 일치성, 낮은 괴리 계열, 검증 큐를 우선합니다.",
+        promote: "검증 승격 준비, 일치성, 워크포워드, 점수 기준 충족에 집중합니다."
+      };
+      return labels[mode] || fallback || "목표 profile을 기다리는 중입니다.";
+    }
+
+    function reviewReasonLabel(decision, fallback) {
+      const labels = {
+        repair_near_miss: "전략 리뷰가 이 후보를 근접 후보로 보고, 강점을 유지하면서 막힌 게이트를 수리하도록 지시했습니다.",
+        redirect_family: "전략 리뷰가 현재 계열의 반복 한계를 보고 다른 구조 계열로 전환하도록 지시했습니다.",
+        quarantine_family: "전략 리뷰가 해당 계열을 자동 선택에서 억제하도록 지시했습니다.",
+        simplify_family: "전략 리뷰가 복잡도를 낮추고 핵심 조건만 남기도록 지시했습니다.",
+        calibrate_candidate: "전략 리뷰가 로컬/TradingView 일치성과 이식성을 먼저 확인하도록 지시했습니다.",
+        exploit_parent: "전략 리뷰가 부모 후보의 강점을 계속 활용하도록 지시했습니다.",
+        no_action: "전략 리뷰가 별도 방향 전환 없이 현재 흐름을 유지하도록 판단했습니다."
+      };
+      return labels[decision] || fallback || "아직 적용 가능한 전략 리뷰 지시가 없습니다.";
+    }
+
     function goalModeLabel(value) {
       const labels = {
         explore: "탐색",
@@ -1060,14 +1163,15 @@ export function renderDashboardHtml(): string {
       return labels[value] || value;
     }
 
-    function renderChipList(id, values) {
+    function renderChipList(id, values, mapValue) {
       const el = document.getElementById(id);
       if (!el) return;
       el.innerHTML = "";
       (values || []).forEach(function(value) {
         const span = document.createElement("span");
         span.className = "chip";
-        span.textContent = value;
+        span.textContent = mapValue ? mapValue(value) : value;
+        if (mapValue && value !== span.textContent) span.title = value;
         el.appendChild(span);
       });
     }
@@ -1531,29 +1635,29 @@ export function renderDashboardHtml(): string {
       text("generatedAt", new Date(data.generatedAt).toLocaleTimeString());
       text("researchModeBadge", goalModeLabel(researchMode.goalMode));
       text("researchTargetLabel", targetLabel);
-      text("researchObjectiveFocus", researchMode.objectiveFocus || "목표 profile을 기다리는 중입니다.");
-      renderChipList("researchFocusChips", researchMode.strategyReviewFocus || []);
+      text("researchObjectiveFocus", objectiveFocusLabel(researchMode.goalMode, researchMode.objectiveFocus));
+      renderChipList("researchFocusChips", researchMode.strategyReviewFocus || [], tokenLabel);
       renderRows("researchContextRows", [
-        row([{ value: "target", className: "mono" }, { value: researchMode.targetId || "-", className: "mono" }]),
-        row([{ value: "profile", className: "mono" }, { value: researchMode.goalProfileId || "-", className: "mono" }]),
-        row([{ value: "branch bias", className: "mono" }, { value: researchMode.branchKindBias || "balanced", className: researchMode.branchKindBias ? "goodText" : "mutedText" }]),
-        row([{ value: "criterion seed", className: "mono" }, { value: researchMode.criterionDirectiveSeed || "-", className: researchMode.criterionDirectiveSeed ? "goodText" : "mutedText" }]),
-        row([{ value: "calibration", className: "mono" }, { value: calibrationPolicyLabel(researchMode.calibrationPolicy), className: "mono" }]),
-        row([{ value: "suppressed branch", className: "mono" }, { value: (researchMode.suppressedBranchKinds || []).join(", ") || "-", className: (researchMode.suppressedBranchKinds || []).length ? "warnText" : "mutedText" }])
+        row([{ value: "대상 ID", className: "mono" }, { value: researchMode.targetId || "-", className: "mono" }]),
+        row([{ value: "목표 프로필", className: "mono" }, { value: researchMode.goalProfileId || "-", className: "mono" }]),
+        row([{ value: "브랜치 방향", className: "mono" }, { value: branchKindLabel(researchMode.branchKindBias || "balanced"), className: researchMode.branchKindBias ? "goodText" : "mutedText" }]),
+        row([{ value: "기준 시드", className: "mono" }, { value: researchMode.criterionDirectiveSeed ? tokenLabel(researchMode.criterionDirectiveSeed) : "-", className: researchMode.criterionDirectiveSeed ? "goodText" : "mutedText" }]),
+        row([{ value: "보정 정책", className: "mono" }, { value: calibrationPolicyLabel(researchMode.calibrationPolicy), className: "mono" }]),
+        row([{ value: "억제 브랜치", className: "mono" }, { value: tokenList(researchMode.suppressedBranchKinds || []), className: (researchMode.suppressedBranchKinds || []).length ? "warnText" : "mutedText" }])
       ]);
       text("strategyReviewConfidence", strategyReview.confidence === null || strategyReview.confidence === undefined ? "대기" : fmt(strategyReview.confidence * 100, 0) + "%");
       text("strategyReviewDecision", reviewDecisionLabel(strategyReview.latestDecision));
-      text("strategyReviewReason", strategyReview.reason || strategyReview.debateSummary || "아직 적용 가능한 전략 리뷰 지시가 없습니다.");
-      renderChipList("strategyReviewFocus", strategyReview.nextMutationFocus || []);
+      text("strategyReviewReason", reviewReasonLabel(strategyReview.latestDecision, strategyReview.reason || strategyReview.debateSummary));
+      renderChipList("strategyReviewFocus", strategyReview.nextMutationFocus || [], tokenLabel);
       renderRows("strategyReviewRows", [
-        row([{ value: "candidate", className: "mono" }, { value: strategyReview.latestCandidateId ? shortId(strategyReview.latestCandidateId) : "-", className: "mono" }]),
-        row([{ value: "review mode", className: "mono" }, { value: strategyReview.reviewMode || "-", className: "mono" }]),
-        row([{ value: "branch bias", className: "mono" }, { value: strategyReview.branchKindBias || "-", className: strategyReview.branchKindBias ? "goodText" : "mutedText" }]),
-        row([{ value: "parent", className: "mono" }, { value: strategyReview.parentCandidateId ? shortId(strategyReview.parentCandidateId) : "-", className: "mono" }]),
-        row([{ value: "required", className: "mono" }, { value: (strategyReview.requiredChanges || []).join(", ") || "-" }]),
-        row([{ value: "validation", className: "mono" }, { value: (strategyReview.validationFocus || []).join(", ") || "-" }]),
-        row([{ value: "forbidden", className: "mono" }, { value: (strategyReview.forbiddenPatterns || []).join(", ") || "-", className: (strategyReview.forbiddenPatterns || []).length ? "warnText" : "mutedText" }]),
-        row([{ value: "suppressed family", className: "mono" }, { value: (strategyReview.suppressedFamilies || []).join(", ") || "-", className: (strategyReview.suppressedFamilies || []).length ? "badText" : "mutedText" }])
+        row([{ value: "후보", className: "mono" }, { value: strategyReview.latestCandidateId ? shortId(strategyReview.latestCandidateId) : "-", className: "mono" }]),
+        row([{ value: "리뷰 방식", className: "mono" }, { value: strategyReview.reviewMode || "-", className: "mono" }]),
+        row([{ value: "브랜치 방향", className: "mono" }, { value: strategyReview.branchKindBias ? branchKindLabel(strategyReview.branchKindBias) : "-", className: strategyReview.branchKindBias ? "goodText" : "mutedText" }]),
+        row([{ value: "기준 후보", className: "mono" }, { value: strategyReview.parentCandidateId ? shortId(strategyReview.parentCandidateId) : "-", className: "mono" }]),
+        row([{ value: "필수 변경", className: "mono" }, { value: tokenList(strategyReview.requiredChanges || []) }]),
+        row([{ value: "검증 초점", className: "mono" }, { value: tokenList(strategyReview.validationFocus || []) }]),
+        row([{ value: "금지 패턴", className: "mono" }, { value: tokenList(strategyReview.forbiddenPatterns || []), className: (strategyReview.forbiddenPatterns || []).length ? "warnText" : "mutedText" }]),
+        row([{ value: "억제 계열", className: "mono" }, { value: tokenList(strategyReview.suppressedFamilies || []), className: (strategyReview.suppressedFamilies || []).length ? "badText" : "mutedText" }])
       ]);
       text("operatorMode", modeLabel(brief.mode));
       text("briefHeadline", brief.headline || "-");
@@ -1620,7 +1724,7 @@ export function renderDashboardHtml(): string {
       text("storageDetail", data.score.artifactSizeMB !== undefined ? "아티팩트 " + fmt(data.score.artifactSizeMB, 1) + "MB" : "-");
       text("chartMeta", "로컬 " + (data.trend || []).length + "개");
       text("improvementSummary", data.improvement.summary);
-      renderChipList("nextFocus", data.improvement.nextFocus);
+      renderChipList("nextFocus", data.improvement.nextFocus, tokenLabel);
       text("paths", data.project.workspaceRoot);
 
       const verified = data.verifiedAutoresearch || {};
