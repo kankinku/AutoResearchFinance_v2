@@ -1,1 +1,0 @@
-{"timestamp":"2026-04-24T10:44:30.564Z","command":"login-alphaxiv","event":"alphaxiv.login.start","message":"Opening alphaXiv sign-in","details":{"timeoutMs":300000},"taskNumber":null}

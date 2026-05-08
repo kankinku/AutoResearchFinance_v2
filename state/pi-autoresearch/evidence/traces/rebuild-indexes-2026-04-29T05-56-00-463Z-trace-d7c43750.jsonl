@@ -1,2 +1,0 @@
-{"timestamp":"2026-04-29T05:56:00.726Z","command":"rebuild-indexes","event":"indexes.start","message":"Rebuilding derived indexes","details":{"stateRoot":"C:\\Temp\\af-audit-fresh-20260429b"},"taskNumber":null}
-{"timestamp":"2026-04-29T05:56:01.203Z","command":"rebuild-indexes","event":"indexes.done","message":"Derived indexes rebuilt","details":{"stateRoot":"C:\\Temp\\af-audit-fresh-20260429b","verificationOk":true},"taskNumber":null}

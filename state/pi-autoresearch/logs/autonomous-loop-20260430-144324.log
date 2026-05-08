@@ -1,6 +1,0 @@
-﻿[2026-04-30T14:43:24.7168184+09:00] autonomous forever loop started; pid=19660; project=C:\Users\hanji\Desktop\AF
-[2026-04-30T14:43:24.7188228+09:00] stop file: C:\Users\hanji\Desktop\AF\state\pi-autoresearch\runtime\STOP_AUTONOMOUS_LOOP
-[2026-04-30T14:43:24.7622294+09:00] iteration 1: run-autonomous-loop start
-??injected env (11) from .env // tip: ??multiple files { path: ['.env.local', '.env'] }
-[2026-04-30T14:43:25.1546443+09:00] fatal error: [autonomous.loop.start] run-autonomous-loop | Starting autonomous local-first loop | 2026-04-30T05:43:25.132Z
-[2026-04-30T14:43:25.1616494+09:00] autonomous forever loop stopped

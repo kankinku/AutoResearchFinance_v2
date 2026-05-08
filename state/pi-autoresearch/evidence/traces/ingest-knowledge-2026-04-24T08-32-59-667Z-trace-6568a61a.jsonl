@@ -1,2 +1,0 @@
-{"timestamp":"2026-04-24T08:32:59.705Z","command":"ingest-knowledge","event":"knowledge.ingest.start","message":"Starting research knowledge ingestion","details":{"file":"C:\\Users\\hanji\\AppData\\Local\\Temp\\af-knowledge-sample.json","title":"Range Weak Exit Note","sourceType":null},"taskNumber":null}
-{"timestamp":"2026-04-24T08:32:59.737Z","command":"ingest-knowledge","event":"knowledge.ingest.done","message":"Research knowledge ingestion completed","details":{"ingestedCount":1,"knowledgeIds":["rsk-93e0eead"]},"taskNumber":null}

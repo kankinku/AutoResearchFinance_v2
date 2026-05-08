@@ -1,1 +1,0 @@
-{"timestamp":"2026-05-01T00:50:14.293Z","command":"validate-ledger","event":"ledger.validation","message":"Ledger validation completed","details":{"stateRoot":"C:\\Users\\hanji\\Desktop\\AF\\state\\pi-autoresearch","ok":true,"errorCount":0,"warningCount":6},"taskNumber":null}

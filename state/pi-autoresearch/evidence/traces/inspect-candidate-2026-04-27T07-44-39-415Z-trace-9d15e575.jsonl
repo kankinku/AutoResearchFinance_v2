@@ -1,1 +1,0 @@
-{"timestamp":"2026-04-27T07:44:39.500Z","command":"inspect-candidate","event":"candidate.inspect","message":"Candidate inspection completed","details":{"candidate":"manual-exhaustion-sample","candidateRecords":1,"experimentRecords":1},"taskNumber":null}

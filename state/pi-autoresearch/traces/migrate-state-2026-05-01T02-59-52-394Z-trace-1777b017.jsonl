@@ -1,1 +1,0 @@
-{"timestamp":"2026-05-01T02:59:57.655Z","command":"migrate-state","event":"knowledge.compact_experiments","message":"Experiment ledger compacted","details":{"dryRun":false,"recordsWritten":636,"artifactBundlesStripped":559,"originalBytes":270038146,"compactedBytes":7723783},"taskNumber":null}

@@ -1,1 +1,0 @@
-{"timestamp":"2026-04-29T02:46:46.166Z","command":"validate-ledger","event":"ledger.validation","message":"Ledger validation completed","details":{"stateRoot":"C:\\Temp\\af-stage4-count5","ok":true,"errorCount":0,"warningCount":0},"taskNumber":null}

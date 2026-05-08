@@ -1,6 +1,0 @@
-{
-  "recordedAt": "2026-04-27T16:54:20.736Z",
-  "stage": "known-bad-env",
-  "message": "AF_TV_E2E_CANDIDATE_PATH must be set for TradingView E2E runs.",
-  "stack": "Error: AF_TV_E2E_CANDIDATE_PATH must be set for TradingView E2E runs.\n    at C:\\Users\\hanji\\Desktop\\AF\\tests\\e2e\\tradingview.e2e.test.ts:222:9\n    at file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at runSuite (file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n    at runSuite (file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n    at runFiles (file:///C:/Users/hanji/Desktop/AF/node_modules/@vitest/runner/dist/chunk-hooks.js:1787:3)"
-}

@@ -8,11 +8,16 @@ coverage/
 artifacts/autonomous-run/
 artifacts/dashboard/
 state/**/backups/
+state/*-autoresearch/
+state/pi-autoresearch/
 state/btc-15m-autoresearch/
 state/**/*.pre-compact-*.jsonl
 state/**/logs/
 state/**/runtime/
 state/**/traces/
+strategies/candidates/cand-*.pine
+strategies/specs/cand-*.json
+af-dashboard-*.png
 .omx/logs/
 .omx/state/
 .omx/metrics.json

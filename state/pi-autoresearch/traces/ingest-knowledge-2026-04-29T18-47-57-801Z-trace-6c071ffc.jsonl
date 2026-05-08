@@ -1,2 +1,0 @@
-{"timestamp":"2026-04-29T18:47:58.454Z","command":"ingest-knowledge","event":"knowledge.ingest.start","message":"Starting research knowledge ingestion","details":{"file":null,"title":"Local pullback directive","sourceType":"manual_text"},"taskNumber":null}
-{"timestamp":"2026-04-29T18:48:21.439Z","command":"ingest-knowledge","event":"knowledge.ingest.done","message":"Research knowledge ingestion completed","details":{"ingestedCount":1,"knowledgeIds":["rsk-13407e22"]},"taskNumber":null}
