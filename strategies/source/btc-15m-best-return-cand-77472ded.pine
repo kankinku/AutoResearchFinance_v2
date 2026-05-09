@@ -55,7 +55,7 @@ maxHoldBarsActive = math.max(1, maxHoldBars)
 bullContinueWindowActive = math.max(1, eventWindowBarsActive)
 bearReboundWindowActive = math.max(1, eventWindowBarsActive)
 inBacktestWindow = time >= backtestStartTime and time <= backtestEndTime
-windowJustStarted = inBacktestWindow and not nz(inBacktestWindow[1], false)
+windowJustStarted = inBacktestWindow and not inBacktestWindow[1]
 var int localBarIndex = -1
 if windowJustStarted
     localBarIndex := 0
@@ -190,14 +190,14 @@ if bullConfirmed or (not na(bullSignalBar) and localBarIndex - bullSignalBar > c
 if bearConfirmed or (not na(bearSignalBar) and localBarIndex - bearSignalBar > confirmBars)
     bearSignalBar := na
 
-newBullL1 = bullL1 and not nz(bullL1[1], false)
-newBullCandidate = bullCandidate and not nz(bullCandidate[1], false)
-newBullStrong = bullStrong and not nz(bullStrong[1], false)
-newBullConfirmed = bullConfirmed and not nz(bullConfirmed[1], false)
-newBearL1 = bearL1 and not nz(bearL1[1], false)
-newBearCandidate = bearCandidate and not nz(bearCandidate[1], false)
-newBearStrong = bearStrong and not nz(bearStrong[1], false)
-newBearConfirmed = bearConfirmed and not nz(bearConfirmed[1], false)
+newBullL1 = bullL1 and not bullL1[1]
+newBullCandidate = bullCandidate and not bullCandidate[1]
+newBullStrong = bullStrong and not bullStrong[1]
+newBullConfirmed = bullConfirmed and not bullConfirmed[1]
+newBearL1 = bearL1 and not bearL1[1]
+newBearCandidate = bearCandidate and not bearCandidate[1]
+newBearStrong = bearStrong and not bearStrong[1]
+newBearConfirmed = bearConfirmed and not bearConfirmed[1]
 
 bullEventFloor = timeBoxedRouteEnabled and bull >= eventFloorBarsActive
 bearEventFloor = timeBoxedRouteEnabled and bear >= eventFloorBarsActive
