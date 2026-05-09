@@ -2,6 +2,7 @@ param(
   [string]$ProjectRoot = "",
   [string]$StateRoot = "",
   [int]$GraceSeconds = 30,
+  [int[]]$ExcludeProcessId = @(),
   [switch]$NoForce,
   [switch]$Quiet
 )
@@ -68,9 +69,11 @@ function Test-IsAfCommandLine {
 }
 
 function Get-AfProcesses {
+  $excludedProcessIds = @($PID) + @($ExcludeProcessId)
   Get-CimInstance Win32_Process |
     Where-Object {
-      $_.ProcessId -ne $PID -and (Test-IsAfCommandLine -CommandLine $_.CommandLine)
+      $excludedProcessIds -notcontains $_.ProcessId -and
+        (Test-IsAfCommandLine -CommandLine $_.CommandLine)
     } |
     Sort-Object ProcessId
 }

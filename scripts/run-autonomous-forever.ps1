@@ -63,7 +63,7 @@ $HeartbeatFile = Join-Path $RuntimeRoot "autonomous-loop-heartbeat.json"
 $LogFile = Join-Path $LogRoot ("autonomous-loop-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
-& (Join-Path $PSScriptRoot "stop-af.ps1") -ProjectRoot $ProjectRoot -StateRoot $StateRoot -GraceSeconds 30 -Quiet
+& (Join-Path $PSScriptRoot "stop-af.ps1") -ProjectRoot $ProjectRoot -StateRoot $StateRoot -GraceSeconds 30 -ExcludeProcessId $PID -Quiet
 
 function Write-StaleHeartbeat {
   param(
