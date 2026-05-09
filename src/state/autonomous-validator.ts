@@ -102,17 +102,25 @@ export async function validateAutonomousLedger(stateRoot: string): Promise<Ledge
     headEvents: headEventsResult.records,
   });
   if (activeChampion) {
+    const validLocalPromotion =
+      activeChampion.recordKind === "local_evaluation" &&
+      activeChampion.selectionPhase === "steady_state" &&
+      activeChampion.eligibility?.autoSelectionEligible === true;
+    const validBootstrapChampion =
+      activeChampion.recordKind === "local_evaluation" &&
+      activeChampion.selectionPhase === "bootstrap" &&
+      activeChampion.bootstrapSource === "local_compatible_seed" &&
+      activeChampion.eligibility?.bootstrapEligible === true;
     if (
       activeChampion.recordKind === "local_evaluation" &&
-      (activeChampion.selectionPhase !== "bootstrap" ||
-        activeChampion.bootstrapSource !== "local_compatible_seed" ||
-        activeChampion.eligibility?.bootstrapEligible !== true)
+      !validLocalPromotion &&
+      !validBootstrapChampion
     ) {
       issues.push({
         severity: "error",
         scope: "autonomous",
         message:
-          "Local active champion records are only valid as local-compatible bootstrap seeds.",
+          "Local active champion records must be either local-compatible bootstrap seeds or auto-selection eligible local promotions.",
         recordId: activeChampion.candidateId,
       });
     }

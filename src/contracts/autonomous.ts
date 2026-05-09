@@ -363,6 +363,7 @@ export const headEventKindSchema = z.enum([
 
 export const headAuthoritySchema = z.enum([
   "bootstrap_seed",
+  "local_promotion",
   "verified_promotion",
 ]);
 

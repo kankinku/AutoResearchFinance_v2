@@ -5,6 +5,7 @@
   "strategyFamily": "AF",
   "primaryExecutor": "local-af-backtest",
   "objectivePolicyFile": "objective.btc-15m.json",
+  "bootstrapSeedSpecFile": "baseline.btc-15m-af.af-spec.json",
   "noveltyPolicy": "autonomous-local-first/v3",
   "calibrationPolicy": "local-only/v1"
 }

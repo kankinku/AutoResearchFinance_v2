@@ -34,6 +34,7 @@ import {
 import { runLocalEvaluationPhase } from "./local-evaluation-phase.js";
 import { runArchiveUpdatePhase } from "./archive-update-phase.js";
 import {
+  loadBootstrapSeedSpec,
   prepareBootstrapCandidate,
   shouldRunBootstrapSeed,
 } from "./bootstrap-phase.js";
@@ -254,11 +255,21 @@ export async function runAutonomousLoop(input: {
     model: input.env.openAiModel,
   });
 
+  const bootstrapSeedSpec =
+    input.env.autonomousBootstrapMode === "auto"
+      ? await loadBootstrapSeedSpec({
+          projectRoot: input.env.projectRoot,
+          workspaceRoot: input.workspaceRoot,
+          targetId,
+        })
+      : null;
+
   if (
     input.env.autonomousBootstrapMode === "auto" &&
     shouldRunBootstrapSeed({
       experiments: targetExperiments,
       headEvents: targetHeadEvents,
+      bootstrapSpecHash: bootstrapSeedSpec?.specHash,
     })
   ) {
     const bootstrapSeed = await runPhase({
@@ -274,6 +285,7 @@ export async function runAutonomousLoop(input: {
           stateRoot,
           runId,
           iteration,
+          targetId,
           signal,
         }),
     });
@@ -366,6 +378,44 @@ export async function runAutonomousLoop(input: {
     } finally {
       await localExecutor.close?.();
     }
+  }
+
+  const existingSelection = await runPhase({
+    monitor: input.monitor,
+    phase: "auto_selection_existing",
+    message: "Selecting any existing eligible local champion before mutation",
+    timeoutMs: phaseTimeouts.autoSelectionMs,
+    signal: input.signal,
+    run: async () =>
+      runAutoSelectionPhase({
+        stateRoot,
+        runId,
+        iteration,
+        experiments: targetExperiments,
+        headEvents: targetHeadEvents,
+        targetId,
+        strategyReviewRecords,
+        strategyReviewQuarantineConfidence:
+          input.env.strategyReviewQuarantineConfidence,
+      }),
+  });
+  if (existingSelection.activeChampionChanged) {
+    await runPhase({
+      monitor: input.monitor,
+      phase: "rebuild_indexes",
+      message: "Rebuilding derived autonomous views",
+      timeoutMs: phaseTimeouts.rebuildIndexesMs,
+      signal: input.signal,
+      run: () => rebuildIndexes(stateRoot, { mode: "incremental" }),
+    });
+    return {
+      runId,
+      iteration,
+      candidateId: existingSelection.selectedCandidateId,
+      localDecision: "existing_candidate_selected",
+      activeChampionChanged: true,
+      activeChampionCandidateId: existingSelection.selectedCandidateId,
+    };
   }
 
   try {

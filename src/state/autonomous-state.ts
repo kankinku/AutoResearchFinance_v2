@@ -220,7 +220,7 @@ export function selectBestTvVerifiedCandidate(
 export function selectBestChampionCandidate(
   records: ExperimentRecord[],
 ): AutonomousExperimentRecord | null {
-  return selectBestTvVerifiedCandidate(records);
+  return selectBestTvVerifiedCandidate(records) ?? selectBestLocalFrontierCandidate(records);
 }
 
 export function selectBestAutonomousChampionCandidate(
@@ -255,6 +255,36 @@ export function findActiveVerifiedChampionRecord(input: {
       .sort(compareVerifiedPromotionCandidate)[0];
     if (matchingTvRecord) {
       return matchingTvRecord;
+    }
+  }
+
+  return null;
+}
+
+export function findActiveLocalChampionRecord(input: {
+  records: ExperimentRecord[];
+  headEvents: HeadEventRecord[];
+}): AutonomousExperimentRecord | null {
+  const localRecords = selectLocalEvaluationRecords(input.records);
+  for (const headEvent of sortHeadEventsNewestFirst(input.headEvents)) {
+    const localHead =
+      headEvent.headAuthority === "local_promotion" ||
+      (headEvent.headAuthority == null && headEvent.selectionPhase === "steady_state");
+    if (!localHead) {
+      continue;
+    }
+
+    const matchingLocalRecord = localRecords
+      .filter((record) => record.candidateId === headEvent.candidateId)
+      .filter(
+        (record) =>
+          record.recordKind === "local_evaluation" &&
+          record.selectionPhase === "steady_state" &&
+          isAutoSelectionEligible(record),
+      )
+      .sort(compareAutonomousChampion)[0];
+    if (matchingLocalRecord) {
+      return matchingLocalRecord;
     }
   }
 
@@ -317,6 +347,11 @@ export function findActiveChampionRecord(input: {
   const verifiedChampion = findActiveVerifiedChampionRecord(input);
   if (verifiedChampion) {
     return verifiedChampion;
+  }
+
+  const localChampion = findActiveLocalChampionRecord(input);
+  if (localChampion) {
+    return localChampion;
   }
 
   return findBootstrapSeedRecord(input);

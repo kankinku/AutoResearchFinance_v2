@@ -14,12 +14,10 @@ import { type StrategyReviewRecord } from "../../contracts/strategy-review.js";
 import {
   buildSelectionEvidenceHash,
   compareAutonomousChampion,
-  compareVerifiedPromotionCandidate,
   findActiveChampionRecord,
   isVerifiedPromotionEligible,
   selectLocalEvaluationRecords,
   selectBestChampionCandidate,
-  selectTvVerificationRecords,
 } from "../../state/autonomous-state.js";
 
 export async function runAutoSelectionPhase(input: {
@@ -66,6 +64,11 @@ export async function runAutoSelectionPhase(input: {
   const bestCandidateIsVerified =
     bestCandidate != null &&
     isVerifiedPromotionEligible({ record: bestCandidate, localRecords });
+  const bestCandidateIsLocalPromotion =
+    bestCandidate != null &&
+    bestCandidate.recordKind === "local_evaluation" &&
+    bestCandidate.selectionPhase === "steady_state" &&
+    bestCandidate.eligibility?.autoSelectionEligible === true;
   const bestCandidateIsBootstrapSeed =
     bestCandidate != null &&
     isBootstrapSeedCandidate({
@@ -74,7 +77,9 @@ export async function runAutoSelectionPhase(input: {
     });
   if (
     !bestCandidate ||
-    (!bestCandidateIsVerified && !bestCandidateIsBootstrapSeed)
+    (!bestCandidateIsVerified &&
+      !bestCandidateIsLocalPromotion &&
+      !bestCandidateIsBootstrapSeed)
   ) {
     return {
       activeChampionChanged: false,
@@ -110,6 +115,8 @@ export async function runAutoSelectionPhase(input: {
     policyVersion: bestCandidate.selectionPolicyVersion,
     headAuthority: bestCandidateIsVerified
       ? ("verified_promotion" as const)
+      : bestCandidateIsLocalPromotion
+        ? ("local_promotion" as const)
       : ("bootstrap_seed" as const),
     selectionPhase: bestCandidate.selectionPhase,
     bootstrapSource: bestCandidate.bootstrapSource ?? null,
@@ -139,11 +146,13 @@ export async function runAutoSelectionPhase(input: {
     complexityPenalty: bestCandidate.autoSelectionBreakdown?.complexityPenalty ?? 0,
     selectionReason: currentChampion
       ? bootstrapTransitionApplied
-        ? "Local-verified candidate displaced the bootstrap baseline champion."
-        : "Highest eligible verified promotion score displaced the current champion."
+        ? "Local promotion candidate displaced the bootstrap baseline champion."
+        : bestCandidateIsLocalPromotion
+          ? "Highest eligible local promotion score displaced the current champion."
+          : "Highest eligible verified promotion score displaced the current champion."
       : bestCandidate.selectionPhase === "bootstrap"
         ? "Bootstrap local-compatible seed established the first autonomous research baseline champion."
-        : "First local-verified autonomous candidate became the active champion.",
+        : "First local promotion candidate became the active champion.",
     selectionEvidenceHash,
     humanOverride: false as const,
   };
@@ -185,14 +194,14 @@ function selectBootstrapTransitionCandidate(input: {
   }
 
   const localRecords = selectLocalEvaluationRecords(input.experiments);
-  const bestSteadyStateCandidate = selectTvVerificationRecords(input.experiments)
+  const bestSteadyStateCandidate = localRecords
     .filter(
       (record) =>
         record.candidateId !== input.currentChampion?.candidateId &&
         record.selectionPhase === "steady_state" &&
-        isVerifiedPromotionEligible({ record, localRecords }),
+        record.eligibility?.autoSelectionEligible === true,
     )
-    .sort(compareVerifiedPromotionCandidate)[0];
+    .sort(compareAutonomousChampion)[0];
 
   if (!bestSteadyStateCandidate) {
     return null;

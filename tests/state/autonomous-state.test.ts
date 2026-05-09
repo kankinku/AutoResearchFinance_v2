@@ -15,6 +15,7 @@ import {
   findActiveVerifiedChampionRecord,
   findBootstrapSeedRecord,
   selectBestChampionCandidate,
+  selectBestTvVerifiedCandidate,
 } from "../../src/state/autonomous-state.js";
 
 function createLocalRecord(
@@ -209,21 +210,62 @@ function createHeadEvent(
 }
 
 describe("autonomous champion selectors", () => {
-  test("does not promote local-only candidates", () => {
-    expect(selectBestChampionCandidate(asExperimentRecords([createLocalRecord()]))).toBeNull();
+  test("promotes eligible local-only candidates", () => {
+    const selected = selectBestChampionCandidate(asExperimentRecords([createLocalRecord()]));
+
+    expect(selected?.candidateId).toBe("cand-a");
+    expect(selected?.recordKind).toBe("local_evaluation");
+    expect(selected?.autoSelectionScore).toBe(2);
+  });
+
+  test("does not promote ineligible local-only candidates", () => {
+    expect(
+      selectBestChampionCandidate(asExperimentRecords([
+        createLocalRecord({
+          eligibility: {
+            autoSelectionEligible: false,
+            bootstrapEligible: false,
+            archiveEligible: true,
+            calibrationEligible: false,
+            blockingReasons: [
+              {
+                kind: "robustness_fail",
+                message: "objective gate failed",
+                suggestedRepairKind: null,
+              },
+            ],
+          },
+          autoSelectionBreakdown: {
+            baseObjectiveScore: 0,
+            robustnessScore: 0,
+            noveltyScore: 0,
+            diversityScore: 0,
+            localConfidenceBonus: 0,
+            riskPenalty: 0,
+            overfitPenalty: 0,
+            duplicatePenalty: 0,
+            divergencePenalty: 0,
+            complexityPenalty: 0,
+            totalScore: 0,
+            eligible: false,
+            rejectionReasons: ["objective_gate_failed"],
+          },
+        }),
+      ])),
+    ).toBeNull();
   });
 
   test("requires verified match, non-major parity, and matching candidate hash", () => {
     const localRecord = createLocalRecord();
 
     expect(
-      selectBestChampionCandidate(asExperimentRecords([
+      selectBestTvVerifiedCandidate(asExperimentRecords([
         localRecord,
         createTvRecord({ tvCalibrationStatus: "verified_diverged" }),
       ])),
     ).toBeNull();
     expect(
-      selectBestChampionCandidate(asExperimentRecords([
+      selectBestTvVerifiedCandidate(asExperimentRecords([
         localRecord,
         createTvRecord({
           localTvParity: {
@@ -238,7 +280,7 @@ describe("autonomous champion selectors", () => {
       ])),
     ).toBeNull();
     expect(
-      selectBestChampionCandidate(asExperimentRecords([
+      selectBestTvVerifiedCandidate(asExperimentRecords([
         localRecord,
         createTvRecord({
           candidateHash: "hash-b",
@@ -254,7 +296,7 @@ describe("autonomous champion selectors", () => {
       ])),
     ).toBeNull();
     expect(
-      selectBestChampionCandidate(asExperimentRecords([
+      selectBestTvVerifiedCandidate(asExperimentRecords([
         localRecord,
         createTvRecord({
           walkForwardEvaluation: {
@@ -284,7 +326,7 @@ describe("autonomous champion selectors", () => {
   });
 
   test("rejects metric-only verified records when AFTRACE parity is missing", () => {
-    const selected = selectBestChampionCandidate(asExperimentRecords([
+    const selected = selectBestTvVerifiedCandidate(asExperimentRecords([
       createLocalRecord(),
       createTvRecord({
         localTvParity: {
@@ -325,7 +367,7 @@ describe("autonomous champion selectors", () => {
   });
 
   test("rejects verified records when the spec authority does not match local evidence", () => {
-    const selected = selectBestChampionCandidate(asExperimentRecords([
+    const selected = selectBestTvVerifiedCandidate(asExperimentRecords([
       createLocalRecord(),
       createTvRecord({
         specHash: "different-spec-hash",
@@ -335,19 +377,19 @@ describe("autonomous champion selectors", () => {
     expect(selected).toBeNull();
   });
 
-  test("active champion lookup ignores local steady-state heads", () => {
+  test("active champion lookup accepts local promotion heads", () => {
     const active = findActiveChampionRecord({
       records: asExperimentRecords([createLocalRecord()]),
       headEvents: [
         createHeadEvent({
-          headAuthority: null,
+          headAuthority: "local_promotion",
           selectionPhase: "steady_state",
           candidateId: "cand-a",
         }),
       ],
     });
 
-    expect(active).toBeNull();
+    expect(active?.candidateId).toBe("cand-a");
   });
 
   test("bootstrap seed lookup only accepts local-compatible bootstrap records", () => {

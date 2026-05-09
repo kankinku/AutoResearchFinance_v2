@@ -10,6 +10,7 @@ const researchTargetSchema = z.object({
   strategyFamily: z.literal("AF"),
   primaryExecutor: z.literal("local-af-backtest"),
   objectivePolicyFile: z.string().min(1),
+  bootstrapSeedSpecFile: z.string().min(1).optional(),
   noveltyPolicy: z.string().min(1),
   calibrationPolicy: z.string().min(1),
 });

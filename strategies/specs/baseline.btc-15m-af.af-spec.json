@@ -1,0 +1,38 @@
+{
+  "version": "af-spec/v1",
+  "name": "BTC 15m Internet-Informed Baseline",
+  "event": {
+    "source": "event_floor",
+    "L1": 16,
+    "L2": 21,
+    "L3": 22,
+    "confirmBars": 2,
+    "eventFloorBars": 8,
+    "eventWindowBars": 32
+  },
+  "regime": {
+    "trendMode": "Balanced",
+    "useSupertrendFilter": false,
+    "riskOffRsi": 42,
+    "maxExtPct": 6
+  },
+  "entry": {
+    "primaryTrigger": "bull_event",
+    "cooldownBars": 12,
+    "allowBearRebound": false,
+    "applyFilterToB1": true
+  },
+  "slot": {
+    "slotPct": 10,
+    "maxSlots": 10,
+    "useReplacement": true,
+    "replaceMinRank": 4,
+    "replaceIfPnlBelow": -4
+  },
+  "exit": {
+    "weakRangeExit": false,
+    "maxHoldBars": 64,
+    "closeAllOnBearConfRiskOff": true,
+    "resetOnL3": true
+  }
+}

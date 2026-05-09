@@ -1157,7 +1157,7 @@ describe("ledger CLI commands", { timeout: 30_000 }, () => {
       previousChampionId: null,
       selectedBy: "auto_policy",
       policyVersion: "autonomous-local-first/v3-p0",
-      headAuthority: null,
+      headAuthority: "local_promotion",
       selectionPhase: "steady_state",
       bootstrapSource: null,
       bootstrapReason: null,
@@ -1179,7 +1179,10 @@ describe("ledger CLI commands", { timeout: 30_000 }, () => {
     expect(result.code).toBe(0);
     expect(parseCliJson(result.stdout)).toEqual(
       expect.objectContaining({
-        activeChampionCandidateId: null,
+        activeChampionCandidateId: "cand-autonomous",
+        activeChampionDecision: "local_candidate_eligible",
+        activeChampionResearchStage: "local_pass",
+        championOrigin: "autonomous",
         headEventCount: 1,
         localEvaluationCount: 1,
         defaultOperationalView: "v4_verified_autoresearch",

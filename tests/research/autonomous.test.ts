@@ -473,7 +473,7 @@ describe("autonomous tv-verified v4", () => {
     mockedEvaluateLocalSplit.mockReset();
   });
 
-  test("runAutonomousLoop appends local evaluation records without promoting local-only candidates", async () => {
+  test("runAutonomousLoop promotes eligible local-only candidates", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-loop-"));
     const stateRoot = testStateRoot(workspaceRoot);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
@@ -518,7 +518,7 @@ describe("autonomous tv-verified v4", () => {
       entries: Array<{ candidateId: string; eligible: boolean }>;
     };
 
-    expect(result.activeChampionChanged).toBe(false);
+    expect(result.activeChampionChanged).toBe(true);
     expect(result.candidateId).toBeTruthy();
     expect(
       experiments.some(
@@ -527,8 +527,15 @@ describe("autonomous tv-verified v4", () => {
           record.candidateId === result.candidateId,
       ),
     ).toBe(true);
-    expect(headEvents).toEqual([]);
-    expect(localLeaderboard.activeChampionCandidateId).toBeNull();
+    expect(headEvents[0]).toEqual(
+      expect.objectContaining({
+        eventKind: "auto_selected_head",
+        candidateId: result.candidateId,
+        headAuthority: "local_promotion",
+        selectionPhase: "steady_state",
+      }),
+    );
+    expect(localLeaderboard.activeChampionCandidateId).toBe(result.candidateId);
     expect(localLeaderboard.entries[0]?.candidateId).toBe(result.candidateId);
     expect(localLeaderboard.entries[0]?.eligible).toBe(true);
   });
