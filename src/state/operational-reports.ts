@@ -64,6 +64,7 @@ export interface RuntimeCleanupReport {
 export interface SystemHealthReport {
   generatedAt: string;
   stateRoot: string;
+  currentTrainingMode: Record<string, unknown> | null;
   sizes: {
     ledgerBytes: number;
     artifactBytes: number;
@@ -221,6 +222,7 @@ export async function cleanupRuntime(input: {
 
 export async function buildSystemHealthReport(input: {
   stateRoot: string;
+  currentTrainingMode?: Record<string, unknown> | null;
 }): Promise<SystemHealthReport> {
   const knowledgePaths = resolveKnowledgePaths(input.stateRoot);
   const statePaths = resolveStatePaths(input.stateRoot);
@@ -241,6 +243,7 @@ export async function buildSystemHealthReport(input: {
   return {
     generatedAt: new Date().toISOString(),
     stateRoot: input.stateRoot,
+    currentTrainingMode: input.currentTrainingMode ?? null,
     sizes: {
       ledgerBytes: await getDirectorySize(knowledgePaths.ledgerDir),
       artifactBytes: await getDirectorySize(knowledgePaths.artifactDir),

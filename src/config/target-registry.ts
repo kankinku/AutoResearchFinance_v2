@@ -19,6 +19,23 @@ export type ResearchTarget = z.infer<typeof researchTargetSchema>;
 
 export const DEFAULT_RESEARCH_TARGET_ID = "qqq-120m-af";
 
+export function resolveTargetStateRoot(input: {
+  workspaceRoot: string;
+  targetId: string;
+}): string {
+  return path.join(
+    input.workspaceRoot,
+    "state",
+    "targets",
+    input.targetId,
+    "pi-autoresearch",
+  );
+}
+
+export function resolveLegacySharedStateRoot(workspaceRoot: string): string {
+  return path.join(workspaceRoot, "state", "pi-autoresearch");
+}
+
 export function loadResearchTarget(input: {
   projectRoot: string;
   workspaceRoot?: string;

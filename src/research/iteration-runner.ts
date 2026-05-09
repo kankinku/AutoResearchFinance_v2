@@ -132,7 +132,13 @@ interface IterationRunResult {
 }
 
 function resolveStateRoot(workspaceRoot: string): string {
-  return path.join(workspaceRoot, "state", "pi-autoresearch");
+  return path.join(
+    workspaceRoot,
+    "state",
+    "targets",
+    "qqq-120m-af",
+    "pi-autoresearch",
+  );
 }
 
 function isBacktestEmpty(

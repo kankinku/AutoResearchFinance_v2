@@ -94,6 +94,24 @@ export interface DashboardStatusPayload {
     nextPlannedActionReason: string | null;
     latestIndicatorArtifact: Record<string, unknown> | null;
   };
+  currentTrainingMode: {
+    label: string;
+    targetId: string | null;
+    symbol: string | null;
+    timeframe: string | null;
+    objective: string | null;
+    researchMode: Record<string, unknown> | null;
+    stateRoot: string;
+    statePartition: string | null;
+    chartSymbol: string | null;
+    chartTimeframe: string | null;
+    chartMatchesTarget: boolean | null;
+    experimentRecordCount: number;
+    targetTaggedRecordCount: number;
+    currentTargetRecordCount: number;
+    untaggedRecordCount: number;
+    ledgerTargetTagging: string;
+  };
   strategyReview: {
     latestDecision: string | null;
     latestCandidateId: string | null;
@@ -307,6 +325,7 @@ interface DashboardBuildInput {
   autoProcessCalibration?: boolean;
   promotionVerificationExecutor?: string;
   researchModeConfig?: Record<string, unknown>;
+  currentTrainingMode?: Record<string, unknown>;
 }
 
 interface LocalLeaderboardView {
@@ -528,6 +547,14 @@ export async function buildDashboardStatus(
     latestMutationBrief: latestBrief,
     indicatorArtifacts,
   });
+  const currentTrainingMode = buildCurrentTrainingModeDashboard({
+    inputMode: input.currentTrainingMode,
+    autonomousSummary,
+    heartbeat,
+    researchMode,
+    stateRoot: input.stateRoot,
+    experiments: recentExperiments,
+  });
 
   return {
     generatedAt: now.toISOString(),
@@ -560,6 +587,7 @@ export async function buildDashboardStatus(
     bestReturnStrategy,
     hypothesis: latestBrief ? toDashboardHypothesis(latestBrief) : null,
     improvement,
+    currentTrainingMode,
     researchMode,
     strategyReview: buildStrategyReviewDashboard(strategyReviewBoard, researchMode),
     verifiedAutoresearch: buildVerifiedAutoresearchDashboard(autonomousSummary),
@@ -646,6 +674,94 @@ function buildResearchModeDashboard(input: {
           createdAt: stringValue(latestIndicatorArtifact.createdAt),
         }
       : null,
+  };
+}
+
+function buildCurrentTrainingModeDashboard(input: {
+  inputMode?: Record<string, unknown>;
+  autonomousSummary: Record<string, unknown> | null;
+  heartbeat: Record<string, unknown> | null;
+  researchMode: DashboardStatusPayload["researchMode"];
+  stateRoot: string;
+  experiments: ExperimentRecord[];
+}): DashboardStatusPayload["currentTrainingMode"] {
+  const source =
+    recordValue(input.inputMode) ??
+    recordValue(input.autonomousSummary?.currentTrainingMode) ??
+    recordValue(input.heartbeat?.currentTrainingMode) ??
+    null;
+  const targetId =
+    stringValue(source?.targetId) ??
+    input.researchMode.targetId ??
+    stringValue(input.heartbeat?.researchTargetId);
+  const symbol =
+    stringValue(source?.symbol) ??
+    stringValue(source?.targetSymbol) ??
+    input.researchMode.symbol ??
+    stringValue(input.heartbeat?.researchSymbol);
+  const timeframe =
+    stringValue(source?.timeframe) ??
+    stringValue(source?.targetTimeframe) ??
+    input.researchMode.timeframe ??
+    stringValue(input.heartbeat?.chartTimeframe);
+  const statePartition = stringValue(source?.statePartition);
+  const targetTaggedRecordCount = input.experiments.filter(
+    (record) => typeof (record as { targetId?: unknown }).targetId === "string",
+  ).length;
+  const explicitCurrentTargetRecordCount = targetId
+    ? input.experiments.filter(
+        (record) => (record as { targetId?: unknown }).targetId === targetId,
+      ).length
+    : 0;
+  const untaggedRecordCount = input.experiments.length - targetTaggedRecordCount;
+  const currentTargetRecordCount =
+    explicitCurrentTargetRecordCount > 0 || statePartition !== "target_scoped_state_root"
+      ? explicitCurrentTargetRecordCount
+      : input.experiments.length;
+  const chartSymbol =
+    stringValue(source?.chartSymbol) ?? stringValue(input.heartbeat?.chartSymbol);
+  const chartTimeframe =
+    stringValue(source?.chartTimeframe) ?? stringValue(input.heartbeat?.chartTimeframe);
+  const chartMatchesTarget =
+    booleanValue(source?.chartMatchesTarget) ??
+    (symbol && timeframe && chartSymbol && chartTimeframe
+      ? symbol === chartSymbol && timeframe === chartTimeframe
+      : null);
+  const researchMode = recordValue(source?.researchMode);
+  const objective = stringValue(source?.objective) ?? stringValue(source?.objectivePolicyFile);
+  const label =
+    stringValue(source?.label) ??
+    [
+      targetId,
+      symbol && timeframe ? `${symbol} ${timeframe}m` : null,
+      input.researchMode.goalMode,
+      input.researchMode.mode,
+    ]
+      .filter(Boolean)
+      .join(" / ");
+
+  return {
+    label: label || "-",
+    targetId,
+    symbol,
+    timeframe,
+    objective,
+    researchMode,
+    stateRoot: stringValue(source?.stateRoot) ?? input.stateRoot,
+    statePartition,
+    chartSymbol,
+    chartTimeframe,
+    chartMatchesTarget,
+    experimentRecordCount: input.experiments.length,
+    targetTaggedRecordCount,
+    currentTargetRecordCount,
+    untaggedRecordCount,
+    ledgerTargetTagging:
+      targetTaggedRecordCount === 0
+        ? "legacy_untagged"
+        : untaggedRecordCount > 0
+          ? "mixed_target_tags"
+          : "target_tagged",
   };
 }
 

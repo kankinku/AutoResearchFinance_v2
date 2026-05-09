@@ -205,18 +205,19 @@ function normalizeWorkspaceInitializationInput(
 ): NormalizedWorkspaceInitializationInput {
   if (typeof input === "string") {
     const workspaceRoot = path.resolve(process.env.AF_WORKSPACE_ROOT ?? input);
+    const targetId = process.env.AF_RESEARCH_TARGET_ID;
     return {
       projectRoot: path.resolve(process.env.AF_PROJECT_ROOT ?? resolveDefaultProjectRoot()),
       workspaceRoot,
-      stateRoot: path.resolve(process.env.AF_STATE_ROOT ?? resolveStateRoot(workspaceRoot)),
-      targetId: process.env.AF_RESEARCH_TARGET_ID,
+      stateRoot: path.resolve(process.env.AF_STATE_ROOT ?? resolveStateRoot(workspaceRoot, targetId)),
+      targetId,
     };
   }
 
   return {
     projectRoot: path.resolve(input.projectRoot ?? resolveDefaultProjectRoot()),
     workspaceRoot: path.resolve(input.workspaceRoot),
-    stateRoot: path.resolve(input.stateRoot ?? resolveStateRoot(input.workspaceRoot)),
+    stateRoot: path.resolve(input.stateRoot ?? resolveStateRoot(input.workspaceRoot, input.targetId)),
     targetId: input.targetId,
   };
 }

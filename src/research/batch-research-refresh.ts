@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ensureOpenAiAuthReady } from "../cli/openai-oauth.js";
 import { loadAlphaXivAccessToken, loadAlphaXivSessionCookieHeader } from "../cli/alphaxiv-auth.js";
 import { type RuntimeEnvironment } from "../cli/runtime-config.js";
+import { resolveTargetStateRoot } from "../config/target-registry.js";
 import { type TaskRecord } from "../contracts/types.js";
 import { appendIncidentRecord, readResearchKnowledgeRecords } from "../state/jsonl-store.js";
 import { resolveKnowledgePaths } from "../state/knowledge-paths.js";
@@ -256,7 +257,11 @@ async function generateResearchRefreshPlan(
   tasks: TaskRecord[],
 ): Promise<ResearchRefreshPlan> {
   const existingKnowledge = await readResearchKnowledgeRecords(
-    path.join(workspaceRoot, "state", "pi-autoresearch"),
+    env.stateRoot ??
+      resolveTargetStateRoot({
+        workspaceRoot,
+        targetId: env.researchTargetId,
+      }),
   );
 
   const payload = {

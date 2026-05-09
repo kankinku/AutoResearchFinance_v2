@@ -13,6 +13,12 @@ import {
   resolveResearchRunContexts,
   type ResearchRunContext,
 } from "../config/research-run-context.js";
+import {
+  DEFAULT_RESEARCH_TARGET_ID,
+  loadResearchTarget,
+  resolveLegacySharedStateRoot,
+  resolveTargetStateRoot,
+} from "../config/target-registry.js";
 import { evaluateObjective } from "../evaluation/objective.js";
 import {
   assertPromotionEligible,
@@ -157,6 +163,8 @@ import {
 import { ensureOpenAiAuthReady } from "./openai-oauth.js";
 import {
   type RuntimeEnvironment,
+  type RuntimeStatePartition,
+  classifyRuntimeStatePartition,
   loadRuntimeEnvironment,
 } from "./runtime-config.js";
 import { reconcileAutonomousLoopRuntime } from "./runtime-heartbeat.js";
@@ -175,7 +183,7 @@ function loadRuntimeEnvironmentForTarget(targetId: string): RuntimeEnvironment {
   const previousTargetId = process.env.AF_RESEARCH_TARGET_ID;
   process.env.AF_RESEARCH_TARGET_ID = targetId;
   try {
-    return loadRuntimeEnvironment();
+    return loadRuntimeEnvironment({ targetId });
   } finally {
     if (previousTargetId == null) {
       delete process.env.AF_RESEARCH_TARGET_ID;
@@ -816,6 +824,49 @@ function resolveLocalTvParityForVerification(input: {
   });
 }
 
+function selectCurrentTrainingExperiments(input: {
+  experiments: ExperimentRecord[];
+  targetId: string;
+  statePartition: RuntimeStatePartition;
+}): ExperimentRecord[] {
+  const taggedRecords = input.experiments.filter((record) => {
+    const recordTargetId = (record as { targetId?: unknown }).targetId;
+    return typeof recordTargetId === "string";
+  });
+  const currentTargetRecords = taggedRecords.filter(
+    (record) => (record as { targetId?: unknown }).targetId === input.targetId,
+  );
+  if (taggedRecords.length > 0) {
+    return currentTargetRecords;
+  }
+  if (input.statePartition === "target_scoped_state_root") {
+    return input.experiments;
+  }
+  return [];
+}
+
+function filterCandidateScopedEvents<T extends { candidateId: string }>(
+  records: T[],
+  candidateIds: Set<string>,
+): T[] {
+  if (candidateIds.size === 0) {
+    return [];
+  }
+  return records.filter((record) => candidateIds.has(record.candidateId));
+}
+
+function filterNullableCandidateScopedEvents<T extends { candidateId?: string | null }>(
+  records: T[],
+  candidateIds: Set<string>,
+): T[] {
+  if (candidateIds.size === 0) {
+    return [];
+  }
+  return records.filter(
+    (record) => record.candidateId != null && candidateIds.has(record.candidateId),
+  );
+}
+
 async function buildAutonomousStateSummary(input: {
   stateRoot: string;
   env: RuntimeEnvironment;
@@ -841,22 +892,45 @@ async function buildAutonomousStateSummary(input: {
   const targetTaggedRecordCount = experiments.filter(
     (record) => typeof (record as { targetId?: unknown }).targetId === "string",
   ).length;
-  const currentTargetRecordCount = experiments.filter(
+  const explicitCurrentTargetRecordCount = experiments.filter(
     (record) =>
       (record as { targetId?: unknown }).targetId === currentResearchContext.targetId,
   ).length;
   const untaggedRecordCount = experiments.length - targetTaggedRecordCount;
-  const targetScopedStateRoot = input.env.stateRoot
-    .toLowerCase()
-    .includes(currentResearchContext.targetId.toLowerCase());
-  const views = buildAutonomousViewPayloads({
+  const statePartition = classifyRuntimeStatePartition({
+    workspaceRoot: input.env.workspaceRoot,
+    stateRoot: input.env.stateRoot,
+    targetId: currentResearchContext.targetId,
+  });
+  const currentTargetExperiments = selectCurrentTrainingExperiments({
     experiments,
-    headEvents,
-    archiveEvents,
-    calibrationEvents,
-    confidenceEvents,
-    problemEvents,
-    repairAttempts,
+    targetId: currentResearchContext.targetId,
+    statePartition,
+  });
+  const currentTargetRecordCount = currentTargetExperiments.length;
+  const currentTargetCandidateIds = new Set(
+    currentTargetExperiments.map((record) => record.candidateId),
+  );
+  const views = buildAutonomousViewPayloads({
+    experiments: currentTargetExperiments,
+    headEvents: filterCandidateScopedEvents(headEvents, currentTargetCandidateIds),
+    archiveEvents: filterCandidateScopedEvents(archiveEvents, currentTargetCandidateIds),
+    calibrationEvents: filterCandidateScopedEvents(
+      calibrationEvents,
+      currentTargetCandidateIds,
+    ),
+    confidenceEvents: filterCandidateScopedEvents(
+      confidenceEvents,
+      currentTargetCandidateIds,
+    ),
+    problemEvents: filterNullableCandidateScopedEvents(
+      problemEvents,
+      currentTargetCandidateIds,
+    ),
+    repairAttempts: filterNullableCandidateScopedEvents(
+      repairAttempts,
+      currentTargetCandidateIds,
+    ),
   });
   const persistedStage6Readiness = await readJson<Record<string, unknown>>(
     knowledgePaths.stage6ReadinessPath,
@@ -876,8 +950,8 @@ async function buildAutonomousStateSummary(input: {
       stage6Readiness.repairTraceabilityStatus ??
       views.autonomousStateSummary.repairTraceabilityStatus,
   });
-  const localEvaluations = selectLocalEvaluationRecords(experiments);
-  const tvVerifications = selectTvVerificationRecords(experiments);
+  const localEvaluations = selectLocalEvaluationRecords(currentTargetExperiments);
+  const tvVerifications = selectTvVerificationRecords(currentTargetExperiments);
   const lastTvSurfaceFailure =
     [...tvVerifications]
       .filter(
@@ -916,12 +990,15 @@ async function buildAutonomousStateSummary(input: {
     currentTrainingMode: {
       label: `${currentResearchContext.targetId} / ${currentResearchContext.symbol} ${currentResearchContext.timeframe}m / ${currentResearchContext.goalMode} / ${input.env.researchModeConfig.mode}`,
       targetId: currentResearchContext.targetId,
+      symbol: currentResearchContext.symbol,
+      timeframe: currentResearchContext.timeframe,
       targetSymbol: currentResearchContext.symbol,
       targetTimeframe: currentResearchContext.timeframe,
       strategyFamily: currentResearchContext.target.strategyFamily,
       goalMode: currentResearchContext.goalMode,
       goalProfileId: currentResearchContext.goalProfileId,
       researchMode: input.env.researchModeConfig,
+      objective: currentResearchContext.target.objectivePolicyFile,
       objectivePolicyFile: currentResearchContext.target.objectivePolicyFile,
       objectiveSymbol: currentResearchContext.objective.symbol,
       objectiveTimeframe: currentResearchContext.objective.timeframe,
@@ -933,7 +1010,7 @@ async function buildAutonomousStateSummary(input: {
         input.env.chartSymbol === currentResearchContext.symbol &&
         input.env.chartTimeframe === currentResearchContext.timeframe,
       stateRoot: input.env.stateRoot,
-      statePartition: targetScopedStateRoot ? "target_scoped_state_root" : "shared_state_root",
+      statePartition,
       ledgerTargetTagging:
         targetTaggedRecordCount === 0
           ? "legacy_untagged"
@@ -942,6 +1019,7 @@ async function buildAutonomousStateSummary(input: {
             : "target_tagged",
       experimentRecordCount: experiments.length,
       targetTaggedRecordCount,
+      explicitCurrentTargetRecordCount,
       currentTargetRecordCount,
       untaggedRecordCount,
     },
@@ -1012,6 +1090,126 @@ async function initializeWorkspaceForEnv(
     stateRoot: env.stateRoot,
     targetId: env.researchTargetId,
   });
+}
+
+async function buildCurrentTrainingModeForEnv(env: RuntimeEnvironment): Promise<Record<string, unknown>> {
+  const context = await resolveResearchRunContext({
+    projectRoot: env.projectRoot,
+    workspaceRoot: env.workspaceRoot,
+    targetId: env.researchTargetId,
+  });
+  return {
+    label: `${context.targetId} / ${context.symbol} ${context.timeframe}m / ${context.goalMode} / ${env.researchModeConfig.mode}`,
+    targetId: context.targetId,
+    symbol: context.symbol,
+    timeframe: context.timeframe,
+    targetSymbol: context.symbol,
+    targetTimeframe: context.timeframe,
+    strategyFamily: context.target.strategyFamily,
+    goalMode: context.goalMode,
+    goalProfileId: context.goalProfileId,
+    researchMode: env.researchModeConfig,
+    objective: context.target.objectivePolicyFile,
+    objectivePolicyFile: context.target.objectivePolicyFile,
+    calibrationPolicy: context.target.calibrationPolicy,
+    goalCalibrationPolicy: context.calibrationPolicy,
+    chartSymbol: env.chartSymbol,
+    chartTimeframe: env.chartTimeframe,
+    chartMatchesTarget:
+      env.chartSymbol === context.symbol && env.chartTimeframe === context.timeframe,
+    stateRoot: env.stateRoot,
+    statePartition: classifyRuntimeStatePartition({
+      workspaceRoot: env.workspaceRoot,
+      stateRoot: env.stateRoot,
+      targetId: context.targetId,
+    }),
+  };
+}
+
+async function migrateLegacyExperimentsForTarget(input: {
+  env: RuntimeEnvironment;
+  targetId: string;
+  sourceStateRoot?: string;
+  targetStateRoot?: string;
+  dryRun: boolean;
+  confirm: boolean;
+}) {
+  loadResearchTarget({
+    projectRoot: input.env.projectRoot,
+    workspaceRoot: input.env.workspaceRoot,
+    targetId: input.targetId,
+  });
+  const sourceStateRoot = path.resolve(
+    input.sourceStateRoot ??
+      resolveLegacySharedStateRoot(input.env.workspaceRoot),
+  );
+  const targetStateRoot = path.resolve(
+    input.targetStateRoot ??
+      resolveTargetStateRoot({
+        workspaceRoot: input.env.workspaceRoot,
+        targetId: input.targetId,
+      }),
+  );
+  if (sourceStateRoot === targetStateRoot) {
+    throw new Error("Legacy source state root and target state root must be different.");
+  }
+  const sourceRecords = await readExperimentRecords(sourceStateRoot);
+  const untaggedRecords = sourceRecords.filter(
+    (record) => typeof (record as { targetId?: unknown }).targetId !== "string",
+  );
+  const targetRecords = await readExperimentRecords(targetStateRoot);
+  const existingMigrationKeys = new Set(
+    targetRecords.map((record) => buildLegacyMigrationKey(record)),
+  );
+  const migrationCandidates = untaggedRecords.filter(
+    (record) => !existingMigrationKeys.has(buildLegacyMigrationKey(record, record)),
+  );
+  const migratedAt = new Date().toISOString();
+  let migratedCount = 0;
+  if (!input.dryRun && input.confirm) {
+    for (const record of migrationCandidates) {
+      await appendExperimentRecord(targetStateRoot, {
+        ...record,
+        targetId: input.targetId,
+        migrationSource: {
+          type: "legacy_untagged_experiment",
+          sourceStateRoot,
+          sourceRecordHash: record.recordMeta?.recordHash ?? null,
+          migratedAt,
+        },
+      } as Parameters<typeof appendExperimentRecord>[1]);
+      migratedCount += 1;
+    }
+  }
+
+  return {
+    dryRun: input.dryRun,
+    confirmed: input.confirm,
+    targetId: input.targetId,
+    sourceStateRoot,
+    targetStateRoot,
+    sourceRecordCount: sourceRecords.length,
+    untaggedRecordCount: untaggedRecords.length,
+    alreadyMigratedCount: untaggedRecords.length - migrationCandidates.length,
+    migrationCandidateCount: migrationCandidates.length,
+    migratedCount,
+  };
+}
+
+function buildLegacyMigrationKey(
+  record: ExperimentRecord,
+  sourceRecord?: ExperimentRecord,
+): string {
+  const raw = record as Record<string, unknown>;
+  const migrationSource = raw.migrationSource as Record<string, unknown> | undefined;
+  const sourceHash =
+    typeof migrationSource?.sourceRecordHash === "string"
+      ? migrationSource.sourceRecordHash
+      : sourceRecord?.recordMeta?.recordHash ?? record.recordMeta?.recordHash;
+  if (sourceHash) {
+    return `hash:${sourceHash}`;
+  }
+  return `record:${record.candidateId}:${record.iteration}:${record.decision}`;
 }
 
 function validateAutonomousResearchMode(env: RuntimeEnvironment): void {
@@ -2216,15 +2414,21 @@ program
 program
   .command("inspect-autonomous-state")
   .description("Inspect the current v3 autonomous local-first operating state.")
-  .action(async () => {
-    const env = loadRuntimeEnvironment();
+  .option("--target <id>", "Research target id to inspect.")
+  .option("--refresh", "Refresh workspace indexes before inspection.")
+  .action(async (options: { target?: string; refresh?: boolean }) => {
+    const env = loadRuntimeEnvironment({ targetId: options.target });
     await withCliMonitor(
       {
         workspaceRoot: env.workspaceRoot,
         commandName: "inspect-autonomous-state",
       },
       async (monitor) => {
-        await initializeWorkspace(env.workspaceRoot);
+        if (options.refresh) {
+          await initializeWorkspaceForEnv(env);
+        } else {
+          await ensureStateRoot(env.stateRoot);
+        }
         const stateRoot = env.stateRoot;
         const summary = await buildAutonomousStateSummary({
           stateRoot,
@@ -2251,8 +2455,9 @@ program
   .option("--port <number>", "Preferred local dashboard port", "4177")
   .option("--host <host>", "Bind host. Defaults to 127.0.0.1 for local-only use.", "127.0.0.1")
   .option("--open <boolean>", "Open the dashboard in the default browser.", "false")
-  .action(async (options: { port: string; host: string; open: string }) => {
-    const env = loadRuntimeEnvironment();
+  .option("--target <id>", "Research target id to serve.")
+  .action(async (options: { port: string; host: string; open: string; target?: string }) => {
+    const env = loadRuntimeEnvironment({ targetId: options.target });
     await withRuntimeCommandLock(
       {
         runtimeRoot: env.runtimeRoot ?? path.join(env.stateRoot, "runtime"),
@@ -2267,6 +2472,7 @@ program
           autoProcessCalibration: env.autoProcessCalibration,
           promotionVerificationExecutor: env.promotionVerificationExecutor,
           researchModeConfig: env.researchModeConfig,
+          currentTrainingMode: await buildCurrentTrainingModeForEnv(env),
           host: options.host,
           port,
           open,
@@ -4041,6 +4247,58 @@ program
   );
 
 program
+  .command("migrate-legacy-experiments")
+  .description("Copy legacy untagged experiment records into a target-scoped state root with targetId tags.")
+  .option("--target <id>", "Research target id to tag migrated records.", DEFAULT_RESEARCH_TARGET_ID)
+  .option("--source-state-root <path>", "Legacy shared state root. Defaults to state/pi-autoresearch.")
+  .option("--target-state-root <path>", "Target state root. Defaults to state/targets/<targetId>/pi-autoresearch.")
+  .option("--dry-run", "Report migration candidates without writing records.")
+  .option("--confirm", "Append tagged copies to the target-scoped state root.")
+  .action(
+    async (options: {
+      target?: string;
+      sourceStateRoot?: string;
+      targetStateRoot?: string;
+      dryRun?: boolean;
+      confirm?: boolean;
+    }) => {
+      if (options.dryRun && options.confirm) {
+        throw new Error("Use either --dry-run or --confirm, not both.");
+      }
+      const env = loadRuntimeEnvironment({ targetId: options.target });
+      await withCliMonitor(
+        {
+          workspaceRoot: env.workspaceRoot,
+          commandName: "migrate-legacy-experiments",
+        },
+        async (monitor) => {
+          const result = await migrateLegacyExperimentsForTarget({
+            env,
+            targetId: options.target ?? DEFAULT_RESEARCH_TARGET_ID,
+            sourceStateRoot: options.sourceStateRoot,
+            targetStateRoot: options.targetStateRoot,
+            dryRun: options.confirm !== true,
+            confirm: options.confirm === true,
+          });
+          await monitor.log("legacy_experiments.migrate", "Legacy experiment migration inspected", {
+            ...result,
+          });
+          console.log(
+            JSON.stringify(
+              {
+                ...result,
+                tracePath: monitor.tracePath,
+              },
+              null,
+              2,
+            ),
+          );
+        },
+      );
+    },
+  );
+
+program
   .command("system-health-report")
   .description("Summarize loop bottlenecks, storage pressure, heartbeat state, and index freshness.")
   .option("--json", "Emit JSON output.", true)
@@ -4053,9 +4311,13 @@ program
       },
       async (monitor) => {
         await ensureStateRoot(env.stateRoot);
-        const report = await buildSystemHealthReport({ stateRoot: env.stateRoot });
+        const report = await buildSystemHealthReport({
+          stateRoot: env.stateRoot,
+          currentTrainingMode: await buildCurrentTrainingModeForEnv(env),
+        });
         await monitor.log("system_health.report", "System health report generated", {
           stateRoot: env.stateRoot,
+          currentTrainingMode: report.currentTrainingMode,
           artifactBytes: report.sizes.artifactBytes,
           runtimeBytes: report.sizes.runtimeBytes,
           heartbeatStatus: report.heartbeat.status,

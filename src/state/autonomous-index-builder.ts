@@ -14,7 +14,7 @@ import {
 } from "../contracts/autonomous.js";
 import { type StrategyReviewRecord } from "../contracts/strategy-review.js";
 import { type BranchKind, type ExperimentRecord } from "../contracts/types.js";
-import { writeJson } from "../utils/fs.js";
+import { withFileLock, writeJson } from "../utils/fs.js";
 import { resolveStatePaths } from "./jsonl-store.js";
 import {
   compareAutonomousChampion,
@@ -43,6 +43,9 @@ type CalibrationQueueDerivedStatus =
   | "failed"
   | "deactivated";
 
+const DERIVED_VIEW_LOCK_TIMEOUT_MS = 60_000;
+const DERIVED_VIEW_LOCK_STALE_MS = 120_000;
+
 export async function rebuildAutonomousViews(input: {
   stateRoot: string;
   experiments: ExperimentRecord[];
@@ -67,22 +70,31 @@ export async function rebuildAutonomousViews(input: {
     strategyReviews: input.strategyReviews,
   });
   const paths = resolveStatePaths(input.stateRoot);
-  await writeJson(paths.localLeaderboardPath, views.localLeaderboard);
-  await writeJson(paths.championHistoryPath, views.championHistory);
-  await writeJson(paths.explorationArchivePath, views.explorationArchive);
-  await writeJson(paths.noveltyFrontierPath, views.noveltyFrontier);
-  await writeJson(paths.robustnessFrontierPath, views.robustnessFrontier);
-  await writeJson(paths.tvSurfaceFailuresPath, views.tvSurfaceFailures);
-  await writeJson(paths.tvCalibrationQueuePath, views.tvCalibrationQueue);
-  await writeJson(paths.localTvDivergencePath, views.localTvDivergence);
-  await writeJson(paths.autoSelectionDecisionsPath, views.autoSelectionDecisions);
-  await writeJson(paths.duplicateCandidatesPath, views.duplicateCandidates);
-  await writeJson(paths.localCompatibilitySummaryPath, views.localCompatibilitySummary);
-  await writeJson(paths.autonomousStateSummaryPath, views.autonomousStateSummary);
-  await writeJson(paths.localConfidenceSummaryPath, views.localConfidenceSummary);
-  await writeJson(paths.failureMemoryPath, views.failureMemory);
-  await writeJson(paths.strategyReviewBoardPath, views.strategyReviewBoard);
-  await writeAutonomousNamespaceViews(input.stateRoot, views);
+  await withFileLock(
+    path.join(input.stateRoot, ".locks", "derived-views.lock"),
+    {
+      timeoutMs: DERIVED_VIEW_LOCK_TIMEOUT_MS,
+      staleMs: DERIVED_VIEW_LOCK_STALE_MS,
+    },
+    async () => {
+      await writeJson(paths.localLeaderboardPath, views.localLeaderboard);
+      await writeJson(paths.championHistoryPath, views.championHistory);
+      await writeJson(paths.explorationArchivePath, views.explorationArchive);
+      await writeJson(paths.noveltyFrontierPath, views.noveltyFrontier);
+      await writeJson(paths.robustnessFrontierPath, views.robustnessFrontier);
+      await writeJson(paths.tvSurfaceFailuresPath, views.tvSurfaceFailures);
+      await writeJson(paths.tvCalibrationQueuePath, views.tvCalibrationQueue);
+      await writeJson(paths.localTvDivergencePath, views.localTvDivergence);
+      await writeJson(paths.autoSelectionDecisionsPath, views.autoSelectionDecisions);
+      await writeJson(paths.duplicateCandidatesPath, views.duplicateCandidates);
+      await writeJson(paths.localCompatibilitySummaryPath, views.localCompatibilitySummary);
+      await writeJson(paths.autonomousStateSummaryPath, views.autonomousStateSummary);
+      await writeJson(paths.localConfidenceSummaryPath, views.localConfidenceSummary);
+      await writeJson(paths.failureMemoryPath, views.failureMemory);
+      await writeJson(paths.strategyReviewBoardPath, views.strategyReviewBoard);
+      await writeAutonomousNamespaceViews(input.stateRoot, views);
+    },
+  );
 }
 
 export function buildAutonomousViewPayloads(input: {
@@ -358,6 +370,7 @@ export function buildAutonomousViewPayloads(input: {
       buildVerifiedPromotionReadiness({
         tvRecords,
         localRecords,
+        calibrationEvents: input.calibrationEvents,
       }),
     ),
     failureMemory: buildFailureMemorySummary(input.problemEvents, input.repairAttempts),
@@ -408,11 +421,34 @@ function buildBranchBudgetSummary(branchRecords: AutonomousBranchRecord[]) {
 function buildVerifiedPromotionReadiness(input: {
   tvRecords: ReturnType<typeof selectTvVerificationRecords>;
   localRecords: ReturnType<typeof selectLocalEvaluationRecords>;
+  calibrationEvents: CalibrationEventRecord[];
 }) {
+  const tvCandidateIds = new Set(input.tvRecords.map((record) => record.candidateId));
+  const unavailableQueueEntries = input.calibrationEvents
+    .filter(
+      (event) =>
+        event.candidateId &&
+        !tvCandidateIds.has(event.candidateId) &&
+        event.tvHealthAtQueueTime === "unavailable",
+    )
+    .map((event) => ({
+      record: null,
+      candidateId: event.candidateId,
+      iteration: event.iteration,
+      eligible: false,
+      verifiedPromotionScore: null,
+      minimumRequiredScore: null,
+      parityStatus: "tv_unavailable",
+      tradeParityStatus: "tv_unavailable",
+      eventParityStatus: "tv_unavailable",
+      walkForwardStatus: "tv_unavailable",
+      trialLedgerStats: null,
+      rejectionReasons: ["tv_unavailable"],
+    }));
   return {
     generatedAt: new Date().toISOString(),
-    entries: [...input.tvRecords]
-      .map((record) => ({
+    entries: [
+      ...input.tvRecords.map((record) => ({
         record,
         candidateId: record.candidateId,
         iteration: record.iteration,
@@ -435,7 +471,9 @@ function buildVerifiedPromotionReadiness(input: {
               : "failed",
         trialLedgerStats: record.verifiedPromotion?.trialLedgerStats ?? null,
         rejectionReasons: record.verifiedPromotion?.rejectionReasons ?? [],
-      }))
+      })),
+      ...unavailableQueueEntries,
+    ]
       .sort((left, right) => {
         const leftEligible = left.eligible ? 1 : 0;
         const rightEligible = right.eligible ? 1 : 0;
@@ -860,6 +898,7 @@ function buildAutonomousStateSummaryPayload(input: {
   const verifiedReadiness = buildVerifiedPromotionReadiness({
     tvRecords: input.tvRecords,
     localRecords: input.localRecords,
+    calibrationEvents: input.calibrationEvents,
   });
   const branchBudget = buildBranchBudgetSummary(input.branchRecords);
   const promotionFocus =

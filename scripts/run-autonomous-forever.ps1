@@ -22,13 +22,40 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "runtime-json.ps1")
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+if ([string]::IsNullOrWhiteSpace($ResearchTargetId) -and [string]::IsNullOrWhiteSpace($Symbol)) {
+  $ResearchTargetId = "qqq-120m-af"
+}
+function Get-ResearchTargetConfig {
+  param([string]$TargetId)
+  if ([string]::IsNullOrWhiteSpace($TargetId)) {
+    return $null
+  }
+  $targetPath = Join-Path $ProjectRoot ("config\targets\{0}.json" -f $TargetId)
+  if (-not (Test-Path -LiteralPath $targetPath)) {
+    throw "Unable to load research target config: $targetPath"
+  }
+  return Get-Content -LiteralPath $targetPath -Raw | ConvertFrom-Json
+}
+$TargetConfig = Get-ResearchTargetConfig -TargetId $ResearchTargetId
 $ConfiguredStateRoot = $StateRoot
 if ([string]::IsNullOrWhiteSpace($ConfiguredStateRoot)) {
-  $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+  if (-not [string]::IsNullOrWhiteSpace($ResearchTargetId)) {
+    $StateRoot = Join-Path $ProjectRoot ("state\targets\{0}\pi-autoresearch" -f $ResearchTargetId)
+  } else {
+    $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+  }
 } elseif ([System.IO.Path]::IsPathRooted($ConfiguredStateRoot)) {
   $StateRoot = [System.IO.Path]::GetFullPath($ConfiguredStateRoot)
 } else {
   $StateRoot = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $ConfiguredStateRoot))
+}
+if ($TargetConfig) {
+  if ([string]::IsNullOrWhiteSpace($ChartSymbol)) {
+    $ChartSymbol = [string]$TargetConfig.symbol
+  }
+  if ([string]::IsNullOrWhiteSpace($ChartTimeframe)) {
+    $ChartTimeframe = [string]$TargetConfig.timeframe
+  }
 }
 $RuntimeRoot = Join-Path $StateRoot "runtime"
 $LogRoot = Join-Path $StateRoot "logs"
@@ -292,6 +319,12 @@ try {
       researchTargetId = $env:AF_RESEARCH_TARGET_ID
       chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
       chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+      currentTrainingMode = @{
+        targetId = $env:AF_RESEARCH_TARGET_ID
+        symbol = $env:TRADINGVIEW_CHART_SYMBOL
+        timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+        stateRoot = $StateRoot
+      }
       memory = $memory
       nodeMemory = Get-NodeTelemetry
       calibrationWorker = Get-CalibrationWorkerStatus
@@ -369,6 +402,12 @@ try {
       researchTargetId = $env:AF_RESEARCH_TARGET_ID
       chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
       chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+      currentTrainingMode = @{
+        targetId = $env:AF_RESEARCH_TARGET_ID
+        symbol = $env:TRADINGVIEW_CHART_SYMBOL
+        timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+        stateRoot = $StateRoot
+      }
       memory = $memory
       nodeMemory = Get-NodeTelemetry
       calibrationWorker = Get-CalibrationWorkerStatus

@@ -1,6 +1,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import {
+  DEFAULT_RESEARCH_TARGET_ID,
+  resolveTargetStateRoot,
+} from "../config/target-registry.js";
 import { type MarketContextBar } from "../contracts/types.js";
 import { resolveKnowledgePaths } from "../state/knowledge-paths.js";
 import { fileExists, readJson, writeJson } from "../utils/fs.js";
@@ -527,5 +531,8 @@ function resolveMarketContextStateRoot(
 ): string {
   return stateRoot
     ? path.resolve(stateRoot)
-    : path.join(workspaceRoot, "state", "pi-autoresearch");
+    : resolveTargetStateRoot({
+        workspaceRoot,
+        targetId: process.env.AF_RESEARCH_TARGET_ID ?? DEFAULT_RESEARCH_TARGET_ID,
+      });
 }

@@ -1,5 +1,9 @@
 import path from "node:path";
 
+import {
+  DEFAULT_RESEARCH_TARGET_ID,
+  resolveTargetStateRoot,
+} from "../config/target-registry.js";
 import { resolveKnowledgePaths } from "../state/knowledge-paths.js";
 import { createCandidateId, writeJson } from "../utils/fs.js";
 
@@ -11,7 +15,11 @@ export async function writeMutationRuntimeArtifact(input: {
   payload: unknown;
 }): Promise<string> {
   const stateRoot =
-    input.stateRoot ?? path.join(input.workspaceRoot, "state", "pi-autoresearch");
+    input.stateRoot ??
+    resolveTargetStateRoot({
+      workspaceRoot: input.workspaceRoot,
+      targetId: process.env.AF_RESEARCH_TARGET_ID ?? DEFAULT_RESEARCH_TARGET_ID,
+    });
   const runtimeDir = resolveKnowledgePaths(stateRoot).runtimeDir;
   const filePath = path.join(
     runtimeDir,

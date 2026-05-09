@@ -1,6 +1,10 @@
 import path from "node:path";
 
 import {
+  DEFAULT_RESEARCH_TARGET_ID,
+  resolveTargetStateRoot,
+} from "../config/target-registry.js";
+import {
   type ArtifactValidationResult,
   type ArtifactBundle,
   type FallbackEvaluation,
@@ -37,7 +41,11 @@ export async function writeIterationArtifacts(
   input: WriteIterationArtifactsInput,
 ): Promise<Record<string, string>> {
   const stateRoot =
-    input.stateRoot ?? path.join(input.workspaceRoot, "state", "pi-autoresearch");
+    input.stateRoot ??
+    resolveTargetStateRoot({
+      workspaceRoot: input.workspaceRoot,
+      targetId: process.env.AF_RESEARCH_TARGET_ID ?? DEFAULT_RESEARCH_TARGET_ID,
+    });
   const knowledgePaths = resolveKnowledgePaths(stateRoot);
   const desktopRunsDir = knowledgePaths.desktopRunsDir;
   const resultsDir = knowledgePaths.resultsDir;

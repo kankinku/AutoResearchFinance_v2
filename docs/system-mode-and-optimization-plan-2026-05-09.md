@@ -13,7 +13,7 @@ Current default execution mode is:
 - External calibration: TradingView optional queue
 - Current chart environment: `TRADINGVIEW_CHART_SYMBOL=QQQ`, `TRADINGVIEW_CHART_TIMEFRAME=120`
 
-This means the system is currently configured for the QQQ 2-hour model by default. It is not currently configured to run the separate BTC 15-minute target unless the command explicitly sets `--target btc-15m-af`, `--symbol BTCUSD`, or `AF_RESEARCH_TARGET_ID=btc-15m-af` with a matching state root.
+This means the system is configured for the QQQ 2-hour model by default. BTC 15-minute training must be selected explicitly with `--target btc-15m-af` or `AF_RESEARCH_TARGET_ID=btc-15m-af`, and the TradingView chart environment must match `BTCUSD` / `15`.
 
 Configured targets:
 
@@ -23,7 +23,12 @@ Configured targets:
 
 ## Data Separation Finding
 
-The code has target configuration files for QQQ 120m and BTC 15m, but the current default state root is shared:
+The code has target configuration files for QQQ 120m and BTC 15m. New default runtime state is target-scoped:
+
+- `state/targets/qqq-120m-af/pi-autoresearch`
+- `state/targets/btc-15m-af/pi-autoresearch`
+
+The old shared root remains a legacy partition:
 
 - `state/pi-autoresearch`
 
@@ -32,7 +37,7 @@ The current experiment ledger has 1,991 experiment records, and all inspected re
 - `targetId`: missing on 1,991 / 1,991 records
 - `symbol/timeframe/goalMode`: missing on 1,991 / 1,991 records
 
-This means the current historical state cannot reliably prove target separation from ledger metadata alone. Newer execution paths can resolve target context at runtime, but the persisted records need target tags and preferably target-scoped state roots before QQQ and BTC histories can be treated as cleanly separated training datasets.
+This means the historical shared state cannot reliably prove target separation from ledger metadata alone. New execution uses target-scoped roots by default, and the legacy shared ledger is not mixed into current target status unless explicitly selected.
 
 ## Storage And File Optimization Findings
 
@@ -62,7 +67,7 @@ Operational findings:
 
 ### Phase 1 - Make Mode Explicit Everywhere
 
-Status: partially implemented.
+Status: implemented.
 
 Actions:
 
@@ -75,20 +80,20 @@ Acceptance criteria:
 
 - A user can run one command and see whether the system is currently in `qqq-120m-af` or `btc-15m-af`.
 - If chart env and target config disagree, the report explicitly says so.
-- If state root is shared, the report says `shared_state_root`.
+- If state root is legacy shared, the report says `legacy_shared_state_root`.
 
 ### Phase 2 - Enforce Target-Scoped Training State
 
 Actions:
 
 - Introduce recommended state roots:
-  - `state/pi-autoresearch/targets/qqq-120m-af`
-  - `state/pi-autoresearch/targets/btc-15m-af`
+  - `state/targets/qqq-120m-af/pi-autoresearch`
+  - `state/targets/btc-15m-af/pi-autoresearch`
 - Add start scripts or documented commands that always set both:
   - `AF_RESEARCH_TARGET_ID`
   - `AF_STATE_ROOT`
-- Add a preflight guard that blocks BTC runs in a QQQ state root and QQQ runs in a BTC state root unless an explicit override is used.
-- Ensure every new experiment, candidate, calibration, problem, repair, and head event record includes `targetId`, `symbol`, `timeframe`, `goalMode`, and `goalProfileId`.
+- Add a preflight guard that blocks target/chart mismatches.
+- Ensure autonomous execution filters current status to the selected target and does not count legacy untagged records as current target records.
 
 Acceptance criteria:
 
@@ -100,13 +105,9 @@ Acceptance criteria:
 
 Actions:
 
-- Write a dry-run migration report that classifies legacy records by available evidence:
-  - candidate path/spec objective
-  - objective artifact symbol/timeframe
-  - chart target metadata inside artifact bundles
-  - run timestamp and known environment
-- Only auto-tag records with high-confidence evidence.
-- Keep ambiguous records in a `legacy_untagged` partition.
+- Use `migrate-legacy-experiments --target <targetId> --dry-run` to report untagged records.
+- Use `migrate-legacy-experiments --target <targetId> --confirm` to append tagged copies into the target-scoped state root.
+- Keep the original shared records in the `legacy_untagged` partition.
 
 Acceptance criteria:
 
@@ -134,9 +135,8 @@ Acceptance criteria:
 
 Actions:
 
-- Add a shared derived-view write lock for commands that rebuild or update `state/pi-autoresearch/views`.
-- Make read-only inspect commands avoid rebuilding derived views unless requested with `--refresh`.
-- Retry atomic rename on Windows `EPERM` for known transient file-lock cases.
+- Add a shared JSON write lock for commands that rebuild or update derived views.
+- Keep atomic temp-file writes, but serialize the final rename per JSON file.
 
 Acceptance criteria:
 
@@ -169,7 +169,7 @@ For BTC 15m with explicit separation:
 
 ```powershell
 $env:AF_RESEARCH_TARGET_ID = "btc-15m-af"
-$env:AF_STATE_ROOT = "state\pi-autoresearch\targets\btc-15m-af"
+$env:AF_STATE_ROOT = "state\targets\btc-15m-af\pi-autoresearch"
 $env:TRADINGVIEW_CHART_SYMBOL = "BTCUSD"
 $env:TRADINGVIEW_CHART_TIMEFRAME = "15"
 node dist/cli/index.js run-autonomous-loop --target btc-15m-af --count 1
@@ -179,7 +179,7 @@ For QQQ 120m with explicit separation:
 
 ```powershell
 $env:AF_RESEARCH_TARGET_ID = "qqq-120m-af"
-$env:AF_STATE_ROOT = "state\pi-autoresearch\targets\qqq-120m-af"
+$env:AF_STATE_ROOT = "state\targets\qqq-120m-af\pi-autoresearch"
 $env:TRADINGVIEW_CHART_SYMBOL = "QQQ"
 $env:TRADINGVIEW_CHART_TIMEFRAME = "120"
 node dist/cli/index.js run-autonomous-loop --target qqq-120m-af --count 1

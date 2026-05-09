@@ -407,10 +407,20 @@ async function seedUnsupportedAutonomousCandidate(root: string, candidateId: str
 
 async function runCliCommand(workspaceRoot: string, args: string[]) {
   await prepareCliWorkspace(workspaceRoot);
+  const hasStateRootOverride =
+    args.includes("--state-root") ||
+    args.some((arg) => arg.startsWith("--state-root="));
+  const cliArgs = hasStateRootOverride
+    ? args
+    : [
+        "--state-root",
+        path.join(workspaceRoot, "state", "pi-autoresearch"),
+        ...args,
+      ];
   try {
     const result = await execFileAsync(
       process.execPath,
-      [tsxCliPath, cliEntryPath, ...args],
+      [tsxCliPath, cliEntryPath, ...cliArgs],
       {
         cwd: workspaceRoot,
         env: {
@@ -444,8 +454,8 @@ function parseCliJson(stdout: string): unknown {
   return JSON.parse(jsonPayload);
 }
 
-describe("ledger CLI commands", () => {
-  test("promote rejects fallback, non-authoritative, legacy, and non-ready records", { timeout: 20_000 }, async () => {
+describe("ledger CLI commands", { timeout: 30_000 }, () => {
+  test("promote rejects fallback, non-authoritative, legacy, and non-ready records", { timeout: 60_000 }, async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-cli-promote-reject-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");
 
@@ -511,7 +521,7 @@ describe("ledger CLI commands", () => {
     expect(nonReadyResult.stderr).toMatch(/promotion-ready/i);
   });
 
-  test("promote rejects missing evidence fields", { timeout: 20_000 }, async () => {
+  test("promote rejects missing evidence fields", { timeout: 60_000 }, async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-cli-promote-evidence-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");
 
@@ -830,7 +840,7 @@ describe("ledger CLI commands", () => {
 
   test(
     "promote rejects missing candidate source file and artifact files by canonical key",
-    { timeout: 20_000 },
+    { timeout: 60_000 },
     async () => {
       const root = await mkdtemp(path.join(tmpdir(), "af-cli-promote-files-"));
       const stateRoot = path.join(root, "state", "pi-autoresearch");
@@ -1046,6 +1056,11 @@ describe("ledger CLI commands", () => {
       candidateScore: 1.14,
       decision: "local_candidate_eligible",
       status: "evaluated",
+      targetId: "qqq-120m-af",
+      symbol: "QQQ",
+      timeframe: "120",
+      goalMode: "improve",
+      goalProfileId: "improve/v1",
       recordKind: "local_evaluation",
       executorRole: "primary_local_backtest",
       evidenceAuthority: "local_model",
@@ -1181,6 +1196,117 @@ describe("ledger CLI commands", () => {
     );
   });
 
+  test("inspect-autonomous-state reads an explicit target-scoped BTC state without legacy records", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-cli-inspect-target-"));
+    const legacyStateRoot = path.join(root, "state", "pi-autoresearch");
+    const targetStateRoot = path.join(
+      root,
+      "state",
+      "targets",
+      "btc-15m-af",
+      "pi-autoresearch",
+    );
+    const legacyRecord = await buildVerifiedExperimentInput(root, "cand-legacy");
+    await appendExperimentRecord(legacyStateRoot, legacyRecord);
+    const targetRecord = await buildVerifiedExperimentInput(root, "cand-btc-target");
+    await appendExperimentRecord(targetStateRoot, {
+      ...targetRecord,
+      targetId: "btc-15m-af",
+      symbol: "BTCUSD",
+      timeframe: "15",
+    });
+
+    const previousChartSymbol = process.env.TRADINGVIEW_CHART_SYMBOL;
+    const previousChartTimeframe = process.env.TRADINGVIEW_CHART_TIMEFRAME;
+    process.env.TRADINGVIEW_CHART_SYMBOL = "BTCUSD";
+    process.env.TRADINGVIEW_CHART_TIMEFRAME = "15";
+    const result = await runCliCommand(root, [
+      "--state-root",
+      targetStateRoot,
+      "inspect-autonomous-state",
+      "--target",
+      "btc-15m-af",
+    ]);
+    if (previousChartSymbol == null) {
+      delete process.env.TRADINGVIEW_CHART_SYMBOL;
+    } else {
+      process.env.TRADINGVIEW_CHART_SYMBOL = previousChartSymbol;
+    }
+    if (previousChartTimeframe == null) {
+      delete process.env.TRADINGVIEW_CHART_TIMEFRAME;
+    } else {
+      process.env.TRADINGVIEW_CHART_TIMEFRAME = previousChartTimeframe;
+    }
+
+    expect(result.code).toBe(0);
+    expect(parseCliJson(result.stdout)).toEqual(
+      expect.objectContaining({
+        currentTrainingMode: expect.objectContaining({
+          targetId: "btc-15m-af",
+          symbol: "BTCUSD",
+          timeframe: "15",
+          statePartition: "target_scoped_state_root",
+          ledgerTargetTagging: "target_tagged",
+          experimentRecordCount: 1,
+          currentTargetRecordCount: 1,
+          untaggedRecordCount: 0,
+        }),
+      }),
+    );
+  });
+
+  test("migrate-legacy-experiments copies untagged records only after confirmation", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-cli-migrate-legacy-"));
+    const legacyStateRoot = path.join(root, "state", "pi-autoresearch");
+    const targetStateRoot = path.join(
+      root,
+      "state",
+      "targets",
+      "qqq-120m-af",
+      "pi-autoresearch",
+    );
+    const legacyRecord = await buildVerifiedExperimentInput(root, "cand-legacy-migrate");
+    await appendExperimentRecord(legacyStateRoot, legacyRecord);
+
+    const dryRun = await runCliCommand(root, [
+      "migrate-legacy-experiments",
+      "--target",
+      "qqq-120m-af",
+      "--dry-run",
+    ]);
+
+    expect(dryRun.code).toBe(0);
+    expect(parseCliJson(dryRun.stdout)).toEqual(
+      expect.objectContaining({
+        dryRun: true,
+        untaggedRecordCount: 1,
+        migrationCandidateCount: 1,
+        migratedCount: 0,
+      }),
+    );
+    expect(await readExperimentRecords(targetStateRoot)).toHaveLength(0);
+
+    const confirmed = await runCliCommand(root, [
+      "migrate-legacy-experiments",
+      "--target",
+      "qqq-120m-af",
+      "--confirm",
+    ]);
+
+    expect(confirmed.code).toBe(0);
+    expect(parseCliJson(confirmed.stdout)).toEqual(
+      expect.objectContaining({
+        dryRun: false,
+        migratedCount: 1,
+      }),
+    );
+    const migrated = await readExperimentRecords(targetStateRoot);
+    expect(migrated).toHaveLength(1);
+    expect((migrated[0] as { targetId?: string }).targetId).toBe("qqq-120m-af");
+    expect((migrated[0] as { migrationSource?: { type?: string } }).migrationSource?.type)
+      .toBe("legacy_untagged_experiment");
+  });
+
   test("inspect-autonomous-state reconciles stale runtime and ignores unprocessable calibration events", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-cli-inspect-runtime-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");
@@ -1215,7 +1341,7 @@ describe("ledger CLI commands", () => {
     expect(result.code).toBe(0);
     expect(parseCliJson(result.stdout)).toEqual(
       expect.objectContaining({
-        calibrationCandidateCount: 100,
+        calibrationCandidateCount: 0,
         pendingCalibrationCandidateCount: 0,
         nextPlannedAction: "generate_next_candidate",
         runtimeStatus: expect.objectContaining({

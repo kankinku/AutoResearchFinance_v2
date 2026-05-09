@@ -1627,8 +1627,11 @@ export function renderDashboardHtml(): string {
           ? latestMetrics.netProfitPercent
           : null;
       const researchMode = data.researchMode || {};
+      const currentTrainingMode = data.currentTrainingMode || {};
       const strategyReview = data.strategyReview || {};
-      const targetLabel = [researchMode.symbol, researchMode.timeframe ? researchMode.timeframe + "m" : null]
+      const activeSymbol = currentTrainingMode.symbol || researchMode.symbol;
+      const activeTimeframe = currentTrainingMode.timeframe || researchMode.timeframe;
+      const targetLabel = [activeSymbol, activeTimeframe ? activeTimeframe + "m" : null]
         .filter(Boolean)
         .join(" / ") || "-";
       text("subline", "상태 " + data.project.stateRoot + " / " + new Date(data.generatedAt).toLocaleTimeString());
@@ -1638,6 +1641,10 @@ export function renderDashboardHtml(): string {
       text("researchObjectiveFocus", objectiveFocusLabel(researchMode.goalMode, researchMode.objectiveFocus));
       renderChipList("researchFocusChips", researchMode.strategyReviewFocus || [], tokenLabel);
       renderRows("researchContextRows", [
+        row([{ value: "Mode", className: "mono" }, { value: currentTrainingMode.label || "-", className: "mono" }]),
+        row([{ value: "State", className: "mono" }, { value: currentTrainingMode.statePartition || "-", className: "mono" }]),
+        row([{ value: "Chart", className: "mono" }, { value: (currentTrainingMode.chartSymbol || "-") + " / " + (currentTrainingMode.chartTimeframe || "-") + " / match=" + String(currentTrainingMode.chartMatchesTarget), className: currentTrainingMode.chartMatchesTarget === false ? "badText" : "mono" }]),
+        row([{ value: "Ledger", className: "mono" }, { value: currentTrainingMode.ledgerTargetTagging || "-", className: currentTrainingMode.ledgerTargetTagging === "legacy_untagged" ? "warnText" : "mono" }]),
         row([{ value: "대상 ID", className: "mono" }, { value: researchMode.targetId || "-", className: "mono" }]),
         row([{ value: "목표 프로필", className: "mono" }, { value: researchMode.goalProfileId || "-", className: "mono" }]),
         row([{ value: "브랜치 방향", className: "mono" }, { value: branchKindLabel(researchMode.branchKindBias || "balanced"), className: researchMode.branchKindBias ? "goodText" : "mutedText" }]),

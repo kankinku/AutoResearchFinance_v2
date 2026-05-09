@@ -1,6 +1,10 @@
 import path from "node:path";
 import process from "node:process";
 
+import {
+  DEFAULT_RESEARCH_TARGET_ID,
+  resolveTargetStateRoot,
+} from "../config/target-registry.js";
 import { resolveKnowledgePaths } from "../state/knowledge-paths.js";
 import { appendJsonl, createCandidateId, ensureDir } from "../utils/fs.js";
 
@@ -155,7 +159,10 @@ export async function createCliMonitor(
   const effectiveStateRoot = path.resolve(
     input.stateRoot ??
       process.env.AF_STATE_ROOT ??
-      path.join(input.workspaceRoot, "state", "pi-autoresearch"),
+      resolveTargetStateRoot({
+        workspaceRoot: input.workspaceRoot,
+        targetId: process.env.AF_RESEARCH_TARGET_ID ?? DEFAULT_RESEARCH_TARGET_ID,
+      }),
   );
   const tracesDir = resolveKnowledgePaths(effectiveStateRoot).tracesDir;
   await ensureDir(tracesDir);

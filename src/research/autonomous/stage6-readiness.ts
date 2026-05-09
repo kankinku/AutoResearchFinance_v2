@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { type PineEvaluationExecutor } from "../../automation/common/executor.js";
 import { type RuntimeEnvironment } from "../../cli/runtime-config.js";
+import { resolveTargetStateRoot } from "../../config/target-registry.js";
 import { type MutationLlmClient } from "../../mutation/llm-client.js";
 import { readJsonl, writeJson } from "../../utils/fs.js";
 import { validateLedger, verifyDerivedViews } from "../../state/ledger-validator.js";
@@ -113,11 +114,10 @@ export async function runStage6ReadinessGate(input: {
   const persistToState = input.persistToState ?? true;
   const tempWorkspaceRoot = await mkdtemp(path.join(tmpdir(), "af-stage6-workspace-"));
   const tempStateRoot = await mkdtemp(path.join(tmpdir(), "af-stage6-state-"));
-  const defaultWorkspaceStateRoot = path.join(
-    tempWorkspaceRoot,
-    "state",
-    "pi-autoresearch",
-  );
+  const defaultWorkspaceStateRoot = resolveTargetStateRoot({
+    workspaceRoot: tempWorkspaceRoot,
+    targetId: input.env.researchTargetId,
+  });
 
   await input.monitor?.log("stage6.gate.start", "Starting Stage 6 readiness gate", {
     mode,

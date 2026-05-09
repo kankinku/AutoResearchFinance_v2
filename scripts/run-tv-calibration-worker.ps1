@@ -16,13 +16,30 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "runtime-json.ps1")
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+if ([string]::IsNullOrWhiteSpace($ResearchTargetId)) {
+  $ResearchTargetId = "qqq-120m-af"
+}
+$TargetConfigPath = Join-Path $ProjectRoot ("config\targets\{0}.json" -f $ResearchTargetId)
+$TargetConfig = if (Test-Path -LiteralPath $TargetConfigPath) {
+  Get-Content -LiteralPath $TargetConfigPath -Raw | ConvertFrom-Json
+} else {
+  $null
+}
 $ConfiguredStateRoot = $StateRoot
 if ([string]::IsNullOrWhiteSpace($ConfiguredStateRoot)) {
-  $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+  $StateRoot = Join-Path $ProjectRoot ("state\targets\{0}\pi-autoresearch" -f $ResearchTargetId)
 } elseif ([System.IO.Path]::IsPathRooted($ConfiguredStateRoot)) {
   $StateRoot = [System.IO.Path]::GetFullPath($ConfiguredStateRoot)
 } else {
   $StateRoot = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $ConfiguredStateRoot))
+}
+if ($TargetConfig) {
+  if ([string]::IsNullOrWhiteSpace($ChartSymbol)) {
+    $ChartSymbol = [string]$TargetConfig.symbol
+  }
+  if ([string]::IsNullOrWhiteSpace($ChartTimeframe)) {
+    $ChartTimeframe = [string]$TargetConfig.timeframe
+  }
 }
 $RuntimeRoot = Join-Path $StateRoot "runtime"
 $LogRoot = Join-Path $StateRoot "logs"
@@ -59,6 +76,12 @@ function Write-WorkerHeartbeat {
     researchTargetId = $env:AF_RESEARCH_TARGET_ID
     chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
     chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+    currentTrainingMode = @{
+      targetId = $env:AF_RESEARCH_TARGET_ID
+      symbol = $env:TRADINGVIEW_CHART_SYMBOL
+      timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+      stateRoot = $StateRoot
+    }
     calibrationBudget = $CalibrationBudget
     calibrationTimeoutMs = $CalibrationTimeoutMs
     promotionVerificationExecutor = $env:AF_PROMOTION_VERIFICATION_EXECUTOR

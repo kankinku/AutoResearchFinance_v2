@@ -17,7 +17,7 @@ if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($StateRoot)) {
-  $StateRoot = Join-Path $ProjectRoot "state\pi-autoresearch"
+  $StateRoot = Join-Path $ProjectRoot "state\targets\qqq-120m-af\pi-autoresearch"
 } elseif ([System.IO.Path]::IsPathRooted($StateRoot)) {
   $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
 } else {

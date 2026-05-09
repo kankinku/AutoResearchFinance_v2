@@ -9,6 +9,7 @@ artifacts/autonomous-run/
 artifacts/dashboard/
 state/**/backups/
 state/*-autoresearch/
+state/targets/
 state/pi-autoresearch/
 state/btc-15m-autoresearch/
 state/**/*.pre-compact-*.jsonl

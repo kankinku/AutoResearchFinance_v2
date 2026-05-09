@@ -9,6 +9,7 @@ import { z } from "zod";
 import {
   DEFAULT_RESEARCH_TARGET_ID,
   loadResearchTarget,
+  resolveTargetStateRoot,
 } from "../config/target-registry.js";
 import { resolveKnowledgePaths } from "../state/knowledge-paths.js";
 import {
@@ -89,11 +90,27 @@ const runtimeEnvironmentSchema = z.object({
 
 export type RuntimeEnvironment = z.infer<typeof runtimeEnvironmentSchema>;
 
+export type RuntimeStatePartition =
+  | "target_scoped_state_root"
+  | "legacy_shared_state_root"
+  | "custom_state_root";
+
 export interface RuntimePathOverrides {
   projectRoot?: string;
   workspaceRoot?: string;
   stateRoot?: string;
 }
+
+let lastResolvedStateRoot: string | null = null;
+
+const RESEARCH_TARGET_OPTION_COMMANDS = new Set([
+  "dashboard",
+  "inspect-autonomous-state",
+  "inspect-strategy-reviews",
+  "migrate-legacy-experiments",
+  "review-strategies",
+  "run-autonomous-loop",
+]);
 
 function parseEvaluationExecutor(value: string | undefined): EvaluationExecutorName {
   return evaluationExecutorNameSchema.safeParse(value).success
@@ -120,10 +137,17 @@ export function loadRuntimeEnvironment(options?: {
   argv?: string[];
   cwd?: string;
   overrides?: RuntimePathOverrides;
+  targetId?: string;
 }): RuntimeEnvironment {
   const argv = options?.argv ?? process.argv.slice(2);
   const cwd = options?.cwd ?? process.cwd();
   const cliOverrides = parseCliPathOverrides(argv);
+  const cliTargetId = parseCliTargetOverride(argv);
+  const researchTargetId = resolveRuntimeResearchTargetId({
+    optionTargetId: options?.targetId,
+    cliTargetId,
+    envTargetId: process.env.AF_RESEARCH_TARGET_ID,
+  });
   const projectRoot = path.resolve(
     options?.overrides?.projectRoot ??
       cliOverrides.projectRoot ??
@@ -136,22 +160,31 @@ export function loadRuntimeEnvironment(options?: {
       process.env.AF_WORKSPACE_ROOT ??
       cwd,
   );
+  const explicitEnvStateRoot =
+    process.env.AF_STATE_ROOT && process.env.AF_STATE_ROOT !== lastResolvedStateRoot
+      ? process.env.AF_STATE_ROOT
+      : undefined;
   const stateRoot = path.resolve(
     options?.overrides?.stateRoot ??
       cliOverrides.stateRoot ??
-      process.env.AF_STATE_ROOT ??
-      resolveStateRoot(workspaceRoot),
+      explicitEnvStateRoot ??
+      resolveStateRoot(workspaceRoot, researchTargetId),
   );
   process.env.AF_PROJECT_ROOT = projectRoot;
   process.env.AF_WORKSPACE_ROOT = workspaceRoot;
   process.env.AF_STATE_ROOT = stateRoot;
+  process.env.AF_RESEARCH_TARGET_ID = researchTargetId;
+  lastResolvedStateRoot = stateRoot;
   const knowledgePaths = resolveKnowledgePaths(stateRoot);
-  const researchTargetId =
-    process.env.AF_RESEARCH_TARGET_ID ?? DEFAULT_RESEARCH_TARGET_ID;
   const researchTarget = loadResearchTarget({
     projectRoot,
     workspaceRoot,
     targetId: researchTargetId,
+  });
+  assertChartTargetMatchesResearchTarget({
+    target: researchTarget,
+    chartSymbol: process.env.TRADINGVIEW_CHART_SYMBOL,
+    chartTimeframe: process.env.TRADINGVIEW_CHART_TIMEFRAME,
   });
   const openAiAuthMode =
     process.env.OPENAI_AUTH_MODE === "api_key" ? "api_key" : "oauth_proxy";
@@ -385,8 +418,33 @@ function assertNoLegacyExecutorConfig(): void {
   }
 }
 
-export function resolveStateRoot(workspaceRoot: string): string {
-  return path.join(workspaceRoot, "state", "pi-autoresearch");
+export function resolveStateRoot(
+  workspaceRoot: string,
+  targetId = DEFAULT_RESEARCH_TARGET_ID,
+): string {
+  return resolveTargetStateRoot({ workspaceRoot, targetId });
+}
+
+export function classifyRuntimeStatePartition(input: {
+  workspaceRoot: string;
+  stateRoot: string;
+  targetId: string;
+}): RuntimeStatePartition {
+  const resolvedStateRoot = path.resolve(input.stateRoot).toLowerCase();
+  const targetStateRoot = resolveTargetStateRoot({
+    workspaceRoot: input.workspaceRoot,
+    targetId: input.targetId,
+  }).toLowerCase();
+  const legacyStateRoot = path
+    .join(input.workspaceRoot, "state", "pi-autoresearch")
+    .toLowerCase();
+  if (resolvedStateRoot === path.resolve(targetStateRoot).toLowerCase()) {
+    return "target_scoped_state_root";
+  }
+  if (resolvedStateRoot === path.resolve(legacyStateRoot).toLowerCase()) {
+    return "legacy_shared_state_root";
+  }
+  return "custom_state_root";
 }
 
 export function resolveDefaultProjectRoot(): string {
@@ -425,6 +483,59 @@ function parseCliPathOverrides(argv: string[]): RuntimePathOverrides {
     workspaceRoot: readCliOption(argv, "--workspace-root"),
     stateRoot: readCliOption(argv, "--state-root"),
   };
+}
+
+function parseCliTargetOverride(argv: string[]): string | undefined {
+  if (!argv.some((arg) => RESEARCH_TARGET_OPTION_COMMANDS.has(arg))) {
+    return undefined;
+  }
+  const targetId = readCliOption(argv, "--target");
+  if (!targetId || targetId.trim().toLowerCase() === "all") {
+    return undefined;
+  }
+  return targetId.trim();
+}
+
+function resolveRuntimeResearchTargetId(input: {
+  optionTargetId?: string;
+  cliTargetId?: string;
+  envTargetId?: string;
+}): string {
+  const candidates = [
+    input.optionTargetId?.trim(),
+    input.cliTargetId?.trim(),
+    input.envTargetId?.trim(),
+  ].filter((value): value is string => Boolean(value));
+  const distinct = [...new Set(candidates)];
+  if (distinct.length > 1) {
+    throw new Error(
+      `Research target conflict: received ${distinct.join(", ")}. Use one target via --target or AF_RESEARCH_TARGET_ID.`,
+    );
+  }
+  return distinct[0] ?? DEFAULT_RESEARCH_TARGET_ID;
+}
+
+function assertChartTargetMatchesResearchTarget(input: {
+  target: ReturnType<typeof loadResearchTarget>;
+  chartSymbol?: string;
+  chartTimeframe?: string;
+}): void {
+  if (
+    input.chartSymbol &&
+    input.chartSymbol.trim().toUpperCase() !== input.target.symbol.toUpperCase()
+  ) {
+    throw new Error(
+      `Chart symbol conflict: TRADINGVIEW_CHART_SYMBOL=${input.chartSymbol} does not match target ${input.target.id} (${input.target.symbol}).`,
+    );
+  }
+  if (
+    input.chartTimeframe &&
+    input.chartTimeframe.trim() !== input.target.timeframe
+  ) {
+    throw new Error(
+      `Chart timeframe conflict: TRADINGVIEW_CHART_TIMEFRAME=${input.chartTimeframe} does not match target ${input.target.id} (${input.target.timeframe}).`,
+    );
+  }
 }
 
 function readCliOption(argv: string[], flag: string): string | undefined {

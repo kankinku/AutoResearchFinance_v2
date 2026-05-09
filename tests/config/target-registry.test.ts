@@ -8,6 +8,8 @@ import {
   DEFAULT_RESEARCH_TARGET_ID,
   loadAllResearchTargets,
   loadResearchTarget,
+  resolveLegacySharedStateRoot,
+  resolveTargetStateRoot,
 } from "../../src/config/target-registry.js";
 
 describe("target registry", () => {
@@ -65,6 +67,20 @@ describe("target registry", () => {
 
     expect(targets.map((target) => target.id)).toEqual(
       expect.arrayContaining(["btc-15m-af", "qqq-60m-af-dryrun", "qqq-120m-af"]),
+    );
+  });
+
+  test("resolves target-scoped state roots separately from legacy shared state", () => {
+    const workspaceRoot = path.join("C:", "af-workspace");
+
+    expect(
+      resolveTargetStateRoot({
+        workspaceRoot,
+        targetId: "btc-15m-af",
+      }),
+    ).toBe(path.join(workspaceRoot, "state", "targets", "btc-15m-af", "pi-autoresearch"));
+    expect(resolveLegacySharedStateRoot(workspaceRoot)).toBe(
+      path.join(workspaceRoot, "state", "pi-autoresearch"),
     );
   });
 

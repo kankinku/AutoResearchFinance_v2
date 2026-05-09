@@ -4,6 +4,10 @@ import path from "node:path";
 import { PDFParse } from "pdf-parse";
 
 import {
+  DEFAULT_RESEARCH_TARGET_ID,
+  resolveTargetStateRoot,
+} from "../config/target-registry.js";
+import {
   mutationResearchContextSchema,
   researchKnowledgeRecordSchema,
   type MutationResearchContext,
@@ -85,7 +89,11 @@ export async function selectRelevantResearchContext(input: {
   objectiveLabel: string;
 }): Promise<MutationResearchContext> {
   const stateRoot =
-    input.stateRoot ?? path.join(input.workspaceRoot, "state", "pi-autoresearch");
+    input.stateRoot ??
+    resolveTargetStateRoot({
+      workspaceRoot: input.workspaceRoot,
+      targetId: process.env.AF_RESEARCH_TARGET_ID ?? DEFAULT_RESEARCH_TARGET_ID,
+    });
   const records = await readResearchKnowledgeRecords(stateRoot);
   if (records.length === 0) {
     return mutationResearchContextSchema.parse({

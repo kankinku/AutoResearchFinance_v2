@@ -330,7 +330,31 @@ export async function copyIfMissing(sourcePath: string, targetPath: string): Pro
   await copyFile(sourcePath, targetPath);
 }
 
+export async function withFileLock<T>(
+  lockPath: string,
+  options: { timeoutMs: number; staleMs: number },
+  operation: () => Promise<T>,
+): Promise<T> {
+  await ensureDir(path.dirname(lockPath));
+  await acquireFileLock(lockPath, options);
+  try {
+    return await operation();
+  } finally {
+    await releaseFileLock(lockPath);
+  }
+}
+
 async function acquireJsonlLock(lockPath: string): Promise<void> {
+  await acquireFileLock(lockPath, {
+    timeoutMs: JSONL_LOCK_TIMEOUT_MS,
+    staleMs: JSONL_LOCK_STALE_MS,
+  });
+}
+
+async function acquireFileLock(
+  lockPath: string,
+  options: { timeoutMs: number; staleMs: number },
+): Promise<void> {
   const startedAt = Date.now();
   const lockPayload = `${JSON.stringify({
     pid: process.pid,
@@ -349,13 +373,13 @@ async function acquireJsonlLock(lockPath: string): Promise<void> {
         throw error;
       }
 
-      if (await isStaleJsonlLock(lockPath)) {
-        await releaseJsonlLock(lockPath);
+      if (await isStaleFileLock(lockPath, options.staleMs)) {
+        await releaseFileLock(lockPath);
         continue;
       }
 
-      if (Date.now() - startedAt >= JSONL_LOCK_TIMEOUT_MS) {
-        throw new Error(`Timed out acquiring JSONL append lock: ${lockPath}`);
+      if (Date.now() - startedAt >= options.timeoutMs) {
+        throw new Error(`Timed out acquiring file lock: ${lockPath}`);
       }
 
       await sleep(JSONL_LOCK_RETRY_MS);
@@ -364,6 +388,10 @@ async function acquireJsonlLock(lockPath: string): Promise<void> {
 }
 
 async function releaseJsonlLock(lockPath: string): Promise<void> {
+  await releaseFileLock(lockPath);
+}
+
+async function releaseFileLock(lockPath: string): Promise<void> {
   try {
     await unlink(lockPath);
   } catch (error) {
@@ -373,10 +401,10 @@ async function releaseJsonlLock(lockPath: string): Promise<void> {
   }
 }
 
-async function isStaleJsonlLock(lockPath: string): Promise<boolean> {
+async function isStaleFileLock(lockPath: string, staleMs: number): Promise<boolean> {
   try {
     const lockStat = await stat(lockPath);
-    return Date.now() - lockStat.mtimeMs >= JSONL_LOCK_STALE_MS;
+    return Date.now() - lockStat.mtimeMs >= staleMs;
   } catch (error) {
     if (isMissingFileError(error)) {
       return false;

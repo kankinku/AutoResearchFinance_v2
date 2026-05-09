@@ -2,6 +2,10 @@ import path from "node:path";
 
 import { type RuntimeEnvironment } from "../cli/runtime-config.js";
 import {
+  DEFAULT_RESEARCH_TARGET_ID,
+  resolveTargetStateRoot,
+} from "../config/target-registry.js";
+import {
   type ArtifactValidationResult,
   type ConditionContribution,
   type DecisionCode,
@@ -167,7 +171,11 @@ export async function runTaskBatch(
   input: RunTaskBatchInput,
 ): Promise<TaskBatchRunResult> {
   const stateRoot =
-    input.stateRoot ?? path.join(input.workspaceRoot, "state", "pi-autoresearch");
+    input.stateRoot ??
+    resolveTargetStateRoot({
+      workspaceRoot: input.workspaceRoot,
+      targetId: process.env.AF_RESEARCH_TARGET_ID ?? DEFAULT_RESEARCH_TARGET_ID,
+    });
   await initializeWorkspace({
     workspaceRoot: input.workspaceRoot,
     stateRoot,

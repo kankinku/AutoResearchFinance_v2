@@ -22,13 +22,11 @@ describe("runtime config", () => {
     delete process.env.AF_EVALUATION_EXECUTOR;
 
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-config-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
     const env = loadRuntimeEnvironment({
       cwd: workspaceRoot,
       overrides: {
         projectRoot: process.cwd(),
         workspaceRoot,
-        stateRoot,
       },
     });
 
@@ -37,10 +35,68 @@ describe("runtime config", () => {
     expect(env.autoProcessCalibration).toBe(false);
     expect(env.calibrationBudget).toBe(3);
     expect(env.mutationSchemaMode).toBe("strict");
+    expect(env.researchTargetId).toBe("qqq-120m-af");
+    expect(env.stateRoot).toBe(
+      path.join(workspaceRoot, "state", "targets", "qqq-120m-af", "pi-autoresearch"),
+    );
     expect(env.researchModeConfig).toEqual({
       mode: "continuous_improvement",
       source: "default",
     });
+  });
+
+  test("uses target-scoped state when a target override is provided", async () => {
+    delete process.env.TRADINGVIEW_CHART_SYMBOL;
+    delete process.env.TRADINGVIEW_CHART_TIMEFRAME;
+
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-btc-target-"));
+    const env = loadRuntimeEnvironment({
+      cwd: workspaceRoot,
+      targetId: "btc-15m-af",
+      overrides: {
+        projectRoot: process.cwd(),
+        workspaceRoot,
+      },
+    });
+
+    expect(env.researchTargetId).toBe("btc-15m-af");
+    expect(env.chartSymbol).toBe("BTCUSD");
+    expect(env.chartTimeframe).toBe("15");
+    expect(env.stateRoot).toBe(
+      path.join(workspaceRoot, "state", "targets", "btc-15m-af", "pi-autoresearch"),
+    );
+  });
+
+  test("does not treat cleanup-runtime target as a research target", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-cleanup-target-"));
+    const env = loadRuntimeEnvironment({
+      argv: ["cleanup-runtime", "--target", "tradingview-cache"],
+      cwd: workspaceRoot,
+      overrides: {
+        projectRoot: process.cwd(),
+        workspaceRoot,
+      },
+    });
+
+    expect(env.researchTargetId).toBe("qqq-120m-af");
+  });
+
+  test("rejects conflicting target and chart environment", async () => {
+    process.env.TRADINGVIEW_CHART_SYMBOL = "BTCUSD";
+    process.env.TRADINGVIEW_CHART_TIMEFRAME = "15";
+
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-chart-conflict-"));
+
+    expect(() =>
+      loadRuntimeEnvironment({
+        cwd: workspaceRoot,
+        targetId: "qqq-120m-af",
+        overrides: {
+          projectRoot: process.cwd(),
+          workspaceRoot,
+        },
+      }),
+    ).toThrow(/Chart symbol conflict/);
   });
 
   test("resolves research mode from CLI before environment", async () => {

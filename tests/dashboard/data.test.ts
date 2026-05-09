@@ -246,9 +246,31 @@ describe("buildDashboardStatus", () => {
       stateRoot,
       autoProcessCalibration: false,
       promotionVerificationExecutor: "none",
+      currentTrainingMode: {
+        label: "btc-15m-af / BTCUSD 15m / repair / continuous_improvement",
+        targetId: "btc-15m-af",
+        symbol: "BTCUSD",
+        timeframe: "15",
+        objective: "objective.btc-15m.json",
+        researchMode: { mode: "continuous_improvement", source: "default" },
+        stateRoot,
+        statePartition: "target_scoped_state_root",
+        chartSymbol: "BTCUSD",
+        chartTimeframe: "15",
+        chartMatchesTarget: true,
+      },
       now: new Date("2026-05-08T00:00:00.000Z"),
     });
 
+    expect(status.currentTrainingMode).toEqual(
+      expect.objectContaining({
+        targetId: "btc-15m-af",
+        symbol: "BTCUSD",
+        timeframe: "15",
+        chartMatchesTarget: true,
+        statePartition: "target_scoped_state_root",
+      }),
+    );
     expect(status.researchMode).toEqual(
       expect.objectContaining({
         symbol: "BTCUSD",
