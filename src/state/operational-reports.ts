@@ -79,7 +79,7 @@ export interface SystemHealthReport {
     strategyReviewParseFailures: number;
   };
   heartbeat: {
-    status: "missing" | "ok" | "read_error";
+    status: "missing" | "ok" | "stale" | "read_error";
     path: string;
     payload: Record<string, unknown> | null;
     error: string | null;
@@ -466,14 +466,17 @@ async function readHeartbeatSummary(
   }
   try {
     const payload = JSON.parse(await readFile(heartbeatPath, "utf8"));
+    const normalizedPayload =
+      payload && typeof payload === "object"
+        ? (payload as Record<string, unknown>)
+        : null;
+    const pidPath = path.join(path.dirname(heartbeatPath), "autonomous-loop.pid");
+    const pidStatus = await readRuntimePidStatus(pidPath, normalizedPayload);
     return {
-      status: "ok",
+      status: pidStatus.stale ? "stale" : "ok",
       path: heartbeatPath,
-      payload:
-        payload && typeof payload === "object"
-          ? (payload as Record<string, unknown>)
-          : null,
-      error: null,
+      payload: normalizedPayload,
+      error: pidStatus.reason,
     };
   } catch (error) {
     return {
@@ -482,6 +485,40 @@ async function readHeartbeatSummary(
       payload: null,
       error: error instanceof Error ? error.message : String(error),
     };
+  }
+}
+
+async function readRuntimePidStatus(
+  pidPath: string,
+  heartbeat: Record<string, unknown> | null,
+): Promise<{ stale: boolean; reason: string | null }> {
+  const rawPid = await readFile(pidPath, "utf8").catch(() => null);
+  if (rawPid == null) {
+    if (heartbeat == null) {
+      return { stale: false, reason: null };
+    }
+    return {
+      stale: true,
+      reason: "pid_file_missing",
+    };
+  }
+
+  const pid = Number.parseInt(rawPid.trim(), 10);
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return { stale: true, reason: "pid_file_invalid" };
+  }
+
+  return isPidRunning(pid)
+    ? { stale: false, reason: null }
+    : { stale: true, reason: "pid_not_running" };
+}
+
+function isPidRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
   }
 }
 

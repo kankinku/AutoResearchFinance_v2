@@ -15,6 +15,7 @@ $HeartbeatPath = Join-Path $RuntimeRoot "autonomous-loop-heartbeat.json"
 $LogFile = Join-Path $LogRoot ("codex-supervised-loop-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
+& (Join-Path $PSScriptRoot "stop-af.ps1") -ProjectRoot $ProjectRoot -StateRoot (Join-Path $ProjectRoot "state/pi-autoresearch") -GraceSeconds 30 -Quiet
 Remove-Item -LiteralPath $StopPath -Force -ErrorAction SilentlyContinue
 
 function Write-StaleHeartbeat {

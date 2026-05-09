@@ -40,6 +40,7 @@ $CalibrationWorkerHeartbeatFile = Join-Path $RuntimeRoot "tv-calibration-worker-
 $LogFile = Join-Path $LogRoot ("autonomous-loop-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
+& (Join-Path $PSScriptRoot "stop-af.ps1") -ProjectRoot $ProjectRoot -StateRoot $StateRoot -GraceSeconds 30 -Quiet
 
 function Write-StaleHeartbeat {
   param(

@@ -116,4 +116,22 @@ describe("operational reports", () => {
     expect(report.heartbeat.status).toBe("read_error");
     expect(report.heartbeat.error).toBeTruthy();
   });
+
+  test("reports stale heartbeat when the pid file points to no running process", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-health-stale-"));
+    const stateRoot = path.join(root, "state", "pi-autoresearch");
+    const runtimeRoot = path.join(stateRoot, "runtime");
+    await mkdir(runtimeRoot, { recursive: true });
+    await writeFile(path.join(runtimeRoot, "autonomous-loop.pid"), "99999999\n", "utf8");
+    await writeFile(
+      path.join(runtimeRoot, "autonomous-loop-heartbeat.json"),
+      `${JSON.stringify({ pid: 99999999, status: "running" })}\n`,
+      "utf8",
+    );
+
+    const report = await buildSystemHealthReport({ stateRoot });
+
+    expect(report.heartbeat.status).toBe("stale");
+    expect(report.heartbeat.error).toBe("pid_not_running");
+  });
 });

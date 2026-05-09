@@ -160,6 +160,7 @@ import {
   loadRuntimeEnvironment,
 } from "./runtime-config.js";
 import { reconcileAutonomousLoopRuntime } from "./runtime-heartbeat.js";
+import { withRuntimeCommandLock } from "./runtime-lock.js";
 import { startDashboardServer } from "../dashboard/server.js";
 
 const program = new Command();
@@ -1606,115 +1607,123 @@ program
     if (options.criterion && baseEnv.researchModeConfig.mode !== "criterion_focus") {
       throw new Error("--criterion is only valid when --research-mode criterion_focus is active.");
     }
-    await withCliMonitor(
+    await withRuntimeCommandLock(
       {
-        workspaceRoot: baseEnv.workspaceRoot,
+        runtimeRoot: baseEnv.runtimeRoot ?? path.join(baseEnv.stateRoot, "runtime"),
         commandName: "run-autonomous-loop",
       },
-      async (monitor) => {
-        const count = parsePositiveInteger(options.count, "count");
-        const targetRuns = [];
-        for (const context of contexts) {
-          const env = loadRuntimeEnvironmentForContext(context);
-          validateAutonomousResearchMode(env);
-          const autoProcessCalibration =
-            options.autoProcessCalibration == null
-              ? env.autoProcessCalibration
-              : parseBoolean(
-                  options.autoProcessCalibration,
-                  "auto-process-calibration",
-                );
-          const calibrationBudget =
-            options.calibrationBudget == null
-              ? env.calibrationBudget
-              : parsePositiveInteger(
-                  options.calibrationBudget,
-                  "calibration-budget",
-                );
-          const llmClient = createLazyMutationLlmClient(() =>
-            createMutationLlmClient(env),
-          );
-          const loopEnv = {
-            ...env,
-            autoProcessCalibration,
-            calibrationBudget,
-          };
-          const calibrationExecutorName =
-            resolveTradingViewExecutorName(loopEnv) ?? "tradingview-desktop-cdp";
-          await monitor.log("autonomous.loop.start", "Starting autonomous local-first loop", {
-            count,
-            targetId: context.targetId,
-            symbol: context.symbol,
-            timeframe: context.timeframe,
-            goalMode: context.goalMode,
-            goalProfileId: context.goalProfileId,
-            workspaceRoot: env.workspaceRoot,
-            stateRoot: env.stateRoot,
-            projectRoot: env.projectRoot,
-            tvHealth: resolveTvHealthStatus(env),
-            autoProcessCalibration,
-            calibrationBudget,
-            researchMode: loopEnv.researchModeConfig,
-          });
-          const iterationRun = await runAutonomousIterations({
-            workspaceRoot: env.workspaceRoot,
-            env: loopEnv,
-            researchRunContext: context,
-            llmClient,
-            localExecutorFactory: () =>
-              createPineEvaluationExecutor(loopEnv, "local-backtest"),
-            calibrationExecutorFactory: autoProcessCalibration
-              ? () => createPineEvaluationExecutor(loopEnv, calibrationExecutorName)
-              : undefined,
-            count,
-            monitor,
-          });
-          const autonomousState = await buildAutonomousStateSummary({
-            stateRoot: env.stateRoot,
-            env: loopEnv,
-          });
-          targetRuns.push({
-            targetId: context.targetId,
-            symbol: context.symbol,
-            timeframe: context.timeframe,
-            goalMode: context.goalMode,
-            goalProfileId: context.goalProfileId,
-            ...iterationRun,
-            autonomousState,
-          });
-        }
-        monitor.clearTask();
-        const memoryTelemetry = await writeNodeRuntimeTelemetry({
-          stateRoot: baseEnv.stateRoot,
-          commandName: "run-autonomous-loop",
-          phase: "completed",
-          extra: {
-            count,
-            targetCount: targetRuns.length,
-            countCompleted: targetRuns.reduce(
-              (total, run) => total + run.countCompleted,
-              0,
-            ),
-            countFailed: targetRuns.reduce((total, run) => total + run.countFailed, 0),
+      async () => {
+        await withCliMonitor(
+          {
+            workspaceRoot: baseEnv.workspaceRoot,
+            commandName: "run-autonomous-loop",
           },
-        });
+          async (monitor) => {
+            const count = parsePositiveInteger(options.count, "count");
+            const targetRuns = [];
+            for (const context of contexts) {
+              const env = loadRuntimeEnvironmentForContext(context);
+              validateAutonomousResearchMode(env);
+              const autoProcessCalibration =
+                options.autoProcessCalibration == null
+                  ? env.autoProcessCalibration
+                  : parseBoolean(
+                      options.autoProcessCalibration,
+                      "auto-process-calibration",
+                    );
+              const calibrationBudget =
+                options.calibrationBudget == null
+                  ? env.calibrationBudget
+                  : parsePositiveInteger(
+                      options.calibrationBudget,
+                      "calibration-budget",
+                    );
+              const llmClient = createLazyMutationLlmClient(() =>
+                createMutationLlmClient(env),
+              );
+              const loopEnv = {
+                ...env,
+                autoProcessCalibration,
+                calibrationBudget,
+              };
+              const calibrationExecutorName =
+                resolveTradingViewExecutorName(loopEnv) ?? "tradingview-desktop-cdp";
+              await monitor.log("autonomous.loop.start", "Starting autonomous local-first loop", {
+                count,
+                targetId: context.targetId,
+                symbol: context.symbol,
+                timeframe: context.timeframe,
+                goalMode: context.goalMode,
+                goalProfileId: context.goalProfileId,
+                workspaceRoot: env.workspaceRoot,
+                stateRoot: env.stateRoot,
+                projectRoot: env.projectRoot,
+                tvHealth: resolveTvHealthStatus(env),
+                autoProcessCalibration,
+                calibrationBudget,
+                researchMode: loopEnv.researchModeConfig,
+              });
+              const iterationRun = await runAutonomousIterations({
+                workspaceRoot: env.workspaceRoot,
+                env: loopEnv,
+                researchRunContext: context,
+                llmClient,
+                localExecutorFactory: () =>
+                  createPineEvaluationExecutor(loopEnv, "local-backtest"),
+                calibrationExecutorFactory: autoProcessCalibration
+                  ? () => createPineEvaluationExecutor(loopEnv, calibrationExecutorName)
+                  : undefined,
+                count,
+                monitor,
+              });
+              const autonomousState = await buildAutonomousStateSummary({
+                stateRoot: env.stateRoot,
+                env: loopEnv,
+              });
+              targetRuns.push({
+                targetId: context.targetId,
+                symbol: context.symbol,
+                timeframe: context.timeframe,
+                goalMode: context.goalMode,
+                goalProfileId: context.goalProfileId,
+                ...iterationRun,
+                autonomousState,
+              });
+            }
+            monitor.clearTask();
+            const memoryTelemetry = await writeNodeRuntimeTelemetry({
+              stateRoot: baseEnv.stateRoot,
+              commandName: "run-autonomous-loop",
+              phase: "completed",
+              extra: {
+                count,
+                targetCount: targetRuns.length,
+                countCompleted: targetRuns.reduce(
+                  (total, run) => total + run.countCompleted,
+                  0,
+                ),
+                countFailed: targetRuns.reduce((total, run) => total + run.countFailed, 0),
+              },
+            });
 
-        console.log(
-          JSON.stringify(
-            targetRuns.length === 1
-              ? {
-                  ...targetRuns[0],
-                  memoryTelemetry,
-                  tracePath: monitor.tracePath,
-                }
-              : {
-                  targetRuns,
-                  memoryTelemetry,
-                  tracePath: monitor.tracePath,
-                },
-            null,
-            2,
-          ),
+            console.log(
+              JSON.stringify(
+                targetRuns.length === 1
+                  ? {
+                      ...targetRuns[0],
+                      memoryTelemetry,
+                      tracePath: monitor.tracePath,
+                    }
+                  : {
+                      targetRuns,
+                      memoryTelemetry,
+                      tracePath: monitor.tracePath,
+                    },
+                null,
+                2,
+              ),
+            );
+          },
         );
       },
     );
@@ -2192,42 +2201,50 @@ program
   .option("--open <boolean>", "Open the dashboard in the default browser.", "false")
   .action(async (options: { port: string; host: string; open: string }) => {
     const env = loadRuntimeEnvironment();
-    const port = parsePositiveInteger(options.port, "port");
-    const open = parseBoolean(options.open, "open");
-    const server = await startDashboardServer({
-      workspaceRoot: env.workspaceRoot,
-      stateRoot: env.stateRoot,
-      autoProcessCalibration: env.autoProcessCalibration,
-      promotionVerificationExecutor: env.promotionVerificationExecutor,
-      researchModeConfig: env.researchModeConfig,
-      host: options.host,
-      port,
-      open,
-    });
-
-    console.log(
-      JSON.stringify(
-        {
-          url: server.url,
-          host: server.host,
-          port: server.port,
-          localOnly: server.host === "127.0.0.1" || server.host === "::1",
+    await withRuntimeCommandLock(
+      {
+        runtimeRoot: env.runtimeRoot ?? path.join(env.stateRoot, "runtime"),
+        commandName: "dashboard",
+      },
+      async () => {
+        const port = parsePositiveInteger(options.port, "port");
+        const open = parseBoolean(options.open, "open");
+        const server = await startDashboardServer({
           workspaceRoot: env.workspaceRoot,
           stateRoot: env.stateRoot,
-        },
-        null,
-        2,
-      ),
-    );
+          autoProcessCalibration: env.autoProcessCalibration,
+          promotionVerificationExecutor: env.promotionVerificationExecutor,
+          researchModeConfig: env.researchModeConfig,
+          host: options.host,
+          port,
+          open,
+        });
 
-    const shutdown = () => {
-      server.server.close();
-    };
-    process.once("SIGINT", shutdown);
-    process.once("SIGTERM", shutdown);
-    await new Promise<void>((resolve) => {
-      server.server.once("close", resolve);
-    });
+        console.log(
+          JSON.stringify(
+            {
+              url: server.url,
+              host: server.host,
+              port: server.port,
+              localOnly: server.host === "127.0.0.1" || server.host === "::1",
+              workspaceRoot: env.workspaceRoot,
+              stateRoot: env.stateRoot,
+            },
+            null,
+            2,
+          ),
+        );
+
+        const shutdown = () => {
+          server.server.close();
+        };
+        process.once("SIGINT", shutdown);
+        process.once("SIGTERM", shutdown);
+        await new Promise<void>((resolve) => {
+          server.server.once("close", resolve);
+        });
+      },
+    );
   });
 
 program
