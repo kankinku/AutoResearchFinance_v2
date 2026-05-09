@@ -1531,20 +1531,29 @@ function buildArchiveTrend(view: ExplorationArchiveView | null): DashboardCandid
 
 function isLocalEvaluationRecord(record: ExperimentRecord): boolean {
   const rawRecord = record as unknown as Record<string, unknown>;
+  const recordKind = stringValue(rawRecord.recordKind);
+  if (recordKind === "local_evaluation") {
+    return true;
+  }
+  if (recordKind === "tv_verification") {
+    return false;
+  }
   return (
-    stringValue(rawRecord.recordKind) !== "tv_verification" &&
-    stringValue(rawRecord.executorRole) !== "primary_local_backtest" &&
-    stringValue(rawRecord.evidenceAuthority) !== "local_model" &&
-    stringValue(rawRecord.evaluationMode) !== "tv_calibration"
+    record.decision.startsWith("local_") ||
+    stringValue(rawRecord.evaluationMode) === "local_primary"
   );
 }
 
 function isTvVerificationRecord(record: ExperimentRecord): boolean {
   const rawRecord = record as unknown as Record<string, unknown>;
+  const recordKind = stringValue(rawRecord.recordKind);
+  if (recordKind === "tv_verification") {
+    return true;
+  }
+  if (recordKind === "local_evaluation") {
+    return false;
+  }
   return (
-    stringValue(rawRecord.recordKind) === "tv_verification" ||
-    stringValue(rawRecord.executorRole) === "primary_local_backtest" ||
-    stringValue(rawRecord.evidenceAuthority) === "local_model" ||
     stringValue(rawRecord.evaluationMode) === "tv_calibration" ||
     record.decision === "tv_verified"
   );

@@ -186,6 +186,92 @@ describe("buildDashboardStatus", () => {
     );
   });
 
+  test("classifies local-only records as local returns instead of external validation", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "af-dashboard-local-only-"));
+    const stateRoot = path.join(root, "state", "targets", "btc-15m-af", "pi-autoresearch");
+    const paths = resolveKnowledgePaths(stateRoot);
+    await mkdir(paths.viewsDir, { recursive: true });
+    await mkdir(paths.ledgerDir, { recursive: true });
+    await mkdir(paths.runtimeDir, { recursive: true });
+    await mkdir(paths.artifactDir, { recursive: true });
+    await writeFile(
+      paths.autonomousStateSummaryPath,
+      JSON.stringify({
+        activeChampionCandidateId: "cand-local",
+        activeChampionScore: 0.5627,
+        activeChampionDecision: "local_candidate_eligible",
+      }),
+      "utf8",
+    );
+    await writeFile(
+      paths.localLeaderboardPath,
+      JSON.stringify({
+        entries: [
+          {
+            rank: 1,
+            candidateId: "cand-local",
+            autoSelectionScore: 0.5627,
+            performanceScore: 0.5576,
+            noveltyScore: 0.1668,
+            robustnessScore: 0,
+            eligible: true,
+            decision: "local_candidate_eligible",
+            iteration: 4,
+          },
+        ],
+      }),
+      "utf8",
+    );
+    await writeFile(
+      paths.experimentsPath,
+      JSON.stringify({
+        iteration: 4,
+        candidateId: "cand-local",
+        decision: "local_candidate_eligible",
+        recordedAt: "2026-05-09T12:00:00.000Z",
+        candidateScore: 0.5576,
+        autoSelectionScore: 0.5627,
+        recordKind: "local_evaluation",
+        executorRole: "primary_local_backtest",
+        evidenceAuthority: "local_model",
+        evaluationMode: "local_primary",
+        testerMetrics: {
+          netProfitPercent: 152.032019,
+          profitFactor: 2.191435,
+          maxStrategyDrawdownPercent: 101.907369,
+          percentProfitable: 51.327434,
+          totalTrades: 226,
+          avgTradePercent: 0.952991,
+        },
+      }) + "\n",
+      "utf8",
+    );
+
+    const status = await buildDashboardStatus({
+      workspaceRoot: root,
+      stateRoot,
+      autoProcessCalibration: false,
+      promotionVerificationExecutor: "none",
+      now: new Date("2026-05-09T12:05:00.000Z"),
+    });
+
+    expect(status.score.latest?.candidateId).toBe("cand-local");
+    expect(status.score.latest?.metrics?.netProfitPercent).toBe(152.032019);
+    expect(status.score.returnProfile.latestPercent).toBe(152.032019);
+    expect(status.score.returnProfile.recentBestPercent).toBe(152.032019);
+    expect(status.history.topCandidates[0]).toEqual(
+      expect.objectContaining({
+        candidateId: "cand-local",
+        localReturnPercent: 152.032019,
+        localProfitFactor: 2.191435,
+        localTradeCount: 226,
+        tvReturnPercent: null,
+        tvTradeCount: null,
+      }),
+    );
+    expect(status.externalValidation.tvResults).toEqual([]);
+  });
+
   test("exposes symbol mode context and matching strategy review directive", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-dashboard-mode-"));
     const stateRoot = path.join(root, "state", "btc-15m-autoresearch");
