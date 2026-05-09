@@ -829,6 +829,26 @@ async function buildAutonomousStateSummary(input: {
   const problemEvents = await readProblemEventRecords(input.stateRoot);
   const repairAttempts = await readRepairAttemptRecords(input.stateRoot);
   const indicatorArtifacts = await readIndicatorArtifactRecords(input.stateRoot);
+  const runtimeEnv = input.env as RuntimeEnvironmentWithResearchContext;
+  const currentResearchContext =
+    runtimeEnv.researchRunContext ??
+    await resolveResearchRunContext({
+      projectRoot: input.env.projectRoot,
+      workspaceRoot: input.env.workspaceRoot,
+      targetId: input.env.researchTargetId,
+      mode: runtimeEnv.researchGoalMode,
+    });
+  const targetTaggedRecordCount = experiments.filter(
+    (record) => typeof (record as { targetId?: unknown }).targetId === "string",
+  ).length;
+  const currentTargetRecordCount = experiments.filter(
+    (record) =>
+      (record as { targetId?: unknown }).targetId === currentResearchContext.targetId,
+  ).length;
+  const untaggedRecordCount = experiments.length - targetTaggedRecordCount;
+  const targetScopedStateRoot = input.env.stateRoot
+    .toLowerCase()
+    .includes(currentResearchContext.targetId.toLowerCase());
   const views = buildAutonomousViewPayloads({
     experiments,
     headEvents,
@@ -893,6 +913,38 @@ async function buildAutonomousStateSummary(input: {
 
   return {
     ...views.autonomousStateSummary,
+    currentTrainingMode: {
+      label: `${currentResearchContext.targetId} / ${currentResearchContext.symbol} ${currentResearchContext.timeframe}m / ${currentResearchContext.goalMode} / ${input.env.researchModeConfig.mode}`,
+      targetId: currentResearchContext.targetId,
+      targetSymbol: currentResearchContext.symbol,
+      targetTimeframe: currentResearchContext.timeframe,
+      strategyFamily: currentResearchContext.target.strategyFamily,
+      goalMode: currentResearchContext.goalMode,
+      goalProfileId: currentResearchContext.goalProfileId,
+      researchMode: input.env.researchModeConfig,
+      objectivePolicyFile: currentResearchContext.target.objectivePolicyFile,
+      objectiveSymbol: currentResearchContext.objective.symbol,
+      objectiveTimeframe: currentResearchContext.objective.timeframe,
+      calibrationPolicy: currentResearchContext.target.calibrationPolicy,
+      goalCalibrationPolicy: currentResearchContext.calibrationPolicy,
+      chartSymbol: input.env.chartSymbol,
+      chartTimeframe: input.env.chartTimeframe,
+      chartMatchesTarget:
+        input.env.chartSymbol === currentResearchContext.symbol &&
+        input.env.chartTimeframe === currentResearchContext.timeframe,
+      stateRoot: input.env.stateRoot,
+      statePartition: targetScopedStateRoot ? "target_scoped_state_root" : "shared_state_root",
+      ledgerTargetTagging:
+        targetTaggedRecordCount === 0
+          ? "legacy_untagged"
+          : untaggedRecordCount > 0
+            ? "mixed_target_tags"
+            : "target_tagged",
+      experimentRecordCount: experiments.length,
+      targetTaggedRecordCount,
+      currentTargetRecordCount,
+      untaggedRecordCount,
+    },
     researchMode: input.env.researchModeConfig,
     activeCriterion:
       input.env.researchModeConfig.mode === "criterion_focus"
