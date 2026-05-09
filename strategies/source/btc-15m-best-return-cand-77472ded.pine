@@ -3,6 +3,7 @@
 // AF_SPEC_HASH=778d8f71bc57d1f54697212b3fa6d6c51a60a92613c1cbba04e3e2945fc7ef24
 // AF_CONTRACT_VERSION=finance-autoresearch-contract/v1
 strategy("AF Spec v1 [cand-77472ded]", overlay=true, process_orders_on_close=true, initial_capital=100000, commission_type=strategy.commission.percent, commission_value=0.05, pyramiding=18)
+plot(close, "AF compile heartbeat", display=display.none)
 
 backtestStartTime = input.time(1685539800000, "backtestStartTime")
 backtestEndTime = input.time(1777404600000, "backtestEndTime")
@@ -66,7 +67,8 @@ else
 f_local_ema(src, length) =>
     float out = na
     float alpha = 2.0 / (length + 1.0)
-    out := localBarIndex < length - 1 ? na : na(out[1]) ? ta.sma(src, length) : (src - out[1]) * alpha + out[1]
+    float seedSma = ta.sma(src, length)
+    out := localBarIndex < length - 1 ? na : na(out[1]) ? seedSma : (src - out[1]) * alpha + out[1]
     out
 
 ema = f_local_ema(close, emaLen)
