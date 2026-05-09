@@ -248,6 +248,7 @@ describe("buildDashboardStatus", () => {
       promotionVerificationExecutor: "none",
       currentTrainingMode: {
         label: "btc-15m-af / BTCUSD 15m / repair / continuous_improvement",
+        mechanism: "shared_af_autonomous_learning",
         targetId: "btc-15m-af",
         symbol: "BTCUSD",
         timeframe: "15",
@@ -259,16 +260,53 @@ describe("buildDashboardStatus", () => {
         chartTimeframe: "15",
         chartMatchesTarget: true,
       },
+      trainingModeOptions: [
+        {
+          targetId: "qqq-120m-af",
+          label: "QQQ 120m (qqq-120m-af)",
+          symbol: "QQQ",
+          timeframe: "120",
+          objective: "objective.qqq-120m.json",
+          stateRoot: path.join(root, "state", "targets", "qqq-120m-af", "pi-autoresearch"),
+          mechanism: "shared_af_autonomous_learning",
+        },
+        {
+          targetId: "btc-15m-af",
+          label: "BTCUSD 15m (btc-15m-af)",
+          symbol: "BTCUSD",
+          timeframe: "15",
+          objective: "objective.btc-15m.json",
+          stateRoot,
+          mechanism: "shared_af_autonomous_learning",
+        },
+      ],
       now: new Date("2026-05-08T00:00:00.000Z"),
     });
 
     expect(status.currentTrainingMode).toEqual(
       expect.objectContaining({
         targetId: "btc-15m-af",
+        mechanism: "shared_af_autonomous_learning",
         symbol: "BTCUSD",
         timeframe: "15",
         chartMatchesTarget: true,
         statePartition: "target_scoped_state_root",
+      }),
+    );
+    expect(status.trainingModes).toEqual(
+      expect.objectContaining({
+        mechanism: "shared_af_autonomous_learning",
+        activeTargetId: "btc-15m-af",
+        options: expect.arrayContaining([
+          expect.objectContaining({
+            targetId: "btc-15m-af",
+            selected: true,
+          }),
+          expect.objectContaining({
+            targetId: "qqq-120m-af",
+            selected: false,
+          }),
+        ]),
       }),
     );
     expect(status.researchMode).toEqual(

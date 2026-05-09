@@ -77,6 +77,7 @@ function Write-WorkerHeartbeat {
     chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
     chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
     currentTrainingMode = @{
+      mechanism = "shared_af_autonomous_learning"
       targetId = $env:AF_RESEARCH_TARGET_ID
       symbol = $env:TRADINGVIEW_CHART_SYMBOL
       timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME

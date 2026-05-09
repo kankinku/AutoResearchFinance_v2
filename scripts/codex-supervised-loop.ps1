@@ -115,6 +115,7 @@ try {
       chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
       chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
       currentTrainingMode = @{
+        mechanism = "shared_af_autonomous_learning"
         targetId = $ResearchTargetId
         symbol = $env:TRADINGVIEW_CHART_SYMBOL
         timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME

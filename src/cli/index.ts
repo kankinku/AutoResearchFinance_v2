@@ -15,6 +15,7 @@ import {
 } from "../config/research-run-context.js";
 import {
   DEFAULT_RESEARCH_TARGET_ID,
+  loadAllResearchTargets,
   loadResearchTarget,
   resolveLegacySharedStateRoot,
   resolveTargetStateRoot,
@@ -989,6 +990,7 @@ async function buildAutonomousStateSummary(input: {
     ...views.autonomousStateSummary,
     currentTrainingMode: {
       label: `${currentResearchContext.targetId} / ${currentResearchContext.symbol} ${currentResearchContext.timeframe}m / ${currentResearchContext.goalMode} / ${input.env.researchModeConfig.mode}`,
+      mechanism: "shared_af_autonomous_learning",
       targetId: currentResearchContext.targetId,
       symbol: currentResearchContext.symbol,
       timeframe: currentResearchContext.timeframe,
@@ -1100,6 +1102,7 @@ async function buildCurrentTrainingModeForEnv(env: RuntimeEnvironment): Promise<
   });
   return {
     label: `${context.targetId} / ${context.symbol} ${context.timeframe}m / ${context.goalMode} / ${env.researchModeConfig.mode}`,
+    mechanism: "shared_af_autonomous_learning",
     targetId: context.targetId,
     symbol: context.symbol,
     timeframe: context.timeframe,
@@ -1123,6 +1126,80 @@ async function buildCurrentTrainingModeForEnv(env: RuntimeEnvironment): Promise<
       stateRoot: env.stateRoot,
       targetId: context.targetId,
     }),
+  };
+}
+
+async function buildTrainingModeOptionsForEnv(
+  env: RuntimeEnvironment,
+): Promise<
+  Array<{
+    targetId: string;
+    label: string;
+    symbol: string;
+    timeframe: string;
+    objective: string;
+    stateRoot: string;
+    mechanism: string;
+    selected: boolean;
+  }>
+> {
+  const targets = loadAllResearchTargets({
+    projectRoot: env.projectRoot,
+    workspaceRoot: env.workspaceRoot,
+  });
+  return targets
+    .sort((left, right) => {
+      if (left.id === DEFAULT_RESEARCH_TARGET_ID) {
+        return -1;
+      }
+      if (right.id === DEFAULT_RESEARCH_TARGET_ID) {
+        return 1;
+      }
+      return left.id.localeCompare(right.id);
+    })
+    .map((target) => {
+      const stateRoot = resolveTargetStateRoot({
+        workspaceRoot: env.workspaceRoot,
+        targetId: target.id,
+      });
+      return {
+        targetId: target.id,
+        label: `${target.symbol} ${target.timeframe}m (${target.id})`,
+        symbol: target.symbol,
+        timeframe: target.timeframe,
+        objective: target.objectivePolicyFile,
+        stateRoot,
+        mechanism: "shared_af_autonomous_learning",
+        selected: target.id === env.researchTargetId,
+      };
+    });
+}
+
+async function buildDashboardTrainingModeSelection(
+  baseEnv: RuntimeEnvironment,
+  targetId: string,
+) {
+  const target = loadResearchTarget({
+    projectRoot: baseEnv.projectRoot,
+    workspaceRoot: baseEnv.workspaceRoot,
+    targetId,
+  });
+  const env: RuntimeEnvironment = {
+    ...baseEnv,
+    researchTargetId: target.id,
+    stateRoot: resolveTargetStateRoot({
+      workspaceRoot: baseEnv.workspaceRoot,
+      targetId: target.id,
+    }),
+    chartSymbol: target.symbol,
+    chartTimeframe: target.timeframe,
+  };
+  return {
+    workspaceRoot: env.workspaceRoot,
+    stateRoot: env.stateRoot,
+    researchModeConfig: env.researchModeConfig,
+    currentTrainingMode: await buildCurrentTrainingModeForEnv(env),
+    trainingModeOptions: await buildTrainingModeOptionsForEnv(env),
   };
 }
 
@@ -2473,6 +2550,9 @@ program
           promotionVerificationExecutor: env.promotionVerificationExecutor,
           researchModeConfig: env.researchModeConfig,
           currentTrainingMode: await buildCurrentTrainingModeForEnv(env),
+          trainingModeOptions: await buildTrainingModeOptionsForEnv(env),
+          resolveTrainingMode: (targetId) =>
+            buildDashboardTrainingModeSelection(env, targetId),
           host: options.host,
           port,
           open,

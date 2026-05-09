@@ -1,7 +1,18 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 
-import { buildDashboardStatus } from "./data.js";
+import {
+  buildDashboardStatus,
+  type DashboardTrainingModeOption,
+} from "./data.js";
 import { renderDashboardHtml } from "./static.js";
+
+export interface DashboardTrainingModeSelection {
+  workspaceRoot: string;
+  stateRoot: string;
+  researchModeConfig?: Record<string, unknown>;
+  currentTrainingMode?: Record<string, unknown>;
+  trainingModeOptions?: DashboardTrainingModeOption[];
+}
 
 export interface DashboardServerOptions {
   workspaceRoot: string;
@@ -10,6 +21,8 @@ export interface DashboardServerOptions {
   promotionVerificationExecutor?: string;
   researchModeConfig?: Record<string, unknown>;
   currentTrainingMode?: Record<string, unknown>;
+  trainingModeOptions?: DashboardTrainingModeOption[];
+  resolveTrainingMode?: (targetId: string) => Promise<DashboardTrainingModeSelection>;
   host?: string;
   port?: number;
   open?: boolean;
@@ -32,7 +45,7 @@ export async function startDashboardServer(
 ): Promise<DashboardServerHandle> {
   const host = options.host ?? "127.0.0.1";
   const requestedPort = options.port ?? 4177;
-  let cache: CachedPayload | null = null;
+  const cache = new Map<string, CachedPayload>();
   const html = renderDashboardHtml();
 
   const server = http.createServer(async (request, response) => {
@@ -54,22 +67,32 @@ export async function startDashboardServer(
       }
 
       if (request.method === "GET" && url.pathname === "/api/status") {
+        const requestedTargetId = readRequestedTargetId(url, options.trainingModeOptions);
         const now = Date.now();
-        if (!cache || now - cache.generatedAtMs > 3_000) {
+        const cacheKey = requestedTargetId ?? "__default";
+        const cached = cache.get(cacheKey);
+        if (!cached || now - cached.generatedAtMs > 3_000) {
+          const selection = requestedTargetId
+            ? await resolveDashboardSelection(options, requestedTargetId)
+            : options;
           const payload = await buildDashboardStatus({
-            workspaceRoot: options.workspaceRoot,
-            stateRoot: options.stateRoot,
+            workspaceRoot: selection.workspaceRoot,
+            stateRoot: selection.stateRoot,
             autoProcessCalibration: options.autoProcessCalibration,
             promotionVerificationExecutor: options.promotionVerificationExecutor,
-            researchModeConfig: options.researchModeConfig,
-            currentTrainingMode: options.currentTrainingMode,
+            researchModeConfig:
+              selection.researchModeConfig ?? options.researchModeConfig,
+            currentTrainingMode:
+              selection.currentTrainingMode ?? options.currentTrainingMode,
+            trainingModeOptions:
+              selection.trainingModeOptions ?? options.trainingModeOptions,
           });
-          cache = {
+          cache.set(cacheKey, {
             generatedAtMs: now,
             body: JSON.stringify(payload),
-          };
+          });
         }
-        send(response, 200, "application/json; charset=utf-8", cache.body);
+        send(response, 200, "application/json; charset=utf-8", cache.get(cacheKey)?.body ?? "{}");
         return;
       }
 
@@ -92,6 +115,30 @@ export async function startDashboardServer(
     port: bound.port,
     host,
   };
+}
+
+function readRequestedTargetId(
+  url: URL,
+  options?: DashboardTrainingModeOption[],
+): string | undefined {
+  const targetId = url.searchParams.get("target")?.trim();
+  if (!targetId) {
+    return undefined;
+  }
+  if (!options?.some((option) => option.targetId === targetId)) {
+    throw new Error(`Unknown training mode target: ${targetId}`);
+  }
+  return targetId;
+}
+
+async function resolveDashboardSelection(
+  options: DashboardServerOptions,
+  targetId: string,
+): Promise<DashboardTrainingModeSelection> {
+  if (!options.resolveTrainingMode) {
+    throw new Error("Dashboard training mode selection is not configured.");
+  }
+  return options.resolveTrainingMode(targetId);
 }
 
 function isLocalRequest(request: IncomingMessage): boolean {

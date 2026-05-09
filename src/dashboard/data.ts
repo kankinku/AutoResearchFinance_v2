@@ -17,6 +17,17 @@ import { RESEARCH_GOAL_PROFILES } from "../config/research-run-context.js";
 import { resolveStatePaths } from "../state/jsonl-store.js";
 import { fileExists, readJson, readJsonlTail } from "../utils/fs.js";
 
+export interface DashboardTrainingModeOption {
+  targetId: string;
+  label: string;
+  symbol: string;
+  timeframe: string;
+  objective: string;
+  stateRoot: string;
+  mechanism: string;
+  selected?: boolean;
+}
+
 export interface DashboardStatusPayload {
   generatedAt: string;
   project: {
@@ -96,6 +107,7 @@ export interface DashboardStatusPayload {
   };
   currentTrainingMode: {
     label: string;
+    mechanism: string;
     targetId: string | null;
     symbol: string | null;
     timeframe: string | null;
@@ -111,6 +123,11 @@ export interface DashboardStatusPayload {
     currentTargetRecordCount: number;
     untaggedRecordCount: number;
     ledgerTargetTagging: string;
+  };
+  trainingModes: {
+    mechanism: string;
+    activeTargetId: string | null;
+    options: DashboardTrainingModeOption[];
   };
   strategyReview: {
     latestDecision: string | null;
@@ -326,6 +343,7 @@ interface DashboardBuildInput {
   promotionVerificationExecutor?: string;
   researchModeConfig?: Record<string, unknown>;
   currentTrainingMode?: Record<string, unknown>;
+  trainingModeOptions?: DashboardTrainingModeOption[];
 }
 
 interface LocalLeaderboardView {
@@ -555,6 +573,10 @@ export async function buildDashboardStatus(
     stateRoot: input.stateRoot,
     experiments: recentExperiments,
   });
+  const trainingModes = buildTrainingModesDashboard({
+    activeTargetId: currentTrainingMode.targetId,
+    options: input.trainingModeOptions,
+  });
 
   return {
     generatedAt: now.toISOString(),
@@ -588,6 +610,7 @@ export async function buildDashboardStatus(
     hypothesis: latestBrief ? toDashboardHypothesis(latestBrief) : null,
     improvement,
     currentTrainingMode,
+    trainingModes,
     researchMode,
     strategyReview: buildStrategyReviewDashboard(strategyReviewBoard, researchMode),
     verifiedAutoresearch: buildVerifiedAutoresearchDashboard(autonomousSummary),
@@ -729,6 +752,7 @@ function buildCurrentTrainingModeDashboard(input: {
       : null);
   const researchMode = recordValue(source?.researchMode);
   const objective = stringValue(source?.objective) ?? stringValue(source?.objectivePolicyFile);
+  const mechanism = stringValue(source?.mechanism) ?? "shared_af_autonomous_learning";
   const label =
     stringValue(source?.label) ??
     [
@@ -742,6 +766,7 @@ function buildCurrentTrainingModeDashboard(input: {
 
   return {
     label: label || "-",
+    mechanism,
     targetId,
     symbol,
     timeframe,
@@ -762,6 +787,21 @@ function buildCurrentTrainingModeDashboard(input: {
         : untaggedRecordCount > 0
           ? "mixed_target_tags"
           : "target_tagged",
+  };
+}
+
+function buildTrainingModesDashboard(input: {
+  activeTargetId: string | null;
+  options?: DashboardTrainingModeOption[];
+}): DashboardStatusPayload["trainingModes"] {
+  const options = (input.options ?? []).map((option) => ({
+    ...option,
+    selected: option.targetId === input.activeTargetId,
+  }));
+  return {
+    mechanism: options[0]?.mechanism ?? "shared_af_autonomous_learning",
+    activeTargetId: input.activeTargetId,
+    options,
   };
 }
 

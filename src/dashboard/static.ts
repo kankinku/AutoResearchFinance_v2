@@ -370,6 +370,34 @@ export function renderDashboardHtml(): string {
       font-variant-numeric: tabular-nums;
     }
 
+    .mode-picker {
+      display: grid;
+      gap: 6px;
+      margin: 8px 0 14px;
+      max-width: 420px;
+    }
+
+    .mode-picker label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .mode-picker select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.35;
+      padding: 8px 10px;
+    }
+
     .context-rows {
       margin-top: 16px;
     }
@@ -731,6 +759,10 @@ export function renderDashboardHtml(): string {
         <div class="panel">
           <h2><span>연구 컨텍스트</span><span id="researchModeBadge">-</span></h2>
           <div class="context-title" id="researchTargetLabel">-</div>
+          <div class="mode-picker">
+            <label for="trainingModeSelect">Training mode</label>
+            <select id="trainingModeSelect" aria-label="Training mode"></select>
+          </div>
           <p class="copy" id="researchObjectiveFocus">-</p>
           <div class="feature-list" id="researchFocusChips"></div>
           <table class="context-rows">
@@ -1615,6 +1647,66 @@ export function renderDashboardHtml(): string {
       });
     }
 
+    function setupTrainingModeSelect() {
+      const select = document.getElementById("trainingModeSelect");
+      if (!select) return;
+      select.addEventListener("change", function() {
+        const url = new URL(window.location.href);
+        if (select.value) {
+          url.searchParams.set("target", select.value);
+        } else {
+          url.searchParams.delete("target");
+        }
+        window.history.replaceState(null, "", url);
+        state.failures = 0;
+        load();
+      });
+    }
+
+    function selectedTrainingModeTarget() {
+      const select = document.getElementById("trainingModeSelect");
+      if (select && select.value) {
+        return select.value;
+      }
+      return new URLSearchParams(window.location.search).get("target") || "";
+    }
+
+    function statusUrl() {
+      const params = new URLSearchParams();
+      params.set("ts", String(Date.now()));
+      const target = selectedTrainingModeTarget();
+      if (target) {
+        params.set("target", target);
+      }
+      return "/api/status?" + params.toString();
+    }
+
+    function renderTrainingModeSelect(trainingModes, currentTrainingMode) {
+      const select = document.getElementById("trainingModeSelect");
+      if (!select) return;
+      const options = trainingModes && Array.isArray(trainingModes.options)
+        ? trainingModes.options
+        : [];
+      const activeTargetId = trainingModes && trainingModes.activeTargetId
+        ? trainingModes.activeTargetId
+        : currentTrainingMode.targetId || "";
+      select.innerHTML = "";
+      options.forEach(function(option) {
+        const item = document.createElement("option");
+        item.value = option.targetId;
+        item.textContent = option.label || option.targetId;
+        select.appendChild(item);
+      });
+      if (activeTargetId && !options.some(function(option) { return option.targetId === activeTargetId; })) {
+        const item = document.createElement("option");
+        item.value = activeTargetId;
+        item.textContent = currentTrainingMode.label || activeTargetId;
+        select.appendChild(item);
+      }
+      select.value = activeTargetId;
+      select.disabled = select.options.length <= 1;
+    }
+
     function render(data) {
       const brief = data.operatorBrief || {};
       const external = data.externalValidation || {};
@@ -1628,6 +1720,7 @@ export function renderDashboardHtml(): string {
           : null;
       const researchMode = data.researchMode || {};
       const currentTrainingMode = data.currentTrainingMode || {};
+      renderTrainingModeSelect(data.trainingModes || {}, currentTrainingMode);
       const strategyReview = data.strategyReview || {};
       const activeSymbol = currentTrainingMode.symbol || researchMode.symbol;
       const activeTimeframe = currentTrainingMode.timeframe || researchMode.timeframe;
@@ -1641,6 +1734,7 @@ export function renderDashboardHtml(): string {
       text("researchObjectiveFocus", objectiveFocusLabel(researchMode.goalMode, researchMode.objectiveFocus));
       renderChipList("researchFocusChips", researchMode.strategyReviewFocus || [], tokenLabel);
       renderRows("researchContextRows", [
+        row([{ value: "Mechanism", className: "mono" }, { value: currentTrainingMode.mechanism || (data.trainingModes && data.trainingModes.mechanism) || "-", className: "mono" }]),
         row([{ value: "Mode", className: "mono" }, { value: currentTrainingMode.label || "-", className: "mono" }]),
         row([{ value: "State", className: "mono" }, { value: currentTrainingMode.statePartition || "-", className: "mono" }]),
         row([{ value: "Chart", className: "mono" }, { value: (currentTrainingMode.chartSymbol || "-") + " / " + (currentTrainingMode.chartTimeframe || "-") + " / match=" + String(currentTrainingMode.chartMatchesTarget), className: currentTrainingMode.chartMatchesTarget === false ? "badText" : "mono" }]),
@@ -1954,7 +2048,7 @@ export function renderDashboardHtml(): string {
       }, state.requestTimeoutMs);
       try {
         setRefreshStatus("warn", "갱신 중 " + new Date().toLocaleTimeString());
-        const response = await fetch("/api/status?ts=" + Date.now(), {
+        const response = await fetch(statusUrl(), {
           cache: "no-store",
           signal: controller.signal
         });
@@ -1985,6 +2079,7 @@ export function renderDashboardHtml(): string {
     });
 
     setupPageTabs();
+    setupTrainingModeSelect();
     load();
   </script>
 </body>

@@ -13,7 +13,12 @@ Current default execution mode is:
 - External calibration: TradingView optional queue
 - Current chart environment: `TRADINGVIEW_CHART_SYMBOL=QQQ`, `TRADINGVIEW_CHART_TIMEFRAME=120`
 
-This means the system is configured for the QQQ 2-hour model by default. BTC 15-minute training must be selected explicitly with `--target btc-15m-af` or `AF_RESEARCH_TARGET_ID=btc-15m-af`, and the TradingView chart environment must match `BTCUSD` / `15`.
+This means the system uses one shared AF autonomous learning mechanism and selects a chart profile for the run. QQQ 2-hour is the default profile. BTC 15-minute training is selected with `--target btc-15m-af`, `AF_RESEARCH_TARGET_ID=btc-15m-af`, or the dashboard training mode selector. The selected profile controls symbol, timeframe, objective policy, and target-scoped state root.
+
+Mechanism:
+
+- `shared_af_autonomous_learning`: same loop, same scoring flow, same local-first validation flow.
+- Training mode selection changes the chart profile and state partition, not the learning algorithm.
 
 Configured targets:
 
@@ -75,10 +80,12 @@ Actions:
 - Surface target ID, symbol, timeframe, goal mode, research mode, objective policy, chart match status, and state partition status.
 - Treat missing target tags as a visible warning, not an implicit success.
 - Extend dashboard and system health report to show the same current mode block.
+- Add a dashboard training mode selector backed by `/api/status?target=<targetId>`.
 
 Acceptance criteria:
 
 - A user can run one command and see whether the system is currently in `qqq-120m-af` or `btc-15m-af`.
+- A user can select QQQ 120m or BTC 15m in the dashboard without changing the learning mechanism.
 - If chart env and target config disagree, the report explicitly says so.
 - If state root is legacy shared, the report says `legacy_shared_state_root`.
 
