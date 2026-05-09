@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  attemptTradingViewSurfaceRecovery,
-  classifyTradingViewRuntimeFailure,
+  attemptLocalRuntimeRecovery,
+  classifyLocalRuntimeFailure,
   summarizeLocalTvParity,
 } from "../../src/research/verification-fallback.js";
 import { type PineEvaluationExecutor } from "../../src/automation/common/executor.js";
@@ -12,14 +12,14 @@ function createRecoveryExecutor(input: {
   onRecoverSurface?: (action: string) => Promise<void> | void;
 }): PineEvaluationExecutor {
   return {
-    role: "external_calibration",
-    evidenceAuthority: "external_tv",
+    role: "primary_local_backtest",
+    evidenceAuthority: "local_model",
     supportedStrategyFamilies: ["AF"],
     supportedSymbols: ["QQQ"],
     supportedTimeframes: ["120"],
     getCapability() {
       return {
-        kind: "tradingview-live",
+        kind: "local-af-backtest",
         authoritative: true,
         supportedSymbols: ["QQQ"],
         supportedTimeframes: ["120"],
@@ -70,31 +70,31 @@ function createRecoveryExecutor(input: {
 }
 
 describe("verification fallback helpers", () => {
-  test("classifies explicit Pine editor loading timeouts as TV surface failures", () => {
+  test("classifies explicit Pine source loading timeouts as local runtime failures", () => {
     expect(
-      classifyTradingViewRuntimeFailure(
+      classifyLocalRuntimeFailure(
         new Error(
-          "Pine editor open timeout: Pine editor open timed out after 15000ms while loading TradingView Pine editor.",
+          "Pine source panel open timeout after 15000ms while loading the local runtime.",
         ),
       ),
     ).toBe("pine_editor_open_timeout");
     expect(
-      classifyTradingViewRuntimeFailure(
+      classifyLocalRuntimeFailure(
         new Error(
-          "Monaco editor attach timeout: Monaco editor ready timed out after 15000ms while loading TradingView Pine editor.",
+          "Monaco editor attach timeout: Monaco editor ready timed out after 15000ms.",
         ),
       ),
     ).toBe("monaco_attach_timeout");
     expect(
-      classifyTradingViewRuntimeFailure(
+      classifyLocalRuntimeFailure(
         new Error(
-          "TradingView calibration step prepareChart timed out after 30000ms.",
+          "Local runtime prepareChart timed out after 30000ms.",
         ),
       ),
     ).toBe("chart_load_timeout");
     expect(
-      classifyTradingViewRuntimeFailure(
-        new Error("TradingView active chart widget is not available."),
+      classifyLocalRuntimeFailure(
+        new Error("Active chart widget is not available."),
       ),
     ).toBe("chart_load_timeout");
   });
@@ -102,7 +102,7 @@ describe("verification fallback helpers", () => {
   test("uses executor-specific recoverSurface action when available", async () => {
     const observedActions: string[] = [];
 
-    const result = await attemptTradingViewSurfaceRecovery({
+    const result = await attemptLocalRuntimeRecovery({
       executorFactory: () =>
         createRecoveryExecutor({
           onRecoverSurface: async (action) => {
@@ -126,7 +126,7 @@ describe("verification fallback helpers", () => {
   test("falls back to prepareChart when executor-specific recovery is unavailable", async () => {
     let prepareChartCalls = 0;
 
-    const result = await attemptTradingViewSurfaceRecovery({
+    const result = await attemptLocalRuntimeRecovery({
       executorFactory: () => ({
         ...createRecoveryExecutor({
           onPrepareChart: async () => {

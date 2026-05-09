@@ -1,7 +1,5 @@
 param(
-  [int]$CalibrationBudget = 1,
   [int]$SleepSeconds = 10,
-  [switch]$EnableTradingViewCalibration,
   [string]$ResearchTargetId = "qqq-120m-af",
   [string]$StateRoot = ""
 )
@@ -16,12 +14,14 @@ if ([string]::IsNullOrWhiteSpace($StateRoot)) {
 } else {
   $StateRoot = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $StateRoot))
 }
+
 $TargetConfigPath = Join-Path $ProjectRoot ("config/targets/{0}.json" -f $ResearchTargetId)
 $TargetConfig = if (Test-Path -LiteralPath $TargetConfigPath) {
   Get-Content -LiteralPath $TargetConfigPath -Raw | ConvertFrom-Json
 } else {
   $null
 }
+
 $RuntimeRoot = Join-Path $StateRoot "runtime"
 $LogRoot = Join-Path $StateRoot "logs"
 $PidPath = Join-Path $RuntimeRoot "autonomous-loop.pid"
@@ -66,21 +66,17 @@ Set-Content -LiteralPath $PidPath -Value $PID -Encoding UTF8
 
 Push-Location $ProjectRoot
 try {
-  $AutoProcessCalibration = [bool]$EnableTradingViewCalibration
-  $AutoProcessCalibrationText = if ($AutoProcessCalibration) { "true" } else { "false" }
-
   $env:PINE_EVALUATION_EXECUTOR = "local-backtest"
   $env:AF_STATE_ROOT = [string]$StateRoot
   $env:AF_RESEARCH_TARGET_ID = [string]$ResearchTargetId
   if ($TargetConfig) {
-    $env:TRADINGVIEW_CHART_SYMBOL = [string]$TargetConfig.symbol
-    $env:TRADINGVIEW_CHART_TIMEFRAME = [string]$TargetConfig.timeframe
+    $env:AF_CHART_SYMBOL = [string]$TargetConfig.symbol
+    $env:AF_CHART_TIMEFRAME = [string]$TargetConfig.timeframe
   }
-  $env:AF_AUTO_PROCESS_CALIBRATION = $AutoProcessCalibrationText
   $env:OPENAI_REQUEST_TIMEOUT_MS = "180000"
   $env:OPENAI_MAX_RETRIES = "2"
 
-  Add-Content -LiteralPath $LogFile -Value "[$(Get-Date -Format o)] codex supervised loop started pid=$PID target=$ResearchTargetId stateRoot=$StateRoot chart=$($env:TRADINGVIEW_CHART_SYMBOL):$($env:TRADINGVIEW_CHART_TIMEFRAME) autoProcessCalibration=$AutoProcessCalibrationText"
+  Add-Content -LiteralPath $LogFile -Value "[$(Get-Date -Format o)] codex supervised loop started pid=$PID target=$ResearchTargetId stateRoot=$StateRoot chart=$($env:AF_CHART_SYMBOL):$($env:AF_CHART_TIMEFRAME) mode=local-only"
   $iteration = 0
 
   while ($true) {
@@ -92,7 +88,7 @@ try {
     $iteration += 1
     $startedAt = Get-Date
     Add-Content -LiteralPath $LogFile -Value "[$($startedAt.ToString('o'))] iteration ${iteration}: run-autonomous-loop start"
-    & node dist/cli/index.js run-autonomous-loop --target $ResearchTargetId --count 1 --auto-process-calibration $AutoProcessCalibrationText --calibration-budget $CalibrationBudget >> $LogFile 2>&1
+    & node dist/cli/index.js run-autonomous-loop --target $ResearchTargetId --count 1 >> $LogFile 2>&1
     $exitCode = $LASTEXITCODE
     $duration = [Math]::Round(((Get-Date) - $startedAt).TotalSeconds, 3)
 
@@ -107,18 +103,17 @@ try {
       generatedAt = (Get-Date).ToUniversalTime().ToString("o")
       lastRunExit = $exitCode
       durationSeconds = $duration
-      autoProcessCalibration = $AutoProcessCalibration
-      calibrationBudget = $CalibrationBudget
+      localOnly = $true
       logFile = $LogFile
       stateRoot = $StateRoot
       researchTargetId = $ResearchTargetId
-      chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
-      chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+      chartSymbol = $env:AF_CHART_SYMBOL
+      chartTimeframe = $env:AF_CHART_TIMEFRAME
       currentTrainingMode = @{
         mechanism = "shared_af_autonomous_learning"
         targetId = $ResearchTargetId
-        symbol = $env:TRADINGVIEW_CHART_SYMBOL
-        timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+        symbol = $env:AF_CHART_SYMBOL
+        timeframe = $env:AF_CHART_TIMEFRAME
         stateRoot = $StateRoot
       }
     } | ConvertTo-Json -Compress | Set-Content -LiteralPath $HeartbeatPath -Encoding UTF8

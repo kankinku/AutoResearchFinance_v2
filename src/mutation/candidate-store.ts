@@ -6,7 +6,7 @@ import {
   type CandidateArtifact,
   type ParsedMutationResponse,
 } from "../contracts/types.js";
-import { ensureCandidateStudyTitle } from "../automation/tradingview/pine-study.js";
+import { ensureCandidateStudyTitle } from "../strategy-source/pine-study.js";
 import { createCandidateId, ensureDir, sha256 } from "../utils/fs.js";
 import { assertEditableResearchPath } from "../policy/autoresearch-contract.js";
 import {

@@ -18,7 +18,7 @@ import { createCandidateId, sha256Json } from "../../utils/fs.js";
 import {
   isOrderBearingTraceEvent,
   normalizeTraceEventForParity,
-} from "../../automation/tradingview/trace-artifact.js";
+} from "../../automation/local-backtest/trace-artifact.js";
 
 const LOW_DIVERGENCE_BONUS = 0.05;
 const MEDIUM_DIVERGENCE_PENALTY = 0.04;
@@ -438,7 +438,7 @@ export function buildLocalConfidenceSummary(
     .slice(0, 5);
   const recentCalibrationSummary =
     events.length === 0
-      ? "No TradingView calibration history yet. Use neutral local confidence and keep local-first exploration running."
+      ? "No external calibration history remains. Use neutral local confidence and keep local-first exploration running."
       : `Calibration history is active across ${latestByFamily.size} structure families and ${events.length} confidence updates.`;
   const confidenceAdjustmentSummary =
     events.length === 0

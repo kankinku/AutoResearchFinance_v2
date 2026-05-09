@@ -130,7 +130,7 @@ export function collectPromotionEvidenceIssueDetails(
     pushIssue(
       issues,
       "raw_report_hash_missing",
-      "TradingView raw report hash is missing from artifactBundle or artifactSummary.",
+      "Local raw report hash is missing from artifactBundle or artifactSummary.",
     );
   }
 
@@ -323,8 +323,7 @@ export function evaluateVerifiedViewEligibility(
     );
   }
   if (
-    !record.executorCapability?.authoritative ||
-    record.executorCapability.kind !== "tradingview-live"
+    !record.executorCapability?.authoritative
   ) {
     pushIssue(
       issues,
@@ -383,7 +382,7 @@ export function evaluatePromotionEligibility(
     pushIssue(
       issues,
       "promotion_ready_false",
-      "Candidate is verified but not promotion-ready. Re-run verification after improving TradingView artifact completeness.",
+      "Candidate is verified but not promotion-ready. Re-run local readiness after improving artifact completeness.",
     );
   }
   if (!record.artifactValidation?.promotionReady) {
@@ -421,7 +420,7 @@ export function evaluatePromotedHeadEligibility(
     pushIssue(
       issues,
       "promotion_ready_false",
-      "Candidate is verified but not promotion-ready. Re-run verification after improving TradingView artifact completeness.",
+      "Candidate is verified but not promotion-ready. Re-run local readiness after improving artifact completeness.",
     );
   }
   if (!record.artifactValidation?.promotionReady) {

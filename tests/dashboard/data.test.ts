@@ -169,7 +169,7 @@ describe("buildDashboardStatus", () => {
     expect(status.verifiedAutoresearch.trialPressure?.familyTrials).toBe(7);
     expect(status.verifiedAutoresearch.branchBudget?.totalBranches).toBe(2);
     expect(status.operatorBrief.mode).toBe("local_only");
-    expect(status.operatorBrief.headline).toContain("TradingView는 수동");
+    expect(status.operatorBrief.headline).toContain("로컬 연구와 로컬 승격 검증");
     expect(status.operatorBrief.summary).toContain("수익률은 -3.00%");
     expect(status.score.returnProfile.latestPercent).toBe(-3);
     expect(status.score.returnProfile.recentBestPercent).toBe(5);

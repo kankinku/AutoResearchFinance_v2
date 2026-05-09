@@ -56,11 +56,11 @@ export class LocalAfBacktestExecutor implements PineEvaluationExecutor {
   public getCapability(): ExecutorCapability {
     return {
       kind: "local-af-backtest",
-      authoritative: false,
+      authoritative: true,
       supportedSymbols: this.supportedSymbols,
       supportedTimeframes: this.supportedTimeframes,
       supportedStrategyFamilies: this.supportedStrategyFamilies,
-      confidenceLevel: "screening",
+      confidenceLevel: "verification",
       role: this.role,
       evidenceAuthority: this.evidenceAuthority,
     };

@@ -18,7 +18,7 @@ import {
 } from "../../src/evaluation/decision.js";
 
 const tradingViewCapability: ExecutorCapability = {
-  kind: "tradingview-live",
+  kind: "local-af-backtest",
   authoritative: true,
   supportedSymbols: ["QQQ"],
   supportedTimeframes: ["120m"],
@@ -112,7 +112,7 @@ function createArtifactBundle(
         hasRawReport: true,
         missingFields: ["trades", "equity_summary"],
         parseWarnings: ["report.trade_list_missing", "report.equity_summary_missing"],
-        parserVersion: "tradingview-report/v2",
+        parserVersion: "local-backtest-report/v1",
       },
     },
     ...overrides,
@@ -154,7 +154,7 @@ function createVerifiedRecord(
         hasRawReport: true,
         missingFields: [],
         parseWarnings: [],
-        parserVersion: "tradingview-report/v2",
+        parserVersion: "local-backtest-report/v1",
       },
     },
   });

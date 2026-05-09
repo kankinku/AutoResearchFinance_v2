@@ -180,7 +180,7 @@ function buildBranchGoal(branchKind: BranchKind): string {
     case "champion_exploit":
       return "Exploit the active verified champion while preserving verified-promotion gates.";
     case "frontier_exploit":
-      return "Exploit high-scoring local frontier candidates without bypassing TV verification.";
+      return "Exploit high-scoring local frontier candidates without bypassing local verification.";
     case "exploration_breakout":
       return "Explore a materially distinct AF-compatible structure family.";
     case "near_miss_repair":

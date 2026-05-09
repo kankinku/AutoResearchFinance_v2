@@ -1,8 +1,8 @@
 import {
+  localTraceArtifactSchema,
   traceEventV1Schema,
-  tvTraceArtifactSchema,
   type TraceEventV1,
-  type TvTraceArtifact,
+  type LocalTraceArtifact,
 } from "../../contracts/types.js";
 
 export const AF_TRACE_PREFIX = "AFTRACE|v1|";
@@ -55,10 +55,10 @@ export function isOrderBearingTraceEvent(event: TraceEventV1): boolean {
   return event.orderAction !== "none";
 }
 
-export function buildTvTraceArtifact(events: TraceEventV1[]): TvTraceArtifact {
-  return tvTraceArtifactSchema.parse({
-    schemaVersion: "tv-trace-artifact/v1",
-    source: "tradingview-report",
+export function buildLocalTraceArtifact(events: TraceEventV1[]): LocalTraceArtifact {
+  return localTraceArtifactSchema.parse({
+    schemaVersion: "local-trace-artifact/v1",
+    source: "local-backtest-report",
     tracePrefix: AF_TRACE_PREFIX,
     events,
     missingReason: events.length === 0 ? "aftrace_comments_missing" : null,

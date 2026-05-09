@@ -67,7 +67,7 @@ export async function validateAutonomousLedger(stateRoot: string): Promise<Ledge
         severity: "error",
         scope: "autonomous",
         message:
-          "TradingView surface/executor failures must not be stored as local_evaluation records.",
+          "External runtime failures must not be stored as local_evaluation records.",
         recordId: record.candidateId,
       });
     }
@@ -221,7 +221,7 @@ export async function verifyAutonomousDerivedViews(
       expected: expected.tvSurfaceFailures,
     },
     {
-      scope: "tv-calibration-queue",
+      scope: "local-promotion-queue",
       filePath: paths.tvCalibrationQueuePath,
       expected: expected.tvCalibrationQueue,
     },
@@ -308,8 +308,8 @@ export async function verifyAutonomousDerivedViews(
       expected: expected.tvSurfaceFailures,
     },
     {
-      scope: "autonomous/tv-calibration-queue",
-      filePath: path.join(autonomousDir, "tv-calibration-queue.json"),
+      scope: "autonomous/local-promotion-queue",
+      filePath: path.join(autonomousDir, "local-promotion-queue.json"),
       expected: expected.tvCalibrationQueue,
     },
     {

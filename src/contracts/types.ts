@@ -145,9 +145,9 @@ export const traceEventV1Schema = z.object({
   slotCount: z.number().int().nonnegative(),
 });
 
-export const tvTraceArtifactSchema = z.object({
-  schemaVersion: z.literal("tv-trace-artifact/v1"),
-  source: z.literal("tradingview-report"),
+export const localTraceArtifactSchema = z.object({
+  schemaVersion: z.literal("local-trace-artifact/v1"),
+  source: z.literal("local-backtest-report"),
   tracePrefix: z.literal("AFTRACE|v1|"),
   events: z.array(traceEventV1Schema).default([]),
   missingReason: z.string().nullable().default(null),
@@ -261,15 +261,11 @@ export const mutationAuthoritySchema = z.enum(["strategy_spec"]);
 
 export const executorRoleSchema = z.enum([
   "primary_local_backtest",
-  "external_calibration",
-  "legacy_authoritative_verification",
-  "external_tv_validation",
   "tv_fallback_local_backtest",
 ]);
 
 export const evidenceAuthoritySchema = z.enum([
   "local_model",
-  "external_tv",
   "hybrid_calibrated",
 ]);
 
@@ -277,7 +273,6 @@ export const executorCapabilitySchema = z.object({
   kind: z.enum([
     "local-af-screening",
     "local-af-backtest",
-    "tradingview-live",
     "mock",
   ]),
   authoritative: z.boolean(),
@@ -364,7 +359,7 @@ export const verificationRuntimeFailureKindSchema = z
     "compile_panel_timeout",
     "strategy_tester_timeout",
     "report_parse_timeout",
-    "tradingview_session_closed",
+    "local_session_closed",
     "unknown_runtime_failure",
   ])
   .nullable();
@@ -374,7 +369,7 @@ export const surfaceRecoveryActionSchema = z.enum([
   "reopen_pine_editor",
   "reattach_monaco",
   "reopen_strategy_tester",
-  "restart_tradingview_page",
+  "restart_local_runtime",
 ]);
 
 export const surfaceRecoveryAttemptSchema = z.object({
@@ -632,7 +627,7 @@ export const applyResultSchema = z.object({
   ok: z.boolean(),
   message: z.string(),
   attachDiagnostics: attachDiagnosticsSchema.optional(),
-  fallbackActions: z.array(z.string()).default([]),
+  fallbackActions: z.array(z.string()).optional(),
 });
 
 export const chartTargetSchema = z.object({
@@ -1027,8 +1022,6 @@ export const candidateArtifactSchema = z.object({
 
 export const evaluationExecutorNameSchema = z.enum([
   "local-backtest",
-  "tradingview-desktop-cdp",
-  "tradingview-web-playwright",
 ]);
 
 export const runRecordSchema = z.object({
@@ -1347,7 +1340,7 @@ export type LocalPortfolioSnapshot = z.infer<typeof localPortfolioSnapshotSchema
 export type LocalExecutionTraceEntry = z.infer<typeof localExecutionTraceEntrySchema>;
 export type TraceOrderAction = z.infer<typeof traceOrderActionSchema>;
 export type TraceEventV1 = z.infer<typeof traceEventV1Schema>;
-export type TvTraceArtifact = z.infer<typeof tvTraceArtifactSchema>;
+export type LocalTraceArtifact = z.infer<typeof localTraceArtifactSchema>;
 export type LossZoneDetail = z.infer<typeof lossZoneDetailSchema>;
 export type TradeLifecycleSummary = z.infer<typeof tradeLifecycleSummarySchema>;
 export type SeedStrategyReference = z.infer<typeof seedStrategyReferenceSchema>;

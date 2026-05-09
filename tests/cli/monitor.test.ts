@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import { createCliMonitor } from "../../src/cli/monitor.js";
+import { DEFAULT_RESEARCH_TARGET_ID, resolveTargetStateRoot } from "../../src/config/target-registry.js";
 import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
 
 describe("createCliMonitor", () => {
@@ -37,7 +38,10 @@ describe("createCliMonitor", () => {
     expect(output[1]).toMatch(/\| \d{4}-\d{2}-\d{2}T/);
 
     const tracesDir = resolveKnowledgePaths(
-      path.join(workspaceRoot, "state", "pi-autoresearch"),
+      resolveTargetStateRoot({
+        workspaceRoot,
+        targetId: DEFAULT_RESEARCH_TARGET_ID,
+      }),
     ).tracesDir;
     const files = await readdir(tracesDir);
     expect(files).toHaveLength(1);

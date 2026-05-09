@@ -12,7 +12,7 @@ import {
 import { derivePromotionReadiness } from "../../src/evaluation/decision.js";
 
 const tradingViewCapability: ExecutorCapability = {
-  kind: "tradingview-live",
+  kind: "local-af-backtest",
   authoritative: true,
   supportedSymbols: ["QQQ"],
   supportedTimeframes: ["120m"],
@@ -56,7 +56,7 @@ function createArtifactBundle(
         hasRawReport: true,
         missingFields: ["equity_summary"],
         parseWarnings: ["report.equity_summary_missing"],
-        parserVersion: "tradingview-report/v2",
+        parserVersion: "local-backtest-report/v1",
       },
     },
     ...overrides,
@@ -87,7 +87,7 @@ describe("artifact validation", () => {
     ).toBe(false);
   });
 
-  test("marks artifacts incomplete when a required TradingView metric is missing", () => {
+  test("marks artifacts incomplete when a required local metric is missing", () => {
     const validation = validateArtifactBundle({
       artifactBundle: createArtifactBundle({
         state: {
@@ -102,7 +102,7 @@ describe("artifact validation", () => {
             hasRawReport: true,
             missingFields: ["total_trades", "trades", "equity_summary"],
             parseWarnings: ["report.trade_list_missing", "report.equity_summary_missing"],
-            parserVersion: "tradingview-report/v2",
+            parserVersion: "local-backtest-report/v1",
           },
         },
       }),
@@ -130,7 +130,7 @@ describe("artifact validation", () => {
             hasRawReport: true,
             missingFields: ["trades", "equity_summary"],
             parseWarnings: ["report.trade_list_missing", "report.equity_summary_missing"],
-            parserVersion: "tradingview-report/v2",
+            parserVersion: "local-backtest-report/v1",
           },
         },
       }),

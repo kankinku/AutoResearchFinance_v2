@@ -33,7 +33,7 @@ import {
 import {
   ACTIVE_TV_CALIBRATION_QUEUE_LIMIT,
   selectActiveCalibrationQueueEvents,
-} from "../research/autonomous/tv-calibration-queue-phase.js";
+} from "../research/autonomous/local-promotion-queue-phase.js";
 
 type CalibrationQueueDerivedStatus =
   | "pending"
@@ -1437,7 +1437,7 @@ async function writeAutonomousNamespaceViews(
   await writeJson(path.join(autonomousDir, "novelty-frontier.json"), views.noveltyFrontier);
   await writeJson(path.join(autonomousDir, "robustness-frontier.json"), views.robustnessFrontier);
   await writeJson(path.join(autonomousDir, "tv-surface-failures.json"), views.tvSurfaceFailures);
-  await writeJson(path.join(autonomousDir, "tv-calibration-queue.json"), views.tvCalibrationQueue);
+  await writeJson(path.join(autonomousDir, "local-promotion-queue.json"), views.tvCalibrationQueue);
   await writeJson(path.join(autonomousDir, "local-tv-divergence.json"), views.localTvDivergence);
   await writeJson(path.join(autonomousDir, "auto-selection-decisions.json"), views.autoSelectionDecisions);
   await writeJson(path.join(autonomousDir, "duplicate-candidates.json"), views.duplicateCandidates);

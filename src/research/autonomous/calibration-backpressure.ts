@@ -38,7 +38,7 @@ export function buildCalibrationBackpressure(input: {
   const majorDrift = input.parityStatusCounts?.major_drift ?? 0;
   const matched = input.parityStatusCounts?.matched ?? 0;
   if (active && majorDrift > matched) {
-    reasons.push(`TradingView parity drift exceeds matches (${majorDrift} > ${matched})`);
+    reasons.push(`Local parity drift exceeds matches (${majorDrift} > ${matched})`);
   }
 
   const recommendedAction: CalibrationBackpressureAction | null = !active

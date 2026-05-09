@@ -407,7 +407,7 @@ export async function prepareAutonomousMutationPlan(input: {
         `Generate a materially different AF-compatible structure that still clears at least ${input.objective.hardGates.minimumTotalTrades} full-sample trades and ${minimumOosTrades} out-of-sample trades with positive OOS post-fee profit.`,
         "Coordinated entry, exit, risk, and replacement changes are allowed when needed for the new family.",
         explorationDirective.ignoredCalibrationGuidance
-          ? "TradingView calibration guidance is intentionally skipped for this route; do not use low-divergence carry-forward as a parent-selection constraint."
+          ? "Local promotion guidance is intentionally skipped for this route; do not use low-divergence carry-forward as a parent-selection constraint."
           : "",
       ].filter(Boolean).join(" ")
     : activeChampion
@@ -456,7 +456,7 @@ export async function prepareAutonomousMutationPlan(input: {
       ? "Use the AF seed/core source as the implementation starting point and treat the active champion only as a score guardrail, not as a structure to preserve."
       : baselineCandidateId
         ? ignoreCalibrationGuidance
-          ? `Mutate from active local baseline candidate ${baselineCandidateId}; TradingView calibration carry-forward is disabled for this plan.`
+          ? `Mutate from active local baseline candidate ${baselineCandidateId}; promotion carry-forward is disabled for this plan.`
           : `Mutate from calibration-guided baseline candidate ${baselineCandidateId} unless duplicate pressure or failure memory requires a family redirect.`
         : null,
     explorationBreakoutActive
@@ -715,7 +715,7 @@ export async function prepareAutonomousMutationPlan(input: {
       ...(explorationBreakoutActive
         ? [
             "Do not preserve the same accepted-head entry family, slot/rank scaffold, or weak-exit-only mutation as the primary strategy.",
-            "Do not use TradingView calibration low-divergence carry-forward to select the parent or structure family in exploration breakout mode.",
+            "Do not use promotion low-divergence carry-forward to select the parent or structure family in exploration breakout mode.",
             "Do not make a cosmetic threshold edit; the entry architecture must be materially different from the recent archive neighborhood.",
             ...buildBreakoutOutcomeForbiddenPatterns(breakoutOutcomeMemory),
             ...(breakoutVariantDirective
@@ -1244,7 +1244,7 @@ function buildSelectedBranchGoal(branch: AutonomousBranchRecord): string {
     case "champion_exploit":
       return "Exploit the active verified champion while preserving verified-promotion gates.";
     case "frontier_exploit":
-      return "Exploit high-scoring local frontier candidates without bypassing TV verification.";
+      return "Exploit high-scoring local frontier candidates without bypassing local verification.";
     case "exploration_breakout":
       return "Explore a materially distinct AF-compatible structure family.";
     case "near_miss_repair":
@@ -2136,14 +2136,14 @@ function buildCalibrationSkippedConfidenceSummary(
     ...confidenceSummary,
     recentCalibrationSummary:
       confidenceSummary.totalUpdates === 0
-        ? "TradingView calibration is disabled or unavailable. Continue local-first exploration without waiting for calibration."
-        : `TradingView calibration is disabled or unavailable. Ignore ${confidenceSummary.totalUpdates} historical confidence updates for parent and family selection in this local-first plan.`,
+        ? "External calibration is disabled. Continue local-first exploration without waiting for calibration."
+        : `External calibration is disabled. Ignore ${confidenceSummary.totalUpdates} historical confidence updates for parent and family selection in this local-first plan.`,
     highDivergenceFamilies: [],
     lowDivergenceFamilies: [],
     confidenceAdjustmentSummary:
       "Calibration confidence adjustments are intentionally disabled for this plan.",
     calibrationAwareInstruction:
-      "Do not prefer or penalize structure families from TradingView calibration history; use only local ledger failures, archive diversity, and objective scores.",
+      "Do not prefer or penalize structure families from external calibration history; use only local ledger failures, archive diversity, and objective scores.",
   };
 }
 

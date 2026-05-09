@@ -17,7 +17,7 @@ import {
 import { loadObjectiveConfig } from "../../src/config/objective.js";
 import { validateArtifactBundle } from "../../src/evaluation/artifact-validation.js";
 import { type InvalidRecordViewEntry } from "../../src/evaluation/record-eligibility.js";
-import { createMockPineEvaluationExecutor } from "../../src/automation/tradingview/mock-driver.js";
+import { createMockPineEvaluationExecutor } from "../../src/automation/local-backtest/mock-driver.js";
 import { runLocalEvaluationPhase } from "../../src/research/autonomous/local-evaluation-phase.js";
 import { initializeWorkspace } from "../../src/research/workspace.js";
 import {
@@ -41,7 +41,7 @@ const tsxCliPath = path.join(projectRoot, "node_modules", "tsx", "dist", "cli.mj
 const cliEntryPath = path.join(projectRoot, "src", "cli", "index.ts");
 
 const tradingViewCapability: ExecutorCapability = {
-  kind: "tradingview-live",
+  kind: "local-af-backtest",
   authoritative: true,
   supportedSymbols: ["QQQ"],
   supportedTimeframes: ["120"],
@@ -161,7 +161,7 @@ function createPromotableArtifactBundle(
         hasRawReport: true,
         missingFields: [],
         parseWarnings: [],
-        parserVersion: "tradingview-report/v2",
+        parserVersion: "local-backtest-report/v1",
       },
     },
     ...overrides,
@@ -803,7 +803,7 @@ describe("ledger CLI commands", { timeout: 30_000 }, () => {
           promotionReady: true,
           executorCapability: expect.objectContaining({
             authoritative: true,
-            kind: "tradingview-live",
+            kind: "local-af-backtest",
           }),
           artifactValidation: expect.objectContaining({
             verificationReady: true,
@@ -1216,10 +1216,10 @@ describe("ledger CLI commands", { timeout: 30_000 }, () => {
       timeframe: "15",
     });
 
-    const previousChartSymbol = process.env.TRADINGVIEW_CHART_SYMBOL;
-    const previousChartTimeframe = process.env.TRADINGVIEW_CHART_TIMEFRAME;
-    process.env.TRADINGVIEW_CHART_SYMBOL = "BTCUSD";
-    process.env.TRADINGVIEW_CHART_TIMEFRAME = "15";
+    const previousChartSymbol = process.env.AF_CHART_SYMBOL;
+    const previousChartTimeframe = process.env.AF_CHART_TIMEFRAME;
+    process.env.AF_CHART_SYMBOL = "BTCUSD";
+    process.env.AF_CHART_TIMEFRAME = "15";
     const result = await runCliCommand(root, [
       "--state-root",
       targetStateRoot,
@@ -1228,14 +1228,14 @@ describe("ledger CLI commands", { timeout: 30_000 }, () => {
       "btc-15m-af",
     ]);
     if (previousChartSymbol == null) {
-      delete process.env.TRADINGVIEW_CHART_SYMBOL;
+      delete process.env.AF_CHART_SYMBOL;
     } else {
-      process.env.TRADINGVIEW_CHART_SYMBOL = previousChartSymbol;
+      process.env.AF_CHART_SYMBOL = previousChartSymbol;
     }
     if (previousChartTimeframe == null) {
-      delete process.env.TRADINGVIEW_CHART_TIMEFRAME;
+      delete process.env.AF_CHART_TIMEFRAME;
     } else {
-      process.env.TRADINGVIEW_CHART_TIMEFRAME = previousChartTimeframe;
+      process.env.AF_CHART_TIMEFRAME = previousChartTimeframe;
     }
 
     expect(result.code).toBe(0);

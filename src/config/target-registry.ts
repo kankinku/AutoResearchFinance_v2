@@ -9,7 +9,6 @@ const researchTargetSchema = z.object({
   timeframe: z.string().min(1),
   strategyFamily: z.literal("AF"),
   primaryExecutor: z.literal("local-af-backtest"),
-  externalCalibrationExecutor: z.enum(["tradingview"]).nullable().default("tradingview"),
   objectivePolicyFile: z.string().min(1),
   noveltyPolicy: z.string().min(1),
   calibrationPolicy: z.string().min(1),

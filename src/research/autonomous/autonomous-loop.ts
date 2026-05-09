@@ -37,12 +37,6 @@ import {
   prepareBootstrapCandidate,
   shouldRunBootstrapSeed,
 } from "./bootstrap-phase.js";
-import {
-  enqueueCalibrationCandidate,
-  processTvCalibrationQueue,
-  selectPendingCalibrationCandidates,
-} from "./tv-calibration-phase.js";
-import { resolveTvHealthStatus } from "./tv-health-phase.js";
 import { runAutoSelectionPhase } from "./auto-selection-phase.js";
 import {
   buildAutonomousBranchRecord,
@@ -96,8 +90,6 @@ export interface AutonomousLoopPhaseTimeouts {
   localEvaluationMs: number;
   repairMs: number;
   archiveUpdateMs: number;
-  calibrationEnqueueMs: number;
-  calibrationProcessMs: number;
   strategyReviewMs: number;
   autoSelectionMs: number;
   rebuildIndexesMs: number;
@@ -355,7 +347,6 @@ export async function runAutonomousLoop(input: {
           iteration,
           objective,
           env: input.env,
-          calibrationExecutorFactory: input.calibrationExecutorFactory,
           llmClient: input.llmClient,
           runContext: input.researchRunContext,
           localEvaluation: bootstrapEvaluation,
@@ -411,10 +402,7 @@ export async function runAutonomousLoop(input: {
       researchModeConfig: input.env.researchModeConfig,
       criterionDirective,
       strategyReviewDirective,
-      ignoreCalibrationGuidance:
-        input.env.tvCalibrationMode !== "mock-recovered" &&
-        (!input.env.autoProcessCalibration ||
-          resolveTvHealthStatus(input.env) !== "healthy"),
+      ignoreCalibrationGuidance: true,
     });
     let mutation;
     try {
@@ -679,7 +667,6 @@ export async function runAutonomousLoop(input: {
       iteration,
       objective,
       env: input.env,
-      calibrationExecutorFactory: input.calibrationExecutorFactory,
       llmClient: input.llmClient,
       runContext: input.researchRunContext,
       localEvaluation,
@@ -765,8 +752,6 @@ export async function runAutonomousIterations(input: {
       phaseTimeouts.localEvaluationMs +
       phaseTimeouts.repairMs +
       phaseTimeouts.archiveUpdateMs +
-      phaseTimeouts.calibrationEnqueueMs +
-      phaseTimeouts.calibrationProcessMs +
       phaseTimeouts.strategyReviewMs +
       phaseTimeouts.autoSelectionMs +
       phaseTimeouts.rebuildIndexesMs;
@@ -1135,8 +1120,6 @@ function resolvePhaseTimeouts(
       150_000,
     ),
     archiveUpdateMs: 15_000,
-    calibrationEnqueueMs: 15_000,
-    calibrationProcessMs: calibrationTimeoutMs,
     strategyReviewMs: openAiRequestTimeoutMs,
     autoSelectionMs: 15_000,
     rebuildIndexesMs: 20_000,
@@ -1228,98 +1211,12 @@ function filterBranchRecordsForTarget<T extends {
 }
 
 async function maybeAutoProcessCalibration(input: {
-  workspaceRoot: string;
-  stateRoot: string;
-  runId: string;
-  objective: Awaited<ReturnType<typeof loadObjectiveConfig>>;
-  env: RuntimeEnvironment;
-  calibrationExecutorFactory?: () => PineEvaluationExecutor;
-  signal?: AbortSignal;
   monitor?: MonitorLike;
 }): Promise<void> {
-  const experiments = await readExperimentRecords(input.stateRoot);
-  const calibrationEvents = await readCalibrationEventRecords(input.stateRoot);
-  const confidenceEvents = await readLocalConfidenceEventRecords(input.stateRoot);
-  const pendingCandidateIds = selectPendingCalibrationCandidates({
-    events: calibrationEvents,
-    experiments,
-  });
-  if (pendingCandidateIds.length === 0 || input.env.calibrationBudget <= 0) {
-    await input.monitor?.log(
-      "autonomous.calibration.skipped",
-      "No queued calibration candidates were auto-processed",
-      {
-        pendingCalibrationCandidateCount: pendingCandidateIds.length,
-        calibrationBudget: input.env.calibrationBudget,
-      },
-    );
-    return;
-  }
-
-  const configTvHealth = resolveTvHealthStatus(input.env);
-  if (input.env.tvCalibrationMode !== "mock-recovered") {
-    if (configTvHealth !== "healthy") {
-      await input.monitor?.log(
-        "autonomous.calibration.skipped",
-        "Skipped auto calibration because TradingView is not healthy",
-        {
-          tvHealth: configTvHealth,
-          pendingCalibrationCandidateCount: pendingCandidateIds.length,
-        },
-      );
-      return;
-    }
-    if (!input.calibrationExecutorFactory) {
-      await input.monitor?.log(
-        "autonomous.calibration.skipped",
-        "Skipped auto calibration because no calibration executor factory was provided",
-        {
-          pendingCalibrationCandidateCount: pendingCandidateIds.length,
-        },
-      );
-      return;
-    }
-    const calibrationExecutor = input.calibrationExecutorFactory();
-    try {
-      const health = await calibrationExecutor.healthCheck();
-      if (!health.healthy || health.status !== "ready") {
-        await input.monitor?.log(
-          "autonomous.calibration.skipped",
-          "Skipped auto calibration because the calibration executor health check is not ready",
-          {
-            pendingCalibrationCandidateCount: pendingCandidateIds.length,
-            executorHealth: health,
-          },
-        );
-        return;
-      }
-    } finally {
-      await calibrationExecutor.close?.();
-    }
-  }
-
-  const result = await processTvCalibrationQueue({
-    workspaceRoot: input.workspaceRoot,
-    stateRoot: input.stateRoot,
-    runId: input.runId,
-    objective: input.objective,
-    env: input.env,
-    experiments,
-    calibrationEvents,
-    confidenceEvents,
-    executorFactory: input.calibrationExecutorFactory,
-    maxCandidates: input.env.calibrationBudget,
-    signal: input.signal,
-    monitor: input.monitor,
-  });
   await input.monitor?.log(
-    "autonomous.calibration.processed",
-    "Auto calibration processed queued candidates",
-    {
-      processedCandidateIds: result.processedCandidateIds,
-      calibrationBudget: input.env.calibrationBudget,
-      tvCalibrationMode: input.env.tvCalibrationMode,
-    },
+    "autonomous.local_only.calibration_skipped",
+    "External calibration queue processing is removed in local-only mode",
+    { localOnly: true },
   );
 }
 
@@ -1405,54 +1302,15 @@ async function finalizeAutonomousLocalEvaluation(input: {
     },
   });
 
-  if (
-    input.localEvaluation.shouldQueueCalibration ||
-    input.localEvaluation.record.eligibility?.bootstrapEligible === true
-  ) {
-    await runPhase({
-      monitor: input.monitor,
-      phase: "calibration_enqueue",
-      message: "Queueing candidate for TradingView calibration",
-      timeoutMs: input.phaseTimeouts.calibrationEnqueueMs,
-      signal: input.signal,
-      run: async () => {
-        const tvHealth = resolveTvHealthStatus(input.env);
-        await enqueueCalibrationCandidate({
-          stateRoot: input.stateRoot,
-          runId: input.runId,
-          iteration: input.iteration,
-          localRecord: input.localEvaluation.record,
-          tvHealthAtQueueTime: tvHealth,
-          reason:
-            tvHealth === "unavailable"
-              ? "tv_unavailable_deferred"
-              : input.localEvaluation.record.selectionPhase === "bootstrap"
-                ? "bootstrap_seed_candidate"
-                : (input.localEvaluation.record.autoSelectionBreakdown?.noveltyScore ?? 0) >=
-                      0.15
-                  ? "novelty_frontier_candidate"
-                  : "champion_or_eligible_candidate",
-        });
-      },
-    });
-  }
-
   if (input.env.autoProcessCalibration) {
     await runPhase({
       monitor: input.monitor,
       phase: "calibration_process",
-      message: "Processing autonomous calibration queue",
-      timeoutMs: input.phaseTimeouts.calibrationProcessMs,
+      message: "Skipping removed external calibration queue",
+      timeoutMs: 1_000,
       signal: input.signal,
-      run: async (signal) => {
+      run: async () => {
         await maybeAutoProcessCalibration({
-          workspaceRoot: input.workspaceRoot,
-          stateRoot: input.stateRoot,
-          runId: input.runId,
-          objective: input.objective,
-          env: input.env,
-          calibrationExecutorFactory: input.calibrationExecutorFactory,
-          signal,
           monitor: input.monitor,
         });
       },

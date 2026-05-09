@@ -12,7 +12,7 @@ import {
 } from "../../src/state/accepted-head.js";
 
 const tradingViewCapability: ExecutorCapability = {
-  kind: "tradingview-live",
+  kind: "local-af-backtest",
   authoritative: true,
   supportedSymbols: ["QQQ"],
   supportedTimeframes: ["120"],
@@ -71,7 +71,7 @@ function createPromotableArtifactBundle(): ArtifactBundle {
         hasRawReport: true,
         missingFields: [],
         parseWarnings: [],
-        parserVersion: "tradingview-report/v2",
+        parserVersion: "local-backtest-report/v1",
       },
     },
   };

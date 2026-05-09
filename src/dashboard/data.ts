@@ -406,7 +406,7 @@ export async function buildDashboardStatus(
     readJsonSafe<ExplorationArchiveView>(paths.explorationArchivePath),
     readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "autonomous-loop-heartbeat.json")),
     readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "node-memory-telemetry.json")),
-    readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "tv-calibration-worker-heartbeat.json")),
+    readJsonSafe<Record<string, unknown>>(path.join(runtimeDir, "local-promotion-worker-heartbeat.json")),
     readJsonSafe<Record<string, unknown>>(paths.autonomousStateSummaryPath),
     readJsonSafe<TvCalibrationQueueView>(paths.tvCalibrationQueuePath),
     readJsonSafe<LocalTvDivergenceView>(paths.localTvDivergencePath),
@@ -1184,12 +1184,12 @@ function buildTopCandidateNote(input: {
     cautions.push(`최대 낙폭이 ${input.metrics.maxDrawdownPercent.toFixed(2)}%로 큽니다.`);
   }
   if (!input.tvMetrics) {
-    cautions.push("TradingView 자동 검증 결과가 아직 없습니다.");
+    cautions.push("로컬 승격 검증 결과가 아직 없습니다.");
   }
   if (input.tvParityStatus === "major_drift") {
-    cautions.push("TradingView와 local 결과 차이가 커서 최종 모델로 승격할 수 없습니다.");
+    cautions.push("로컬 검증 결과 차이가 커서 최종 모델로 승격할 수 없습니다.");
   } else if (input.tvParityStatus === "matched") {
-    strengths.push("TradingView와 local 결과가 일치한 기록이 있습니다.");
+    strengths.push("로컬 검증 결과가 일치한 기록이 있습니다.");
   }
   if (input.walkForwardStatus === "failed") {
     cautions.push("워크포워드 조건을 통과하지 못했습니다.");
@@ -1209,10 +1209,10 @@ function buildTopCandidateNote(input: {
   const summary = input.verifiedEligible
     ? "로컬 성과와 검증 조건이 모두 강한 후보입니다. 실제 승격 후보로 우선 확인할 가치가 있습니다."
     : input.tvParityStatus === "major_drift"
-      ? "로컬 순위는 높지만 TradingView 검증 차이가 커서 실전 기준으로는 보류해야 합니다."
+      ? "로컬 순위는 높지만 검증 차이가 커서 실전 기준으로는 보류해야 합니다."
       : input.tvMetrics
-        ? "TradingView 검증 결과가 있는 상위 후보입니다. 수익률보다 드리프트와 워크포워드를 같이 봐야 합니다."
-        : "로컬 리더보드 상위 후보입니다. TradingView 검증 전까지는 baseline 후보로만 다루는 편이 안전합니다.";
+        ? "로컬 승격 검증 결과가 있는 상위 후보입니다. 수익률보다 드리프트와 워크포워드를 같이 봐야 합니다."
+        : "로컬 리더보드 상위 후보입니다. 승격 검증 전까지는 baseline 후보로만 다루는 편이 안전합니다.";
 
   return {
     summary,
@@ -1249,10 +1249,10 @@ function buildOperatorBrief(input: {
       ? "인라인 처리"
       : "비활성";
   const headline = manualExternal
-    ? "로컬 연구가 기준이며 TradingView는 수동 검증입니다."
+    ? "로컬 연구와 로컬 승격 검증만 사용하는 모드입니다."
     : autoCalibration
-      ? "TradingView 큐 자동 검증이 웹 모드로 켜져 있습니다."
-      : "외부 검증이 켜져 있으므로 TradingView 표면 상태를 같이 봐야 합니다.";
+      ? "로컬 승격 큐 자동 검증이 켜져 있습니다."
+      : "외부 검증 없이 로컬 검증 상태만 확인합니다.";
   const summary = [
     input.runtime.running
       ? `루프 실행 중입니다. 최신 로컬 점수는 ${latestScore}, 수익률은 ${latestReturn}입니다.`
@@ -1262,11 +1262,11 @@ function buildOperatorBrief(input: {
     `최고 로컬 적격 점수는 ${bestScore}, 최근 최고 수익률은 ${bestReturn}입니다.`,
     pending > 0
       ? autoCalibration
-        ? `${pending}개 후보가 자동 TradingView 검증 큐에 남아 있습니다.`
-        : `${pending}개 후보가 수동 TradingView 검증을 기다립니다.`
+        ? `${pending}개 후보가 자동 로컬 승격 큐에 남아 있습니다.`
+        : `${pending}개 후보가 로컬 승격 검증을 기다립니다.`
       : autoCalibration
-        ? "자동 TradingView 검증 큐 대기는 없습니다."
-        : "긴급한 수동 TradingView 검증 대기는 없습니다.",
+        ? "자동 로컬 승격 큐 대기는 없습니다."
+        : "긴급한 로컬 승격 검증 대기는 없습니다.",
   ].join(" ");
   const warnings: string[] = [];
   if (input.improvement.status === "blocked") {
@@ -1274,11 +1274,11 @@ function buildOperatorBrief(input: {
   }
   if (input.externalValidation.latestDivergence?.parityStatus === "major_drift") {
     warnings.push(
-      `최근 TV 비교에서 ${input.externalValidation.latestDivergence.candidateId}가 major_drift였습니다.`,
+      `최근 로컬 검증 비교에서 ${input.externalValidation.latestDivergence.candidateId}가 major_drift였습니다.`,
     );
   }
   if (input.externalValidation.autoProcessCalibration) {
-    warnings.push("TradingView 큐 자동 처리가 켜져 있습니다.");
+    warnings.push("로컬 승격 큐 자동 처리가 켜져 있습니다.");
   }
 
   return {
@@ -1330,12 +1330,12 @@ function buildOperatorBrief(input: {
         status: input.activeChampion ? "good" : "neutral",
       },
       {
-        label: "TV 모드",
-        value: autoCalibration ? "자동 검증" : manualExternal ? "수동" : "외부 검증",
+        label: "검증 모드",
+        value: autoCalibration ? "자동 검증" : manualExternal ? "로컬 전용" : "로컬 검증",
         status: autoCalibration ? "good" : manualExternal ? "good" : "watch",
       },
       {
-        label: "TV 워커",
+        label: "검증 워커",
         value: calibrationWorkerValue,
         status: calibrationWorker.enabled
           ? calibrationWorker.running
@@ -1346,7 +1346,7 @@ function buildOperatorBrief(input: {
             : "neutral",
       },
       {
-        label: "TV 큐",
+        label: "검증 큐",
         value: `${pending}개 대기`,
         status: pending > 0 ? "watch" : "good",
       },
@@ -1356,24 +1356,24 @@ function buildOperatorBrief(input: {
       autoCalibration && pending > 0
         ? "자동 검증 결과에서 major_drift가 반복되면 로컬-파인 변환 차이를 우선 줄입니다."
         : pending > 0
-        ? "로컬 후보 품질이 충분히 좋아 보일 때 수동 TV 검증을 1개만 실행합니다."
-        : "TradingView에 시간을 쓰기 전에 로컬 루프 증거를 더 모읍니다.",
+        ? "로컬 후보 품질이 충분히 좋아 보일 때 승격 검증을 1개만 실행합니다."
+        : "승격 판단 전에 로컬 루프 증거를 더 모읍니다.",
     ],
     warnings,
     commands: [
       {
         label: "로컬 루프",
         command: autoCalibration
-          ? "powershell -ExecutionPolicy Bypass -File scripts/run-autonomous-forever.ps1 -AutoProcessCalibration -PromotionVerificationExecutor tradingview-web-playwright"
+          ? "powershell -ExecutionPolicy Bypass -File scripts/run-autonomous-forever.ps1 -AutoProcessCalibration -PromotionVerificationExecutor local-backtest"
           : "powershell -ExecutionPolicy Bypass -File scripts/run-autonomous-forever.ps1",
       },
       {
-        label: "TV 큐 확인",
-        command: "node dist/cli/index.js inspect-calibration-queue",
+        label: "로컬 상태 확인",
+        command: "node dist/cli/index.js inspect-autonomous-state",
       },
       {
-        label: autoCalibration ? "TV 즉시 검증" : "수동 TV 검증",
-        command: "node dist/cli/index.js process-tv-calibration-queue --max-candidates 1",
+        label: autoCalibration ? "로컬 즉시 검증" : "로컬 검증",
+        command: "node dist/cli/index.js verify-stage6-readiness",
       },
     ],
   };
@@ -1533,8 +1533,8 @@ function isLocalEvaluationRecord(record: ExperimentRecord): boolean {
   const rawRecord = record as unknown as Record<string, unknown>;
   return (
     stringValue(rawRecord.recordKind) !== "tv_verification" &&
-    stringValue(rawRecord.executorRole) !== "external_calibration" &&
-    stringValue(rawRecord.evidenceAuthority) !== "external_tv" &&
+    stringValue(rawRecord.executorRole) !== "primary_local_backtest" &&
+    stringValue(rawRecord.evidenceAuthority) !== "local_model" &&
     stringValue(rawRecord.evaluationMode) !== "tv_calibration"
   );
 }
@@ -1543,8 +1543,8 @@ function isTvVerificationRecord(record: ExperimentRecord): boolean {
   const rawRecord = record as unknown as Record<string, unknown>;
   return (
     stringValue(rawRecord.recordKind) === "tv_verification" ||
-    stringValue(rawRecord.executorRole) === "external_calibration" ||
-    stringValue(rawRecord.evidenceAuthority) === "external_tv" ||
+    stringValue(rawRecord.executorRole) === "primary_local_backtest" ||
+    stringValue(rawRecord.evidenceAuthority) === "local_model" ||
     stringValue(rawRecord.evaluationMode) === "tv_calibration" ||
     record.decision === "tv_verified"
   );

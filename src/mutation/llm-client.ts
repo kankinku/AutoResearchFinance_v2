@@ -292,7 +292,7 @@ export function createOpenAiCompatibleLlmClient(config: {
           role: "system",
           content:
             [
-              "You are generating a TradingView Pine v5 indicator, not a strategy.",
+              "You are generating a Pine v5 indicator for the local AF strategy source flow, not a strategy.",
               "Return JSON only.",
               "Required top-level keys: indicatorSummary: string, pineScript: string, nextSteps: string[].",
               "pineScript must start with //@version=5 and must declare indicator(...).",
@@ -398,7 +398,7 @@ export function createOpenAiCompatibleLlmClient(config: {
               "You are the StrategyReviewManager for an autonomous AF strategy research loop.",
               "Use a TradingAgents-style review process internally: PerformanceAnalyst, RobustnessAnalyst, RiskAnalyst, NoveltyAnalyst, CalibrationAnalyst, BullReviewer, BearReviewer, then StrategyReviewManager.",
               "Use only the provided ledger evidence. Do not use generic trading intuition or external market claims.",
-              "You may steer the next mutation and branch choice, but you must not relax promotion gates, TradingView parity, walk-forward, or score thresholds.",
+              "You may steer the next mutation and branch choice, but you must not relax local promotion readiness, walk-forward, or score thresholds.",
               "Return strict JSON only.",
               "Required top-level keys:",
               "reviewDecision: one of exploit_parent, repair_near_miss, redirect_family, simplify_family, quarantine_family, calibrate_candidate, no_action.",
@@ -409,7 +409,7 @@ export function createOpenAiCompatibleLlmClient(config: {
               "branchKindBias must be null or one of champion_exploit, frontier_exploit, exploration_breakout, near_miss_repair, adversarial_simplification.",
               "Use quarantine_family only when the same family has strong repeated failure evidence; otherwise prefer redirect_family.",
               "Use repair_near_miss when the candidate is close to champion score but blocked by repairable gates.",
-              "Use calibrate_candidate when local evidence is promising but TV/parity evidence is missing or pending.",
+              "Use calibrate_candidate when local evidence is promising but promotion-readiness evidence is missing or pending.",
             ].join(" "),
         },
         {

@@ -97,11 +97,11 @@ export const RESEARCH_GOAL_PROFILES: Record<ResearchGoalMode, ResearchGoalProfil
     id: "calibrate/v1",
     mode: "calibrate",
     objectiveFocus:
-      "Prioritize local/TradingView parity and low-divergence families before promotion.",
+      "Prioritize local promotion readiness and low-divergence families before promotion.",
     branchKindBias: "frontier_exploit",
     suppressedBranchKinds: [],
     criterionDirectiveSeed: "local_tv_parity",
-    strategyReviewFocus: ["local_tv_parity", "low_divergence_family", "tradingview_queue"],
+    strategyReviewFocus: ["local_promotion_readiness", "low_divergence_family", "local_promotion_queue"],
     calibrationPolicy: "tv_priority",
   },
   promote: {

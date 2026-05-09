@@ -26,10 +26,8 @@ if ([string]::IsNullOrWhiteSpace($StateRoot)) {
 
 $RuntimeRoot = Join-Path $StateRoot "runtime"
 $StopFile = Join-Path $RuntimeRoot "STOP_AUTONOMOUS_LOOP"
-$WorkerStopFile = Join-Path $RuntimeRoot "STOP_TV_CALIBRATION_WORKER"
 $PidFiles = @(
-  (Join-Path $RuntimeRoot "autonomous-loop.pid"),
-  (Join-Path $RuntimeRoot "tv-calibration-worker.pid")
+  (Join-Path $RuntimeRoot "autonomous-loop.pid")
 )
 
 function Write-StopAfLog {
@@ -57,7 +55,6 @@ function Test-IsAfCommandLine {
     "src\cli\index.ts",
     "run-autonomous-forever.ps1",
     "codex-supervised-loop.ps1",
-    "run-tv-calibration-worker.ps1",
     "scripts/stop-af.ps1",
     "scripts\stop-af.ps1"
   )
@@ -109,7 +106,6 @@ function Remove-StalePidFiles {
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot | Out-Null
 New-Item -ItemType File -Force -Path $StopFile | Out-Null
-New-Item -ItemType File -Force -Path $WorkerStopFile | Out-Null
 
 $initialProcesses = @(Get-AfProcesses)
 if ($initialProcesses.Count -gt 0) {

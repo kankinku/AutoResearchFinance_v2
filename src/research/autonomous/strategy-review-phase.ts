@@ -929,7 +929,7 @@ function buildDirectiveForDecision(
         requiredChanges: ["preserve_candidate_until_calibration"],
         forbiddenPatterns: ["promotion_without_tv_parity", "skip_walk_forward_gate"],
         suppressedFamilies: [],
-        validationFocus: ["local_tv_parity", "tradingview_verification"],
+        validationFocus: ["local_promotion_readiness", "local_verification"],
         reason: baseReason,
       };
     case "no_action":

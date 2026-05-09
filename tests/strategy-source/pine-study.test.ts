@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   ensureCandidateStudyTitle,
   extractStudyTitle,
-} from "../../src/automation/tradingview/pine-study.js";
+} from "../../src/strategy-source/pine-study.js";
 
 describe("pine-study", () => {
   test("extracts a Pine strategy title", () => {

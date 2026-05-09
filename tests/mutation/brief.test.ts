@@ -597,9 +597,9 @@ describe("buildMutationBrief", () => {
         available: true,
         source: "local-af-screening",
         authoritative: false,
-        summary: "TradingView verification failed earlier; local fallback evidence exists.",
+        summary: "Local verification failed earlier; local fallback evidence exists.",
         suggestedHypothesis:
-          "Use the local screening delta as a hypothesis only until TradingView succeeds.",
+          "Use the local screening delta as a hypothesis only until local validation succeeds.",
         forbiddenInterpretation: "do_not_treat_as_verified",
       },
     });

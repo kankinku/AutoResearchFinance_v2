@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { z } from "zod";
 
-import { ensureCandidateStudyTitle, extractStudyTitle } from "../automation/tradingview/pine-study.js";
+import { ensureCandidateStudyTitle, extractStudyTitle } from "../strategy-source/pine-study.js";
 import { type IndicatorArtifactRecord } from "../contracts/types.js";
 import { type MutationLlmClient } from "../mutation/llm-client.js";
 import { assertEditableResearchPath } from "../policy/autoresearch-contract.js";

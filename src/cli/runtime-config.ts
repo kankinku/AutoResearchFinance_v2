@@ -48,21 +48,7 @@ const runtimeEnvironmentSchema = z.object({
   mutationStaticResponsePath: z.string().optional(),
   evaluationUseMock: z.boolean(),
   evaluationExecutor: evaluationExecutorNameSchema,
-  promotionVerificationExecutor: z.enum([
-    "none",
-    "local-backtest",
-    "tradingview-desktop-cdp",
-    "tradingview-web-playwright",
-  ]),
-  tradingViewDesktopPath: z.string().optional(),
-  tradingViewCdpUrl: z.string().optional(),
-  tradingViewWebCdpUrl: z.string().optional(),
-  tradingViewWebProfileDir: z.string().optional(),
-  tradingViewWebChartUrl: z.string().optional(),
-  tradingViewWebBrowserPath: z.string().optional(),
-  tradingViewWebHeadless: z.boolean().optional(),
-  pineEditorTimeoutMs: z.number().int().positive().default(15_000),
-  tradingViewCdpCommandTimeoutMs: z.number().int().positive().default(8_000),
+  promotionVerificationExecutor: z.enum(["none", "local-backtest"]),
   chartSymbol: z.string().default("QQQ"),
   chartTimeframe: z.string().default("120"),
   chartType: z.string().default("candles"),
@@ -72,7 +58,6 @@ const runtimeEnvironmentSchema = z.object({
   alphaXivMcpBearerToken: z.string().optional(),
   alphaXivAuthFilePath: z.string().optional(),
   alphaXivSessionFilePath: z.string().optional(),
-  tvCalibrationMode: z.enum(["live", "mock-recovered"]).default("live"),
   mutationSchemaMode: z.enum(["strict", "legacy-recovery-test-only"]).default("strict"),
   researchModeConfig: researchModeConfigSchema.default({
     mode: "continuous_improvement",
@@ -120,13 +105,8 @@ function parseEvaluationExecutor(value: string | undefined): EvaluationExecutorN
 
 function parsePromotionVerificationExecutor(
   value: string | undefined,
-): "none" | EvaluationExecutorName {
-  if (
-    value === "none" ||
-    value === "local-backtest" ||
-    value === "tradingview-desktop-cdp" ||
-    value === "tradingview-web-playwright"
-  ) {
+): "none" | "local-backtest" {
+  if (value === "none" || value === "local-backtest") {
     return value;
   }
 
@@ -183,9 +163,10 @@ export function loadRuntimeEnvironment(options?: {
   });
   assertChartTargetMatchesResearchTarget({
     target: researchTarget,
-    chartSymbol: process.env.TRADINGVIEW_CHART_SYMBOL,
-    chartTimeframe: process.env.TRADINGVIEW_CHART_TIMEFRAME,
+    chartSymbol: process.env.AF_CHART_SYMBOL,
+    chartTimeframe: process.env.AF_CHART_TIMEFRAME,
   });
+  assertRemovedRuntimeConfig();
   const openAiAuthMode =
     process.env.OPENAI_AUTH_MODE === "api_key" ? "api_key" : "oauth_proxy";
   const defaultOpenAiBaseUrl =
@@ -221,41 +202,17 @@ export function loadRuntimeEnvironment(options?: {
     openAiOauthAuthFilePath: process.env.OPENAI_OAUTH_AUTH_FILE || undefined,
     mutationStaticResponsePath: process.env.MUTATION_STATIC_RESPONSE_PATH || undefined,
     evaluationUseMock:
-      process.env.PINE_EVALUATION_USE_MOCK === "true" ||
-      process.env.TRADINGVIEW_USE_MOCK === "true",
+      process.env.PINE_EVALUATION_USE_MOCK === "true",
     evaluationExecutor,
     promotionVerificationExecutor: parsePromotionVerificationExecutor(
       process.env.PINE_PROMOTION_VERIFICATION_EXECUTOR ??
         process.env.AF_PROMOTION_VERIFICATION_EXECUTOR,
     ),
-    tradingViewDesktopPath: process.env.TRADINGVIEW_DESKTOP_PATH || undefined,
-    tradingViewCdpUrl: process.env.TRADINGVIEW_CDP_URL || undefined,
-    tradingViewWebCdpUrl: process.env.TRADINGVIEW_WEB_CDP_URL || undefined,
-    tradingViewWebProfileDir: process.env.TRADINGVIEW_WEB_PROFILE_DIR
-      ? path.resolve(process.env.TRADINGVIEW_WEB_PROFILE_DIR)
-      : undefined,
-    tradingViewWebChartUrl: process.env.TRADINGVIEW_WEB_CHART_URL || undefined,
-    tradingViewWebBrowserPath:
-      process.env.TRADINGVIEW_WEB_BROWSER_PATH || undefined,
-    tradingViewWebHeadless:
-      process.env.TRADINGVIEW_WEB_HEADLESS == null
-        ? undefined
-        : process.env.TRADINGVIEW_WEB_HEADLESS === "true",
-    pineEditorTimeoutMs: Number.parseInt(
-      process.env.AF_PINE_EDITOR_TIMEOUT_MS ??
-        process.env.TRADINGVIEW_PINE_EDITOR_TIMEOUT_MS ??
-        "15000",
-      10,
-    ),
-    tradingViewCdpCommandTimeoutMs: Number.parseInt(
-      process.env.AF_TRADINGVIEW_CDP_COMMAND_TIMEOUT_MS ?? "8000",
-      10,
-    ),
-    chartSymbol: process.env.TRADINGVIEW_CHART_SYMBOL ?? researchTarget.symbol,
+    chartSymbol: process.env.AF_CHART_SYMBOL ?? researchTarget.symbol,
     chartTimeframe:
-      process.env.TRADINGVIEW_CHART_TIMEFRAME ?? researchTarget.timeframe,
-    chartType: process.env.TRADINGVIEW_CHART_TYPE ?? "candles",
-    maxTrades: Number.parseInt(process.env.TRADINGVIEW_MAX_TRADES ?? "50", 10),
+      process.env.AF_CHART_TIMEFRAME ?? researchTarget.timeframe,
+    chartType: process.env.AF_CHART_TYPE ?? "candles",
+    maxTrades: Number.parseInt(process.env.AF_MAX_TRADES ?? "50", 10),
     researchRefreshEveryTasks: Number.parseInt(
       process.env.RESEARCH_REFRESH_EVERY_TASKS ?? "3",
       10,
@@ -264,10 +221,6 @@ export function loadRuntimeEnvironment(options?: {
     alphaXivMcpBearerToken: process.env.ALPHAXIV_MCP_BEARER_TOKEN || undefined,
     alphaXivAuthFilePath: process.env.ALPHAXIV_AUTH_FILE || undefined,
     alphaXivSessionFilePath: process.env.ALPHAXIV_SESSION_FILE || undefined,
-    tvCalibrationMode:
-      process.env.AF_TV_CALIBRATION_MODE === "mock-recovered"
-        ? "mock-recovered"
-        : "live",
     mutationSchemaMode: parseMutationSchemaMode(process.env.AF_MUTATION_SCHEMA_MODE),
     researchModeConfig: resolveResearchModeConfig({
       argv,
@@ -393,7 +346,7 @@ function parseStrategyReviewMode(value: string | undefined): "off" | "selective"
 export function assertNoMockPolicy(env: RuntimeEnvironment): void {
   if (env.evaluationUseMock) {
     throw new Error(
-      "Mock Pine evaluation executors are forbidden. Remove PINE_EVALUATION_USE_MOCK=true or TRADINGVIEW_USE_MOCK=true from the environment.",
+      "Mock Pine evaluation executors are forbidden. Remove PINE_EVALUATION_USE_MOCK=true from the environment.",
     );
   }
 
@@ -405,15 +358,21 @@ export function assertNoMockPolicy(env: RuntimeEnvironment): void {
 }
 
 function assertNoLegacyExecutorConfig(): void {
-  if (process.env.TRADINGVIEW_DRIVER) {
-    throw new Error(
-      "TRADINGVIEW_DRIVER is no longer configurable. AF uses the built-in TradingView CDP executors.",
-    );
-  }
+  assertRemovedRuntimeConfig();
+}
 
-  if (process.env.TRADINGVIEW_HERMES_COMMAND || process.env.TRADINGVIEW_HERMES_CWD) {
+function assertRemovedRuntimeConfig(): void {
+  const removedNames = Object.keys(process.env).filter(
+    (name) =>
+      name.startsWith("TRADINGVIEW_") ||
+      name.startsWith("AF_TV_") ||
+      name === "TRADINGVIEW_DRIVER" ||
+      name === "TRADINGVIEW_HERMES_COMMAND" ||
+      name === "TRADINGVIEW_HERMES_CWD",
+  );
+  if (removedNames.length > 0) {
     throw new Error(
-      "Hermes is not part of AF. Remove TRADINGVIEW_HERMES_COMMAND and TRADINGVIEW_HERMES_CWD from the environment.",
+      `Removed TradingView configuration detected: ${removedNames.sort().join(", ")}. Use AF_CHART_SYMBOL, AF_CHART_TIMEFRAME, AF_CHART_TYPE, and AF_MAX_TRADES for local-only runs.`,
     );
   }
 }
@@ -525,7 +484,7 @@ function assertChartTargetMatchesResearchTarget(input: {
     input.chartSymbol.trim().toUpperCase() !== input.target.symbol.toUpperCase()
   ) {
     throw new Error(
-      `Chart symbol conflict: TRADINGVIEW_CHART_SYMBOL=${input.chartSymbol} does not match target ${input.target.id} (${input.target.symbol}).`,
+      `Chart symbol conflict: AF_CHART_SYMBOL=${input.chartSymbol} does not match target ${input.target.id} (${input.target.symbol}).`,
     );
   }
   if (
@@ -533,7 +492,7 @@ function assertChartTargetMatchesResearchTarget(input: {
     input.chartTimeframe.trim() !== input.target.timeframe
   ) {
     throw new Error(
-      `Chart timeframe conflict: TRADINGVIEW_CHART_TIMEFRAME=${input.chartTimeframe} does not match target ${input.target.id} (${input.target.timeframe}).`,
+      `Chart timeframe conflict: AF_CHART_TIMEFRAME=${input.chartTimeframe} does not match target ${input.target.id} (${input.target.timeframe}).`,
     );
   }
 }

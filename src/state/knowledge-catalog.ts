@@ -9,7 +9,10 @@ import {
 import { ensureDir, fileExists, writeJson } from "../utils/fs.js";
 import { resolveKnowledgePaths } from "./knowledge-paths.js";
 
-export function buildKnowledgeCatalogEntries(stateRoot: string): KnowledgeCatalogEntry[] {
+export function buildKnowledgeCatalogEntries(
+  stateRoot: string,
+  workspaceRoot = path.resolve(stateRoot, "..", ".."),
+): KnowledgeCatalogEntry[] {
   const paths = resolveKnowledgePaths(stateRoot);
 
   return [
@@ -324,7 +327,7 @@ export function buildKnowledgeCatalogEntries(stateRoot: string): KnowledgeCatalo
       consumers: ["operator review", "mutation policy tuning"],
       rebuildRule: "rebuild from ledger.experiments",
       retention: "latest only",
-      description: "Prepared local-versus-TradingView divergence report structure.",
+      description: "Prepared local validation divergence report structure.",
     },
     {
       id: "views.verification_queue",
@@ -413,7 +416,10 @@ export function buildKnowledgeCatalogEntries(stateRoot: string): KnowledgeCatalo
     {
       id: "asset.strategy_candidates",
       storageClass: "asset",
-      relativePath: path.join("..", "..", "strategies", "candidates").replace(/\\/g, "/"),
+      relativePath: relativeToRoot(
+        path.join(workspaceRoot, "strategies", "candidates"),
+        stateRoot,
+      ),
       format: "directory",
       sourceOfTruth: true,
       producer: "mutation.candidate-store",
@@ -425,7 +431,10 @@ export function buildKnowledgeCatalogEntries(stateRoot: string): KnowledgeCatalo
     {
       id: "asset.strategy_source",
       storageClass: "asset",
-      relativePath: path.join("..", "..", "strategies", "source").replace(/\\/g, "/"),
+      relativePath: relativeToRoot(
+        path.join(workspaceRoot, "strategies", "source"),
+        stateRoot,
+      ),
       format: "directory",
       sourceOfTruth: true,
       producer: "workspace.initialize",
@@ -440,10 +449,10 @@ export function buildKnowledgeCatalogEntries(stateRoot: string): KnowledgeCatalo
 export async function syncKnowledgeCatalog(
   workspaceRoot: string,
   objective: ObjectiveConfig,
+  stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch"),
 ): Promise<void> {
-  const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
   const paths = resolveKnowledgePaths(stateRoot);
-  const entries = buildKnowledgeCatalogEntries(stateRoot);
+  const entries = buildKnowledgeCatalogEntries(stateRoot, workspaceRoot);
 
   await ensureDir(paths.policyDir);
   await ensureDir(paths.taxonomyDir);
@@ -496,10 +505,12 @@ export async function syncKnowledgeCatalog(
   );
 }
 
-export async function migrateLegacyKnowledgeLayout(workspaceRoot: string): Promise<{
+export async function migrateLegacyKnowledgeLayout(
+  workspaceRoot: string,
+  stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch"),
+): Promise<{
   copied: string[];
 }> {
-  const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
   const paths = resolveKnowledgePaths(stateRoot);
   const copied: string[] = [];
 
@@ -536,7 +547,10 @@ export async function migrateLegacyKnowledgeLayout(workspaceRoot: string): Promi
   return { copied };
 }
 
-export async function auditKnowledgeTree(workspaceRoot: string): Promise<{
+export async function auditKnowledgeTree(
+  workspaceRoot: string,
+  stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch"),
+): Promise<{
   ok: boolean;
   summary: {
     totalEntries: number;
@@ -546,7 +560,6 @@ export async function auditKnowledgeTree(workspaceRoot: string): Promise<{
   };
   missingEntries: string[];
 }> {
-  const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
   const paths = resolveKnowledgePaths(stateRoot);
   const catalog = knowledgeCatalogSchema.parse(
     JSON.parse(await readFile(paths.knowledgeCatalogPath, "utf8")),

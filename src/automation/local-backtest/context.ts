@@ -34,7 +34,7 @@ function resolveDefaultMarketContextTarget(workspaceRoot: string): MarketContext
     targetId,
   });
   return {
-    symbol: process.env.TRADINGVIEW_CHART_SYMBOL ?? target.symbol,
-    timeframe: process.env.TRADINGVIEW_CHART_TIMEFRAME ?? target.timeframe,
+    symbol: process.env.AF_CHART_SYMBOL ?? target.symbol,
+    timeframe: process.env.AF_CHART_TIMEFRAME ?? target.timeframe,
   };
 }

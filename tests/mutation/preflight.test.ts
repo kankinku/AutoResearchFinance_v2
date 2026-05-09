@@ -43,7 +43,7 @@ describe("inspectGeneratedMutation", () => {
     );
   });
 
-  test("detects repeated Pine compile anti-patterns before TradingView compile", () => {
+  test("detects repeated Pine compile anti-patterns before local compile", () => {
     const inspection = inspectGeneratedMutation(
       {
         candidateSummary: "Compile anti-patterns",

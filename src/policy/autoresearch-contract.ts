@@ -7,7 +7,6 @@ export const STRATEGY_SPEC_MUTATION_AUTHORITY = "strategy_spec";
 export const EVALUATION_FIREWALL_PATHS = [
   "src/evaluation/",
   "src/automation/local-backtest/",
-  "src/automation/tradingview/",
   "config/objective.*",
   "config/targets/*",
   "src/state/",

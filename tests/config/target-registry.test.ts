@@ -99,7 +99,7 @@ describe("target registry", () => {
       timeframe: "120",
       strategyFamily: "AF",
       primaryExecutor: "local-af-backtest",
-      externalCalibrationExecutor: "tradingview",
+      externalCalibrationExecutor: "local-backtest",
       objectivePolicyFile: "objective.project.json",
       noveltyPolicy: "novelty.project.json",
       calibrationPolicy: "calibration.project.json",

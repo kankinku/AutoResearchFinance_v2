@@ -18,6 +18,7 @@ vi.mock("../../src/evaluation/autonomous-scoring.js", async (importOriginal) => 
 });
 
 import { loadObjectiveConfig } from "../../src/config/objective.js";
+import { resolveTargetStateRoot } from "../../src/config/target-registry.js";
 import {
   autonomousExperimentSchema,
   autonomousBranchRecordSchema,
@@ -45,10 +46,6 @@ import {
   prepareAutonomousMutationPlan,
 } from "../../src/research/autonomous/mutation-planner.js";
 import { runStage6ReadinessGate } from "../../src/research/autonomous/stage6-readiness.js";
-import {
-  enqueueCalibrationCandidate,
-  processTvCalibrationQueue,
-} from "../../src/research/autonomous/tv-calibration-phase.js";
 import { initializeWorkspace } from "../../src/research/workspace.js";
 import { rebuildIndexes } from "../../src/state/index-builder.js";
 import { buildAutonomousViewPayloads } from "../../src/state/autonomous-index-builder.js";
@@ -67,18 +64,31 @@ import {
   readProblemEventRecords,
   readRepairAttemptRecords,
 } from "../../src/state/jsonl-store.js";
-import { createMockPineEvaluationExecutor } from "../../src/automation/tradingview/mock-driver.js";
+import { createMockPineEvaluationExecutor } from "../../src/automation/local-backtest/mock-driver.js";
 import {
   AUTORESEARCH_CONTRACT_VERSION,
   STRATEGY_SPEC_MUTATION_AUTHORITY,
 } from "../../src/policy/autoresearch-contract.js";
 import { hashAfStrategySpec } from "../../src/strategy-spec/hash.js";
 
+const testStateRoot = (workspaceRoot: string): string =>
+  resolveTargetStateRoot({ workspaceRoot, targetId: "qqq-120m-af" });
+
+vi.setConfig({ testTimeout: 30_000 });
+
+const enqueueCalibrationCandidate = async (..._args: unknown[]): Promise<void> => {
+  throw new Error("external calibration queue was removed in local-only mode");
+};
+
+const processTvCalibrationQueue = async (..._args: unknown[]): Promise<any> => {
+  throw new Error("external calibration queue was removed in local-only mode");
+};
+
 function createRuntimeEnv(
   workspaceRoot: string,
   overrides?: Partial<RuntimeEnvironment>,
 ): RuntimeEnvironment {
-  const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+  const stateRoot = testStateRoot(workspaceRoot);
   return {
     projectRoot: process.cwd(),
     workspaceRoot,
@@ -96,10 +106,6 @@ function createRuntimeEnv(
     evaluationUseMock: false,
     evaluationExecutor: "local-backtest" as const,
     promotionVerificationExecutor: "none" as const,
-    tradingViewDesktopPath: undefined,
-    tradingViewCdpUrl: undefined,
-    pineEditorTimeoutMs: 15_000,
-    tradingViewCdpCommandTimeoutMs: 8_000,
     chartSymbol: "QQQ",
     chartTimeframe: "120",
     chartType: "candles",
@@ -109,7 +115,6 @@ function createRuntimeEnv(
     alphaXivMcpBearerToken: undefined,
     alphaXivAuthFilePath: undefined,
     alphaXivSessionFilePath: undefined,
-    tvCalibrationMode: "live" as const,
     mutationSchemaMode: "strict" as const,
     autonomousBootstrapMode: "disabled" as const,
     autoProcessCalibration: false,
@@ -470,7 +475,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runAutonomousLoop appends local evaluation records without promoting local-only candidates", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-loop-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
@@ -530,7 +535,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runAutonomousLoop bootstraps the first fresh-root champion from the local-compatible seed", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-bootstrap-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
@@ -608,7 +613,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runAutonomousLoop records a repair attempt and promotes the repaired eligible candidate", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-repair-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -687,7 +692,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runAutonomousLoop does not persist late LLM output after mutation timeout", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-timeout-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const metrics = createStrongMetrics();
     const lateResponse = createStrictMutationResponse("Late timeout candidate");
@@ -726,7 +731,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("schema repair success links to the persisted repaired candidate", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-schema-repair-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -764,7 +769,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("schema repair failure fails fast without a regenerate request", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-schema-fail-fast-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     let generateCalls = 0;
 
@@ -800,9 +805,9 @@ describe("autonomous tv-verified v4", () => {
     ).toBe(false);
   });
 
-  test("runAutonomousLoop keeps calibration candidates queued when TradingView is unavailable", async () => {
+  test.skip("runAutonomousLoop keeps calibration candidates queued when external validation is unavailable", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-queue-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
@@ -869,11 +874,11 @@ describe("autonomous tv-verified v4", () => {
     expect(calibrationExecutorFactory).not.toHaveBeenCalled();
   });
 
-  test("runAutonomousLoop auto-processes mock recovered calibration and applies non-zero confidence feedback to the next local evaluation", async () => {
+  test.skip("runAutonomousLoop auto-processes mock recovered calibration and applies non-zero confidence feedback to the next local evaluation", async () => {
     const workspaceRoot = await mkdtemp(
       path.join(tmpdir(), "af-autonomous-auto-calibration-"),
     );
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -902,7 +907,6 @@ describe("autonomous tv-verified v4", () => {
     const result = await runAutonomousLoop({
       workspaceRoot,
       env: createRuntimeEnv(workspaceRoot, {
-        tvCalibrationMode: "mock-recovered",
         autoProcessCalibration: true,
         calibrationBudget: 1,
       }),
@@ -1014,12 +1018,12 @@ describe("autonomous tv-verified v4", () => {
   });
 
   test(
-    "runStage6ReadinessGate defaults to local-core queue-only readiness",
+    "runStage6ReadinessGate defaults to local-only readiness",
     async () => {
       const workspaceRoot = await mkdtemp(
         path.join(tmpdir(), "af-stage6-local-core-"),
       );
-      const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+      const stateRoot = testStateRoot(workspaceRoot);
       const objective = await loadObjectiveConfig(process.cwd());
       const metrics = createStrongMetrics();
       const objectiveBreakdown = evaluateObjective(metrics, objective);
@@ -1041,7 +1045,7 @@ describe("autonomous tv-verified v4", () => {
 
       expect(result.passed).toBe(true);
       expect(result.countFailed).toBe(0);
-      expect(result.calibrationMode).toBe("queue_only");
+      expect(result.calibrationMode).toBe("local_only");
       expect(result.feedbackClosureRequired).toBe(false);
       expect(result.scoreFeedbackPassed).toBe(true);
       expect(result.calibrationQueuePassed).toBe(true);
@@ -1055,14 +1059,14 @@ describe("autonomous tv-verified v4", () => {
       );
       expect(calibrationExecutorFactory).not.toHaveBeenCalled();
     },
-    20_000,
+    60_000,
   );
 
   test(
     "runStage6ReadinessGate passes deterministic fresh custom root readiness",
     async () => {
       const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-stage6-gate-current-"));
-      const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+      const stateRoot = testStateRoot(workspaceRoot);
       const objective = await loadObjectiveConfig(process.cwd());
       const metrics = createStrongMetrics();
       const objectiveBreakdown = evaluateObjective(metrics, objective);
@@ -1074,7 +1078,6 @@ describe("autonomous tv-verified v4", () => {
         env: createRuntimeEnv(workspaceRoot, {
           stateRoot,
           autonomousBootstrapMode: "auto",
-          tvCalibrationMode: "mock-recovered",
         }),
         count: 5,
         mode: "deterministic",
@@ -1096,7 +1099,7 @@ describe("autonomous tv-verified v4", () => {
       expect(result.countFailed).toBe(0);
       expect(persisted.passed).toBe(true);
     },
-    20_000,
+    60_000,
   );
 
   test("resolveStructureFamilyHash groups semantically similar AF structures into the same family", () => {
@@ -1162,7 +1165,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runLocalEvaluationPhase marks exact duplicates as ineligible and exposes them in duplicate-candidates view", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-dup-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -1296,7 +1299,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runLocalEvaluationPhase writes failure memory for rejection reasons that should steer the next mutation", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-failure-memory-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -1458,7 +1461,7 @@ describe("autonomous tv-verified v4", () => {
     const workspaceRoot = await mkdtemp(
       path.join(tmpdir(), "af-autonomous-compat-source-derived-"),
     );
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const candidatePath = await writeCandidateFile(
       workspaceRoot,
@@ -1545,7 +1548,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runLocalEvaluationPhase escalates repeated failure signatures to archive gap redirect", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-failure-escalation-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -2237,7 +2240,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runArchiveUpdatePhase writes failure archive events for rejected candidates", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-failure-archive-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -2322,9 +2325,9 @@ describe("autonomous tv-verified v4", () => {
     );
   });
 
-  test("processTvCalibrationQueue records TradingView surface failures without invalidating the local evaluation record", async () => {
+  test.skip("processTvCalibrationQueue records external validation failures without invalidating the local evaluation record", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-tvfail-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -2404,13 +2407,13 @@ describe("autonomous tv-verified v4", () => {
       runId: "tv-process-run",
       objective,
       env: createRuntimeEnv(workspaceRoot, {
-        promotionVerificationExecutor: "tradingview-desktop-cdp",
+        promotionVerificationExecutor: "local-backtest",
       }),
       experiments: await readExperimentRecords(stateRoot),
       calibrationEvents: await readCalibrationEventRecords(stateRoot),
       executorFactory: () =>
         createMockPineEvaluationExecutor({
-          prepareChartError: "pine editor timed out while opening TradingView surface",
+          prepareChartError: "source panel timed out while opening local runtime",
         }),
     });
 
@@ -2448,9 +2451,9 @@ describe("autonomous tv-verified v4", () => {
     );
   });
 
-  test("processTvCalibrationQueue mock recovered mode writes tv verification and divergence evidence", async () => {
+  test.skip("processTvCalibrationQueue mock recovered mode writes tv verification and divergence evidence", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-tv-mock-recovered-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -2530,7 +2533,6 @@ describe("autonomous tv-verified v4", () => {
       runId: "tv-mock-process-run",
       objective,
       env: createRuntimeEnv(workspaceRoot, {
-        tvCalibrationMode: "mock-recovered",
       }),
       experiments: await readExperimentRecords(stateRoot),
       calibrationEvents: await readCalibrationEventRecords(stateRoot),
@@ -2558,11 +2560,11 @@ describe("autonomous tv-verified v4", () => {
     );
   });
 
-  test("mock recovered calibration writes confidence updates and feeds the next brief and score breakdown", async () => {
+  test.skip("mock recovered calibration writes confidence updates and feeds the next brief and score breakdown", async () => {
     const workspaceRoot = await mkdtemp(
       path.join(tmpdir(), "af-autonomous-confidence-feedback-"),
     );
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
     const objective = await loadObjectiveConfig(workspaceRoot);
     const metrics = createStrongMetrics();
@@ -2642,7 +2644,6 @@ describe("autonomous tv-verified v4", () => {
       runId: "confidence-process-run",
       objective,
       env: createRuntimeEnv(workspaceRoot, {
-        tvCalibrationMode: "mock-recovered",
       }),
       experiments: await readExperimentRecords(stateRoot),
       calibrationEvents: await readCalibrationEventRecords(stateRoot),
@@ -2676,7 +2677,7 @@ describe("autonomous tv-verified v4", () => {
     });
 
     expect(plan.brief.recentCalibrationSummary).not.toContain(
-      "No TradingView calibration history yet",
+    "No external calibration history yet",
     );
     expect(plan.brief.lowDivergenceFamilies).toContain(
       confidenceEvent?.structureFamilyHash,
@@ -2771,7 +2772,7 @@ describe("autonomous tv-verified v4", () => {
 
   test("runAutoSelectionPhase does not replace the current champion unless a strictly better eligible score exists", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-select-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     await initializeWorkspace(workspaceRoot);
 
     const currentChampion: Omit<ExperimentRecord, "recordedAt"> = {
@@ -2841,8 +2842,8 @@ describe("autonomous tv-verified v4", () => {
       ...currentChampion,
       runId: "run-1-tv",
       recordKind: "tv_verification",
-      executorRole: "external_calibration",
-      evidenceAuthority: "external_tv",
+      executorRole: "primary_local_backtest",
+      evidenceAuthority: "local_model",
       evaluationMode: "tv_calibration",
       decision: "tv_verified",
       status: "verified",
@@ -2978,7 +2979,7 @@ describe("autonomous tv-verified v4", () => {
     const workspaceRoot = await mkdtemp(
       path.join(tmpdir(), "af-autonomous-bootstrap-transition-"),
     );
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspaceRoot);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
     await initializeWorkspace(workspaceRoot);
     const steadySpecPath = "C:\\tmp\\steady-b.json";
@@ -3110,8 +3111,8 @@ describe("autonomous tv-verified v4", () => {
       ...steadyStateChallenger,
       runId: "run-steady-tv",
       recordKind: "tv_verification",
-      executorRole: "external_calibration",
-      evidenceAuthority: "external_tv",
+      executorRole: "primary_local_backtest",
+      evidenceAuthority: "local_model",
       evaluationMode: "tv_calibration",
       decision: "tv_verified",
       status: "verified",

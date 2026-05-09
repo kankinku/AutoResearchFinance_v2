@@ -13,7 +13,7 @@ import {
   type OpenAiAuthStatus,
 } from "./openai-oauth.js";
 
-type RecoverySurface = "openai" | "tradingview" | "alphaxiv";
+type RecoverySurface = "openai" | "local_runtime" | "alphaxiv";
 
 interface RecoveryMonitor {
   log(
@@ -77,7 +77,7 @@ export function createAutomaticTaskBatchRecoveryHooks(input: {
         const replacementExecutor = executorFactory();
         try {
           await replacementExecutor.prepareChart(resolveChartTarget(input.env));
-          recoveryActions.push("reinitialized_tradingview_surface");
+          recoveryActions.push("reinitialized_local_runtime");
           return {
             recovered: true,
             recoveryActions,
@@ -173,7 +173,7 @@ async function recoverBySurface(input: {
     await replacementExecutor.prepareChart(resolveChartTarget(input.env));
     return {
       recovered: true,
-      recoveryActions: ["reinitialized_tradingview_surface"],
+      recoveryActions: ["reinitialized_local_runtime"],
       executor: replacementExecutor,
     };
   } catch (error) {
@@ -218,11 +218,11 @@ export function inferAutomaticRecoverySurface(
   }
 
   if (
-    /(tradingview|cdp|pine editor|monaco|chart|study attachment|strategy tester metrics|stale attach|geteditors)/i.test(
+    /(local runtime|cdp|pine (source|panel)|monaco|chart|study attachment|backtest metrics|stale attach|geteditors)/i.test(
       detail,
     )
   ) {
-    return "tradingview";
+    return "local_runtime";
   }
 
   return null;

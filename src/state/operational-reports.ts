@@ -48,7 +48,7 @@ export interface RuntimeCleanupReport {
   generatedAt: string;
   stateRoot: string;
   runtimeRoot: string;
-  target: "tradingview-cache";
+  target: "runtime-cache";
   dryRun: boolean;
   deletedCount: number;
   deletedBytes: number;
@@ -177,15 +177,14 @@ export async function buildArtifactRetentionReport(input: {
 
 export async function cleanupRuntime(input: {
   stateRoot: string;
-  target: "tradingview-cache";
+  target: "runtime-cache";
   dryRun?: boolean;
   confirm?: boolean;
 }): Promise<RuntimeCleanupReport> {
   const paths = resolveKnowledgePaths(input.stateRoot);
   const runtimeRoot = paths.runtimeDir;
   const dryRun = input.dryRun ?? input.confirm !== true;
-  const tradingViewRoot = path.join(runtimeRoot, "tradingview-web-profile");
-  const candidates = (await collectRuntimeCleanupCandidates(tradingViewRoot)).sort(
+  const candidates = (await collectRuntimeCleanupCandidates(runtimeRoot)).sort(
     (left, right) => right.sizeBytes - left.sizeBytes || left.path.localeCompare(right.path),
   );
   let deletedCount = 0;

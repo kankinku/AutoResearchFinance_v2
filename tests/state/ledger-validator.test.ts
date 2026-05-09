@@ -20,7 +20,7 @@ import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
 import { sha256Json } from "../../src/utils/fs.js";
 
 const tradingViewCapability: ExecutorCapability = {
-  kind: "tradingview-live",
+  kind: "local-af-backtest",
   authoritative: true,
   supportedSymbols: ["QQQ"],
   supportedTimeframes: ["120"],
@@ -81,7 +81,7 @@ function createPromotableArtifactBundle(
         hasRawReport: true,
         missingFields: [],
         parseWarnings: [],
-        parserVersion: "tradingview-report/v2",
+        parserVersion: "local-backtest-report/v1",
       },
     },
     ...overrides,
@@ -183,7 +183,7 @@ describe("ledger-validator", () => {
       `${JSON.stringify({
         runId: "run-legacy",
         startedAt: "2026-04-23T13:52:09.344Z",
-        executor: "playwright-tradingview",
+        executor: "local-backtest",
         symbol: "QQQ",
         timeframe: "120",
         chartType: "candles",

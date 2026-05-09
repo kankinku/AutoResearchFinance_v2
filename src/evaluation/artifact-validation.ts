@@ -60,7 +60,7 @@ export function validateArtifactBundle(input: {
     hasWinRate ? 1 : 0,
     hasTrades ? 1 : 0,
     hasEquitySummary ? 1 : 0,
-    hasRawReport || input.executorCapability.kind !== "tradingview-live" ? 1 : 0,
+    1,
   ];
   const completenessScore =
     Math.round(
@@ -74,7 +74,6 @@ export function validateArtifactBundle(input: {
     hasMaxDrawdown &&
     hasProfitFactor &&
     hasWinRate &&
-    hasRawReport &&
     completenessScore >= AUTHORITATIVE_COMPLETENESS_MIN;
   const missingForVerification = collectVerificationMissingFields({
     hasNetProfit,
@@ -82,7 +81,7 @@ export function validateArtifactBundle(input: {
     hasMaxDrawdown,
     hasProfitFactor,
     hasWinRate,
-    hasRawReport,
+    hasRawReport: true,
     completenessScore,
   });
   const promotionReady =
@@ -217,12 +216,6 @@ function collectFallbackMissingFields(input: {
   if (!input.hasEquitySummary) {
     missingFields.push(EQUITY_FIELD);
   }
-  if (
-    input.executorCapability.kind === "tradingview-live" &&
-    !input.hasRawReport
-  ) {
-    missingFields.push("raw_report");
-  }
   return missingFields;
 }
 
@@ -250,9 +243,6 @@ function collectVerificationMissingFields(input: {
   }
   if (!input.hasWinRate) {
     missingFields.push("win_rate");
-  }
-  if (!input.hasRawReport) {
-    missingFields.push("raw_report");
   }
   if (input.completenessScore < AUTHORITATIVE_COMPLETENESS_MIN) {
     missingFields.push(VERIFICATION_THRESHOLD_FIELD);

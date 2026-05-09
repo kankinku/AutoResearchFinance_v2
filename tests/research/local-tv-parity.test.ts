@@ -78,7 +78,7 @@ function createTrace(): TraceEventV1[] {
   ];
 }
 
-describe("local/TradingView parity", () => {
+describe("local validation parity", () => {
   test("marks metric, trade, and trace parity as matched when evidence aligns", () => {
     const parity = buildLocalTvParity({
       localMetrics: createMetrics(),

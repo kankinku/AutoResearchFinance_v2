@@ -1,4 +1,4 @@
-import { extractStudyTitle } from "../tradingview/pine-study.js";
+import { extractStudyTitle } from "../../strategy-source/pine-study.js";
 import {
   type LocalCompatibilityContract,
   type LocalCompatibilityIssue,

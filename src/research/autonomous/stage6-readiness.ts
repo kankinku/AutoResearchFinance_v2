@@ -29,7 +29,6 @@ import { afStrategySpecFromPine } from "../../strategy-spec/to-af-config.js";
 import { type AfStrategySpec } from "../../strategy-spec/schema.js";
 
 export type Stage6ReadinessMode = "deterministic" | "real-llm";
-export type Stage6CalibrationMode = "mock-recovered" | "live";
 
 interface MonitorLike {
   log: (
@@ -52,10 +51,12 @@ export interface Stage6ReadinessResult {
   multiIterationPassed: boolean;
   rootIsolationPassed: boolean;
   repairTraceabilityPassed: boolean;
+  localOnlyValidationPassed: boolean;
   calibrationQueuePassed: boolean;
   scoreFeedbackPassed: boolean;
   feedbackClosureRequired: boolean;
-  calibrationMode: "queue_only" | Stage6CalibrationMode;
+  validationMode: "local_only";
+  calibrationMode: "local_only";
   ledgerValidationPassed: boolean;
   indexVerificationPassed: boolean;
   rootIsolationStatus: {
@@ -97,7 +98,6 @@ export async function runStage6ReadinessGate(input: {
   env: RuntimeEnvironment;
   count?: number;
   mode?: Stage6ReadinessMode;
-  calibrationMode?: Stage6CalibrationMode;
   autoProcessCalibration?: boolean;
   keepTempRoot?: boolean;
   persistToState?: boolean;
@@ -108,8 +108,6 @@ export async function runStage6ReadinessGate(input: {
 }): Promise<Stage6ReadinessResult> {
   const count = input.count ?? 5;
   const mode = input.mode ?? "deterministic";
-  const autoProcessCalibration = input.autoProcessCalibration ?? false;
-  const calibrationMode = input.calibrationMode ?? "mock-recovered";
   const keepTempRoot = input.keepTempRoot ?? false;
   const persistToState = input.persistToState ?? true;
   const tempWorkspaceRoot = await mkdtemp(path.join(tmpdir(), "af-stage6-workspace-"));
@@ -124,8 +122,7 @@ export async function runStage6ReadinessGate(input: {
     count,
     tempWorkspaceRoot,
     tempStateRoot,
-    autoProcessCalibration,
-    calibrationMode: autoProcessCalibration ? calibrationMode : "queue_only",
+    validationMode: "local_only",
   });
 
   let result: Stage6ReadinessResult | null = null;
@@ -134,11 +131,10 @@ export async function runStage6ReadinessGate(input: {
       ...input.env,
       workspaceRoot: tempWorkspaceRoot,
       stateRoot: tempStateRoot,
-      tvCalibrationMode: calibrationMode,
       autonomousBootstrapMode: "auto",
-      autoProcessCalibration,
-      calibrationBudget: autoProcessCalibration ? Math.max(input.env.calibrationBudget, 1) : 0,
-      promotionVerificationExecutor: "none",
+      autoProcessCalibration: false,
+      calibrationBudget: 0,
+      promotionVerificationExecutor: "local-backtest",
     };
     await initializeWorkspace({
       projectRoot: gateEnv.projectRoot,
@@ -154,15 +150,11 @@ export async function runStage6ReadinessGate(input: {
         ? createDeterministicStage6LlmClient(seedPine)
         : await resolveRealLlmClient(input.llmClientFactory, gateEnv);
 
-    const calibrationExecutorFactory = input.calibrationExecutorFactory;
     const iterationRun = await runAutonomousIterations({
       workspaceRoot: tempWorkspaceRoot,
       env: gateEnv,
       llmClient,
       localExecutorFactory: () => input.localExecutorFactory(gateEnv),
-      calibrationExecutorFactory: autoProcessCalibration && calibrationExecutorFactory
-        ? () => calibrationExecutorFactory(gateEnv)
-        : undefined,
       count,
       monitor: input.monitor,
     });
@@ -188,7 +180,7 @@ export async function runStage6ReadinessGate(input: {
       mutationBriefs,
       calibrationEvents: ledgers.calibrationEvents,
       confidenceEvents: ledgers.confidenceEvents,
-      required: autoProcessCalibration,
+      required: false,
     });
     const freshBootstrapPassed = localRecords.some(
       (record) =>
@@ -203,21 +195,8 @@ export async function runStage6ReadinessGate(input: {
       iterationRun.deadlineBreaches.length === 0 &&
       localRecords.length >= count &&
       activeChampionCandidateId != null;
-    const calibrationQueuePassed = autoProcessCalibration
-      ? ledgers.calibrationEvents.some(
-          (event) => event.eventKind === "calibration_candidate_added",
-        ) &&
-        ledgers.calibrationEvents.some(
-          (event) => event.eventKind === "local_tv_divergence_measured",
-        ) &&
-        ledgers.confidenceEvents.length > 0
-      : ledgers.calibrationEvents.some(
-          (event) =>
-            event.eventKind === "calibration_candidate_added" &&
-            event.queueState === "queued",
-        );
-    const scoreFeedbackPassed =
-      autoProcessCalibration ? feedbackClosureStatus.status === "passed" : true;
+    const localOnlyValidationPassed = localRecords.length > 0;
+    const scoreFeedbackPassed = true;
     const warnings = [
       ...validation.issues
         .filter((issue) => issue.severity === "warning")
@@ -243,7 +222,7 @@ export async function runStage6ReadinessGate(input: {
         multiIterationPassed &&
         rootIsolationStatus.status === "passed" &&
         repairTraceabilityStatus.status === "passed" &&
-        calibrationQueuePassed &&
+        localOnlyValidationPassed &&
         scoreFeedbackPassed &&
         validation.ok &&
         indexVerification.ok,
@@ -256,10 +235,12 @@ export async function runStage6ReadinessGate(input: {
       multiIterationPassed,
       rootIsolationPassed: rootIsolationStatus.status === "passed",
       repairTraceabilityPassed: repairTraceabilityStatus.status === "passed",
-      calibrationQueuePassed,
+      localOnlyValidationPassed,
+      calibrationQueuePassed: localOnlyValidationPassed,
       scoreFeedbackPassed,
-      feedbackClosureRequired: autoProcessCalibration,
-      calibrationMode: autoProcessCalibration ? calibrationMode : "queue_only",
+      feedbackClosureRequired: false,
+      validationMode: "local_only",
+      calibrationMode: "local_only",
       ledgerValidationPassed: validation.ok,
       indexVerificationPassed: indexVerification.ok,
       rootIsolationStatus,

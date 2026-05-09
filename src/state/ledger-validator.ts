@@ -139,12 +139,7 @@ export interface IndexVerificationOptions {
 const legacyRunRecordSchema = z.object({
   runId: z.string().min(1),
   startedAt: z.string().datetime(),
-  executor: z.union([
-    z.literal("local-backtest"),
-    z.literal("tradingview-desktop-cdp"),
-    z.literal("tradingview-web-playwright"),
-    z.literal("playwright-tradingview"),
-  ]),
+  executor: z.literal("local-backtest"),
   symbol: z.string().min(1),
   timeframe: z.string().min(1),
   chartType: z.string().min(1),
@@ -1273,19 +1268,6 @@ function validateLegacySeparation(records: ExperimentRecord[]): LedgerValidation
         scope: "legacy-separation",
         recordId: record.candidateId,
         message: "Legacy record is marked as verified or promoted in the v2 lifecycle.",
-      });
-    }
-    if (
-      record.recordMeta?.schemaVersion === "experiment/v2" &&
-      record.executorCapability?.kind === "tradingview-live" &&
-      record.decision === "verified_improvement" &&
-      !record.artifactValidation?.hasRawReport
-    ) {
-      pushIssue(issues, {
-        severity: "error",
-        scope: "verification-artifact",
-        recordId: record.candidateId,
-        message: "Verified TradingView record is missing raw report evidence.",
       });
     }
   }

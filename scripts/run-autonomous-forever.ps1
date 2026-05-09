@@ -3,12 +3,6 @@ param(
   [int]$OpenAiTimeoutMs = 180000,
   [int]$OpenAiMaxRetries = 2,
   [int]$VerifyEvery = 10,
-  [switch]$AutoProcessCalibration,
-  [switch]$InlineCalibration,
-  [int]$CalibrationBudget = 1,
-  [int]$CalibrationTimeoutMs = 60000,
-  [string]$PromotionVerificationExecutor = "",
-  [string]$TradingViewWebCdpUrl = "http://127.0.0.1:9223",
   [string]$StateRoot = "",
   [string]$Symbol = "",
   [string]$GoalMode = "",
@@ -25,6 +19,7 @@ $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 if ([string]::IsNullOrWhiteSpace($ResearchTargetId) -and [string]::IsNullOrWhiteSpace($Symbol)) {
   $ResearchTargetId = "qqq-120m-af"
 }
+
 function Get-ResearchTargetConfig {
   param([string]$TargetId)
   if ([string]::IsNullOrWhiteSpace($TargetId)) {
@@ -36,6 +31,7 @@ function Get-ResearchTargetConfig {
   }
   return Get-Content -LiteralPath $targetPath -Raw | ConvertFrom-Json
 }
+
 $TargetConfig = Get-ResearchTargetConfig -TargetId $ResearchTargetId
 $ConfiguredStateRoot = $StateRoot
 if ([string]::IsNullOrWhiteSpace($ConfiguredStateRoot)) {
@@ -49,6 +45,7 @@ if ([string]::IsNullOrWhiteSpace($ConfiguredStateRoot)) {
 } else {
   $StateRoot = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $ConfiguredStateRoot))
 }
+
 if ($TargetConfig) {
   if ([string]::IsNullOrWhiteSpace($ChartSymbol)) {
     $ChartSymbol = [string]$TargetConfig.symbol
@@ -57,13 +54,12 @@ if ($TargetConfig) {
     $ChartTimeframe = [string]$TargetConfig.timeframe
   }
 }
+
 $RuntimeRoot = Join-Path $StateRoot "runtime"
 $LogRoot = Join-Path $StateRoot "logs"
 $StopFile = Join-Path $RuntimeRoot "STOP_AUTONOMOUS_LOOP"
 $PidFile = Join-Path $RuntimeRoot "autonomous-loop.pid"
 $HeartbeatFile = Join-Path $RuntimeRoot "autonomous-loop-heartbeat.json"
-$CalibrationWorkerPidFile = Join-Path $RuntimeRoot "tv-calibration-worker.pid"
-$CalibrationWorkerHeartbeatFile = Join-Path $RuntimeRoot "tv-calibration-worker-heartbeat.json"
 $LogFile = Join-Path $LogRoot ("autonomous-loop-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $LogRoot | Out-Null
@@ -115,34 +111,13 @@ if (-not [string]::IsNullOrWhiteSpace($GoalMode)) {
   $env:AF_RESEARCH_GOAL_MODE = $GoalMode
 }
 if (-not [string]::IsNullOrWhiteSpace($ChartSymbol)) {
-  $env:TRADINGVIEW_CHART_SYMBOL = $ChartSymbol
+  $env:AF_CHART_SYMBOL = $ChartSymbol
 }
 if (-not [string]::IsNullOrWhiteSpace($ChartTimeframe)) {
-  $env:TRADINGVIEW_CHART_TIMEFRAME = $ChartTimeframe
+  $env:AF_CHART_TIMEFRAME = $ChartTimeframe
 }
 if (-not [string]::IsNullOrWhiteSpace($ChartType)) {
-  $env:TRADINGVIEW_CHART_TYPE = $ChartType
-}
-$autoProcessCalibrationValue = if ($AutoProcessCalibration.IsPresent) { "true" } else { "false" }
-$parallelCalibration = $AutoProcessCalibration.IsPresent -and -not $InlineCalibration.IsPresent
-$loopAutoProcessCalibrationValue = if ($AutoProcessCalibration.IsPresent -and $InlineCalibration.IsPresent) { "true" } else { "false" }
-$env:AF_AUTO_PROCESS_CALIBRATION = $autoProcessCalibrationValue
-$env:AF_CALIBRATION_BUDGET = [string]$CalibrationBudget
-$env:AF_CALIBRATION_TIMEOUT_MS = [string]$CalibrationTimeoutMs
-$env:AF_TV_CALIBRATION_MODE = "live"
-if ($AutoProcessCalibration.IsPresent) {
-  if ([string]::IsNullOrWhiteSpace($PromotionVerificationExecutor) -and [string]::IsNullOrWhiteSpace($env:AF_PROMOTION_VERIFICATION_EXECUTOR)) {
-    $PromotionVerificationExecutor = "tradingview-web-playwright"
-  }
-  if (-not [string]::IsNullOrWhiteSpace($PromotionVerificationExecutor)) {
-    $env:AF_PROMOTION_VERIFICATION_EXECUTOR = $PromotionVerificationExecutor
-  }
-  if (-not [string]::IsNullOrWhiteSpace($TradingViewWebCdpUrl)) {
-    $env:TRADINGVIEW_WEB_CDP_URL = $TradingViewWebCdpUrl
-  }
-  if ([string]::IsNullOrWhiteSpace($env:TRADINGVIEW_WEB_CHART_URL)) {
-    $env:TRADINGVIEW_WEB_CHART_URL = "https://www.tradingview.com/chart/"
-  }
+  $env:AF_CHART_TYPE = $ChartType
 }
 $env:OPENAI_REQUEST_TIMEOUT_MS = [string]$OpenAiTimeoutMs
 $env:OPENAI_MAX_RETRIES = [string]$OpenAiMaxRetries
@@ -202,94 +177,9 @@ function Get-NodeTelemetry {
   }
 }
 
-function Get-CalibrationWorkerStatus {
-  $workerHeartbeat = $null
-  if (Test-Path -LiteralPath $CalibrationWorkerHeartbeatFile) {
-    try {
-      $workerHeartbeat = Get-Content -LiteralPath $CalibrationWorkerHeartbeatFile -Raw | ConvertFrom-Json
-    } catch {
-      $workerHeartbeat = $null
-    }
-  }
-  $workerPid = $null
-  if ($workerHeartbeat -and $workerHeartbeat.pid) {
-    $workerPid = [int]$workerHeartbeat.pid
-  } elseif (Test-Path -LiteralPath $CalibrationWorkerPidFile) {
-    [int]$pidValue = 0
-    $pidRaw = Get-Content -LiteralPath $CalibrationWorkerPidFile -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ([int]::TryParse([string]$pidRaw, [ref]$pidValue)) {
-      $workerPid = $pidValue
-    }
-  }
-  $alive = $false
-  if ($workerPid) {
-    $alive = [bool](Get-Process -Id $workerPid -ErrorAction SilentlyContinue)
-  }
-  return @{
-    enabled = $parallelCalibration
-    mode = if ($parallelCalibration) { "parallel_worker" } elseif ($AutoProcessCalibration.IsPresent) { "inline" } else { "queue_only" }
-    pid = $workerPid
-    running = $alive
-    heartbeat = $workerHeartbeat
-    pidPath = $CalibrationWorkerPidFile
-    heartbeatPath = $CalibrationWorkerHeartbeatFile
-  }
-}
-
-function Start-CalibrationWorkerIfNeeded {
-  if (-not $parallelCalibration) {
-    return
-  }
-
-  $status = Get-CalibrationWorkerStatus
-  if ($status.running) {
-    Write-LoopLog "parallel tv calibration worker already running; pid=$($status.pid)"
-    return
-  }
-
-  if (Test-Path -LiteralPath $CalibrationWorkerPidFile) {
-    Remove-Item -LiteralPath $CalibrationWorkerPidFile -Force -ErrorAction SilentlyContinue
-  }
-
-  $workerArgs = @(
-    "-NoProfile",
-    "-ExecutionPolicy",
-    "Bypass",
-    "-File",
-    "scripts/run-tv-calibration-worker.ps1",
-    "-SleepSeconds",
-    [string]$SleepSeconds,
-    "-CalibrationBudget",
-    [string]$CalibrationBudget,
-    "-CalibrationTimeoutMs",
-    [string]$CalibrationTimeoutMs,
-    "-PromotionVerificationExecutor",
-    $env:AF_PROMOTION_VERIFICATION_EXECUTOR,
-    "-TradingViewWebCdpUrl",
-    $TradingViewWebCdpUrl,
-    "-StateRoot",
-    [string]$StateRoot,
-    "-ResearchTargetId",
-    [string]$env:AF_RESEARCH_TARGET_ID,
-    "-ChartSymbol",
-    [string]$env:TRADINGVIEW_CHART_SYMBOL,
-    "-ChartTimeframe",
-    [string]$env:TRADINGVIEW_CHART_TIMEFRAME,
-    "-ChartType",
-    [string]$env:TRADINGVIEW_CHART_TYPE
-  )
-  $worker = Start-Process `
-    -FilePath "powershell.exe" `
-    -ArgumentList $workerArgs `
-    -WorkingDirectory $ProjectRoot `
-    -WindowStyle Hidden `
-    -PassThru
-  Write-LoopLog "parallel tv calibration worker started; pid=$($worker.Id)"
-}
-
 $iteration = 0
 $memoryWarningTimes = @()
-Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; stateRoot=$StateRoot; symbol=$Symbol; goalMode=$env:AF_RESEARCH_GOAL_MODE; target=$env:AF_RESEARCH_TARGET_ID; chart=$($env:TRADINGVIEW_CHART_SYMBOL):$($env:TRADINGVIEW_CHART_TIMEFRAME); autoProcessCalibration=$autoProcessCalibrationValue; loopAutoProcessCalibration=$loopAutoProcessCalibrationValue; calibrationMode=$(if ($parallelCalibration) { 'parallel_worker' } elseif ($AutoProcessCalibration.IsPresent) { 'inline' } else { 'queue_only' }); calibrationBudget=$CalibrationBudget; promotionVerificationExecutor=$env:AF_PROMOTION_VERIFICATION_EXECUTOR"
+Write-LoopLog "autonomous forever loop started; pid=$PID; project=$ProjectRoot; stateRoot=$StateRoot; symbol=$Symbol; goalMode=$env:AF_RESEARCH_GOAL_MODE; target=$env:AF_RESEARCH_TARGET_ID; chart=$($env:AF_CHART_SYMBOL):$($env:AF_CHART_TIMEFRAME); mode=local-only"
 Write-LoopLog "stop file: $StopFile"
 
 try {
@@ -298,8 +188,6 @@ try {
       Write-LoopLog "stop file detected; exiting"
       break
     }
-
-    Start-CalibrationWorkerIfNeeded
 
     $iteration += 1
     $startedAt = Get-Date
@@ -317,30 +205,22 @@ try {
       researchSymbol = $Symbol
       goalMode = $env:AF_RESEARCH_GOAL_MODE
       researchTargetId = $env:AF_RESEARCH_TARGET_ID
-      chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
-      chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+      chartSymbol = $env:AF_CHART_SYMBOL
+      chartTimeframe = $env:AF_CHART_TIMEFRAME
       currentTrainingMode = @{
         mechanism = "shared_af_autonomous_learning"
         targetId = $env:AF_RESEARCH_TARGET_ID
-        symbol = $env:TRADINGVIEW_CHART_SYMBOL
-        timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+        symbol = $env:AF_CHART_SYMBOL
+        timeframe = $env:AF_CHART_TIMEFRAME
         stateRoot = $StateRoot
+        validationMode = "local_only"
       }
       memory = $memory
       nodeMemory = Get-NodeTelemetry
-      calibrationWorker = Get-CalibrationWorkerStatus
     }
 
     Write-LoopLog "iteration ${iteration}: run-autonomous-loop start"
-    $runArguments = @(
-      "run-autonomous-loop",
-      "--count",
-      "1",
-      "--auto-process-calibration",
-      $loopAutoProcessCalibrationValue,
-      "--calibration-budget",
-      [string]$CalibrationBudget
-    )
+    $runArguments = @("run-autonomous-loop", "--count", "1")
     if (-not [string]::IsNullOrWhiteSpace($ResearchTargetId)) {
       $runArguments += @("--target", [string]$ResearchTargetId)
     } elseif (-not [string]::IsNullOrWhiteSpace($Symbol)) {
@@ -401,18 +281,18 @@ try {
       researchSymbol = $Symbol
       goalMode = $env:AF_RESEARCH_GOAL_MODE
       researchTargetId = $env:AF_RESEARCH_TARGET_ID
-      chartSymbol = $env:TRADINGVIEW_CHART_SYMBOL
-      chartTimeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+      chartSymbol = $env:AF_CHART_SYMBOL
+      chartTimeframe = $env:AF_CHART_TIMEFRAME
       currentTrainingMode = @{
         mechanism = "shared_af_autonomous_learning"
         targetId = $env:AF_RESEARCH_TARGET_ID
-        symbol = $env:TRADINGVIEW_CHART_SYMBOL
-        timeframe = $env:TRADINGVIEW_CHART_TIMEFRAME
+        symbol = $env:AF_CHART_SYMBOL
+        timeframe = $env:AF_CHART_TIMEFRAME
         stateRoot = $StateRoot
+        validationMode = "local_only"
       }
       memory = $memory
       nodeMemory = Get-NodeTelemetry
-      calibrationWorker = Get-CalibrationWorkerStatus
       verifyEvery = $effectiveVerifyEvery
       selfHealingActive = $selfHealingActive
       lastLedgerExit = $ledgerExit
@@ -437,23 +317,6 @@ try {
   }
   throw
 } finally {
-  if ($parallelCalibration) {
-    $WorkerStopFile = Join-Path $RuntimeRoot "STOP_TV_CALIBRATION_WORKER"
-    New-Item -ItemType File -Force -Path $WorkerStopFile | Out-Null
-    $workerStatus = Get-CalibrationWorkerStatus
-    if ($workerStatus.running -and $workerStatus.pid) {
-      $deadline = (Get-Date).AddSeconds(30)
-      do {
-        Start-Sleep -Seconds 1
-        $stillRunning = [bool](Get-Process -Id $workerStatus.pid -ErrorAction SilentlyContinue)
-      } while ($stillRunning -and (Get-Date) -lt $deadline)
-      if ($stillRunning) {
-        Write-LoopLog "parallel tv calibration worker still running after stop request; pid=$($workerStatus.pid)"
-      } else {
-        Write-LoopLog "parallel tv calibration worker stopped"
-      }
-    }
-  }
   if (Test-Path -LiteralPath $PidFile) {
     Remove-Item -LiteralPath $PidFile -Force
   }

@@ -610,7 +610,7 @@ export function buildParameterNeighborhoodFromStrategySpec(input: unknown): stri
 export function buildTvFailureDecision(input: {
   failureKind: string | null | undefined;
 }): "tv_surface_failure" | "tv_executor_failure" {
-  return input.failureKind === "tradingview_session_closed"
+  return input.failureKind === "local_session_closed"
     ? "tv_executor_failure"
     : "tv_surface_failure";
 }

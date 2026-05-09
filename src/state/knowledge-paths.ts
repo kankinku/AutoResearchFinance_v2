@@ -140,7 +140,7 @@ export function resolveKnowledgePaths(stateRoot: string): KnowledgePaths {
     noveltyFrontierPath: path.join(viewsDir, "novelty-frontier.json"),
     robustnessFrontierPath: path.join(viewsDir, "robustness-frontier.json"),
     tvSurfaceFailuresPath: path.join(viewsDir, "tv-surface-failures.json"),
-    tvCalibrationQueuePath: path.join(viewsDir, "tv-calibration-queue.json"),
+    tvCalibrationQueuePath: path.join(viewsDir, "local-promotion-queue.json"),
     localTvDivergencePath: path.join(viewsDir, "local-tv-divergence.json"),
     autoSelectionDecisionsPath: path.join(viewsDir, "auto-selection-decisions.json"),
     duplicateCandidatesPath: path.join(viewsDir, "duplicate-candidates.json"),

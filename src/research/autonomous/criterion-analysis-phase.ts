@@ -162,9 +162,9 @@ export function buildCriterionDirective(
         ...common,
         metricDirection: "decrease",
         branchBias: "frontier_exploit",
-        statusSummary: `Recent TV parity counts: ${JSON.stringify(parityCounts)}.`,
+        statusSummary: `Recent validation parity counts: ${JSON.stringify(parityCounts)}.`,
         weaknessSummary:
-          "Local-first behavior is diverging from TradingView calibration or the calibration queue is backlogged.",
+          "Local-first behavior is diverging from promotion readiness or the calibration queue is backlogged.",
         successCriteria:
           "Avoid high-divergence families and prefer local structures with matched or low-drift calibration history.",
         repairPriorities: [

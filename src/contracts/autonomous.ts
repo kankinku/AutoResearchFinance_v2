@@ -25,15 +25,15 @@ export const autonomousRecordKindSchema = z.enum([
 
 export const autonomousExecutorRoleSchema = z.enum([
   "primary_local_backtest",
-  "external_calibration",
+  "primary_local_backtest",
   "legacy_authoritative_verification",
-  "external_tv_validation",
+  "local_model_validation",
   "tv_failure_fallback_local",
 ]);
 
 export const autonomousEvidenceAuthoritySchema = z.enum([
   "local_model",
-  "external_tv",
+  "local_model",
   "hybrid_calibrated",
 ]);
 

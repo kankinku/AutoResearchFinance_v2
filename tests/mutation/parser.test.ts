@@ -97,7 +97,7 @@ describe("parseMutationResponse", () => {
     const parsed = parseMutationResponseStrict(
       JSON.stringify({
         candidateSummary: "Strict spec candidate",
-        nextMutationHints: ["verify in TradingView"],
+        nextMutationHints: ["verify in local validation"],
         strategySpec,
         specPatch: {
           version: "af-spec-patch/v1",

@@ -208,8 +208,7 @@ export function derivePromotionReadiness(input: {
   }
   if (
     input.executorCapability != null &&
-    (!input.executorCapability.authoritative ||
-      input.executorCapability.kind !== "tradingview-live")
+    !input.executorCapability.authoritative
   ) {
     return false;
   }

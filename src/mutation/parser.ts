@@ -5,7 +5,7 @@ import {
   type ParsedMutationResponse,
   type SpecPatch,
 } from "../contracts/types.js";
-import { extractStudyTitle } from "../automation/tradingview/pine-study.js";
+import { extractStudyTitle } from "../strategy-source/pine-study.js";
 import { renderAfStrategySpecToPine } from "../strategy-spec/codegen-pine.js";
 import { parseAfStrategySpec, type AfStrategySpec } from "../strategy-spec/schema.js";
 import { afStrategySpecFromPine } from "../strategy-spec/to-af-config.js";

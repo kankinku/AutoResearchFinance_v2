@@ -71,13 +71,13 @@ describe("operational reports", () => {
     );
   });
 
-  test("keeps TradingView weights as manual review and deletes nothing in dry-run", async () => {
+  test("keeps session-like files as manual review and deletes nothing in dry-run", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "af-runtime-cleanup-"));
     const stateRoot = path.join(root, "state", "pi-autoresearch");
     const profileRoot = path.join(
       stateRoot,
       "runtime",
-      "tradingview-web-profile",
+      "local-profile",
       "Default",
     );
     const cacheDir = path.join(profileRoot, "Cache");
@@ -89,7 +89,7 @@ describe("operational reports", () => {
 
     const report = await cleanupRuntime({
       stateRoot,
-      target: "tradingview-cache",
+      target: "runtime-cache",
       dryRun: true,
     });
 

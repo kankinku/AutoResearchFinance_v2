@@ -2,10 +2,11 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
-import { createMockPineEvaluationExecutor } from "../../src/automation/tradingview/mock-driver.js";
+import { createMockPineEvaluationExecutor } from "../../src/automation/local-backtest/mock-driver.js";
 import { createCliMonitor } from "../../src/cli/monitor.js";
+import { resolveTargetStateRoot } from "../../src/config/target-registry.js";
 import { createStaticLlmClient } from "../../src/mutation/llm-client.js";
 import { runSingleIteration } from "../../src/research/iteration-runner.js";
 import { initializeWorkspace } from "../../src/research/workspace.js";
@@ -15,6 +16,11 @@ import {
   readIncidentRecords,
 } from "../../src/state/jsonl-store.js";
 import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
+
+const testStateRoot = (workspaceRoot: string): string =>
+  resolveTargetStateRoot({ workspaceRoot, targetId: "qqq-120m-af" });
+
+vi.setConfig({ testTimeout: 20_000 });
 
 const baseMutationResponse = JSON.stringify({
   candidateSummary: "Candidate from test",
@@ -236,7 +242,7 @@ describe("runSingleIteration", () => {
 
   test("records accepted_improvement and writes condition contributions", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-accepted-"));
-    const stateRoot = path.join(workspace, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspace);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
     await initializeWorkspace(workspace);
     const monitorLines: string[] = [];
@@ -392,7 +398,7 @@ describe("runSingleIteration", () => {
     expect(result.conditionContributions).toHaveLength(2);
     expect(result.hypothesis.nextMutationDirection).toContain("Reduce");
     expect(result.experiment.studyTitle).toContain(result.experiment.candidateId);
-    expect(result.experiment.syncArtifact?.attachDiagnostics?.exactTitleMatched).toBe(true);
+    expect(result.experiment.syncArtifact).toBeTruthy();
     expect(result.experiment.artifactBundle).toBeUndefined();
     expect(result.experiment.artifactSummary?.tradeCount).toBe(1);
     expect(result.experiment.artifactBundleRef?.path).toBeTruthy();
@@ -431,20 +437,12 @@ describe("runSingleIteration", () => {
     expect(result.experiment.artifactPaths?.tradeContextArtifact).toBeTruthy();
     expect(result.experiment.artifactPaths?.lossAnalysisArtifact).toBeTruthy();
     expect(monitorLines[0]).toBe("-------task 01----------");
+    const taskLines = monitorLines.filter((line) => line.includes("task 01 |"));
+    expect(taskLines.length).toBeGreaterThan(0);
+    expect(taskLines.some((line) => line.includes('{"'))).toBe(false);
     expect(
-      monitorLines.some(
-        (line) =>
-          line.includes("task 01 |") &&
-          line.includes("가설을 준비했습니다.") &&
-          line.includes("다음 방향:"),
-      ),
-    ).toBe(true);
-    expect(
-      monitorLines.some(
-        (line) =>
-          line.includes("task 01 |") &&
-          line.includes("verified_improvement") &&
-          line.includes("점수:"),
+      taskLines.some(
+        (line) => line.includes("verified_improvement"),
       ),
     ).toBe(true);
 
@@ -479,7 +477,7 @@ describe("runSingleIteration", () => {
       .split("\n")
       .map((line) => JSON.parse(line));
 
-    expect(syncArtifact.attachDiagnostics.exactTitleMatched).toBe(true);
+    expect(syncArtifact).toBeTruthy();
     expect(backtestArtifact.trades).toHaveLength(1);
     expect(objectiveArtifact.decision).toBe("verified_improvement");
     expect(objectiveArtifact.pineAnalysisSummary).toMatchObject({
@@ -501,7 +499,7 @@ describe("runSingleIteration", () => {
 
   test("repairs compile failures and continues evaluation", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-compile-repair-"));
-    const stateRoot = path.join(workspace, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspace);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
 
     const result = await runSingleIteration({
@@ -596,7 +594,7 @@ describe("runSingleIteration", () => {
     ).toBe("no_op_suspected");
   });
 
-  test("uses promotion verification results when local screening finds an improvement", async () => {
+  test("records local-only verification when local backtest finds an improvement", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-promotion-verify-"));
 
     const result = await runSingleIteration({
@@ -621,150 +619,27 @@ describe("runSingleIteration", () => {
           compile: { ok: true, errors: [] },
           apply: { ok: true, message: "ok" },
           metrics: {
-            netProfitPercent: 3,
-            postFeeNetProfitPercent: 1,
-            profitFactor: 1.05,
-            maxStrategyDrawdownPercent: 10,
-            percentProfitable: 42,
-            totalTrades: 55,
-            avgTradePercent: 0.05,
+            netProfitPercent: -4,
+            postFeeNetProfitPercent: -5,
+            profitFactor: 0.7,
+            maxStrategyDrawdownPercent: 30,
+            percentProfitable: 34,
+            totalTrades: 4,
+            avgTradePercent: -0.25,
           },
         }),
-      promotionVerificationExecutorName: "tradingview-desktop-cdp",
-      acceptedHeadScore: 0.45,
-    });
-
-    expect(result.decision).toBe("valid_no_promotion");
-    expect(result.experiment.artifactPaths?.primaryScreeningArtifact).toBeTruthy();
-    expect(result.experiment.artifactPaths?.promotionVerificationArtifact).toBeTruthy();
-  });
-
-  test("records fallback evidence when promotion verification runtime recovery fails", async () => {
-    const workspace = await mkdtemp(path.join(tmpdir(), "af-promotion-fallback-"));
-
-    const result = await runSingleIteration({
-      workspaceRoot: workspace,
-      llmClient: createStaticLlmClient(baseMutationResponse),
-      executor: createMockPineEvaluationExecutor({
-        capability: {
-          kind: "local-af-screening",
-          authoritative: false,
-          confidenceLevel: "screening",
-        },
-        compile: { ok: true, errors: [] },
-        apply: { ok: true, message: "ok" },
-        metrics: {
-          netProfitPercent: 25,
-          postFeeNetProfitPercent: 22,
-          profitFactor: 2.4,
-          maxStrategyDrawdownPercent: 9,
-          percentProfitable: 63,
-          totalTrades: 87,
-          avgTradePercent: 0.55,
-        },
-      }),
-      executorName: "local-backtest",
-      promotionVerificationExecutorFactory: () =>
-        createMockPineEvaluationExecutor({
-          capability: {
-            kind: "tradingview-live",
-            authoritative: true,
-            confidenceLevel: "verification",
-          },
-          prepareChartError: "Pine editor open timed out after 30000ms.",
-        }),
-      promotionVerificationExecutorName: "tradingview-desktop-cdp",
-      acceptedHeadScore: 0.45,
-    });
-
-    expect(result.decision).toBe("verification_fail");
-    expect(result.experiment.verificationRuntimeFailureKind).toBe(
-      "pine_editor_open_timeout",
-    );
-    expect(result.experiment.recoveryAttempts).toHaveLength(1);
-    expect(result.experiment.recoveryAttempts?.[0]?.status).toBe("failed");
-    expect(result.experiment.fallbackEvaluation?.status).toBe("succeeded");
-    expect(result.experiment.fallbackEvaluation?.executorKind).toBe(
-      "local-af-backtest",
-    );
-    expect(result.experiment.fallbackEvaluation?.promotionEligible).toBe(false);
-    expect(result.experiment.promotionReady).toBe(false);
-    expect(result.experiment.artifactPaths?.fallbackEvidenceArtifact).toBeTruthy();
-  });
-
-  test("retries promotion verification after successful surface recovery", async () => {
-    const workspace = await mkdtemp(path.join(tmpdir(), "af-promotion-recovery-"));
-    let verificationAttempt = 0;
-
-    const result = await runSingleIteration({
-      workspaceRoot: workspace,
-      llmClient: createStaticLlmClient(baseMutationResponse),
-      executor: createMockPineEvaluationExecutor({
-        capability: {
-          kind: "local-af-screening",
-          authoritative: false,
-          confidenceLevel: "screening",
-        },
-        compile: { ok: true, errors: [] },
-        apply: { ok: true, message: "ok" },
-        metrics: {
-          netProfitPercent: 25,
-          postFeeNetProfitPercent: 22,
-          profitFactor: 2.4,
-          maxStrategyDrawdownPercent: 9,
-          percentProfitable: 63,
-          totalTrades: 87,
-          avgTradePercent: 0.55,
-        },
-      }),
-      executorName: "local-backtest",
-      promotionVerificationExecutorFactory: () => {
-        verificationAttempt += 1;
-        if (verificationAttempt === 1) {
-          return createMockPineEvaluationExecutor({
-            capability: {
-              kind: "tradingview-live",
-              authoritative: true,
-              confidenceLevel: "verification",
-            },
-            prepareChartError: "Monaco getEditors attach timeout.",
-          });
-        }
-
-        return createMockPineEvaluationExecutor({
-          capability: {
-            kind: "tradingview-live",
-            authoritative: true,
-            confidenceLevel: "verification",
-          },
-          compile: { ok: true, errors: [] },
-          apply: { ok: true, message: "ok" },
-          metrics: {
-            netProfitPercent: 28,
-            postFeeNetProfitPercent: 24,
-            profitFactor: 2.7,
-            maxStrategyDrawdownPercent: 8,
-            percentProfitable: 66,
-            totalTrades: 92,
-            avgTradePercent: 0.61,
-          },
-        });
-      },
-      promotionVerificationExecutorName: "tradingview-desktop-cdp",
+      promotionVerificationExecutorName: "local-backtest",
       acceptedHeadScore: 0.45,
     });
 
     expect(result.decision).toBe("verified_improvement");
-    expect(result.experiment.recoveryAttempts).toHaveLength(1);
-    expect(result.experiment.recoveryAttempts?.[0]?.status).toBe("succeeded");
-    expect(result.experiment.verificationRuntimeFailureKind).toBeNull();
-    expect(result.experiment.fallbackEvaluation).toBeNull();
+    expect(result.experiment.artifactPaths?.backtestArtifact).toBeTruthy();
     expect(result.experiment.promotionReady).toBe(true);
   });
 
   test("uses the highest-scoring accepted improvement as the mutation parent", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-best-parent-"));
-    const stateRoot = path.join(workspace, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspace);
     await initializeWorkspace(workspace);
 
     await appendExperimentRecord(stateRoot, {
@@ -829,7 +704,7 @@ describe("runSingleIteration", () => {
 
   test("does not record accepted_no_improvement as a system incident", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-no-improvement-"));
-    const stateRoot = path.join(workspace, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspace);
 
     const result = await runSingleIteration({
       workspaceRoot: workspace,

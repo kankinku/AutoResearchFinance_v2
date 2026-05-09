@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import { initializeWorkspace } from "../../src/research/workspace.js";
+import { DEFAULT_RESEARCH_TARGET_ID, resolveTargetStateRoot } from "../../src/config/target-registry.js";
 import {
   auditKnowledgeTree,
   migrateLegacyKnowledgeLayout,
@@ -14,12 +15,16 @@ import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
 describe("knowledge catalog", () => {
   test("initializes layered knowledge directories and passes audit on a fresh workspace", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-knowledge-"));
+    const stateRoot = resolveTargetStateRoot({
+      workspaceRoot,
+      targetId: DEFAULT_RESEARCH_TARGET_ID,
+    });
 
     await initializeWorkspace(workspaceRoot);
 
-    const paths = resolveKnowledgePaths(path.join(workspaceRoot, "state", "pi-autoresearch"));
+    const paths = resolveKnowledgePaths(stateRoot);
     const catalog = JSON.parse(await readFile(paths.knowledgeCatalogPath, "utf8"));
-    const audit = await auditKnowledgeTree(workspaceRoot);
+    const audit = await auditKnowledgeTree(workspaceRoot, stateRoot);
 
     expect(catalog.entries.some((entry: { id: string }) => entry.id === "ledger.experiments")).toBe(
       true,
@@ -42,17 +47,24 @@ describe("knowledge catalog", () => {
 
   test("copies legacy flat files into the layered knowledge tree", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-knowledge-migrate-"));
-    const stateRoot = path.join(workspaceRoot, "state", "pi-autoresearch");
+    const stateRoot = resolveTargetStateRoot({
+      workspaceRoot,
+      targetId: DEFAULT_RESEARCH_TARGET_ID,
+    });
 
     await initializeWorkspace(workspaceRoot);
     await writeFile(path.join(stateRoot, "experiments.jsonl"), '{"candidateId":"legacy"}\n', "utf8");
     await writeFile(path.join(stateRoot, "leaderboard.json"), '{"legacy":true}\n', "utf8");
 
-    const migration = await migrateLegacyKnowledgeLayout(workspaceRoot);
+    const migration = await migrateLegacyKnowledgeLayout(workspaceRoot, stateRoot);
     const paths = resolveKnowledgePaths(stateRoot);
 
-    expect(migration.copied).toContain("state/pi-autoresearch/ledger/experiments.jsonl");
+    expect(migration.copied).toContain(
+      path.relative(workspaceRoot, paths.experimentsPath).replace(/\\/g, "/"),
+    );
     expect(await readFile(paths.experimentsPath, "utf8")).toContain('"candidateId":"legacy"');
-    expect(migration.copied).not.toContain("state/pi-autoresearch/views/leaderboard.json");
+    expect(migration.copied).not.toContain(
+      path.relative(workspaceRoot, paths.leaderboardPath).replace(/\\/g, "/"),
+    );
   });
 });

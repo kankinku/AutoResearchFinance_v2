@@ -897,11 +897,11 @@ export function renderDashboardHtml(): string {
       <section class="page" data-page="validation">
         <section class="grid">
           <div class="panel">
-            <h2><span>TradingView 최종 모델 결과</span><span id="tvResultMeta">-</span></h2>
-            <svg class="chart" id="tvResultChart" role="img" aria-label="TradingView 최종 모델 결과"></svg>
+            <h2><span>Local Validation 결과</span><span id="tvResultMeta">-</span></h2>
+            <svg class="chart" id="tvResultChart" role="img" aria-label="Local Validation 결과"></svg>
           </div>
           <div class="panel">
-            <h2><span>TV 결과 요약</span><span id="tvResultSummaryMeta">-</span></h2>
+            <h2><span>Local Validation 요약</span><span id="tvResultSummaryMeta">-</span></h2>
             <table>
               <tbody id="tvResultSummaryRows"></tbody>
             </table>
@@ -926,14 +926,14 @@ export function renderDashboardHtml(): string {
 
         <section class="two-col">
           <div class="panel">
-            <h2><span>수동 TV 큐</span><span id="queueMeta">-</span></h2>
+            <h2><span>로컬 승격 큐</span><span id="queueMeta">-</span></h2>
             <table>
               <thead><tr><th>ID</th><th>상태</th><th>사유</th><th>기록</th></tr></thead>
               <tbody id="externalEventRows"></tbody>
             </table>
           </div>
           <div class="panel">
-            <h2><span>최신 로컬/TV 차이</span><span id="driftMeta">-</span></h2>
+            <h2><span>최신 로컬 검증 차이</span><span id="driftMeta">-</span></h2>
             <table>
               <tbody id="driftRows"></tbody>
             </table>
@@ -946,7 +946,7 @@ export function renderDashboardHtml(): string {
           <div class="panel">
             <h2><span>상위 20개 후보 분석</span><span id="topCandidateMeta">-</span></h2>
             <table class="leaderboard-table">
-              <thead><tr><th>순위</th><th>ID</th><th>로컬 수익률</th><th>TV 수익률</th><th>점수</th><th>검증</th></tr></thead>
+              <thead><tr><th>순위</th><th>ID</th><th>로컬 수익률</th><th>검증 수익률</th><th>점수</th><th>검증</th></tr></thead>
               <tbody id="topCandidateRows"></tbody>
             </table>
           </div>
@@ -1056,9 +1056,9 @@ export function renderDashboardHtml(): string {
         repeated_failure: "반복 실패",
         drawdown: "낙폭",
         exit_quality: "청산 품질",
-        local_tv_parity: "로컬/TV 일치",
+        local_tv_parity: "로컬 검증 일치",
         low_divergence_family: "낮은 괴리 계열",
-        tradingview_queue: "TradingView 큐",
+        local_promotion_queue: "로컬 승격 큐",
         verified_promotion_readiness: "검증 승격 준비",
         parity: "일치성",
         walk_forward: "워크포워드",
@@ -1096,7 +1096,7 @@ export function renderDashboardHtml(): string {
         explore: "새로운 전략 계열과 신규성을 우선 탐색합니다. 단, 하드 게이트는 그대로 유지합니다.",
         improve: "현재 목표를 기준으로 균형 잡힌 브랜치 배분을 유지하며 성능을 개선합니다.",
         repair: "근접 후보와 반복 실패를 중심으로 낙폭, OOS, 청산 품질을 수리합니다.",
-        calibrate: "로컬 결과와 TradingView 결과의 일치성, 낮은 괴리 계열, 검증 큐를 우선합니다.",
+        calibrate: "로컬 결과와 승격 검증 결과의 일치성, 낮은 괴리 계열, 검증 큐를 우선합니다.",
         promote: "검증 승격 준비, 일치성, 워크포워드, 점수 기준 충족에 집중합니다."
       };
       return labels[mode] || fallback || "목표 profile을 기다리는 중입니다.";
@@ -1108,7 +1108,7 @@ export function renderDashboardHtml(): string {
         redirect_family: "전략 리뷰가 현재 계열의 반복 한계를 보고 다른 구조 계열로 전환하도록 지시했습니다.",
         quarantine_family: "전략 리뷰가 해당 계열을 자동 선택에서 억제하도록 지시했습니다.",
         simplify_family: "전략 리뷰가 복잡도를 낮추고 핵심 조건만 남기도록 지시했습니다.",
-        calibrate_candidate: "전략 리뷰가 로컬/TradingView 일치성과 이식성을 먼저 확인하도록 지시했습니다.",
+        calibrate_candidate: "전략 리뷰가 로컬 승격 일치성과 이식성을 먼저 확인하도록 지시했습니다.",
         exploit_parent: "전략 리뷰가 부모 후보의 강점을 계속 활용하도록 지시했습니다.",
         no_action: "전략 리뷰가 별도 방향 전환 없이 현재 흐름을 유지하도록 판단했습니다."
       };
@@ -1130,7 +1130,7 @@ export function renderDashboardHtml(): string {
       const labels = {
         target_default: "기본",
         queue_only: "큐 보관",
-        tv_priority: "TV 우선",
+        tv_priority: "검증 우선",
         promotion_readiness: "승격 준비"
       };
       return labels[value] || value || "-";
@@ -1158,8 +1158,8 @@ export function renderDashboardHtml(): string {
     function decisionLabel(value) {
       const labels = {
         local_candidate_eligible: "로컬 적격",
-        tv_verified: "TV 검증 완료",
-        calibration_queued: "TV 검증 대기",
+        tv_verified: "로컬 검증 완료",
+        calibration_queued: "로컬 검증 대기",
         quarantined: "격리",
         rejected: "제외",
         failed: "실패",
@@ -1299,7 +1299,7 @@ export function renderDashboardHtml(): string {
         empty.setAttribute("y", "130");
         empty.setAttribute("font-family", "var(--mono)");
         empty.setAttribute("font-size", "13");
-        empty.textContent = "TradingView 검증 결과가 아직 없습니다";
+        empty.textContent = "Local Validation 결과가 아직 없습니다";
         svg.appendChild(empty);
         return;
       }
@@ -1382,7 +1382,7 @@ export function renderDashboardHtml(): string {
       caption.setAttribute("font-family", "var(--mono)");
       caption.setAttribute("font-size", "11");
       caption.setAttribute("fill", "#4e5968");
-      caption.textContent = "막대: TV-로컬 수익률 차이, 점: 검증 신뢰도";
+      caption.textContent = "막대: 검증-로컬 수익률 차이, 점: 검증 신뢰도";
       svg.appendChild(caption);
     }
 
@@ -1483,11 +1483,11 @@ export function renderDashboardHtml(): string {
         const metrics = document.createElement("div");
         metrics.className = "detail-metrics";
         metrics.appendChild(metricBox("로컬 수익률", pct(item.localReturnPercent), item.localReturnPercent === null || item.localReturnPercent === undefined ? "" : item.localReturnPercent >= 0 ? "goodText" : "badText"));
-        metrics.appendChild(metricBox("TV 수익률", pct(item.tvReturnPercent), item.tvReturnPercent === null || item.tvReturnPercent === undefined ? "" : item.tvReturnPercent >= 0 ? "goodText" : "badText"));
+        metrics.appendChild(metricBox("검증 수익률", pct(item.tvReturnPercent), item.tvReturnPercent === null || item.tvReturnPercent === undefined ? "" : item.tvReturnPercent >= 0 ? "goodText" : "badText"));
         metrics.appendChild(metricBox("점수", item.score === null || item.score === undefined ? "-" : fmt(item.score, 4), "mono"));
         metrics.appendChild(metricBox("PF / 거래", (item.localProfitFactor === null || item.localProfitFactor === undefined ? "-" : fmt(item.localProfitFactor, 2)) + " / " + (item.localTradeCount || "-"), "mono"));
         metrics.appendChild(metricBox("DD / 승률", pct(item.localDrawdownPercent) + " / " + pct(item.localWinRate), item.localDrawdownPercent >= 45 ? "badText" : "mono"));
-        metrics.appendChild(metricBox("TV 차이", pct(item.tvNetProfitDelta) + " / " + (item.tvTradeCountDelta === null || item.tvTradeCountDelta === undefined ? "-" : item.tvTradeCountDelta), item.tvParityStatus === "major_drift" ? "badText" : "mono"));
+        metrics.appendChild(metricBox("검증 차이", pct(item.tvNetProfitDelta) + " / " + (item.tvTradeCountDelta === null || item.tvTradeCountDelta === undefined ? "-" : item.tvTradeCountDelta), item.tvParityStatus === "major_drift" ? "badText" : "mono"));
         card.appendChild(metrics);
 
         const columns = document.createElement("div");
@@ -1500,7 +1500,7 @@ export function renderDashboardHtml(): string {
         source.className = "source-path";
         source.textContent = [
           "결정 " + decisionLabel(item.decision),
-          "TV " + queueStatusLabel(item.tvParityStatus),
+          "검증 " + queueStatusLabel(item.tvParityStatus),
           "WF " + queueStatusLabel(item.walkForwardStatus),
           item.sourcePath || "-"
         ].join(" / ");
@@ -1605,12 +1605,12 @@ export function renderDashboardHtml(): string {
           ["포지션", (strategy.features || []).indexOf("slot replacement") >= 0 ? "여러 슬롯을 나눠 잡고, 더 강한 신호가 나오면 약한 슬롯을 교체합니다." : "여러 진입을 분산해 한 번의 신호에 과하게 의존하지 않습니다."],
           ["청산", (strategy.exitShape || "약한 포지션 정리") + ": 오래 버티지 못하는 손실 슬롯을 먼저 줄여 전체 변동성을 낮추는 쪽입니다."],
           ["리스크", (strategy.riskShape || "위험 회피 조건") + ": 추세가 약하거나 위험 신호가 강하면 추가 진입과 보유를 제한합니다."],
-          ["주의", highDrawdown ? "수익률은 강하지만 최대 낙폭이 큽니다. 실제 적용 전 수동 TradingView 검증과 구간별 손실 확인이 필요합니다." : "낙폭은 상대적으로 억제되어 있지만, TradingView 수동 검증 전까지는 로컬 결과로만 봐야 합니다."]
+          ["주의", highDrawdown ? "수익률은 강하지만 최대 낙폭이 큽니다. 실제 적용 전 로컬 승격 검증과 구간별 손실 확인이 필요합니다." : "낙폭은 상대적으로 억제되어 있지만, 로컬 승격 검증 전까지는 기준 후보로만 봐야 합니다."]
         ],
         checklist: [
           "최근 최고 수익률 후보와 최고 점수 후보가 같은지 먼저 확인합니다.",
           "수익률만 보지 말고 거래 수, 수익 팩터, 최대 낙폭을 같이 봅니다.",
-          "TradingView는 수동 검증으로만 돌리고, major_drift가 있으면 실전 판단에서 보류합니다."
+          "로컬 승격 검증에서 major_drift가 있으면 실전 판단에서 보류합니다."
         ]
       };
     }
@@ -1791,9 +1791,9 @@ export function renderDashboardHtml(): string {
       const elExt = document.getElementById("externalMode");
       if(elExt) elExt.innerHTML = toggleHtml;
       renderRows("externalRows", [
-        row([{ value: "TV 큐 처리", className: "mono" }, { value: external.autoProcessCalibration ? "자동" : "수동", className: external.autoProcessCalibration ? "goodText" : "mutedText" }]),
+        row([{ value: "검증 큐 처리", className: "mono" }, { value: external.autoProcessCalibration ? "자동" : "수동", className: external.autoProcessCalibration ? "goodText" : "mutedText" }]),
         row([{ value: "처리 방식", className: "mono" }, { value: workerMode, className: workerEnabled ? "goodText" : isAuto ? "warnText" : "mutedText" }]),
-        row([{ value: "TV 워커", className: "mono" }, { value: workerLabel, className: workerRunning ? "goodText" : workerEnabled ? "warnText" : "mutedText" }]),
+        row([{ value: "검증 워커", className: "mono" }, { value: workerLabel, className: workerRunning ? "goodText" : workerEnabled ? "warnText" : "mutedText" }]),
         row([{ value: "워커 상태", className: "mono" }, { value: (calibrationWorker.status || "-") + " / exit " + workerLastExit + " / " + workerCheckedAt, className: workerRunning ? "goodText" : "mono" }]),
         row([{ value: "승격 검증 실행기", className: "mono" }, { value: external.promotionVerificationExecutor || "없음", className: external.promotionVerificationExecutor === "none" ? "mutedText" : "goodText" }]),
         row([{ value: "대기 후보", className: "mono" }, { value: String(external.pendingCount || 0), className: (external.pendingCount || 0) > 0 ? "warnText" : "goodText" }]),
@@ -1863,7 +1863,7 @@ export function renderDashboardHtml(): string {
       text("tvResultSummaryMeta", tvMatched + "일치 / " + tvMajorDrift + "큰 차이");
       renderTvResultChart(tvResults);
       renderRows("tvResultSummaryRows", [
-        row([{ value: "최근 TV 수익률 평균", className: "mono" }, { value: pct(avgTvReturn), className: avgTvReturn !== null && avgTvReturn >= 0 ? "goodText" : "badText" }]),
+        row([{ value: "최근 검증 수익률 평균", className: "mono" }, { value: pct(avgTvReturn), className: avgTvReturn !== null && avgTvReturn >= 0 ? "goodText" : "badText" }]),
         row([{ value: "평균 수익률 차이", className: "mono" }, { value: pct(avgNetDelta), className: avgNetDelta !== null && Math.abs(avgNetDelta) <= 2 ? "goodText" : "warnText" }]),
         row([{ value: "평균 거래수 차이", className: "mono" }, { value: avgTradeDelta === null ? "-" : fmt(avgTradeDelta, 1), className: avgTradeDelta !== null && Math.abs(avgTradeDelta) <= 25 ? "goodText" : "warnText" }]),
         row([{ value: "일치 / 큰 차이", className: "mono" }, { value: tvMatched + " / " + tvMajorDrift, className: tvMajorDrift > 0 ? "warnText" : "goodText" }])
@@ -1973,7 +1973,7 @@ export function renderDashboardHtml(): string {
       renderRows("topCandidateSummaryRows", [
         row([{ value: "상위 평균 로컬 수익률", className: "mono" }, { value: pct(topAvgReturn), className: topAvgReturn !== null && topAvgReturn >= 0 ? "goodText" : "badText" }]),
         row([{ value: "최고 로컬 수익률", className: "mono" }, { value: topBestReturn ? shortId(topBestReturn.candidateId) + " / " + pct(topBestReturn.localReturnPercent) : "-", className: "goodText" }]),
-        row([{ value: "TV 결과 보유", className: "mono" }, { value: topWithTv.length + " / " + topCandidates.length, className: topWithTv.length > 0 ? "goodText" : "warnText" }]),
+        row([{ value: "검증 결과 보유", className: "mono" }, { value: topWithTv.length + " / " + topCandidates.length, className: topWithTv.length > 0 ? "goodText" : "warnText" }]),
         row([{ value: "major_drift", className: "mono" }, { value: String(topMajorDrift.length), className: topMajorDrift.length > 0 ? "badText" : "goodText" }])
       ]);
       renderTopCandidateDetails(topCandidates);

@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createMockPineEvaluationExecutor } from "../../src/automation/tradingview/mock-driver.js";
+import { createMockPineEvaluationExecutor } from "../../src/automation/local-backtest/mock-driver.js";
 import {
   __test__,
   createAutomaticTaskBatchRecoveryHooks,
@@ -24,12 +24,8 @@ function createTestEnv(): RuntimeEnvironment {
     openAiOauthAuthFilePath: undefined,
     mutationStaticResponsePath: undefined,
     evaluationUseMock: false,
-    evaluationExecutor: "tradingview-desktop-cdp",
+    evaluationExecutor: "local-backtest",
     promotionVerificationExecutor: "none",
-    tradingViewDesktopPath: undefined,
-    tradingViewCdpUrl: "http://127.0.0.1:9222",
-    pineEditorTimeoutMs: 15_000,
-    tradingViewCdpCommandTimeoutMs: 8_000,
     chartSymbol: "QQQ",
     chartTimeframe: "120",
     chartType: "candles",
@@ -39,7 +35,6 @@ function createTestEnv(): RuntimeEnvironment {
     alphaXivMcpBearerToken: "token",
     alphaXivAuthFilePath: undefined,
     alphaXivSessionFilePath: undefined,
-    tvCalibrationMode: "live",
     mutationSchemaMode: "strict",
     autonomousBootstrapMode: "disabled",
     autoProcessCalibration: false,
@@ -82,12 +77,12 @@ describe("run-tasks automatic recovery", () => {
     ).toBe(true);
   });
 
-  test("classifies TradingView surface failures for automatic recovery", () => {
+  test("classifies local runtime failures for automatic recovery", () => {
     expect(
       __test__.inferAutomaticRecoverySurface({
-        failureDetail: "Pine editor open timed out after 30000ms.",
+        failureDetail: "Local runtime Pine source panel open timed out after 30000ms.",
       }),
-    ).toBe("tradingview");
+    ).toBe("local_runtime");
   });
 
   test("revalidates OpenAI auth when a recoverable LLM failure occurs", async () => {
@@ -184,16 +179,16 @@ describe("run-tasks automatic recovery", () => {
     });
   });
 
-  test("replaces the executor when TradingView surface recovery is needed", async () => {
+  test("replaces the executor when local runtime recovery is needed", async () => {
     const currentExecutor = {
-      role: "external_calibration" as const,
-      evidenceAuthority: "external_tv" as const,
+      role: "primary_local_backtest" as const,
+      evidenceAuthority: "local_model" as const,
       supportedStrategyFamilies: ["Pine"],
       supportedSymbols: ["QQQ"],
       supportedTimeframes: ["120"],
       getCapability() {
         return {
-          kind: "tradingview-live" as const,
+          kind: "local-af-backtest" as const,
           authoritative: true,
           supportedSymbols: ["QQQ"],
           supportedTimeframes: ["120"],
@@ -275,12 +270,12 @@ describe("run-tasks automatic recovery", () => {
       taskNumber: 1,
       attempt: 1,
       currentExecutor,
-      error: new Error("Pine editor open timed out after 30000ms."),
-      failureDetail: "Pine editor open timed out after 30000ms.",
+      error: new Error("Local runtime Pine source panel open timed out after 30000ms."),
+      failureDetail: "Local runtime Pine source panel open timed out after 30000ms.",
     });
 
     expect(recovery?.recovered).toBe(true);
-    expect(recovery?.recoveryActions).toContain("reinitialized_tradingview_surface");
+    expect(recovery?.recoveryActions).toContain("reinitialized_local_runtime");
     expect(recovery?.executor).toBe(replacementExecutor);
   });
 });

@@ -1,4 +1,4 @@
-import { extractStudyTitle } from "../automation/tradingview/pine-study.js";
+import { extractStudyTitle } from "../strategy-source/pine-study.js";
 import { type PineEvaluationExecutor } from "../automation/common/executor.js";
 import {
   type ArtifactBundle,
@@ -34,7 +34,7 @@ interface FallbackArtifactPayload extends Record<string, unknown> {
   role: "fallback_evidence";
   candidateId: string;
   source: {
-    authoritativeExecutorKind: "tradingview-live";
+    authoritativeExecutorKind: "local-af-backtest";
     authoritativeFailureReason: "verification_runtime_failure";
     runtimeFailureKind: VerificationRuntimeFailureKind;
     recoveryAttempts: SurfaceRecoveryAttempt[];
@@ -67,9 +67,9 @@ export interface FallbackEvidenceCollectionResult {
   artifactBundle: ArtifactBundle | null;
 }
 
-export function classifyTradingViewRuntimeFailure(
+export function classifyLocalRuntimeFailure(
   error: unknown,
-  options?: { assumeTradingView?: boolean },
+  options?: { assumeLocalRuntime?: boolean },
 ): VerificationRuntimeFailureKind {
   const detail = error instanceof Error ? error.message : String(error);
   const normalized = detail.toLowerCase();
@@ -77,7 +77,7 @@ export function classifyTradingViewRuntimeFailure(
   if (/monaco|geteditors|editor ready/.test(normalized)) {
     return "monaco_attach_timeout";
   }
-  if (/pine editor/.test(normalized)) {
+  if (/pine (editor|source|panel)/.test(normalized)) {
     return "pine_editor_open_timeout";
   }
   if (
@@ -93,18 +93,18 @@ export function classifyTradingViewRuntimeFailure(
   if (/marker|compile panel/.test(normalized)) {
     return "compile_panel_timeout";
   }
-  if (/strategy tester/.test(normalized)) {
+  if (/strategy metrics|backtest report|metrics panel/.test(normalized)) {
     return "strategy_tester_timeout";
   }
   if (/report parse|performance_all_missing|trade_list_missing|equity_summary_missing/.test(normalized)) {
     return "report_parse_timeout";
   }
-  if (/session closed|target closed|browser has disconnected|websocket.*closed|cdp/.test(normalized)) {
-    return "tradingview_session_closed";
+  if (/session closed|target closed|runtime has disconnected|websocket.*closed|cdp/.test(normalized)) {
+    return "local_session_closed";
   }
   if (
-    options?.assumeTradingView ||
-    /(tradingview|pine|chart|study attachment|strategy tester|report)/.test(normalized)
+    options?.assumeLocalRuntime ||
+    /(pine|chart|study attachment|backtest report|report)/.test(normalized)
   ) {
     return "unknown_runtime_failure";
   }
@@ -126,14 +126,14 @@ export function mapRuntimeFailureToRecoveryAction(
     case "report_parse_timeout":
       return "reopen_strategy_tester";
     case "compile_panel_timeout":
-    case "tradingview_session_closed":
+    case "local_session_closed":
     case "unknown_runtime_failure":
     default:
-      return "restart_tradingview_page";
+      return "restart_local_runtime";
   }
 }
 
-export async function attemptTradingViewSurfaceRecovery(input: {
+export async function attemptLocalRuntimeRecovery(input: {
   executorFactory: () => PineEvaluationExecutor;
   chartTarget: ChartTarget;
   failureKind: VerificationRuntimeFailureKind;
@@ -147,8 +147,8 @@ export async function attemptTradingViewSurfaceRecovery(input: {
   const action = mapRuntimeFailureToRecoveryAction(input.failureKind);
   const startedAt = new Date().toISOString();
   await input.monitor?.log(
-    "verification.surface_recovery",
-    "Attempting TradingView surface recovery",
+    "verification.runtime_recovery",
+    "Attempting local runtime recovery",
     {
       attempt: input.attempt,
       action,
@@ -505,7 +505,7 @@ export async function collectLocalFallbackEvidence(input: {
       artifactBundle,
       syncArtifact,
       caveats: [
-        "Local fallback evidence was collected after authoritative TradingView runtime failure.",
+        "Local fallback evidence was collected after authoritative local runtime failure.",
         "Do not treat local fallback evidence as verified improvement.",
       ],
       confidence: "very_low",
@@ -570,7 +570,7 @@ function buildFallbackEvidenceResult(input: {
     role: "fallback_evidence",
     candidateId: input.candidateId,
     source: {
-      authoritativeExecutorKind: "tradingview-live",
+      authoritativeExecutorKind: "local-af-backtest",
       authoritativeFailureReason: "verification_runtime_failure",
       runtimeFailureKind: input.authoritativeFailureKind,
       recoveryAttempts: input.recoveryAttempts,

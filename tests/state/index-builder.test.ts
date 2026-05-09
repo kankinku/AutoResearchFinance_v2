@@ -25,7 +25,7 @@ import {
 } from "../../src/policy/autoresearch-contract.js";
 
 const tradingViewCapability: ExecutorCapability = {
-  kind: "tradingview-live",
+  kind: "local-af-backtest",
   authoritative: true,
   supportedSymbols: ["QQQ"],
   supportedTimeframes: ["120"],
@@ -84,7 +84,7 @@ function createPromotableArtifactBundle(): ArtifactBundle {
         hasRawReport: true,
         missingFields: [],
         parseWarnings: [],
-        parserVersion: "tradingview-report/v2",
+        parserVersion: "local-backtest-report/v1",
       },
     },
   };
@@ -1211,8 +1211,8 @@ describe("rebuildIndexes", () => {
       ...localRecord,
       runId: "run-verified-dashboard-tv",
       recordKind: "tv_verification",
-      executorRole: "external_calibration",
-      evidenceAuthority: "external_tv",
+      executorRole: "primary_local_backtest",
+      evidenceAuthority: "local_model",
       evaluationMode: "tv_calibration",
       decision: "tv_verified",
       status: "verified",

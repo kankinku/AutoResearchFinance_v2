@@ -38,7 +38,7 @@ import {
   validateArtifactBundle,
 } from "../evaluation/artifact-validation.js";
 import { collectPromotionEvidenceIssueDetails } from "../evaluation/record-eligibility.js";
-import { extractStudyTitle } from "../automation/tradingview/pine-study.js";
+import { extractStudyTitle } from "../strategy-source/pine-study.js";
 import {
   type ArtifactValidationResult,
   type ArtifactBundle,
@@ -80,25 +80,13 @@ import { runAutoSelectionPhase } from "../research/autonomous/auto-selection-pha
 import { runLocalEvaluationPhase } from "../research/autonomous/local-evaluation-phase.js";
 import {
   runStage6ReadinessGate,
-  type Stage6CalibrationMode,
   type Stage6ReadinessMode,
 } from "../research/autonomous/stage6-readiness.js";
-import {
-  processTvCalibrationQueue,
-  selectPendingCalibrationCandidates,
-} from "../research/autonomous/tv-calibration-phase.js";
-import { buildCalibrationBackpressure } from "../research/autonomous/calibration-backpressure.js";
-import { resolveTvHealthStatus } from "../research/autonomous/tv-health-phase.js";
 import {
   prepareMutationContext,
   resolveMutationSourcePine,
 } from "../research/mutation-context.js";
-import {
-  attemptTradingViewSurfaceRecovery,
-  classifyTradingViewRuntimeFailure,
-  collectLocalFallbackEvidence,
-  summarizeLocalTvParity,
-} from "../research/verification-fallback.js";
+import { collectLocalFallbackEvidence } from "../research/verification-fallback.js";
 import { loadSeedStrategyReference } from "../research/seed-strategy.js";
 import { runTaskBatch } from "../research/task-batch-runner.js";
 import { generateIndicatorArtifact } from "../research/indicator-generator.js";
@@ -109,10 +97,8 @@ import { buildAutonomousViewPayloads } from "../state/autonomous-index-builder.j
 import {
   findActiveChampionRecord,
   selectLocalEvaluationRecords,
-  selectTvVerificationRecords,
 } from "../state/autonomous-state.js";
 import {
-  appendCalibrationEventRecord,
   appendCandidateLedgerRecord,
   appendExperimentRecord,
   appendIncidentRecord,
@@ -120,12 +106,10 @@ import {
   compactExperimentLedger,
   ensureStateRoot,
   readArchiveEventRecords,
-  readCalibrationEventRecords,
   readCandidateLedgerRecords,
   readExperimentRecords,
   readHeadEventRecords,
   readIndicatorArtifactRecords,
-  readLocalConfidenceEventRecords,
   readMutationBriefRecords,
   readProblemEventRecords,
   readRepairAttemptRecords,
@@ -662,13 +646,6 @@ function parseStage6ReadinessMode(value: string): Stage6ReadinessMode {
   throw new Error('mode must be "deterministic" or "real-llm".');
 }
 
-function parseStage6CalibrationMode(value: string): Stage6CalibrationMode {
-  if (value === "mock-recovered" || value === "live") {
-    return value;
-  }
-  throw new Error('calibration mode must be "mock-recovered" or "live".');
-}
-
 function parseLedgerValidationMode(value: string | undefined): LedgerValidationMode {
   if (value == null || value === "") {
     return "fast";
@@ -804,27 +781,6 @@ function buildAutonomousReplayMutationProvenance(
   };
 }
 
-function resolveLocalTvParityForVerification(input: {
-  fallbackRecord: Awaited<ReturnType<typeof findLatestFallbackExperimentForCandidate>>;
-  testerMetrics: BacktestMetrics | null;
-  verificationStatus: VerificationStatus;
-  fallbackEvaluation: FallbackEvaluation | null | undefined;
-}): LocalTvParitySummary | null {
-  if (
-    input.verificationStatus !== "verified" ||
-    input.testerMetrics == null ||
-    input.fallbackEvaluation != null ||
-    input.fallbackRecord?.fallbackEvaluation == null
-  ) {
-    return null;
-  }
-
-  return summarizeLocalTvParity({
-    fallbackEvaluation: input.fallbackRecord.fallbackEvaluation,
-    authoritativeMetrics: input.testerMetrics,
-  });
-}
-
 function selectCurrentTrainingExperiments(input: {
   experiments: ExperimentRecord[];
   targetId: string;
@@ -876,8 +832,8 @@ async function buildAutonomousStateSummary(input: {
   const experiments = await readExperimentRecords(input.stateRoot);
   const headEvents = await readHeadEventRecords(input.stateRoot);
   const archiveEvents = await readArchiveEventRecords(input.stateRoot);
-  const calibrationEvents = await readCalibrationEventRecords(input.stateRoot);
-  const confidenceEvents = await readLocalConfidenceEventRecords(input.stateRoot);
+  const calibrationEvents: [] = [];
+  const confidenceEvents: [] = [];
   const problemEvents = await readProblemEventRecords(input.stateRoot);
   const repairAttempts = await readRepairAttemptRecords(input.stateRoot);
   const indicatorArtifacts = await readIndicatorArtifactRecords(input.stateRoot);
@@ -943,35 +899,9 @@ async function buildAutonomousStateSummary(input: {
     runtimeRoot,
     owner: "inspect-autonomous-state",
   });
-  const calibrationBackpressure = buildCalibrationBackpressure({
-    pendingCalibrationCandidateCount:
-      views.autonomousStateSummary.pendingCalibrationCandidateCount ?? 0,
-    parityStatusCounts: views.autonomousStateSummary.parityStatusCounts,
-    repairTraceabilityStatus:
-      stage6Readiness.repairTraceabilityStatus ??
-      views.autonomousStateSummary.repairTraceabilityStatus,
-  });
   const localEvaluations = selectLocalEvaluationRecords(currentTargetExperiments);
-  const tvVerifications = selectTvVerificationRecords(currentTargetExperiments);
-  const lastTvSurfaceFailure =
-    [...tvVerifications]
-      .filter(
-        (record) =>
-          record.decision === "tv_surface_failure" ||
-          record.decision === "tv_executor_failure",
-      )
-      .sort((left, right) => {
-        const leftRecordedAt = Date.parse(left.recordedAt ?? "");
-        const rightRecordedAt = Date.parse(right.recordedAt ?? "");
-        if (leftRecordedAt !== rightRecordedAt) {
-          return rightRecordedAt - leftRecordedAt;
-        }
-        return right.iteration - left.iteration;
-      })[0] ?? null;
-  const nextPlannedAction = calibrationBackpressure.recommendedAction
-    ? calibrationBackpressure.recommendedAction
-    : !input.env.autoProcessCalibration &&
-        views.autonomousStateSummary.nextPlannedAction === "process_tv_calibration_queue"
+  const nextPlannedAction =
+    views.autonomousStateSummary.nextPlannedAction === "process_tv_calibration_queue"
       ? "continue_local_first_research"
       : views.autonomousStateSummary.nextPlannedAction;
   const latestIndicatorArtifact =
@@ -980,9 +910,7 @@ async function buildAutonomousStateSummary(input: {
       const rightTime = Date.parse(right.createdAt ?? "");
       return rightTime - leftTime;
     })[0] ?? null;
-  const nextPlannedActionReason = calibrationBackpressure.active
-    ? calibrationBackpressure.reasons.join(" | ")
-    : input.env.researchModeConfig.mode === "criterion_focus"
+  const nextPlannedActionReason = input.env.researchModeConfig.mode === "criterion_focus"
       ? `criterion_focus:${input.env.researchModeConfig.criterion ?? "auto"}`
       : input.env.researchModeConfig.mode;
 
@@ -1031,7 +959,7 @@ async function buildAutonomousStateSummary(input: {
         ? input.env.researchModeConfig.criterion ?? "auto"
         : null,
     latestIndicatorArtifact,
-    calibrationBackpressure,
+    localOnlyValidation: true,
     stage6Readiness,
     runtimeStatus,
     lastStage6GatePassed:
@@ -1052,21 +980,12 @@ async function buildAutonomousStateSummary(input: {
     artifactRoot: input.env.artifactRoot ?? knowledgePaths.artifactDir,
     evidenceRoot: input.env.evidenceRoot ?? knowledgePaths.evidenceDir,
     runtimeRoot,
-    tvVerificationCount: tvVerifications.length,
-    tvHealth: resolveTvHealthStatus(input.env),
+    localVerificationCount: localEvaluations.length,
     calibrationAutoProcess: input.env.autoProcessCalibration,
-    calibrationMode: input.env.autoProcessCalibration ? "auto_process" : "queue_only",
+    calibrationMode: "local_only",
     nextPlannedAction,
     nextPlannedActionReason,
-    lastTvSurfaceFailure: lastTvSurfaceFailure
-      ? {
-          candidateId: lastTvSurfaceFailure.candidateId,
-          decision: lastTvSurfaceFailure.decision,
-          iteration: lastTvSurfaceFailure.iteration,
-          tvCalibrationStatus: lastTvSurfaceFailure.tvCalibrationStatus,
-          recordedAt: lastTvSurfaceFailure.recordedAt,
-        }
-      : null,
+    lastTvSurfaceFailure: null,
     selectedBy:
       headEvents
         .slice()
@@ -1308,39 +1227,9 @@ function validateAutonomousResearchMode(env: RuntimeEnvironment): void {
 function createPromotionVerificationExecutorFactory(
   env: ReturnType<typeof loadRuntimeEnvironment>,
 ): (() => ReturnType<typeof createPineEvaluationExecutor>) | undefined {
-  if (!isTradingViewExecutorName(env.promotionVerificationExecutor)) {
-    return undefined;
-  }
-
-  const executorName = env.promotionVerificationExecutor;
-  return () => createPineEvaluationExecutor(env, executorName);
-}
-
-function isTradingViewExecutorName(
-  value: RuntimeEnvironment["evaluationExecutor"] | RuntimeEnvironment["promotionVerificationExecutor"],
-): value is Extract<
-  EvaluationExecutorName,
-  "tradingview-desktop-cdp" | "tradingview-web-playwright"
-> {
-  return (
-    value === "tradingview-desktop-cdp" ||
-    value === "tradingview-web-playwright"
-  );
-}
-
-function resolveTradingViewExecutorName(
-  env: ReturnType<typeof loadRuntimeEnvironment>,
-): Extract<
-  EvaluationExecutorName,
-  "tradingview-desktop-cdp" | "tradingview-web-playwright"
-> | null {
-  if (isTradingViewExecutorName(env.promotionVerificationExecutor)) {
-    return env.promotionVerificationExecutor;
-  }
-  if (isTradingViewExecutorName(env.evaluationExecutor)) {
-    return env.evaluationExecutor;
-  }
-  return null;
+  return env.promotionVerificationExecutor === "local-backtest"
+    ? () => createPineEvaluationExecutor(env, "local-backtest")
+    : undefined;
 }
 
 function createLocalFallbackExecutorFactory(
@@ -1388,7 +1277,9 @@ function createLazyMutationLlmClient(
 function resolveAuthoritativeExecutorName(
   env: ReturnType<typeof loadRuntimeEnvironment>,
 ): EvaluationExecutorName | null {
-  return resolveTradingViewExecutorName(env);
+  return env.promotionVerificationExecutor === "local-backtest"
+    ? "local-backtest"
+    : env.evaluationExecutor;
 }
 
 function mapDecisionToExperimentStatus(decision: DecisionCode): string {
@@ -1530,11 +1421,7 @@ program
           openAiAuthFilePath:
             "authFilePath" in openAiInspection ? openAiInspection.authFilePath : null,
           openAiError: "error" in openAiInspection ? openAiInspection.error : null,
-          executionSurfaceConfigured: Boolean(
-            env.evaluationExecutor === "local-backtest"
-              ? true
-              : env.tradingViewDesktopPath || env.tradingViewCdpUrl,
-          ),
+          executionSurfaceConfigured: env.evaluationExecutor === "local-backtest",
           researchRefreshEveryTasks: env.researchRefreshEveryTasks,
           alphaXivMcpConfigured: Boolean(env.alphaXivMcpUrl),
           alphaXivMcpUrl: env.alphaXivMcpUrl,
@@ -1801,7 +1688,7 @@ program
 
 program
   .command("generate-indicator")
-  .description("Generate a user-requested TradingView Pine indicator artifact without entering the strategy promotion pipeline.")
+  .description("Generate a user-requested Pine indicator artifact without entering the strategy promotion pipeline.")
   .requiredOption("--indicator-goal <text>", "User goal for the indicator, for example short-term top detection.")
   .option("--output <path>", "Optional output path under strategies/indicators.")
   .option(
@@ -1901,7 +1788,7 @@ program
 
 program
   .command("run-autonomous-loop")
-  .description("Run one or more v3 autonomous local-first iterations; TradingView calibration stays queued unless explicitly enabled.")
+  .description("Run one or more autonomous local-only iterations.")
   .option("--count <number>", "Iteration count", "1")
   .option("--symbol <symbol|all>", "Research symbol, or all symbols.")
   .option("--mode <mode>", "Goal mode: explore, improve, repair, calibrate, or promote.")
@@ -1911,14 +1798,6 @@ program
     "Research mode: continuous_improvement or criterion_focus. indicator_request uses generate-indicator.",
   )
   .option("--criterion <criterion>", "Criterion key used by criterion_focus mode.")
-  .option(
-    "--auto-process-calibration <boolean>",
-    "Opt in to processing the optional TradingView calibration queue after each iteration.",
-  )
-  .option(
-    "--calibration-budget <number>",
-    "Maximum queued calibration candidates to process per iteration.",
-  )
   .action(async (options: {
     count: string;
     symbol?: string;
@@ -1926,8 +1805,6 @@ program
     target?: string;
     researchMode?: string;
     criterion?: string;
-    autoProcessCalibration?: string;
-    calibrationBudget?: string;
   }) => {
     const baseEnv = loadRuntimeEnvironment();
     const contexts = await resolveCliResearchContexts(baseEnv, options);
@@ -1951,30 +1828,14 @@ program
             for (const context of contexts) {
               const env = loadRuntimeEnvironmentForContext(context);
               validateAutonomousResearchMode(env);
-              const autoProcessCalibration =
-                options.autoProcessCalibration == null
-                  ? env.autoProcessCalibration
-                  : parseBoolean(
-                      options.autoProcessCalibration,
-                      "auto-process-calibration",
-                    );
-              const calibrationBudget =
-                options.calibrationBudget == null
-                  ? env.calibrationBudget
-                  : parsePositiveInteger(
-                      options.calibrationBudget,
-                      "calibration-budget",
-                    );
               const llmClient = createLazyMutationLlmClient(() =>
                 createMutationLlmClient(env),
               );
               const loopEnv = {
                 ...env,
-                autoProcessCalibration,
-                calibrationBudget,
+                autoProcessCalibration: false,
+                calibrationBudget: 0,
               };
-              const calibrationExecutorName =
-                resolveTradingViewExecutorName(loopEnv) ?? "tradingview-desktop-cdp";
               await monitor.log("autonomous.loop.start", "Starting autonomous local-first loop", {
                 count,
                 targetId: context.targetId,
@@ -1985,9 +1846,7 @@ program
                 workspaceRoot: env.workspaceRoot,
                 stateRoot: env.stateRoot,
                 projectRoot: env.projectRoot,
-                tvHealth: resolveTvHealthStatus(env),
-                autoProcessCalibration,
-                calibrationBudget,
+                localOnlyValidation: true,
                 researchMode: loopEnv.researchModeConfig,
               });
               const iterationRun = await runAutonomousIterations({
@@ -1997,9 +1856,6 @@ program
                 llmClient,
                 localExecutorFactory: () =>
                   createPineEvaluationExecutor(loopEnv, "local-backtest"),
-                calibrationExecutorFactory: autoProcessCalibration
-                  ? () => createPineEvaluationExecutor(loopEnv, calibrationExecutorName)
-                  : undefined,
                 count,
                 monitor,
               });
@@ -2192,11 +2048,6 @@ program
     "deterministic",
   )
   .option(
-    "--auto-process-calibration <boolean>",
-    "Process calibration feedback during the gate. Defaults to false for local-core readiness.",
-    "false",
-  )
-  .option(
     "--keep-temp-root <boolean>",
     "Keep the temporary workspace and state root for inspection.",
     "false",
@@ -2204,7 +2055,6 @@ program
   .action(async (options: {
     count: string;
     mode: string;
-    autoProcessCalibration: string;
     keepTempRoot: string;
   }) => {
     const env = loadRuntimeEnvironment();
@@ -2216,22 +2066,15 @@ program
       async (monitor) => {
         const count = parsePositiveInteger(options.count, "count");
         const mode = parseStage6ReadinessMode(options.mode);
-        const autoProcessCalibration = parseBoolean(
-          options.autoProcessCalibration,
-          "auto-process-calibration",
-        );
         const keepTempRoot = parseBoolean(options.keepTempRoot, "keep-temp-root");
         const result = await runStage6ReadinessGate({
           env,
           count,
           mode,
-          autoProcessCalibration,
           keepTempRoot,
           llmClientFactory: (gateEnv) => createMutationLlmClient(gateEnv),
           localExecutorFactory: (gateEnv) =>
             createPineEvaluationExecutor(gateEnv, "local-backtest"),
-          calibrationExecutorFactory: (gateEnv) =>
-            createPineEvaluationExecutor(gateEnv, "tradingview-desktop-cdp"),
           monitor,
         });
         monitor.clearTask();
@@ -2239,82 +2082,6 @@ program
           JSON.stringify(
             {
               ...result,
-              tracePath: monitor.tracePath,
-            },
-            null,
-            2,
-          ),
-        );
-        if (!result.passed) {
-          process.exitCode = 1;
-        }
-      },
-    );
-  });
-
-program
-  .command("verify-calibration-readiness")
-  .description("Run an explicit calibration feedback readiness gate outside the default local-core Stage 6 gate.")
-  .option("--count <number>", "Iteration count", "5")
-  .option(
-    "--mode <mode>",
-    "Calibration mode: mock-recovered or live.",
-    "mock-recovered",
-  )
-  .option(
-    "--llm-mode <mode>",
-    "LLM mode: deterministic or real-llm.",
-    "deterministic",
-  )
-  .option(
-    "--keep-temp-root <boolean>",
-    "Keep the temporary workspace and state root for inspection.",
-    "false",
-  )
-  .action(async (options: {
-    count: string;
-    mode: string;
-    llmMode: string;
-    keepTempRoot: string;
-  }) => {
-    const env = loadRuntimeEnvironment();
-    await withCliMonitor(
-      {
-        workspaceRoot: env.workspaceRoot,
-        commandName: "verify-calibration-readiness",
-      },
-      async (monitor) => {
-        const count = parsePositiveInteger(options.count, "count");
-        const calibrationMode = parseStage6CalibrationMode(options.mode);
-        const mode = parseStage6ReadinessMode(options.llmMode);
-        const keepTempRoot = parseBoolean(options.keepTempRoot, "keep-temp-root");
-        const result = await runStage6ReadinessGate({
-          env,
-          count,
-          mode,
-          calibrationMode,
-          autoProcessCalibration: true,
-          keepTempRoot,
-          persistToState: false,
-          llmClientFactory: (gateEnv) => createMutationLlmClient(gateEnv),
-          localExecutorFactory: (gateEnv) =>
-            createPineEvaluationExecutor(gateEnv, "local-backtest"),
-          calibrationExecutorFactory: (gateEnv) =>
-            createPineEvaluationExecutor(gateEnv, "tradingview-desktop-cdp"),
-          monitor,
-        });
-        const calibrationReadinessPath = path.join(
-          resolveKnowledgePaths(env.stateRoot).viewsDir,
-          "autonomous",
-          "calibration-readiness.json",
-        );
-        await writeJson(calibrationReadinessPath, result);
-        monitor.clearTask();
-        console.log(
-          JSON.stringify(
-            {
-              ...result,
-              calibrationReadinessPath,
               tracePath: monitor.tracePath,
             },
             null,
@@ -2627,59 +2394,6 @@ program
   });
 
 program
-  .command("inspect-calibration-queue")
-  .description("Inspect the queued TradingView calibration candidates.")
-  .action(async () => {
-    const env = loadRuntimeEnvironment();
-    await withCliMonitor(
-      {
-        workspaceRoot: env.workspaceRoot,
-        commandName: "inspect-calibration-queue",
-      },
-      async (monitor) => {
-        await initializeWorkspace(env.workspaceRoot);
-        const experiments = await readExperimentRecords(env.stateRoot);
-        const calibrationEvents = await readCalibrationEventRecords(env.stateRoot);
-        const confidenceEvents = await readLocalConfidenceEventRecords(env.stateRoot);
-        const archiveEvents = await readArchiveEventRecords(env.stateRoot);
-        const headEvents = await readHeadEventRecords(env.stateRoot);
-        const problemEvents = await readProblemEventRecords(env.stateRoot);
-        const repairAttempts = await readRepairAttemptRecords(env.stateRoot);
-        const views = buildAutonomousViewPayloads({
-          experiments,
-          headEvents,
-          archiveEvents,
-          calibrationEvents,
-          confidenceEvents,
-          problemEvents,
-          repairAttempts,
-        });
-        const pendingQueueEntries = views.tvCalibrationQueue.entries.filter(
-          (entry) => entry.derivedStatus === "pending" || entry.derivedStatus === "deferred",
-        );
-        console.log(
-          JSON.stringify(
-            {
-              stateRoot: env.stateRoot,
-              tvHealth: resolveTvHealthStatus(env),
-              pendingCalibrationCandidateIds: pendingQueueEntries.map(
-                (entry) => entry.candidateId,
-              ),
-              pendingCalibrationCandidateCount: pendingQueueEntries.length,
-              calibrationEvents: calibrationEvents.slice(-50),
-              queueEntries: views.tvCalibrationQueue.entries,
-              localConfidenceSummary: views.localConfidenceSummary,
-              tracePath: monitor.tracePath,
-            },
-            null,
-            2,
-          ),
-        );
-      },
-    );
-  });
-
-program
   .command("inspect-local-compatibility")
   .description("Inspect local compatibility failure patterns and success rate.")
   .action(async () => {
@@ -2695,8 +2409,8 @@ program
         const archiveEvents = await readArchiveEventRecords(env.stateRoot);
         const headEvents = await readHeadEventRecords(env.stateRoot);
         const problemEvents = await readProblemEventRecords(env.stateRoot);
-        const calibrationEvents = await readCalibrationEventRecords(env.stateRoot);
-        const confidenceEvents = await readLocalConfidenceEventRecords(env.stateRoot);
+        const calibrationEvents: [] = [];
+        const confidenceEvents: [] = [];
         const repairAttempts = await readRepairAttemptRecords(env.stateRoot);
         const views = buildAutonomousViewPayloads({
           experiments,
@@ -2712,100 +2426,6 @@ program
             {
               stateRoot: env.stateRoot,
               ...views.localCompatibilitySummary,
-              tracePath: monitor.tracePath,
-            },
-            null,
-            2,
-          ),
-        );
-      },
-    );
-  });
-
-program
-  .command("process-tv-calibration-queue")
-  .description("Manually process the optional v3 TradingView calibration queue for diagnostic or recovery use.")
-  .option("--max-candidates <number>", "Maximum queued candidates to process")
-  .action(async (options: { maxCandidates?: string }) => {
-    const env = loadRuntimeEnvironment();
-    await withCliMonitor(
-      {
-        workspaceRoot: env.workspaceRoot,
-        commandName: "process-tv-calibration-queue",
-      },
-      async (monitor) => {
-        await initializeWorkspace(env.workspaceRoot);
-        const stateRoot = env.stateRoot;
-        const experiments = await readExperimentRecords(stateRoot);
-        const calibrationEvents = await readCalibrationEventRecords(stateRoot);
-        const pendingCalibrationCandidateIds = selectPendingCalibrationCandidates({
-          events: calibrationEvents,
-          experiments,
-        });
-        const tvHealth = resolveTvHealthStatus(env);
-        if (tvHealth === "unavailable") {
-          console.log(
-            JSON.stringify(
-              {
-                processedCandidateIds: [],
-                pendingCalibrationCandidateIds,
-                pendingCalibrationCandidateCount: pendingCalibrationCandidateIds.length,
-                tvHealth,
-                skipped: true,
-                tracePath: monitor.tracePath,
-              },
-              null,
-              2,
-            ),
-          );
-          return;
-        }
-
-        const objective = await loadObjectiveConfig(env.workspaceRoot);
-        const runId = `tv-calibration-${Date.now()}`;
-        const confidenceEvents = await readLocalConfidenceEventRecords(stateRoot);
-        const calibrationExecutorName =
-          resolveTradingViewExecutorName(env) ?? "tradingview-desktop-cdp";
-
-        await appendRunRecord(stateRoot, {
-          runId,
-          startedAt: new Date().toISOString(),
-          executor: calibrationExecutorName,
-          symbol: env.chartSymbol,
-          timeframe: env.chartTimeframe,
-          chartType: env.chartType,
-          model: env.openAiModel,
-        });
-
-        const result = await processTvCalibrationQueue({
-          workspaceRoot: env.workspaceRoot,
-          stateRoot,
-          runId,
-          objective,
-          env,
-          experiments,
-          calibrationEvents,
-          confidenceEvents,
-          executorFactory: () =>
-            createPineEvaluationExecutor(env, calibrationExecutorName),
-          maxCandidates: options.maxCandidates
-            ? parsePositiveInteger(options.maxCandidates, "maxCandidates")
-            : undefined,
-          monitor,
-        });
-        await rebuildIndexes(stateRoot);
-        const autonomousState = await buildAutonomousStateSummary({
-          stateRoot,
-          env,
-        });
-
-        console.log(
-          JSON.stringify(
-            {
-              ...result,
-              pendingCalibrationCandidateCount: pendingCalibrationCandidateIds.length,
-              autonomousState,
-              tvHealth,
               tracePath: monitor.tracePath,
             },
             null,
@@ -2887,27 +2507,11 @@ program
 
 program
   .command("verify")
-  .description("[legacy] Re-evaluate a candidate with the authoritative executor and append a verification record.")
+  .description("[legacy] Re-evaluate a candidate with the local promotion readiness executor and append a verification record.")
   .requiredOption("--candidate <id>", "Candidate id or explicit .pine path")
-  .option(
-    "--fallback-local-on-runtime-failure",
-    "Collect local fallback evidence after TradingView runtime failure",
-  )
-  .option(
-    "--no-fallback-local",
-    "Disable local fallback evidence after TradingView runtime failure",
-  )
-  .option(
-    "--surface-recovery-attempts <number>",
-    "TradingView surface recovery attempts (0 or 1)",
-    "1",
-  )
   .action(
     async (options: {
       candidate: string;
-      fallbackLocalOnRuntimeFailure?: boolean;
-      noFallbackLocal?: boolean;
-      surfaceRecoveryAttempts: string;
     }) => {
     const env = loadRuntimeEnvironment();
     await withCliMonitor(
@@ -2920,7 +2524,7 @@ program
         const authoritativeExecutorName = resolveAuthoritativeExecutorName(env);
         if (!authoritativeExecutorName) {
           throw new Error(
-            "No authoritative executor is configured. Set AF_PROMOTION_VERIFICATION_EXECUTOR=tradingview-web-playwright or tradingview-desktop-cdp, or use TradingView as the primary executor.",
+            "No local readiness executor is configured. Set AF_PROMOTION_VERIFICATION_EXECUTOR=local-backtest or use local-backtest as the primary executor.",
           );
         }
 
@@ -2932,28 +2536,13 @@ program
           previousRecords,
           options.candidate,
         );
-        const fallbackCandidateRecord = findLatestFallbackExperimentForCandidate(
-          previousRecords,
-          options.candidate,
-        );
         const seedStrategy = await loadSeedStrategyReference(env.workspaceRoot);
         const iteration = previousRecords.length + 1;
         const runId = `run-${Date.now()}`;
-        const fallbackLocalOnRuntimeFailure = options.noFallbackLocal ? false : true;
-        const surfaceRecoveryAttempts = parseSurfaceRecoveryAttempts(
-          options.surfaceRecoveryAttempts,
-        );
-        const chartTarget = {
-          symbol: env.chartSymbol,
-          timeframe: env.chartTimeframe,
-          chartType: env.chartType,
-        };
         const candidatePath = resolveCandidatePath(env.workspaceRoot, options.candidate);
         const pineScript = await readFile(candidatePath, "utf8");
         const studyTitle = extractStudyTitle(pineScript);
-        const candidateId = path.basename(candidatePath, ".pine");
-        let executor = createPineEvaluationExecutor(env, authoritativeExecutorName);
-        const authoritativeExecutorCapability = executor.getCapability();
+        const executor = createPineEvaluationExecutor(env, authoritativeExecutorName);
 
         await appendRunRecord(stateRoot, {
           runId,
@@ -2980,103 +2569,8 @@ program
               monitor,
             });
 
-          let result: Awaited<ReturnType<typeof evaluateCandidateFile>>;
-          let recoveryAttempts: SurfaceRecoveryAttempt[] = [];
-          try {
-            result = await evaluateCurrentExecutor();
-          } catch (error) {
-            const failureKind = classifyTradingViewRuntimeFailure(error);
-            if (!failureKind) {
-              throw error;
-            }
-            await monitor.log(
-              "verification.runtime_failure",
-              "Authoritative verification runtime failure detected",
-              {
-                candidate: options.candidate,
-                executor: authoritativeExecutorName,
-                detail: error instanceof Error ? error.message : String(error),
-                failureKind,
-              },
-            );
-            let resolvedResult: Awaited<ReturnType<typeof evaluateCandidateFile>> | undefined;
-            let finalRuntimeFailureKind: VerificationRuntimeFailureKind =
-              failureKind;
-            if (surfaceRecoveryAttempts > 0) {
-              const recovery = await attemptTradingViewSurfaceRecovery({
-                executorFactory: () =>
-                  createPineEvaluationExecutor(env, authoritativeExecutorName),
-                chartTarget,
-                failureKind,
-                attempt: 1,
-                monitor,
-              });
-              recoveryAttempts = [recovery.recoveryAttempt];
-              if (recovery.recovered && recovery.executor) {
-                await executor.close?.();
-                executor = recovery.executor;
-                try {
-                  resolvedResult = await evaluateCurrentExecutor();
-                } catch (retryError) {
-                  const retryFailureKind = classifyTradingViewRuntimeFailure(retryError);
-                  if (!retryFailureKind) {
-                    throw retryError;
-                  }
-                  finalRuntimeFailureKind = retryFailureKind;
-                }
-              }
-            }
-            if (!resolvedResult) {
-              let fallbackEvaluation: FallbackEvaluation | null = null;
-              let fallbackEvaluationArtifact: Record<string, unknown> | null = null;
-              if (fallbackLocalOnRuntimeFailure) {
-                const fallbackResult = await collectLocalFallbackEvidence({
-                  candidateId,
-                  pineSource: pineScript,
-                  chartTarget,
-                  objective,
-                  acceptedHeadScore: acceptedRecord?.candidateScore ?? null,
-                  maxTrades: env.maxTrades,
-                  authoritativeFailureKind: finalRuntimeFailureKind,
-                  recoveryAttempts,
-                  executorFactory: createLocalFallbackExecutorFactory(env),
-                  monitor,
-                });
-                fallbackEvaluation = fallbackResult.fallbackEvaluation;
-                fallbackEvaluationArtifact = fallbackResult.artifactPayload;
-              }
-
-              resolvedResult = {
-                candidateId,
-                candidatePath,
-                candidateHash: sha256(pineScript),
-                pineScript,
-                studyTitle,
-                executorCapability: authoritativeExecutorCapability,
-                decision: "verification_fail",
-                verificationStatus: "verification_failed",
-                verificationFailureReason: "verification_runtime_failure",
-                verificationRuntimeFailureKind: finalRuntimeFailureKind,
-                recoveryAttempts,
-                fallbackEvaluation,
-                fallbackEvaluationArtifact,
-                promotionReady: false,
-                compile: null,
-                apply: null,
-                syncArtifact: null,
-                artifactBundle: null,
-                testerMetrics: null,
-                artifactValidation: null,
-                objectiveBreakdown: null,
-              };
-            } else if (recoveryAttempts.length > 0) {
-              resolvedResult = {
-                ...resolvedResult,
-                recoveryAttempts,
-              };
-            }
-            result = resolvedResult;
-          }
+          const result = await evaluateCurrentExecutor();
+          const recoveryAttempts: SurfaceRecoveryAttempt[] = [];
 
           const verificationStatus =
             result.verificationStatus ??
@@ -3097,12 +2591,7 @@ program
             fallbackEvaluation: result.fallbackEvaluation ?? null,
             mutationProvenance: latestCandidateRecord?.mutationProvenance ?? null,
           });
-          const localTvParity = resolveLocalTvParityForVerification({
-            fallbackRecord: fallbackCandidateRecord,
-            testerMetrics: result.testerMetrics,
-            verificationStatus,
-            fallbackEvaluation: result.fallbackEvaluation ?? null,
-          });
+          const localTvParity = null;
 
           const objectiveArtifact =
             result.objectiveBreakdown && result.testerMetrics
@@ -3966,11 +3455,11 @@ program
   .option("--max-runtime-failures <number>", "Stop after this many runtime failures", "3")
   .option(
     "--fallback-local-on-tv-runtime-failure",
-    "Collect local fallback evidence after TradingView runtime failures",
+    "Collect local fallback evidence after local runtime failures",
   )
   .option(
     "--no-fallback-local-on-tv-runtime-failure",
-    "Disable local fallback evidence after TradingView runtime failures",
+    "Disable local fallback evidence after local runtime failures",
   )
   .option(
     "--max-fallbacks-per-batch <number>",
@@ -4275,10 +3764,10 @@ program
 
 program
   .command("cleanup-runtime")
-  .description("Inspect or clean safe runtime cache files without touching TradingView login/session data.")
+  .description("Inspect or clean safe local runtime cache files without touching session data.")
   .option("--dry-run", "Only report cleanup candidates; this is the default.")
   .option("--confirm", "Delete allowlisted cache candidates.")
-  .option("--target <target>", "Cleanup target. Currently only tradingview-cache.", "tradingview-cache")
+  .option("--target <target>", "Cleanup target. Currently only runtime-cache.", "runtime-cache")
   .action(
     async (options: {
       dryRun?: boolean;
@@ -4292,9 +3781,9 @@ program
           commandName: "cleanup-runtime",
         },
         async (monitor) => {
-          const target = options.target ?? "tradingview-cache";
-          if (target !== "tradingview-cache") {
-            throw new Error("cleanup-runtime target must be tradingview-cache.");
+          const target = options.target ?? "runtime-cache";
+          if (target !== "runtime-cache") {
+            throw new Error("cleanup-runtime target must be runtime-cache.");
           }
           await ensureStateRoot(env.stateRoot);
           const report = await cleanupRuntime({
@@ -4538,7 +4027,7 @@ program
       },
       async (monitor) => {
         await initializeWorkspace(env.workspaceRoot);
-        const audit = await auditKnowledgeTree(env.workspaceRoot);
+        const audit = await auditKnowledgeTree(env.workspaceRoot, env.stateRoot);
         await monitor.log("knowledge.audit", "Knowledge tree audited", {
           auditOk: audit.ok,
           totalEntries: audit.summary.totalEntries,
@@ -4608,7 +4097,7 @@ program
           );
           return;
         }
-        const migration = await migrateLegacyKnowledgeLayout(env.workspaceRoot);
+        const migration = await migrateLegacyKnowledgeLayout(env.workspaceRoot, env.stateRoot);
         await monitor.log("knowledge.migrate", "Legacy knowledge migrated", {
           copiedCount: migration.copied.length,
         });

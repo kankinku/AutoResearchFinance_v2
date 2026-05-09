@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { extractStudyTitle } from "../automation/tradingview/pine-study.js";
+import { extractStudyTitle } from "../strategy-source/pine-study.js";
 import { type PineEvaluationExecutor } from "../automation/common/executor.js";
 import { type CliMonitor } from "../cli/monitor.js";
 import { loadObjectiveConfig } from "../config/objective.js";
@@ -89,9 +89,9 @@ import {
 import { ensureActiveSeedBaseline } from "./seed-strategy.js";
 import { enrichTradesWithMarketContext } from "./trade-context.js";
 import {
-  attemptTradingViewSurfaceRecovery,
+  attemptLocalRuntimeRecovery,
   buildFallbackEvidenceFromScreening,
-  classifyTradingViewRuntimeFailure,
+  classifyLocalRuntimeFailure,
   collectLocalFallbackEvidence,
 } from "./verification-fallback.js";
 import { initializeWorkspace } from "./workspace.js";
@@ -1751,8 +1751,8 @@ export async function runSingleIteration(
         try {
           await runPromotionVerificationAttempt();
         } catch (error) {
-          const runtimeFailureKind = classifyTradingViewRuntimeFailure(error, {
-            assumeTradingView: true,
+          const runtimeFailureKind = classifyLocalRuntimeFailure(error, {
+            assumeLocalRuntime: true,
           });
           if (!runtimeFailureKind) {
             throw error;
@@ -1767,7 +1767,7 @@ export async function runSingleIteration(
               detail: error instanceof Error ? error.message : String(error),
             },
           );
-          const recoveryAttempt = await attemptTradingViewSurfaceRecovery({
+          const recoveryAttempt = await attemptLocalRuntimeRecovery({
             executorFactory: input.promotionVerificationExecutorFactory!,
             chartTarget,
             failureKind: runtimeFailureKind,
@@ -1782,8 +1782,8 @@ export async function runSingleIteration(
             try {
               await runPromotionVerificationAttempt();
             } catch (retryError) {
-              const retryFailureKind = classifyTradingViewRuntimeFailure(retryError, {
-                assumeTradingView: true,
+              const retryFailureKind = classifyLocalRuntimeFailure(retryError, {
+                assumeLocalRuntime: true,
               });
               await finalizeRuntimeFailure(
                 retryFailureKind ?? runtimeFailureKind ?? "unknown_runtime_failure",

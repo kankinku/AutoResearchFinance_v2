@@ -485,7 +485,7 @@ function buildUserFacingError(error: unknown): string {
   const message = extractErrorMessage(error);
 
   if (message.includes("CDP did not become reachable")) {
-    return "TradingView Desktop는 실행됐지만 CDP 연결이 열리지 않았습니다. 원격 디버깅 포트와 실행 옵션을 확인하세요.";
+    return "Local runtime connection did not become reachable. Check the runtime process and configuration.";
   }
 
   if (message.includes("Failed to reach OpenAI-compatible endpoint")) {

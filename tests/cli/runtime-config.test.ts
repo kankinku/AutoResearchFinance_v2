@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("runtime config", () => {
-  test("defaults external TradingView verification to opt-in manual paths", async () => {
+  test("defaults promotion verification to local-only manual paths", async () => {
     delete process.env.PINE_PROMOTION_VERIFICATION_EXECUTOR;
     delete process.env.AF_PROMOTION_VERIFICATION_EXECUTOR;
     delete process.env.AF_AUTO_PROCESS_CALIBRATION;
@@ -46,8 +46,8 @@ describe("runtime config", () => {
   });
 
   test("uses target-scoped state when a target override is provided", async () => {
-    delete process.env.TRADINGVIEW_CHART_SYMBOL;
-    delete process.env.TRADINGVIEW_CHART_TIMEFRAME;
+    delete process.env.AF_CHART_SYMBOL;
+    delete process.env.AF_CHART_TIMEFRAME;
 
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-btc-target-"));
     const env = loadRuntimeEnvironment({
@@ -70,7 +70,7 @@ describe("runtime config", () => {
   test("does not treat cleanup-runtime target as a research target", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-cleanup-target-"));
     const env = loadRuntimeEnvironment({
-      argv: ["cleanup-runtime", "--target", "tradingview-cache"],
+      argv: ["cleanup-runtime", "--target", "runtime-cache"],
       cwd: workspaceRoot,
       overrides: {
         projectRoot: process.cwd(),
@@ -82,8 +82,8 @@ describe("runtime config", () => {
   });
 
   test("rejects conflicting target and chart environment", async () => {
-    process.env.TRADINGVIEW_CHART_SYMBOL = "BTCUSD";
-    process.env.TRADINGVIEW_CHART_TIMEFRAME = "15";
+    process.env.AF_CHART_SYMBOL = "BTCUSD";
+    process.env.AF_CHART_TIMEFRAME = "15";
 
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-chart-conflict-"));
 
@@ -127,24 +127,22 @@ describe("runtime config", () => {
     });
   });
 
-  test("accepts TradingView web Playwright as an opt-in verification executor", async () => {
-    process.env.AF_PROMOTION_VERIFICATION_EXECUTOR = "tradingview-web-playwright";
+  test("rejects removed TradingView web configuration", async () => {
+    process.env.AF_PROMOTION_VERIFICATION_EXECUTOR = "local-backtest";
     process.env.TRADINGVIEW_WEB_CDP_URL = "http://127.0.0.1:9223";
     process.env.TRADINGVIEW_WEB_CHART_URL = "https://www.tradingview.com/chart/";
 
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-runtime-web-tv-"));
-    const env = loadRuntimeEnvironment({
-      cwd: workspaceRoot,
-      overrides: {
-        projectRoot: process.cwd(),
-        workspaceRoot,
-        stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
-      },
-    });
-
-    expect(env.promotionVerificationExecutor).toBe("tradingview-web-playwright");
-    expect(env.tradingViewWebCdpUrl).toBe("http://127.0.0.1:9223");
-    expect(env.tradingViewWebChartUrl).toBe("https://www.tradingview.com/chart/");
+    expect(() =>
+      loadRuntimeEnvironment({
+        cwd: workspaceRoot,
+        overrides: {
+          projectRoot: process.cwd(),
+          workspaceRoot,
+          stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+        },
+      }),
+    ).toThrow(/Removed TradingView configuration detected/);
   });
 
   test("infers indicator request mode from CLI indicator goal", async () => {

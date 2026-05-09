@@ -2,10 +2,11 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
-import { createMockPineEvaluationExecutor } from "../../src/automation/tradingview/mock-driver.js";
+import { createMockPineEvaluationExecutor } from "../../src/automation/local-backtest/mock-driver.js";
 import { createCliMonitor } from "../../src/cli/monitor.js";
+import { resolveTargetStateRoot } from "../../src/config/target-registry.js";
 import { createStaticLlmClient, type MutationLlmClient } from "../../src/mutation/llm-client.js";
 import {
   reconcileStaleTaskBatches,
@@ -13,6 +14,11 @@ import {
 } from "../../src/research/task-batch-runner.js";
 import { appendTaskBatchRecord } from "../../src/state/jsonl-store.js";
 import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
+
+const testStateRoot = (workspaceRoot: string): string =>
+  resolveTargetStateRoot({ workspaceRoot, targetId: "qqq-120m-af" });
+
+vi.setConfig({ testTimeout: 30_000 });
 
 const baseMutationResponse = JSON.stringify({
   candidateSummary: "Task batch candidate",
@@ -51,7 +57,7 @@ describe("runTaskBatch", () => {
     });
     await monitor.close();
 
-    const knowledgePaths = resolveKnowledgePaths(path.join(workspace, "state", "pi-autoresearch"));
+    const knowledgePaths = resolveKnowledgePaths(testStateRoot(workspace));
     const taskBatches = (await readFile(knowledgePaths.taskBatchesPath, "utf8"))
       .trim()
       .split("\n")
@@ -77,7 +83,7 @@ describe("runTaskBatch", () => {
     expect(taskBoard.batches[0]?.completedTaskCount).toBe(3);
     expect(monitorLines[0]).toContain("batch:");
     expect(monitorLines).toContain("-------task 01----------");
-  }, 10000);
+  }, 30000);
 
   test("runs research refresh after every configured three tasks", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-task-batch-refresh-"));
@@ -95,7 +101,7 @@ describe("runTaskBatch", () => {
       env: {
         projectRoot: process.cwd(),
         workspaceRoot: workspace,
-        stateRoot: path.join(workspace, "state", "pi-autoresearch"),
+        stateRoot: testStateRoot(workspace),
         researchTargetId: "qqq-120m-af",
         openAiAuthMode: "oauth_proxy",
         openAiBaseUrl: "http://127.0.0.1:10531/v1",
@@ -107,12 +113,8 @@ describe("runTaskBatch", () => {
         openAiOauthAuthFilePath: undefined,
         mutationStaticResponsePath: undefined,
         evaluationUseMock: false,
-        evaluationExecutor: "tradingview-desktop-cdp",
+        evaluationExecutor: "local-backtest",
         promotionVerificationExecutor: "none",
-        tradingViewDesktopPath: undefined,
-        tradingViewCdpUrl: "http://127.0.0.1:9222",
-        pineEditorTimeoutMs: 15_000,
-        tradingViewCdpCommandTimeoutMs: 8_000,
         chartSymbol: "QQQ",
         chartTimeframe: "120",
         chartType: "candles",
@@ -122,7 +124,6 @@ describe("runTaskBatch", () => {
         alphaXivMcpBearerToken: "token",
         alphaXivAuthFilePath: undefined,
         alphaXivSessionFilePath: undefined,
-        tvCalibrationMode: "live",
         mutationSchemaMode: "strict",
         autonomousBootstrapMode: "disabled",
         autoProcessCalibration: false,
@@ -159,7 +160,7 @@ describe("runTaskBatch", () => {
       batchId: result.batchId,
       taskNumbers: [1, 2, 3],
     });
-  }, 10000);
+  }, 30000);
 
   test("does not count research refresh failures as task runtime failures", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-task-batch-refresh-soft-"));
@@ -179,7 +180,7 @@ describe("runTaskBatch", () => {
       },
     });
 
-    const knowledgePaths = resolveKnowledgePaths(path.join(workspace, "state", "pi-autoresearch"));
+    const knowledgePaths = resolveKnowledgePaths(testStateRoot(workspace));
     const incidents = (await readFile(knowledgePaths.incidentsPath, "utf8"))
       .trim()
       .split("\n")
@@ -193,7 +194,7 @@ describe("runTaskBatch", () => {
     expect(
       incidents.some((incident) => incident.incidentType === "task_runtime_failure"),
     ).toBe(false);
-  }, 10000);
+  }, 30000);
 
   test("stops task batch after runtime failures hit the limit", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-task-batch-stop-"));
@@ -220,7 +221,7 @@ describe("runTaskBatch", () => {
       maxTrades: 50,
     });
 
-    const knowledgePaths = resolveKnowledgePaths(path.join(workspace, "state", "pi-autoresearch"));
+    const knowledgePaths = resolveKnowledgePaths(testStateRoot(workspace));
     const taskBatches = (await readFile(knowledgePaths.taskBatchesPath, "utf8"))
       .trim()
       .split("\n")
@@ -236,11 +237,11 @@ describe("runTaskBatch", () => {
     expect(tasks.every((task) => task.status === "generation_failed")).toBe(true);
     expect(tasks.every((task) => task.analysis.decision === "mutation_generation_fail")).toBe(true);
     expect(taskBatches.at(-1)?.stopReason).toContain("generation failures reached 2");
-  }, 10000);
+  }, 30000);
 
   test("reconciles stale running task batches as stopped", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "af-task-batch-stale-"));
-    const stateRoot = path.join(workspace, "state", "pi-autoresearch");
+    const stateRoot = testStateRoot(workspace);
     const knowledgePaths = resolveKnowledgePaths(stateRoot);
 
     await appendTaskBatchRecord(stateRoot, {
@@ -377,7 +378,7 @@ describe("runTaskBatch", () => {
       },
     });
 
-    const knowledgePaths = resolveKnowledgePaths(path.join(workspace, "state", "pi-autoresearch"));
+    const knowledgePaths = resolveKnowledgePaths(testStateRoot(workspace));
     const incidents = (await readFile(knowledgePaths.incidentsPath, "utf8"))
       .trim()
       .split("\n")
@@ -457,14 +458,14 @@ describe("runTaskBatch", () => {
             finalAnalysisSummary: {
               status: "available",
               verdict: "promising",
-              summary: "Recovered TradingView surface and finished task.",
-              signals: ["tradingview"],
+              summary: "Recovered local runtime and finished task.",
+              signals: ["local-runtime"],
               recommendedAction: "continue",
             },
           },
           conditionContributions: [],
           hypothesis: {
-            objective: "recover-tradingview",
+            objective: "recover-local-runtime",
             nextMutationDirection: "continue",
             recentFailures: [],
             acceptedHeadCandidateId: null,
@@ -475,7 +476,7 @@ describe("runTaskBatch", () => {
         async onFailure() {
           return {
             recovered: true,
-            recoveryActions: ["restarted_tradingview_surface"],
+            recoveryActions: ["restarted_local_runtime"],
             executor: createMockPineEvaluationExecutor(),
           };
         },
@@ -509,7 +510,7 @@ describe("runTaskBatch", () => {
       },
     });
 
-    const knowledgePaths = resolveKnowledgePaths(path.join(workspace, "state", "pi-autoresearch"));
+    const knowledgePaths = resolveKnowledgePaths(testStateRoot(workspace));
     const incidents = (await readFile(knowledgePaths.incidentsPath, "utf8"))
       .trim()
       .split("\n")

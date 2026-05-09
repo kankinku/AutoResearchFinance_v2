@@ -53,7 +53,7 @@ function resolveFallbackEvidenceGuidance(
       summary:
         "No fallback evidence is currently available. Do not infer authoritative improvement from local-only evidence.",
       suggestedHypothesis:
-        "If TradingView verification fails later, use local fallback only to form a narrow hypothesis and re-verify before any promotion decision.",
+        "If local promotion verification fails later, use fallback evidence only to form a narrow hypothesis and re-verify before any promotion decision.",
       forbiddenInterpretation: "do_not_treat_as_verified",
     };
   }
@@ -72,12 +72,12 @@ function resolveFallbackEvidenceGuidance(
     source: fallback.executorKind,
     authoritative: false,
     summary:
-      `TradingView verification previously failed at ${fallbackRecord.verificationRuntimeFailureKind ?? "unknown_runtime_failure"}; local fallback evidence was recorded as ${fallback.status}.` +
+      `Local promotion verification previously failed at ${fallbackRecord.verificationRuntimeFailureKind ?? "unknown_runtime_failure"}; fallback evidence was recorded as ${fallback.status}.` +
       metricSummary +
       decisionSummary,
     suggestedHypothesis:
       fallback.decisionIfScreeningOnly === "screening_improvement"
-        ? "Preserve the localized rule change that improved the local backtest, but treat it only as a hypothesis until TradingView verification succeeds."
+        ? "Preserve the localized rule change that improved the local backtest, but treat it only as a hypothesis until local verification succeeds."
         : "Use fallback evidence only to narrow the next mutation scope; do not assume the local result reflects authoritative performance.",
     forbiddenInterpretation: "do_not_treat_as_verified",
   };

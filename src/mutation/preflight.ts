@@ -68,7 +68,7 @@ const PREVIEW_RULES: PreflightRule[] = [
           severity: "blocking",
           message: "Generated Pine source does not declare strategy().",
           recommendation:
-            "Emit a TradingView strategy() declaration instead of indicator() or study().",
+            "Emit a Pine strategy() declaration instead of indicator() or study().",
           lineHints: [1],
         }),
       ];

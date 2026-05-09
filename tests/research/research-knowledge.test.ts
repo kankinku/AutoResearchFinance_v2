@@ -8,6 +8,7 @@ import {
   ingestResearchKnowledge,
   selectRelevantResearchContext,
 } from "../../src/research/research-knowledge.js";
+import { DEFAULT_RESEARCH_TARGET_ID, resolveTargetStateRoot } from "../../src/config/target-registry.js";
 import { resolveKnowledgePaths } from "../../src/state/knowledge-paths.js";
 
 const testEnv = {
@@ -25,12 +26,8 @@ const testEnv = {
   openAiOauthAuthFilePath: undefined,
   mutationStaticResponsePath: undefined,
   evaluationUseMock: false,
-  evaluationExecutor: "tradingview-desktop-cdp" as const,
+  evaluationExecutor: "local-backtest" as const,
   promotionVerificationExecutor: "none" as const,
-  tradingViewDesktopPath: undefined,
-  tradingViewCdpUrl: undefined,
-  pineEditorTimeoutMs: 15_000,
-  tradingViewCdpCommandTimeoutMs: 8_000,
   chartSymbol: "QQQ",
   chartTimeframe: "120",
   chartType: "candles",
@@ -40,7 +37,6 @@ const testEnv = {
   alphaXivMcpBearerToken: undefined,
   alphaXivAuthFilePath: undefined,
   alphaXivSessionFilePath: undefined,
-  tvCalibrationMode: "live" as const,
   mutationSchemaMode: "strict" as const,
   autonomousBootstrapMode: "disabled" as const,
   autoProcessCalibration: false,
@@ -59,6 +55,10 @@ const testEnv = {
 describe("research knowledge ingestion", () => {
   test("ingests structured JSON knowledge from a file and selects relevant research context", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-research-knowledge-"));
+    const stateRoot = resolveTargetStateRoot({
+      workspaceRoot,
+      targetId: DEFAULT_RESEARCH_TARGET_ID,
+    });
     const knowledgeFilePath = path.join(workspaceRoot, "weak-exit-note.json");
     await writeFile(
       knowledgeFilePath,
@@ -91,7 +91,7 @@ describe("research knowledge ingestion", () => {
       env: {
         ...testEnv,
         workspaceRoot,
-        stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+        stateRoot,
       },
       filePath: knowledgeFilePath,
       problemTags: ["drawdown_control"],
@@ -105,6 +105,7 @@ describe("research knowledge ingestion", () => {
 
     const context = await selectRelevantResearchContext({
       workspaceRoot,
+      stateRoot,
       recentFailures: ["hard_gate_fail"],
       lossHotZones: ["trend_down:weak_exit"],
       repairPriorities: ["Tighten exit behavior when losing trades continue into deeper drawdown."],
@@ -115,7 +116,7 @@ describe("research knowledge ingestion", () => {
     expect(context.relevantKnowledgeIds).toContain(records[0]?.knowledgeId);
     expect(context.insights[0]?.suggestedMutation).toContain("Tighten long exits");
 
-    const knowledgePaths = resolveKnowledgePaths(path.join(workspaceRoot, "state", "pi-autoresearch"));
+    const knowledgePaths = resolveKnowledgePaths(stateRoot);
     expect(records[0]?.rawTextPath).toBeTruthy();
     const rawText = await readFile(records[0]!.rawTextPath!, "utf8");
     expect(rawText).toContain('"summary": "Research note focused on weak exits during downtrends."');
@@ -124,12 +125,16 @@ describe("research knowledge ingestion", () => {
 
   test("ingests inline text content without requiring a file path", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-research-inline-"));
+    const stateRoot = resolveTargetStateRoot({
+      workspaceRoot,
+      targetId: DEFAULT_RESEARCH_TARGET_ID,
+    });
     const records = await ingestResearchKnowledge({
       workspaceRoot,
       env: {
         ...testEnv,
         workspaceRoot,
-        stateRoot: path.join(workspaceRoot, "state", "pi-autoresearch"),
+        stateRoot,
       },
       title: "Inline structured note",
       sourceType: "manual_text",

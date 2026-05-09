@@ -169,8 +169,15 @@ export async function initializeWorkspace(
     normalizedInput.workspaceRoot,
     normalizedInput.targetId,
   );
-  await syncKnowledgeCatalog(normalizedInput.workspaceRoot, objective);
-  await migrateLegacyKnowledgeLayout(normalizedInput.workspaceRoot);
+  await syncKnowledgeCatalog(
+    normalizedInput.workspaceRoot,
+    objective,
+    normalizedInput.stateRoot,
+  );
+  await migrateLegacyKnowledgeLayout(
+    normalizedInput.workspaceRoot,
+    normalizedInput.stateRoot,
+  );
   await rebuildIndexes(normalizedInput.stateRoot);
 
   return {
