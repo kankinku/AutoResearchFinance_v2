@@ -138,6 +138,63 @@ describe("buildDashboardStatus", () => {
       ].map((record) => JSON.stringify(record)).join("\n") + "\n",
       "utf8",
     );
+    await writeFile(
+      paths.mutationBriefsPath,
+      JSON.stringify({
+        runId: "run-display",
+        iteration: 4,
+        acceptedHeadCandidateId: "cand-return-b",
+        brief: {
+          repairMode: "exploration_breakout",
+          nextMutationDirection: "Use a materially different event reclaim route.",
+          analysisGuidance: {
+            hypothesis: "Event reclaim reversal can improve BTC participation.",
+            expectedEffect: "More robust OOS participation.",
+            invalidIf: "OOS post-fee profit stays negative.",
+          },
+          breakoutOutcomeMemory: {
+            preferredRoutes: ["event_reclaim_reversal"],
+            suppressedRoutes: [],
+            dominantSparsePatterns: [],
+          },
+        },
+        recordedAt: "2026-04-27T05:00:00.000Z",
+      }) + "\n",
+      "utf8",
+    );
+    await writeFile(
+      paths.problemEventsPath,
+      JSON.stringify({
+        problemEventId: "problem-display",
+        runId: "run-display",
+        iteration: 4,
+        candidateId: "cand-schema",
+        problemKind: "llm_schema_fail",
+        diagnosis: "event.source enum mismatch",
+        evidenceHash: "problem-hash",
+        suggestedRepairKind: "schema_repair",
+        recordedAt: "2026-04-27T05:01:00.000Z",
+      }) + "\n",
+      "utf8",
+    );
+    await writeFile(
+      paths.repairAttemptsPath,
+      JSON.stringify({
+        repairAttemptId: "repair-display",
+        problemEventId: "problem-display",
+        runId: "run-display",
+        iteration: 4,
+        candidateId: "cand-schema",
+        repairedCandidateId: "cand-repaired",
+        repairKind: "risk_logic_repair",
+        llmPromptHash: "prompt-hash",
+        llmResponseHash: "response-hash",
+        result: "success",
+        summary: "Requested risk_logic_repair after local_backtest_fail.",
+        recordedAt: "2026-04-27T05:02:00.000Z",
+      }) + "\n",
+      "utf8",
+    );
 
     const status = await buildDashboardStatus({
       workspaceRoot: root,
@@ -175,6 +232,13 @@ describe("buildDashboardStatus", () => {
     expect(status.score.returnProfile.recentBestPercent).toBe(5);
     expect(status.score.returnProfile.recentBestCandidateId).toBe("cand-return-b");
     expect(status.score.returnProfile.recentAveragePercent).toBeCloseTo(1);
+    expect(status.hypothesis?.repairMode).toBe("exploration_breakout");
+    expect(status.hypothesis?.displayRepairMode).toBe("새 구조 탐색");
+    expect(status.hypothesis?.displayRoute).toContain("event_reclaim_reversal");
+    expect(status.failureMemory.recentProblems[0]?.problemKind).toBe("llm_schema_fail");
+    expect(status.failureMemory.recentProblems[0]?.displayProblemKind).toContain("strict JSON");
+    expect(status.failureMemory.recentRepairs[0]?.repairKind).toBe("risk_logic_repair");
+    expect(status.failureMemory.recentRepairs[0]?.displayRepairKind).toBe("리스크/청산 로직 수리");
     expect(status.externalValidation.pendingCount).toBe(1);
     expect(status.externalValidation.pendingCandidateIds).toEqual(["cand-queued"]);
     expect(status.externalValidation.latestDivergence).toEqual(
@@ -246,7 +310,6 @@ describe("buildDashboardStatus", () => {
       }) + "\n",
       "utf8",
     );
-
     const status = await buildDashboardStatus({
       workspaceRoot: root,
       stateRoot,
@@ -303,12 +366,12 @@ describe("buildDashboardStatus", () => {
             timeframe: "15",
             goalMode: "repair",
             latestReview: {
-              reviewDecision: "repair_near_miss",
+              reviewDecision: "redirect_family",
               confidence: 0.82,
               reviewMode: "deterministic",
               candidateId: "cand-near",
               mutationDirective: {
-                branchKindBias: "near_miss_repair",
+                branchKindBias: "exploration_breakout",
                 parentCandidateId: "cand-near",
                 requiredChanges: ["recover_trade_density"],
                 forbiddenPatterns: ["broad_rewrite"],
@@ -409,16 +472,19 @@ describe("buildDashboardStatus", () => {
     expect(status.researchMode.strategyReviewFocus).toContain("near_miss");
     expect(status.strategyReview).toEqual(
       expect.objectContaining({
-        latestDecision: "repair_near_miss",
+        latestDecision: "redirect_family",
+        displayDecision: "현재 패밀리 유지가 아니라 다른 구조 패밀리로 전환",
         latestCandidateId: "cand-near",
         confidence: 0.82,
-        branchKindBias: "near_miss_repair",
+        branchKindBias: "exploration_breakout",
         parentCandidateId: "cand-near",
         reason: "repair repeated OOS failure",
         suppressedFamilies: ["family-a"],
         nextMutationFocus: ["recover_trade_density", "walk_forward"],
       }),
     );
+    expect(status.strategyReview.displayReason).toContain("다른 구조 패밀리로 전환");
+    expect(status.strategyReview.displayNextMutationFocus).toEqual(["거래 밀도 회복", "워크포워드"]);
     expect(status.strategyReview.requiredChanges).toEqual(["recover_trade_density"]);
     expect(status.strategyReview.validationFocus).toEqual(["walk_forward"]);
   });

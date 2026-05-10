@@ -1158,6 +1158,7 @@ export function renderDashboardHtml(): string {
     function decisionLabel(value) {
       const labels = {
         local_candidate_eligible: "로컬 적격",
+        local_candidate_rejected: "로컬 탈락",
         tv_verified: "로컬 검증 완료",
         calibration_queued: "로컬 검증 대기",
         quarantined: "격리",
@@ -1747,11 +1748,13 @@ export function renderDashboardHtml(): string {
         row([{ value: "억제 브랜치", className: "mono" }, { value: tokenList(researchMode.suppressedBranchKinds || []), className: (researchMode.suppressedBranchKinds || []).length ? "warnText" : "mutedText" }])
       ]);
       text("strategyReviewConfidence", strategyReview.confidence === null || strategyReview.confidence === undefined ? "대기" : fmt(strategyReview.confidence * 100, 0) + "%");
-      text("strategyReviewDecision", reviewDecisionLabel(strategyReview.latestDecision));
-      text("strategyReviewReason", reviewReasonLabel(strategyReview.latestDecision, strategyReview.reason || strategyReview.debateSummary));
-      renderChipList("strategyReviewFocus", strategyReview.nextMutationFocus || [], tokenLabel);
+      text("strategyReviewDecision", strategyReview.displayDecision || reviewDecisionLabel(strategyReview.latestDecision));
+      text("strategyReviewReason", strategyReview.displayReason || reviewReasonLabel(strategyReview.latestDecision, strategyReview.reason || strategyReview.debateSummary));
+      renderChipList("strategyReviewFocus", strategyReview.displayNextMutationFocus || strategyReview.nextMutationFocus || [], strategyReview.displayNextMutationFocus ? null : tokenLabel);
       renderRows("strategyReviewRows", [
         row([{ value: "후보", className: "mono" }, { value: strategyReview.latestCandidateId ? shortId(strategyReview.latestCandidateId) : "-", className: "mono" }]),
+        row([{ value: "Raw decision", className: "mono" }, { value: strategyReview.latestDecision || "-", className: "mono" }]),
+        row([{ value: "Raw reason", className: "mono" }, { value: strategyReview.reason || strategyReview.debateSummary || "-", className: "mono" }]),
         row([{ value: "리뷰 방식", className: "mono" }, { value: strategyReview.reviewMode || "-", className: "mono" }]),
         row([{ value: "브랜치 방향", className: "mono" }, { value: strategyReview.branchKindBias ? branchKindLabel(strategyReview.branchKindBias) : "-", className: strategyReview.branchKindBias ? "goodText" : "mutedText" }]),
         row([{ value: "기준 후보", className: "mono" }, { value: strategyReview.parentCandidateId ? shortId(strategyReview.parentCandidateId) : "-", className: "mono" }]),
@@ -1928,16 +1931,18 @@ export function renderDashboardHtml(): string {
       }) : []);
 
       const hyp = data.hypothesis;
-      text("repairMode", hyp ? hyp.repairMode : "-");
+      text("repairMode", hyp ? (hyp.displayRepairMode || hyp.repairMode) : "-");
       const hypEl = document.getElementById("hypothesisGrid");
       if (hypEl) {
         hypEl.innerHTML = "";
         [
-          ["가설", hyp && hyp.hypothesis],
-          ["기대 효과", hyp && hyp.expectedEffect],
-          ["무효 조건", hyp && hyp.invalidIf],
-          ["경로", hyp ? "선호 " + hyp.route.preferred.join(", ") + " / 변형 " + (hyp.route.variant || "-") : null],
-          ["다음 방향", hyp && hyp.nextMutationDirection]
+          ["요약", hyp && hyp.displaySummary],
+          ["경로", hyp ? (hyp.displayRoute || ("선호 " + hyp.route.preferred.join(", ") + " / 변형 " + (hyp.route.variant || "-"))) : null],
+          ["가설 원문", hyp && hyp.hypothesis],
+          ["기대 효과 원문", hyp && hyp.expectedEffect],
+          ["무효 조건 원문", hyp && hyp.invalidIf],
+          ["다음 방향 원문", hyp && hyp.nextMutationDirection],
+          ["Raw repairMode", hyp && hyp.repairMode]
         ].forEach(function(pair) {
           const div = document.createElement("div");
           div.className = "hypothesis-row";
@@ -1992,8 +1997,8 @@ export function renderDashboardHtml(): string {
       renderRows("problemRows", (data.failureMemory.recentProblems || []).slice(-6).reverse().map(function(item) {
         return row([
           { value: item.iteration === null ? "-" : String(item.iteration), className: "mono" },
-          { value: item.problemKind, className: "mono" },
-          { value: item.diagnosis.slice(0, 96) }
+          { value: item.displayProblemKind || item.problemKind },
+          { value: (item.displayDiagnosis || item.diagnosis).slice(0, 140) }
         ]);
       }));
 
@@ -2001,8 +2006,8 @@ export function renderDashboardHtml(): string {
       renderRows("repairRows", (data.failureMemory.recentRepairs || []).slice(-6).reverse().map(function(item) {
         return row([
           { value: item.iteration === null ? "-" : String(item.iteration), className: "mono" },
-          { value: item.repairKind, className: "mono" },
-          { value: item.result + " / " + shortId(item.repairedCandidateId) }
+          { value: item.displayRepairKind || item.repairKind },
+          { value: (item.displaySummary || ((item.displayResult || item.result) + " / " + shortId(item.repairedCandidateId))).slice(0, 140) }
         ]);
         }));
       }
