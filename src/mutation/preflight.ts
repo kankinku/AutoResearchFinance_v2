@@ -198,6 +198,7 @@ export function inspectGeneratedMutation(
   pushFunctionGlobalMutationIssues(issues, source);
   pushLongTitleIssues(issues, source, recentCompileFailureClasses);
   pushNaTypeAssignmentIssues(issues, source, recentCompileFailureClasses);
+  pushMissingLocalCodeBlockIssues(issues, source);
   pushBreakoutVariantDirectiveIssues(
     issues,
     source,
@@ -774,6 +775,80 @@ function pushNaTypeAssignmentIssues(
     });
     return;
   }
+}
+
+function pushMissingLocalCodeBlockIssues(
+  issues: PineGenerationIssue[],
+  source: string,
+): void {
+  const lines = source.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    const trimmed = stripLineComment(line).trim();
+    if (!requiresLocalCodeBlock(trimmed)) {
+      continue;
+    }
+
+    const currentIndent = indentationWidth(line);
+    const nextCodeLine = findNextCodeLine(lines, index + 1);
+    if (nextCodeLine && indentationWidth(nextCodeLine.line) > currentIndent) {
+      continue;
+    }
+
+    issues.push({
+      code: "missing_local_code_block",
+      ruleId: "pine.missing_local_code_block",
+      category: "syntax",
+      severity: "blocking",
+      message:
+        "Generated Pine source has a function, conditional, or loop structure without an indented local code block.",
+      recommendation:
+        "Add at least one indented Pine expression inside the structure, or remove the empty structure entirely.",
+      lineHints: [index + 1],
+    });
+  }
+}
+
+function requiresLocalCodeBlock(trimmedLine: string): boolean {
+  if (!trimmedLine) {
+    return false;
+  }
+
+  const functionMatch = trimmedLine.match(/^\w+\s*\([^)]*\)\s*=>\s*(.*)$/);
+  if (functionMatch) {
+    return (functionMatch[1] ?? "").trim().length === 0;
+  }
+
+  return /^(?:if|else\s+if|else|for|while|switch)\b/.test(trimmedLine);
+}
+
+function findNextCodeLine(
+  lines: string[],
+  startIndex: number,
+): { line: string; index: number } | null {
+  for (let index = startIndex; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    const trimmed = stripLineComment(line).trim();
+    if (!trimmed) {
+      continue;
+    }
+    return { line, index };
+  }
+  return null;
+}
+
+function stripLineComment(line: string): string {
+  const commentIndex = line.indexOf("//");
+  return commentIndex >= 0 ? line.slice(0, commentIndex) : line;
+}
+
+function indentationWidth(line: string): number {
+  const indent = line.match(/^\s*/)?.[0] ?? "";
+  let width = 0;
+  for (const char of indent) {
+    width += char === "\t" ? 4 : 1;
+  }
+  return width;
 }
 
 function pushBreakoutVariantDirectiveIssues(

@@ -37,6 +37,11 @@ describe("compile failure normalization", () => {
         'Cannot call "input.time" with argument "defval"="call "timestamp" (simple int)". An argument of "simple int" type was used but a "const int" is expected.',
       ),
     ).toBe("input_time_requires_const_defval");
+    expect(
+      classifyCompileFailure(
+        "The structure is missing a local code block. Functions, conditional structures, and loops must include expressions that define their local scopes.",
+      ),
+    ).toBe("missing_local_code_block");
   });
 
   test("deduplicates classes across raw compiler strings", () => {
@@ -91,5 +96,6 @@ describe("compile failure normalization", () => {
     expect(counts.undeclared_identifier).toBe(2);
     expect(counts.qty_percent_argument).toBe(1);
     expect(counts.input_time_requires_const_defval).toBe(0);
+    expect(counts.missing_local_code_block).toBe(0);
   });
 });

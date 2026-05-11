@@ -54,4 +54,42 @@ describe("pine maker error store", () => {
       path.join("runtime", "pine-maker", "compile-errors.jsonl"),
     );
   });
+
+  test("normalizes missing local block errors from recorded compiler text", async () => {
+    const workspace = await mkdtemp(path.join(os.tmpdir(), "af-pine-maker-block-"));
+    const stateRoot = path.join(workspace, "state");
+    const sourcePath = path.join(workspace, "candidate.pine");
+    await writeFile(
+      sourcePath,
+      [
+        "//@version=5",
+        "strategy('Broken Blocks', overlay=true)",
+        "if close > open",
+        "strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      "utf8",
+    );
+
+    await recordPineMakerError({
+      stateRoot,
+      targetId: "btc-15m-af",
+      candidateId: "cand-block",
+      sourcePath,
+      errorText:
+        "The structure is missing a local code block. Functions, conditional structures, and loops must include expressions that define their local scopes.",
+    });
+    const inspection = await inspectPineMakerSource({
+      stateRoot,
+      sourcePath,
+      targetId: "btc-15m-af",
+      candidateId: "cand-block",
+    });
+
+    expect(inspection.recentCompileFailureClasses).toContain(
+      "missing_local_code_block",
+    );
+    expect(inspection.inspection.blockingIssues.map((issue) => issue.code)).toContain(
+      "missing_local_code_block",
+    );
+  });
 });

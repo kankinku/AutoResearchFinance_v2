@@ -134,6 +134,40 @@ describe("inspectGeneratedMutation", () => {
     );
   });
 
+  test("detects structures without local code blocks before Pine compile", () => {
+    const inspection = inspectGeneratedMutation({
+      candidateSummary: "Missing local block",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('Broken Blocks', overlay=true)",
+        "emptyFunc() =>",
+        "if close > open",
+        "else",
+        "for i = 0 to 2",
+        "strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [7],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    const missingBlockIssues = inspection.blockingIssues.filter(
+      (issue) => issue.code === "missing_local_code_block",
+    );
+    expect(missingBlockIssues.map((issue) => issue.lineHints[0])).toEqual([
+      3, 4, 5, 6,
+    ]);
+  });
+
   test("blocks time-boxed variants that keep sparse event sources or stacked filters", () => {
     const inspection = inspectGeneratedMutation(
       {

@@ -23,3 +23,6 @@ Current guarded pattern:
 - `input.time(timestamp(...), ...)` is blocked because Pine requires a `const int`
   default value. Use a Unix millisecond integer literal instead, for example
   `input.time(1685539800000, "backtestStartTime")`.
+- Empty Pine structures are blocked. Functions, `if`/`else`, loops, and `switch`
+  statements must have at least one indented local expression, or the structure
+  should be removed.

@@ -203,6 +203,7 @@ export const compileFailureClassSchema = z.enum([
   "title_too_long",
   "na_type_assignment",
   "input_time_requires_const_defval",
+  "missing_local_code_block",
 ]);
 
 export const repairModeSchema = z.enum([

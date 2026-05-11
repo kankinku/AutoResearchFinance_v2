@@ -43,6 +43,10 @@ export function classifyCompileFailure(
     return "na_type_assignment";
   }
 
+  if (/structure is missing a local code block/i.test(error)) {
+    return "missing_local_code_block";
+  }
+
   return null;
 }
 
@@ -71,6 +75,7 @@ export function buildCompileFailureClassCounts(
     title_too_long: 0,
     na_type_assignment: 0,
     input_time_requires_const_defval: 0,
+    missing_local_code_block: 0,
   };
 
   for (const record of records) {
