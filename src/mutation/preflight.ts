@@ -123,11 +123,11 @@ const PREVIEW_RULES: PreflightRule[] = [
     code: "ta_sma_scope_consistency",
     category: "compatibility",
     severity: "blocking",
-    pattern: /^\s*[^=\n]+:=.*\?.*\bta\.sma\s*\(/im,
+    pattern: /(^\s*[^=\n]+:=.*\?.*\bta\.sma\s*\()|(^\s{2,}.*\bta\.sma\s*\()/im,
     message:
-      "Generated Pine source calls ta.sma() inside a ternary assignment, which TradingView warns can produce inconsistent calculation scope.",
+      "Generated Pine source calls ta.sma() inside a ternary assignment or local scope, which TradingView warns can produce inconsistent calculation scope.",
     recommendation:
-      "Call ta.sma() unconditionally in the local scope first, then reference the precomputed value inside the ternary expression.",
+      "Call ta.sma() unconditionally at top-level on every bar first, then reference the precomputed value inside functions or ternary expressions.",
   }),
   createPatternRule({
     id: "pine.no_placeholder_logic",

@@ -249,7 +249,7 @@ describe("inspectGeneratedMutation", () => {
     );
   });
 
-  test("blocks ta.sma calls hidden inside ternary assignments", () => {
+  test("blocks ta.sma calls hidden inside ternary assignments or local scopes", () => {
     const inspection = inspectGeneratedMutation({
       candidateSummary: "SMA scope warning",
       nextMutationHints: [],
@@ -279,6 +279,36 @@ describe("inspectGeneratedMutation", () => {
     expect(inspection.blockingIssues.map((issue) => issue.code)).toContain(
       "ta_sma_scope_consistency",
     );
+
+    const scopedInspection = inspectGeneratedMutation({
+      candidateSummary: "SMA local scope warning",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('SMA Local Scope Warning', overlay=true)",
+        "f_local_ema(src, length) =>",
+        "    float seed = ta.sma(src, length)",
+        "    seed",
+        "ema = f_local_ema(close, 21)",
+        "if close > open",
+        "    strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-beta",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [8],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(
+      scopedInspection.blockingIssues.map((issue) => issue.code),
+    ).toContain("ta_sma_scope_consistency");
   });
 
   test("blocks time-boxed variants that keep sparse event sources or stacked filters", () => {
