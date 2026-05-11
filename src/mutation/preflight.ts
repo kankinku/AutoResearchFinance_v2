@@ -119,6 +119,17 @@ const PREVIEW_RULES: PreflightRule[] = [
       "Use a Unix millisecond integer literal for input.time(), for example input.time(1685539800000, \"backtestStartTime\"), instead of input.time(timestamp(...), ...).",
   }),
   createPatternRule({
+    id: "pine.block_ta_sma_in_ternary",
+    code: "ta_sma_scope_consistency",
+    category: "compatibility",
+    severity: "blocking",
+    pattern: /^\s*[^=\n]+:=.*\?.*\bta\.sma\s*\(/im,
+    message:
+      "Generated Pine source calls ta.sma() inside a ternary assignment, which TradingView warns can produce inconsistent calculation scope.",
+    recommendation:
+      "Call ta.sma() unconditionally in the local scope first, then reference the precomputed value inside the ternary expression.",
+  }),
+  createPatternRule({
     id: "pine.no_placeholder_logic",
     code: "placeholder_logic",
     category: "placeholder",

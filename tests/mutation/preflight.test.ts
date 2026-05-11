@@ -249,6 +249,38 @@ describe("inspectGeneratedMutation", () => {
     );
   });
 
+  test("blocks ta.sma calls hidden inside ternary assignments", () => {
+    const inspection = inspectGeneratedMutation({
+      candidateSummary: "SMA scope warning",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('SMA Scope Warning', overlay=true)",
+        "f_local_ema(src, length) =>",
+        "    float out = na",
+        "    out := na(out[1]) ? ta.sma(src, length) : out[1]",
+        "    out",
+        "if close > open",
+        "    strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [8],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(inspection.blockingIssues.map((issue) => issue.code)).toContain(
+      "ta_sma_scope_consistency",
+    );
+  });
+
   test("blocks time-boxed variants that keep sparse event sources or stacked filters", () => {
     const inspection = inspectGeneratedMutation(
       {

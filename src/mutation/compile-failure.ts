@@ -54,6 +54,14 @@ export function classifyCompileFailure(
     return "missing_pine_side_effect";
   }
 
+  if (
+    /ta\.sma/i.test(error) &&
+    /called on each calculation/i.test(error) &&
+    /ternary operator|scope/i.test(error)
+  ) {
+    return "ta_sma_scope_consistency";
+  }
+
   return null;
 }
 
@@ -84,6 +92,7 @@ export function buildCompileFailureClassCounts(
     input_time_requires_const_defval: 0,
     missing_local_code_block: 0,
     missing_pine_side_effect: 0,
+    ta_sma_scope_consistency: 0,
   };
 
   for (const record of records) {

@@ -79,6 +79,8 @@ describe("AF strategy spec v1", () => {
     expect(pine).toContain("f_entry_qty");
     expect(pine).toContain("strategy.equity * (pct * 0.01)");
     expect(pine).toContain("array.push(slotIds, newId)");
+    expect(pine).toContain("float seed = ta.sma(src, length)");
+    expect(pine).not.toContain("na(out[1]) ? ta.sma(src, length)");
     expect(pine).toContain("f_close_slot");
     expect(pine).toContain("entryBar < localBarIndex");
     expect(pine).toContain("freshEntryWouldCloseOnBear");
