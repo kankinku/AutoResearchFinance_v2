@@ -92,4 +92,42 @@ describe("pine maker error store", () => {
       "missing_local_code_block",
     );
   });
+
+  test("normalizes missing Pine side effect errors from recorded compiler text", async () => {
+    const workspace = await mkdtemp(path.join(os.tmpdir(), "af-pine-maker-side-effect-"));
+    const stateRoot = path.join(workspace, "state");
+    const sourcePath = path.join(workspace, "candidate.pine");
+    await writeFile(
+      sourcePath,
+      [
+        "//@version=5",
+        "strategy('No Side Effect', overlay=true)",
+        "fast = ta.ema(close, 12)",
+        "slow = ta.ema(close, 26)",
+      ].join("\n"),
+      "utf8",
+    );
+
+    await recordPineMakerError({
+      stateRoot,
+      targetId: "btc-15m-af",
+      candidateId: "cand-side-effect",
+      sourcePath,
+      errorText:
+        "A strategy must contain at least one of the following: any `strategy.*()` function that creates orders, any `plot*()` function, `barcolor()`, `bgcolor()`, `hline()`, or any drawing (line, label, box, table, polyline).",
+    });
+    const inspection = await inspectPineMakerSource({
+      stateRoot,
+      sourcePath,
+      targetId: "btc-15m-af",
+      candidateId: "cand-side-effect",
+    });
+
+    expect(inspection.recentCompileFailureClasses).toContain(
+      "missing_pine_side_effect",
+    );
+    expect(inspection.inspection.blockingIssues.map((issue) => issue.code)).toContain(
+      "missing_pine_side_effect",
+    );
+  });
 });

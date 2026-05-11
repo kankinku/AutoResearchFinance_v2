@@ -47,6 +47,13 @@ export function classifyCompileFailure(
     return "missing_local_code_block";
   }
 
+  if (
+    /strategy must contain at least one/i.test(error) &&
+    /plot\*\(\)|strategy\.\*\(\)|barcolor|bgcolor|hline|drawing/i.test(error)
+  ) {
+    return "missing_pine_side_effect";
+  }
+
   return null;
 }
 
@@ -76,6 +83,7 @@ export function buildCompileFailureClassCounts(
     na_type_assignment: 0,
     input_time_requires_const_defval: 0,
     missing_local_code_block: 0,
+    missing_pine_side_effect: 0,
   };
 
   for (const record of records) {

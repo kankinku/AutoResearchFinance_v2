@@ -168,6 +168,87 @@ describe("inspectGeneratedMutation", () => {
     ]);
   });
 
+  test("blocks Pine strategies with no order or visual output side effects", () => {
+    const inspection = inspectGeneratedMutation({
+      candidateSummary: "No side effects",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('No Side Effects', overlay=true)",
+        "fast = ta.ema(close, 12)",
+        "slow = ta.ema(close, 26)",
+        "longCondition = ta.crossover(fast, slow)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [5],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(inspection.blockingIssues.map((issue) => issue.code)).toContain(
+      "missing_pine_side_effect",
+    );
+  });
+
+  test("allows Pine strategy side effects from plots or order calls", () => {
+    const withPlot = inspectGeneratedMutation({
+      candidateSummary: "Plot side effect",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('Plot Side Effect', overlay=true)",
+        "fast = ta.ema(close, 12)",
+        "plot(fast)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [4],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+    const withOrder = inspectGeneratedMutation({
+      candidateSummary: "Order side effect",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('Order Side Effect', overlay=true)",
+        "if close > open",
+        "    strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [4],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(withPlot.blockingIssues.map((issue) => issue.code)).not.toContain(
+      "missing_pine_side_effect",
+    );
+    expect(withOrder.blockingIssues.map((issue) => issue.code)).not.toContain(
+      "missing_pine_side_effect",
+    );
+  });
+
   test("blocks time-boxed variants that keep sparse event sources or stacked filters", () => {
     const inspection = inspectGeneratedMutation(
       {

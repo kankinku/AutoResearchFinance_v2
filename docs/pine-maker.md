@@ -26,3 +26,6 @@ Current guarded pattern:
 - Empty Pine structures are blocked. Functions, `if`/`else`, loops, and `switch`
   statements must have at least one indented local expression, or the structure
   should be removed.
+- Strategies with no executable side effect are blocked. A generated strategy
+  must include at least one order-creating `strategy.*()` call or one visible
+  output such as `plot*()`, `barcolor()`, `bgcolor()`, `hline()`, or a drawing.

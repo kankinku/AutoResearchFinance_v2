@@ -204,6 +204,7 @@ export const compileFailureClassSchema = z.enum([
   "na_type_assignment",
   "input_time_requires_const_defval",
   "missing_local_code_block",
+  "missing_pine_side_effect",
 ]);
 
 export const repairModeSchema = z.enum([

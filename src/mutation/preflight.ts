@@ -136,6 +136,30 @@ const PREVIEW_RULES: PreflightRule[] = [
     message: "Generated Pine source still contains markdown fences.",
     recommendation: "Return raw Pine code only inside pineScript, without markdown fences.",
   }),
+  {
+    id: "pine.require_order_or_visual_output",
+    code: "missing_pine_side_effect",
+    category: "contract",
+    severity: "blocking",
+    check(source) {
+      if (hasPineExecutionSideEffect(source)) {
+        return [];
+      }
+      return [
+        createIssue({
+          ruleId: "pine.require_order_or_visual_output",
+          code: "missing_pine_side_effect",
+          category: "contract",
+          severity: "blocking",
+          message:
+            "Generated Pine strategy has no order-creating strategy call, plot, color output, hline, or drawing.",
+          recommendation:
+            "Add at least one strategy.entry/order/exit/close call for strategy candidates, or add a plot/barcolor/bgcolor/hline/drawing output for diagnostic scripts.",
+          lineHints: [1],
+        }),
+      ];
+    },
+  },
   createPatternRule({
     id: "pine.warn_legacy_study",
     code: "legacy_study_declaration",
@@ -807,6 +831,23 @@ function pushMissingLocalCodeBlockIssues(
       lineHints: [index + 1],
     });
   }
+}
+
+function hasPineExecutionSideEffect(source: string): boolean {
+  const patterns = [
+    /\bstrategy\.(?:entry|order|exit|close|close_all)\s*\(/i,
+    /\bplot\w*\s*\(/i,
+    /\b(?:barcolor|bgcolor|hline)\s*\(/i,
+    /\b(?:line|label|box|table|polyline)\.new\s*\(/i,
+  ];
+
+  return source.split(/\r?\n/).some((line) => {
+    const code = stripLineComment(line);
+    return patterns.some((pattern) => {
+      pattern.lastIndex = 0;
+      return pattern.test(code);
+    });
+  });
 }
 
 function requiresLocalCodeBlock(trimmedLine: string): boolean {
