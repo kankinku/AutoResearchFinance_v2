@@ -63,6 +63,20 @@ export interface LocalEvaluationPhaseResult {
   problemEvent: ProblemEventRecord | null;
 }
 
+const STANDOUT_REFERENCE_MIN_COUNT = 20;
+const STANDOUT_ABSOLUTE_THRESHOLDS = {
+  autoSelectionScore: 0.85,
+  performanceScore: 0.72,
+  noveltyScore: 0.24,
+  robustnessScore: 0.12,
+} as const;
+const STANDOUT_RELATIVE_GAPS = {
+  autoSelectionScore: 0.08,
+  performanceScore: 0.05,
+  noveltyScore: 0.04,
+  robustnessScore: 0.03,
+} as const;
+
 export async function runLocalEvaluationPhase(input: {
   workspaceRoot: string;
   stateRoot: string;
@@ -656,13 +670,20 @@ export async function runLocalEvaluationPhase(input: {
     duplicateClassification: duplicateStatus.classification,
   });
 
-  const shouldArchive =
+  const standardArchive =
     autoSelectionBreakdown.eligible &&
     artifactValidation.hasMetrics &&
     artifactValidation.hasTrades &&
     artifactValidation.hasEquitySummary &&
     objectiveBreakdown?.hardGatesPassed === true &&
     duplicateStatus.classification === "unique";
+  const standoutArchiveReasons = buildStandoutArchiveReasons({
+    autoSelectionBreakdown,
+    artifactValidation,
+    duplicateStatus,
+    previousExperiments: input.previousExperiments,
+  });
+  const shouldArchive = standardArchive || standoutArchiveReasons.length > 0;
   const shouldQueueCalibration =
     autoSelectionBreakdown.eligible ||
     autoSelectionBreakdown.noveltyScore >= 0.12;
@@ -779,6 +800,135 @@ function resolveLocalResearchStage(input: {
     return "archive";
   }
   return "frontier";
+}
+
+function buildStandoutArchiveReasons(input: {
+  autoSelectionBreakdown: AutonomousExperimentRecord["autoSelectionBreakdown"];
+  artifactValidation: AutonomousExperimentRecord["artifactValidation"];
+  duplicateStatus: AutonomousExperimentRecord["duplicateStatus"];
+  previousExperiments: ExperimentRecord[];
+}): string[] {
+  const breakdown = input.autoSelectionBreakdown;
+  if (
+    !breakdown ||
+    !input.artifactValidation?.hasMetrics ||
+    !input.artifactValidation.hasTrades ||
+    !input.artifactValidation.hasEquitySummary ||
+    input.duplicateStatus?.classification !== "unique"
+  ) {
+    return [];
+  }
+
+  const references = input.previousExperiments
+    .filter((record) => {
+      const rawRecord = record as Record<string, unknown>;
+      return rawRecord.recordKind === "local_evaluation";
+    })
+    .map((record) => (record as Record<string, unknown>).autoSelectionBreakdown)
+    .filter(
+      (value): value is NonNullable<AutonomousExperimentRecord["autoSelectionBreakdown"]> =>
+        typeof value === "object" && value !== null,
+    );
+
+  const reasons: string[] = [];
+  addAbsoluteStandoutReasons(reasons, breakdown);
+
+  if (references.length >= STANDOUT_REFERENCE_MIN_COUNT) {
+    addRelativeStandoutReason({
+      reasons,
+      metric: "autoSelectionScore",
+      candidateScore: breakdown.totalScore,
+      referenceScores: references.map((reference) => reference.totalScore),
+      label: "overall",
+    });
+    addRelativeStandoutReason({
+      reasons,
+      metric: "performanceScore",
+      candidateScore: breakdown.performanceScore ?? breakdown.baseObjectiveScore,
+      referenceScores: references.map(
+        (reference) => reference.performanceScore ?? reference.baseObjectiveScore,
+      ),
+      label: "performance",
+    });
+    addRelativeStandoutReason({
+      reasons,
+      metric: "noveltyScore",
+      candidateScore: breakdown.noveltyScore,
+      referenceScores: references.map((reference) => reference.noveltyScore),
+      label: "novelty",
+    });
+    addRelativeStandoutReason({
+      reasons,
+      metric: "robustnessScore",
+      candidateScore: breakdown.robustnessScore,
+      referenceScores: references.map((reference) => reference.robustnessScore),
+      label: "robustness",
+    });
+  }
+
+  return reasons;
+}
+
+function addAbsoluteStandoutReasons(
+  reasons: string[],
+  breakdown: NonNullable<AutonomousExperimentRecord["autoSelectionBreakdown"]>,
+): void {
+  const metrics = [
+    {
+      metric: "autoSelectionScore" as const,
+      label: "overall",
+      value: breakdown.totalScore,
+    },
+    {
+      metric: "performanceScore" as const,
+      label: "performance",
+      value: breakdown.performanceScore ?? breakdown.baseObjectiveScore,
+    },
+    {
+      metric: "noveltyScore" as const,
+      label: "novelty",
+      value: breakdown.noveltyScore,
+    },
+    {
+      metric: "robustnessScore" as const,
+      label: "robustness",
+      value: breakdown.robustnessScore,
+    },
+  ];
+
+  for (const entry of metrics) {
+    const threshold = STANDOUT_ABSOLUTE_THRESHOLDS[entry.metric];
+    if (entry.value >= threshold) {
+      reasons.push(
+        `${entry.label}_score ${entry.value.toFixed(4)} crossed standalone archive threshold ${threshold.toFixed(4)}`,
+      );
+    }
+  }
+}
+
+function addRelativeStandoutReason(input: {
+  reasons: string[];
+  metric: keyof typeof STANDOUT_RELATIVE_GAPS;
+  candidateScore: number;
+  referenceScores: number[];
+  label: string;
+}): void {
+  if (!Number.isFinite(input.candidateScore)) {
+    return;
+  }
+  const bestReferenceScore = input.referenceScores.reduce(
+    (best, value) => (Number.isFinite(value) ? Math.max(best, value) : best),
+    Number.NEGATIVE_INFINITY,
+  );
+  const minimumGap = STANDOUT_RELATIVE_GAPS[input.metric];
+  if (
+    bestReferenceScore !== Number.NEGATIVE_INFINITY &&
+    input.candidateScore >= bestReferenceScore + minimumGap
+  ) {
+    input.reasons.push(
+      `${input.label}_score ${input.candidateScore.toFixed(4)} beat the prior best ${bestReferenceScore.toFixed(4)} by at least ${minimumGap.toFixed(4)}`,
+    );
+  }
 }
 
 function mapConfidenceSignal(

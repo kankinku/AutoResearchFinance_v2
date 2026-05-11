@@ -29,9 +29,10 @@ export async function runArchiveUpdatePhase(input: {
       noveltyScore: input.evaluation.autoSelectionBreakdown?.noveltyScore ?? null,
       robustnessScore:
         input.evaluation.autoSelectionBreakdown?.robustnessScore ?? null,
-      reason: bootstrapArchive
-        ? "bootstrap local-compatible seed established the first fresh research baseline archive candidate."
-        : "local hard gates passed with complete local artifact evidence.",
+      reason: buildArchiveReason({
+        evaluation: input.evaluation,
+        bootstrapArchive,
+      }),
     });
   } else if ((input.evaluation.eligibility?.blockingReasons.length ?? 0) > 0) {
     await appendArchiveEventRecord(input.stateRoot, {
@@ -81,4 +82,37 @@ export async function runArchiveUpdatePhase(input: {
       reason: "Out-of-sample gate passed with robustness frontier score.",
     });
   }
+}
+
+function buildArchiveReason(input: {
+  evaluation: AutonomousExperimentRecord;
+  bootstrapArchive: boolean;
+}): string {
+  if (input.bootstrapArchive) {
+    return "bootstrap local-compatible seed established the first fresh research baseline archive candidate.";
+  }
+
+  if (input.evaluation.autoSelectionBreakdown?.eligible === true) {
+    return "local hard gates passed with complete local artifact evidence.";
+  }
+
+  const breakdown = input.evaluation.autoSelectionBreakdown;
+  const blockingReasons =
+    input.evaluation.eligibility?.blockingReasons
+      .map((reason) => reason.kind)
+      .join(", ") || "unknown";
+  return [
+    "specialist candidate retained despite promotion blockers",
+    `score=${formatScore(input.evaluation.autoSelectionScore ?? breakdown?.totalScore)}`,
+    `performance=${formatScore(breakdown?.performanceScore ?? breakdown?.baseObjectiveScore)}`,
+    `novelty=${formatScore(breakdown?.noveltyScore)}`,
+    `robustness=${formatScore(breakdown?.robustnessScore)}`,
+    `blocking=${blockingReasons}`,
+  ].join(" | ");
+}
+
+function formatScore(score: number | null | undefined): string {
+  return typeof score === "number" && Number.isFinite(score)
+    ? score.toFixed(4)
+    : "n/a";
 }

@@ -135,6 +135,14 @@ export function buildAutonomousViewPayloads(input: {
     repairAttempts: input.repairAttempts,
     activeChampionCandidateId,
   });
+  const noveltyFrontierEntries = buildNoveltyFrontierEntries(
+    localRecords,
+    input.archiveEvents,
+  );
+  const robustnessFrontierEntries = buildRobustnessFrontierEntries(
+    localRecords,
+    input.archiveEvents,
+  );
 
   return {
     localLeaderboard: {
@@ -228,37 +236,11 @@ export function buildAutonomousViewPayloads(input: {
     },
     noveltyFrontier: {
       generatedAt: new Date().toISOString(),
-      entries: localRecords
-        .filter((record) => (record.autoSelectionBreakdown?.noveltyScore ?? 0) > 0)
-        .sort(
-          (left, right) =>
-            (right.autoSelectionBreakdown?.noveltyScore ?? 0) -
-            (left.autoSelectionBreakdown?.noveltyScore ?? 0),
-        )
-        .slice(0, 20)
-        .map((record) => ({
-          candidateId: record.candidateId,
-          noveltyScore: record.autoSelectionBreakdown?.noveltyScore ?? null,
-          autoSelectionScore: record.autoSelectionScore,
-          recordHash: record.recordMeta.recordHash,
-        })),
+      entries: noveltyFrontierEntries,
     },
     robustnessFrontier: {
       generatedAt: new Date().toISOString(),
-      entries: localRecords
-        .filter((record) => record.splitEvaluation?.oosPassed)
-        .sort(
-          (left, right) =>
-            (right.autoSelectionBreakdown?.robustnessScore ?? 0) -
-            (left.autoSelectionBreakdown?.robustnessScore ?? 0),
-        )
-        .slice(0, 20)
-        .map((record) => ({
-          candidateId: record.candidateId,
-          robustnessScore: record.autoSelectionBreakdown?.robustnessScore ?? null,
-          autoSelectionScore: record.autoSelectionScore,
-          recordHash: record.recordMeta.recordHash,
-        })),
+      entries: robustnessFrontierEntries,
     },
     tvSurfaceFailures: {
       generatedAt: new Date().toISOString(),
@@ -376,6 +358,141 @@ export function buildAutonomousViewPayloads(input: {
     failureMemory: buildFailureMemorySummary(input.problemEvents, input.repairAttempts),
     strategyReviewBoard: buildStrategyReviewBoard(input.strategyReviews ?? []),
   };
+}
+
+function buildNoveltyFrontierEntries(
+  localRecords: AutonomousExperimentRecord[],
+  archiveEvents: ArchiveEventRecord[],
+) {
+  const entries = new Map<string, {
+    candidateId: string;
+    noveltyScore: number | null;
+    autoSelectionScore: number | null;
+    recordHash: string | null;
+    retainedFromArchive: boolean;
+    reason: string | null;
+    recordedAt: string | null;
+  }>();
+
+  for (const record of localRecords
+    .filter((item) => (item.autoSelectionBreakdown?.noveltyScore ?? 0) > 0)
+    .sort(
+      (left, right) =>
+        (right.autoSelectionBreakdown?.noveltyScore ?? 0) -
+        (left.autoSelectionBreakdown?.noveltyScore ?? 0),
+    )
+    .slice(0, 20)) {
+    entries.set(record.candidateId, {
+      candidateId: record.candidateId,
+      noveltyScore: record.autoSelectionBreakdown?.noveltyScore ?? null,
+      autoSelectionScore: record.autoSelectionScore,
+      recordHash: record.recordMeta.recordHash,
+      retainedFromArchive: false,
+      reason: null,
+      recordedAt: record.recordedAt ?? null,
+    });
+  }
+
+  for (const event of archiveEvents.filter(
+    (item) => item.eventKind === "novelty_frontier_added",
+  )) {
+    const existing = entries.get(event.candidateId);
+    entries.set(event.candidateId, {
+      candidateId: event.candidateId,
+      noveltyScore: chooseBetterScore(existing?.noveltyScore, event.noveltyScore),
+      autoSelectionScore: chooseBetterScore(existing?.autoSelectionScore, event.score),
+      recordHash: existing?.recordHash ?? null,
+      retainedFromArchive: true,
+      reason: event.reason,
+      recordedAt: existing?.recordedAt ?? event.recordedAt ?? null,
+    });
+  }
+
+  return [...entries.values()].sort(
+    (left, right) =>
+      (right.noveltyScore ?? Number.NEGATIVE_INFINITY) -
+        (left.noveltyScore ?? Number.NEGATIVE_INFINITY) ||
+      (right.autoSelectionScore ?? Number.NEGATIVE_INFINITY) -
+        (left.autoSelectionScore ?? Number.NEGATIVE_INFINITY) ||
+      left.candidateId.localeCompare(right.candidateId),
+  );
+}
+
+function buildRobustnessFrontierEntries(
+  localRecords: AutonomousExperimentRecord[],
+  archiveEvents: ArchiveEventRecord[],
+) {
+  const entries = new Map<string, {
+    candidateId: string;
+    robustnessScore: number | null;
+    autoSelectionScore: number | null;
+    recordHash: string | null;
+    retainedFromArchive: boolean;
+    reason: string | null;
+    recordedAt: string | null;
+  }>();
+
+  for (const record of localRecords
+    .filter((item) => item.splitEvaluation?.oosPassed)
+    .sort(
+      (left, right) =>
+        (right.autoSelectionBreakdown?.robustnessScore ?? 0) -
+        (left.autoSelectionBreakdown?.robustnessScore ?? 0),
+    )
+    .slice(0, 20)) {
+    entries.set(record.candidateId, {
+      candidateId: record.candidateId,
+      robustnessScore: record.autoSelectionBreakdown?.robustnessScore ?? null,
+      autoSelectionScore: record.autoSelectionScore,
+      recordHash: record.recordMeta.recordHash,
+      retainedFromArchive: false,
+      reason: null,
+      recordedAt: record.recordedAt ?? null,
+    });
+  }
+
+  for (const event of archiveEvents.filter(
+    (item) => item.eventKind === "robustness_frontier_added",
+  )) {
+    const existing = entries.get(event.candidateId);
+    entries.set(event.candidateId, {
+      candidateId: event.candidateId,
+      robustnessScore: chooseBetterScore(
+        existing?.robustnessScore,
+        event.robustnessScore,
+      ),
+      autoSelectionScore: chooseBetterScore(existing?.autoSelectionScore, event.score),
+      recordHash: existing?.recordHash ?? null,
+      retainedFromArchive: true,
+      reason: event.reason,
+      recordedAt: existing?.recordedAt ?? event.recordedAt ?? null,
+    });
+  }
+
+  return [...entries.values()].sort(
+    (left, right) =>
+      (right.robustnessScore ?? Number.NEGATIVE_INFINITY) -
+        (left.robustnessScore ?? Number.NEGATIVE_INFINITY) ||
+      (right.autoSelectionScore ?? Number.NEGATIVE_INFINITY) -
+        (left.autoSelectionScore ?? Number.NEGATIVE_INFINITY) ||
+      left.candidateId.localeCompare(right.candidateId),
+  );
+}
+
+function chooseBetterScore(
+  current: number | null | undefined,
+  candidate: number | null | undefined,
+): number | null {
+  const currentScore =
+    typeof current === "number" && Number.isFinite(current)
+      ? current
+      : Number.NEGATIVE_INFINITY;
+  const candidateScore =
+    typeof candidate === "number" && Number.isFinite(candidate)
+      ? candidate
+      : Number.NEGATIVE_INFINITY;
+  const best = Math.max(currentScore, candidateScore);
+  return best === Number.NEGATIVE_INFINITY ? null : best;
 }
 
 function buildBranchBudgetSummary(branchRecords: AutonomousBranchRecord[]) {
