@@ -198,6 +198,7 @@ export function buildMutationBrief(input: {
     "Do not emit empty or placeholder Pine code.",
     "Do not ask the LLM to hand-author Pine; mutation output must be strategySpec-first.",
     "Do not leave TODO, placeholder, or markdown fence text inside generated artifacts.",
+    "Do not start //@version, strategy(), input declarations, assignments, plot calls, or any other top-level Pine statement with spaces or tabs; indent only inside an explicit if/else/for/function block.",
     "Do not optimize for fewer than the minimum required trades.",
     "Do not replace the AF seed with a generic EMA crossover or generic trend-following template.",
     "Preserve the AF seed core: exhaustion count sequencing, confirmation logic, slot-based position scaling or replacement, and staged bearish exit handling unless directly improving one of those blocks.",

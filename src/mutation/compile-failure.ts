@@ -35,6 +35,10 @@ export function classifyCompileFailure(
     return "na_type_assignment";
   }
 
+  if (/You should not start a new statement with an indent/i.test(error)) {
+    return "leading_indented_statement";
+  }
+
   return null;
 }
 
@@ -62,6 +66,7 @@ export function buildCompileFailureClassCounts(
     function_mutates_global: 0,
     title_too_long: 0,
     na_type_assignment: 0,
+    leading_indented_statement: 0,
   };
 
   for (const record of records) {

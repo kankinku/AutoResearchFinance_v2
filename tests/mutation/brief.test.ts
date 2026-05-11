@@ -84,6 +84,11 @@ describe("buildMutationBrief", () => {
     expect(
       brief.forbiddenPatterns.some((pattern) => pattern.includes("generic EMA crossover")),
     ).toBe(true);
+    expect(
+      brief.forbiddenPatterns.some((pattern) =>
+        pattern.includes("top-level Pine statement"),
+      ),
+    ).toBe(true);
   });
 
   test("protects parent tradability when no-trade failures dominate", () => {

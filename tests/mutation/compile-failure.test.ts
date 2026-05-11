@@ -32,6 +32,11 @@ describe("compile failure normalization", () => {
     expect(classifyCompileFailure("NA type cannot be assigned to variable")).toBe(
       "na_type_assignment",
     );
+    expect(
+      classifyCompileFailure(
+        "You should not start a new statement with an indent (4 spaces or 1 tab)!",
+      ),
+    ).toBe("leading_indented_statement");
   });
 
   test("deduplicates classes across raw compiler strings", () => {
@@ -78,12 +83,16 @@ describe("compile failure normalization", () => {
         status: "compile_failed",
         compile: {
           ok: false,
-          errors: ["Undeclared identifier 'slotPct'"],
+          errors: [
+            "Undeclared identifier 'slotPct'",
+            "You should not start a new statement with an indent (4 spaces or 1 tab)!",
+          ],
         },
       },
     ]);
 
     expect(counts.undeclared_identifier).toBe(2);
     expect(counts.qty_percent_argument).toBe(1);
+    expect(counts.leading_indented_statement).toBe(1);
   });
 });

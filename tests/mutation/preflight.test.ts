@@ -97,6 +97,39 @@ describe("inspectGeneratedMutation", () => {
     );
   });
 
+  test("blocks leading indentation on required top-level Pine statements", () => {
+    const inspection = inspectGeneratedMutation({
+      candidateSummary: "Indented top-level candidate",
+      nextMutationHints: [],
+      pineScript: [
+        "    //@version=5",
+        "    strategy('Indented', overlay=true)",
+        "strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [3],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(inspection.blockingIssues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "version_pragma_not_first_statement",
+        "strategy_declaration_indented",
+      ]),
+    );
+    expect(inspection.blockingIssues.map((issue) => issue.code)).not.toContain(
+      "missing_version_pragma",
+    );
+  });
+
   test("detects normalized title and na-assignment anti-patterns when those classes repeated recently", () => {
     const inspection = inspectGeneratedMutation(
       {
