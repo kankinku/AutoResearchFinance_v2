@@ -71,6 +71,7 @@ describe("AF strategy spec v1", () => {
     expect(pine).toContain(`// AF_SPEC_HASH=${hashAfStrategySpec(spec)}`);
     expect(pine).toContain(`// AF_CONTRACT_VERSION=${AUTORESEARCH_CONTRACT_VERSION}`);
     expect(pine).toContain("process_orders_on_close=true");
+    expect(pine).toContain('plot(close, "AF compile sentinel", display=display.none)');
     expect(pine).toContain("backtestStartTime = input.time");
     expect(pine).toContain("inBacktestWindow");
     expect(pine).toContain("localBarIndex");

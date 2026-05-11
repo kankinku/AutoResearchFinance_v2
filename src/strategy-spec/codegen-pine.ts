@@ -21,6 +21,7 @@ export function renderAfStrategySpecToPine(input: unknown): string {
     `// AF_SPEC_HASH=${specHash}`,
     `// AF_CONTRACT_VERSION=${AUTORESEARCH_CONTRACT_VERSION}`,
     `strategy(${quote(config.studyTitle ?? "AF Spec v1")}, overlay=true, process_orders_on_close=${config.processOrdersOnClose ? "true" : "false"}, initial_capital=${config.initialCapital}, commission_type=strategy.commission.percent, commission_value=${config.commissionPercent}, pyramiding=${config.maxSlots})`,
+    `plot(close, "AF compile sentinel", display=display.none)`,
     "",
     `backtestStartTime = input.time(1685539800000, "backtestStartTime")`,
     `backtestEndTime = input.time(1777404600000, "backtestEndTime")`,
