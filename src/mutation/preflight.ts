@@ -108,6 +108,17 @@ const PREVIEW_RULES: PreflightRule[] = [
       "Replace ta.sum() with a Pine v5-safe rolling accumulation alternative that compiles in the current executor.",
   }),
   createPatternRule({
+    id: "pine.block_input_time_timestamp_defval",
+    code: "input_time_timestamp_defval",
+    category: "compatibility",
+    severity: "blocking",
+    pattern: /\binput\.time\s*\(\s*timestamp\s*\(/i,
+    message:
+      "Generated Pine source uses timestamp() as input.time() defval, but Pine requires a const int default.",
+    recommendation:
+      "Use a Unix millisecond integer literal for input.time(), for example input.time(1685539800000, \"backtestStartTime\"), instead of input.time(timestamp(...), ...).",
+  }),
+  createPatternRule({
     id: "pine.no_placeholder_logic",
     code: "placeholder_logic",
     category: "placeholder",

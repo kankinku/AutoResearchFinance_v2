@@ -51,6 +51,7 @@ describe("inspectGeneratedMutation", () => {
         pineScript: [
           "//@version=5",
           "strategy('Broken', overlay=true)",
+          "backtestStartTime = input.time(timestamp(2023, 5, 31, 13, 30), 'backtestStartTime')",
           "var int lastOrderBar = na",
           "f_close_slot() =>",
           "    lastOrderBar := bar_index",
@@ -77,12 +78,14 @@ describe("inspectGeneratedMutation", () => {
           "The 'strategy.entry' function does not have an argument with the name 'qty_percent'",
           "Could not find function or function reference 'ta.sum'",
           "Cannot modify global variable 'lastOrderBar' in function",
+          'Cannot call "input.time" with argument "defval"="call "timestamp" (simple int)". An argument of "simple int" type was used but a "const int" is expected.',
         ],
         recentCompileFailureClasses: [
           "undeclared_identifier",
           "qty_percent_argument",
           "unsupported_ta_sum",
           "function_mutates_global",
+          "input_time_requires_const_defval",
         ],
       },
     );
@@ -91,6 +94,7 @@ describe("inspectGeneratedMutation", () => {
       expect.arrayContaining([
         "unsupported_strategy_entry_qty_percent",
         "unsupported_ta_sum",
+        "input_time_timestamp_defval",
         "recent_undeclared_identifier_repeat",
         "function_mutates_global",
       ]),

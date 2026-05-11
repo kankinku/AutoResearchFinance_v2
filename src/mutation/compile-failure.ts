@@ -11,6 +11,14 @@ const TITLE_TOO_LONG_PATTERNS = [
 export function classifyCompileFailure(
   error: string,
 ): CompileFailureClass | null {
+  if (
+    /Cannot call ["']?input\.time["']?/i.test(error) &&
+    /const int/i.test(error) &&
+    /simple int/i.test(error)
+  ) {
+    return "input_time_requires_const_defval";
+  }
+
   if (/Undeclared identifier/i.test(error)) {
     return "undeclared_identifier";
   }
@@ -62,6 +70,7 @@ export function buildCompileFailureClassCounts(
     function_mutates_global: 0,
     title_too_long: 0,
     na_type_assignment: 0,
+    input_time_requires_const_defval: 0,
   };
 
   for (const record of records) {
