@@ -11,6 +11,14 @@ const TITLE_TOO_LONG_PATTERNS = [
 export function classifyCompileFailure(
   error: string,
 ): CompileFailureClass | null {
+  if (
+    /Cannot call ["']?input\.time["']?/i.test(error) &&
+    /const int/i.test(error) &&
+    /simple int/i.test(error)
+  ) {
+    return "input_time_requires_const_defval";
+  }
+
   if (/Undeclared identifier/i.test(error)) {
     return "undeclared_identifier";
   }
@@ -33,6 +41,25 @@ export function classifyCompileFailure(
 
   if (/NA type cannot be assigned/i.test(error)) {
     return "na_type_assignment";
+  }
+
+  if (/structure is missing a local code block/i.test(error)) {
+    return "missing_local_code_block";
+  }
+
+  if (
+    /strategy must contain at least one/i.test(error) &&
+    /plot\*\(\)|strategy\.\*\(\)|barcolor|bgcolor|hline|drawing/i.test(error)
+  ) {
+    return "missing_pine_side_effect";
+  }
+
+  if (
+    /ta\.sma/i.test(error) &&
+    /called on each calculation/i.test(error) &&
+    /ternary operator|scope/i.test(error)
+  ) {
+    return "ta_sma_scope_consistency";
   }
 
   return null;
@@ -62,6 +89,10 @@ export function buildCompileFailureClassCounts(
     function_mutates_global: 0,
     title_too_long: 0,
     na_type_assignment: 0,
+    input_time_requires_const_defval: 0,
+    missing_local_code_block: 0,
+    missing_pine_side_effect: 0,
+    ta_sma_scope_consistency: 0,
   };
 
   for (const record of records) {

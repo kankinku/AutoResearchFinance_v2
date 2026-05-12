@@ -16,6 +16,7 @@
     "iterate": "tsx src/cli/index.ts iterate",
     "run-tasks": "tsx src/cli/index.ts run-tasks",
     "dashboard": "tsx src/cli/index.ts dashboard",
+    "pine-maker": "tsx src/cli/index.ts pine-maker",
     "ingest-knowledge": "tsx src/cli/index.ts ingest-knowledge",
     "rebuild-indexes": "tsx src/cli/index.ts rebuild-indexes",
     "check-knowledge-tree": "tsx src/cli/index.ts check-knowledge-tree",

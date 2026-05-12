@@ -71,6 +71,7 @@ describe("AF strategy spec v1", () => {
     expect(pine).toContain(`// AF_SPEC_HASH=${hashAfStrategySpec(spec)}`);
     expect(pine).toContain(`// AF_CONTRACT_VERSION=${AUTORESEARCH_CONTRACT_VERSION}`);
     expect(pine).toContain("process_orders_on_close=true");
+    expect(pine).toContain('plot(close, "AF compile sentinel", display=display.none)');
     expect(pine).toContain("backtestStartTime = input.time");
     expect(pine).toContain("inBacktestWindow");
     expect(pine).toContain("localBarIndex");
@@ -79,6 +80,11 @@ describe("AF strategy spec v1", () => {
     expect(pine).toContain("f_entry_qty");
     expect(pine).toContain("strategy.equity * (pct * 0.01)");
     expect(pine).toContain("array.push(slotIds, newId)");
+    expect(pine).toContain("emaSeed = ta.sma(close, emaLen)");
+    expect(pine).toContain("baseEmaSeed = ta.sma(close, baseEmaLen)");
+    expect(pine).toContain("ema = f_local_ema(close, emaLen, emaSeed)");
+    expect(pine).not.toContain("na(out[1]) ? ta.sma(src, length)");
+    expect(pine).not.toContain("float seed = ta.sma(src, length)");
     expect(pine).toContain("f_close_slot");
     expect(pine).toContain("entryBar < localBarIndex");
     expect(pine).toContain("freshEntryWouldCloseOnBear");

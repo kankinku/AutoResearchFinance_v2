@@ -202,6 +202,10 @@ export const compileFailureClassSchema = z.enum([
   "function_mutates_global",
   "title_too_long",
   "na_type_assignment",
+  "input_time_requires_const_defval",
+  "missing_local_code_block",
+  "missing_pine_side_effect",
+  "ta_sma_scope_consistency",
 ]);
 
 export const repairModeSchema = z.enum([

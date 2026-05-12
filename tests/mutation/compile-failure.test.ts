@@ -32,6 +32,26 @@ describe("compile failure normalization", () => {
     expect(classifyCompileFailure("NA type cannot be assigned to variable")).toBe(
       "na_type_assignment",
     );
+    expect(
+      classifyCompileFailure(
+        'Cannot call "input.time" with argument "defval"="call "timestamp" (simple int)". An argument of "simple int" type was used but a "const int" is expected.',
+      ),
+    ).toBe("input_time_requires_const_defval");
+    expect(
+      classifyCompileFailure(
+        "The structure is missing a local code block. Functions, conditional structures, and loops must include expressions that define their local scopes.",
+      ),
+    ).toBe("missing_local_code_block");
+    expect(
+      classifyCompileFailure(
+        "A strategy must contain at least one of the following: any `strategy.*()` function that creates orders, any `plot*()` function, `barcolor()`, `bgcolor()`, `hline()`, or any drawing (line, label, box, table, polyline).",
+      ),
+    ).toBe("missing_pine_side_effect");
+    expect(
+      classifyCompileFailure(
+        "The function 'ta.sma' should be called on each calculation for consistency. It is recommended to extract the call from the ternary operator or from the scope",
+      ),
+    ).toBe("ta_sma_scope_consistency");
   });
 
   test("deduplicates classes across raw compiler strings", () => {
@@ -85,5 +105,9 @@ describe("compile failure normalization", () => {
 
     expect(counts.undeclared_identifier).toBe(2);
     expect(counts.qty_percent_argument).toBe(1);
+    expect(counts.input_time_requires_const_defval).toBe(0);
+    expect(counts.missing_local_code_block).toBe(0);
+    expect(counts.missing_pine_side_effect).toBe(0);
+    expect(counts.ta_sma_scope_consistency).toBe(0);
   });
 });

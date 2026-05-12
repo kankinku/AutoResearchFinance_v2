@@ -383,6 +383,90 @@ function createBreakoutMutationBriefRecord(input: {
   } as MutationBriefRecord;
 }
 
+function createAutonomousViewRecord(input: {
+  candidateId: string;
+  iteration: number;
+  noveltyScore: number;
+  robustnessScore?: number;
+  autoSelectionScore?: number;
+}): ExperimentRecord {
+  const autoSelectionScore =
+    input.autoSelectionScore ?? 0.4 + input.noveltyScore + (input.robustnessScore ?? 0);
+  return autonomousExperimentSchema.parse({
+    runId: `run-${input.candidateId}`,
+    iteration: input.iteration,
+    candidateId: input.candidateId,
+    parentCandidateId: null,
+    branchId: "autonomous-main",
+    candidatePath: `C:\\tmp\\${input.candidateId}.pine`,
+    candidateHash: `hash-${input.candidateId}`,
+    contractVersion: AUTORESEARCH_CONTRACT_VERSION,
+    mutationAuthority: STRATEGY_SPEC_MUTATION_AUTHORITY,
+    specPath: `C:\\tmp\\${input.candidateId}.json`,
+    specHash: `spec-${input.candidateId}`,
+    studyTitle: input.candidateId,
+    candidateScore: autoSelectionScore,
+    decision: "local_candidate_eligible",
+    status: "evaluated",
+    recordKind: "local_evaluation",
+    executorRole: "primary_local_backtest",
+    evidenceAuthority: "local_model",
+    evaluationMode: "local_primary",
+    conditionInventory: [],
+    mutationProvenance: createValidMutationProvenance(),
+    testerMetrics: createStrongMetrics(),
+    splitEvaluation: null,
+    noveltyFingerprint: null,
+    duplicateStatus: {
+      classification: "unique",
+      exactDuplicateCandidateId: null,
+      structuralDuplicateCandidateId: null,
+      duplicateFingerprint: null,
+    },
+    localFrontierScore: autoSelectionScore,
+    autoSelectionScore,
+    autoSelectionBreakdown: {
+      performanceScore: 0.4,
+      baseObjectiveScore: 0.4,
+      robustnessScore: input.robustnessScore ?? 0,
+      noveltyScore: input.noveltyScore,
+      diversityScore: 0,
+      localConfidenceBonus: 0,
+      riskPenalty: 0,
+      overfitPenalty: 0,
+      duplicatePenalty: 0,
+      divergencePenalty: 0,
+      complexityPenalty: 0,
+      autoSelectionScore,
+      totalScore: autoSelectionScore,
+      eligible: true,
+      rejectionReasons: [],
+    },
+    objectivePolicyVersion: "objective.qqq-120m/v1",
+    selectionPolicyVersion: "autonomous-tv-verified/v4",
+    localConfidence: 1,
+    tvCalibrationStatus: "not_requested",
+    localTvParity: null,
+    eligibility: {
+      autoSelectionEligible: true,
+      bootstrapEligible: false,
+      archiveEligible: true,
+      calibrationEligible: true,
+      blockingReasons: [],
+    },
+    artifactPaths: {},
+    recordMeta: {
+      schemaVersion: "experiment/v3",
+      recordHash: `record-${input.candidateId}`,
+      candidateHash: `hash-${input.candidateId}`,
+      baselineHash: null,
+      artifactBundleHash: null,
+      pipelineVersion: "af-autonomous-local-first/v3",
+    },
+    recordedAt: new Date(Date.UTC(2026, 0, 1, 0, input.iteration)).toISOString(),
+  }) as unknown as ExperimentRecord;
+}
+
 function createValidMutationProvenance(): MutationProvenance {
   return {
     briefHash: "brief-hash",
@@ -2329,6 +2413,187 @@ describe("autonomous tv-verified v4", () => {
           candidateId: "cand-failure-archive",
         }),
       ]),
+    );
+  });
+
+  test("runLocalEvaluationPhase preserves standout specialist candidates even when not promoted", async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), "af-autonomous-standout-archive-"));
+    const stateRoot = testStateRoot(workspaceRoot);
+    await initializeWorkspace(workspaceRoot);
+    const objective = await loadObjectiveConfig(workspaceRoot);
+    const metrics: BacktestMetrics = {
+      netProfitPercent: 75,
+      postFeeNetProfitPercent: 62,
+      profitFactor: 4.6,
+      maxStrategyDrawdownPercent: 6,
+      percentProfitable: 72,
+      totalTrades: 120,
+      avgTradePercent: 1.1,
+    };
+    const objectiveBreakdown = evaluateObjective(metrics, objective);
+    mockedEvaluateLocalSplit.mockResolvedValue(
+      createSplitFailLowTrades(metrics, objectiveBreakdown),
+    );
+
+    const previousExperiments = Array.from({ length: 20 }, (_, index) => ({
+      runId: `prior-run-${index}`,
+      iteration: index + 1,
+      candidateId: `prior-${index}`,
+      parentCandidateId: null,
+      branchId: "autonomous-main",
+      candidateHash: `prior-hash-${index}`,
+      decision: "local_candidate_rejected",
+      status: "rejected",
+      recordKind: "local_evaluation",
+      autoSelectionBreakdown: {
+        performanceScore: 0.35,
+        baseObjectiveScore: 0.35,
+        robustnessScore: 0.01,
+        noveltyScore: 0.02,
+        diversityScore: 0,
+        localConfidenceBonus: 0,
+        riskPenalty: 0,
+        overfitPenalty: 0,
+        duplicatePenalty: 0,
+        divergencePenalty: 0,
+        complexityPenalty: 0,
+        autoSelectionScore: 0.38,
+        totalScore: 0.38,
+        eligible: false,
+        rejectionReasons: ["minimum_oos_trades"],
+      },
+    })) as unknown as ExperimentRecord[];
+
+    const pineSource =
+      "//@version=5\nstrategy('Standout Archive Candidate', overlay=true)\nentrySignal = close > open\nif entrySignal\n    strategy.entry('L', strategy.long)\n";
+    const candidatePath = await writeCandidateFile(
+      workspaceRoot,
+      "cand-standout-archive",
+      pineSource,
+    );
+    const spec = await writeTestSpecArtifact(workspaceRoot, "cand-standout-archive");
+
+    const local = await runLocalEvaluationPhase({
+      workspaceRoot,
+      stateRoot,
+      runId: "standout-archive-run",
+      iteration: 21,
+      executor: createLocalMockExecutor(metrics),
+      objective,
+      parsedMutation: {
+        candidateSummary: "Standout archive candidate",
+        nextMutationHints: [],
+        pineScript: pineSource,
+        strategySpec: spec.strategySpec,
+        inventory: [
+          {
+            conditionId: "entry-alpha",
+            role: "entry",
+            summary: "Entry condition",
+            pineLineHints: [3],
+          },
+        ],
+        inventorySource: "llm",
+        missingFields: [],
+        inferredFields: [],
+      },
+      candidateArtifact: {
+        candidateId: "cand-standout-archive",
+        parentId: null,
+        branchId: "autonomous-main",
+        pinePath: candidatePath,
+        pineHash: "standout-archive-hash",
+        specPath: spec.specPath,
+        specHash: spec.specHash,
+        studyTitle: "Standout Archive Candidate",
+        inventory: [
+          {
+            conditionId: "entry-alpha",
+            role: "entry",
+            summary: "Entry condition",
+            pineLineHints: [3],
+          },
+        ],
+        candidateSummary: "Standout archive candidate",
+        nextMutationHints: [],
+      },
+      mutationProvenance: createValidMutationProvenance(),
+      previousExperiments,
+    });
+
+    expect(local.record.decision).toBe("local_candidate_rejected");
+    expect(local.record.eligibility?.archiveEligible).toBe(true);
+    expect(local.shouldArchive).toBe(true);
+
+    await runArchiveUpdatePhase({
+      stateRoot,
+      runId: "standout-archive-run",
+      iteration: 21,
+      evaluation: local.record,
+      shouldArchive: local.shouldArchive,
+    });
+
+    const archiveEvents = await readArchiveEventRecords(stateRoot);
+    expect(archiveEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventKind: "archive_added",
+          candidateId: "cand-standout-archive",
+          reason: expect.stringContaining("specialist candidate retained"),
+        }),
+      ]),
+    );
+  });
+
+  test("buildAutonomousViewPayloads keeps archived frontier specialists beyond the live top 20", () => {
+    const liveRecords = Array.from({ length: 21 }, (_, index) =>
+      createAutonomousViewRecord({
+        candidateId: `live-novelty-${index}`,
+        iteration: index + 1,
+        noveltyScore: 0.3 - index * 0.005,
+      }),
+    );
+    const archivedRecord = createAutonomousViewRecord({
+      candidateId: "archived-novelty-specialist",
+      iteration: 22,
+      noveltyScore: 0.05,
+      autoSelectionScore: 0.45,
+    });
+
+    const views = buildAutonomousViewPayloads({
+      experiments: [...liveRecords, archivedRecord],
+      headEvents: [],
+      archiveEvents: [
+        {
+          runId: "archive-run",
+          iteration: 22,
+          eventKind: "novelty_frontier_added",
+          candidateId: "archived-novelty-specialist",
+          score: 0.45,
+          noveltyScore: 0.05,
+          robustnessScore: null,
+          reason: "Novelty score crossed the frontier threshold.",
+          recordedAt: "2026-01-01T00:22:00.000Z",
+        },
+      ],
+      calibrationEvents: [],
+      confidenceEvents: [],
+      problemEvents: [],
+      repairAttempts: [],
+      branchRecords: [],
+      strategyReviews: [],
+    });
+
+    const archivedEntry = (
+      views.noveltyFrontier.entries as Array<Record<string, unknown>>
+    ).find((entry) => entry.candidateId === "archived-novelty-specialist");
+
+    expect(views.noveltyFrontier.entries).toHaveLength(21);
+    expect(archivedEntry).toEqual(
+      expect.objectContaining({
+        retainedFromArchive: true,
+        noveltyScore: 0.05,
+      }),
     );
   });
 

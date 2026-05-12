@@ -70,6 +70,11 @@ import {
   formatPreflightIssuesForRepair,
   inspectGeneratedMutation,
 } from "../mutation/preflight.js";
+import {
+  inspectPineMakerSource,
+  recordPineMakerError,
+  resolvePineMakerPaths,
+} from "../pine-maker/error-store.js";
 import { writeMutationRuntimeArtifact } from "../mutation/runtime-artifact.js";
 import { buildObjectiveArtifact, writeIterationArtifacts } from "../research/artifact-writer.js";
 import { ingestResearchKnowledge } from "../research/research-knowledge.js";
@@ -286,6 +291,13 @@ function resolveCandidatePath(workspaceRoot: string, candidate: string): string 
   return candidate.endsWith(".pine")
     ? path.resolve(candidate)
     : path.join(workspaceRoot, "strategies", "candidates", `${candidate}.pine`);
+}
+
+function resolveCandidateIdFromReference(candidate?: string): string | null {
+  if (!candidate) {
+    return null;
+  }
+  return path.basename(candidate, path.extname(candidate) || undefined);
 }
 
 async function evaluateCandidateFile(input: {
@@ -2435,6 +2447,148 @@ program
       },
     );
   });
+
+const pineMakerCommand = program
+  .command("pine-maker")
+  .description("Collect TradingView Pine compiler errors and preflight generated Pine sources.");
+
+pineMakerCommand
+  .command("record-error")
+  .description("Record a pasted TradingView Pine compiler error for future Pine Maker checks.")
+  .option("--target <id>", "Research target id for the error context.")
+  .option("--candidate <id>", "Candidate id or explicit .pine path.")
+  .option("--source <path>", "Pine source path related to the error.")
+  .option("--error <text>", "Inline compiler error text.")
+  .option("--error-file <path>", "Text file containing compiler error text.")
+  .option("--note <text>", "Optional short note for the error.")
+  .action(
+    async (options: {
+      target?: string;
+      candidate?: string;
+      source?: string;
+      error?: string;
+      errorFile?: string;
+      note?: string;
+    }) => {
+      const env = loadRuntimeEnvironment({ targetId: options.target });
+      await withCliMonitor(
+        {
+          workspaceRoot: env.workspaceRoot,
+          commandName: "pine-maker.record-error",
+        },
+        async (monitor) => {
+          await initializeWorkspace(env.workspaceRoot);
+          const errorText = options.errorFile
+            ? await readFile(path.resolve(options.errorFile), "utf8")
+            : options.error;
+          if (!errorText?.trim()) {
+            throw new Error("Provide --error or --error-file for pine-maker record-error.");
+          }
+          const candidatePath = options.candidate
+            ? resolveCandidatePath(env.workspaceRoot, options.candidate)
+            : null;
+          const sourcePath = options.source
+            ? path.resolve(options.source)
+            : candidatePath;
+          const result = await recordPineMakerError({
+            stateRoot: env.stateRoot,
+            targetId: env.researchTargetId,
+            candidateId: resolveCandidateIdFromReference(options.candidate),
+            candidatePath,
+            sourcePath,
+            errorText,
+            note: options.note ?? null,
+          });
+          await monitor.log("pine_maker.record_error", "Pine Maker error recorded", {
+            targetId: env.researchTargetId,
+            candidateId: result.record.candidateId,
+            classes: result.record.compileFailureClasses,
+            errorsPath: result.paths.errorsPath,
+          });
+          console.log(
+            JSON.stringify(
+              {
+                recorded: result.record,
+                paths: result.paths,
+                tracePath: monitor.tracePath,
+              },
+              null,
+              2,
+            ),
+          );
+        },
+      );
+    },
+  );
+
+pineMakerCommand
+  .command("check")
+  .description("Run Pine Maker preflight using the collected compiler error memory.")
+  .option("--target <id>", "Research target id for the error context.")
+  .option("--candidate <id>", "Candidate id or explicit .pine path.")
+  .option("--file <path>", "Explicit Pine source path to inspect.")
+  .option("--recent-limit <count>", "Number of recent Pine Maker errors to include.", "50")
+  .action(
+    async (options: {
+      target?: string;
+      candidate?: string;
+      file?: string;
+      recentLimit?: string;
+    }) => {
+      if (!options.candidate && !options.file) {
+        throw new Error("Provide --candidate or --file for pine-maker check.");
+      }
+      const env = loadRuntimeEnvironment({ targetId: options.target });
+      await withCliMonitor(
+        {
+          workspaceRoot: env.workspaceRoot,
+          commandName: "pine-maker.check",
+        },
+        async (monitor) => {
+          await initializeWorkspace(env.workspaceRoot);
+          const sourcePath = options.file
+            ? path.resolve(options.file)
+            : resolveCandidatePath(env.workspaceRoot, options.candidate!);
+          const recentLimit = parsePositiveInteger(
+            options.recentLimit ?? "50",
+            "recent-limit",
+          );
+          const result = await inspectPineMakerSource({
+            stateRoot: env.stateRoot,
+            sourcePath,
+            candidateId: resolveCandidateIdFromReference(options.candidate),
+            targetId: env.researchTargetId,
+            recentLimit,
+          });
+          const paths = resolvePineMakerPaths(env.stateRoot);
+          await monitor.log("pine_maker.check", "Pine Maker preflight completed", {
+            targetId: env.researchTargetId,
+            sourcePath: result.sourcePath,
+            blockingIssueCount: result.inspection.blockingIssues.length,
+            warningIssueCount: result.inspection.warningIssues.length,
+            recentErrorCount: result.recentErrors.length,
+          });
+          console.log(
+            JSON.stringify(
+              {
+                sourcePath: result.sourcePath,
+                sourceHash: result.sourceHash,
+                targetId: env.researchTargetId,
+                recentErrorCount: result.recentErrors.length,
+                recentCompileFailureClasses: result.recentCompileFailureClasses,
+                blockingIssues: result.inspection.blockingIssues,
+                warningIssues: result.inspection.warningIssues,
+                paths,
+                tracePath: monitor.tracePath,
+              },
+              null,
+              2,
+            ),
+          );
+        },
+      );
+    },
+  );
 
 program
   .command("evaluate")

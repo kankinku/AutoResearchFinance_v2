@@ -108,6 +108,28 @@ const PREVIEW_RULES: PreflightRule[] = [
       "Replace ta.sum() with a Pine v5-safe rolling accumulation alternative that compiles in the current executor.",
   }),
   createPatternRule({
+    id: "pine.block_input_time_timestamp_defval",
+    code: "input_time_timestamp_defval",
+    category: "compatibility",
+    severity: "blocking",
+    pattern: /\binput\.time\s*\(\s*timestamp\s*\(/i,
+    message:
+      "Generated Pine source uses timestamp() as input.time() defval, but Pine requires a const int default.",
+    recommendation:
+      "Use a Unix millisecond integer literal for input.time(), for example input.time(1685539800000, \"backtestStartTime\"), instead of input.time(timestamp(...), ...).",
+  }),
+  createPatternRule({
+    id: "pine.block_ta_sma_in_ternary",
+    code: "ta_sma_scope_consistency",
+    category: "compatibility",
+    severity: "blocking",
+    pattern: /(^\s*[^=\n]+:=.*\?.*\bta\.sma\s*\()|(^\s{2,}.*\bta\.sma\s*\()/im,
+    message:
+      "Generated Pine source calls ta.sma() inside a ternary assignment or local scope, which TradingView warns can produce inconsistent calculation scope.",
+    recommendation:
+      "Call ta.sma() unconditionally at top-level on every bar first, then reference the precomputed value inside functions or ternary expressions.",
+  }),
+  createPatternRule({
     id: "pine.no_placeholder_logic",
     code: "placeholder_logic",
     category: "placeholder",
@@ -125,6 +147,30 @@ const PREVIEW_RULES: PreflightRule[] = [
     message: "Generated Pine source still contains markdown fences.",
     recommendation: "Return raw Pine code only inside pineScript, without markdown fences.",
   }),
+  {
+    id: "pine.require_order_or_visual_output",
+    code: "missing_pine_side_effect",
+    category: "contract",
+    severity: "blocking",
+    check(source) {
+      if (hasPineExecutionSideEffect(source)) {
+        return [];
+      }
+      return [
+        createIssue({
+          ruleId: "pine.require_order_or_visual_output",
+          code: "missing_pine_side_effect",
+          category: "contract",
+          severity: "blocking",
+          message:
+            "Generated Pine strategy has no order-creating strategy call, plot, color output, hline, or drawing.",
+          recommendation:
+            "Add at least one strategy.entry/order/exit/close call for strategy candidates, or add a plot/barcolor/bgcolor/hline/drawing output for diagnostic scripts.",
+          lineHints: [1],
+        }),
+      ];
+    },
+  },
   createPatternRule({
     id: "pine.warn_legacy_study",
     code: "legacy_study_declaration",
@@ -187,6 +233,7 @@ export function inspectGeneratedMutation(
   pushFunctionGlobalMutationIssues(issues, source);
   pushLongTitleIssues(issues, source, recentCompileFailureClasses);
   pushNaTypeAssignmentIssues(issues, source, recentCompileFailureClasses);
+  pushMissingLocalCodeBlockIssues(issues, source);
   pushBreakoutVariantDirectiveIssues(
     issues,
     source,
@@ -763,6 +810,97 @@ function pushNaTypeAssignmentIssues(
     });
     return;
   }
+}
+
+function pushMissingLocalCodeBlockIssues(
+  issues: PineGenerationIssue[],
+  source: string,
+): void {
+  const lines = source.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    const trimmed = stripLineComment(line).trim();
+    if (!requiresLocalCodeBlock(trimmed)) {
+      continue;
+    }
+
+    const currentIndent = indentationWidth(line);
+    const nextCodeLine = findNextCodeLine(lines, index + 1);
+    if (nextCodeLine && indentationWidth(nextCodeLine.line) > currentIndent) {
+      continue;
+    }
+
+    issues.push({
+      code: "missing_local_code_block",
+      ruleId: "pine.missing_local_code_block",
+      category: "syntax",
+      severity: "blocking",
+      message:
+        "Generated Pine source has a function, conditional, or loop structure without an indented local code block.",
+      recommendation:
+        "Add at least one indented Pine expression inside the structure, or remove the empty structure entirely.",
+      lineHints: [index + 1],
+    });
+  }
+}
+
+function hasPineExecutionSideEffect(source: string): boolean {
+  const patterns = [
+    /\bstrategy\.(?:entry|order|exit|close|close_all)\s*\(/i,
+    /\bplot\w*\s*\(/i,
+    /\b(?:barcolor|bgcolor|hline)\s*\(/i,
+    /\b(?:line|label|box|table|polyline)\.new\s*\(/i,
+  ];
+
+  return source.split(/\r?\n/).some((line) => {
+    const code = stripLineComment(line);
+    return patterns.some((pattern) => {
+      pattern.lastIndex = 0;
+      return pattern.test(code);
+    });
+  });
+}
+
+function requiresLocalCodeBlock(trimmedLine: string): boolean {
+  if (!trimmedLine) {
+    return false;
+  }
+
+  const functionMatch = trimmedLine.match(/^\w+\s*\([^)]*\)\s*=>\s*(.*)$/);
+  if (functionMatch) {
+    return (functionMatch[1] ?? "").trim().length === 0;
+  }
+
+  return /^(?:if|else\s+if|else|for|while|switch)\b/.test(trimmedLine);
+}
+
+function findNextCodeLine(
+  lines: string[],
+  startIndex: number,
+): { line: string; index: number } | null {
+  for (let index = startIndex; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    const trimmed = stripLineComment(line).trim();
+    if (!trimmed) {
+      continue;
+    }
+    return { line, index };
+  }
+  return null;
+}
+
+function stripLineComment(line: string): string {
+  const commentIndex = line.indexOf("//");
+  return commentIndex >= 0 ? line.slice(0, commentIndex) : line;
+}
+
+function indentationWidth(line: string): number {
+  const indent = line.match(/^\s*/)?.[0] ?? "";
+  let width = 0;
+  for (const char of indent) {
+    width += char === "\t" ? 4 : 1;
+  }
+  return width;
 }
 
 function pushBreakoutVariantDirectiveIssues(

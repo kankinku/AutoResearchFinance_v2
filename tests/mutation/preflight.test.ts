@@ -51,6 +51,7 @@ describe("inspectGeneratedMutation", () => {
         pineScript: [
           "//@version=5",
           "strategy('Broken', overlay=true)",
+          "backtestStartTime = input.time(timestamp(2023, 5, 31, 13, 30), 'backtestStartTime')",
           "var int lastOrderBar = na",
           "f_close_slot() =>",
           "    lastOrderBar := bar_index",
@@ -77,12 +78,14 @@ describe("inspectGeneratedMutation", () => {
           "The 'strategy.entry' function does not have an argument with the name 'qty_percent'",
           "Could not find function or function reference 'ta.sum'",
           "Cannot modify global variable 'lastOrderBar' in function",
+          'Cannot call "input.time" with argument "defval"="call "timestamp" (simple int)". An argument of "simple int" type was used but a "const int" is expected.',
         ],
         recentCompileFailureClasses: [
           "undeclared_identifier",
           "qty_percent_argument",
           "unsupported_ta_sum",
           "function_mutates_global",
+          "input_time_requires_const_defval",
         ],
       },
     );
@@ -91,6 +94,7 @@ describe("inspectGeneratedMutation", () => {
       expect.arrayContaining([
         "unsupported_strategy_entry_qty_percent",
         "unsupported_ta_sum",
+        "input_time_timestamp_defval",
         "recent_undeclared_identifier_repeat",
         "function_mutates_global",
       ]),
@@ -128,6 +132,183 @@ describe("inspectGeneratedMutation", () => {
     expect(inspection.blockingIssues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining(["strategy_title_too_long", "na_type_assignment"]),
     );
+  });
+
+  test("detects structures without local code blocks before Pine compile", () => {
+    const inspection = inspectGeneratedMutation({
+      candidateSummary: "Missing local block",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('Broken Blocks', overlay=true)",
+        "emptyFunc() =>",
+        "if close > open",
+        "else",
+        "for i = 0 to 2",
+        "strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [7],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    const missingBlockIssues = inspection.blockingIssues.filter(
+      (issue) => issue.code === "missing_local_code_block",
+    );
+    expect(missingBlockIssues.map((issue) => issue.lineHints[0])).toEqual([
+      3, 4, 5, 6,
+    ]);
+  });
+
+  test("blocks Pine strategies with no order or visual output side effects", () => {
+    const inspection = inspectGeneratedMutation({
+      candidateSummary: "No side effects",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('No Side Effects', overlay=true)",
+        "fast = ta.ema(close, 12)",
+        "slow = ta.ema(close, 26)",
+        "longCondition = ta.crossover(fast, slow)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [5],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(inspection.blockingIssues.map((issue) => issue.code)).toContain(
+      "missing_pine_side_effect",
+    );
+  });
+
+  test("allows Pine strategy side effects from plots or order calls", () => {
+    const withPlot = inspectGeneratedMutation({
+      candidateSummary: "Plot side effect",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('Plot Side Effect', overlay=true)",
+        "fast = ta.ema(close, 12)",
+        "plot(fast)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [4],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+    const withOrder = inspectGeneratedMutation({
+      candidateSummary: "Order side effect",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('Order Side Effect', overlay=true)",
+        "if close > open",
+        "    strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [4],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(withPlot.blockingIssues.map((issue) => issue.code)).not.toContain(
+      "missing_pine_side_effect",
+    );
+    expect(withOrder.blockingIssues.map((issue) => issue.code)).not.toContain(
+      "missing_pine_side_effect",
+    );
+  });
+
+  test("blocks ta.sma calls hidden inside ternary assignments or local scopes", () => {
+    const inspection = inspectGeneratedMutation({
+      candidateSummary: "SMA scope warning",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('SMA Scope Warning', overlay=true)",
+        "f_local_ema(src, length) =>",
+        "    float out = na",
+        "    out := na(out[1]) ? ta.sma(src, length) : out[1]",
+        "    out",
+        "if close > open",
+        "    strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-alpha",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [8],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(inspection.blockingIssues.map((issue) => issue.code)).toContain(
+      "ta_sma_scope_consistency",
+    );
+
+    const scopedInspection = inspectGeneratedMutation({
+      candidateSummary: "SMA local scope warning",
+      nextMutationHints: [],
+      pineScript: [
+        "//@version=5",
+        "strategy('SMA Local Scope Warning', overlay=true)",
+        "f_local_ema(src, length) =>",
+        "    float seed = ta.sma(src, length)",
+        "    seed",
+        "ema = f_local_ema(close, 21)",
+        "if close > open",
+        "    strategy.entry('L', strategy.long, qty=1)",
+      ].join("\n"),
+      inventory: [
+        {
+          conditionId: "entry-beta",
+          role: "entry",
+          summary: "Entry condition",
+          pineLineHints: [8],
+        },
+      ],
+      inventorySource: "llm",
+      missingFields: [],
+      inferredFields: [],
+    });
+
+    expect(
+      scopedInspection.blockingIssues.map((issue) => issue.code),
+    ).toContain("ta_sma_scope_consistency");
   });
 
   test("blocks time-boxed variants that keep sparse event sources or stacked filters", () => {
