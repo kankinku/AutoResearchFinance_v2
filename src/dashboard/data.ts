@@ -131,6 +131,7 @@ export interface DashboardStatusPayload {
   };
   strategyReview: {
     latestDecision: string | null;
+    displayDecision: string;
     latestCandidateId: string | null;
     confidence: number | null;
     reviewMode: string | null;
@@ -140,10 +141,12 @@ export interface DashboardStatusPayload {
     forbiddenPatterns: string[];
     validationFocus: string[];
     reason: string | null;
+    displayReason: string;
     debateSummary: string | null;
     recordedAt: string | null;
     suppressedFamilies: string[];
     nextMutationFocus: string[];
+    displayNextMutationFocus: string[];
   };
   verifiedAutoresearch: {
     researchStageCounts: Record<string, number>;
@@ -271,10 +274,13 @@ export interface DashboardStrategyAnalysis {
 
 export interface DashboardHypothesis {
   hypothesis: string;
+  displaySummary: string;
   expectedEffect: string;
   invalidIf: string;
   nextMutationDirection: string;
   repairMode: string;
+  displayRepairMode: string;
+  displayRoute: string;
   route: {
     preferred: string[];
     suppressed: string[];
@@ -290,6 +296,9 @@ export interface DashboardProblem {
   problemKind: string;
   diagnosis: string;
   suggestedRepairKind: string | null;
+  displayProblemKind: string;
+  displayDiagnosis: string;
+  displaySuggestedRepairKind: string | null;
   recordedAt: string | null;
 }
 
@@ -300,6 +309,9 @@ export interface DashboardRepair {
   repairKind: string;
   result: string;
   summary: string;
+  displayRepairKind: string;
+  displayResult: string;
+  displaySummary: string;
   recordedAt: string | null;
 }
 
@@ -853,8 +865,20 @@ function buildStrategyReviewDashboard(
   const requiredChanges = stringArray(mutationDirective?.requiredChanges);
   const validationFocus = stringArray(mutationDirective?.validationFocus);
   const directiveSuppressedFamilies = stringArray(mutationDirective?.suppressedFamilies);
+  const latestDecision = stringValue(latestReview?.reviewDecision);
+  const reason = stringValue(mutationDirective?.reason);
+  const debateSummary = stringValue(latestReview?.debateSummary);
+  const suppressedFamilies =
+    stringArray(latestTarget?.suppressedFamilies).length > 0
+      ? stringArray(latestTarget?.suppressedFamilies)
+      : directiveSuppressedFamilies;
+  const nextMutationFocus =
+    stringArray(latestTarget?.nextMutationFocus).length > 0
+      ? stringArray(latestTarget?.nextMutationFocus)
+      : [...requiredChanges, ...validationFocus];
   return {
-    latestDecision: stringValue(latestReview?.reviewDecision),
+    latestDecision,
+    displayDecision: displayReviewDecision(latestDecision),
     latestCandidateId: stringValue(latestReview?.candidateId),
     confidence: numberValue(latestReview?.confidence),
     reviewMode: stringValue(latestReview?.reviewMode),
@@ -863,17 +887,17 @@ function buildStrategyReviewDashboard(
     requiredChanges,
     forbiddenPatterns: stringArray(mutationDirective?.forbiddenPatterns),
     validationFocus,
-    reason: stringValue(mutationDirective?.reason),
-    debateSummary: stringValue(latestReview?.debateSummary),
+    reason,
+    displayReason: displayReviewReason({
+      decision: latestDecision,
+      reason,
+      debateSummary,
+    }),
+    debateSummary,
     recordedAt: stringValue(latestReview?.recordedAt),
-    suppressedFamilies:
-      stringArray(latestTarget?.suppressedFamilies).length > 0
-        ? stringArray(latestTarget?.suppressedFamilies)
-        : directiveSuppressedFamilies,
-    nextMutationFocus:
-      stringArray(latestTarget?.nextMutationFocus).length > 0
-        ? stringArray(latestTarget?.nextMutationFocus)
-        : [...requiredChanges, ...validationFocus],
+    suppressedFamilies,
+    nextMutationFocus,
+    displayNextMutationFocus: nextMutationFocus.map(displayToken),
   };
 }
 
@@ -1778,19 +1802,27 @@ function toDashboardHypothesis(record: MutationBriefRecord): DashboardHypothesis
   const brief = record.brief;
   const outcomeMemory = brief.breakoutOutcomeMemory;
   const variant = brief.breakoutVariantDirective;
+  const route = {
+    preferred: outcomeMemory?.preferredRoutes ?? [],
+    suppressed: outcomeMemory?.suppressedRoutes ?? [],
+    sparsePatterns: outcomeMemory?.dominantSparsePatterns ?? [],
+    variant: variant?.variantId ?? null,
+    escalationLevel: variant?.escalationLevel ?? null,
+  };
   return {
     hypothesis: brief.analysisGuidance.hypothesis,
+    displaySummary: buildHypothesisDisplaySummary({
+      repairMode: brief.repairMode,
+      preferredRoutes: route.preferred,
+      variant: route.variant,
+    }),
     expectedEffect: brief.analysisGuidance.expectedEffect,
     invalidIf: brief.analysisGuidance.invalidIf,
     nextMutationDirection: brief.nextMutationDirection,
     repairMode: brief.repairMode,
-    route: {
-      preferred: outcomeMemory?.preferredRoutes ?? [],
-      suppressed: outcomeMemory?.suppressedRoutes ?? [],
-      sparsePatterns: outcomeMemory?.dominantSparsePatterns ?? [],
-      variant: variant?.variantId ?? null,
-      escalationLevel: variant?.escalationLevel ?? null,
-    },
+    displayRepairMode: displayRepairMode(brief.repairMode),
+    displayRoute: displayRouteSummary(route),
+    route,
   };
 }
 
@@ -1801,6 +1833,11 @@ function toDashboardProblem(event: ProblemEventRecord): DashboardProblem {
     problemKind: event.problemKind,
     diagnosis: event.diagnosis,
     suggestedRepairKind: event.suggestedRepairKind ?? null,
+    displayProblemKind: displayProblemKind(event.problemKind),
+    displayDiagnosis: displayProblemDiagnosis(event),
+    displaySuggestedRepairKind: event.suggestedRepairKind
+      ? displayRepairKind(event.suggestedRepairKind)
+      : null,
     recordedAt: event.recordedAt ?? null,
   };
 }
@@ -1813,8 +1850,176 @@ function toDashboardRepair(attempt: RepairAttemptRecord): DashboardRepair {
     repairKind: attempt.repairKind,
     result: attempt.result,
     summary: attempt.summary,
+    displayRepairKind: displayRepairKind(attempt.repairKind),
+    displayResult: displayRepairResult(attempt.result),
+    displaySummary: displayRepairSummary(attempt),
     recordedAt: attempt.recordedAt ?? null,
   };
+}
+
+function displayReviewDecision(value: string | null): string {
+  const labels: Record<string, string> = {
+    exploit_parent: "부모 후보의 강점을 계속 활용",
+    repair_near_miss: "근접 후보를 수리",
+    redirect_family: "현재 패밀리 유지가 아니라 다른 구조 패밀리로 전환",
+    simplify_family: "복잡한 패밀리를 단순화",
+    quarantine_family: "반복 실패 패밀리를 격리",
+    calibrate_candidate: "후보를 승격 검증 쪽으로 보정",
+    no_action: "현재 흐름 유지",
+  };
+  return value ? labels[value] ?? displayToken(value) : "전략 리뷰 대기";
+}
+
+function displayReviewReason(input: {
+  decision: string | null;
+  reason: string | null;
+  debateSummary: string | null;
+}): string {
+  const labels: Record<string, string> = {
+    exploit_parent:
+      "전략 리뷰가 부모 후보의 강점을 보존하면서 점수를 개선하는 쪽으로 판단했습니다.",
+    repair_near_miss:
+      "전략 리뷰가 후보를 버리기보다 막힌 게이트를 고쳐볼 가치가 있는 근접 후보로 판단했습니다.",
+    redirect_family:
+      "전략 리뷰가 현재 패밀리의 반복 한계나 손상된 exit/risk 클러스터를 보고 다른 구조 패밀리로 전환하도록 지시했습니다.",
+    simplify_family:
+      "전략 리뷰가 복잡도가 성능을 해치고 있다고 보고 핵심 조건만 남기는 방향을 지시했습니다.",
+    quarantine_family:
+      "전략 리뷰가 같은 패밀리의 반복 실패 위험이 높다고 보고 자동 선택에서 억제하도록 지시했습니다.",
+    calibrate_candidate:
+      "전략 리뷰가 로컬 점수보다 승격 검증 일치성과 이식성 확인을 우선하도록 지시했습니다.",
+    no_action:
+      "전략 리뷰가 뚜렷한 전환 근거가 부족하다고 보고 현재 흐름 유지를 선택했습니다.",
+  };
+  const base = input.decision
+    ? labels[input.decision] ?? `${displayToken(input.decision)} 판단입니다.`
+    : "아직 적용 가능한 전략 리뷰 판단이 없습니다.";
+  const rawReason = input.reason ?? input.debateSummary;
+  return rawReason ? `${base} 원문 근거는 raw reason/debateSummary에 유지됩니다.` : base;
+}
+
+function buildHypothesisDisplaySummary(input: {
+  repairMode: string;
+  preferredRoutes: string[];
+  variant: string | null;
+}): string {
+  const routeSummary = input.preferredRoutes.length > 0
+    ? `우선 경로는 ${input.preferredRoutes.join(", ")}입니다.`
+    : "우선 경로는 아직 지정되지 않았습니다.";
+  const variantSummary = input.variant ? ` 변형은 ${input.variant}입니다.` : "";
+  return `${displayRepairMode(input.repairMode)} 상태입니다. ${routeSummary}${variantSummary} 내부 가설 원문과 다음 변이 방향은 raw 필드에 유지됩니다.`;
+}
+
+function displayRouteSummary(input: {
+  preferred: string[];
+  suppressed: string[];
+  sparsePatterns: string[];
+  variant: string | null;
+  escalationLevel: number | null;
+}): string {
+  const parts = [
+    input.preferred.length > 0 ? `선호 경로 ${input.preferred.join(", ")}` : "선호 경로 없음",
+    input.suppressed.length > 0 ? `억제 경로 ${input.suppressed.join(", ")}` : null,
+    input.variant ? `변형 ${input.variant}` : null,
+    input.escalationLevel != null ? `단계 ${input.escalationLevel}` : null,
+  ].filter((part): part is string => part != null);
+  return parts.join(" / ");
+}
+
+function displayProblemKind(value: string): string {
+  const labels: Record<string, string> = {
+    llm_schema_fail: "LLM 응답이 strict JSON 스키마와 맞지 않음",
+    local_backtest_fail: "로컬 백테스트 기준 미통과",
+    mutation_generation_fail: "후보 생성 실패",
+    local_unsupported: "로컬 실행 호환성 미통과",
+    pine_preflight_fail: "Pine 사전 점검 미통과",
+    tv_surface_failure: "검증 화면 자동화 실패",
+    artifact_failure: "결과 아티팩트 생성 실패",
+    duplicate_candidate: "중복 후보",
+    local_tv_divergence: "로컬 결과와 검증 결과 차이",
+    bootstrap_failed: "초기 챔피언 부트스트랩 실패",
+  };
+  return labels[value] ?? displayToken(value);
+}
+
+function displayProblemDiagnosis(event: ProblemEventRecord): string {
+  const diagnosis = compactDiagnostic(event.diagnosis);
+  switch (event.problemKind) {
+    case "llm_schema_fail":
+      return `LLM 응답 구조가 strict JSON 요구사항과 어긋났습니다. 내부 enum/숫자/필드명은 영어 canonical 값을 유지해야 합니다. 원문: ${diagnosis}`;
+    case "local_backtest_fail":
+      return `로컬 백테스트 하드 게이트를 통과하지 못했습니다. 보통 OOS 수익, 거래 수, profit factor, 낙폭 조건 중 하나 이상이 막힌 상태입니다. 원문: ${diagnosis}`;
+    case "mutation_generation_fail":
+      return `새 후보 생성이 완료되지 않았습니다. 다음 루프는 스키마 안정성과 후보 완성도를 우선합니다. 원문: ${diagnosis}`;
+    default:
+      return diagnosis;
+  }
+}
+
+function displayRepairKind(value: string): string {
+  const labels: Record<string, string> = {
+    schema_repair: "스키마 수리",
+    schema_regenerate: "스키마 재생성",
+    risk_logic_repair: "리스크/청산 로직 수리",
+    archive_gap_redirect: "아카이브 공백 기반 경로 전환",
+    pine_source_repair: "Pine 소스 수리",
+    local_compatibility_repair: "로컬 호환성 수리",
+    entry_frequency_repair: "진입 빈도 수리",
+    mutation_prompt_adjustment: "변이 프롬프트 조정",
+  };
+  return labels[value] ?? displayToken(value);
+}
+
+function displayRepairMode(value: string): string {
+  const labels: Record<string, string> = {
+    exploration_breakout: "새 구조 탐색",
+    near_miss_repair: "근접 후보 수리",
+    exit_profit_repair: "청산/수익성 수리",
+    entry_recovery: "진입 회복",
+    risk_logic_repair: "리스크/청산 로직 수리",
+    schema_repair: "스키마 수리",
+    balanced: "균형 변이",
+  };
+  return labels[value] ?? displayToken(value);
+}
+
+function displayRepairResult(value: string): string {
+  const labels: Record<string, string> = {
+    success: "성공",
+    failed: "실패",
+    deferred: "보류",
+  };
+  return labels[value] ?? displayToken(value);
+}
+
+function displayRepairSummary(attempt: RepairAttemptRecord): string {
+  const repaired = attempt.repairedCandidateId
+    ? `수리된 후보는 ${attempt.repairedCandidateId}입니다.`
+    : "수리된 후보는 아직 없습니다.";
+  return `${displayRepairKind(attempt.repairKind)} 결과는 ${displayRepairResult(attempt.result)}입니다. ${repaired} 원문 요약은 raw summary에 유지됩니다.`;
+}
+
+function displayToken(value: string): string {
+  const labels: Record<string, string> = {
+    exploration_breakout: "새 구조 탐색",
+    redirect_family: "패밀리 전환",
+    llm_schema_fail: "LLM 스키마 실패",
+    local_backtest_fail: "로컬 백테스트 실패",
+    risk_logic_repair: "리스크/청산 로직 수리",
+    event_reclaim_reversal: "event_reclaim_reversal (이벤트 후 되찾기 반전)",
+    time_boxed_event_rotation: "time_boxed_event_rotation (시간 제한 이벤트 회전)",
+    recover_trade_density: "거래 밀도 회복",
+    walk_forward: "워크포워드",
+    positive_oos_post_fee_profit: "OOS 수수료 반영 후 양수 수익",
+    objective_hard_gate_fail: "목표 하드 게이트 실패",
+    full_sample_hard_gate_fail: "전체 샘플 하드 게이트 실패",
+    oos_hard_gate_fail: "OOS 하드 게이트 실패",
+  };
+  return labels[value] ?? value.replace(/_/g, " ");
+}
+
+function compactDiagnostic(value: string): string {
+  return value.replace(/\s+/g, " ").trim().slice(0, 240);
 }
 
 function buildImprovementStatus(input: {
