@@ -30,12 +30,40 @@ interface PreflightRule {
 
 const PREVIEW_RULES: PreflightRule[] = [
   {
+    id: "pine.version_pragma_first_column",
+    code: "version_pragma_not_first_statement",
+    category: "contract",
+    severity: "blocking",
+    check(source) {
+      const pragma = findVersionPragma(source);
+      if (!pragma) {
+        return [];
+      }
+      if (pragma.lineNumber === 1 && /^\/\/\s*@version\s*=\s*5\b/i.test(pragma.line)) {
+        return [];
+      }
+      return [
+        createIssue({
+          ruleId: "pine.version_pragma_first_column",
+          code: "version_pragma_not_first_statement",
+          category: "contract",
+          severity: "blocking",
+          message:
+            "Pine //@version=5 must be the first statement at column 1.",
+          recommendation:
+            "Put //@version=5 as the first characters of line 1 and do not indent top-level Pine statements.",
+          lineHints: [pragma.lineNumber],
+        }),
+      ];
+    },
+  },
+  {
     id: "pine.require_version_pragma",
     code: "missing_version_pragma",
     category: "contract",
     severity: "blocking",
     check(source) {
-      if (/^\s*\/\/\s*@version\s*=\s*5\b/m.test(source)) {
+      if (findVersionPragma(source)) {
         return [];
       }
       return [
@@ -47,6 +75,31 @@ const PREVIEW_RULES: PreflightRule[] = [
           message: "Pine source is missing //@version=5.",
           recommendation: "Add //@version=5 at the top of the script.",
           lineHints: [1],
+        }),
+      ];
+    },
+  },
+  {
+    id: "pine.no_indented_strategy_declaration",
+    code: "strategy_declaration_indented",
+    category: "contract",
+    severity: "blocking",
+    check(source) {
+      const lineHints = findMatchingLineHints(source, /^[ \t]+strategy\s*\(/im);
+      if (lineHints.length === 0) {
+        return [];
+      }
+      return [
+        createIssue({
+          ruleId: "pine.no_indented_strategy_declaration",
+          code: "strategy_declaration_indented",
+          category: "contract",
+          severity: "blocking",
+          message:
+            "Pine strategy() declaration starts with indentation, which TradingView treats as an invalid new statement.",
+          recommendation:
+            "Move strategy() to column 1. Only indent lines that are inside an explicit Pine block.",
+          lineHints,
         }),
       ];
     },
@@ -206,6 +259,23 @@ const PREVIEW_RULES: PreflightRule[] = [
     },
   },
 ];
+
+function findVersionPragma(
+  source: string,
+): { lineNumber: number; line: string } | null {
+  const withoutBom = source.replace(/^\uFEFF/, "");
+  const lines = withoutBom.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    if (/^\s*\/\/\s*@version\s*=\s*5\b/i.test(line)) {
+      return {
+        lineNumber: index + 1,
+        line,
+      };
+    }
+  }
+  return null;
+}
 
 export function inspectGeneratedMutation(
   parsedMutation: ParsedMutationResponse,

@@ -206,6 +206,7 @@ export const compileFailureClassSchema = z.enum([
   "missing_local_code_block",
   "missing_pine_side_effect",
   "ta_sma_scope_consistency",
+  "leading_indented_statement",
 ]);
 
 export const repairModeSchema = z.enum([

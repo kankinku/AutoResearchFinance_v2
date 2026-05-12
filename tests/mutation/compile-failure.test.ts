@@ -52,6 +52,11 @@ describe("compile failure normalization", () => {
         "The function 'ta.sma' should be called on each calculation for consistency. It is recommended to extract the call from the ternary operator or from the scope",
       ),
     ).toBe("ta_sma_scope_consistency");
+    expect(
+      classifyCompileFailure(
+        "You should not start a new statement with an indent (4 spaces or 1 tab)!",
+      ),
+    ).toBe("leading_indented_statement");
   });
 
   test("deduplicates classes across raw compiler strings", () => {
@@ -98,7 +103,10 @@ describe("compile failure normalization", () => {
         status: "compile_failed",
         compile: {
           ok: false,
-          errors: ["Undeclared identifier 'slotPct'"],
+          errors: [
+            "Undeclared identifier 'slotPct'",
+            "You should not start a new statement with an indent (4 spaces or 1 tab)!",
+          ],
         },
       },
     ]);
@@ -109,5 +117,6 @@ describe("compile failure normalization", () => {
     expect(counts.missing_local_code_block).toBe(0);
     expect(counts.missing_pine_side_effect).toBe(0);
     expect(counts.ta_sma_scope_consistency).toBe(0);
+    expect(counts.leading_indented_statement).toBe(1);
   });
 });

@@ -62,6 +62,10 @@ export function classifyCompileFailure(
     return "ta_sma_scope_consistency";
   }
 
+  if (/You should not start a new statement with an indent/i.test(error)) {
+    return "leading_indented_statement";
+  }
+
   return null;
 }
 
@@ -93,6 +97,7 @@ export function buildCompileFailureClassCounts(
     missing_local_code_block: 0,
     missing_pine_side_effect: 0,
     ta_sma_scope_consistency: 0,
+    leading_indented_statement: 0,
   };
 
   for (const record of records) {
