@@ -1,4 +1,5 @@
 import {
+  COMPILE_FAILURE_CLASSES,
   type CompileFailureClass,
   type ExperimentRecord,
 } from "../contracts/types.js";
@@ -8,65 +9,77 @@ const TITLE_TOO_LONG_PATTERNS = [
   /script title.*too long/i,
 ];
 
+type CompileFailureClassifier = {
+  failureClass: CompileFailureClass;
+  matches: (error: string) => boolean;
+};
+
+const COMPILE_FAILURE_CLASSIFIERS: readonly CompileFailureClassifier[] = [
+  {
+    failureClass: "input_time_requires_const_defval",
+    matches: (error) =>
+      /Cannot call ["']?input\.time["']?/i.test(error) &&
+      /const int/i.test(error) &&
+      /simple int/i.test(error),
+  },
+  {
+    failureClass: "undeclared_identifier",
+    matches: (error) => /Undeclared identifier/i.test(error),
+  },
+  {
+    failureClass: "qty_percent_argument",
+    matches: (error) => /qty_percent/i.test(error),
+  },
+  {
+    failureClass: "unsupported_ta_sum",
+    matches: (error) =>
+      /Could not find function or function reference 'ta\.sum'/i.test(error),
+  },
+  {
+    failureClass: "function_mutates_global",
+    matches: (error) => /Cannot modify global variable/i.test(error),
+  },
+  {
+    failureClass: "title_too_long",
+    matches: (error) =>
+      TITLE_TOO_LONG_PATTERNS.some((pattern) => pattern.test(error)),
+  },
+  {
+    failureClass: "na_type_assignment",
+    matches: (error) => /NA type cannot be assigned/i.test(error),
+  },
+  {
+    failureClass: "missing_local_code_block",
+    matches: (error) => /structure is missing a local code block/i.test(error),
+  },
+  {
+    failureClass: "missing_pine_side_effect",
+    matches: (error) =>
+      /strategy must contain at least one/i.test(error) &&
+      /plot\*\(\)|strategy\.\*\(\)|barcolor|bgcolor|hline|drawing/i.test(error),
+  },
+  {
+    failureClass: "ta_sma_scope_consistency",
+    matches: (error) =>
+      /ta\.sma/i.test(error) &&
+      /called on each calculation/i.test(error) &&
+      /ternary operator|scope/i.test(error),
+  },
+  {
+    failureClass: "leading_indented_statement",
+    matches: (error) =>
+      /You should not start a new statement with an indent/i.test(error),
+  },
+];
+
 export function classifyCompileFailure(
   error: string,
 ): CompileFailureClass | null {
-  if (
-    /Cannot call ["']?input\.time["']?/i.test(error) &&
-    /const int/i.test(error) &&
-    /simple int/i.test(error)
-  ) {
-    return "input_time_requires_const_defval";
-  }
-
-  if (/Undeclared identifier/i.test(error)) {
-    return "undeclared_identifier";
-  }
-
-  if (/qty_percent/i.test(error)) {
-    return "qty_percent_argument";
-  }
-
-  if (/Could not find function or function reference 'ta\.sum'/i.test(error)) {
-    return "unsupported_ta_sum";
-  }
-
-  if (/Cannot modify global variable/i.test(error)) {
-    return "function_mutates_global";
-  }
-
-  if (TITLE_TOO_LONG_PATTERNS.some((pattern) => pattern.test(error))) {
-    return "title_too_long";
-  }
-
-  if (/NA type cannot be assigned/i.test(error)) {
-    return "na_type_assignment";
-  }
-
-  if (/structure is missing a local code block/i.test(error)) {
-    return "missing_local_code_block";
-  }
-
-  if (
-    /strategy must contain at least one/i.test(error) &&
-    /plot\*\(\)|strategy\.\*\(\)|barcolor|bgcolor|hline|drawing/i.test(error)
-  ) {
-    return "missing_pine_side_effect";
-  }
-
-  if (
-    /ta\.sma/i.test(error) &&
-    /called on each calculation/i.test(error) &&
-    /ternary operator|scope/i.test(error)
-  ) {
-    return "ta_sma_scope_consistency";
-  }
-
-  if (/You should not start a new statement with an indent/i.test(error)) {
-    return "leading_indented_statement";
-  }
-
-  return null;
+  return (
+    COMPILE_FAILURE_CLASSIFIERS.find((classifier) =>
+      classifier.matches(error),
+    )?.failureClass ?? null
+  );
 }
 
 export function normalizeCompileFailureClasses(
@@ -86,19 +99,9 @@ export function normalizeCompileFailureClasses(
 export function buildCompileFailureClassCounts(
   records: ExperimentRecord[],
 ): Record<CompileFailureClass, number> {
-  const counts: Record<CompileFailureClass, number> = {
-    undeclared_identifier: 0,
-    qty_percent_argument: 0,
-    unsupported_ta_sum: 0,
-    function_mutates_global: 0,
-    title_too_long: 0,
-    na_type_assignment: 0,
-    input_time_requires_const_defval: 0,
-    missing_local_code_block: 0,
-    missing_pine_side_effect: 0,
-    ta_sma_scope_consistency: 0,
-    leading_indented_statement: 0,
-  };
+  const counts = Object.fromEntries(
+    COMPILE_FAILURE_CLASSES.map((failureClass) => [failureClass, 0]),
+  ) as Record<CompileFailureClass, number>;
 
   for (const record of records) {
     if (record.decision !== "compile_fail") {

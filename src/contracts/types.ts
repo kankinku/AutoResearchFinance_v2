@@ -195,7 +195,7 @@ export const acceptedHeadReferenceSchema = z.object({
   tradeRetentionTarget: z.number().int().positive().optional(),
 });
 
-export const compileFailureClassSchema = z.enum([
+export const COMPILE_FAILURE_CLASSES = [
   "undeclared_identifier",
   "qty_percent_argument",
   "unsupported_ta_sum",
@@ -207,7 +207,9 @@ export const compileFailureClassSchema = z.enum([
   "missing_pine_side_effect",
   "ta_sma_scope_consistency",
   "leading_indented_statement",
-]);
+] as const;
+
+export const compileFailureClassSchema = z.enum(COMPILE_FAILURE_CLASSES);
 
 export const repairModeSchema = z.enum([
   "entry_recovery",
