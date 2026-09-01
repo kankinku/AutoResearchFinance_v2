@@ -8,6 +8,8 @@ from pathlib import Path
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import default_feature_registry
 from core.integrity.hashes import content_hash
+from dashboard.run import run_dashboard
+from dashboard.service import DashboardService
 from evaluation.selector import FunnelConfig
 from experiments.planner import plan_experiment
 from memory.state_files import StateFileStore
@@ -25,6 +27,15 @@ def build_parser() -> argparse.ArgumentParser:
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     subparsers.add_parser("list-features")
+    dashboard_parser = subparsers.add_parser("dashboard")
+    dashboard_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    dashboard_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    dashboard_parser.add_argument("--host", default="127.0.0.1")
+    dashboard_parser.add_argument("--port", type=int, default=8080)
+    for command in ("dashboard-status", "dashboard-refresh"):
+        dashboard_command = subparsers.add_parser(command)
+        dashboard_command.add_argument("--state-dir", type=Path, default=Path("state"))
+        dashboard_command.add_argument("--env-file", type=Path, default=Path(".env"))
     subparsers.choices["set-mode"].add_argument(
         "--mode", choices=("paper", "live"), required=True
     )
@@ -108,6 +119,31 @@ def main(argv: list[str] | None = None) -> int:
                         }
                         for spec in default_feature_registry().all()
                     ],
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
+    if args.command == "dashboard":
+        run_dashboard(
+            state_dir=args.state_dir,
+            env_path=args.env_file,
+            host=args.host,
+            port=args.port,
+        )
+        return 0
+    if args.command in {"dashboard-status", "dashboard-refresh"}:
+        service = DashboardService.from_environment(args.state_dir, args.env_file)
+        snapshot = service.refresh() if args.command == "dashboard-refresh" else service.snapshot()
+        health = snapshot.health
+        print(
+            json.dumps(
+                {
+                    "status": health.status if health else "UNKNOWN",
+                    "effective_mode": snapshot.mode.effective_mode,
+                    "live_enabled": snapshot.mode.live_enabled,
+                    "kis_status": health.kis_status if health else "UNKNOWN",
+                    "warning_codes": snapshot.warning_codes,
                 },
                 ensure_ascii=False,
             )

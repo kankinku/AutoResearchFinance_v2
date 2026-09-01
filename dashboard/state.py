@@ -134,8 +134,16 @@ class DashboardStateReader:
                 continue
             last = _parse_datetime(payload.get("last_heartbeat"))
             age = max(0.0, (now - last).total_seconds()) if last else None
+            terminal = str(payload.get("status", "")).upper() in {
+                "SUCCEEDED",
+                "FAILED",
+                "CANCELLED",
+                "RETRY_EXHAUSTED",
+            }
             if age is None:
                 online = "UNKNOWN"
+            elif terminal:
+                online = "OFFLINE"
             elif age <= 60:
                 online = "ONLINE"
             elif age <= 300:

@@ -91,6 +91,24 @@ def test_reader_masks_account_and_classifies_stale_and_offline_workers(tmp_path:
     assert {worker.online_state for worker in snapshot.workers} == {"STALE", "OFFLINE"}
 
 
+def test_terminal_worker_is_not_reported_as_online(tmp_path: Path) -> None:
+    now = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)
+    heartbeat_dir = tmp_path / "worker-heartbeats"
+    heartbeat_dir.mkdir()
+    _write(
+        heartbeat_dir / "done.json",
+        {
+            "worker_id": "done",
+            "status": "SUCCEEDED",
+            "last_heartbeat": now.isoformat(),
+        },
+    )
+
+    snapshot = DashboardStateReader(tmp_path, clock=lambda: now).read()
+
+    assert snapshot.workers[0].online_state == "OFFLINE"
+
+
 def test_snapshot_store_writes_and_reads_validated_json(tmp_path: Path) -> None:
     snapshot = DashboardStateReader(tmp_path).read()
     store = SnapshotStore(tmp_path / "dashboard.json")
