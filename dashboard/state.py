@@ -1,0 +1,230 @@
+from __future__ import annotations
+
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable, Mapping
+
+from dashboard.contracts import (
+    AccountSnapshot,
+    DashboardSnapshot,
+    Holding,
+    ModeStatus,
+    StrategySummary,
+    TestRecord,
+    TrendPoint,
+    WorkerStatus,
+)
+
+
+class DashboardStateReader:
+    def __init__(self, root: Path, *, clock: Callable[[], datetime] | None = None) -> None:
+        self.root = root
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
+
+    def read(self) -> DashboardSnapshot:
+        warnings: list[str] = []
+        mode = self._read_mode(warnings)
+        account = self._read_account(warnings)
+        tests = self._read_tests(warnings)
+        strategy = self._read_strategy(warnings)
+        workers = self._read_workers(warnings)
+        trend = [
+            TrendPoint(
+                generation=record.generation,
+                timestamp=record.timestamp,
+                score=strategy.score if record.strategy_hash == strategy.champion_hash else None,
+                total_return=record.total_return,
+                nasdaq_excess_return=record.nasdaq_excess_return,
+                risk_compliant=record.risk_compliant,
+            )
+            for record in reversed(tests)
+        ]
+        return DashboardSnapshot(
+            generated_at=self._clock().isoformat(),
+            mode=mode,
+            account=account,
+            tests=tests,
+            strategy=strategy,
+            trend=trend,
+            workers=workers,
+            warning_codes=sorted(set(warnings)),
+        )
+
+    def _read_mode(self, warnings: list[str]) -> ModeStatus:
+        payload = self._json("mode.json", warnings, "MODE_STATE_INVALID") or {}
+        requested = str(payload.get("selected_mode", "paper"))
+        if requested.lower() != "paper":
+            warnings.append("LIVE_MODE_REJECTED")
+        return ModeStatus(requested_mode=requested, effective_mode="paper", live_enabled=False)
+
+    def _read_account(self, warnings: list[str]) -> AccountSnapshot:
+        payload = self._json("account.json", warnings, "ACCOUNT_SNAPSHOT_INVALID")
+        if payload is None:
+            return AccountSnapshot()
+        try:
+            holdings = [Holding.model_validate(item) for item in payload.get("holdings", [])]
+            return AccountSnapshot(
+                status=payload.get("status", "UNKNOWN"),
+                account_number=_mask_account(str(payload.get("account_number", ""))),
+                equity=_optional_float(payload.get("equity")),
+                cash=_optional_float(payload.get("cash")),
+                buying_power=_optional_float(payload.get("buying_power")),
+                holdings=holdings,
+                open_orders=int(payload.get("open_orders", 0)),
+                captured_at=payload.get("captured_at"),
+                error_code=payload.get("error_code"),
+            )
+        except (TypeError, ValueError) as exc:
+            del exc
+            warnings.append("ACCOUNT_SNAPSHOT_INVALID")
+            return AccountSnapshot(status="ERROR", error_code="invalid_snapshot")
+
+    def _read_tests(self, warnings: list[str]) -> list[TestRecord]:
+        path = self.root / "test-records.jsonl"
+        if not path.is_file():
+            return []
+        records: list[TestRecord] = []
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if not line.strip():
+                continue
+            try:
+                records.append(TestRecord.model_validate(json.loads(line)))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                warnings.append(f"TEST_RECORD_INVALID_{line_number}")
+        return sorted(records, key=lambda record: record.timestamp, reverse=True)
+
+    def _read_strategy(self, warnings: list[str]) -> StrategySummary:
+        champion = self._json("champion.json", warnings, "CHAMPION_STATE_INVALID") or {}
+        if isinstance(champion.get("champion"), Mapping):
+            champion = {**champion, **champion["champion"]}
+        knowledge = self._json("knowledge.json", warnings, "KNOWLEDGE_STATE_INVALID") or {}
+        candidate = next(
+            (
+                item
+                for item in knowledge.get("known_good", [])
+                if isinstance(item, Mapping)
+                and item.get("candidate_hash") == champion.get("champion_hash")
+            ),
+            {},
+        )
+        return StrategySummary(
+            champion_hash=champion.get("champion_hash"),
+            status=str(champion.get("status", "EMPTY")),
+            family=champion.get("family") or candidate.get("family"),
+            score=_optional_float(champion.get("score", candidate.get("score"))),
+            generation=_optional_int(champion.get("generation", candidate.get("generation"))),
+            feature_ids=[str(item) for item in champion.get("feature_ids", candidate.get("feature_ids", []))],
+            total_return=_optional_float(candidate.get("total_return")),
+            nasdaq_excess_return=_optional_float(candidate.get("nasdaq_excess_return")),
+            max_daily_loss_pct=_optional_float(candidate.get("max_daily_loss_pct")),
+            risk_compliant=_optional_bool(candidate.get("risk_compliant")),
+        )
+
+    def _read_workers(self, warnings: list[str]) -> list[WorkerStatus]:
+        directory = self.root / "worker-heartbeats"
+        if not directory.is_dir():
+            return []
+        now = self._clock().astimezone(timezone.utc)
+        workers: list[WorkerStatus] = []
+        for path in sorted(directory.glob("*.json")):
+            payload = self._json_path(path, warnings, "WORKER_HEARTBEAT_INVALID")
+            if payload is None:
+                continue
+            last = _parse_datetime(payload.get("last_heartbeat"))
+            age = max(0.0, (now - last).total_seconds()) if last else None
+            if age is None:
+                online = "UNKNOWN"
+            elif age <= 60:
+                online = "ONLINE"
+            elif age <= 300:
+                online = "STALE"
+            else:
+                online = "OFFLINE"
+            workers.append(
+                WorkerStatus(
+                    worker_id=str(payload.get("worker_id", path.stem)),
+                    job_id=payload.get("job_id"),
+                    role=str(payload.get("role", "unknown")),
+                    status=str(payload.get("status", "UNKNOWN")),
+                    last_heartbeat=payload.get("last_heartbeat"),
+                    age_seconds=age,
+                    online_state=online,
+                    attempt=_optional_int(payload.get("attempt")) or 0,
+                    error=payload.get("error"),
+                )
+            )
+        return workers
+
+    def _json(self, name: str, warnings: list[str], warning: str) -> dict[str, Any] | None:
+        return self._json_path(self.root / name, warnings, warning)
+
+    @staticmethod
+    def _json_path(path: Path, warnings: list[str], warning: str) -> dict[str, Any] | None:
+        if not path.is_file():
+            return None
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            warnings.append(warning)
+            return None
+        if not isinstance(payload, dict):
+            warnings.append(warning)
+            return None
+        return payload
+
+
+class SnapshotStore:
+    def __init__(self, path: Path) -> None:
+        self.path = path
+
+    def write(self, snapshot: DashboardSnapshot) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(self.path.suffix + ".tmp")
+        temporary.write_text(
+            json.dumps(snapshot.model_dump(mode="json"), ensure_ascii=False, sort_keys=True, indent=2)
+            + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, self.path)
+
+    def read(self) -> DashboardSnapshot | None:
+        if not self.path.is_file():
+            return None
+        return DashboardSnapshot.model_validate(json.loads(self.path.read_text(encoding="utf-8")))
+
+
+def _optional_float(value: object) -> float | None:
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_int(value: object) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_bool(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
+
+
+def _parse_datetime(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _mask_account(value: str) -> str:
+    digits = "".join(char for char in value if char.isdigit())
+    if len(digits) < 10:
+        return "******"
+    return f"******{digits[-4:-2]}-{digits[-2:]}"
