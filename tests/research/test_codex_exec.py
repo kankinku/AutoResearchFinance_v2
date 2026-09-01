@@ -86,3 +86,17 @@ def test_codex_exec_provider_rejects_failed_or_invalid_output(tmp_path: Path) ->
 def test_checked_in_schema_matches_model_schema() -> None:
     schema_path = Path(__file__).parents[2] / "schemas" / "research_intent.schema.json"
     assert json.loads(schema_path.read_text(encoding="utf-8")) == research_intent_schema()
+
+
+def test_codex_exec_provider_records_non_secret_status(tmp_path: Path) -> None:
+    runner = FakeRunner(_valid_intent())
+    status_path = tmp_path / "state" / "llm" / "status.json"
+    provider = CodexExecProvider(workdir=tmp_path, runner=runner, status_path=status_path)
+
+    provider.propose({"generation": 1})
+
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    assert status["provider"] == "codex_exec"
+    assert status["status"] == "ONLINE"
+    assert status["last_result"] == "VALIDATED"
+    assert "stderr" not in status

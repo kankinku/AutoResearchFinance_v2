@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import subprocess
@@ -32,6 +33,7 @@ class CodexExecProvider:
         workdir: Path,
         schema_path: Path | None = None,
         timeout_seconds: float = 120.0,
+        status_path: Path | None = None,
         runner: ExecRunner | None = None,
     ) -> None:
         if not executable.strip():
@@ -42,9 +44,20 @@ class CodexExecProvider:
         self.workdir = workdir.resolve()
         self.schema_path = schema_path or _default_schema_path()
         self.timeout_seconds = timeout_seconds
+        self.status_path = status_path
         self._runner = runner or _run_codex
 
     def propose(self, context: dict[str, Any]) -> dict[str, Any]:
+        self._write_status("RUNNING", "NONE")
+        try:
+            payload = self._propose(context)
+        except Exception:
+            self._write_status("OFFLINE", "FAILED")
+            raise
+        self._write_status("ONLINE", "VALIDATED")
+        return payload
+
+    def _propose(self, context: dict[str, Any]) -> dict[str, Any]:
         self.workdir.mkdir(parents=True, exist_ok=True)
         sanitized = sanitize_context(context)
         prompt = json.dumps(
@@ -88,6 +101,47 @@ class CodexExecProvider:
                 raise ValueError("Codex returned an invalid ResearchIntent") from exc
         return intent.model_dump(mode="json", exclude_none=True)
 
+    @classmethod
+    def from_env(
+        cls,
+        env_path: Path,
+        *,
+        workdir: Path,
+        status_path: Path | None = None,
+    ) -> CodexExecProvider:
+        values = _read_settings(env_path)
+        executable = values.get("QUANT_CODEX_COMMAND", "codex")
+        try:
+            timeout = float(values.get("QUANT_CODEX_TIMEOUT_SECONDS", "120"))
+        except ValueError as exc:
+            raise ValueError("QUANT_CODEX_TIMEOUT_SECONDS must be numeric") from exc
+        return cls(
+            executable=executable,
+            workdir=workdir,
+            timeout_seconds=timeout,
+            status_path=status_path,
+        )
+
+    def _write_status(self, status: str, last_result: str) -> None:
+        if self.status_path is None:
+            return
+        payload = {
+            "provider": "codex_exec",
+            "status": status,
+            "last_result": last_result,
+            "last_call_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        }
+        try:
+            self.status_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = self.status_path.with_suffix(self.status_path.suffix + ".tmp")
+            temporary.write_text(
+                json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            os.replace(temporary, self.status_path)
+        except OSError:
+            return
+
 
 def sanitize_context(value: object) -> object:
     if isinstance(value, Mapping):
@@ -129,6 +183,19 @@ def _child_environment() -> dict[str, str]:
 
 def _default_schema_path() -> Path:
     return Path(__file__).resolve().parents[2] / "schemas" / "research_intent.schema.json"
+
+
+def _read_settings(path: Path) -> dict[str, str]:
+    if not path.is_file():
+        raise ValueError(f"Codex settings file does not exist: {path}")
+    values: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        values[name.strip()] = value.strip().strip('"').strip("'")
+    return values
 
 
 def _run_codex(
