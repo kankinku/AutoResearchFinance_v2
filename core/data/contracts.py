@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from math import isfinite
 
 from core.integrity.hashes import content_hash
 
@@ -52,6 +53,42 @@ class Bar:
 
 
 @dataclass(frozen=True)
+class SeriesObservation:
+    """A point-in-time observation for prices, macro data, or derived series."""
+
+    series_id: str
+    timestamp: datetime
+    value: float
+    available_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        if self.timestamp.tzinfo is None or self.timestamp.utcoffset() is None:
+            raise DataContractError("series timestamp timezone is required")
+        if self.available_at is not None and (
+            self.available_at.tzinfo is None or self.available_at.utcoffset() is None
+        ):
+            raise DataContractError("series availability timezone is required")
+        if self.available_at is not None and self.available_at < self.timestamp:
+            raise DataContractError("series availability cannot precede observation")
+        if not self.series_id:
+            raise DataContractError("series_id cannot be empty")
+        if not isfinite(self.value):
+            raise DataContractError("series value must be finite")
+
+    def record(self) -> dict[str, str | float]:
+        return {
+            "series_id": self.series_id,
+            "timestamp": self.timestamp.astimezone(timezone.utc).isoformat(),
+            "value": float(self.value),
+            "available_at": (
+                self.available_at.astimezone(timezone.utc).isoformat()
+                if self.available_at is not None
+                else ""
+            ),
+        }
+
+
+@dataclass(frozen=True)
 class MarketDataSet:
     version: str
     zone: DataZone | str
@@ -75,5 +112,37 @@ class MarketDataSet:
                 "version": self.version,
                 "zone": zone.value,
                 "bars": [bar.record() for bar in self.bars],
+            }
+        )
+
+
+@dataclass(frozen=True)
+class SeriesDataSet:
+    """Versioned external time-series data with explicit availability metadata."""
+
+    version: str
+    zone: DataZone | str
+    observations: tuple[SeriesObservation, ...]
+
+    def __post_init__(self) -> None:
+        if not self.version:
+            raise DataContractError("series dataset version cannot be empty")
+        object.__setattr__(self, "zone", DataZone(self.zone))
+        keys = [
+            (observation.series_id, observation.timestamp.astimezone(timezone.utc))
+            for observation in self.observations
+        ]
+        if len(keys) != len(set(keys)):
+            raise DataContractError("duplicate series/timestamp observations")
+        if list(keys) != sorted(keys):
+            raise DataContractError("observations must be sorted by series and timestamp")
+
+    @property
+    def dataset_hash(self) -> str:
+        return content_hash(
+            {
+                "version": self.version,
+                "zone": DataZone(self.zone).value,
+                "observations": [observation.record() for observation in self.observations],
             }
         )

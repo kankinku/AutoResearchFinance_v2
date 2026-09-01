@@ -9,6 +9,7 @@ def build_context(
     champion: dict[str, Any] | None,
     frontier: list[dict[str, Any]],
     observations: list[dict[str, Any]],
+    feature_catalog: list[dict[str, Any]] | None = None,
     raw_market_rows: list[dict[str, Any]] | None = None,
     sealed_oos: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -18,6 +19,7 @@ def build_context(
         "champion": champion,
         "frontier": frontier,
         "observations": observations,
+        "feature_catalog": feature_catalog or [],
     }
 
 

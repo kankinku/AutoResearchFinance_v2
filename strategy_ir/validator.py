@@ -24,7 +24,7 @@ def validate_strategy(document: dict[str, Any] | StrategyIR) -> StrategyIR:
     except ValidationError as exc:
         raise StrategyValidationError(str(exc)) from exc
 
-    references = set(strategy.indicators) | _PRICE_FIELDS
+    references = set(strategy.indicators) | set(strategy.features) | _PRICE_FIELDS
     for section_name, rules in (("entry", strategy.entry), ("exit", strategy.exit)):
         if not rules.conditions:
             raise StrategyValidationError(f"{section_name} requires at least one condition")

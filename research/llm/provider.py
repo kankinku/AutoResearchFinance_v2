@@ -18,12 +18,30 @@ class OfflineProvider:
             for item in frontier
         )
         parent_ids = tuple(item for item in parent_ids if item)
-        return {
+        payload: dict[str, Any] = {
             "mode": "structure",
             "parent_ids": parent_ids,
             "operations": (),
             "rationale": "offline deterministic exploration",
         }
+        catalog = context.get("feature_catalog", [])
+        if catalog and isinstance(catalog[0], dict):
+            feature = catalog[0]
+            name = str(feature.get("name", ""))
+            inputs = tuple(str(value) for value in feature.get("inputs", ()))
+            if name and inputs:
+                calculator = str(feature.get("calculator", "expression"))
+                lookback = int(feature.get("lookback", 1))
+                payload["feature_proposal"] = {
+                    "name": name,
+                    "family": str(feature.get("family", "custom")),
+                    "inputs": inputs,
+                    "calculator": calculator,
+                    "lookback": lookback,
+                    "formula": f"{calculator}({inputs[0]}, {lookback})",
+                    "justification": "offline catalog feature selection",
+                }
+        return payload
 
 
 class ConfiguredJSONProvider:

@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from core.data.parquet import ParquetDataProvider
+from core.features.registry import default_feature_registry
 from core.integrity.hashes import content_hash
 from evaluation.selector import FunnelConfig
 from experiments.planner import plan_experiment
@@ -20,6 +21,13 @@ def build_parser() -> argparse.ArgumentParser:
     for command in ("init", "status"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    for command in ("mode", "set-mode"):
+        command_parser = subparsers.add_parser(command)
+        command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    subparsers.add_parser("list-features")
+    subparsers.choices["set-mode"].add_argument(
+        "--mode", choices=("paper", "live"), required=True
+    )
     for command in ("import-strategy", "validate-strategy"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--source", type=Path, required=True)
@@ -56,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    state_commands = {"init", "status", "resume", "promote-paper"}
+    state_commands = {"init", "status", "resume", "promote-paper", "mode", "set-mode"}
     store = StateFileStore(args.state_dir) if args.command in state_commands else None
     if args.command == "init":
         assert store is not None
@@ -73,7 +81,37 @@ def main(argv: list[str] | None = None) -> int:
             },
         )
         store.write("rescue_pool", {"schema_version": 1, "entries": []})
+        store.write(
+            "mode",
+            {
+                "schema_version": 1,
+                "selected_mode": "paper",
+                "orders_enabled": False,
+                "requested_by": "initialization",
+            },
+        )
         print(json.dumps({"status": "INITIALIZED", "state_dir": str(args.state_dir)}))
+        return 0
+    if args.command == "list-features":
+        print(
+            json.dumps(
+                {
+                    "status": "OK",
+                    "features": [
+                        {
+                            "name": spec.name,
+                            "family": spec.family,
+                            "inputs": list(spec.inputs),
+                            "calculator": spec.calculator,
+                            "lookback": spec.lookback,
+                            "timeframe": spec.timeframe,
+                        }
+                        for spec in default_feature_registry().all()
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        )
         return 0
     if args.command in {"import-strategy", "validate-strategy"}:
         result = normalize_source(args.source)
@@ -147,6 +185,21 @@ def main(argv: list[str] | None = None) -> int:
         assert store is not None
         champion = store.read("champion").payload
         print(json.dumps({"status": "RESUME_READY", "champion": champion["status"]}))
+        return 0
+    if args.command == "set-mode":
+        assert store is not None
+        payload = {
+            "schema_version": 1,
+            "selected_mode": args.mode,
+            "orders_enabled": False,
+            "requested_by": "user",
+        }
+        store.write("mode", payload)
+        print(json.dumps({"status": "MODE_SELECTED", **payload}))
+        return 0
+    if args.command == "mode":
+        assert store is not None
+        print(json.dumps(store.read("mode").payload, ensure_ascii=False))
         return 0
     if args.command == "rebuild-cache":
         manifests = sorted(args.manifest_dir.glob("*.json")) if args.manifest_dir.is_dir() else []

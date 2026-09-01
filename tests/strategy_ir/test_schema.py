@@ -49,6 +49,37 @@ def test_strategy_ir_parses_architecture_shape() -> None:
     assert strategy.risk.trailing_stop_pct is None
 
 
+def test_strategy_ir_accepts_optional_external_features_and_strategy_risk_policy() -> None:
+    document = example_document()
+    strategy_document = dict(document["strategy"])  # type: ignore[arg-type]
+    strategy_document["features"] = {
+        "vix_regime": {"feature_id": "vix_percentile", "timeframe": "1d", "lag_bars": 0}
+    }
+    strategy_document["entry"] = {
+        "logic": "AND",
+        "conditions": [
+            {"op": "greater_than", "left": "vix_regime", "value": 0.8},
+        ],
+    }
+    strategy_document["risk"] = {
+        "stop_loss_pct": 4.0,
+        "take_profit_pct": 12.0,
+        "risk_appetite": 0.35,
+        "loss_tolerance_pct": 2.0,
+        "daily_loss_limit_pct": 1.5,
+        "daily_loss_action": "reduce",
+        "max_concurrent_positions": 4,
+        "max_total_exposure_pct": 80.0,
+    }
+    document["strategy"] = strategy_document
+
+    strategy = StrategyIR.model_validate(document)
+
+    assert strategy.features["vix_regime"].feature_id == "vix_percentile"
+    assert strategy.risk.daily_loss_action == "reduce"
+    assert strategy.risk.max_concurrent_positions == 4
+
+
 def test_strategy_ir_rejects_unknown_fields_and_invalid_period() -> None:
     document = example_document()
     document["strategy"] = {**document["strategy"], "unexpected": True}  # type: ignore[dict-item]

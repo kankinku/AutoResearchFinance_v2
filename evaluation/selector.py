@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from evaluation.benchmark import BenchmarkComparison
 from evaluation.metrics import Metrics
+from evaluation.risk import RiskEvaluation
 from evaluation.robustness import RobustnessReport
 
 
@@ -25,6 +27,10 @@ class FunnelInput:
     full_metrics: Metrics
     robustness: RobustnessReport
     validation_passed: bool
+    fast_benchmark: BenchmarkComparison | None = None
+    full_benchmark: BenchmarkComparison | None = None
+    risk_evaluation: RiskEvaluation | None = None
+    feature_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -43,6 +49,10 @@ class FunnelResult:
     status: str
     score: float
     gates: tuple[GateDecision, ...]
+    fast_benchmark: BenchmarkComparison | None = None
+    full_benchmark: BenchmarkComparison | None = None
+    risk_evaluation: RiskEvaluation | None = None
+    feature_ids: tuple[str, ...] = ()
 
 
 def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResult:
@@ -105,7 +115,17 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         status = "NEAR_MISS"
     else:
         status = "REJECT"
-    return FunnelResult(candidate.candidate_hash, candidate.family, status, score, gates)
+    return FunnelResult(
+        candidate.candidate_hash,
+        candidate.family,
+        status,
+        score,
+        gates,
+        candidate.fast_benchmark,
+        candidate.full_benchmark,
+        candidate.risk_evaluation,
+        candidate.feature_ids,
+    )
 
 
 def _first_reason(*pairs: bool | str) -> str:

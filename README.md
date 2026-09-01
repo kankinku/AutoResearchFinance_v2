@@ -33,6 +33,9 @@ python cli.py init --state-dir state
 python cli.py validate-strategy --source path\to\strategy.yaml
 python cli.py import-strategy --source path\to\strategy.py
 python cli.py plan-generation --parent champion-1 --method random --count 32 --seed 7
+python cli.py list-features
+python cli.py set-mode --state-dir state --mode paper
+python cli.py mode --state-dir state
 ```
 
 The local pipeline is callable through `orchestration.pipeline.GenerationPipeline`. It
@@ -40,6 +43,18 @@ executes candidate generation, IR backtests, metrics, robustness checks, validat
 selection, and abstract knowledge extraction. Parquet datasets must carry
 `dataset_version` and `data_zone` metadata. The Docker runner mounts input read-only,
 disables networking, drops capabilities, and writes only to the run output directory.
+
+External price, macro, rate, and benchmark series use the same versioned Parquet
+contract through `ParquetDataProvider.write_series/read_series`. The optional Feature
+Registry exposes VIX, gold, DXY, QQQ, Nasdaq, and US/Japan/Korea 2-year and 10-year
+rate candidates. A strategy selects only the features it declares; no macro feature is
+implicitly mandatory. `list-features` reports the current selectable catalog.
+
+Generation evaluation keeps the existing Fast/Full, robustness, walk-forward, OOS,
+CSCV/CPCV, cost, and complexity checks. When benchmark data is supplied, it adds QQQ
+total return and Nasdaq Composite comparison plus excess-return fields. Strategy risk
+appetite and daily-loss behavior are recorded separately from the immutable system
+emergency cutoff.
 
 Paper trading is available only after an exact Champion-hash paper approval. The live
 KIS order capability is intentionally absent from the research package; a live deployment

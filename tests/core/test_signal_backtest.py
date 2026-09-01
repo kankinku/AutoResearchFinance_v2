@@ -6,6 +6,8 @@ import pytest
 
 from core.backtest.engine import BacktestEngine, BacktestRequest
 from core.data.contracts import Bar, MarketDataSet
+from core.features.contracts import FeatureSpec
+from strategy_ir.schema import Condition, IndicatorSpec
 from strategy_ir.validator import validate_strategy
 
 
@@ -74,3 +76,154 @@ def test_strategy_backtest_rejects_unsupported_indicator() -> None:
         BacktestEngine().run(
             BacktestRequest("run-bad", "hash", _dataset((10, 11, 12)), 1000, strategy=strategy)
         )
+
+
+def test_strategy_backtest_supports_extended_registered_indicator_calculators() -> None:
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.indicators["macd"] = IndicatorSpec(
+        type="MACD", period=3, parameters={"fast_period": 2, "slow_period": 3}
+    )
+    strategy.entry.conditions.append(
+        Condition(op="greater_than", left="macd", value=-100)
+    )
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-extended-indicator",
+            "hash",
+            _dataset((10, 11, 12, 13, 14)),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert result.exit_status == "SUCCEEDED"
+
+
+def test_strategy_backtest_uses_declared_external_feature_values() -> None:
+    strategy = validate_strategy(
+        {
+            "schema_version": 1,
+            "id": "feature-signal",
+            "family": "macro",
+            "generation": 0,
+            "indicators": {"baseline": {"type": "SMA", "period": 2}},
+            "features": {"vix": {"feature_id": "vix_percentile"}},
+            "entry": {
+                "logic": "AND",
+                "conditions": [{"op": "greater_than", "left": "vix", "value": 0.8}],
+            },
+            "exit": {
+                "logic": "OR",
+                "conditions": [{"op": "less_than", "left": "vix", "value": 0.2}],
+            },
+            "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
+        }
+    )
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-feature",
+            "hash",
+            _dataset((10, 10, 10)),
+            1000,
+            strategy=strategy,
+            feature_values={"vix": (0.1, 0.9, 0.1)},
+        )
+    )
+
+    assert [trade.side for trade in result.trades] == ["buy", "sell"]
+
+
+def test_strategy_backtest_applies_feature_reference_lag() -> None:
+    strategy = validate_strategy(
+        {
+            "schema_version": 1,
+            "id": "lagged-feature",
+            "family": "macro",
+            "generation": 0,
+            "indicators": {"baseline": {"type": "SMA", "period": 2}},
+            "features": {"vix": {"feature_id": "vix_percentile", "lag_bars": 1}},
+            "entry": {
+                "logic": "AND",
+                "conditions": [{"op": "greater_than", "left": "vix", "value": 0.8}],
+            },
+            "exit": {
+                "logic": "OR",
+                "conditions": [{"op": "less_than", "left": "vix", "value": 0.2}],
+            },
+            "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
+        }
+    )
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-lagged-feature",
+            "hash",
+            _dataset((10, 10, 10)),
+            1000,
+            strategy=strategy,
+            feature_values={"vix": (0.1, 0.9, 0.1)},
+        )
+    )
+
+    assert [trade.side for trade in result.trades] == ["buy"]
+    assert result.trades[0].timestamp.startswith("2024-01-03")
+
+
+def test_strategy_backtest_rejects_missing_external_feature_values() -> None:
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.features["vix"] = {"feature_id": "vix_percentile"}  # type: ignore[assignment]
+    with pytest.raises(ValueError, match="missing feature values"):
+        BacktestEngine().run(
+            BacktestRequest(
+                "run-missing-feature",
+                "hash",
+                _dataset((10, 11, 12)),
+                1000,
+                strategy=strategy,
+            )
+        )
+
+
+def test_strategy_backtest_calculates_registered_feature_from_external_series() -> None:
+    strategy = validate_strategy(
+        {
+            "schema_version": 1,
+            "id": "calculated-feature",
+            "family": "macro",
+            "generation": 0,
+            "indicators": {"baseline": {"type": "SMA", "period": 2}},
+            "features": {"vix": {"feature_id": "vix_percentile"}},
+            "entry": {
+                "logic": "AND",
+                "conditions": [{"op": "greater_than", "left": "vix", "value": 0.5}],
+            },
+            "exit": {
+                "logic": "OR",
+                "conditions": [{"op": "less_than", "left": "vix", "value": 0.6}],
+            },
+            "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
+        }
+    )
+    feature_spec = FeatureSpec(
+        name="vix_percentile",
+        family="macro",
+        inputs=("VIX.close",),
+        calculator="percentile",
+        lookback=2,
+        formula="percentile(VIX.close, 2)",
+        status="REGISTERED",
+    )
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-calculated-feature",
+            "hash",
+            _dataset((10, 10, 10)),
+            1000,
+            strategy=strategy,
+            feature_specs={"vix_percentile": feature_spec},
+            feature_inputs={"VIX.close": (10.0, 20.0, 5.0)},
+        )
+    )
+
+    assert [trade.side for trade in result.trades] == ["buy", "sell"]

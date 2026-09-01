@@ -21,6 +21,14 @@ class IndicatorSpec(BaseModel):
     parameters: dict[str, int | float | str | bool] = Field(default_factory=dict)
 
 
+class FeatureRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    feature_id: str = Field(min_length=1)
+    timeframe: Literal["1m", "5m", "15m", "1h", "1d"] = "1d"
+    lag_bars: int = Field(default=0, ge=0)
+
+
 class Condition(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -45,6 +53,12 @@ class RiskConfig(BaseModel):
     take_profit_pct: float = Field(ge=0.0)
     trailing_stop_pct: float | None = Field(default=None, ge=0.0)
     position_size_pct: float = Field(default=100.0, gt=0.0, le=100.0)
+    risk_appetite: float | None = Field(default=None, ge=0.0, le=1.0)
+    loss_tolerance_pct: float | None = Field(default=None, ge=0.0, le=100.0)
+    daily_loss_limit_pct: float | None = Field(default=None, ge=0.0, le=100.0)
+    daily_loss_action: Literal["none", "reduce", "hold", "stop"] = "none"
+    max_concurrent_positions: int | None = Field(default=None, gt=0)
+    max_total_exposure_pct: float | None = Field(default=None, gt=0.0, le=100.0)
 
 
 class ResearchMetadata(BaseModel):
@@ -63,6 +77,7 @@ class StrategyIR(BaseModel):
     generation: int = Field(ge=0)
     parents: list[str] = Field(default_factory=list)
     indicators: dict[str, IndicatorSpec] = Field(min_length=1)
+    features: dict[str, FeatureRef] = Field(default_factory=dict)
     entry: RuleSet
     exit: RuleSet
     regime_filters: list[Condition] = Field(default_factory=list)

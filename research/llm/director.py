@@ -4,6 +4,8 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from core.features.contracts import FeatureProposal
+
 
 class IntentProvider(Protocol):
     def propose(self, context: dict[str, Any]) -> dict[str, Any]: ...
@@ -17,6 +19,7 @@ class ResearchIntent(BaseModel):
     operations: tuple[dict[str, Any], ...] = ()
     rationale: str = Field(min_length=1)
     primitive_request: dict[str, Any] | None = None
+    feature_proposal: FeatureProposal | None = None
     python_patch: str | None = None
     evaluator_change: str | None = None
 

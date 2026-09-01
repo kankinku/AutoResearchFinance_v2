@@ -29,3 +29,17 @@ def test_llm_trigger_skips_when_local_improvement_is_ongoing() -> None:
     assert not should_call_llm(
         generation_start=False, plateau=False, new_family=False, new_primitive=False
     )
+
+
+def test_context_builder_can_expose_registry_catalog_without_raw_market_data() -> None:
+    context = build_context(
+        generation=2,
+        champion=None,
+        frontier=[],
+        observations=[],
+        feature_catalog=[{"name": "vix_percentile", "family": "macro"}],
+        raw_market_rows=[{"close": 123}],
+    )
+
+    assert context["feature_catalog"] == [{"name": "vix_percentile", "family": "macro"}]
+    assert "raw_market_rows" not in context

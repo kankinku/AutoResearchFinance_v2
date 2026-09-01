@@ -72,6 +72,9 @@ def test_tracked_files_do_not_contain_secret_like_names() -> None:
         ["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True
     ).stdout.splitlines()
     forbidden_fragments = (".env", ".pem", ".key", "credentials", "secrets")
+    safe_examples = {".env.example"}
     assert not any(
-        any(fragment in path.lower() for fragment in forbidden_fragments) for path in tracked
+        path.lower() not in safe_examples
+        and any(fragment in path.lower() for fragment in forbidden_fragments)
+        for path in tracked
     )

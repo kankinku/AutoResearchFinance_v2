@@ -18,12 +18,14 @@ def robust_score(metrics: Metrics, robustness: RobustnessInputs) -> float:
     drawdown_component = 1.0 - _clamp(metrics.max_drawdown)
     complexity_penalty = 1.0 / (1.0 + max(robustness.complexity, 0) * 0.02)
     raw = (
-        0.35 * sharpe_component
-        + 0.30 * return_component
-        + 0.20 * drawdown_component
+        0.50 * return_component
+        + 0.20 * sharpe_component
+        + 0.15 * drawdown_component
         + 0.15 * _clamp(robustness.stability)
     )
-    return _clamp(raw * _clamp(robustness.cost_sensitivity) * complexity_penalty)
+    cost_modifier = 0.75 + 0.25 * _clamp(robustness.cost_sensitivity)
+    complexity_modifier = 0.85 + 0.15 * complexity_penalty
+    return _clamp(raw * cost_modifier * complexity_modifier)
 
 
 def _clamp(value: float) -> float:

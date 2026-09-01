@@ -71,3 +71,27 @@ def test_plan_generation_emits_explicit_search_plan() -> None:
     payload = json.loads(planned.stdout)
     assert payload["parent_ids"] == ["champion-1"]
     assert payload["count"] == 4
+
+
+def test_list_features_reports_optional_macro_candidates() -> None:
+    listed = run_cli("list-features", cwd=ROOT)
+
+    assert listed.returncode == 0
+    payload = json.loads(listed.stdout)
+    names = {item["name"] for item in payload["features"]}
+    assert "vix_percentile" in names
+    assert "us_10y_change" in names
+
+
+def test_set_mode_records_selection_without_enabling_orders(tmp_path: Path) -> None:
+    state_dir = tmp_path / "state"
+    initialized = run_cli("init", "--state-dir", str(state_dir), cwd=ROOT)
+    selected = run_cli("set-mode", "--state-dir", str(state_dir), "--mode", "live", cwd=ROOT)
+    current = run_cli("mode", "--state-dir", str(state_dir), cwd=ROOT)
+
+    assert initialized.returncode == 0
+    assert selected.returncode == 0
+    assert current.returncode == 0
+    payload = json.loads(current.stdout)
+    assert payload["selected_mode"] == "live"
+    assert payload["orders_enabled"] is False

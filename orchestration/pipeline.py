@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from core.backtest.engine import BacktestEngine, BacktestRequest, Trade
 from core.data.contracts import DataZone, MarketDataSet
 from core.validation.walk_forward import walk_forward_splits
+from evaluation.benchmark import BenchmarkComparison, BenchmarkData, compare_benchmarks
 from evaluation.metrics import Metrics, calculate_metrics
+from evaluation.risk import evaluate_risk_policy
 from evaluation.robustness import robust_statistics
 from evaluation.selector import FunnelConfig, FunnelInput, FunnelResult, select_candidate
 from experiments.candidate_generator import Candidate, generate_candidates
@@ -42,6 +45,8 @@ class GenerationPipeline:
         seed: int,
         funnel: FunnelConfig,
         observations: list[BayesianObservation] | None = None,
+        benchmark_data: BenchmarkData | None = None,
+        feature_values: Mapping[str, Sequence[float | None]] | None = None,
     ) -> GenerationPipelineResult:
         if DataZone(dataset.zone) is DataZone.SEALED_OOS:
             raise PermissionError("generation research cannot use sealed OOS data")
@@ -55,10 +60,22 @@ class GenerationPipeline:
             observations=observations,
         )
         fast_dataset = _fast_slice(dataset)
+        fast_width = len(fast_dataset.bars)
+        fast_features = _slice_feature_values(feature_values, fast_width)
+        fast_benchmark_data = benchmark_data.slice(fast_width) if benchmark_data else None
         results: list[FunnelResult] = []
         for candidate in candidates:
-            fast_metrics, _ = self._evaluate(candidate, fast_dataset, "fast")
-            full_metrics, trades = self._evaluate(candidate, dataset, "full")
+            fast_metrics, _, fast_equity = self._evaluate(
+                candidate, fast_dataset, "fast", fast_features
+            )
+            full_metrics, trades, full_equity = self._evaluate(
+                candidate, dataset, "full", feature_values
+            )
+            risk_evaluation = evaluate_risk_policy(full_equity, candidate.strategy.risk)
+            fast_benchmark = _compare(
+                fast_equity, fast_benchmark_data, periods_per_year=252
+            )
+            full_benchmark = _compare(full_equity, benchmark_data, periods_per_year=252)
             robust = robust_statistics(
                 base_return=full_metrics.total_return,
                 stressed_return=full_metrics.total_return,
@@ -87,6 +104,12 @@ class GenerationPipeline:
                         full_metrics,
                         robust,
                         validation_passed,
+                        fast_benchmark,
+                        full_benchmark,
+                        risk_evaluation,
+                        tuple(
+                            sorted(ref.feature_id for ref in candidate.strategy.features.values())
+                        ),
                     ),
                     funnel,
                 )
@@ -96,8 +119,12 @@ class GenerationPipeline:
         return GenerationPipelineResult(CANONICAL_STAGES, candidates, tuple(results), knowledge)
 
     def _evaluate(
-        self, candidate: Candidate, dataset: MarketDataSet, run_kind: str
-    ) -> tuple[Metrics, tuple[Trade, ...]]:
+        self,
+        candidate: Candidate,
+        dataset: MarketDataSet,
+        run_kind: str,
+        feature_values: Mapping[str, Sequence[float | None]] | None = None,
+    ) -> tuple[Metrics, tuple[Trade, ...], tuple[float, ...]]:
         backtest = self.engine.run(
             BacktestRequest(
                 f"{candidate.candidate_hash}-{run_kind}",
@@ -105,18 +132,21 @@ class GenerationPipeline:
                 dataset,
                 100_000.0,
                 strategy=candidate.strategy,
+                feature_values=feature_values,
             )
         )
         pnls = _closed_trade_pnls(backtest.trades)
+        metrics = calculate_metrics(
+            backtest.equity_curve,
+            pnls,
+            periods_per_year=252,
+            turnover=sum(trade.notional for trade in backtest.trades),
+            exposure=len(pnls) / max(len(backtest.equity_curve), 1),
+        )
         return (
-            calculate_metrics(
-                backtest.equity_curve,
-                pnls,
-                periods_per_year=252,
-                turnover=sum(trade.notional for trade in backtest.trades),
-                exposure=len(pnls) / max(len(backtest.equity_curve), 1),
-            ),
+            metrics,
             backtest.trades,
+            backtest.equity_curve,
         )
 
 
@@ -135,3 +165,26 @@ def _closed_trade_pnls(trades: tuple[Trade, ...]) -> tuple[float, ...]:
             buy = buys.pop(0)
             pnls.append((trade.price - buy.price) * trade.quantity - trade.cost - buy.cost)
     return tuple(pnls)
+
+
+def _slice_feature_values(
+    feature_values: Mapping[str, Sequence[float | None]] | None, width: int
+) -> Mapping[str, Sequence[float | None]] | None:
+    if feature_values is None:
+        return None
+    return {name: tuple(values[:width]) for name, values in feature_values.items()}
+
+
+def _compare(
+    equity: Sequence[float], benchmark: BenchmarkData | None, *, periods_per_year: int
+) -> BenchmarkComparison | None:
+    if benchmark is None:
+        return None
+    return compare_benchmarks(
+        equity,
+        benchmark.qqq_prices,
+        benchmark.nasdaq_prices,
+        qqq_distributions=benchmark.qqq_distributions,
+        nasdaq_distributions=benchmark.nasdaq_distributions,
+        periods_per_year=periods_per_year,
+    )

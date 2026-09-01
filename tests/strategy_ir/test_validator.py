@@ -11,6 +11,19 @@ def test_validator_accepts_valid_strategy() -> None:
     assert strategy.strategy_id == "S001923"
 
 
+def test_validator_accepts_references_to_declared_external_features() -> None:
+    document = example_document()
+    strategy = dict(document["strategy"])  # type: ignore[arg-type]
+    strategy["features"] = {"vix": {"feature_id": "vix_percentile"}}
+    strategy["entry"] = {
+        "logic": "AND",
+        "conditions": [{"op": "greater_than", "left": "vix", "value": 0.8}],
+    }
+    document["strategy"] = strategy
+
+    assert validate_strategy(document).features["vix"].feature_id == "vix_percentile"
+
+
 @pytest.mark.parametrize(
     "change, message",
     [
