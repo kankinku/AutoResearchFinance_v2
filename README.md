@@ -65,6 +65,8 @@ installed `codex exec` command and revalidates its structured output locally. Th
 interactive Desktop conversation is not implicitly reused by a separate `codex exec`
 process. Codex CLI authentication is taken from its own saved login; KIS secrets are
 removed from the child environment.
+The CLI adapter accepts `QUANT_CODEX_MODEL` for a model supported by the installed
+CLI; the example uses `gpt-5.4-mini`.
 
 The local pipeline is callable through `orchestration.pipeline.GenerationPipeline`. It
 executes candidate generation, IR backtests, metrics, robustness checks, validation,

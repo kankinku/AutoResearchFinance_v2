@@ -21,7 +21,7 @@ def test_research_intent_command_uses_codex_executable_and_records_status(
     )
     command = f'"{sys.executable}" "{fake_codex}"'
     env_path.write_text(
-        f"QUANT_CODEX_COMMAND={command}\nQUANT_CODEX_TIMEOUT_SECONDS=30\n",
+        f"QUANT_CODEX_COMMAND={command}\nQUANT_CODEX_MODEL=fixture\nQUANT_CODEX_TIMEOUT_SECONDS=30\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("QUANT_CODEX_TEST_OUTPUT", json.dumps({

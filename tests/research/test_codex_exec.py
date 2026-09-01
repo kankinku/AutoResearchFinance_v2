@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from research.llm import codex_exec
 from research.llm.codex_exec import CodexExecProvider, CodexExecResult
 from research.llm.codex_schema import research_intent_schema
 
@@ -47,7 +48,7 @@ class FakeRunner:
 
 def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path: Path) -> None:
     runner = FakeRunner(_valid_intent())
-    provider = CodexExecProvider(workdir=tmp_path, runner=runner)
+    provider = CodexExecProvider(workdir=tmp_path, model="gpt-5.4-mini", runner=runner)
     context = {
         "generation": 3,
         "observations": [{"score": 0.8}],
@@ -59,7 +60,8 @@ def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path:
     payload = provider.propose(context)
 
     assert payload == _valid_intent()
-    assert runner.command[:3] == ["codex", "exec", "-"]
+    assert runner.command[:3] == ["codex", "exec", "-m"]
+    assert runner.command[2:4] == ["-m", "gpt-5.4-mini"]
     assert "--output-schema" in runner.command
     assert "--ephemeral" in runner.command
     assert "--sandbox" in runner.command
@@ -100,3 +102,20 @@ def test_codex_exec_provider_records_non_secret_status(tmp_path: Path) -> None:
     assert status["status"] == "ONLINE"
     assert status["last_result"] == "VALIDATED"
     assert "stderr" not in status
+
+
+def test_codex_subprocess_decodes_utf8_output_on_windows(monkeypatch, tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(*args: object, **kwargs: object) -> object:
+        del args
+        captured.update(kwargs)
+        return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
+
+    result = codex_exec._run_codex(["codex"], "{}", tmp_path, {}, 1.0)
+
+    assert result.returncode == 0
+    assert captured["encoding"] == "utf-8"
+    assert captured["errors"] == "replace"

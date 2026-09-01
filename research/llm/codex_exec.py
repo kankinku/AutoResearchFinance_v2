@@ -33,6 +33,7 @@ class CodexExecProvider:
         executable: str = "codex",
         workdir: Path,
         schema_path: Path | None = None,
+        model: str | None = None,
         timeout_seconds: float = 120.0,
         status_path: Path | None = None,
         runner: ExecRunner | None = None,
@@ -44,6 +45,7 @@ class CodexExecProvider:
         self.executable = executable
         self.workdir = workdir.resolve()
         self.schema_path = schema_path or _default_schema_path()
+        self.model = model.strip() if model and model.strip() else None
         self.timeout_seconds = timeout_seconds
         self.status_path = status_path
         self._runner = runner or _run_codex
@@ -89,6 +91,8 @@ class CodexExecProvider:
                 "-o",
                 str(output_path),
             ]
+            if self.model is not None:
+                command[2:2] = ["-m", self.model]
             result = self._runner(
                 command,
                 prompt,
@@ -115,6 +119,7 @@ class CodexExecProvider:
     ) -> CodexExecProvider:
         values = _read_settings(env_path)
         executable = values.get("QUANT_CODEX_COMMAND", "codex")
+        model = values.get("QUANT_CODEX_MODEL")
         try:
             timeout = float(values.get("QUANT_CODEX_TIMEOUT_SECONDS", "120"))
         except ValueError as exc:
@@ -122,6 +127,7 @@ class CodexExecProvider:
         return cls(
             executable=executable,
             workdir=workdir,
+            model=model,
             timeout_seconds=timeout,
             status_path=status_path,
         )
@@ -247,6 +253,8 @@ def _run_codex(
             capture_output=True,
             timeout=timeout,
             check=False,
+            encoding="utf-8",
+            errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         del exc

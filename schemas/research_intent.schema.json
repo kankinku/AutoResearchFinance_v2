@@ -3,45 +3,73 @@
     "FeatureProposal": {
       "additionalProperties": false,
       "properties": {
-        "name": {"minLength": 1, "title": "Name", "type": "string"},
-        "family": {"minLength": 1, "title": "Family", "type": "string"},
-        "inputs": {"items": {"type": "string"}, "minItems": 1, "title": "Inputs", "type": "array"},
         "calculator": {"default": "expression", "minLength": 1, "title": "Calculator", "type": "string"},
-        "timeframe": {"default": "1d", "title": "Timeframe", "type": "string"},
-        "lookback": {"exclusiveMinimum": 0, "title": "Lookback", "type": "integer"},
+        "family": {"minLength": 1, "title": "Family", "type": "string"},
+        "formula": {"minLength": 1, "title": "Formula", "type": "string"},
+        "inputs": {"items": {"type": "string"}, "minItems": 1, "title": "Inputs", "type": "array"},
+        "justification": {"minLength": 1, "title": "Justification", "type": "string"},
         "lag_bars": {"default": 0, "minimum": 0, "title": "Lag Bars", "type": "integer"},
+        "lookback": {"exclusiveMinimum": 0, "title": "Lookback", "type": "integer"},
+        "name": {"minLength": 1, "title": "Name", "type": "string"},
         "parameters": {
-          "additionalProperties": {
-            "anyOf": [
-              {"type": "integer"},
-              {"type": "number"},
-              {"type": "string"},
-              {"type": "boolean"}
-            ]
-          },
+          "additionalProperties": false,
+          "properties": {},
+          "required": [],
           "title": "Parameters",
           "type": "object"
         },
-        "formula": {"minLength": 1, "title": "Formula", "type": "string"},
-        "justification": {"minLength": 1, "title": "Justification", "type": "string"}
+        "timeframe": {"default": "1d", "title": "Timeframe", "type": "string"}
       },
-      "required": ["name", "family", "inputs", "lookback", "formula", "justification"],
+      "required": ["name", "family", "inputs", "calculator", "timeframe", "lookback", "lag_bars", "parameters", "formula", "justification"],
       "title": "FeatureProposal",
       "type": "object"
     }
   },
   "additionalProperties": false,
   "properties": {
-    "mode": {"enum": ["structure", "parameter", "mixed"], "title": "Mode", "type": "string"},
-    "parent_ids": {"items": {"type": "string"}, "minItems": 1, "title": "Parent Ids", "type": "array"},
-    "operations": {"default": [], "items": {"additionalProperties": true, "type": "object"}, "title": "Operations", "type": "array"},
-    "rationale": {"minLength": 1, "title": "Rationale", "type": "string"},
-    "primitive_request": {"anyOf": [{"additionalProperties": true, "type": "object"}, {"type": "null"}], "default": null, "title": "Primitive Request"},
+    "evaluator_change": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Evaluator Change"},
     "feature_proposal": {"anyOf": [{"$ref": "#/$defs/FeatureProposal"}, {"type": "null"}], "default": null},
+    "mode": {"enum": ["structure", "parameter", "mixed"], "title": "Mode", "type": "string"},
+    "operations": {
+      "default": [],
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "max": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+          "min": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+          "op": {"type": "string"},
+          "other": {
+            "anyOf": [
+              {"additionalProperties": false, "properties": {}, "required": [], "type": "object"},
+              {"type": "null"}
+            ]
+          },
+          "path": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "step": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+          "template": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "value": {
+            "anyOf": [
+              {"type": "array", "items": {"type": ["boolean", "integer", "null", "number", "string"]}},
+              {"type": "boolean"},
+              {"type": "number"},
+              {"type": "null"},
+              {"additionalProperties": false, "properties": {}, "required": [], "type": "object"},
+              {"type": "string"}
+            ]
+          }
+        },
+        "required": ["op", "path", "value", "other", "min", "max", "step", "template"],
+        "type": "object"
+      },
+      "title": "Operations",
+      "type": "array"
+    },
+    "parent_ids": {"items": {"type": "string"}, "minItems": 1, "title": "Parent Ids", "type": "array"},
+    "primitive_request": {"anyOf": [{"additionalProperties": false, "properties": {}, "required": [], "type": "object"}, {"type": "null"}], "default": null, "title": "Primitive Request"},
     "python_patch": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Python Patch"},
-    "evaluator_change": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Evaluator Change"}
+    "rationale": {"minLength": 1, "title": "Rationale", "type": "string"}
   },
-  "required": ["mode", "parent_ids", "rationale"],
+  "required": ["mode", "parent_ids", "operations", "rationale", "primitive_request", "feature_proposal", "python_patch", "evaluator_change"],
   "title": "ResearchIntent",
   "type": "object"
 }
