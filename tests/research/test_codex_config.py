@@ -25,4 +25,5 @@ def test_codex_provider_loads_non_secret_runtime_settings(tmp_path: Path) -> Non
     )
 
     assert provider.executable == "codex"
+    assert provider.model == "gpt-5.4-mini"
     assert provider.timeout_seconds == 45.0

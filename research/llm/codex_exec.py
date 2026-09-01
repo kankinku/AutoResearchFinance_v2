@@ -119,7 +119,7 @@ class CodexExecProvider:
     ) -> CodexExecProvider:
         values = _read_settings(env_path)
         executable = values.get("QUANT_CODEX_COMMAND", "codex")
-        model = values.get("QUANT_CODEX_MODEL")
+        model = values.get("QUANT_CODEX_MODEL", "gpt-5.4-mini")
         try:
             timeout = float(values.get("QUANT_CODEX_TIMEOUT_SECONDS", "120"))
         except ValueError as exc:
