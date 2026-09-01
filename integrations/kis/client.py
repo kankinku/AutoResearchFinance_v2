@@ -4,9 +4,10 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Mapping, Protocol
+from typing import Any, Protocol
 
 from core.data.contracts import Bar
 from integrations.kis.config import PaperKISConfig
@@ -157,7 +158,11 @@ class KISPaperClient:
             opening = _required_number(record, ("open", "ovrs_nmix_oprc", "stck_oprc"), "open")
             high = _required_number(record, ("high", "ovrs_nmix_hgpr", "stck_hgpr"), "high")
             low = _required_number(record, ("low", "ovrs_nmix_lwpr", "stck_lwpr"), "low")
-            close = _required_number(record, ("clos", "close", "ovrs_nmix_prpr", "stck_prpr"), "close")
+            close = _required_number(
+                record,
+                ("clos", "close", "ovrs_nmix_prpr", "stck_prpr"),
+                "close",
+            )
             volume = _number(record, ("tvol", "acml_vol", "volume")) or 0.0
             timestamp = datetime.strptime(date, "%Y%m%d").replace(tzinfo=timezone.utc)
             bars.append(Bar(timestamp, symbol, opening, high, low, close, volume))
@@ -199,9 +204,21 @@ class KISPaperClient:
         )
         return KISAccountSnapshot(
             account_number=_mask_account(self.config.account_number),
-            equity=_required_number(summary, ("ovrs_tot_evlu_amt", "tot_evlu_pfls_amt", "equity"), "equity"),
-            cash=_required_number(summary, ("frcr_pchs_amt", "cash", "tot_frcr_cblc_smtl"), "cash"),
-            buying_power=_required_number(summary, ("frcr_buy_psbl_amt", "buying_power"), "buying_power"),
+            equity=_required_number(
+                summary,
+                ("ovrs_tot_evlu_amt", "tot_evlu_pfls_amt", "equity"),
+                "equity",
+            ),
+            cash=_required_number(
+                summary,
+                ("frcr_pchs_amt", "cash", "tot_frcr_cblc_smtl"),
+                "cash",
+            ),
+            buying_power=_required_number(
+                summary,
+                ("frcr_buy_psbl_amt", "buying_power"),
+                "buying_power",
+            ),
             holdings=holdings,
             captured_at=self._clock().isoformat(),
         )
@@ -263,7 +280,8 @@ class KISPaperClient:
 
 def _symbol(symbol: str) -> str:
     normalized = symbol.strip().upper()
-    if not normalized or any(char not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-" for char in normalized):
+    valid_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-"
+    if not normalized or any(char not in valid_characters for char in normalized):
         raise ValueError("US symbol is invalid")
     return normalized
 
@@ -304,7 +322,7 @@ def _first_number(output: Mapping[str, object], names: tuple[str, ...]) -> float
         if value is None or value == "":
             continue
         try:
-            return float(value)
+            return float(str(value))
         except (TypeError, ValueError):
             continue
     return None
@@ -313,7 +331,7 @@ def _first_number(output: Mapping[str, object], names: tuple[str, ...]) -> float
 def _number(output: Mapping[str, object], names: tuple[str, ...]) -> float | None:
     value = _first_value(output, names)
     try:
-        return float(value) if value is not None else None
+        return float(str(value)) if value is not None else None
     except (TypeError, ValueError):
         return None
 

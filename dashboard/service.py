@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Literal, Protocol
 
 from dashboard.contracts import AccountSnapshot, DashboardHealth, DashboardSnapshot, Holding
 from dashboard.state import DashboardStateReader, SnapshotStore
@@ -83,7 +84,8 @@ class DashboardService:
             )
             return self._save(self._with_health(updated, kis_status="ONLINE"))
         except Exception:
-            return self._save(self._with_health(self._with_warning(current, "KIS_REFRESH_FAILED"), kis_status="OFFLINE"))
+            degraded = self._with_warning(current, "KIS_REFRESH_FAILED")
+            return self._save(self._with_health(degraded, kis_status="OFFLINE"))
 
     def _save(self, snapshot: DashboardSnapshot) -> DashboardSnapshot:
         self._store.write(snapshot)
@@ -98,10 +100,15 @@ class DashboardService:
     ) -> DashboardSnapshot:
         if self._initial_warning and self._initial_warning not in snapshot.warning_codes:
             snapshot = self._with_warning(snapshot, self._initial_warning)
-        kis = kis_status or ("ONLINE" if snapshot.account.status == "ONLINE" else "UNKNOWN")
+        previous_kis = snapshot.health.kis_status if snapshot.health else "UNKNOWN"
+        kis = kis_status or previous_kis
+        if kis == "UNKNOWN" and snapshot.account.status == "ONLINE":
+            kis = "ONLINE"
         online = sum(worker.online_state == "ONLINE" for worker in snapshot.workers)
         stale = sum(worker.online_state == "STALE" for worker in snapshot.workers)
-        status = "DEGRADED" if snapshot.warning_codes or kis in {"OFFLINE", "ERROR"} else "ONLINE"
+        status: Literal["ONLINE", "DEGRADED", "OFFLINE"] = (
+            "DEGRADED" if snapshot.warning_codes or kis in {"OFFLINE", "ERROR"} else "ONLINE"
+        )
         return snapshot.model_copy(
             update={
                 "health": DashboardHealth(

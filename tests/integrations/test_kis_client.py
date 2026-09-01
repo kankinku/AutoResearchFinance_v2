@@ -136,8 +136,22 @@ def test_client_maps_daily_bars_using_official_period_price_contract(tmp_path: P
                 {
                     "rt_cd": "0",
                     "output2": [
-                        {"xymd": "20250102", "open": "101", "high": "103", "low": "100", "clos": "102", "tvol": "1200"},
-                        {"xymd": "20250101", "open": "99", "high": "101", "low": "98", "clos": "100", "tvol": "1100"},
+                        {
+                            "xymd": "20250102",
+                            "open": "101",
+                            "high": "103",
+                            "low": "100",
+                            "clos": "102",
+                            "tvol": "1200",
+                        },
+                        {
+                            "xymd": "20250101",
+                            "open": "99",
+                            "high": "101",
+                            "low": "98",
+                            "clos": "100",
+                            "tvol": "1100",
+                        },
                     ],
                 },
             ),
@@ -163,8 +177,19 @@ def test_client_maps_read_only_account_snapshot(tmp_path: Path) -> None:
                 200,
                 {
                     "rt_cd": "0",
-                    "output1": [{"ovrs_pdno": "AAPL", "ovrs_cblc_qty": "2", "ovrs_evlu_amt": "400", "frcr_evlu_pfls_amt": "10"}],
-                    "output2": {"ovrs_tot_evlu_amt": "10000", "frcr_pchs_amt": "9500", "frcr_buy_psbl_amt": "500"},
+                    "output1": [
+                        {
+                            "ovrs_pdno": "AAPL",
+                            "ovrs_cblc_qty": "2",
+                            "ovrs_evlu_amt": "400",
+                            "frcr_evlu_pfls_amt": "10",
+                        }
+                    ],
+                    "output2": {
+                        "ovrs_tot_evlu_amt": "10000",
+                        "frcr_pchs_amt": "9500",
+                        "frcr_buy_psbl_amt": "500",
+                    },
                 },
             ),
         ]

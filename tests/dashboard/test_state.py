@@ -51,8 +51,32 @@ def test_reader_builds_paper_only_snapshot_from_state_files(tmp_path: Path) -> N
     (tmp_path / "test-records.jsonl").write_text(
         "\n".join(
             [
-                json.dumps({"run_id": "run-1", "strategy_hash": "candidate-1", "generation": 4, "timestamp": "2026-09-01T10:00:00+00:00", "total_return": 0.2, "nasdaq_excess_return": 0.12, "max_drawdown": 0.05, "risk_compliant": True, "status": "SURVIVOR"}),
-                json.dumps({"run_id": "run-0", "strategy_hash": "candidate-0", "generation": 3, "timestamp": "2026-08-31T10:00:00+00:00", "total_return": 0.1, "nasdaq_excess_return": -0.02, "max_drawdown": 0.08, "risk_compliant": True, "status": "REJECT"}),
+                json.dumps(
+                    {
+                        "run_id": "run-1",
+                        "strategy_hash": "candidate-1",
+                        "generation": 4,
+                        "timestamp": "2026-09-01T10:00:00+00:00",
+                        "total_return": 0.2,
+                        "nasdaq_excess_return": 0.12,
+                        "max_drawdown": 0.05,
+                        "risk_compliant": True,
+                        "status": "SURVIVOR",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "run_id": "run-0",
+                        "strategy_hash": "candidate-0",
+                        "generation": 3,
+                        "timestamp": "2026-08-31T10:00:00+00:00",
+                        "total_return": 0.1,
+                        "nasdaq_excess_return": -0.02,
+                        "max_drawdown": 0.08,
+                        "risk_compliant": True,
+                        "status": "REJECT",
+                    }
+                ),
             ]
         ),
         encoding="utf-8",
@@ -61,7 +85,14 @@ def test_reader_builds_paper_only_snapshot_from_state_files(tmp_path: Path) -> N
     heartbeat_dir.mkdir()
     _write(
         heartbeat_dir / "worker-1.json",
-        {"worker_id": "worker-1", "job_id": "job-1", "role": "backtest", "status": "RUNNING", "last_heartbeat": (now - timedelta(seconds=20)).isoformat(), "attempt": 1},
+        {
+            "worker_id": "worker-1",
+            "job_id": "job-1",
+            "role": "backtest",
+            "status": "RUNNING",
+            "last_heartbeat": (now - timedelta(seconds=20)).isoformat(),
+            "attempt": 1,
+        },
     )
 
     snapshot = DashboardStateReader(tmp_path, clock=lambda: now).read()
@@ -79,11 +110,39 @@ def test_reader_builds_paper_only_snapshot_from_state_files(tmp_path: Path) -> N
 
 def test_reader_masks_account_and_classifies_stale_and_offline_workers(tmp_path: Path) -> None:
     now = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)
-    _write(tmp_path / "account.json", {"status": "ONLINE", "account_number": "12345678-01", "equity": 10000, "cash": 7000, "buying_power": 7000, "holdings": []})
+    _write(
+        tmp_path / "account.json",
+        {
+            "status": "ONLINE",
+            "account_number": "12345678-01",
+            "equity": 10000,
+            "cash": 7000,
+            "buying_power": 7000,
+            "holdings": [],
+        },
+    )
     heartbeat_dir = tmp_path / "worker-heartbeats"
     heartbeat_dir.mkdir()
-    _write(heartbeat_dir / "stale.json", {"worker_id": "stale", "job_id": "job-2", "role": "search", "status": "RUNNING", "last_heartbeat": (now - timedelta(seconds=120)).isoformat()})
-    _write(heartbeat_dir / "offline.json", {"worker_id": "offline", "job_id": "job-3", "role": "search", "status": "RUNNING", "last_heartbeat": (now - timedelta(seconds=600)).isoformat()})
+    _write(
+        heartbeat_dir / "stale.json",
+        {
+            "worker_id": "stale",
+            "job_id": "job-2",
+            "role": "search",
+            "status": "RUNNING",
+            "last_heartbeat": (now - timedelta(seconds=120)).isoformat(),
+        },
+    )
+    _write(
+        heartbeat_dir / "offline.json",
+        {
+            "worker_id": "offline",
+            "job_id": "job-3",
+            "role": "search",
+            "status": "RUNNING",
+            "last_heartbeat": (now - timedelta(seconds=600)).isoformat(),
+        },
+    )
 
     snapshot = DashboardStateReader(tmp_path, clock=lambda: now).read()
 

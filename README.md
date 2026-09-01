@@ -36,7 +36,15 @@ python cli.py plan-generation --parent champion-1 --method random --count 32 --s
 python cli.py list-features
 python cli.py set-mode --state-dir state --mode paper
 python cli.py mode --state-dir state
+python cli.py dashboard-refresh --state-dir state --env-file .env
+python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
 ```
+
+The local paper operations dashboard is available at `http://127.0.0.1:8080/` after
+starting the last command. It reports the effective paper-only mode, sanitized KIS
+account snapshot, evaluation ledger, Champion strategy, generation trend, and worker
+heartbeat state. See `docs/operations/paper-dashboard.md` for the safety boundary and
+refresh behavior.
 
 The local pipeline is callable through `orchestration.pipeline.GenerationPipeline`. It
 executes candidate generation, IR backtests, metrics, robustness checks, validation,

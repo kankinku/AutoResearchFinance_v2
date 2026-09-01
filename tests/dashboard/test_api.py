@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -65,7 +64,9 @@ def test_refresh_calls_only_paper_read_only_client_and_persists_account(tmp_path
     assert (tmp_path / "dashboard.json").is_file()
 
 
-def test_refresh_failure_preserves_previous_snapshot_and_returns_degraded_status(tmp_path: Path) -> None:
+def test_refresh_failure_preserves_previous_snapshot_and_returns_degraded_status(
+    tmp_path: Path,
+) -> None:
     good = DashboardService(tmp_path, kis_client=FakeKIS())
     good.refresh()
     failing = DashboardService(tmp_path, kis_client=FakeKIS(fail=True))
@@ -77,5 +78,6 @@ def test_refresh_failure_preserves_previous_snapshot_and_returns_degraded_status
     payload = response.json()
     assert payload["account"]["equity"] == 10000
     assert payload["health"]["status"] == "DEGRADED"
+    assert payload["health"]["kis_status"] == "OFFLINE"
     assert "KIS_REFRESH_FAILED" in payload["warning_codes"]
     assert "secret-like" not in response.text

@@ -9,7 +9,18 @@ from cli import main
 
 
 def test_dashboard_status_is_paper_only(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["dashboard-status", "--state-dir", str(tmp_path), "--env-file", str(tmp_path / "missing.env")]) == 0
+    assert (
+        main(
+            [
+                "dashboard-status",
+                "--state-dir",
+                str(tmp_path),
+                "--env-file",
+                str(tmp_path / "missing.env"),
+            ]
+        )
+        == 0
+    )
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["effective_mode"] == "paper"
@@ -20,7 +31,18 @@ def test_dashboard_status_is_paper_only(tmp_path: Path, capsys: pytest.CaptureFi
 def test_dashboard_refresh_reports_degraded_without_credentials(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert main(["dashboard-refresh", "--state-dir", str(tmp_path), "--env-file", str(tmp_path / "missing.env")]) == 0
+    assert (
+        main(
+            [
+                "dashboard-refresh",
+                "--state-dir",
+                str(tmp_path),
+                "--env-file",
+                str(tmp_path / "missing.env"),
+            ]
+        )
+        == 0
+    )
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["effective_mode"] == "paper"

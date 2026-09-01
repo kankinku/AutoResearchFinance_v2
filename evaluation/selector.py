@@ -53,6 +53,8 @@ class FunnelResult:
     full_benchmark: BenchmarkComparison | None = None
     risk_evaluation: RiskEvaluation | None = None
     feature_ids: tuple[str, ...] = ()
+    full_total_return: float | None = None
+    full_max_drawdown: float | None = None
 
 
 def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResult:
@@ -125,6 +127,8 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         candidate.full_benchmark,
         candidate.risk_evaluation,
         candidate.feature_ids,
+        candidate.full_metrics.total_return,
+        candidate.full_metrics.max_drawdown,
     )
 
 

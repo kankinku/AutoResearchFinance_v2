@@ -4,9 +4,9 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from runtime.heartbeat import WorkerHeartbeatStore
 from runtime.queue import Job, JobQueue
 from runtime.resource_manager import ResourceManager
-from runtime.heartbeat import WorkerHeartbeatStore
 
 JobHandler = Callable[[Job], dict[str, Any]]
 

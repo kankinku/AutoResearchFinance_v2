@@ -8,6 +8,7 @@ from pathlib import Path
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import default_feature_registry
 from core.integrity.hashes import content_hash
+from dashboard.ledger import append_funnel_results
 from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
 from evaluation.selector import FunnelConfig
@@ -203,6 +204,12 @@ def main(argv: list[str] | None = None) -> int:
                 min_fast_trades=args.min_trades,
                 min_full_trades=args.min_trades,
             ),
+        )
+        append_funnel_results(
+            args.state_dir / "test-records.jsonl",
+            generation=imported.strategy.generation + 1,
+            results=pipeline_result.funnel,
+            timestamp=datetime.now().astimezone().isoformat(),
         )
         print(
             json.dumps(

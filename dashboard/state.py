@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Literal
 
 from dashboard.contracts import (
     AccountSnapshot,
@@ -109,13 +110,21 @@ class DashboardStateReader:
             ),
             {},
         )
+        raw_features = champion.get("feature_ids")
+        if raw_features is None:
+            raw_features = candidate.get("feature_ids", [])
+        feature_ids = (
+            [str(item) for item in raw_features]
+            if isinstance(raw_features, (list, tuple))
+            else []
+        )
         return StrategySummary(
             champion_hash=champion.get("champion_hash"),
             status=str(champion.get("status", "EMPTY")),
             family=champion.get("family") or candidate.get("family"),
             score=_optional_float(champion.get("score", candidate.get("score"))),
             generation=_optional_int(champion.get("generation", candidate.get("generation"))),
-            feature_ids=[str(item) for item in champion.get("feature_ids", candidate.get("feature_ids", []))],
+            feature_ids=feature_ids,
             total_return=_optional_float(candidate.get("total_return")),
             nasdaq_excess_return=_optional_float(candidate.get("nasdaq_excess_return")),
             max_daily_loss_pct=_optional_float(candidate.get("max_daily_loss_pct")),
@@ -141,7 +150,7 @@ class DashboardStateReader:
                 "RETRY_EXHAUSTED",
             }
             if age is None:
-                online = "UNKNOWN"
+                online: Literal["ONLINE", "STALE", "OFFLINE", "UNKNOWN"] = "UNKNOWN"
             elif terminal:
                 online = "OFFLINE"
             elif age <= 60:
@@ -191,7 +200,12 @@ class SnapshotStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.path.with_suffix(self.path.suffix + ".tmp")
         temporary.write_text(
-            json.dumps(snapshot.model_dump(mode="json"), ensure_ascii=False, sort_keys=True, indent=2)
+            json.dumps(
+                snapshot.model_dump(mode="json"),
+                ensure_ascii=False,
+                sort_keys=True,
+                indent=2,
+            )
             + "\n",
             encoding="utf-8",
         )
@@ -205,14 +219,14 @@ class SnapshotStore:
 
 def _optional_float(value: object) -> float | None:
     try:
-        return float(value) if value is not None else None
+        return float(str(value)) if value is not None else None
     except (TypeError, ValueError):
         return None
 
 
 def _optional_int(value: object) -> int | None:
     try:
-        return int(value) if value is not None else None
+        return int(str(value)) if value is not None else None
     except (TypeError, ValueError):
         return None
 
