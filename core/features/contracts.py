@@ -38,7 +38,7 @@ class FeatureSpec(BaseModel):
     @field_validator("timeframe")
     @classmethod
     def validate_timeframe(cls, value: str) -> str:
-        if value not in {"1m", "5m", "15m", "1h", "1d"}:
+        if value not in {"1m", "5m", "15m", "1h", "1d", "1w", "1mo"}:
             raise ValueError("unsupported feature timeframe")
         return value
 

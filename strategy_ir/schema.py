@@ -25,7 +25,7 @@ class FeatureRef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     feature_id: str = Field(min_length=1)
-    timeframe: Literal["1m", "5m", "15m", "1h", "1d"] = "1d"
+    timeframe: Literal["1m", "5m", "15m", "1h", "1d", "1w", "1mo"] = "1d"
     lag_bars: int = Field(default=0, ge=0)
 
 
