@@ -43,11 +43,11 @@ class Bar:
         return {
             "timestamp": self.timestamp.astimezone(timezone.utc).isoformat(),
             "symbol": self.symbol,
-            "open": self.open,
-            "high": self.high,
-            "low": self.low,
-            "close": self.close,
-            "volume": self.volume,
+            "open": float(self.open),
+            "high": float(self.high),
+            "low": float(self.low),
+            "close": float(self.close),
+            "volume": float(self.volume),
         }
 
 
