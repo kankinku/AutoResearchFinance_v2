@@ -1,0 +1,30 @@
+schema_version: 1
+data_zones:
+  development: read_write_research
+  validation: promotion_only
+  sealed_oos: promotion_gate_only
+search:
+  exploit_ratio: 0.40
+  explore_ratio: 0.30
+  crossover_ratio: 0.20
+  rescue_ratio: 0.10
+  candidate_target: 256
+  methods: [grid, random, bayesian]
+evaluation:
+  fast_screen: true
+  full_backtest: true
+  robustness: true
+  validation: true
+  min_trade_count: 30
+runtime:
+  max_retries: 2
+  job_timeout_seconds: 900
+  max_concurrency: 4
+llm:
+  call_on_generation_start: true
+  call_on_plateau: true
+  call_on_new_family: true
+  call_on_new_primitive: true
+deployment:
+  live_order_permission: deny
+  human_approval_required: true

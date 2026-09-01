@@ -1,0 +1,15 @@
+schema_version: 1
+objectives:
+  - robust_score
+  - cagr
+  - sharpe
+  - sortino
+  - calmar
+  - max_drawdown
+  - trade_count
+  - turnover
+  - complexity
+constraints:
+  rank_by_sharpe_alone: false
+  sealed_oos_for_research: false
+  live_orders_from_research: false
