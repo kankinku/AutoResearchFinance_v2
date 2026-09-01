@@ -19,9 +19,13 @@ def test_research_adapter_has_read_only_interface() -> None:
 
 def test_research_permissions_reject_order_or_credentials() -> None:
     with pytest.raises(PermissionError, match="order"):
-        validate_research_permissions(ResearchPermissions(order_permission=True, credential_ref=None))
+        validate_research_permissions(
+            ResearchPermissions(order_permission=True, credential_ref=None)
+        )
     with pytest.raises(PermissionError, match="credential"):
-        validate_research_permissions(ResearchPermissions(order_permission=False, credential_ref="KIS"))
+        validate_research_permissions(
+            ResearchPermissions(order_permission=False, credential_ref="KIS")
+        )
 
 
 def test_live_gate_requires_current_human_approval_and_exact_champion() -> None:
