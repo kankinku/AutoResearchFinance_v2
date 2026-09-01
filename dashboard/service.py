@@ -44,7 +44,24 @@ class DashboardService:
             return cls(state_dir, initial_warning="KIS_CONFIG_MISSING")
 
     def snapshot(self) -> DashboardSnapshot:
-        snapshot = self._store.read() or self._reader.read()
+        stored = self._store.read()
+        if stored is None:
+            snapshot = self._reader.read()
+        else:
+            fresh = self._reader.read()
+            snapshot = stored.model_copy(
+                update={
+                    "mode": fresh.mode,
+                    "tests": fresh.tests,
+                    "strategy": fresh.strategy,
+                    "trend": fresh.trend,
+                    "workers": fresh.workers,
+                    "llm": fresh.llm,
+                    "warning_codes": sorted(
+                        set((*stored.warning_codes, *fresh.warning_codes))
+                    ),
+                }
+            )
         return self._with_health(snapshot)
 
     def refresh(self) -> DashboardSnapshot:
