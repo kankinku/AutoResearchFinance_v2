@@ -118,7 +118,7 @@ class DashboardService:
                 "calculator": spec.calculator,
                 "source_repositories": list(spec.source_repositories),
                 "source_licenses": list(spec.source_licenses),
-                "verification_status": "REGISTERED",
+                "verification_status": spec.status,
                 "data_contract": spec.data_contract,
                 "supported_timeframes": supported_timeframes,
                 "duplicate_group": spec.duplicate_group,

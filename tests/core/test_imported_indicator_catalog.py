@@ -23,8 +23,25 @@ def test_different_rsi_smoothing_is_not_false_deduplicated() -> None:
 
 def test_catalog_contains_nine_optional_rate_series() -> None:
     assert set(rate_series_ids()) == {
-        "US2Y", "US10Y", "US20Y", "JP2Y", "JP10Y", "JP20Y", "KR2Y", "KR10Y", "KR20Y"
+        "US2Y",
+        "US10Y",
+        "US20Y",
+        "JP2Y",
+        "JP10Y",
+        "JP20Y",
+        "KR2Y",
+        "KR10Y",
+        "KR20Y",
     }
+
+
+def test_catalog_retains_the_full_audited_inventory_without_silent_omissions() -> None:
+    catalog = imported_feature_catalog()
+    names = {feature.name for feature in catalog.all()}
+
+    assert len(names) >= 100
+    assert {"stoch_rsi", "garman_klass", "heikin_ashi", "volume_profile"} <= names
+    assert any(feature.status == "PROPOSED" for feature in catalog.all())
 
 
 def test_registry_rejects_duplicate_semantic_identity() -> None:

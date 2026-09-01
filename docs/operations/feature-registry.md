@@ -13,6 +13,9 @@ Feature Registry는 LLM이 전략에서 선택할 수 있는 허용 후보 목�
 - MACD·ATR·ADX·Bollinger·거래량 돌파·52주 고점·변동성·국면
 
 `python cli.py list-features`로 현재 등록된 후보와 입력 시계열, 계산기, lookback을 조회한다.
+외부 저장소 전체 인벤토리는 대시보드의 `인디케이터 카탈로그`에서 확인한다. 상태가
+`REGISTERED`인 항목만 전략 계산에 사용할 수 있으며, `PROPOSED`는 출처와 이름은
+확인됐지만 기준값·누수·결측·자원 검증이 끝나지 않은 항목이다.
 
 ## 신규 특성 생명주기
 

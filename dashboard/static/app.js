@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
-const STATUS_LABELS = {paper:"모의투자", PAPER:"모의투자", ONLINE:"온라인", OFFLINE:"오프라인", STALE:"응답 지연", UNKNOWN:"확인 필요", ERROR:"오류", DEGRADED:"일부 기능 제한", EMPTY:"없음", PASS:"통과", FAIL:"실패", VALIDATED:"검증 완료", FAILED:"실패"};
+const STATUS_LABELS = {paper:"모의투자", PAPER:"모의투자", ONLINE:"온라인", OFFLINE:"오프라인", STALE:"응답 지연", UNKNOWN:"확인 필요", ERROR:"오류", DEGRADED:"일부 기능 제한", EMPTY:"없음", PASS:"통과", FAIL:"실패", VALIDATED:"검증 완료", FAILED:"실패", REGISTERED:"검증 완료", PROPOSED:"검증 대기", QUARANTINED:"격리"};
 const WARNING_LABELS = {KIS_CONFIG_MISSING:"KIS 모의투자 설정이 없습니다", KIS_REFRESH_FAILED:"KIS 계좌 정보 갱신에 실패했습니다", LIVE_MODE_REJECTED:"실전투자 모드 요청이 차단되었습니다", LLM_STATUS_INVALID:"Codex 상태 정보를 읽을 수 없습니다"};
 const statusLabel = (value) => STATUS_LABELS[String(value ?? "").toUpperCase()] || String(value ?? "확인 필요");
 const providerLabel = (value) => ({codex_desktop:"Codex Desktop", codex_exec:"Codex CLI"}[String(value ?? "")] || String(value ?? "확인 필요"));
