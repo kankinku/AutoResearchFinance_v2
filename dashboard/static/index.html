@@ -3,98 +3,100 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quant Autoresearch · Paper Operations</title>
+  <title>퀀트 자동 연구 · 모의투자 운영</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <header class="topbar">
     <div>
-      <p class="eyebrow">QUANT AUTORESEARCH HARNESS</p>
-      <h1>Paper Operations Dashboard</h1>
+      <p class="eyebrow">퀀트 자동 연구 하네스</p>
+      <h1>모의투자 운영 대시보드</h1>
     </div>
     <div class="top-actions">
-      <span id="last-updated" class="muted">Not refreshed</span>
-      <button id="refresh" type="button">Refresh</button>
+      <span id="last-updated" class="muted">아직 갱신되지 않음</span>
+      <button id="refresh" type="button">새로고침</button>
     </div>
   </header>
 
   <main>
     <div id="safety-banner" class="safety-banner" role="status" aria-live="polite">
       <span class="pulse"></span>
-      <strong>PAPER ONLY</strong>
-      <span>Live trading is disabled. Dashboard reads are local and read-only.</span>
+      <strong>모의투자 전용</strong>
+      <span>실전투자는 비활성화되어 있으며, 대시보드는 로컬 읽기 전용입니다.</span>
     </div>
 
-    <section class="card section-card usage-card" aria-labelledby="usage-title">
-      <div class="section-heading">
-        <div><p class="eyebrow">QUICK GUIDE</p><h2 id="usage-title">How to use</h2></div>
-        <span class="badge">Local only</span>
-      </div>
+    <details class="card section-card usage-card" aria-labelledby="usage-title">
+      <summary class="usage-summary">
+        <span class="summary-copy"><span class="eyebrow">빠른 시작</span><span id="usage-title" class="summary-title">사용 방법</span><span class="summary-description">처음 실행부터 연구 평가까지 순서대로 안내합니다.</span></span>
+        <span class="summary-action"><span class="badge">로컬 전용</span><span class="summary-toggle"><span class="summary-open">열기</span><span class="summary-close">닫기</span><span aria-hidden="true">⌄</span></span></span>
+      </summary>
+      <div class="usage-content">
       <ol class="usage-steps">
         <li>
-          <div><strong>Start the paper system</strong><p class="muted">Run these commands from the repository root. Initialize state only once for a new state directory.</p></div>
-          <div class="command-block"><code>python cli.py init --state-dir state</code><button class="copy-command" type="button" data-copy="python cli.py init --state-dir state">Copy</button></div>
-          <div class="command-block"><code>python cli.py set-mode --state-dir state --mode paper</code><button class="copy-command" type="button" data-copy="python cli.py set-mode --state-dir state --mode paper">Copy</button></div>
-          <div class="command-block"><code>python cli.py dashboard-refresh --state-dir state --env-file .env</code><button class="copy-command" type="button" data-copy="python cli.py dashboard-refresh --state-dir state --env-file .env">Copy</button></div>
-          <div class="command-block"><code>python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080</code><button class="copy-command" type="button" data-copy="python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080">Copy</button></div>
+          <div><strong>모의투자 시스템 시작</strong><p class="muted">저장소 루트에서 실행하세요. 새로운 상태 폴더를 만들 때만 초기화합니다.</p></div>
+          <div class="command-block"><code>python cli.py init --state-dir state</code><button class="copy-command" type="button" data-copy="python cli.py init --state-dir state">복사</button></div>
+          <div class="command-block"><code>python cli.py set-mode --state-dir state --mode paper</code><button class="copy-command" type="button" data-copy="python cli.py set-mode --state-dir state --mode paper">복사</button></div>
+          <div class="command-block"><code>python cli.py dashboard-refresh --state-dir state --env-file .env</code><button class="copy-command" type="button" data-copy="python cli.py dashboard-refresh --state-dir state --env-file .env">복사</button></div>
+          <div class="command-block"><code>python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080</code><button class="copy-command" type="button" data-copy="python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080">복사</button></div>
         </li>
         <li>
-          <div><strong>Connect Codex Desktop</strong><p class="muted">Register <code>.codex/config.toml.example</code> in Codex Desktop MCP settings. The server exposes research and evaluation tools only.</p></div>
-          <div class="command-block"><code>python -m integrations.codex_mcp_server --state-dir state --project-root .</code><button class="copy-command" type="button" data-copy="python -m integrations.codex_mcp_server --state-dir state --project-root .">Copy</button></div>
+          <div><strong>Codex Desktop 연결</strong><p class="muted">Codex Desktop의 MCP 설정에 <code>.codex/config.toml.example</code>을 등록하세요. 연구와 평가 도구만 제공합니다.</p></div>
+          <div class="command-block"><code>python -m integrations.codex_mcp_server --state-dir state --project-root .</code><button class="copy-command" type="button" data-copy="python -m integrations.codex_mcp_server --state-dir state --project-root .">복사</button></div>
         </li>
         <li>
-          <div><strong>Request and evaluate research</strong><p class="muted">In Codex Desktop, read the dashboard/context, submit a validated research intent, then run an approved local evaluation. The CLI alternative is below.</p></div>
-          <div class="command-block"><code>python cli.py research-intent --state-dir state --env-file .env --project-root .</code><button class="copy-command" type="button" data-copy="python cli.py research-intent --state-dir state --env-file .env --project-root .">Copy</button></div>
+          <div><strong>연구 요청과 평가 실행</strong><p class="muted">Codex Desktop에서 대시보드와 연구 문맥을 확인하고, 검증된 연구 의도를 제출한 뒤 승인된 로컬 평가를 실행합니다.</p></div>
+          <div class="command-block"><code>python cli.py research-intent --state-dir state --env-file .env --project-root .</code><button class="copy-command" type="button" data-copy="python cli.py research-intent --state-dir state --env-file .env --project-root .">복사</button></div>
         </li>
       </ol>
-      <p class="usage-note"><strong>Safety:</strong> This installation is paper-only. No order tool is available. Never paste KIS keys into Codex prompts; keep them only in the ignored <code>.env</code> file.</p>
-    </section>
+      <p class="usage-note"><strong>안전 안내:</strong> 이 시스템은 모의투자 전용이며 주문 도구를 제공하지 않습니다. KIS 키는 Codex 프롬프트에 붙여 넣지 말고 무시 처리된 <code>.env</code> 파일에만 보관하세요.</p>
+      </div>
+    </details>
 
-    <section class="overview-grid" aria-label="System overview">
-      <article class="card accent-blue"><p class="label">Effective Mode</p><p id="mode" class="metric">PAPER</p><p id="mode-detail" class="muted">Live disabled</p></article>
-      <article class="card"><p class="label">KIS Status</p><p id="kis-status" class="metric">UNKNOWN</p><p id="kis-detail" class="muted">No refresh yet</p></article>
-      <article class="card"><p class="label">Docker / Workers</p><p id="worker-status" class="metric">UNKNOWN</p><p id="worker-detail" class="muted">No heartbeat data</p></article>
-      <article class="card"><p class="label">Codex LLM</p><p id="llm-status" class="metric">UNKNOWN</p><p id="llm-detail" class="muted">No call recorded</p></article>
-      <article class="card accent-green"><p class="label">Champion Score</p><p id="champion-score" class="metric">—</p><p id="champion-detail" class="muted">No champion</p></article>
+    <section class="overview-grid" aria-label="시스템 개요">
+      <article class="card accent-blue"><p class="label">현재 모드</p><p id="mode" class="metric">모의투자</p><p id="mode-detail" class="muted">실전투자 비활성화</p></article>
+      <article class="card"><p class="label">KIS 연결</p><p id="kis-status" class="metric">확인 필요</p><p id="kis-detail" class="muted">아직 갱신하지 않음</p></article>
+      <article class="card"><p class="label">Docker / 작업자</p><p id="worker-status" class="metric">확인 필요</p><p id="worker-detail" class="muted">작업자 응답 없음</p></article>
+      <article class="card"><p class="label">Codex LLM</p><p id="llm-status" class="metric">확인 필요</p><p id="llm-detail" class="muted">호출 기록 없음</p></article>
+      <article class="card accent-green"><p class="label">최고 전략 점수</p><p id="champion-score" class="metric">—</p><p id="champion-detail" class="muted">최고 전략 없음</p></article>
     </section>
 
     <section class="card section-card" aria-labelledby="account-title">
-      <div class="section-heading"><div><p class="eyebrow">BROKER SNAPSHOT</p><h2 id="account-title">Account</h2></div><span id="account-badge" class="badge">UNKNOWN</span></div>
+      <div class="section-heading"><div><p class="eyebrow">증권사 계좌 상태</p><h2 id="account-title">계좌</h2></div><span id="account-badge" class="badge">확인 필요</span></div>
       <div class="account-grid">
-        <div><span class="label">Account</span><strong id="account-number">******</strong></div>
-        <div><span class="label">Equity</span><strong id="equity">—</strong></div>
-        <div><span class="label">Cash</span><strong id="cash">—</strong></div>
-        <div><span class="label">Buying power</span><strong id="buying-power">—</strong></div>
+        <div><span class="label">계좌번호</span><strong id="account-number">******</strong></div>
+        <div><span class="label">총 평가액</span><strong id="equity">—</strong></div>
+        <div><span class="label">현금</span><strong id="cash">—</strong></div>
+        <div><span class="label">주문 가능 금액</span><strong id="buying-power">—</strong></div>
       </div>
-      <div class="table-wrap"><table><caption>Holdings</caption><thead><tr><th>Symbol</th><th>Quantity</th><th>Market value</th><th>P/L</th></tr></thead><tbody id="holdings"></tbody></table></div>
+      <div class="table-wrap"><table><caption>보유 종목</caption><thead><tr><th>종목</th><th>수량</th><th>평가액</th><th>손익</th></tr></thead><tbody id="holdings"></tbody></table></div>
     </section>
 
     <div class="two-column">
       <section class="card section-card" aria-labelledby="champion-title">
-        <div class="section-heading"><div><p class="eyebrow">CURRENT BEST</p><h2 id="champion-title">Champion Strategy</h2></div><span id="champion-badge" class="badge">EMPTY</span></div>
-        <dl class="details"><dt>Hash</dt><dd id="champion-hash">—</dd><dt>Family</dt><dd id="champion-family">—</dd><dt>Generation</dt><dd id="champion-generation">—</dd><dt>Features</dt><dd id="champion-features">—</dd><dt>Risk</dt><dd id="champion-risk">—</dd></dl>
+        <div class="section-heading"><div><p class="eyebrow">현재 최고</p><h2 id="champion-title">최고 전략</h2></div><span id="champion-badge" class="badge">없음</span></div>
+        <dl class="details"><dt>식별 해시</dt><dd id="champion-hash">—</dd><dt>전략 유형</dt><dd id="champion-family">—</dd><dt>세대</dt><dd id="champion-generation">—</dd><dt>사용 지표</dt><dd id="champion-features">—</dd><dt>위험 준수</dt><dd id="champion-risk">—</dd></dl>
       </section>
       <section class="card section-card" aria-labelledby="workers-title">
-        <div class="section-heading"><div><p class="eyebrow">PARALLEL RESEARCH</p><h2 id="workers-title">Parallel Workers</h2></div><span id="workers-badge" class="badge">0 online</span></div>
-        <div class="table-wrap"><table><caption>Worker heartbeats</caption><thead><tr><th>Worker</th><th>Role</th><th>Status</th><th>Last heartbeat</th></tr></thead><tbody id="workers"></tbody></table></div>
+        <div class="section-heading"><div><p class="eyebrow">병렬 연구</p><h2 id="workers-title">병렬 작업</h2></div><span id="workers-badge" class="badge">온라인 0명</span></div>
+        <div class="table-wrap"><table><caption>작업자 상태</caption><thead><tr><th>작업자</th><th>역할</th><th>상태</th><th>마지막 응답</th></tr></thead><tbody id="workers"></tbody></table></div>
       </section>
     </div>
 
     <section class="card section-card" aria-labelledby="tests-title">
-      <div class="section-heading"><div><p class="eyebrow">EVALUATION LEDGER</p><h2 id="tests-title">Test History</h2></div><span id="test-count" class="badge">0 runs</span></div>
-      <div class="table-wrap"><table><caption>Recent strategy evaluations</caption><thead><tr><th>Time</th><th>Run</th><th>Generation</th><th>Return</th><th>Nasdaq excess</th><th>Risk</th><th>Result</th></tr></thead><tbody id="tests"></tbody></table></div>
+      <div class="section-heading"><div><p class="eyebrow">평가 기록</p><h2 id="tests-title">테스트 기록</h2></div><span id="test-count" class="badge">0회 실행</span></div>
+      <div class="table-wrap"><table><caption>최근 전략 평가</caption><thead><tr><th>시간</th><th>실행 ID</th><th>세대</th><th>수익률</th><th>나스닥 초과 수익률</th><th>위험</th><th>결과</th></tr></thead><tbody id="tests"></tbody></table></div>
     </section>
 
     <section class="card section-card" aria-labelledby="trend-title">
-      <div class="section-heading"><div><p class="eyebrow">LONGITUDINAL VIEW</p><h2 id="trend-title">Strategy Progress</h2></div></div>
-      <div id="trend" class="trend" aria-label="Strategy score and return trend"></div>
+      <div class="section-heading"><div><p class="eyebrow">세대별 변화</p><h2 id="trend-title">전략 발전</h2></div></div>
+      <div id="trend" class="trend" aria-label="전략 점수와 수익률 변화"></div>
     </section>
 
     <section id="warnings-card" class="card section-card warnings" aria-labelledby="warnings-title" hidden>
-      <h2 id="warnings-title">Warnings</h2><ul id="warnings"></ul>
+      <h2 id="warnings-title">확인 필요</h2><ul id="warnings"></ul>
     </section>
   </main>
-  <footer><span>Local only · paper safety boundary enforced by server</span><span id="api-state">Waiting</span></footer>
+  <footer><span>로컬 전용 · 서버의 모의투자 안전 경계 적용</span><span id="api-state">대기 중</span></footer>
   <script src="/static/app.js"></script>
 </body>
 </html>

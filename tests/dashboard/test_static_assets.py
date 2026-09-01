@@ -10,15 +10,18 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
     javascript = (STATIC / "app.js").read_text(encoding="utf-8")
 
     for marker in (
-        "PAPER ONLY",
-        "Account",
-        "Test History",
-        "Champion Strategy",
-        "Strategy Progress",
-        "Parallel Workers",
-        "Refresh",
+        "모의투자 전용",
+        "계좌",
+        "테스트 기록",
+        "최고 전략",
+        "전략 발전",
+        "병렬 작업",
+        "새로고침",
         "aria-live",
-        "How to use",
+        "사용 방법",
+        "<details",
+        "<summary",
+        "열기",
         "dashboard-refresh",
         "integrations.codex_mcp_server",
         "research-intent",
@@ -33,6 +36,11 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
     assert "escapeHtml" in javascript
     assert "textContent" in javascript
     assert "navigator.clipboard.writeText" in javascript
+    assert "statusLabel" in javascript
+    assert "모의투자" in javascript
+    assert "How to use" not in html
+    assert "Paper Operations Dashboard" not in html
+    assert "Refresh" not in html
 
 
 def test_dashboard_has_no_remote_asset_dependency() -> None:
