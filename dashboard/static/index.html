@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quant Autoresearch · Paper Operations</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">QUANT AUTORESEARCH HARNESS</p>
+      <h1>Paper Operations Dashboard</h1>
+    </div>
+    <div class="top-actions">
+      <span id="last-updated" class="muted">Not refreshed</span>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="safety-banner" class="safety-banner" role="status" aria-live="polite">
+      <span class="pulse"></span>
+      <strong>PAPER ONLY</strong>
+      <span>Live trading is disabled. Dashboard reads are local and read-only.</span>
+    </div>
+
+    <section class="overview-grid" aria-label="System overview">
+      <article class="card accent-blue"><p class="label">Effective Mode</p><p id="mode" class="metric">PAPER</p><p id="mode-detail" class="muted">Live disabled</p></article>
+      <article class="card"><p class="label">KIS Status</p><p id="kis-status" class="metric">UNKNOWN</p><p id="kis-detail" class="muted">No refresh yet</p></article>
+      <article class="card"><p class="label">Docker / Workers</p><p id="worker-status" class="metric">UNKNOWN</p><p id="worker-detail" class="muted">No heartbeat data</p></article>
+      <article class="card accent-green"><p class="label">Champion Score</p><p id="champion-score" class="metric">—</p><p id="champion-detail" class="muted">No champion</p></article>
+    </section>
+
+    <section class="card section-card" aria-labelledby="account-title">
+      <div class="section-heading"><div><p class="eyebrow">BROKER SNAPSHOT</p><h2 id="account-title">Account</h2></div><span id="account-badge" class="badge">UNKNOWN</span></div>
+      <div class="account-grid">
+        <div><span class="label">Account</span><strong id="account-number">******</strong></div>
+        <div><span class="label">Equity</span><strong id="equity">—</strong></div>
+        <div><span class="label">Cash</span><strong id="cash">—</strong></div>
+        <div><span class="label">Buying power</span><strong id="buying-power">—</strong></div>
+      </div>
+      <div class="table-wrap"><table><caption>Holdings</caption><thead><tr><th>Symbol</th><th>Quantity</th><th>Market value</th><th>P/L</th></tr></thead><tbody id="holdings"></tbody></table></div>
+    </section>
+
+    <div class="two-column">
+      <section class="card section-card" aria-labelledby="champion-title">
+        <div class="section-heading"><div><p class="eyebrow">CURRENT BEST</p><h2 id="champion-title">Champion Strategy</h2></div><span id="champion-badge" class="badge">EMPTY</span></div>
+        <dl class="details"><dt>Hash</dt><dd id="champion-hash">—</dd><dt>Family</dt><dd id="champion-family">—</dd><dt>Generation</dt><dd id="champion-generation">—</dd><dt>Features</dt><dd id="champion-features">—</dd><dt>Risk</dt><dd id="champion-risk">—</dd></dl>
+      </section>
+      <section class="card section-card" aria-labelledby="workers-title">
+        <div class="section-heading"><div><p class="eyebrow">PARALLEL RESEARCH</p><h2 id="workers-title">Parallel Workers</h2></div><span id="workers-badge" class="badge">0 online</span></div>
+        <div class="table-wrap"><table><caption>Worker heartbeats</caption><thead><tr><th>Worker</th><th>Role</th><th>Status</th><th>Last heartbeat</th></tr></thead><tbody id="workers"></tbody></table></div>
+      </section>
+    </div>
+
+    <section class="card section-card" aria-labelledby="tests-title">
+      <div class="section-heading"><div><p class="eyebrow">EVALUATION LEDGER</p><h2 id="tests-title">Test History</h2></div><span id="test-count" class="badge">0 runs</span></div>
+      <div class="table-wrap"><table><caption>Recent strategy evaluations</caption><thead><tr><th>Time</th><th>Run</th><th>Generation</th><th>Return</th><th>Nasdaq excess</th><th>Risk</th><th>Result</th></tr></thead><tbody id="tests"></tbody></table></div>
+    </section>
+
+    <section class="card section-card" aria-labelledby="trend-title">
+      <div class="section-heading"><div><p class="eyebrow">LONGITUDINAL VIEW</p><h2 id="trend-title">Strategy Progress</h2></div></div>
+      <div id="trend" class="trend" aria-label="Strategy score and return trend"></div>
+    </section>
+
+    <section id="warnings-card" class="card section-card warnings" aria-labelledby="warnings-title" hidden>
+      <h2 id="warnings-title">Warnings</h2><ul id="warnings"></ul>
+    </section>
+  </main>
+  <footer><span>Local only · paper safety boundary enforced by server</span><span id="api-state">Waiting</span></footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>
