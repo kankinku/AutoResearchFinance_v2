@@ -11,10 +11,11 @@ const formatDate = (value, fallback = "—") => { if (!value) return fallback; c
 async function loadDashboard() {
   $("api-state").textContent = "불러오는 중";
   try {
-    const [healthResponse, dashboardResponse] = await Promise.all([fetch("/api/health"), fetch("/api/dashboard")]);
-    if (!healthResponse.ok || !dashboardResponse.ok) throw new Error("dashboard unavailable");
+    const [healthResponse, dashboardResponse, catalogResponse] = await Promise.all([fetch("/api/health"), fetch("/api/dashboard"), fetch("/api/features/catalog")]);
+    if (!healthResponse.ok || !dashboardResponse.ok || !catalogResponse.ok) throw new Error("dashboard unavailable");
     renderHealth(await healthResponse.json());
     renderDashboard(await dashboardResponse.json());
+    renderFeatureCatalog(await catalogResponse.json());
     $("api-state").textContent = "정상 연결";
   } catch (error) {
     $("api-state").textContent = "오프라인 · 이전 데이터";
@@ -66,6 +67,18 @@ function renderDashboard(data) {
   const warnings = data.warning_codes || [];
   $("warnings-card").hidden = warnings.length === 0;
   $("warnings").innerHTML = warnings.map((warning) => `<li>${escapeHtml(warningLabel(warning))}</li>`).join("");
+}
+
+function renderFeatureCatalog(features) {
+  const timeframeLabels = {"1m":"1분봉", "5m":"5분봉", "15m":"15분봉", "1h":"1시간봉", "1d":"일봉", "1w":"1주봉", "1mo":"1개월봉"};
+  $("feature-count").textContent = `${features.length}개`;
+  $("feature-catalog").innerHTML = features.map((item) => {
+    const aliases = (item.aliases || []).map(escapeHtml).join(", ") || "없음";
+    const sources = (item.source_repositories || []).map(escapeHtml).join(", ") || "독립 구현";
+    const licenses = (item.source_licenses || []).map(escapeHtml).join(", ") || "내부";
+    const timeframes = (item.supported_timeframes || []).map((value) => timeframeLabels[value] || escapeHtml(value)).join(" · ");
+    return `<tr><td><strong>${escapeHtml(item.canonical_name)}</strong><br><span class="muted">${escapeHtml(item.family)} · ${escapeHtml(item.data_contract)}</span></td><td>${escapeHtml(item.calculator)}</td><td>${aliases}</td><td>${sources}<br><span class="muted">${licenses}</span></td><td>${timeframes}</td><td>${escapeHtml(statusLabel(item.verification_status))}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="muted">등록된 인디케이터가 없습니다.</td></tr>`;
 }
 
 $("refresh").addEventListener("click", async () => { $("refresh").disabled = true; try { const response = await fetch("/api/refresh", {method: "POST"}); if (!response.ok) throw new Error("refresh failed"); renderDashboard(await response.json()); await loadDashboard(); } finally { $("refresh").disabled = false; } });

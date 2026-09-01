@@ -81,3 +81,18 @@ def test_refresh_failure_preserves_previous_snapshot_and_returns_degraded_status
     assert payload["health"]["kis_status"] == "OFFLINE"
     assert "KIS_REFRESH_FAILED" in payload["warning_codes"]
     assert "secret-like" not in response.text
+
+
+def test_feature_catalog_exposes_sanitized_sources_aliases_and_timeframes(tmp_path: Path) -> None:
+    client = TestClient(create_app(DashboardService(tmp_path)))
+
+    response = client.get("/api/features/catalog")
+
+    assert response.status_code == 200
+    item = next(row for row in response.json() if row["canonical_name"] == "rsi")
+    assert "relative_strength_index" in item["aliases"]
+    assert item["verification_status"] == "REGISTERED"
+    assert "1w" in item["supported_timeframes"]
+    assert "1mo" in item["supported_timeframes"]
+    assert "api_key" not in response.text.lower()
+    assert "app_secret" not in response.text.lower()

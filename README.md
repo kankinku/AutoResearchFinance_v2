@@ -115,9 +115,18 @@ disables networking, drops capabilities, and writes only to the run output direc
 
 External price, macro, rate, and benchmark series use the same versioned Parquet
 contract through `ParquetDataProvider.write_series/read_series`. The optional Feature
-Registry exposes VIX, gold, DXY, QQQ, Nasdaq, and US/Japan/Korea 2-year and 10-year
-rate candidates. A strategy selects only the features it declares; no macro feature is
-implicitly mandatory. `list-features` reports the current selectable catalog.
+Registry exposes VIX, gold, DXY, QQQ, Nasdaq, and US/Japan/Korea 2-year, 10-year, and
+20-year rate candidates. Any registered series can receive any registered transform on
+`1d`, `1w`, or `1mo`; for example, `US20Y.close@1w:rsi(period=14)`. A strategy selects
+only the features it declares; no macro feature is implicitly mandatory. `list-features`
+reports the current selectable catalog, and the dashboard exposes it at
+`/api/features/catalog`.
+
+The four audited indicator sources are represented by canonical FeatureSpecs with
+aliases and semantic duplicate groups. `pythonpine` is treated as AGPL-3.0 and is not
+vendored; its formulas are independently reimplemented. Profile, TPO, and tick
+order-flow indicators require explicit data contracts. Account, order, network,
+downloader, and plotting functions are never feature calculators.
 
 Generation evaluation keeps the existing Fast/Full, robustness, walk-forward, OOS,
 CSCV/CPCV, cost, and complexity checks. When benchmark data is supplied, it adds QQQ

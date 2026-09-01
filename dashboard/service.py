@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, Protocol
 
+from core.features.catalog import imported_feature_catalog
 from dashboard.contracts import AccountSnapshot, DashboardHealth, DashboardSnapshot, Holding
 from dashboard.state import DashboardStateReader, SnapshotStore
 from integrations.kis.client import KISAccountSnapshot, KISPaperClient
@@ -103,6 +104,28 @@ class DashboardService:
         except Exception:
             degraded = self._with_warning(current, "KIS_REFRESH_FAILED")
             return self._save(self._with_health(degraded, kis_status="OFFLINE"))
+
+    def feature_catalog(self) -> list[dict[str, object]]:
+        """Return a credential-free projection for the dashboard catalog."""
+
+        supported_timeframes = ["1m", "5m", "15m", "1h", "1d", "1w", "1mo"]
+        return [
+            {
+                "canonical_name": spec.name,
+                "canonical_id": spec.canonical_id,
+                "aliases": list(spec.aliases),
+                "family": spec.family,
+                "calculator": spec.calculator,
+                "source_repositories": list(spec.source_repositories),
+                "source_licenses": list(spec.source_licenses),
+                "verification_status": "REGISTERED",
+                "data_contract": spec.data_contract,
+                "supported_timeframes": supported_timeframes,
+                "duplicate_group": spec.duplicate_group,
+                "output_name": spec.output_name,
+            }
+            for spec in imported_feature_catalog().all()
+        ]
 
     def _save(self, snapshot: DashboardSnapshot) -> DashboardSnapshot:
         self._store.write(snapshot)

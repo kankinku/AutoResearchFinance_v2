@@ -26,6 +26,10 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
         "integrations.codex_mcp_server",
         "research-intent",
         "copy-command",
+        "인디케이터 카탈로그",
+        "중복 통합",
+        "1주봉",
+        "1개월봉",
     ):
         assert marker in html
     assert "https://" not in html
@@ -33,6 +37,8 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
     assert "fetch(\"/api/dashboard\")" in javascript
     assert "fetch(\"/api/health\")" in javascript
     assert "fetch(\"/api/refresh\"" in javascript
+    assert "fetch(\"/api/features/catalog\")" in javascript
+    assert "renderFeatureCatalog" in javascript
     assert "escapeHtml" in javascript
     assert "textContent" in javascript
     assert "navigator.clipboard.writeText" in javascript

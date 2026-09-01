@@ -50,6 +50,12 @@ def create_app(service: DashboardService | None = None) -> FastAPI:
     def dashboard() -> DashboardSnapshot:
         return dashboard_service.snapshot()
 
+    @app.get("/api/features/catalog")
+    def feature_catalog() -> JSONResponse:
+        return JSONResponse(
+            dashboard_service.feature_catalog(), headers={"Cache-Control": "no-store"}
+        )
+
     @app.post("/api/refresh", response_model=DashboardSnapshot)
     def refresh() -> DashboardSnapshot:
         return dashboard_service.refresh()
