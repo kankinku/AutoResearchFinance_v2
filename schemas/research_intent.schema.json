@@ -1,0 +1,47 @@
+{
+  "$defs": {
+    "FeatureProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {"minLength": 1, "title": "Name", "type": "string"},
+        "family": {"minLength": 1, "title": "Family", "type": "string"},
+        "inputs": {"items": {"type": "string"}, "minItems": 1, "title": "Inputs", "type": "array"},
+        "calculator": {"default": "expression", "minLength": 1, "title": "Calculator", "type": "string"},
+        "timeframe": {"default": "1d", "title": "Timeframe", "type": "string"},
+        "lookback": {"exclusiveMinimum": 0, "title": "Lookback", "type": "integer"},
+        "lag_bars": {"default": 0, "minimum": 0, "title": "Lag Bars", "type": "integer"},
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {"type": "integer"},
+              {"type": "number"},
+              {"type": "string"},
+              {"type": "boolean"}
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "formula": {"minLength": 1, "title": "Formula", "type": "string"},
+        "justification": {"minLength": 1, "title": "Justification", "type": "string"}
+      },
+      "required": ["name", "family", "inputs", "lookback", "formula", "justification"],
+      "title": "FeatureProposal",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "mode": {"enum": ["structure", "parameter", "mixed"], "title": "Mode", "type": "string"},
+    "parent_ids": {"items": {"type": "string"}, "minItems": 1, "title": "Parent Ids", "type": "array"},
+    "operations": {"default": [], "items": {"additionalProperties": true, "type": "object"}, "title": "Operations", "type": "array"},
+    "rationale": {"minLength": 1, "title": "Rationale", "type": "string"},
+    "primitive_request": {"anyOf": [{"additionalProperties": true, "type": "object"}, {"type": "null"}], "default": null, "title": "Primitive Request"},
+    "feature_proposal": {"anyOf": [{"$ref": "#/$defs/FeatureProposal"}, {"type": "null"}], "default": null},
+    "python_patch": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Python Patch"},
+    "evaluator_change": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Evaluator Change"}
+  },
+  "required": ["mode", "parent_ids", "rationale"],
+  "title": "ResearchIntent",
+  "type": "object"
+}
