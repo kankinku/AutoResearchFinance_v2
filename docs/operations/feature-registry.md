@@ -9,7 +9,7 @@ Feature Registry는 LLM이 전략에서 선택할 수 있는 허용 후보 목�
 - VIX 백분위
 - 금·DXY 수익률
 - QQQ·Nasdaq 수익률
-- 미국·일본·한국 2년물·10년물 금리 변화
+- 미국·일본·한국 2년물·10년물·20년물 금리 변화
 - MACD·ATR·ADX·Bollinger·거래량 돌파·52주 고점·변동성·국면
 
 `python cli.py list-features`로 현재 등록된 후보와 입력 시계열, 계산기, lookback을 조회한다.
@@ -42,7 +42,15 @@ LLM FeatureProposal
 
 ## 금리와 외부 시계열
 
-미국·일본·한국 2년물·10년물은 선택 가능한 후보다. 필수 입력은 없다. 데이터는 `SeriesObservation.available_at`이 신호 시각보다 늦지 않은 경우에만 as-of 정렬 결과에 포함한다. 발표·확정 시점이 불명확한 데이터는 사용하지 않고 명시적 결측으로 처리한다.
+미국·일본·한국의 2년물·10년물·20년물은 선택 가능한 후보이다. 필수 입력은 없다. 모든 시계열은 동일한 변환 경로를 사용하므로 `US20Y.close@1w:rsi(period=14)`처럼 주봉 RSI도 구성할 수 있다. 지원 시간봉은 `1m`, `5m`, `15m`, `1h`, `1d`, `1w`, `1mo`이다.
+
+데이터는 `SeriesObservation.available_at`이 신호 시각보다 늦지 않은 경우에만 as-of 정렬 결과에 포함한다. 발표·확정 시점이 불명확한 데이터는 사용하지 않고 명시적 결측으로 처리한다.
+
+## 외부 저장소 통합과 중복
+
+`pyindicators`, `srl-python-indicators`, `CentaurTechnicalIndicators-Python`, `pythonpine`의 지표는 함수명이 아니라 입력·계산식·파라미터·출력·워밍업·결측 정책으로 중복을 판정한다. 같은 계산식은 하나의 canonical FeatureSpec과 여러 alias로 관리하고, Wilder/EMA처럼 계산 방식이 다른 경우에는 별도 variant로 남긴다.
+
+저장소의 시각화·다운로더·계좌·주문·네트워크 함수는 Feature Registry에 등록하지 않는다. 프로파일·TPO·틱 오더플로우는 해당 데이터 계약을 제공한 경우에만 계산한다. `pythonpine`은 저장소 LICENSE 기준 AGPL-3.0으로 취급하며 원본 코드를 제품에 복사하지 않고 독립 재구현한다.
 
 ## 안전 경계
 
