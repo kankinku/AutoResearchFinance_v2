@@ -2,10 +2,24 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, cast
 
 JSONTransport = Callable[[str, dict[str, object], dict[str, str]], str]
+IntentTransport = Callable[[dict[str, Any]], Mapping[str, Any]]
+
+
+class CodexIntentProvider:
+    """Adapter for a Codex-backed proposer with a local JSON contract."""
+
+    def __init__(self, transport: IntentTransport) -> None:
+        self._transport = transport
+
+    def propose(self, context: dict[str, Any]) -> dict[str, Any]:
+        payload = self._transport(dict(context))
+        if not isinstance(payload, Mapping):
+            raise ValueError("Codex provider response must be a mapping")
+        return dict(payload)
 
 
 class OfflineProvider:
