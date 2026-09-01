@@ -25,7 +25,7 @@ def robust_statistics(
     observations: int,
     complexity: int,
 ) -> RobustnessReport:
-    if base_return == 0 or len(parameter_scores) < 2 or trials < 1 or observations < 2:
+    if base_return == 0 or len(parameter_scores) < 3 or trials < 1 or observations < 2:
         return RobustnessReport("INSUFFICIENT_EVIDENCE", 0.0, 0.0, None, None, 0.0)
     cost_sensitivity = _clamp(stressed_return / base_return)
     mean = fmean(parameter_scores)
