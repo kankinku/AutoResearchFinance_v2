@@ -25,6 +25,15 @@ class FeatureSpec(BaseModel):
     version: str = "feature-v1"
     status: Literal["PROPOSED", "REGISTERED", "QUARANTINED"] = "PROPOSED"
     implementation_hash: str = ""
+    canonical_id: str = ""
+    aliases: tuple[str, ...] = ()
+    source_repositories: tuple[str, ...] = ()
+    source_licenses: tuple[str, ...] = ()
+    data_contract: Literal[
+        "scalar", "ohlcv", "profile", "order_flow", "session", "research_label"
+    ] = "scalar"
+    output_name: str = "value"
+    duplicate_group: str = ""
 
     @field_validator("inputs")
     @classmethod
