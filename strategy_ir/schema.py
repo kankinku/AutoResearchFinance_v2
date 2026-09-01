@@ -65,6 +65,7 @@ class StrategyIR(BaseModel):
     indicators: dict[str, IndicatorSpec] = Field(min_length=1)
     entry: RuleSet
     exit: RuleSet
+    regime_filters: list[Condition] = Field(default_factory=list)
     risk: RiskConfig
     research: ResearchMetadata = Field(default_factory=ResearchMetadata)
     provenance: Provenance = Field(default_factory=Provenance)

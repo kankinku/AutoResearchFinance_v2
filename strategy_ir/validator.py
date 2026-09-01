@@ -30,6 +30,8 @@ def validate_strategy(document: dict[str, Any] | StrategyIR) -> StrategyIR:
             raise StrategyValidationError(f"{section_name} requires at least one condition")
         for condition in rules.conditions:
             _validate_condition(condition, references, section_name)
+    for condition in strategy.regime_filters:
+        _validate_condition(condition, references, "regime_filters")
     if strategy.entry.logic not in {"AND", "OR"} or strategy.exit.logic not in {"AND", "OR"}:
         raise StrategyValidationError("logic must be AND or OR")
     return strategy
