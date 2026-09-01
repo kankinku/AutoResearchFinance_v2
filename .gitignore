@@ -1,0 +1,42 @@
+# Python and tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.basedpyright/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials/
+
+# Runtime-generated state and worker artifacts
+runs/
+logs/
+cache/
+state/*.sqlite-shm
+state/*.sqlite-wal
+state/results/*.parquet
+state/results/*.json
+state/locks/
+results/
+
+# Worktree and local editor files
+.worktrees/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Raw external source dumps are never generated into the repository
+raw_sources/
+source_dumps/
