@@ -23,6 +23,8 @@ class SessionObservation:
     session: str
     hour: int
     minute: int
+    high: float | None = None
+    low: float | None = None
 
 
 SpecializedInput: TypeAlias = (
@@ -47,6 +49,10 @@ def calculate_specialized(
         "session_flag",
         "time_of_day",
         "day_of_week",
+        "normalized_time_of_day",
+        "session_high",
+        "session_low",
+        "session_overlay_flags",
     }
     if calculator not in supported:
         raise ValueError(f"unsupported specialized calculator {spec.calculator!r}")
@@ -76,9 +82,27 @@ def calculate_specialized(
         sessions = _sessions(raw)
         requested = str(spec.parameters.get("session", "regular"))
         return tuple(1.0 if item.session == requested else 0.0 for item in sessions)
+    if calculator == "session_overlay_flags":
+        sessions = _sessions(raw)
+        requested = str(spec.parameters.get("session", "regular"))
+        return tuple(1.0 if item.session == requested else 0.0 for item in sessions)
     if calculator == "time_of_day":
         sessions = _sessions(raw)
         return tuple(item.hour + item.minute / 60.0 for item in sessions)
+    if calculator == "normalized_time_of_day":
+        sessions = _sessions(raw)
+        return tuple((item.hour * 60.0 + item.minute) / 1440.0 for item in sessions)
+    if calculator in {"session_high", "session_low"}:
+        sessions = _sessions(raw)
+        values = (
+            [item.high for item in sessions]
+            if calculator == "session_high"
+            else [item.low for item in sessions]
+        )
+        defined = [value for value in values if value is not None]
+        if not defined:
+            raise ValueError(f"{calculator} input required")
+        return (max(defined) if calculator == "session_high" else min(defined),)
     if calculator == "day_of_week":
         sessions = _sessions(raw)
         return tuple(float(index % 7) for index, _ in enumerate(sessions))

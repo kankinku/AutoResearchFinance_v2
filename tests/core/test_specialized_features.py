@@ -50,9 +50,20 @@ def test_profile_and_order_flow_features_use_their_declared_contracts() -> None:
 
 
 def test_session_features_require_session_metadata_and_orders_are_not_calculators() -> None:
-    session = (SessionObservation("regular", 4, 30),)
+    session = (
+        SessionObservation("regular", 4, 30, high=105.0, low=95.0),
+        SessionObservation("regular", 5, 0, high=107.0, low=96.0),
+    )
     flags = calculate_specialized(_spec("session_flag", "session"), {"session": session})
 
-    assert flags == (1.0,)
+    assert flags == (1.0, 1.0)
+    assert calculate_specialized(
+        _spec("normalized_time_of_day", "session"), {"session": session}
+    ) == (4.5 / 24.0, 5.0 / 24.0)
+    assert calculate_specialized(_spec("session_high", "session"), {"session": session}) == (107.0,)
+    assert calculate_specialized(_spec("session_low", "session"), {"session": session}) == (95.0,)
+    assert calculate_specialized(
+        _spec("session_overlay_flags", "session"), {"session": session}
+    ) == (1.0, 1.0)
     with pytest.raises(ValueError, match="unsupported specialized calculator"):
         calculate_specialized(_spec("place_order", "scalar"), {})

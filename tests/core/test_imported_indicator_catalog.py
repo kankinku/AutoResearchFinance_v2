@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import math
+
 import pytest
 
+from core.features.calculators import calculate_feature
 from core.features.catalog import imported_feature_catalog, rate_series_ids
 from core.features.contracts import FeatureSpec, FeatureVerification
 from core.features.registry import FeatureRegistrationError, FeatureRegistry
@@ -19,6 +22,19 @@ def test_different_rsi_smoothing_is_not_false_deduplicated() -> None:
     catalog = imported_feature_catalog()
 
     assert catalog.resolve("rsi.wilder").canonical_id != catalog.resolve("rsi.ema").canonical_id
+
+
+def test_source_function_aliases_resolve_to_existing_canonical_indicators() -> None:
+    catalog = imported_feature_catalog()
+
+    for alias, canonical in (
+        ("williams_percent_r", "williams_r"),
+        ("simple_returns", "returns"),
+        ("klinger_oscillator", "klinger"),
+        ("volume_flow_indicator", "vfi"),
+        ("garman_klass_volatility", "garman_klass"),
+    ):
+        assert catalog.resolve(alias).canonical_id == catalog.resolve(canonical).canonical_id
 
 
 def test_catalog_contains_nine_optional_rate_series() -> None:
@@ -41,7 +57,25 @@ def test_catalog_retains_the_full_audited_inventory_without_silent_omissions() -
 
     assert len(names) >= 100
     assert {"stoch_rsi", "garman_klass", "heikin_ashi", "volume_profile"} <= names
-    assert any(feature.status == "PROPOSED" for feature in catalog.all())
+    assert all(feature.status == "REGISTERED" for feature in catalog.all())
+
+
+def test_registered_scalar_catalog_specs_execute_with_their_declared_inputs() -> None:
+    values = tuple(float(10 + index % 4) for index in range(32))
+    inputs = {
+        "close": values,
+        "open": tuple(value - 0.2 for value in values),
+        "high": tuple(value + 1.0 for value in values),
+        "low": tuple(value - 1.0 for value in values),
+        "volume": tuple(float(100 + index * 10) for index in range(32)),
+    }
+
+    for spec in imported_feature_catalog().all():
+        if spec.data_contract != "scalar":
+            continue
+        result = calculate_feature(spec, {name: inputs[name] for name in spec.inputs})
+        assert len(result) == len(values), spec.name
+        assert all(value is None or math.isfinite(value) for value in result), spec.name
 
 
 def test_registry_rejects_duplicate_semantic_identity() -> None:

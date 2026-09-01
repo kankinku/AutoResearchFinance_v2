@@ -120,6 +120,33 @@ def _spec(
         ("rolling_kurtosis", ("close",)),
         ("mad", ("close",)),
         ("percentile_rank", ("close",)),
+        ("adaptive_cycle_divergence", ("close",)),
+        ("chaikin_volatility", ("high", "low")),
+        ("connors_rsi", ("close",)),
+        ("dominant_cycle", ("close",)),
+        ("evening_star", ("open", "high", "low", "close")),
+        ("fractional_difference", ("close",)),
+        ("guppy_mma", ("close",)),
+        ("hilbert_phase", ("close",)),
+        ("hilbert_sine", ("close",)),
+        ("hilbert_trendline", ("close",)),
+        ("itrend", ("close",)),
+        ("kl_divergence", ("close",)),
+        ("klinger", ("close", "volume")),
+        ("laguerre", ("close",)),
+        ("morning_star", ("open", "high", "low", "close")),
+        ("moving_average_envelope", ("close",)),
+        ("pin_bar", ("open", "high", "low", "close")),
+        ("qstick", ("open", "close")),
+        ("schaff_trend_cycle", ("close",)),
+        ("shannon_entropy", ("close",)),
+        ("shooting_star", ("open", "high", "low", "close")),
+        ("vfi", ("high", "low", "close", "volume")),
+        ("vw_macd", ("high", "low", "close", "volume")),
+        ("intraday_intensity", ("close", "high", "low", "volume")),
+        ("normalized_atr_percent", ("high", "low", "close")),
+        ("support_resistance", ("high", "low")),
+        ("time_since_extreme", ("close",)),
     ],
 )
 def test_imported_calculator_returns_finite_input_length_series(
@@ -146,3 +173,59 @@ def test_imported_calculators_support_explicit_parameters() -> None:
 def test_new_calculators_reject_missing_declared_inputs() -> None:
     with pytest.raises(ValueError, match="missing input"):
         calculate_feature(_spec("mfi", ("high", "low", "close", "volume")), {"close": CLOSE})
+
+
+def test_remaining_imported_calculators_use_causal_reference_definitions() -> None:
+    intraday = calculate_feature(
+        _spec("intraday_intensity", ("close", "high", "low", "volume")), INPUTS
+    )
+    support_resistance = calculate_feature(_spec("support_resistance", ("high", "low")), INPUTS)
+    since_high = calculate_feature(_spec("time_since_extreme"), INPUTS)
+
+    assert intraday[-1] == pytest.approx(0.0)
+    assert support_resistance[2] == -1.0
+    assert support_resistance[3] == 1.0
+    assert since_high[:6] == (0.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+
+
+@pytest.mark.parametrize(
+    ("calculator", "inputs"),
+    [
+        ("roc", ("close",)),
+        ("momentum", ("close",)),
+        ("dmi_adx", ("high", "low", "close")),
+        ("slope_of_ema", ("close",)),
+        ("linear_regression", ("close",)),
+        ("median_price", ("high", "low")),
+        ("typical_price", ("high", "low", "close")),
+        ("donchian_channel_width", ("high", "low")),
+        ("standard_deviation", ("close",)),
+        ("relative_volatility_index", ("close",)),
+        ("ease_of_movement", ("high", "low", "volume")),
+        ("price_roc", ("close",)),
+        ("bar_range_ratio", ("open", "close", "high", "low")),
+        ("wick_ratio", ("open", "close", "high", "low")),
+        ("high_low_breakout", ("close",)),
+        ("trend_candle_strength", ("open", "close")),
+        ("price_action_score", ("close",)),
+        ("detect_marubozu", ("open", "close", "high", "low")),
+        ("detect_three_bar_reversal", ("close",)),
+        ("phase_accumulation_cycle", ("close",)),
+        ("inverse_fisher_transform", ("close",)),
+        ("super_smoother", ("close",)),
+        ("roofing_filter", ("close",)),
+        ("center_of_gravity", ("close",)),
+        ("bandpass_filter", ("close",)),
+        ("dc_based_rsi", ("close",)),
+        ("cyber_cycle", ("close",)),
+        ("hilbert_transform", ("close",)),
+        ("tsf", ("close",)),
+    ],
+)
+def test_additional_audited_scalar_indicators_are_available(
+    calculator: str, inputs: tuple[str, ...]
+) -> None:
+    result = calculate_feature(_spec(calculator, inputs), {**INPUTS, "open": CLOSE})
+
+    assert len(result) == len(CLOSE)
+    assert all(value is None or math.isfinite(value) for value in result)

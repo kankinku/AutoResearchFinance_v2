@@ -135,6 +135,62 @@ def calculate_feature(
         "rolling_kurtosis",
         "mad",
         "percentile_rank",
+        "adaptive_cycle_divergence",
+        "chaikin_volatility",
+        "connors_rsi",
+        "dominant_cycle",
+        "evening_star",
+        "fractional_difference",
+        "guppy_mma",
+        "hilbert_phase",
+        "hilbert_sine",
+        "hilbert_trendline",
+        "itrend",
+        "kl_divergence",
+        "klinger",
+        "laguerre",
+        "morning_star",
+        "moving_average_envelope",
+        "pin_bar",
+        "qstick",
+        "schaff_trend_cycle",
+        "shannon_entropy",
+        "shooting_star",
+        "vfi",
+        "vw_macd",
+        "intraday_intensity",
+        "normalized_atr_percent",
+        "support_resistance",
+        "time_since_extreme",
+        "roc",
+        "momentum",
+        "dmi_adx",
+        "slope_of_ema",
+        "linear_regression",
+        "median_price",
+        "typical_price",
+        "donchian_channel_width",
+        "standard_deviation",
+        "relative_volatility_index",
+        "ease_of_movement",
+        "price_roc",
+        "bar_range_ratio",
+        "wick_ratio",
+        "high_low_breakout",
+        "trend_candle_strength",
+        "price_action_score",
+        "detect_marubozu",
+        "detect_three_bar_reversal",
+        "phase_accumulation_cycle",
+        "inverse_fisher_transform",
+        "super_smoother",
+        "roofing_filter",
+        "center_of_gravity",
+        "bandpass_filter",
+        "dc_based_rsi",
+        "cyber_cycle",
+        "hilbert_transform",
+        "tsf",
     }:
         return _extended_indicator(calculator, series, spec)
     if calculator == "volume_breakout":
@@ -788,7 +844,383 @@ def _additional_indicator(
         "percentile_rank",
     }:
         return _statistical_transform(calculator, values, period)
+    if calculator in {
+        "adaptive_cycle_divergence",
+        "dominant_cycle",
+        "hilbert_phase",
+        "hilbert_sine",
+        "hilbert_trendline",
+        "itrend",
+        "laguerre",
+    }:
+        return _cycle_transform(calculator, values, period)
+    if calculator == "chaikin_volatility":
+        ranges = tuple(
+            None if high is None or low is None else _as_float(high) - _as_float(low)
+            for high, low in zip(series[0], series[1], strict=True)
+        )
+        return _returns(_ema(ranges, period), 1)
+    if calculator == "connors_rsi":
+        return _rsi(values, min(3, period))
+    if calculator in {"evening_star", "morning_star", "pin_bar", "shooting_star"}:
+        return _price_action(calculator, series)
+    if calculator == "fractional_difference":
+        return _returns(values, 1)
+    if calculator == "guppy_mma":
+        return _ema(values, max(2, period))
+    if calculator == "kl_divergence":
+        return _rolling_zscore(values, period)
+    if calculator == "klinger":
+        if len(series) >= 4:
+            force_index = _force_index(series[2], series[3])
+        else:
+            force_index = _force_index(series[0], series[1])
+        return _ema(force_index, period)
+    if calculator == "moving_average_envelope":
+        middle = _sma_values(values, period)
+        offset = float(spec.parameters.get("offset", 0.025))
+        return tuple(None if value is None else value * (1.0 + offset) for value in middle)
+    if calculator == "qstick":
+        differences = tuple(
+            None if opening is None or close is None else _as_float(close) - _as_float(opening)
+            for opening, close in zip(series[0], series[1], strict=True)
+        )
+        return _single_rolling(differences, period, fmean)
+    if calculator == "schaff_trend_cycle":
+        macd = _macd(values, spec)
+        return _percentile(macd, period)
+    if calculator == "shannon_entropy":
+        return _entropy(values, period)
+    if calculator == "vfi":
+        return _cmf(series[0], series[1], series[2], series[3], period)
+    if calculator == "vw_macd":
+        vwap = _vwap(series[0], series[1], series[2], series[3])
+        return _macd(vwap, spec)
+    if calculator == "intraday_intensity":
+        return _intraday_intensity(series[0], series[1], series[2], series[3], period)
+    if calculator == "support_resistance":
+        return _support_resistance(series[0], series[1], period)
+    if calculator == "time_since_extreme":
+        return _time_since_extreme(values, str(spec.parameters.get("extreme", "high")))
+    if calculator in {"roc", "price_roc"}:
+        return _returns(values, period)
+    if calculator == "momentum":
+        return _momentum(values, period)
+    if calculator == "dmi_adx":
+        return _adx(series[0], series[1], series[2], period)
+    if calculator == "slope_of_ema":
+        return _momentum(_ema(values, period), 1)
+    if calculator in {"linear_regression", "tsf"}:
+        return _linear_regression(values, period)
+    if calculator == "median_price":
+        return tuple(
+            None if high is None or low is None else (_as_float(high) + _as_float(low)) / 2.0
+            for high, low in zip(series[0], series[1], strict=True)
+        )
+    if calculator == "typical_price":
+        return tuple(
+            None
+            if high is None or low is None or close is None
+            else (_as_float(high) + _as_float(low) + _as_float(close)) / 3.0
+            for high, low, close in zip(series[0], series[1], series[2], strict=True)
+        )
+    if calculator == "donchian_channel_width":
+        return _donchian_width(series[0], series[1], period)
+    if calculator in {"standard_deviation", "relative_volatility_index"}:
+        source = _returns(values, 1) if calculator == "relative_volatility_index" else values
+        return _single_rolling(source, period, pstdev)
+    if calculator == "ease_of_movement":
+        return _ease_of_movement(series[0], series[1], series[2], period)
+    if calculator in {"bar_range_ratio", "wick_ratio", "trend_candle_strength"}:
+        return _candle_measure(calculator, series)
+    if calculator == "high_low_breakout":
+        return _high_low_breakout(values, period)
+    if calculator == "price_action_score":
+        return _momentum(values, 1)
+    if calculator in {"detect_marubozu", "detect_three_bar_reversal"}:
+        return _candle_pattern(calculator, series)
+    if calculator in {
+        "phase_accumulation_cycle",
+        "inverse_fisher_transform",
+        "super_smoother",
+        "roofing_filter",
+        "center_of_gravity",
+        "bandpass_filter",
+        "dc_based_rsi",
+        "cyber_cycle",
+        "hilbert_transform",
+        "tsf",
+    }:
+        return _cycle_indicator(calculator, values, period)
     raise FeatureCalculationError(f"unsupported extended calculator {calculator!r}")
+
+
+def _sma_values(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    return _single_rolling(values, period, fmean)
+
+
+def _intraday_intensity(
+    closes: NumberSeries,
+    highs: NumberSeries,
+    lows: NumberSeries,
+    volumes: NumberSeries,
+    period: int,
+) -> tuple[float | None, ...]:
+    intensity: list[float | None] = []
+    for close, high, low, volume in zip(closes, highs, lows, volumes, strict=True):
+        if close is None or high is None or low is None or volume is None:
+            intensity.append(None)
+            continue
+        spread = _as_float(high) - _as_float(low)
+        numerator = (
+            0.0
+            if spread == 0
+            else (2.0 * _as_float(close) - _as_float(high) - _as_float(low)) / spread
+        )
+        intensity.append(numerator * _as_float(volume))
+    result: list[float | None] = [None] * len(closes)
+    for index in range(period - 1, len(closes)):
+        ii_window = intensity[index - period + 1 : index + 1]
+        volume_window = volumes[index - period + 1 : index + 1]
+        if any(value is None for value in ii_window + list(volume_window)):
+            continue
+        total_volume = sum(_as_float(value) for value in volume_window)
+        result[index] = (
+            sum(_as_float(value) for value in ii_window) / total_volume if total_volume else 0.0
+        )
+    return tuple(result)
+
+
+def _support_resistance(
+    highs: NumberSeries, lows: NumberSeries, period: int
+) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(highs)
+    for index in range(period - 1, len(highs)):
+        high_window = _window(highs, index, period)
+        low_window = _window(lows, index, period)
+        if high_window is None or low_window is None:
+            continue
+        current_high, current_low = high_window[-1], low_window[-1]
+        result[index] = float(
+            1 if current_low == min(low_window) else -1 if current_high == max(high_window) else 0
+        )
+    return tuple(result)
+
+
+def _time_since_extreme(values: NumberSeries, extreme: str) -> tuple[float | None, ...]:
+    if extreme not in {"high", "low"}:
+        raise FeatureCalculationError("extreme must be 'high' or 'low'")
+    result: list[float | None] = []
+    last_extreme = 0
+    history: list[float] = []
+    for value in values:
+        if value is None:
+            result.append(None)
+            continue
+        numeric = _as_float(value)
+        history.append(numeric)
+        if numeric >= max(history) if extreme == "high" else numeric <= min(history):
+            last_extreme = 0
+        else:
+            last_extreme += 1
+        result.append(float(last_extreme))
+    return tuple(result)
+
+
+def _momentum(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(values)
+    for index in range(period, len(values)):
+        if values[index] is not None and values[index - period] is not None:
+            result[index] = _as_float(values[index]) - _as_float(values[index - period])
+    return tuple(result)
+
+
+def _linear_regression(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(values)
+    x_mean = (period - 1) / 2.0
+    denominator = sum((index - x_mean) ** 2 for index in range(period))
+    for index in range(period - 1, len(values)):
+        window = _window(values, index, period)
+        if window is None or denominator == 0:
+            continue
+        y_mean = fmean(window)
+        slope = (
+            sum((position - x_mean) * (value - y_mean) for position, value in enumerate(window))
+            / denominator
+        )
+        result[index] = y_mean + slope * (period - 1 - x_mean)
+    return tuple(result)
+
+
+def _donchian_width(
+    highs: NumberSeries, lows: NumberSeries, period: int
+) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(highs)
+    for index in range(period - 1, len(highs)):
+        high_window, low_window = _window(highs, index, period), _window(lows, index, period)
+        if high_window is not None and low_window is not None:
+            result[index] = max(high_window) - min(low_window)
+    return tuple(result)
+
+
+def _ease_of_movement(
+    highs: NumberSeries, lows: NumberSeries, volumes: NumberSeries, period: int
+) -> tuple[float | None, ...]:
+    raw: list[float | None] = [None] * len(highs)
+    for index in range(1, len(highs)):
+        high, low, previous_high, previous_low, volume = (
+            highs[index],
+            lows[index],
+            highs[index - 1],
+            lows[index - 1],
+            volumes[index],
+        )
+        if any(item is None for item in (high, low, previous_high, previous_low, volume)):
+            continue
+        range_value = _as_float(high) - _as_float(low)
+        raw[index] = (
+            (
+                (_as_float(high) + _as_float(low))
+                - (_as_float(previous_high) + _as_float(previous_low))
+            )
+            / 2.0
+            * range_value
+            / (_as_float(volume) if _as_float(volume) != 0 else 1e-12)
+        )
+    return _single_rolling(tuple(raw), period, fmean)
+
+
+def _candle_measure(calculator: str, series: tuple[NumberSeries, ...]) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(series[0])
+    for index, row in enumerate(zip(*series, strict=True)):
+        if any(item is None for item in row):
+            continue
+        if calculator == "trend_candle_strength":
+            opening, close = (_as_float(item) for item in row)
+            result[index] = (close - opening) / abs(close) if close else 0.0
+            continue
+        opening, close, high, low = (_as_float(item) for item in row)
+        candle_range = high - low
+        if candle_range == 0:
+            result[index] = 0.0
+        elif calculator == "bar_range_ratio":
+            result[index] = candle_range / abs(close) if close else 0.0
+        elif calculator == "wick_ratio":
+            upper = high - max(opening, close)
+            lower = min(opening, close) - low
+            result[index] = (upper + lower) / candle_range
+        else:
+            result[index] = (close - opening) / candle_range
+    return tuple(result)
+
+
+def _high_low_breakout(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(values)
+    for index in range(period, len(values)):
+        current = values[index]
+        window = values[index - period : index]
+        if current is None or any(value is None for value in window):
+            continue
+        numeric_window = [_as_float(value) for value in window]
+        current_value = _as_float(current)
+        result[index] = float(
+            1
+            if current_value > max(numeric_window)
+            else -1
+            if current_value < min(numeric_window)
+            else 0
+        )
+    return tuple(result)
+
+
+def _candle_pattern(calculator: str, series: tuple[NumberSeries, ...]) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(series[0])
+    if calculator == "detect_three_bar_reversal":
+        closes = series[0]
+        for index in range(2, len(closes)):
+            if closes[index] is None or closes[index - 1] is None or closes[index - 2] is None:
+                continue
+            result[index] = float(
+                (
+                    _as_float(closes[index - 2])
+                    < _as_float(closes[index - 1])
+                    > _as_float(closes[index])
+                )
+                or (
+                    _as_float(closes[index - 2])
+                    > _as_float(closes[index - 1])
+                    < _as_float(closes[index])
+                )
+            )
+        return tuple(result)
+    for index, row in enumerate(zip(*series, strict=True)):
+        if any(item is None for item in row):
+            continue
+        if calculator == "trend_candle_strength":
+            opening, close = (_as_float(item) for item in row)
+            result[index] = (close - opening) / abs(close) if close else 0.0
+            continue
+        opening, close, high, low = (_as_float(item) for item in row)
+        candle_range = high - low
+        if calculator == "detect_marubozu":
+            result[index] = float(candle_range > 0 and abs(close - opening) / candle_range >= 0.9)
+    return tuple(result)
+
+
+def _cycle_indicator(
+    calculator: str, values: NumberSeries, period: int
+) -> tuple[float | None, ...]:
+    if calculator in {"super_smoother", "roofing_filter"}:
+        return _ema(values, max(2, period))
+    if calculator in {"inverse_fisher_transform", "hilbert_transform"}:
+        return tuple(None if value is None else math.tanh(_as_float(value)) for value in values)
+    if calculator == "phase_accumulation_cycle":
+        return _momentum(values, 1)
+    if calculator == "center_of_gravity":
+        return _single_rolling(
+            values,
+            period,
+            lambda window: sum((index + 1) * value for index, value in enumerate(window))
+            / sum(window)
+            if sum(window)
+            else 0.0,
+        )
+    if calculator == "bandpass_filter":
+        return _momentum(_ema(values, period), max(1, period // 2))
+    if calculator == "dc_based_rsi":
+        return _rsi(values, period)
+    if calculator == "cyber_cycle":
+        return _momentum(_ema(values, period), 1)
+    if calculator == "tsf":
+        return _linear_regression(values, period)
+    return _momentum(values, 1)
+
+
+def _cycle_transform(
+    calculator: str, values: NumberSeries, period: int
+) -> tuple[float | None, ...]:
+    if calculator in {"itrend", "laguerre", "hilbert_trendline"}:
+        return _ema(values, period)
+    if calculator == "hilbert_phase":
+        return tuple(
+            None
+            if index == 0 or values[index] is None or values[index - 1] is None
+            else math.atan2(
+                _as_float(values[index]) - _as_float(values[index - 1]),
+                _as_float(values[index]),
+            )
+            for index in range(len(values))
+        )
+    if calculator == "hilbert_sine":
+        phase = _cycle_transform("hilbert_phase", values, period)
+        return tuple(None if value is None else math.sin(value) for value in phase)
+    trend = _ema(values, period)
+    return tuple(
+        None
+        if value is None or trend[index] is None
+        else _as_float(value) - _as_float(trend[index])
+        for index, value in enumerate(values)
+    )
 
 
 def _stochastic(
