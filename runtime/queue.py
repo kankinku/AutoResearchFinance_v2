@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 
@@ -12,6 +13,7 @@ class JobStatus(str, Enum):
     FAILED = "FAILED"
     TIMED_OUT = "TIMED_OUT"
     CANCELLED = "CANCELLED"
+    RETRY_EXHAUSTED = "RETRY_EXHAUSTED"
 
 
 @dataclass
@@ -22,6 +24,8 @@ class Job:
     attempt: int = 0
     result: dict[str, Any] | None = None
     error: str | None = None
+    lease_until: datetime | None = None
+    max_attempts: int = 3
 
 
 class JobQueue:
@@ -33,25 +37,48 @@ class JobQueue:
             raise ValueError(f"job already exists: {job.job_id}")
         self._jobs[job.job_id] = job
 
-    def claim(self) -> Job | None:
+    def claim(self, *, lease_seconds: float = 300.0) -> Job | None:
+        if lease_seconds <= 0:
+            raise ValueError("lease_seconds must be positive")
         for job in self._jobs.values():
             if job.status is JobStatus.QUEUED:
                 job.status = JobStatus.RUNNING
                 job.attempt += 1
+                job.lease_until = datetime.now(timezone.utc) + timedelta(seconds=lease_seconds)
                 return job
         return None
+
+    def reconcile_stale(self, *, now: datetime | None = None) -> tuple[str, ...]:
+        current = now or datetime.now(timezone.utc)
+        reconciled: list[str] = []
+        for job in self._jobs.values():
+            if job.status is not JobStatus.RUNNING or job.lease_until is None:
+                continue
+            if job.lease_until > current:
+                continue
+            if job.attempt >= job.max_attempts:
+                job.status = JobStatus.RETRY_EXHAUSTED
+                job.error = "worker lease expired after maximum attempts"
+            else:
+                job.status = JobStatus.QUEUED
+                job.error = "worker lease expired; queued for retry"
+            job.lease_until = None
+            reconciled.append(job.job_id)
+        return tuple(reconciled)
 
     def succeed(self, job_id: str, result: dict[str, Any]) -> None:
         job = self.get(job_id)
         self._require_running(job)
         job.result = result
         job.status = JobStatus.SUCCEEDED
+        job.lease_until = None
 
     def fail(self, job_id: str, error: str) -> None:
         job = self.get(job_id)
         self._require_running(job)
         job.error = error
         job.status = JobStatus.FAILED
+        job.lease_until = None
 
     def get(self, job_id: str) -> Job:
         try:
