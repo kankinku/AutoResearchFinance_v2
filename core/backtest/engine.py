@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 
 from core.data.contracts import MarketDataSet
 from core.integrity.hashes import content_hash
@@ -29,7 +30,7 @@ class BacktestEngine:
         if not request.run_id or request.initial_cash <= 0:
             raise ValueError("run_id and positive initial cash are required")
         equity = [request.initial_cash]
-        for previous, current in zip(request.dataset.bars, request.dataset.bars[1:], strict=True):
+        for previous, current in pairwise(request.dataset.bars):
             equity.append(equity[-1] * (current.close / previous.close))
         curve = tuple(equity)
         return BacktestResult(
