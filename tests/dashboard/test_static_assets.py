@@ -18,6 +18,11 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
         "Parallel Workers",
         "Refresh",
         "aria-live",
+        "How to use",
+        "dashboard-refresh",
+        "integrations.codex_mcp_server",
+        "research-intent",
+        "copy-command",
     ):
         assert marker in html
     assert "https://" not in html
@@ -27,6 +32,7 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
     assert "fetch(\"/api/refresh\"" in javascript
     assert "escapeHtml" in javascript
     assert "textContent" in javascript
+    assert "navigator.clipboard.writeText" in javascript
 
 
 def test_dashboard_has_no_remote_asset_dependency() -> None:

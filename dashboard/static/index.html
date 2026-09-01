@@ -25,6 +25,31 @@
       <span>Live trading is disabled. Dashboard reads are local and read-only.</span>
     </div>
 
+    <section class="card section-card usage-card" aria-labelledby="usage-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">QUICK GUIDE</p><h2 id="usage-title">How to use</h2></div>
+        <span class="badge">Local only</span>
+      </div>
+      <ol class="usage-steps">
+        <li>
+          <div><strong>Start the paper system</strong><p class="muted">Run these commands from the repository root. Initialize state only once for a new state directory.</p></div>
+          <div class="command-block"><code>python cli.py init --state-dir state</code><button class="copy-command" type="button" data-copy="python cli.py init --state-dir state">Copy</button></div>
+          <div class="command-block"><code>python cli.py set-mode --state-dir state --mode paper</code><button class="copy-command" type="button" data-copy="python cli.py set-mode --state-dir state --mode paper">Copy</button></div>
+          <div class="command-block"><code>python cli.py dashboard-refresh --state-dir state --env-file .env</code><button class="copy-command" type="button" data-copy="python cli.py dashboard-refresh --state-dir state --env-file .env">Copy</button></div>
+          <div class="command-block"><code>python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080</code><button class="copy-command" type="button" data-copy="python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080">Copy</button></div>
+        </li>
+        <li>
+          <div><strong>Connect Codex Desktop</strong><p class="muted">Register <code>.codex/config.toml.example</code> in Codex Desktop MCP settings. The server exposes research and evaluation tools only.</p></div>
+          <div class="command-block"><code>python -m integrations.codex_mcp_server --state-dir state --project-root .</code><button class="copy-command" type="button" data-copy="python -m integrations.codex_mcp_server --state-dir state --project-root .">Copy</button></div>
+        </li>
+        <li>
+          <div><strong>Request and evaluate research</strong><p class="muted">In Codex Desktop, read the dashboard/context, submit a validated research intent, then run an approved local evaluation. The CLI alternative is below.</p></div>
+          <div class="command-block"><code>python cli.py research-intent --state-dir state --env-file .env --project-root .</code><button class="copy-command" type="button" data-copy="python cli.py research-intent --state-dir state --env-file .env --project-root .">Copy</button></div>
+        </li>
+      </ol>
+      <p class="usage-note"><strong>Safety:</strong> This installation is paper-only. No order tool is available. Never paste KIS keys into Codex prompts; keep them only in the ignored <code>.env</code> file.</p>
+    </section>
+
     <section class="overview-grid" aria-label="System overview">
       <article class="card accent-blue"><p class="label">Effective Mode</p><p id="mode" class="metric">PAPER</p><p id="mode-detail" class="muted">Live disabled</p></article>
       <article class="card"><p class="label">KIS Status</p><p id="kis-status" class="metric">UNKNOWN</p><p id="kis-detail" class="muted">No refresh yet</p></article>

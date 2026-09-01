@@ -63,5 +63,19 @@ function renderDashboard(data) {
 }
 
 $("refresh").addEventListener("click", async () => { $("refresh").disabled = true; try { const response = await fetch("/api/refresh", {method: "POST"}); if (!response.ok) throw new Error("refresh failed"); renderDashboard(await response.json()); await loadDashboard(); } finally { $("refresh").disabled = false; } });
+document.querySelectorAll(".copy-command").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const command = button.dataset.copy || "";
+    try {
+      await navigator.clipboard.writeText(command);
+      const previous = button.textContent;
+      button.textContent = "Copied";
+      setTimeout(() => { button.textContent = previous; }, 1200);
+    } catch (error) {
+      button.textContent = "Copy failed";
+      setTimeout(() => { button.textContent = "Copy"; }, 1200);
+    }
+  });
+});
 loadDashboard();
 setInterval(loadDashboard, 10000);

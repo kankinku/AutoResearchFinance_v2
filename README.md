@@ -47,6 +47,45 @@ account snapshot, evaluation ledger, Champion strategy, generation trend, and wo
 heartbeat state. See `docs/operations/paper-dashboard.md` for the safety boundary and
 refresh behavior.
 
+## How to use the system
+
+Run commands from the repository root. Create the state directory once, keep the
+trading mode set to paper, refresh the read-only KIS snapshot when needed, and leave
+the dashboard process running in its own terminal:
+
+```powershell
+python cli.py init --state-dir state
+python cli.py set-mode --state-dir state --mode paper
+python cli.py dashboard-refresh --state-dir state --env-file .env
+python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
+```
+
+Open `http://127.0.0.1:8080/`. The dashboard's Quick Guide contains the same commands
+with copy buttons. `init` is only for a new state directory; do not repeat it over a
+state directory whose experiment history you want to keep. `dashboard-refresh` reads
+paper account/quote data; it does not place orders.
+
+For Codex Desktop, register `.codex/config.toml.example` in the Desktop MCP settings.
+The local MCP server can then be started with:
+
+```powershell
+python -m integrations.codex_mcp_server --state-dir state --project-root .
+```
+
+In Codex Desktop, use `get_dashboard_status` and `get_research_context` first, submit
+the resulting structured intent with `submit_research_intent`, and run only an
+approved local evaluation with `run_evaluation`. The server has no order or live
+account tool. For a non-interactive alternative, authenticate the Codex CLI and run:
+
+```powershell
+codex login status
+python cli.py research-intent --state-dir state --env-file .env --project-root .
+```
+
+The command records a validated intent in `state/llm/intents.jsonl`; the dashboard
+shows the provider state in the Codex LLM card. Keep KIS values only in the ignored
+`.env` file, never in a prompt or source file.
+
 ## Codex Desktop connection
 
 Codex Desktop can connect to the local stdio MCP server using the credential-free
