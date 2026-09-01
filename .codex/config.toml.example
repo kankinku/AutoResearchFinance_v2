@@ -1,0 +1,8 @@
+# Copy this section to the trusted Codex configuration for this checkout.
+
+[mcp_servers.quant_autoresearch]
+command = "python"
+args = ["-m", "integrations.codex_mcp_server", "--state-dir", "state", "--project-root", "."]
+cwd = "."
+enabled = true
+default_tools_approval_mode = "prompt"

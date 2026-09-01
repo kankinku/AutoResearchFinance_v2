@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import shlex
 import subprocess
 import tempfile
 from collections.abc import Callable, Mapping
@@ -73,8 +74,11 @@ class CodexExecProvider:
         )
         with tempfile.TemporaryDirectory(prefix=".codex-intent-", dir=self.workdir) as directory:
             output_path = Path(directory) / "intent.json"
+            executable_parts = shlex.split(self.executable, posix=True)
+            if not executable_parts:
+                raise ValueError("Codex executable is required")
             command = [
-                self.executable,
+                *executable_parts,
                 "exec",
                 "-",
                 "--ephemeral",
@@ -123,24 +127,41 @@ class CodexExecProvider:
         )
 
     def _write_status(self, status: str, last_result: str) -> None:
-        if self.status_path is None:
-            return
-        payload = {
-            "provider": "codex_exec",
-            "status": status,
-            "last_result": last_result,
-            "last_call_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-        }
-        try:
-            self.status_path.parent.mkdir(parents=True, exist_ok=True)
-            temporary = self.status_path.with_suffix(self.status_path.suffix + ".tmp")
-            temporary.write_text(
-                json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n",
-                encoding="utf-8",
+        if self.status_path is not None:
+            write_provider_status(self.status_path, "codex_exec", status, last_result)
+
+
+def write_provider_status(path: Path, provider: str, status: str, last_result: str) -> None:
+    payload = {
+        "provider": provider,
+        "status": status,
+        "last_result": last_result,
+        "last_call_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, path)
+    except OSError:
+        return
+
+
+def record_intent(path: Path, intent: ResearchIntent) -> None:
+    payload = sanitize_context(intent.model_dump(mode="json", exclude_none=True))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(
+            json.dumps(
+                {"timestamp": dt.datetime.now(dt.timezone.utc).isoformat(), "intent": payload},
+                ensure_ascii=False,
+                sort_keys=True,
             )
-            os.replace(temporary, self.status_path)
-        except OSError:
-            return
+            + "\n"
+        )
 
 
 def sanitize_context(value: object) -> object:
@@ -194,8 +215,19 @@ def _read_settings(path: Path) -> dict[str, str]:
         if not line or line.startswith("#") or "=" not in line:
             continue
         name, value = line.split("=", 1)
-        values[name.strip()] = value.strip().strip('"').strip("'")
+        raw_value = value.strip()
+        values[name.strip()] = (
+            raw_value
+            if name.strip() == "QUANT_CODEX_COMMAND"
+            else _strip_outer_quotes(raw_value)
+        )
     return values
+
+
+def _strip_outer_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        return value[1:-1]
+    return value
 
 
 def _run_codex(

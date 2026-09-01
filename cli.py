@@ -11,10 +11,13 @@ from core.integrity.hashes import content_hash
 from dashboard.ledger import append_funnel_results
 from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
+from dashboard.state import DashboardStateReader
 from evaluation.selector import FunnelConfig
 from experiments.planner import plan_experiment
 from memory.state_files import StateFileStore
 from orchestration.pipeline import GenerationPipeline
+from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
+from research.llm.director import ResearchDirector
 from strategy_ir.normalizer import ImportStatus, normalize_source
 
 
@@ -28,6 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     subparsers.add_parser("list-features")
+    research_parser = subparsers.add_parser(
+        "research-intent", help="Ask the local Codex CLI for one validated research intent"
+    )
+    research_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    research_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    research_parser.add_argument("--project-root", type=Path, default=Path("."))
     dashboard_parser = subparsers.add_parser("dashboard")
     dashboard_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     dashboard_parser.add_argument("--env-file", type=Path, default=Path(".env"))
@@ -120,6 +129,48 @@ def main(argv: list[str] | None = None) -> int:
                         }
                         for spec in default_feature_registry().all()
                     ],
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
+    if args.command == "research-intent":
+        snapshot = DashboardStateReader(args.state_dir).read()
+        context = sanitize_context(
+            {
+                "generation": snapshot.strategy.generation or 0,
+                "champion": snapshot.strategy.model_dump(mode="json"),
+                "frontier": [],
+                "observations": [
+                    item.model_dump(mode="json") for item in snapshot.tests[:20]
+                ],
+                "feature_catalog": [
+                    {
+                        "name": spec.name,
+                        "family": spec.family,
+                        "inputs": list(spec.inputs),
+                        "calculator": spec.calculator,
+                        "lookback": spec.lookback,
+                        "timeframe": spec.timeframe,
+                    }
+                    for spec in default_feature_registry().all()
+                ],
+            }
+        )
+        if not isinstance(context, dict):
+            raise ValueError("research context must be an object")
+        provider = CodexExecProvider.from_env(
+            args.env_file,
+            workdir=args.project_root,
+            status_path=args.state_dir / "llm" / "status.json",
+        )
+        intent = ResearchDirector(provider).propose(context)
+        record_intent(args.state_dir / "llm" / "intents.jsonl", intent)
+        print(
+            json.dumps(
+                {
+                    "status": "VALIDATED",
+                    "intent": intent.model_dump(mode="json", exclude_none=True),
                 },
                 ensure_ascii=False,
             )

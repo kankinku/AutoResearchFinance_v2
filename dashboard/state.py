@@ -11,6 +11,7 @@ from dashboard.contracts import (
     AccountSnapshot,
     DashboardSnapshot,
     Holding,
+    LLMStatus,
     ModeStatus,
     StrategySummary,
     TestRecord,
@@ -31,6 +32,7 @@ class DashboardStateReader:
         tests = self._read_tests(warnings)
         strategy = self._read_strategy(warnings)
         workers = self._read_workers(warnings)
+        llm = self._read_llm(warnings)
         trend = [
             TrendPoint(
                 generation=record.generation,
@@ -50,6 +52,7 @@ class DashboardStateReader:
             strategy=strategy,
             trend=trend,
             workers=workers,
+            llm=llm,
             warning_codes=sorted(set(warnings)),
         )
 
@@ -173,6 +176,22 @@ class DashboardStateReader:
                 )
             )
         return workers
+
+    def _read_llm(self, warnings: list[str]) -> LLMStatus:
+        payload = self._json("llm/status.json", warnings, "LLM_STATUS_INVALID")
+        if payload is None:
+            return LLMStatus()
+        try:
+            return LLMStatus(
+                provider=str(payload.get("provider", "codex_desktop")),
+                status=str(payload.get("status", "UNKNOWN")),
+                last_result=str(payload.get("last_result", "UNKNOWN")),
+                last_call_at=payload.get("last_call_at"),
+            )
+        except (TypeError, ValueError) as exc:
+            del exc
+            warnings.append("LLM_STATUS_INVALID")
+            return LLMStatus()
 
     def _json(self, name: str, warnings: list[str], warning: str) -> dict[str, Any] | None:
         return self._json_path(self.root / name, warnings, warning)

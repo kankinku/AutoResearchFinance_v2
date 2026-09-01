@@ -10,7 +10,7 @@
 | Benchmark | QQQ total return and Nasdaq Composite comparison when supplied | benchmark series, dividend/distribution policy, aligned date range |
 | Risk evaluation | Strategy risk appetite and daily-loss behavior recorded separately | user-defined strategy policy; immutable emergency cutoff remains outside strategy |
 | Worker | Docker isolation command and image contract | built and pinned image digest, Docker Engine |
-| LLM | Offline provider or configured HTTP JSON provider | endpoint and credential supplied through runtime environment |
+| LLM | Offline provider, local Codex Desktop MCP, or local `codex exec` adapter with schema validation | Codex Desktop/CLI login; no KIS credential is passed to the research bridge |
 
 The external requirements are intentionally not marked PASS by local unit tests. No live
 order method is exposed by the research KIS adapter, and this repository does not submit

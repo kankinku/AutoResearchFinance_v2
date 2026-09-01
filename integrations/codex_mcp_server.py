@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -15,7 +14,7 @@ from dashboard.service import DashboardService
 from evaluation.selector import FunnelConfig
 from integrations.codex_mcp_protocol import error, serve_lines, success, text_content
 from orchestration.pipeline import GenerationPipeline
-from research.llm.codex_exec import sanitize_context
+from research.llm.codex_exec import record_intent, sanitize_context, write_provider_status
 from research.llm.codex_schema import research_intent_schema
 from research.llm.director import ResearchIntent
 from strategy_ir.normalizer import normalize_source
@@ -34,6 +33,13 @@ class CodexMCPServer:
         method = request.get("method")
         if not isinstance(method, str):
             return error(request_id, -32600, "method is required")
+        if method in {"initialize", "ping", "tools/list", "tools/call"}:
+            write_provider_status(
+                self.state_dir / "llm" / "status.json",
+                "codex_desktop",
+                "ONLINE",
+                "MCP_CONNECTED",
+            )
         if "id" not in request and method.startswith("notifications/"):
             return None
         if method == "initialize":
@@ -138,17 +144,7 @@ class CodexMCPServer:
     def _submit_intent(self, arguments: dict[str, Any]) -> dict[str, object]:
         intent = ResearchIntent.model_validate(arguments)
         payload = sanitize_context(intent.model_dump(mode="json", exclude_none=True))
-        path = self.state_dir / "llm" / "intents.jsonl"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8", newline="\n") as handle:
-            handle.write(
-                json.dumps(
-                    {"timestamp": datetime.now(timezone.utc).isoformat(), "intent": payload},
-                    ensure_ascii=False,
-                    sort_keys=True,
-                )
-                + "\n"
-            )
+        record_intent(self.state_dir / "llm" / "intents.jsonl", intent)
         return {"status": "VALIDATED", "intent": payload}
 
     def _run_evaluation(self, arguments: dict[str, Any]) -> dict[str, object]:

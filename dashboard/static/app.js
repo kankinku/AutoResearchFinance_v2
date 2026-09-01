@@ -14,6 +14,8 @@ async function loadDashboard() {
     $("api-state").textContent = "Offline / stale data";
     $("kis-status").textContent = "OFFLINE";
     $("kis-detail").textContent = "Local snapshot may be stale";
+    $("llm-status").textContent = "UNKNOWN";
+    $("llm-detail").textContent = "Local status unavailable";
   }
 }
 
@@ -30,7 +32,10 @@ function renderDashboard(data) {
   const strategy = data.strategy || {};
   const account = data.account || {};
   const workers = data.workers || [];
+  const llm = data.llm || {};
   $("last-updated").textContent = data.generated_at || "—";
+  $("llm-status").textContent = llm.status || "UNKNOWN";
+  $("llm-detail").textContent = `${llm.provider || "codex_desktop"} · ${llm.last_result || "UNKNOWN"}`;
   $("account-badge").textContent = account.status || "UNKNOWN";
   $("account-number").textContent = account.account_number || "******";
   $("equity").textContent = fmt(account.equity);

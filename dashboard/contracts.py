@@ -83,6 +83,13 @@ class WorkerStatus(DashboardModel):
     error: str | None = None
 
 
+class LLMStatus(DashboardModel):
+    provider: str = "codex_desktop"
+    status: str = "UNKNOWN"
+    last_result: str = "UNKNOWN"
+    last_call_at: str | None = None
+
+
 class DashboardHealth(DashboardModel):
     status: Literal["ONLINE", "DEGRADED", "OFFLINE"] = "ONLINE"
     checked_at: str
@@ -102,6 +109,7 @@ class DashboardSnapshot(DashboardModel):
     strategy: StrategySummary = Field(default_factory=StrategySummary)
     trend: list[TrendPoint] = Field(default_factory=list)
     workers: list[WorkerStatus] = Field(default_factory=list)
+    llm: LLMStatus = Field(default_factory=LLMStatus)
     health: DashboardHealth | None = None
     warning_codes: list[str] = Field(default_factory=list)
 

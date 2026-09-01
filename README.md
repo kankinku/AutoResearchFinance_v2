@@ -38,6 +38,7 @@ python cli.py set-mode --state-dir state --mode paper
 python cli.py mode --state-dir state
 python cli.py dashboard-refresh --state-dir state --env-file .env
 python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
+python cli.py research-intent --state-dir state --env-file .env --project-root .
 ```
 
 The local paper operations dashboard is available at `http://127.0.0.1:8080/` after
@@ -45,6 +46,25 @@ starting the last command. It reports the effective paper-only mode, sanitized K
 account snapshot, evaluation ledger, Champion strategy, generation trend, and worker
 heartbeat state. See `docs/operations/paper-dashboard.md` for the safety boundary and
 refresh behavior.
+
+## Codex Desktop connection
+
+Codex Desktop can connect to the local stdio MCP server using the credential-free
+example in `.codex/config.toml.example`. Copy its section into the trusted Codex
+configuration or register the same command in Desktop MCP settings:
+
+```powershell
+python -m integrations.codex_mcp_server --state-dir state --project-root .
+```
+
+The exposed tools are limited to sanitized research context, the feature catalog,
+dashboard status, validated intent submission, and local evaluation. There is no
+order, live-account, credential, arbitrary-write, raw-market, or sealed-OOS tool.
+For an unattended/local subprocess call, use `research-intent`; it invokes the
+installed `codex exec` command and revalidates its structured output locally. The
+interactive Desktop conversation is not implicitly reused by a separate `codex exec`
+process. Codex CLI authentication is taken from its own saved login; KIS secrets are
+removed from the child environment.
 
 The local pipeline is callable through `orchestration.pipeline.GenerationPipeline`. It
 executes candidate generation, IR backtests, metrics, robustness checks, validation,
