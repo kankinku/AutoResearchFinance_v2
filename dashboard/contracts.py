@@ -47,6 +47,20 @@ class TestRecord(DashboardModel):
     qqq_cagr_delta: float | None = None
     max_drawdown: float | None = None
     risk_compliant: bool | None = None
+    parameters: dict[str, int | float | str | bool] = Field(default_factory=dict)
+    dataset_hash: str | None = None
+    benchmark_dataset_hash: str | None = None
+    strategy_cagr: float | None = None
+    qqq_cagr: float | None = None
+    nasdaq_cagr: float | None = None
+    trade_count: int | None = None
+    sharpe: float | None = None
+    sortino: float | None = None
+    profit_factor: float | None = None
+    turnover: float | None = None
+    exposure: float | None = None
+    gates: list[dict[str, object]] = Field(default_factory=list)
+    validation_folds: list[dict[str, object]] = Field(default_factory=list)
     status: str
 
 

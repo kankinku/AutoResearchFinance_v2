@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from evaluation.benchmark import BenchmarkComparison
 from evaluation.metrics import Metrics
 from evaluation.risk import RiskEvaluation
 from evaluation.robustness import RobustnessReport
+from mutation.parameter import ParameterValue
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,10 @@ class FunnelInput:
     full_benchmark: BenchmarkComparison | None = None
     risk_evaluation: RiskEvaluation | None = None
     feature_ids: tuple[str, ...] = ()
+    parameters: Mapping[str, ParameterValue] | None = None
+    dataset_hash: str | None = None
+    benchmark_dataset_hash: str | None = None
+    validation_folds: tuple[Mapping[str, object], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -57,6 +63,17 @@ class FunnelResult:
     feature_ids: tuple[str, ...] = ()
     full_total_return: float | None = None
     full_max_drawdown: float | None = None
+    parameters: Mapping[str, ParameterValue] | None = None
+    dataset_hash: str | None = None
+    benchmark_dataset_hash: str | None = None
+    full_cagr: float | None = None
+    full_sharpe: float | None = None
+    full_sortino: float | None = None
+    full_profit_factor: float | None = None
+    full_trade_count: int | None = None
+    full_turnover: float | None = None
+    full_exposure: float | None = None
+    validation_folds: tuple[Mapping[str, object], ...] = ()
 
 
 def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResult:
@@ -166,6 +183,17 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         candidate.feature_ids,
         candidate.full_metrics.total_return,
         candidate.full_metrics.max_drawdown,
+        candidate.parameters,
+        candidate.dataset_hash,
+        candidate.benchmark_dataset_hash,
+        candidate.full_metrics.cagr,
+        candidate.full_metrics.sharpe,
+        candidate.full_metrics.sortino,
+        candidate.full_metrics.profit_factor,
+        candidate.full_metrics.trade_count,
+        candidate.full_metrics.turnover,
+        candidate.full_metrics.exposure,
+        candidate.validation_folds,
     )
 
 

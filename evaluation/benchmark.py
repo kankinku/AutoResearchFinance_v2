@@ -21,6 +21,23 @@ class BenchmarkData:
             else None,
         )
 
+    def select(self, indices: Sequence[int]) -> BenchmarkData:
+        selected = tuple(indices)
+        return BenchmarkData(
+            tuple(self.qqq_prices[index] for index in selected),
+            tuple(self.nasdaq_prices[index] for index in selected),
+            (
+                tuple(self.qqq_distributions[index] for index in selected)
+                if self.qqq_distributions is not None
+                else None
+            ),
+            (
+                tuple(self.nasdaq_distributions[index] for index in selected)
+                if self.nasdaq_distributions is not None
+                else None
+            ),
+        )
+
 
 @dataclass(frozen=True)
 class BenchmarkComparison:

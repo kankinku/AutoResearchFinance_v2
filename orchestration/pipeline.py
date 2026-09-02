@@ -140,13 +140,18 @@ class GenerationPipeline:
                         ),
                     ),
                 )
-            validation_passed = bool(
-                walk_forward_splits(
-                    tuple(range(len(dataset.bars))),
-                    train_size=max(1, len(dataset.bars) // 2),
-                    test_size=max(1, len(dataset.bars) // 4),
-                    step=max(1, len(dataset.bars) // 4),
-                )
+            validation_folds = self._walk_forward_evidence(
+                candidate,
+                dataset,
+                funnel,
+                feature_values,
+                feature_specs,
+                feature_inputs,
+                external_series,
+                benchmark_data,
+            )
+            validation_passed = bool(validation_folds) and all(
+                bool(fold["passed"]) for fold in validation_folds
             )
             results.append(
                 select_candidate(
@@ -163,6 +168,10 @@ class GenerationPipeline:
                         tuple(
                             sorted(ref.feature_id for ref in candidate.strategy.features.values())
                         ),
+                        candidate.parameters,
+                        dataset.dataset_hash,
+                        external_series.dataset_hash if external_series is not None else None,
+                        validation_folds,
                     ),
                     funnel,
                 )
@@ -170,6 +179,86 @@ class GenerationPipeline:
             del trades
         knowledge = extract_knowledge(generation=parent.generation + 1, results=tuple(results))
         return GenerationPipelineResult(CANONICAL_STAGES, candidates, tuple(results), knowledge)
+
+    def _walk_forward_evidence(
+        self,
+        candidate: Candidate,
+        dataset: MarketDataSet,
+        funnel: FunnelConfig,
+        feature_values: Mapping[str, Sequence[float | None]] | None,
+        feature_specs: Mapping[str, FeatureSpec] | None,
+        feature_inputs: Mapping[str, Sequence[float | None]] | None,
+        external_series: SeriesDataSet | None,
+        benchmark_data: BenchmarkData | None,
+    ) -> tuple[dict[str, object], ...]:
+        indices = tuple(range(len(dataset.bars)))
+        splits = walk_forward_splits(
+            indices,
+            train_size=max(1, len(indices) // 2),
+            test_size=max(1, len(indices) // 4),
+            step=max(1, len(indices) // 4),
+        )
+        evidence: list[dict[str, object]] = []
+        for fold_index, (train_indices, test_indices) in enumerate(splits):
+            test_dataset = _select_dataset(dataset, test_indices)
+            test_feature_values = _select_feature_values(feature_values, test_indices)
+            test_feature_inputs = _select_feature_values(feature_inputs, test_indices)
+            metrics, _, equity = self._evaluate(
+                candidate,
+                test_dataset,
+                f"validation-{fold_index}",
+                test_feature_values,
+                feature_specs,
+                test_feature_inputs,
+                external_series,
+            )
+            comparison = (
+                _compare(equity, benchmark_data.select(test_indices), periods_per_year=252)
+                if benchmark_data is not None
+                else None
+            )
+            target_passed = (
+                comparison is not None
+                and (
+                    funnel.min_qqq_cagr_delta is None
+                    or comparison.qqq_cagr_delta >= funnel.min_qqq_cagr_delta
+                )
+            )
+            return_passed = metrics.total_return >= funnel.min_full_return
+            trade_passed = metrics.trade_count >= funnel.min_full_trades
+            failure_checks = [
+                ("trade_count", not trade_passed),
+                ("total_return", not return_passed),
+            ]
+            if funnel.min_qqq_cagr_delta is not None:
+                failure_checks.append(("qqq_cagr_delta", not target_passed))
+            passed = trade_passed and return_passed and (
+                target_passed if funnel.min_qqq_cagr_delta is not None else True
+            )
+            evidence.append(
+                {
+                    "fold": fold_index,
+                    "train_start": train_indices[0],
+                    "train_end": train_indices[-1],
+                    "test_start": test_indices[0],
+                    "test_end": test_indices[-1],
+                    "strategy_total_return": metrics.total_return,
+                    "strategy_cagr": metrics.cagr,
+                    "trade_count": metrics.trade_count,
+                    "max_drawdown": metrics.max_drawdown,
+                    "qqq_cagr": comparison.qqq_cagr if comparison is not None else None,
+                    "qqq_cagr_delta": (
+                        comparison.qqq_cagr_delta if comparison is not None else None
+                    ),
+                    "passed": passed,
+                    "failure_reasons": [
+                        reason
+                        for reason, condition in failure_checks
+                        if condition
+                    ],
+                }
+            )
+        return tuple(evidence)
 
     def _evaluate(
         self,
@@ -244,6 +333,23 @@ def _slice_feature_values(
     if feature_values is None:
         return None
     return {name: tuple(values[:width]) for name, values in feature_values.items()}
+
+
+def _select_dataset(dataset: MarketDataSet, indices: Sequence[int]) -> MarketDataSet:
+    bars = tuple(dataset.bars[index] for index in indices)
+    return MarketDataSet(dataset.version, dataset.zone, bars)
+
+
+def _select_feature_values(
+    feature_values: Mapping[str, Sequence[float | None]] | None,
+    indices: Sequence[int],
+) -> Mapping[str, Sequence[float | None]] | None:
+    if feature_values is None:
+        return None
+    return {
+        name: tuple(values[index] for index in indices)
+        for name, values in feature_values.items()
+    }
 
 
 def _compare(

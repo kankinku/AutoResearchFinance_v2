@@ -48,6 +48,9 @@ def _profile(result: FunnelResult, generation: int) -> dict[str, Any]:
         "generation": generation,
         "failed_gates": tuple(gate.name for gate in result.gates if not gate.passed),
         "feature_ids": tuple(sorted(result.feature_ids)),
+        "parameters": dict(result.parameters or {}),
+        "full_cagr": result.full_cagr,
+        "full_trade_count": result.full_trade_count,
     }
     if result.full_benchmark is not None:
         profile.update(
@@ -56,6 +59,10 @@ def _profile(result: FunnelResult, generation: int) -> dict[str, Any]:
                 "nasdaq_excess_return": result.full_benchmark.nasdaq_excess_return,
                 "qqq_outperformed": result.full_benchmark.qqq_outperformed,
                 "nasdaq_outperformed": result.full_benchmark.nasdaq_outperformed,
+                "qqq_cagr": result.full_benchmark.qqq_cagr,
+                "nasdaq_cagr": result.full_benchmark.nasdaq_cagr,
+                "qqq_cagr_delta": result.full_benchmark.qqq_cagr_delta,
+                "nasdaq_cagr_delta": result.full_benchmark.nasdaq_cagr_delta,
             }
         )
     if result.risk_evaluation is not None:

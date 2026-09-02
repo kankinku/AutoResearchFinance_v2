@@ -24,6 +24,8 @@ def test_funnel_records_all_gates_and_admits_survivor() -> None:
             _metrics(),
             RobustnessReport("OK", 0.9, 0.8, 0.7, 0.1, 0.75),
             validation_passed=True,
+            parameters={"indicators.fast.period": 5},
+            dataset_hash="data-hash",
         ),
         FunnelConfig(
             min_fast_trades=2,
@@ -46,6 +48,10 @@ def test_funnel_records_all_gates_and_admits_survivor() -> None:
     assert all(gate.passed for gate in result.gates)
     assert result.full_total_return == _metrics().total_return
     assert result.full_max_drawdown == _metrics().max_drawdown
+    assert result.full_cagr == _metrics().cagr
+    assert result.full_trade_count == _metrics().trade_count
+    assert dict(result.parameters or {}) == {"indicators.fast.period": 5}
+    assert result.dataset_hash == "data-hash"
 
 
 def test_funnel_exposes_rejection_reason_and_near_miss() -> None:

@@ -127,6 +127,12 @@ def test_generation_pipeline_adds_benchmark_results_without_replacing_existing_f
 
     assert result.funnel[0].full_benchmark is not None
     assert result.funnel[0].full_benchmark.qqq_total_return == pytest.approx(0.09)
+    assert len(result.funnel[0].validation_folds) == 2
+    assert all(
+        {"fold", "strategy_cagr", "qqq_cagr_delta", "trade_count", "passed"}
+        <= set(fold)
+        for fold in result.funnel[0].validation_folds
+    )
     assert result.funnel[0].status in {"SURVIVOR", "NEAR_MISS", "REJECT"}
 
 

@@ -47,6 +47,37 @@ def append_funnel_results(
                     if result.full_benchmark is not None
                     else None
                 ),
+                "parameters": dict(result.parameters or {}),
+                "dataset_hash": result.dataset_hash,
+                "benchmark_dataset_hash": result.benchmark_dataset_hash,
+                "strategy_cagr": result.full_cagr,
+                "qqq_cagr": (
+                    result.full_benchmark.qqq_cagr
+                    if result.full_benchmark is not None
+                    else None
+                ),
+                "nasdaq_cagr": (
+                    result.full_benchmark.nasdaq_cagr
+                    if result.full_benchmark is not None
+                    else None
+                ),
+                "trade_count": result.full_trade_count,
+                "sharpe": result.full_sharpe,
+                "sortino": result.full_sortino,
+                "profit_factor": result.full_profit_factor,
+                "turnover": result.full_turnover,
+                "exposure": result.full_exposure,
+                "gates": [
+                    {
+                        "name": gate.name,
+                        "passed": gate.passed,
+                        "threshold": gate.threshold,
+                        "actual": gate.actual,
+                        "reason": gate.reason,
+                    }
+                    for gate in result.gates
+                ],
+                "validation_folds": [dict(fold) for fold in result.validation_folds],
                 "status": result.status,
             }
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
