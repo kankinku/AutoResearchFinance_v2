@@ -60,6 +60,7 @@ def test_local_evaluation_runs_parameter_domain_and_benchmark(tmp_path: Path) ->
         ),
         count=2,
         min_trades=0,
+        min_qqq_excess_return=0.10,
     )
 
     assert strategy.is_file() and data.is_file() and series.is_file()
@@ -72,6 +73,7 @@ def test_local_evaluation_runs_parameter_domain_and_benchmark(tmp_path: Path) ->
     ]
     assert len(records) == 2
     assert all(record["nasdaq_excess_return"] is not None for record in records)
+    assert all(record["status"] == "REJECT" for record in records)
 
 
 def test_local_evaluation_without_domains_is_explicit_baseline(tmp_path: Path) -> None:

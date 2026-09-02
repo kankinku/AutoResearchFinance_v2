@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,7 @@ def run_local_evaluation(
     min_trades: int = 10,
     parameter_domains: Sequence[ParameterDomain] = (),
     series_data_path: object | None = None,
+    min_qqq_excess_return: float | None = None,
 ) -> dict[str, object]:
     source = resolve_project_input(project_root, source_path, ALLOWED_STRATEGY_SUFFIXES)
     data = resolve_project_input(project_root, data_path, frozenset({".parquet"}))
@@ -55,6 +57,8 @@ def run_local_evaluation(
         raise ValueError("evaluation method is invalid")
     if count < 1 or seed < 0 or min_trades < 0:
         raise ValueError("evaluation numeric options are invalid")
+    if min_qqq_excess_return is not None and not isfinite(min_qqq_excess_return):
+        raise ValueError("QQQ excess-return target must be finite")
     domains = tuple(parameter_domains)
     if any(not isinstance(domain, ParameterDomain) for domain in domains):
         raise TypeError("parameter_domains must contain ParameterDomain values")
@@ -74,7 +78,11 @@ def run_local_evaluation(
         method=method,
         count=count,
         seed=seed,
-        funnel=FunnelConfig(min_fast_trades=min_trades, min_full_trades=min_trades),
+        funnel=FunnelConfig(
+            min_fast_trades=min_trades,
+            min_full_trades=min_trades,
+            min_qqq_excess_return=min_qqq_excess_return,
+        ),
         benchmark_data=benchmark,
         feature_specs=feature_specs,
         feature_inputs=feature_inputs,

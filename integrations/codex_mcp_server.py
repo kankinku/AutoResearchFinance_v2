@@ -157,6 +157,9 @@ class CodexMCPServer:
         count = _positive_int(arguments.get("count", 1), "count")
         seed = _nonnegative_int(arguments.get("seed", 0), "seed")
         min_trades = _nonnegative_int(arguments.get("min_trades", 10), "min_trades")
+        min_qqq_excess = _optional_float(
+            arguments.get("min_qqq_excess_return"), "min_qqq_excess_return"
+        )
         parameter_domains = parse_parameter_domains(arguments.get("parameter_domains"))
         return run_local_evaluation(
             project_root=self.project_root,
@@ -169,6 +172,7 @@ class CodexMCPServer:
             min_trades=min_trades,
             parameter_domains=parameter_domains,
             series_data_path=arguments.get("series_data_path"),
+            min_qqq_excess_return=min_qqq_excess,
         )
 
 
@@ -237,6 +241,7 @@ def _tools() -> list[dict[str, object]]:
                         },
                     },
                     "series_data_path": {"type": "string"},
+                    "min_qqq_excess_return": {"type": "number"},
                 },
                 "required": ["source_path", "data_path"],
                 "additionalProperties": False,
@@ -340,6 +345,14 @@ def _integer(value: object, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{name} must be an integer")
     return value
+
+
+def _optional_float(value: object, name: str) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{name} must be a number")
+    return float(value)
 
 
 if __name__ == "__main__":

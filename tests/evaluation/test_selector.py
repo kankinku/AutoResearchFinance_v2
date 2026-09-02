@@ -40,6 +40,7 @@ def test_funnel_records_all_gates_and_admits_survivor() -> None:
         "robustness",
         "validation",
         "risk",
+        "qqq_excess_return",
         "promotion",
     ]
     assert all(gate.passed for gate in result.gates)
@@ -111,3 +112,32 @@ def test_funnel_rejects_candidate_that_breaches_declared_daily_loss_policy() -> 
     risk_gate = next(gate for gate in result.gates if gate.name == "risk")
     assert risk_gate.passed is False
     assert result.status == "REJECT"
+
+
+def test_funnel_applies_qqq_excess_return_target_when_configured() -> None:
+    benchmark = compare_benchmarks(
+        (100.0, 110.0, 120.0),
+        (100.0, 105.0, 110.0),
+        (100.0, 106.0, 112.0),
+    )
+    result = select_candidate(
+        FunnelInput(
+            "cand-qqq-target",
+            "trend",
+            _metrics(),
+            _metrics(),
+            RobustnessReport("OK", 0.9, 0.8, 0.7, 0.1, 0.75),
+            validation_passed=True,
+            full_benchmark=benchmark,
+        ),
+        FunnelConfig(
+            min_fast_trades=2,
+            min_full_trades=2,
+            min_robust_score=0.5,
+            min_qqq_excess_return=0.10,
+        ),
+    )
+
+    qqq_gate = next(gate for gate in result.gates if gate.name == "qqq_excess_return")
+    assert qqq_gate.passed is False
+    assert qqq_gate.threshold == 0.10
