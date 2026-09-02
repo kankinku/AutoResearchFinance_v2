@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+import integrations.kis.client as kis_client_module
 from integrations.kis.client import KISPaperClient, KISResponse
 from integrations.kis.config import KISConfigError, PaperKISConfig
 
@@ -149,6 +150,31 @@ def test_token_is_cached_for_multiple_read_only_calls(tmp_path: Path) -> None:
     client.quote("MSFT")
 
     assert sum(call["url"].endswith("/oauth2/tokenP") for call in transport.calls) == 1
+
+
+def test_client_throttles_live_paper_transport_requests(tmp_path: Path, monkeypatch) -> None:
+    env_path = tmp_path / ".env"
+    _env(env_path)
+    transport = RecordingTransport(
+        [
+            KISResponse(
+                200,
+                {"access_token": "placeholder", "access_token_token_expired": "2099-01-01"},
+            ),
+            KISResponse(200, {"rt_cd": "0", "output": {"last": "1"}}),
+        ]
+    )
+    sleeps: list[float] = []
+    monkeypatch.setattr(kis_client_module, "URLTransport", lambda: transport)
+    monkeypatch.setattr(kis_client_module.time, "monotonic", lambda: 0.0)
+    monkeypatch.setattr(kis_client_module.time, "sleep", sleeps.append)
+
+    client = KISPaperClient(PaperKISConfig.from_env(env_path))
+
+    client.health()
+    client.quote("AAPL")
+
+    assert sleeps == [pytest.approx(1.1)]
 
 
 def test_client_maps_daily_bars_using_official_period_price_contract(tmp_path: Path) -> None:

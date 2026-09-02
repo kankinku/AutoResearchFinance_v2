@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -11,6 +12,8 @@ from typing import Any, Protocol
 
 from core.data.contracts import Bar
 from integrations.kis.config import PaperKISConfig
+
+_PAPER_REQUEST_INTERVAL_SECONDS = 1.1
 
 
 class KISTransport(Protocol):
@@ -106,7 +109,10 @@ class KISPaperClient:
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self.config = config
+        transport_was_injected = transport is not None
         self._transport = transport or URLTransport()
+        self._throttle_enabled = not transport_was_injected
+        self._last_request_at: float | None = None
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._token = ""
         self._token_expires_at = datetime.min.replace(tzinfo=timezone.utc)
@@ -245,7 +251,7 @@ class KISPaperClient:
         now = self._clock()
         if self._token and now + timedelta(seconds=30) < self._token_expires_at:
             return self._token
-        response = self._transport.request(
+        response = self._request(
             "POST",
             f"{self.config.base_url}/oauth2/tokenP",
             headers={"content-type": "application/json"},
@@ -276,7 +282,7 @@ class KISPaperClient:
         body: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         token = self._access_token()
-        response = self._transport.request(
+        response = self._request(
             method,
             f"{self.config.base_url}{path}",
             headers={
@@ -295,6 +301,30 @@ class KISPaperClient:
             code = payload.get("msg_cd")
             raise KISAPIError(response.status_code, str(code) if code else "api_error")
         return payload
+
+    def _request(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: dict[str, str],
+        params: dict[str, str] | None = None,
+        body: dict[str, str] | None = None,
+    ) -> KISResponse:
+        if self._throttle_enabled:
+            now = time.monotonic()
+            if self._last_request_at is not None:
+                remaining = _PAPER_REQUEST_INTERVAL_SECONDS - (now - self._last_request_at)
+                if remaining > 0:
+                    time.sleep(remaining)
+            self._last_request_at = time.monotonic()
+        return self._transport.request(
+            method,
+            url,
+            headers=headers,
+            params=params,
+            body=body,
+        )
 
 
 def _symbol(symbol: str) -> str:
