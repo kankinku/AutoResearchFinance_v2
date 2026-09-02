@@ -36,7 +36,81 @@ python cli.py plan-generation --parent champion-1 --method random --count 32 --s
 python cli.py list-features
 python cli.py set-mode --state-dir state --mode paper
 python cli.py mode --state-dir state
+python cli.py dashboard-refresh --state-dir state --env-file .env
+python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
+python cli.py research-intent --state-dir state --env-file .env --project-root .
 ```
+
+For Codex Desktop, the MCP system orchestrator can preflight and start the local
+dashboard, research detector, and isolated Docker backtest worker together. See
+`docs/operations/system-orchestrator.md` for registration and the natural-language
+command flow.
+
+The local paper operations dashboard is available at `http://127.0.0.1:8080/` after
+starting the last command. It reports the effective paper-only mode, sanitized KIS
+account snapshot, evaluation ledger, Champion strategy, generation trend, and worker
+heartbeat state. See `docs/operations/paper-dashboard.md` for the safety boundary and
+refresh behavior.
+
+## How to use the system
+
+Run commands from the repository root. Create the state directory once, keep the
+trading mode set to paper, refresh the read-only KIS snapshot when needed, and leave
+the dashboard process running in its own terminal:
+
+```powershell
+python cli.py init --state-dir state
+python cli.py set-mode --state-dir state --mode paper
+python cli.py dashboard-refresh --state-dir state --env-file .env
+python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
+```
+
+Open `http://127.0.0.1:8080/`. The dashboard's Quick Guide contains the same commands
+with copy buttons. `init` is only for a new state directory; do not repeat it over a
+state directory whose experiment history you want to keep. `dashboard-refresh` reads
+paper account/quote data; it does not place orders.
+
+For Codex Desktop, register `.codex/config.toml.example` in the Desktop MCP settings.
+The local MCP server can then be started with:
+
+```powershell
+python -m integrations.codex_mcp_server --state-dir state --project-root .
+```
+
+In Codex Desktop, use `get_dashboard_status` and `get_research_context` first, submit
+the resulting structured intent with `submit_research_intent`, and run only an
+approved local evaluation with `run_evaluation`. The server has no order or live
+account tool. For a non-interactive alternative, authenticate the Codex CLI and run:
+
+```powershell
+codex login status
+python cli.py research-intent --state-dir state --env-file .env --project-root .
+```
+
+The command records a validated intent in `state/llm/intents.jsonl`; the dashboard
+shows the provider state in the Codex LLM card. Keep KIS values only in the ignored
+`.env` file, never in a prompt or source file.
+
+## Codex Desktop connection
+
+Codex Desktop can connect to the local stdio MCP server using the credential-free
+example in `.codex/config.toml.example`. Copy its section into the trusted Codex
+configuration or register the same command in Desktop MCP settings:
+
+```powershell
+python -m integrations.codex_mcp_server --state-dir state --project-root .
+```
+
+The exposed tools are limited to sanitized research context, the feature catalog,
+dashboard status, validated intent submission, and local evaluation. There is no
+order, live-account, credential, arbitrary-write, raw-market, or sealed-OOS tool.
+For an unattended/local subprocess call, use `research-intent`; it invokes the
+installed `codex exec` command and revalidates its structured output locally. The
+interactive Desktop conversation is not implicitly reused by a separate `codex exec`
+process. Codex CLI authentication is taken from its own saved login; KIS secrets are
+removed from the child environment.
+The CLI adapter accepts `QUANT_CODEX_MODEL` for a model supported by the installed
+CLI; the example uses `gpt-5.4-mini`.
 
 The local pipeline is callable through `orchestration.pipeline.GenerationPipeline`. It
 executes candidate generation, IR backtests, metrics, robustness checks, validation,
@@ -46,9 +120,18 @@ disables networking, drops capabilities, and writes only to the run output direc
 
 External price, macro, rate, and benchmark series use the same versioned Parquet
 contract through `ParquetDataProvider.write_series/read_series`. The optional Feature
-Registry exposes VIX, gold, DXY, QQQ, Nasdaq, and US/Japan/Korea 2-year and 10-year
-rate candidates. A strategy selects only the features it declares; no macro feature is
-implicitly mandatory. `list-features` reports the current selectable catalog.
+Registry exposes VIX, gold, DXY, QQQ, Nasdaq, and US/Japan/Korea 2-year, 10-year, and
+20-year rate candidates. Any registered series can receive any registered transform on
+`1d`, `1w`, or `1mo`; for example, `US20Y.close@1w:rsi(period=14)`. A strategy selects
+only the features it declares; no macro feature is implicitly mandatory. `list-features`
+reports the current selectable catalog, and the dashboard exposes it at
+`/api/features/catalog`.
+
+The four audited indicator sources are represented by canonical FeatureSpecs with
+aliases and semantic duplicate groups. `pythonpine` is treated as AGPL-3.0 and is not
+vendored; its formulas are independently reimplemented. Profile, TPO, and tick
+order-flow indicators require explicit data contracts. Account, order, network,
+downloader, and plotting functions are never feature calculators.
 
 Generation evaluation keeps the existing Fast/Full, robustness, walk-forward, OOS,
 CSCV/CPCV, cost, and complexity checks. When benchmark data is supplied, it adds QQQ

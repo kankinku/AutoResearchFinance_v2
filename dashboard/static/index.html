@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Quant Autoresearch 모의투자 연구 운영 대시보드">
+  <title>퀀트 자동 연구 · 연구 운영</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">퀀트 자동 연구 하네스</p>
+      <h1>연구 운영</h1>
+      <p class="lede">현재 상태를 확인하고 다음 연구 행동을 결정하세요.</p>
+      <nav class="page-nav" aria-label="대시보드 메뉴"><a class="active" href="/">연구 운영</a><a href="/backtest">백테스트</a></nav>
+    </div>
+    <div class="top-actions">
+      <div class="last-read"><span class="label">마지막 확인</span><strong id="last-updated">아직 갱신되지 않음</strong></div>
+      <button id="refresh" class="button button-primary" type="button">새로고침</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="safety-banner" class="safety-banner" role="status" aria-live="polite" aria-labelledby="safety-title">
+      <span class="status-dot" aria-hidden="true"></span>
+      <div><strong id="safety-title">모의투자 전용</strong><span id="safety-detail">주문 기능이 비활성화된 로컬 읽기 전용 화면입니다.</span></div>
+      <span id="safety-badge" class="badge badge-positive">안전 상태</span>
+    </section>
+
+    <section class="decision-grid" aria-label="현재 상황과 다음 행동">
+      <article class="panel panel-attention" aria-labelledby="attention-title">
+        <div class="section-heading"><div><p class="eyebrow">현재 상황</p><h2 id="attention-title">주의 필요</h2></div><span id="attention-count" class="badge">확인 중</span></div>
+        <ul id="attention-list" class="attention-list"><li class="muted">상태를 불러오는 중입니다.</li></ul>
+      </article>
+      <article class="panel panel-action" aria-labelledby="next-action-title">
+        <div class="section-heading"><div><p class="eyebrow">우선순위</p><h2 id="next-action-title">다음 행동</h2></div><span class="badge badge-neutral">읽기 전용</span></div>
+        <p id="next-action-copy" class="action-copy">현재 상태를 확인하는 중입니다.</p>
+        <div class="command-block"><code id="next-action-command">—</code><button class="copy-command button button-small" type="button" data-copy-target="next-action-command">복사</button></div>
+        <p class="muted action-note">이 화면은 명령을 실행하지 않습니다. 명령은 저장소 루트의 터미널에서 검토 후 실행하세요.</p>
+      </article>
+    </section>
+
+    <section class="overview-grid" aria-label="핵심 상태">
+      <article class="card accent-blue"><p class="label">시스템 상태</p><p id="system-status" class="metric">확인 필요</p><p id="system-detail" class="muted">상태 정보 없음</p></article>
+      <article class="card"><p class="label">Champion</p><p id="champion-score" class="metric">—</p><p id="champion-detail" class="muted">승격된 전략 없음</p></article>
+      <article class="card"><p class="label">Frontier</p><p id="frontier-count" class="metric">0개</p><p id="frontier-detail" class="muted">0개 패밀리</p></article>
+      <article class="card"><p class="label">연구 준비도</p><p id="readiness-status" class="metric">확인 필요</p><p id="readiness-detail" class="muted">입력 상태 확인 중</p></article>
+    </section>
+
+    <section class="panel" aria-labelledby="research-title">
+      <div class="section-heading"><div><p class="eyebrow">연구 현황</p><h2 id="research-title">탐색 공간</h2></div><span id="research-summary" class="badge">0개 기록</span></div>
+      <div class="research-grid">
+        <div class="research-stat"><span class="label">검증된 패턴</span><strong id="known-good-count">0</strong><span class="muted">재사용 후보</span></div>
+        <div class="research-stat"><span class="label">주의 패턴</span><strong id="known-bad-count">0</strong><span class="muted">피해야 할 후보</span></div>
+        <div class="research-stat"><span class="label">미탐색 영역</span><strong id="unexplored-count">0</strong><span class="muted">검증 대기</span></div>
+        <div class="research-stat"><span class="label">Rescue Pool</span><strong id="rescue-count">0</strong><span class="muted">재검토 후보</span></div>
+      </div>
+      <div id="family-summary" class="family-summary" aria-label="패밀리별 Frontier 전략"><span class="sr-only">프론티어 전략</span></div>
+    </section>
+
+    <section class="two-column" aria-label="핵심 분석">
+      <article class="panel" aria-labelledby="champion-title">
+        <div class="section-heading"><div><p class="eyebrow">성과 근거</p><h2 id="champion-title">Champion 증거</h2></div><span id="champion-badge" class="badge">없음</span></div>
+        <p id="champion-evidence" class="empty-copy">아직 승격된 전략이 없습니다. 성과 비교를 표시할 근거가 없습니다.</p>
+        <dl class="details"><dt>식별 해시</dt><dd id="champion-hash">—</dd><dt>전략 유형</dt><dd id="champion-family">—</dd><dt>세대</dt><dd id="champion-generation">—</dd><dt>점수</dt><dd id="champion-score-detail">—</dd><dt>수익률</dt><dd id="champion-return">—</dd><dt>위험 준수</dt><dd id="champion-risk">—</dd></dl>
+      </article>
+      <article class="panel" aria-labelledby="runtime-title">
+        <div class="section-heading"><div><p class="eyebrow">실행 환경</p><h2 id="runtime-title">시스템 건강</h2></div><span id="health-badge" class="badge">확인 필요</span></div>
+        <div class="runtime-list"><div><span class="label">KIS 모의투자 연결</span><strong id="kis-status">확인 필요</strong><span id="kis-detail" class="muted">아직 확인하지 않음</span></div><div><span class="label">병렬 작업자</span><strong id="worker-status">0명 온라인</strong><span id="worker-detail" class="muted">응답 지연 0명</span></div><div><span class="label">Codex 연구 상태</span><strong id="llm-status">확인 필요</strong><span id="llm-detail" class="muted">호출 기록 없음</span></div></div>
+      </article>
+    </section>
+
+    <section class="details-section" aria-labelledby="details-title">
+      <div class="section-heading"><div><p class="eyebrow">점진적 상세화</p><h2 id="details-title">상세 분석</h2></div><span class="muted">필요할 때만 열어보세요.</span></div>
+      <details class="disclosure">
+        <summary>계좌 상세 <span class="summary-meta">연결·잔고·보유 종목</span></summary>
+        <div class="account-grid"><div><span class="label">계좌번호</span><strong id="account-number">******</strong></div><div><span class="label">총 평가액</span><strong id="equity">—</strong></div><div><span class="label">현금</span><strong id="cash">—</strong></div><div><span class="label">주문 가능 금액</span><strong id="buying-power">—</strong></div></div>
+        <div class="table-wrap"><table><caption>보유 종목</caption><thead><tr><th>종목</th><th>수량</th><th>평가액</th><th>손익</th></tr></thead><tbody id="holdings"></tbody></table></div>
+      </details>
+      <details class="disclosure">
+        <summary>최근 평가 <span id="test-count" class="summary-meta">0회 실행</span></summary>
+        <div class="table-wrap"><table><caption>최근 전략 평가</caption><thead><tr><th>시간</th><th>실행 ID</th><th>세대</th><th>수익률</th><th>나스닥 초과</th><th>위험</th><th>결과</th></tr></thead><tbody id="tests"></tbody></table></div>
+        <div id="trend" class="trend" aria-label="세대별 전략 점수 변화"></div>
+      </details>
+      <details class="disclosure">
+        <summary>인디케이터 카탈로그 <span id="feature-count" class="summary-meta">0개</span></summary>
+        <p class="muted detail-intro">중복이 통합된 등록 인디케이터와 적용 가능한 시간봉을 확인합니다.</p>
+        <div class="table-wrap"><table><caption>등록 인디케이터</caption><thead><tr><th>인디케이터</th><th>계열</th><th>별칭</th><th>출처·라이선스</th><th>시간봉</th><th>상태</th></tr></thead><tbody id="feature-catalog"></tbody></table></div>
+      </details>
+      <details class="disclosure">
+        <summary>원시 상태·작업자 기록 <span class="summary-meta">진단용</span></summary>
+        <div class="table-wrap"><table><caption>작업자 상태</caption><thead><tr><th>작업자</th><th>역할</th><th>상태</th><th>마지막 응답</th></tr></thead><tbody id="workers"></tbody></table></div>
+        <div id="warnings" class="inline-warnings" hidden><strong>확인 필요</strong><ul id="warnings-list"></ul></div>
+      </details>
+    </section>
+  </main>
+  <footer><span>로컬 전용 · Paper-only 안전 경계 적용</span><span id="api-state" role="status" aria-live="polite">대기 중</span></footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

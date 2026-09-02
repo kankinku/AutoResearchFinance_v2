@@ -5,13 +5,16 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from core.data.parquet import ParquetDataProvider
 from core.features.registry import default_feature_registry
 from core.integrity.hashes import content_hash
-from evaluation.selector import FunnelConfig
+from dashboard.run import run_dashboard
+from dashboard.service import DashboardService
+from dashboard.state import DashboardStateReader
 from experiments.planner import plan_experiment
 from memory.state_files import StateFileStore
-from orchestration.pipeline import GenerationPipeline
+from orchestration.evaluation_runner import run_local_evaluation
+from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
+from research.llm.director import ResearchDirector
 from strategy_ir.normalizer import ImportStatus, normalize_source
 
 
@@ -25,6 +28,21 @@ def build_parser() -> argparse.ArgumentParser:
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     subparsers.add_parser("list-features")
+    research_parser = subparsers.add_parser(
+        "research-intent", help="Ask the local Codex CLI for one validated research intent"
+    )
+    research_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    research_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    research_parser.add_argument("--project-root", type=Path, default=Path("."))
+    dashboard_parser = subparsers.add_parser("dashboard")
+    dashboard_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    dashboard_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    dashboard_parser.add_argument("--host", default="127.0.0.1")
+    dashboard_parser.add_argument("--port", type=int, default=8080)
+    for command in ("dashboard-status", "dashboard-refresh"):
+        dashboard_command = subparsers.add_parser(command)
+        dashboard_command.add_argument("--state-dir", type=Path, default=Path("state"))
+        dashboard_command.add_argument("--env-file", type=Path, default=Path(".env"))
     subparsers.choices["set-mode"].add_argument(
         "--mode", choices=("paper", "live"), required=True
     )
@@ -45,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--count", type=int, default=1)
     run_parser.add_argument("--seed", type=int, default=0)
     run_parser.add_argument("--min-trades", type=int, default=10)
+    run_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     for command in ("resume", "rebuild-cache"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
@@ -113,6 +132,73 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "research-intent":
+        snapshot = DashboardStateReader(args.state_dir).read()
+        context = sanitize_context(
+            {
+                "generation": snapshot.strategy.generation or 0,
+                "champion": snapshot.strategy.model_dump(mode="json"),
+                "frontier": [],
+                "observations": [
+                    item.model_dump(mode="json") for item in snapshot.tests[:20]
+                ],
+                "feature_catalog": [
+                    {
+                        "name": spec.name,
+                        "family": spec.family,
+                        "inputs": list(spec.inputs),
+                        "calculator": spec.calculator,
+                        "lookback": spec.lookback,
+                        "timeframe": spec.timeframe,
+                    }
+                    for spec in default_feature_registry().all()
+                ],
+            }
+        )
+        if not isinstance(context, dict):
+            raise ValueError("research context must be an object")
+        provider = CodexExecProvider.from_env(
+            args.env_file,
+            workdir=args.project_root,
+            status_path=args.state_dir / "llm" / "status.json",
+        )
+        intent = ResearchDirector(provider).propose(context)
+        record_intent(args.state_dir / "llm" / "intents.jsonl", intent)
+        print(
+            json.dumps(
+                {
+                    "status": "VALIDATED",
+                    "intent": intent.model_dump(mode="json", exclude_none=True),
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
+    if args.command == "dashboard":
+        run_dashboard(
+            state_dir=args.state_dir,
+            env_path=args.env_file,
+            host=args.host,
+            port=args.port,
+        )
+        return 0
+    if args.command in {"dashboard-status", "dashboard-refresh"}:
+        service = DashboardService.from_environment(args.state_dir, args.env_file)
+        snapshot = service.refresh() if args.command == "dashboard-refresh" else service.snapshot()
+        health = snapshot.health
+        print(
+            json.dumps(
+                {
+                    "status": health.status if health else "UNKNOWN",
+                    "effective_mode": snapshot.mode.effective_mode,
+                    "live_enabled": snapshot.mode.live_enabled,
+                    "kis_status": health.kis_status if health else "UNKNOWN",
+                    "warning_codes": snapshot.warning_codes,
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
     if args.command in {"import-strategy", "validate-strategy"}:
         result = normalize_source(args.source)
         payload: dict[str, object] = {
@@ -151,35 +237,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     if args.command == "run-generation":
-        imported = normalize_source(args.source)
-        if imported.strategy is None:
-            print(json.dumps({"status": "UNSUPPORTED", "reason": imported.reason}))
-            return 2
-        pipeline_result = GenerationPipeline().run(
-            parent=imported.strategy,
-            dataset=ParquetDataProvider.read(args.data),
-            operations=(),
-            domains=(),
+        evaluation_result = run_local_evaluation(
+            project_root=Path("."),
+            state_dir=args.state_dir,
+            source_path=args.source,
+            data_path=args.data,
             method=args.method,
             count=args.count,
             seed=args.seed,
-            funnel=FunnelConfig(
-                min_fast_trades=args.min_trades,
-                min_full_trades=args.min_trades,
-            ),
+            min_trades=args.min_trades,
         )
-        print(
-            json.dumps(
-                {
-                    "status": "COMPLETED",
-                    "candidate_count": len(pipeline_result.candidates),
-                    "counts": {
-                        status: sum(item.status == status for item in pipeline_result.funnel)
-                        for status in sorted({item.status for item in pipeline_result.funnel})
-                    },
-                }
-            )
-        )
+        print(json.dumps(evaluation_result, ensure_ascii=False))
         return 0
     if args.command == "resume":
         assert store is not None

@@ -41,6 +41,8 @@ def test_funnel_records_all_gates_and_admits_survivor() -> None:
         "promotion",
     ]
     assert all(gate.passed for gate in result.gates)
+    assert result.full_total_return == _metrics().total_return
+    assert result.full_max_drawdown == _metrics().max_drawdown
 
 
 def test_funnel_exposes_rejection_reason_and_near_miss() -> None:

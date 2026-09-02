@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from core.features.catalog import semantic_feature_id
 from core.features.contracts import FeatureSpec, FeatureVerification
 
 
@@ -10,10 +11,16 @@ class FeatureRegistrationError(ValueError):
 class FeatureRegistry:
     def __init__(self, specs: tuple[FeatureSpec, ...] = ()) -> None:
         self._specs: dict[str, FeatureSpec] = {}
+        self._canonical_names: dict[str, str] = {}
         for spec in specs:
             if spec.status != "REGISTERED":
                 raise FeatureRegistrationError("registry accepts only registered features")
-            self._specs[spec.name] = spec
+            canonical = semantic_feature_id(spec)
+            if canonical in self._canonical_names:
+                raise FeatureRegistrationError("duplicate semantic identity")
+            registered = spec.model_copy(update={"canonical_id": canonical})
+            self._specs[registered.name] = registered
+            self._canonical_names[canonical] = registered.name
 
     def register_verified(
         self, spec: FeatureSpec, verification: FeatureVerification
@@ -22,15 +29,24 @@ class FeatureRegistry:
             raise FeatureRegistrationError("feature verification did not pass")
         if spec.name in self._specs:
             raise FeatureRegistrationError(f"feature already registered: {spec.name}")
-        registered = spec.model_copy(update={"status": "REGISTERED"})
+        canonical = semantic_feature_id(spec)
+        if canonical in self._canonical_names:
+            raise FeatureRegistrationError("duplicate semantic identity")
+        registered = spec.model_copy(update={"status": "REGISTERED", "canonical_id": canonical})
         self._specs[registered.name] = registered
+        self._canonical_names[canonical] = registered.name
         return registered
 
     def quarantine(self, spec: FeatureSpec) -> FeatureSpec:
         return spec.model_copy(update={"status": "QUARANTINED"})
 
     def get(self, name: str) -> FeatureSpec:
-        return self._specs[name]
+        if name in self._specs:
+            return self._specs[name]
+        for spec in self._specs.values():
+            if name in spec.aliases:
+                return spec
+        raise KeyError(name)
 
     def names(self) -> tuple[str, ...]:
         return tuple(sorted(self._specs))
@@ -54,6 +70,9 @@ def default_feature_registry() -> FeatureRegistry:
         ("japan_10y_change", "rates", ("JP10Y.close",), "returns", 5),
         ("korea_2y_change", "rates", ("KR2Y.close",), "returns", 5),
         ("korea_10y_change", "rates", ("KR10Y.close",), "returns", 5),
+        ("us_20y_change", "rates", ("US20Y.close",), "returns", 5),
+        ("japan_20y_change", "rates", ("JP20Y.close",), "returns", 5),
+        ("korea_20y_change", "rates", ("KR20Y.close",), "returns", 5),
     )
     verification = FeatureVerification(
         schema_valid=True,

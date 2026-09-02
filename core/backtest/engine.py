@@ -6,9 +6,11 @@ from itertools import pairwise
 from math import isfinite
 
 from core.costs.model import CostModel
-from core.data.contracts import Bar, MarketDataSet
+from core.data.contracts import Bar, MarketDataSet, SeriesDataSet
+from core.features.alignment import align_as_of
 from core.features.calculators import FeatureCalculationError, calculate_feature
 from core.features.contracts import FeatureSpec
+from core.features.series import TimeFrame, resample_completed
 from core.integrity.hashes import content_hash
 from strategy_ir.schema import Condition, IndicatorSpec, StrategyIR
 
@@ -24,6 +26,7 @@ class BacktestRequest:
     feature_values: Mapping[str, Sequence[float | None]] | None = None
     feature_specs: Mapping[str, FeatureSpec] | None = None
     feature_inputs: Mapping[str, Sequence[float | None]] | None = None
+    external_series: SeriesDataSet | None = None
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,7 @@ class BacktestEngine:
                 request.feature_values,
                 request.feature_specs,
                 request.feature_inputs,
+                request.external_series,
             )
         )
         strategy_hash = content_hash(strategy.model_dump(mode="json", by_alias=True))
@@ -139,6 +143,7 @@ def _feature_values(
     supplied: Mapping[str, Sequence[float | None]] | None,
     specs: Mapping[str, FeatureSpec] | None,
     inputs: Mapping[str, Sequence[float | None]] | None,
+    external_series: SeriesDataSet | None = None,
 ) -> dict[str, list[float | None]]:
     if not strategy.features:
         return {}
@@ -149,12 +154,34 @@ def _feature_values(
             values = list(supplied[alias])
         else:
             if specs is None or reference.feature_id not in specs or inputs is None:
-                raise ValueError(f"missing feature values for {alias!r}")
+                if specs is None or reference.feature_id not in specs:
+                    raise ValueError(f"missing feature values for {alias!r}")
             spec = specs[reference.feature_id]
             if spec.status != "REGISTERED":
                 raise ValueError(f"feature is not registered: {reference.feature_id!r}")
+            resolved_inputs = dict(inputs or {})
+            timeframe = spec.timeframe if reference.timeframe == "1d" else reference.timeframe
+            if external_series is not None:
+                target_timestamps = tuple(bar.timestamp for bar in dataset.bars)
+                for input_name in spec.inputs:
+                    if input_name in resolved_inputs:
+                        continue
+                    series_id = input_name.rsplit(".", maxsplit=1)[0]
+                    observations = tuple(
+                        observation
+                        for observation in external_series.observations
+                        if observation.series_id == series_id
+                    )
+                    if not observations:
+                        continue
+                    resampled = resample_completed(observations, TimeFrame(timeframe))
+                    resolved_inputs[input_name] = align_as_of(target_timestamps, resampled)
             try:
-                values = list(calculate_feature(spec, inputs))
+                values = list(
+                    calculate_feature(
+                        spec.model_copy(update={"timeframe": timeframe}), resolved_inputs
+                    )
+                )
             except FeatureCalculationError as exc:
                 raise ValueError(str(exc)) from exc
         if len(values) != len(dataset.bars):
@@ -211,9 +238,7 @@ def _rules_match(
     conditions: list[Condition], logic: str, values: dict[str, list[float | None]], index: int
 ) -> bool:
     outcomes = [
-        _condition_match(condition, values, index)
-        for condition in conditions
-        if condition.enabled
+        _condition_match(condition, values, index) for condition in conditions if condition.enabled
     ]
     return bool(outcomes) and (all(outcomes) if logic == "AND" else any(outcomes))
 
@@ -254,9 +279,9 @@ def _risk_exit(strategy: StrategyIR, entry_price: float, price: float) -> bool:
     if entry_price <= 0:
         return False
     move_pct = (price / entry_price - 1) * 100
-    return (
-        strategy.risk.stop_loss_pct > 0 and move_pct <= -strategy.risk.stop_loss_pct
-    ) or (strategy.risk.take_profit_pct > 0 and move_pct >= strategy.risk.take_profit_pct)
+    return (strategy.risk.stop_loss_pct > 0 and move_pct <= -strategy.risk.stop_loss_pct) or (
+        strategy.risk.take_profit_pct > 0 and move_pct >= strategy.risk.take_profit_pct
+    )
 
 
 def _cost(cost_model: CostModel | None, notional: float, side: str) -> float:

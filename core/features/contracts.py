@@ -25,6 +25,15 @@ class FeatureSpec(BaseModel):
     version: str = "feature-v1"
     status: Literal["PROPOSED", "REGISTERED", "QUARANTINED"] = "PROPOSED"
     implementation_hash: str = ""
+    canonical_id: str = ""
+    aliases: tuple[str, ...] = ()
+    source_repositories: tuple[str, ...] = ()
+    source_licenses: tuple[str, ...] = ()
+    data_contract: Literal[
+        "scalar", "ohlcv", "profile", "order_flow", "session", "research_label"
+    ] = "scalar"
+    output_name: str = "value"
+    duplicate_group: str = ""
 
     @field_validator("inputs")
     @classmethod
@@ -38,7 +47,7 @@ class FeatureSpec(BaseModel):
     @field_validator("timeframe")
     @classmethod
     def validate_timeframe(cls, value: str) -> str:
-        if value not in {"1m", "5m", "15m", "1h", "1d"}:
+        if value not in {"1m", "5m", "15m", "1h", "1d", "1w", "1mo"}:
             raise ValueError("unsupported feature timeframe")
         return value
 

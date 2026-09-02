@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Quant Autoresearch 백테스트 관리 화면">
+  <title>퀀트 자동 연구 · 백테스트 관리</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">퀀트 자동 연구 하네스</p>
+      <h1>백테스트 관리</h1>
+      <p class="lede">연구 운영과 분리해 실행 입력, 결과 원장, 검증 근거를 확인하세요.</p>
+      <nav class="page-nav" aria-label="대시보드 메뉴"><a href="/">연구 운영</a><a class="active" href="/backtest">백테스트</a></nav>
+    </div>
+    <div class="top-actions">
+      <div class="last-read"><span class="label">마지막 확인</span><strong id="last-updated">아직 갱신되지 않음</strong></div>
+      <button id="refresh" class="button button-primary" type="button">새로고침</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="safety-banner" role="status" aria-live="polite" aria-labelledby="safety-title">
+      <span class="status-dot" aria-hidden="true"></span>
+      <div><strong id="safety-title">모의투자 전용</strong><span>백테스트 페이지는 주문을 생성하지 않으며 로컬 결과만 표시합니다.</span></div>
+      <span class="badge badge-positive">주문 비활성화</span>
+    </section>
+
+    <section class="decision-grid" aria-label="백테스트 실행과 연결 상태">
+      <article class="panel panel-action" aria-labelledby="run-title">
+        <div class="section-heading"><div><p class="eyebrow">실행 입력</p><h2 id="run-title">검증된 전략 실행</h2></div><span class="badge badge-neutral">명령 준비</span></div>
+        <p class="muted detail-intro">현재 저장소의 `run-generation` 진입점에 맞춰 명령을 구성합니다. 화면에서 직접 실행하지 않고 복사해 검토합니다.</p>
+        <div class="form-grid">
+          <label>전략 소스<input id="strategy-source" value="<strategy.py>" aria-label="전략 소스"></label>
+          <label>Parquet 데이터<input id="data-source" value="<data.parquet>" aria-label="Parquet 데이터"></label>
+          <label>탐색 방식<select id="method" aria-label="탐색 방식"><option value="grid">Grid</option><option value="random">Random</option><option value="bayesian">Bayesian</option></select></label>
+          <label>후보 수<input id="count" type="number" min="1" value="1" aria-label="후보 수"></label>
+        </div>
+        <div class="command-block"><code id="run-command">—</code><button id="copy-run-command" class="button button-small" type="button">실행 명령 복사</button></div>
+        <p id="command-feedback" class="muted action-note" role="status" aria-live="polite">실행 전에 전략·데이터 경로와 결과 범위를 확인하세요.</p>
+      </article>
+      <article class="panel" aria-labelledby="connection-title">
+        <div class="section-heading"><div><p class="eyebrow">기능 연결</p><h2 id="connection-title">현재 연결 상태</h2></div><span id="connection-count" class="badge">확인 중</span></div>
+        <ul id="capabilities" class="capability-list"><li class="muted">연결 상태를 불러오는 중입니다.</li></ul>
+      </article>
+    </section>
+
+    <section class="overview-grid" aria-label="백테스트 요약">
+      <article class="card accent-blue"><p class="label">전체 실행</p><p id="total-runs" class="metric">0회</p><p class="muted">원장에 기록된 백테스트</p></article>
+      <article class="card"><p class="label">통과 실행</p><p id="succeeded-runs" class="metric">0회</p><p class="muted">SURVIVOR 포함</p></article>
+      <article class="card"><p class="label">최고 수익률</p><p id="best-return" class="metric">—</p><p id="best-run" class="muted">선택된 실행 없음</p></article>
+      <article class="card"><p class="label">위험 준수</p><p id="risk-runs" class="metric">0회</p><p class="muted">위험 조건을 통과한 실행</p></article>
+    </section>
+
+    <section class="panel" aria-labelledby="ledger-title">
+      <div class="section-heading"><div><p class="eyebrow">실행 원장</p><h2 id="ledger-title">최근 백테스트</h2></div><span id="ledger-count" class="badge">0회</span></div>
+      <div class="toolbar"><label class="search-field">검색<input id="run-search" type="search" placeholder="실행 ID 또는 전략 해시"></label><label>상태<select id="status-filter"><option value="ALL">전체 상태</option></select></label></div>
+      <div class="table-wrap"><table><caption>state/test-records.jsonl에서 읽은 백테스트 실행 기록</caption><thead><tr><th>시간</th><th>실행 ID</th><th>세대</th><th>수익률</th><th>나스닥 초과</th><th>최대 낙폭</th><th>위험</th><th>상태</th></tr></thead><tbody id="runs"></tbody></table></div>
+    </section>
+
+    <section class="two-column" aria-label="선택 결과와 성과 곡선">
+      <article class="panel" aria-labelledby="selected-title">
+        <div class="section-heading"><div><p class="eyebrow">선택 결과</p><h2 id="selected-title">실행 상세</h2></div><span id="selected-status" class="badge">선택 없음</span></div>
+        <p id="selected-copy" class="empty-copy">원장에서 실행을 선택하면 해당 결과의 수익률·벤치마크 초과·위험 상태를 확인할 수 있습니다.</p>
+        <dl class="details"><dt>실행 ID</dt><dd id="selected-run-id">—</dd><dt>전략 해시</dt><dd id="selected-strategy-hash">—</dd><dt>세대</dt><dd id="selected-generation">—</dd><dt>점수</dt><dd id="selected-score">—</dd><dt>수익률</dt><dd id="selected-return">—</dd><dt>나스닥 초과</dt><dd id="selected-excess">—</dd><dt>최대 낙폭</dt><dd id="selected-drawdown">—</dd><dt>위험 준수</dt><dd id="selected-risk">—</dd></dl>
+      </article>
+      <article class="panel" aria-labelledby="curve-title">
+        <div class="section-heading"><div><p class="eyebrow">추가 근거</p><h2 id="curve-title">성과 곡선</h2></div><span class="badge">미연결</span></div>
+        <div class="empty-state"><strong>시계열 equity curve가 아직 없습니다.</strong><p class="muted">현재 원장은 요약 지표와 실행 상태를 보존합니다. 곡선·거래 마커를 표시하려면 실행 결과에 equity curve 저장을 연결해야 합니다.</p></div>
+      </article>
+    </section>
+  </main>
+  <footer><span>로컬 전용 · Paper-only 안전 경계 적용</span><span id="api-state" role="status" aria-live="polite">대기 중</span></footer>
+  <script src="/static/backtest.js"></script>
+</body>
+</html>
