@@ -95,6 +95,7 @@ def test_market_buy_uses_paper_overseas_order_contract(tmp_path: Path) -> None:
     assert call["method"] == "POST"
     assert call["url"].endswith("/uapi/overseas-stock/v1/trading/order")
     assert call["headers"]["tr_id"] == "VTTT1002U"
+    assert call["headers"]["content-type"] == "application/json"
     assert call["body"] == {
         "CANO": "12345678",
         "ACNT_PRDT_CD": "01",

@@ -280,6 +280,7 @@ class KISPaperClient:
             method,
             f"{self.config.base_url}{path}",
             headers={
+                "content-type": "application/json",
                 "authorization": f"Bearer {token}",
                 "appkey": self.config.app_key,
                 "appsecret": self.config.app_secret,
