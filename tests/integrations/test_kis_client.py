@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 
 import integrations.kis.client as kis_client_module
-from integrations.kis.client import KISPaperClient, KISResponse
+from integrations.kis.client import KISAPIError, KISPaperClient, KISResponse
 from integrations.kis.config import KISConfigError, PaperKISConfig
 
 
@@ -306,3 +306,24 @@ def test_client_maps_mock_present_balance_for_account_totals(tmp_path: Path) -> 
     assert account.cash == pytest.approx(9500)
     assert account.buying_power == pytest.approx(9000)
     assert transport.calls[2]["headers"]["tr_id"] == "VTRP6504R"
+
+
+def test_client_preserves_kis_error_message(tmp_path: Path) -> None:
+    env_path = tmp_path / ".env"
+    _env(env_path)
+    transport = RecordingTransport(
+        [
+            KISResponse(
+                200,
+                {"access_token": "placeholder", "access_token_token_expired": "2099-01-01"},
+            ),
+            KISResponse(
+                200,
+                {"rt_cd": "1", "msg_cd": "40650000", "msg1": "주문 거부"},
+            ),
+        ]
+    )
+    client = KISPaperClient(PaperKISConfig.from_env(env_path), transport=transport)
+
+    with pytest.raises(KISAPIError, match="주문 거부"):
+        client.quote("QQQ")

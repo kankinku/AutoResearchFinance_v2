@@ -35,10 +35,14 @@ class KISResponse:
 
 
 class KISAPIError(RuntimeError):
-    def __init__(self, status_code: int, code: str = "KIS_ERROR") -> None:
-        super().__init__(f"KIS request failed ({status_code}, {code})")
+    def __init__(
+        self, status_code: int, code: str = "KIS_ERROR", message: str | None = None
+    ) -> None:
+        detail = f": {message}" if message else ""
+        super().__init__(f"KIS request failed ({status_code}, {code}){detail}")
         self.status_code = status_code
         self.code = code
+        self.message = message or ""
 
 
 @dataclass(frozen=True)
@@ -299,7 +303,12 @@ class KISPaperClient:
         payload = response.payload
         if response.status_code != 200 or payload.get("rt_cd") not in {None, "0"}:
             code = payload.get("msg_cd")
-            raise KISAPIError(response.status_code, str(code) if code else "api_error")
+            message = payload.get("msg1")
+            raise KISAPIError(
+                response.status_code,
+                str(code) if code else "api_error",
+                str(message) if message else None,
+            )
         return payload
 
     def _request(
