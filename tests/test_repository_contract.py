@@ -67,6 +67,32 @@ def test_generated_and_secret_paths_are_ignored() -> None:
         assert pattern in gitignore
 
 
+def test_credential_rotation_runbook_states_external_response_and_boundaries() -> None:
+    runbook = (ROOT / "docs/operations/credential-rotation.md").read_text(encoding="utf-8")
+    for required_text in (
+        "revoke or disable",
+        "external secret store",
+        "invalidate sessions",
+        "paper-only",
+        "live order capability remains absent",
+        "do not auto-delete",
+        "no credentials are committed in the tracked repository",
+        "ignored local files such as `.env` are outside this scanner",
+        "separate local secret-store/environment verification",
+        "exit code 0 means clean",
+        "exit code 1 means findings",
+        "exit code 2 means scan error",
+        "SECRET_SCAN_SUMMARY",
+        "`files_scanned`",
+        "`findings`",
+        "Git-tracked files only",
+        "UnsafeRedactionError",
+        "quarantine",
+        "must not persist or output",
+    ):
+        assert required_text.lower() in runbook.lower()
+
+
 def test_tracked_files_do_not_contain_secret_like_names() -> None:
     tracked = subprocess.run(
         ["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True
