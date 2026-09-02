@@ -25,9 +25,15 @@ class PaperKISConfig:
         if mode not in {"", "paper", "demo"}:
             raise KISConfigError("paper-only runtime rejects non-paper trading mode")
         required = {
-            "KIS_PAPER_APP_KEY": values.get("KIS_PAPER_APP_KEY", ""),
-            "KIS_PAPER_APP_SECRET": values.get("KIS_PAPER_APP_SECRET", ""),
-            "KIS_PAPER_BASE_URL": values.get("KIS_PAPER_BASE_URL", ""),
+            "PAPER_KIS_APP_KEY": _setting(
+                values, "PAPER_KIS_APP_KEY", "KIS_PAPER_APP_KEY"
+            ),
+            "PAPER_KIS_APP_SECRET": _setting(
+                values, "PAPER_KIS_APP_SECRET", "KIS_PAPER_APP_SECRET"
+            ),
+            "PAPER_KIS_BASE_URL": _setting(
+                values, "PAPER_KIS_BASE_URL", "KIS_PAPER_BASE_URL"
+            ),
         }
         for name, value in required.items():
             if not value.strip():
@@ -38,13 +44,17 @@ class PaperKISConfig:
             if symbol.strip()
         )
         return cls(
-            app_key=required["KIS_PAPER_APP_KEY"],
-            app_secret=required["KIS_PAPER_APP_SECRET"],
-            base_url=required["KIS_PAPER_BASE_URL"].rstrip("/"),
+            app_key=required["PAPER_KIS_APP_KEY"],
+            app_secret=required["PAPER_KIS_APP_SECRET"],
+            base_url=required["PAPER_KIS_BASE_URL"].rstrip("/"),
             account_number=values.get("KIS_ACCOUNT_NO", "").strip(),
             product_code=values.get("KIS_PRODUCT_CODE", "01").strip() or "01",
             symbols=symbols,
         )
+
+
+def _setting(values: dict[str, str], preferred: str, legacy: str) -> str:
+    return values.get(preferred, "").strip() or values.get(legacy, "").strip()
 
 
 def _read_dotenv(path: Path) -> dict[str, str]:

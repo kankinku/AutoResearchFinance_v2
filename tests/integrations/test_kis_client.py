@@ -62,6 +62,29 @@ def test_paper_config_loads_dotenv_without_exposing_secret_in_repr(tmp_path: Pat
     assert "placeholder" not in repr(config)
 
 
+def test_paper_config_supports_mode_prefixed_environment_names(tmp_path: Path) -> None:
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "\n".join(
+            (
+                "PAPER_KIS_APP_KEY=paper-key",
+                "PAPER_KIS_APP_SECRET=paper-secret",
+                "PAPER_KIS_BASE_URL=https://paper.example",
+                "KIS_ACCOUNT_NO=12345678-01",
+                "KIS_PRODUCT_CODE=01",
+                "QUANT_TRADING_MODE=paper",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    config = PaperKISConfig.from_env(env_path)
+
+    assert config.app_key == "paper-key"
+    assert config.app_secret == "paper-secret"
+    assert config.base_url == "https://paper.example"
+
+
 def test_paper_config_rejects_live_mode(tmp_path: Path) -> None:
     env_path = tmp_path / ".env"
     _env(env_path, mode="live")
@@ -74,7 +97,7 @@ def test_paper_config_requires_credentials(tmp_path: Path) -> None:
     env_path = tmp_path / ".env"
     env_path.write_text("QUANT_TRADING_MODE=paper\n", encoding="utf-8")
 
-    with pytest.raises(KISConfigError, match="KIS_PAPER_APP_KEY"):
+    with pytest.raises(KISConfigError, match="PAPER_KIS_APP_KEY"):
         PaperKISConfig.from_env(env_path)
 
 
