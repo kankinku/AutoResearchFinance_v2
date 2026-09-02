@@ -254,6 +254,13 @@ def test_scan_text_ignores_non_literal_mapping_expressions() -> None:
     assert scan_text("api_key: str | None") == []
 
 
+def test_scan_text_ignores_non_literal_code_assignments() -> None:
+    assert scan_text("current_key = value") == []
+    assert scan_text("token = response.access_token") == []
+    assert scan_text("key: value") == []
+    assert scan_text("key: str") == []
+
+
 def test_scan_and_redact_line_start_yaml_credentials() -> None:
     api_value = "Y" * 20
     password_value = "P" * 20

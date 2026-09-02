@@ -39,8 +39,8 @@ def _env(path: Path, *, mode: str = "paper") -> None:
     path.write_text(
         "\n".join(
             (
-                "KIS_PAPER_APP_KEY=paper-key",
-                "KIS_PAPER_APP_SECRET=paper-secret",
+                "KIS_PAPER_APP_KEY=placeholder",
+                "KIS_PAPER_APP_SECRET=placeholder",
                 "KIS_PAPER_BASE_URL=https://paper.example",
                 "KIS_ACCOUNT_NO=12345678-01",
                 "KIS_PRODUCT_CODE=01",
@@ -59,7 +59,7 @@ def test_paper_config_loads_dotenv_without_exposing_secret_in_repr(tmp_path: Pat
 
     assert config.base_url == "https://paper.example"
     assert config.account_number == "12345678-01"
-    assert "paper-secret" not in repr(config)
+    assert "placeholder" not in repr(config)
 
 
 def test_paper_config_rejects_live_mode(tmp_path: Path) -> None:
@@ -86,7 +86,7 @@ def test_client_authenticates_and_maps_official_quote_contract(tmp_path: Path) -
             KISResponse(
                 200,
                 {
-                    "access_token": "bearer-secret",
+                    "access_token": "placeholder",
                     "access_token_token_expired": "2099-01-01 00:00:00",
                 },
             ),
@@ -104,7 +104,7 @@ def test_client_authenticates_and_maps_official_quote_contract(tmp_path: Path) -
     assert transport.calls[1]["url"].endswith("/uapi/overseas-price/v1/quotations/price")
     assert transport.calls[1]["headers"]["tr_id"] == "HHDFS00000300"
     assert transport.calls[1]["params"] == {"AUTH": "", "EXCD": "NAS", "SYMB": "AAPL"}
-    assert "bearer-secret" not in repr(quote)
+    assert "placeholder" not in repr(quote)
 
 
 def test_token_is_cached_for_multiple_read_only_calls(tmp_path: Path) -> None:
@@ -112,7 +112,10 @@ def test_token_is_cached_for_multiple_read_only_calls(tmp_path: Path) -> None:
     _env(env_path)
     transport = RecordingTransport(
         [
-            KISResponse(200, {"access_token": "token", "access_token_token_expired": "2099-01-01"}),
+            KISResponse(
+                200,
+                {"access_token": "placeholder", "access_token_token_expired": "2099-01-01"},
+            ),
             KISResponse(200, {"rt_cd": "0", "output": {"last": "1"}}),
             KISResponse(200, {"rt_cd": "0", "output": {"last": "2"}}),
         ]
@@ -130,7 +133,10 @@ def test_client_maps_daily_bars_using_official_period_price_contract(tmp_path: P
     _env(env_path)
     transport = RecordingTransport(
         [
-            KISResponse(200, {"access_token": "token", "access_token_token_expired": "2099-01-01"}),
+            KISResponse(
+                200,
+                {"access_token": "placeholder", "access_token_token_expired": "2099-01-01"},
+            ),
             KISResponse(
                 200,
                 {
@@ -172,7 +178,10 @@ def test_client_maps_read_only_account_snapshot(tmp_path: Path) -> None:
     _env(env_path)
     transport = RecordingTransport(
         [
-            KISResponse(200, {"access_token": "token", "access_token_token_expired": "2099-01-01"}),
+            KISResponse(
+                200,
+                {"access_token": "placeholder", "access_token_token_expired": "2099-01-01"},
+            ),
             KISResponse(
                 200,
                 {

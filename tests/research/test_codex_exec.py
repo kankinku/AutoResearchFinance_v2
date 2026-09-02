@@ -54,7 +54,7 @@ def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path:
         "observations": [{"score": 0.8}],
         "raw_market_rows": [{"close": 100}],
         "sealed_oos": [{"return": 0.4}],
-        "KIS_PAPER_APP_SECRET": "must-not-be-forwarded",
+        "KIS_PAPER_APP_SECRET": "placeholder",
     }
 
     payload = provider.propose(context)

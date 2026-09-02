@@ -18,7 +18,7 @@ def test_dashboard_reads_codex_status_without_prompt_or_credentials(tmp_path: Pa
                 "last_result": "VALIDATED",
                 "last_call_at": "2026-09-01T12:00:00+00:00",
                 "prompt": "do not expose",
-                "OPENAI_API_KEY": "do not expose",
+                "OPENAI_API_KEY": "placeholder",
             }
         ),
         encoding="utf-8",

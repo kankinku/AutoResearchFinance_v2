@@ -42,6 +42,15 @@ _PLACEHOLDER_WORDS = {
     "[redacted]",
     "[redacted_private_key]",
 }
+_NON_LITERAL_IDENTIFIERS = {
+    "current_key",
+    "key",
+    "record",
+    "response",
+    "str",
+    "token",
+    "value",
+}
 _PEM_HEADER = r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----"
 _PEM_FOOTER = r"-----END [A-Z0-9 ]*PRIVATE KEY-----"
 _PEM_SEPARATOR = r"(?:\r?\n|\\n)"
@@ -159,6 +168,15 @@ def _assignment_value_span(match: re.Match[str]) -> tuple[int, int]:
     return match.span("unquoted_value")
 
 
+def _looks_like_nonliteral_reference(match: re.Match[str]) -> bool:
+    """Return whether an unquoted assignment is source code, not a secret."""
+
+    if match.group("quoted_value") is not None:
+        return False
+    value = _assignment_value(match).strip()
+    return value in _NON_LITERAL_IDENTIFIERS or "." in value
+
+
 def _is_standalone_unquoted_assignment(text: str, match: re.Match[str]) -> bool:
     if match.group("key_quote") or match.group("prefix"):
         return True
@@ -203,6 +221,8 @@ def scan_text(text: str) -> list[Finding]:
     for match in _ASSIGNMENT.finditer(text):
         if not _is_scannable_assignment(text, match):
             continue
+        if _looks_like_nonliteral_reference(match):
+            continue
         value = _assignment_value(match)
         if _looks_like_placeholder(value):
             continue
@@ -236,6 +256,8 @@ def redact_sensitive_text(text: str) -> str:
 
     def replace_assignment(match: re.Match[str]) -> str:
         if not _is_scannable_assignment(match.string, match):
+            return match.group(0)
+        if _looks_like_nonliteral_reference(match):
             return match.group(0)
         if _looks_like_placeholder(_assignment_value(match)):
             return match.group(0)

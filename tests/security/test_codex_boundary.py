@@ -13,8 +13,8 @@ from research.llm.provider import CodexIntentProvider
 def test_codex_context_redacts_credentials_market_rows_and_sealed_oos() -> None:
     sanitized = sanitize_context(
         {
-            "KIS_PAPER_APP_KEY": "paper-key",
-            "KIS_PAPER_APP_SECRET": "paper-secret",
+            "KIS_PAPER_APP_KEY": "placeholder",
+            "KIS_PAPER_APP_SECRET": "placeholder",
             "authorization": "Bearer secret",
             "raw_market_rows": [{"close": 100}],
             "sealed_oos": [{"close": 200}],
