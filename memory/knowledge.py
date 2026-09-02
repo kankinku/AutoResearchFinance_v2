@@ -51,6 +51,7 @@ def _profile(result: FunnelResult, generation: int) -> dict[str, Any]:
         "parameters": dict(result.parameters or {}),
         "full_cagr": result.full_cagr,
         "full_trade_count": result.full_trade_count,
+        "yearly_metrics": [dict(item) for item in result.yearly_metrics],
     }
     if result.full_benchmark is not None:
         profile.update(

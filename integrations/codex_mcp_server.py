@@ -157,6 +157,9 @@ class CodexMCPServer:
         count = _positive_int(arguments.get("count", 1), "count")
         seed = _nonnegative_int(arguments.get("seed", 0), "seed")
         min_trades = _nonnegative_int(arguments.get("min_trades", 10), "min_trades")
+        min_annual_trades = _nonnegative_int(
+            arguments.get("min_annual_trades", 30), "min_annual_trades"
+        )
         min_qqq_cagr = _optional_float(
             arguments.get("min_qqq_cagr_delta"), "min_qqq_cagr_delta"
         )
@@ -170,6 +173,7 @@ class CodexMCPServer:
             count=count,
             seed=seed,
             min_trades=min_trades,
+            min_annual_trades=min_annual_trades,
             parameter_domains=parameter_domains,
             series_data_path=arguments.get("series_data_path"),
             min_qqq_cagr_delta=min_qqq_cagr,
@@ -228,6 +232,7 @@ def _tools() -> list[dict[str, object]]:
                     "count": {"minimum": 1, "type": "integer"},
                     "seed": {"minimum": 0, "type": "integer"},
                     "min_trades": {"minimum": 0, "type": "integer"},
+                    "min_annual_trades": {"minimum": 0, "type": "integer", "default": 30},
                     "parameter_domains": {
                         "type": "array",
                         "items": {
@@ -284,6 +289,23 @@ def _system_schema() -> dict[str, object]:
             "count": {"minimum": 1, "type": "integer"},
             "seed": {"minimum": 0, "type": "integer"},
             "min_trades": {"minimum": 0, "type": "integer"},
+            "min_annual_trades": {"minimum": 0, "type": "integer", "default": 30},
+            "min_qqq_cagr_delta": {"type": "number"},
+            "series_data_path": {"type": "string"},
+            "repeat_generations": {"minimum": 1, "type": "integer", "default": 1},
+            "interval_seconds": {"minimum": 0, "type": "number", "default": 0},
+            "parameter_domains": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "values": {"type": "array"},
+                    },
+                    "required": ["name", "values"],
+                    "additionalProperties": False,
+                },
+            },
             "dashboard_port": {"minimum": 1, "maximum": 65535, "type": "integer"},
             "docker_image": {"type": "string"},
             "env_file": {"type": "string"},
@@ -314,6 +336,24 @@ def _system_config(arguments: dict[str, Any]) -> SystemLaunchConfig:
         count=_positive_int(arguments.get("count", 8), "count"),
         seed=_nonnegative_int(arguments.get("seed", 0), "seed"),
         min_trades=_nonnegative_int(arguments.get("min_trades", 10), "min_trades"),
+        min_annual_trades=_nonnegative_int(
+            arguments.get("min_annual_trades", 30), "min_annual_trades"
+        ),
+        min_qqq_cagr_delta=_optional_float(
+            arguments.get("min_qqq_cagr_delta"), "min_qqq_cagr_delta"
+        ),
+        series_data_path=(
+            arguments.get("series_data_path")
+            if isinstance(arguments.get("series_data_path"), str)
+            else None
+        ),
+        repeat_generations=_positive_int(
+            arguments.get("repeat_generations", 1), "repeat_generations"
+        ),
+        interval_seconds=_nonnegative_float(
+            arguments.get("interval_seconds", 0), "interval_seconds"
+        ),
+        parameter_domains=parse_parameter_domains(arguments.get("parameter_domains")),
         dashboard_port=_positive_int(arguments.get("dashboard_port", 8080), "dashboard_port"),
         docker_image=docker_image,
         env_file=env_file,
@@ -353,6 +393,14 @@ def _optional_float(value: object, name: str) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{name} must be a number")
     return float(value)
+
+
+def _nonnegative_float(value: object, name: str) -> float:
+    result = _optional_float(value, name)
+    assert result is not None
+    if result < 0:
+        raise ValueError(f"{name} cannot be negative")
+    return result
 
 
 if __name__ == "__main__":

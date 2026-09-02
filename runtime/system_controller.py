@@ -15,6 +15,7 @@ from typing import Any
 
 from core.data.contracts import DataZone
 from core.data.parquet import ParquetDataProvider
+from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import ALLOWED_STRATEGY_SUFFIXES, resolve_project_input
 
 ProcessFactory = Callable[[list[str], Path], Any]
@@ -29,6 +30,12 @@ class SystemLaunchConfig:
     count: int = 8
     seed: int = 0
     min_trades: int = 10
+    min_annual_trades: int = 30
+    min_qqq_cagr_delta: float | None = None
+    series_data_path: str | None = None
+    repeat_generations: int = 1
+    interval_seconds: float = 0.0
+    parameter_domains: tuple[ParameterDomain, ...] = ()
     dashboard_port: int = 8080
     docker_image: str = "quant-autoresearch-worker:local"
     env_file: str = ".env"
@@ -84,6 +91,15 @@ class SystemController:
                 issues.append(PreflightIssue(check_id, "REQUIRED", label, message))
 
         check(
+            "repeat_config",
+            "유한 반복 설정",
+            config.repeat_generations >= 1
+            and config.interval_seconds >= 0
+            and config.min_annual_trades >= 0,
+            "repeat_generations는 1 이상, interval_seconds와 min_annual_trades는 0 이상이어야 합니다.",
+        )
+
+        check(
             "python_runtime",
             "Python runtime",
             bool(sys.executable and Path(sys.executable).is_file()),
@@ -111,6 +127,32 @@ class SystemController:
             "Parquet 데이터",
             "버전 메타데이터가 있는 development/validation Parquet 데이터를 준비하세요.",
         )
+        series = None
+        if config.series_data_path is not None:
+            series = self._resolve_input(
+                config.series_data_path,
+                frozenset({".parquet"}),
+                check,
+                "series_data",
+                "벤치마크·외부 시계열",
+                "series_data_path에 유효한 Parquet 파일을 지정하세요.",
+            )
+            if series is not None:
+                try:
+                    series_data = ParquetDataProvider.read_series(series)
+                    check(
+                        "series_zone",
+                        "외부 시계열 영역",
+                        DataZone(series_data.zone) is not DataZone.SEALED_OOS,
+                        "sealed_oos 외부 시계열은 연구 백테스트에 사용할 수 없습니다.",
+                    )
+                except (OSError, TypeError, ValueError):
+                    check(
+                        "series_contract",
+                        "외부 시계열 계약",
+                        False,
+                        "series_id·timestamp·value 스키마를 확인하세요.",
+                    )
         data_ok = False
         if data is not None:
             try:
@@ -201,10 +243,22 @@ class SystemController:
         source = resolve_project_input(
             self.project_root, config.source_path, ALLOWED_STRATEGY_SUFFIXES
         )
-        data = resolve_project_input(self.project_root, config.data_path, frozenset({".parquet"}))
+        data = resolve_project_input(
+            self.project_root, config.data_path, frozenset({".parquet"})
+        )
+        series = (
+            resolve_project_input(
+                self.project_root, config.series_data_path, frozenset({".parquet"})
+            )
+            if config.series_data_path is not None
+            else None
+        )
         self.state_dir.mkdir(parents=True, exist_ok=True)
         relative_source = source.relative_to(self.project_root).as_posix()
         relative_data = data.relative_to(self.project_root).as_posix()
+        relative_series = (
+            series.relative_to(self.project_root).as_posix() if series is not None else None
+        )
         container_name = f"quant-autoresearch-backtest-{os.getpid()}"
         commands = {
             "dashboard": [
@@ -236,7 +290,7 @@ class SystemController:
                 str(source),
             ],
             "backtest_worker": self._docker_command(
-                config, container_name, relative_source, relative_data
+                config, container_name, relative_source, relative_data, relative_series
             ),
         }
         started: list[dict[str, object]] = []
@@ -335,9 +389,14 @@ class SystemController:
         )
 
     def _docker_command(
-        self, config: SystemLaunchConfig, container_name: str, source_path: str, data_path: str
+        self,
+        config: SystemLaunchConfig,
+        container_name: str,
+        source_path: str,
+        data_path: str,
+        series_path: str | None = None,
     ) -> list[str]:
-        return [
+        command = [
             "docker",
             "run",
             "--rm",
@@ -375,7 +434,28 @@ class SystemController:
             str(config.seed),
             "--min-trades",
             str(config.min_trades),
+            "--min-annual-trades",
+            str(config.min_annual_trades),
+            "--repeat-generations",
+            str(config.repeat_generations),
+            "--interval-seconds",
+            str(config.interval_seconds),
         ]
+        if config.min_qqq_cagr_delta is not None:
+            command.extend(["--min-qqq-cagr-delta", str(config.min_qqq_cagr_delta)])
+        if series_path is not None:
+            command.extend(["--series-data-path", series_path])
+        for domain in config.parameter_domains:
+            command.extend(
+                [
+                    "--domain",
+                    json.dumps(
+                        {"name": domain.name, "values": list(domain.values)},
+                        ensure_ascii=False,
+                    ),
+                ]
+            )
+        return command
 
     def _terminate_started(self) -> None:
         for process in self._processes.values():

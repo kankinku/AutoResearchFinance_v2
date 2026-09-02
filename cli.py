@@ -15,6 +15,7 @@ from memory.state_files import StateFileStore
 from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
 from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
 from research.llm.director import ResearchDirector
+from runtime.research_loop import ResearchLoopConfig, run_repeated_evaluation
 from strategy_import.pipeline import import_local_source
 from strategy_import.sources import CloneManager, parse_github_source
 from strategy_ir.normalizer import ImportStatus, normalize_source
@@ -73,6 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--count", type=int, default=1)
     run_parser.add_argument("--seed", type=int, default=0)
     run_parser.add_argument("--min-trades", type=int, default=10)
+    run_parser.add_argument("--min-annual-trades", type=int, default=30)
     run_parser.add_argument(
         "--min-qqq-cagr",
         type=float,
@@ -90,6 +92,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional external series Parquet containing macro/rate/benchmark observations",
     )
     run_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    repeat_parser = subparsers.add_parser(
+        "repeat-research", help="Repeat bounded paper-only strategy backtests"
+    )
+    repeat_parser.add_argument("--source", type=Path, required=True)
+    repeat_parser.add_argument("--data", type=Path, required=True)
+    repeat_parser.add_argument("--series-data", type=Path)
+    repeat_parser.add_argument("--method", choices=("grid", "random", "bayesian"), default="grid")
+    repeat_parser.add_argument("--count", type=int, default=1)
+    repeat_parser.add_argument("--seed", type=int, default=0)
+    repeat_parser.add_argument("--min-trades", type=int, default=10)
+    repeat_parser.add_argument("--min-annual-trades", type=int, default=30)
+    repeat_parser.add_argument("--min-qqq-cagr", type=float)
+    repeat_parser.add_argument("--generations", type=int, required=True)
+    repeat_parser.add_argument("--interval-seconds", type=float, default=0.0)
+    repeat_parser.add_argument(
+        "--domain",
+        action="append",
+        default=[],
+        help='JSON parameter domain, e.g. \'{"name":"indicators.fast.period","values":[5,10]}\'',
+    )
+    repeat_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     for command in ("resume", "rebuild-cache"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
@@ -294,11 +317,35 @@ def main(argv: list[str] | None = None) -> int:
             count=args.count,
             seed=args.seed,
             min_trades=args.min_trades,
+            min_annual_trades=args.min_annual_trades,
             parameter_domains=parse_parameter_domains(domain_documents),
             series_data_path=args.series_data,
             min_qqq_cagr_delta=args.min_qqq_cagr,
         )
         print(json.dumps(evaluation_result, ensure_ascii=False))
+        return 0
+    if args.command == "repeat-research":
+        repeat_result = run_repeated_evaluation(
+            ResearchLoopConfig(
+                project_root=Path("."),
+                state_dir=args.state_dir,
+                source_path=str(args.source),
+                data_path=str(args.data),
+                method=args.method,
+                count=args.count,
+                seed=args.seed,
+                min_trades=args.min_trades,
+                min_annual_trades=args.min_annual_trades,
+                min_qqq_cagr_delta=args.min_qqq_cagr,
+                series_data_path=str(args.series_data) if args.series_data else None,
+                parameter_domains=parse_parameter_domains(
+                    [json.loads(document) for document in args.domain]
+                ),
+                generations=args.generations,
+                interval_seconds=args.interval_seconds,
+            )
+        )
+        print(json.dumps(repeat_result, ensure_ascii=False))
         return 0
     if args.command == "resume":
         assert store is not None

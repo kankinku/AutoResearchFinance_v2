@@ -78,6 +78,7 @@ def append_funnel_results(
                     for gate in result.gates
                 ],
                 "validation_folds": [dict(fold) for fold in result.validation_folds],
+                "yearly_metrics": [dict(item) for item in result.yearly_metrics],
                 "status": result.status,
             }
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")

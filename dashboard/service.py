@@ -213,7 +213,8 @@ class DashboardService:
                 description="검증된 전략과 Parquet 데이터를 Generation Pipeline으로 평가합니다.",
                 command=(
                     "python cli.py run-generation --source <strategy.py> "
-                    "--data <data.parquet> --method grid --count 1 --seed 0 --min-trades 10"
+                    "--data <data.parquet> --method grid --count 1 --seed 0 "
+                    "--min-trades 10 --min-annual-trades 30"
                 ),
             ),
             BacktestCapability(

@@ -41,6 +41,29 @@ random 방식으로 후보 32개, seed 7, 최소 거래 10회로 실행해줘.
 
 Codex는 MCP의 `start_system`을 호출한다. 이 도구는 먼저 다음을 검사한다.
 
+백테스트 워커는 `repeat_generations`만큼 반복 실행할 수 있습니다. 기본값은
+1세대이며, 운영 요청에서는 유한한 양의 세대 수를 명시해야 합니다. 각 세대의
+연도별 최소 거래수 기본 게이트는 30회 초과(31회 이상)이고, 필요하면
+`min_annual_trades`로 조정할 수 있습니다. 마지막 부분 연도는 기록에는 남지만
+최소 거래수 판정에서는 제외됩니다.
+
+MCP `start_system` 예시:
+
+```json
+{
+  "source_path": "strategies/qqq.yaml",
+  "data_path": "data/qqq.parquet",
+  "series_data_path": "data/benchmarks.parquet",
+  "min_annual_trades": 30,
+  "min_qqq_cagr_delta": 0.10,
+  "repeat_generations": 20,
+  "interval_seconds": 5
+}
+```
+
+반복 상태는 `state/system/research_loop.json`에 기록되며, 어떤 경우에도 주문
+생성이나 실전투자 모드 전환을 수행하지 않는다.
+
 - Python과 Paper-only 상태
 - 전략 소스와 Parquet 파일의 프로젝트 루트 제한
 - Parquet 메타데이터와 `development`/`validation` 데이터 영역

@@ -20,6 +20,7 @@ class FunnelConfig:
     require_validation: bool = True
     require_risk_compliance: bool = True
     min_qqq_cagr_delta: float | None = None
+    min_annual_trades: int | None = None
     champion_score: float | None = None
 
 
@@ -39,6 +40,7 @@ class FunnelInput:
     dataset_hash: str | None = None
     benchmark_dataset_hash: str | None = None
     validation_folds: tuple[Mapping[str, object], ...] = ()
+    yearly_metrics: tuple[Mapping[str, object], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -74,6 +76,7 @@ class FunnelResult:
     full_turnover: float | None = None
     full_exposure: float | None = None
     validation_folds: tuple[Mapping[str, object], ...] = ()
+    yearly_metrics: tuple[Mapping[str, object], ...] = ()
 
 
 def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResult:
@@ -103,6 +106,20 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
             and qqq_cagr_delta >= config.min_qqq_cagr_delta
         )
     )
+    annual_counts = tuple(
+        int(trade_count)
+        for item in candidate.yearly_metrics
+        if bool(item.get("complete", True))
+        and isinstance((trade_count := item.get("trade_count")), (int, float, str))
+    )
+    annual_trade_passed = (
+        config.min_annual_trades is None
+        or (
+            bool(annual_counts)
+            and all(count > config.min_annual_trades for count in annual_counts)
+        )
+    )
+    annual_trade_actual = min(annual_counts) if annual_counts else None
     score = candidate.robustness.robust_score
     promotion_passed = config.champion_score is None or score > config.champion_score
     gates = (
@@ -157,6 +174,13 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
             None if qqq_target_passed else "qqq_target_not_met",
         ),
         GateDecision(
+            "annual_trade_count",
+            annual_trade_passed,
+            config.min_annual_trades,
+            annual_trade_actual,
+            None if annual_trade_passed else "annual_trade_count_not_met",
+        ),
+        GateDecision(
             "promotion",
             promotion_passed,
             config.champion_score,
@@ -194,6 +218,7 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         candidate.full_metrics.turnover,
         candidate.full_metrics.exposure,
         candidate.validation_folds,
+        candidate.yearly_metrics,
     )
 
 

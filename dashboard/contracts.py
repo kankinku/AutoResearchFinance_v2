@@ -61,6 +61,7 @@ class TestRecord(DashboardModel):
     exposure: float | None = None
     gates: list[dict[str, object]] = Field(default_factory=list)
     validation_folds: list[dict[str, object]] = Field(default_factory=list)
+    yearly_metrics: list[dict[str, object]] = Field(default_factory=list)
     status: str
 
 

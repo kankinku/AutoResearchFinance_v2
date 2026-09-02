@@ -43,6 +43,7 @@ def test_funnel_records_all_gates_and_admits_survivor() -> None:
         "validation",
         "risk",
         "qqq_cagr_delta",
+        "annual_trade_count",
         "promotion",
     ]
     assert all(gate.passed for gate in result.gates)
@@ -150,3 +151,55 @@ def test_funnel_applies_qqq_annualized_excess_target_when_configured() -> None:
     qqq_gate = next(gate for gate in result.gates if gate.name == "qqq_cagr_delta")
     assert qqq_gate.passed is False
     assert qqq_gate.threshold == 0.10
+
+
+def test_funnel_rejects_year_with_exactly_30_completed_trades() -> None:
+    yearly = ({"year": 2025, "complete": True, "trade_count": 30},)
+    result = select_candidate(
+        FunnelInput(
+            "cand-yearly-30",
+            "trend",
+            _metrics(trades=31),
+            _metrics(trades=31),
+            RobustnessReport("OK", 0.9, 0.8, 0.7, 0.1, 0.75),
+            validation_passed=True,
+            yearly_metrics=yearly,
+        ),
+        FunnelConfig(
+            min_fast_trades=2,
+            min_full_trades=2,
+            min_robust_score=0.5,
+            min_annual_trades=30,
+        ),
+    )
+
+    gate = next(item for item in result.gates if item.name == "annual_trade_count")
+    assert gate.passed is False
+    assert gate.threshold == 30
+    assert gate.actual == 30
+    assert result.status == "REJECT"
+
+
+def test_funnel_accepts_year_with_31_completed_trades() -> None:
+    yearly = ({"year": 2025, "complete": True, "trade_count": 31},)
+    result = select_candidate(
+        FunnelInput(
+            "cand-yearly-31",
+            "trend",
+            _metrics(trades=31),
+            _metrics(trades=31),
+            RobustnessReport("OK", 0.9, 0.8, 0.7, 0.1, 0.75),
+            validation_passed=True,
+            yearly_metrics=yearly,
+        ),
+        FunnelConfig(
+            min_fast_trades=2,
+            min_full_trades=2,
+            min_robust_score=0.5,
+            min_annual_trades=30,
+        ),
+    )
+
+    gate = next(item for item in result.gates if item.name == "annual_trade_count")
+    assert gate.passed is True
+    assert gate.actual == 31

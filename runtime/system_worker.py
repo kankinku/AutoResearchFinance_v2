@@ -8,11 +8,12 @@ from pathlib import Path
 from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
     build_research_context,
+    parse_parameter_domains,
     resolve_project_input,
-    run_local_evaluation,
 )
 from research.llm.codex_exec import CodexExecProvider, record_intent
 from research.llm.director import ResearchDirector, ResearchIntent
+from runtime.research_loop import ResearchLoopConfig, run_repeated_evaluation
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -23,15 +24,25 @@ def main(argv: list[str] | None = None) -> int:
         if args.role == "research":
             result = _run_research(args, state_dir)
         else:
-            result = run_local_evaluation(
-                project_root=Path(args.project_root),
-                state_dir=state_dir,
-                source_path=args.source_path,
-                data_path=args.data_path,
-                method=args.method,
-                count=args.count,
-                seed=args.seed,
-                min_trades=args.min_trades,
+            result = run_repeated_evaluation(
+                ResearchLoopConfig(
+                    project_root=Path(args.project_root),
+                    state_dir=state_dir,
+                    source_path=args.source_path,
+                    data_path=args.data_path,
+                    method=args.method,
+                    count=args.count,
+                    seed=args.seed,
+                    min_trades=args.min_trades,
+                    min_annual_trades=args.min_annual_trades,
+                    min_qqq_cagr_delta=args.min_qqq_cagr_delta,
+                    series_data_path=args.series_data_path,
+                    generations=args.repeat_generations,
+                    interval_seconds=args.interval_seconds,
+                    parameter_domains=parse_parameter_domains(
+                        [json.loads(document) for document in args.domain]
+                    ),
+                )
             )
         _write_status(state_dir, args.role, "SUCCEEDED", result=result)
         return 0
@@ -91,6 +102,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--count", type=int, default=8)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--min-trades", type=int, default=10)
+    parser.add_argument("--min-annual-trades", type=int, default=30)
+    parser.add_argument("--min-qqq-cagr-delta", type=float)
+    parser.add_argument("--series-data-path", default=None)
+    parser.add_argument("--repeat-generations", type=int, default=1)
+    parser.add_argument("--interval-seconds", type=float, default=0.0)
+    parser.add_argument("--domain", action="append", default=[])
     return parser
 
 

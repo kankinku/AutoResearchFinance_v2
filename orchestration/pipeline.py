@@ -15,6 +15,7 @@ from evaluation.risk import evaluate_risk_policy
 from evaluation.robustness import robust_statistics
 from evaluation.scoring import RobustnessInputs, robust_score
 from evaluation.selector import FunnelConfig, FunnelInput, FunnelResult, select_candidate
+from evaluation.yearly import summarize_yearly_performance
 from experiments.candidate_generator import Candidate, generate_candidates
 from memory.knowledge import extract_knowledge
 from mutation.engine import MutationOperation
@@ -153,6 +154,7 @@ class GenerationPipeline:
             validation_passed = bool(validation_folds) and all(
                 bool(fold["passed"]) for fold in validation_folds
             )
+            yearly_metrics = summarize_yearly_performance(dataset, full_equity, trades)
             results.append(
                 select_candidate(
                     FunnelInput(
@@ -172,6 +174,7 @@ class GenerationPipeline:
                         dataset.dataset_hash,
                         external_series.dataset_hash if external_series is not None else None,
                         validation_folds,
+                        yearly_metrics,
                     ),
                     funnel,
                 )
