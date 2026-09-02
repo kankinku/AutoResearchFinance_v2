@@ -84,3 +84,36 @@ def test_unavailable_future_external_observation_is_not_used() -> None:
     result = BacktestEngine().run(request)
 
     assert not result.trades
+
+
+def test_feature_reference_can_select_source_series_and_lookback() -> None:
+    bars = tuple(_bar(day, float(day + 10)) for day in range(1, 11))
+    strategy_data = _strategy().model_dump()
+    strategy_data["features"] = {
+        "macro_rsi": {
+            "feature_id": "weekly_rsi",
+            "inputs": ("US10Y.close",),
+            "timeframe": "1w",
+            "lookback": 3,
+        }
+    }
+    strategy = StrategyIR.model_validate(strategy_data)
+    spec = _feature_spec().model_copy(update={"inputs": ("MACRO.close",)})
+    observations = tuple(
+        SeriesObservation("US10Y", bars[index].timestamp, float(index + 1))
+        for index in range(len(bars))
+    )
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            run_id="selected-series-run",
+            strategy_hash="unhashed",
+            dataset=MarketDataSet("bars-v1", DataZone.DEVELOPMENT, bars),
+            initial_cash=1000.0,
+            strategy=strategy,
+            feature_specs={"weekly_rsi": spec},
+            external_series=SeriesDataSet("rates-v1", DataZone.DEVELOPMENT, observations),
+        )
+    )
+
+    assert result.exit_status == "SUCCEEDED"

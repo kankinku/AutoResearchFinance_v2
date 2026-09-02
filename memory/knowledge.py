@@ -48,6 +48,7 @@ def _profile(result: FunnelResult, generation: int) -> dict[str, Any]:
         "generation": generation,
         "failed_gates": tuple(gate.name for gate in result.gates if not gate.passed),
         "feature_ids": tuple(sorted(result.feature_ids)),
+        "feature_lineage": [dict(item) for item in result.feature_lineage],
         "parameters": dict(result.parameters or {}),
         "full_cagr": result.full_cagr,
         "full_trade_count": result.full_trade_count,

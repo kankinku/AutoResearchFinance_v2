@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, Protocol
 
-from core.features.catalog import imported_feature_catalog
+from core.features.registry import research_feature_specs
 from dashboard.contracts import (
     AccountSnapshot,
     BacktestCapability,
@@ -134,7 +134,7 @@ class DashboardService:
                 "duplicate_group": spec.duplicate_group,
                 "output_name": spec.output_name,
             }
-            for spec in imported_feature_catalog().all()
+            for spec in research_feature_specs()
         ]
 
     def strategy_catalog(self) -> list[dict[str, object]]:

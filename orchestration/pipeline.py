@@ -175,6 +175,7 @@ class GenerationPipeline:
                         external_series.dataset_hash if external_series is not None else None,
                         validation_folds,
                         yearly_metrics,
+                        _feature_lineage(candidate.strategy, feature_specs),
                     ),
                     funnel,
                 )
@@ -263,6 +264,7 @@ class GenerationPipeline:
             )
         return tuple(evidence)
 
+
     def _evaluate(
         self,
         candidate: Candidate,
@@ -302,6 +304,44 @@ class GenerationPipeline:
             backtest.trades,
             backtest.equity_curve,
         )
+
+
+def _feature_lineage(
+    strategy: StrategyIR, feature_specs: Mapping[str, FeatureSpec] | None
+) -> tuple[Mapping[str, object], ...]:
+    if not strategy.features:
+        return ()
+    lineage: list[Mapping[str, object]] = []
+    for alias, reference in sorted(strategy.features.items()):
+        spec = feature_specs.get(reference.feature_id) if feature_specs is not None else None
+        if spec is None:
+            lineage.append(
+                {
+                    "alias": alias,
+                    "feature_id": reference.feature_id,
+                    "status": "MISSING",
+                }
+            )
+            continue
+        parameters = dict(spec.parameters)
+        parameters.update(reference.parameters)
+        lineage.append(
+            {
+                "alias": alias,
+                "feature_id": spec.name,
+                "canonical_id": spec.canonical_id,
+                "inputs": list(reference.inputs or spec.inputs),
+                "timeframe": reference.timeframe if reference.timeframe != "1d" else spec.timeframe,
+                "lag_bars": reference.lag_bars + spec.lag_bars,
+                "lookback": reference.lookback or spec.lookback,
+                "parameters": parameters,
+                "implementation_hash": spec.implementation_hash,
+                "source_repositories": list(spec.source_repositories),
+                "source_licenses": list(spec.source_licenses),
+                "status": spec.status,
+            }
+        )
+    return tuple(lineage)
 
 
 def _fast_slice(dataset: MarketDataSet) -> MarketDataSet:

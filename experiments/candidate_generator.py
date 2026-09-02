@@ -43,7 +43,8 @@ def generate_candidates(
         all_operations = operations + parameter_operations
         strategy = apply_operations(parent, list(all_operations))
         operation_payload = [
-            {"op": op.op, "path": op.path, "value": op.value} for op in all_operations
+            {"op": op.op, "path": op.path, "value": _json_value(op.value)}
+            for op in all_operations
         ]
         candidate_hash = content_hash(
             {
@@ -57,6 +58,13 @@ def generate_candidates(
             Candidate(strategy, dict(point), all_operations, parent.strategy_id, candidate_hash)
         )
     return tuple(candidates)
+
+
+def _json_value(value: object) -> object:
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        return model_dump(mode="json")
+    return value
 
 
 def _search(

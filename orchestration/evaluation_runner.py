@@ -13,9 +13,11 @@ from core.features.registry import research_feature_specs
 from dashboard.ledger import append_funnel_results
 from evaluation.benchmark import BenchmarkData
 from evaluation.selector import FunnelConfig
+from mutation.engine import MutationOperation
 from mutation.parameter import ParameterDomain, ParameterValue
 from orchestration.pipeline import GenerationPipeline
 from strategy_ir.normalizer import normalize_source
+from strategy_ir.schema import StrategyIR
 
 ALLOWED_STRATEGY_SUFFIXES = frozenset({".yaml", ".yml", ".json", ".py", ".pine", ".pinescript"})
 
@@ -48,6 +50,8 @@ def run_local_evaluation(
     seed: int = 0,
     min_trades: int = 10,
     parameter_domains: Sequence[ParameterDomain] = (),
+    operations: Sequence[MutationOperation] = (),
+    strategy_override: StrategyIR | None = None,
     series_data_path: object | None = None,
     min_qqq_cagr_delta: float | None = None,
     min_annual_trades: int | None = 30,
@@ -65,8 +69,12 @@ def run_local_evaluation(
     domains = tuple(parameter_domains)
     if any(not isinstance(domain, ParameterDomain) for domain in domains):
         raise TypeError("parameter_domains must contain ParameterDomain values")
-    imported = normalize_source(source)
-    if imported.strategy is None:
+    typed_operations = tuple(operations)
+    if any(not isinstance(operation, MutationOperation) for operation in typed_operations):
+        raise TypeError("operations must contain MutationOperation values")
+    imported = normalize_source(source) if strategy_override is None else None
+    strategy = strategy_override or (imported.strategy if imported is not None else None)
+    if strategy is None:
         raise ValueError("strategy source is unsupported")
     dataset = ParquetDataProvider.read(data)
     series = _read_series_input(project_root, series_data_path)
@@ -74,9 +82,9 @@ def run_local_evaluation(
     feature_inputs = _market_feature_inputs(dataset)
     benchmark = _benchmark_data(dataset, series) if series is not None else None
     pipeline_result = GenerationPipeline().run(
-        parent=imported.strategy,
+        parent=strategy,
         dataset=dataset,
-        operations=(),
+        operations=typed_operations,
         domains=domains,
         method=method,
         count=count,
@@ -94,19 +102,34 @@ def run_local_evaluation(
     )
     append_funnel_results(
         state_dir / "test-records.jsonl",
-        generation=imported.strategy.generation + 1,
+        generation=strategy.generation + 1,
         results=pipeline_result.funnel,
         timestamp=datetime.now(timezone.utc).isoformat(),
     )
     return {
         "status": "COMPLETED",
         "candidate_count": len(pipeline_result.candidates),
-        "search_mode": "baseline" if not domains else method,
+        "search_mode": "baseline" if not domains and not typed_operations else method,
         "counts": {
             status: sum(item.status == status for item in pipeline_result.funnel)
             for status in sorted({item.status for item in pipeline_result.funnel})
         },
+        **_best_strategy_payload(pipeline_result),
     }
+
+
+def _best_strategy_payload(pipeline_result: object) -> dict[str, object]:
+    candidates = getattr(pipeline_result, "candidates", ())
+    results = getattr(pipeline_result, "funnel", ())
+    eligible = [
+        (candidate, result)
+        for candidate, result in zip(candidates, results, strict=True)
+        if result.status != "REJECT"
+    ]
+    if not eligible:
+        return {}
+    candidate, _result = max(eligible, key=lambda item: (item[1].score, item[0].candidate_hash))
+    return {"best_strategy": candidate.strategy.model_dump(mode="json", by_alias=True)}
 
 
 def parse_parameter_domains(raw: object) -> tuple[ParameterDomain, ...]:
@@ -179,6 +202,7 @@ def build_research_context(state_dir: Path, *, source_path: Path | None = None) 
     from research.llm.codex_exec import sanitize_context
 
     snapshot = DashboardStateReader(state_dir).read()
+    supported_timeframes = ["1m", "5m", "15m", "1h", "1d", "1w", "1mo"]
     context = sanitize_context(
         {
             "generation": snapshot.strategy.generation or 0,
@@ -188,11 +212,22 @@ def build_research_context(state_dir: Path, *, source_path: Path | None = None) 
             "feature_catalog": [
                 {
                     "name": spec.name,
+                    "canonical_id": spec.canonical_id,
+                    "aliases": list(spec.aliases),
                     "family": spec.family,
                     "inputs": list(spec.inputs),
                     "calculator": spec.calculator,
                     "lookback": spec.lookback,
                     "timeframe": spec.timeframe,
+                    "supported_timeframes": supported_timeframes,
+                    "lag_bars": spec.lag_bars,
+                    "parameters": dict(spec.parameters),
+                    "implementation_hash": spec.implementation_hash,
+                    "source_repositories": list(spec.source_repositories),
+                    "source_licenses": list(spec.source_licenses),
+                    "data_contract": spec.data_contract,
+                    "status": spec.status,
+                    "duplicate_group": spec.duplicate_group,
                 }
                 for spec in research_feature_specs()
             ],

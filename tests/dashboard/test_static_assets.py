@@ -71,6 +71,7 @@ def test_backtest_page_is_separate_and_connects_to_backtest_api() -> None:
         "백테스트 관리",
         "실행 원장",
         "선택 결과",
+        "인디케이터 연결",
         "검증된 전략 실행",
         "실행 명령 복사",
         "성과 곡선",

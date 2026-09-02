@@ -11,6 +11,18 @@ class IntentProvider(Protocol):
     def propose(self, context: dict[str, Any]) -> dict[str, Any]: ...
 
 
+class FeatureSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    alias: str = Field(min_length=1)
+    feature_id: str = Field(min_length=1)
+    inputs: tuple[str, ...] = ()
+    timeframe: Literal["1m", "5m", "15m", "1h", "1d", "1w", "1mo"] = "1d"
+    lag_bars: int = Field(default=0, ge=0)
+    lookback: int | None = Field(default=None, gt=0)
+    parameters: dict[str, int | float | str | bool] = Field(default_factory=dict)
+
+
 class ResearchIntent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -18,6 +30,7 @@ class ResearchIntent(BaseModel):
     parent_ids: tuple[str, ...] = Field(min_length=1)
     operations: tuple[dict[str, Any], ...] = ()
     rationale: str = Field(min_length=1)
+    feature_selections: tuple[FeatureSelection, ...] = ()
     primitive_request: dict[str, Any] | None = None
     feature_proposal: FeatureProposal | None = None
     python_patch: str | None = None

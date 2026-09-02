@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from mutation.engine import MutationError, MutationOperation, apply_operations
+from strategy_ir.schema import FeatureRef
 from strategy_ir.validator import validate_strategy
 from tests.strategy_ir.test_schema import example_document
 
@@ -69,6 +70,31 @@ def test_structural_and_risk_operations_are_supported() -> None:
         child, [MutationOperation("REMOVE_REGIME_FILTER", "regime_filters.0")]
     )
     assert removed.regime_filters == []
+
+
+def test_add_feature_operation_preserves_series_timeframe_and_parameters() -> None:
+    parent = strategy()
+    child = apply_operations(
+        parent,
+        [
+            MutationOperation(
+                "ADD_FEATURE",
+                "features.us10y_weekly_rsi",
+                FeatureRef(
+                    feature_id="rsi",
+                    inputs=("US10Y.close",),
+                    timeframe="1w",
+                    lag_bars=1,
+                    parameters={"period": 14},
+                ),
+            )
+        ],
+    )
+
+    assert child.features["us10y_weekly_rsi"].feature_id == "rsi"
+    assert child.features["us10y_weekly_rsi"].inputs == ("US10Y.close",)
+    assert child.features["us10y_weekly_rsi"].timeframe == "1w"
+    assert child.features["us10y_weekly_rsi"].parameters == {"period": 14}
 
 
 def test_remove_swap_replace_entry_exit_and_regime_operations() -> None:

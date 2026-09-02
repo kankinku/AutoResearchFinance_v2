@@ -43,3 +43,29 @@ def test_context_builder_can_expose_registry_catalog_without_raw_market_data() -
 
     assert context["feature_catalog"] == [{"name": "vix_percentile", "family": "macro"}]
     assert "raw_market_rows" not in context
+
+
+def test_context_builder_preserves_indicator_selection_contract_fields() -> None:
+    context = build_context(
+        generation=1,
+        champion=None,
+        frontier=[],
+        observations=[],
+        feature_catalog=[
+            {
+                "name": "us10y_weekly_rsi",
+                "canonical_id": "canonical-rsi",
+                "inputs": ["US10Y.close"],
+                "timeframe": "1w",
+                "supported_timeframes": ["1d", "1w"],
+                "status": "REGISTERED",
+                "implementation_hash": "impl-hash",
+            }
+        ],
+    )
+
+    feature = context["feature_catalog"][0]
+    assert feature["canonical_id"] == "canonical-rsi"
+    assert feature["inputs"] == ["US10Y.close"]
+    assert feature["supported_timeframes"] == ["1d", "1w"]
+    assert feature["implementation_hash"] == "impl-hash"

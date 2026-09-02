@@ -96,3 +96,12 @@ def test_feature_catalog_exposes_sanitized_sources_aliases_and_timeframes(tmp_pa
     assert "1mo" in item["supported_timeframes"]
     assert "api_key" not in response.text.lower()
     assert "app_secret" not in response.text.lower()
+
+
+def test_feature_catalog_includes_optional_macro_and_rate_features(tmp_path: Path) -> None:
+    client = TestClient(create_app(DashboardService(tmp_path)))
+
+    response = client.get("/api/features/catalog")
+
+    names = {item["canonical_name"] for item in response.json()}
+    assert {"vix_percentile", "us_20y_change", "japan_2y_change", "korea_10y_change"} <= names

@@ -62,6 +62,8 @@ class TestRecord(DashboardModel):
     gates: list[dict[str, object]] = Field(default_factory=list)
     validation_folds: list[dict[str, object]] = Field(default_factory=list)
     yearly_metrics: list[dict[str, object]] = Field(default_factory=list)
+    feature_ids: list[str] = Field(default_factory=list)
+    feature_lineage: list[dict[str, object]] = Field(default_factory=list)
     status: str
 
 

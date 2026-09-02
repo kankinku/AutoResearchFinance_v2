@@ -59,3 +59,29 @@ def test_knowledge_keeps_feature_benchmark_and_risk_facts_abstract() -> None:
     assert profile["feature_ids"] == ("us_10y_change", "vix_percentile")
     assert profile["qqq_excess_return"] == pytest.approx(0.05)
     assert profile["risk_compliant"] is True
+
+
+def test_knowledge_keeps_feature_lineage_for_next_generation_context() -> None:
+    result = FunnelResult(
+        "lineage-good",
+        "macro",
+        "SURVIVOR",
+        0.8,
+        (GateDecision("fast", True, 1, 2, None),),
+        feature_ids=("rsi",),
+        feature_lineage=(
+            {
+                "alias": "us10y_weekly_rsi",
+                "feature_id": "rsi",
+                "inputs": ["US10Y.close"],
+                "timeframe": "1w",
+                "lag_bars": 1,
+                "lookback": 14,
+            },
+        ),
+    )
+
+    profile = extract_knowledge(generation=6, results=(result,))["known_good"][0]
+
+    assert profile["feature_lineage"][0]["inputs"] == ["US10Y.close"]
+    assert profile["feature_lineage"][0]["timeframe"] == "1w"

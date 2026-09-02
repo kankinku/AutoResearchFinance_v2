@@ -107,7 +107,10 @@ class CodexExecProvider:
                 intent = ResearchIntent.model_validate(payload)
             except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
                 raise ValueError("Codex returned an invalid ResearchIntent") from exc
-        return intent.model_dump(mode="json", exclude_none=True)
+        payload = intent.model_dump(mode="json", exclude_none=True)
+        if payload.get("feature_selections") == []:
+            payload.pop("feature_selections")
+        return payload
 
     @classmethod
     def from_env(

@@ -283,10 +283,13 @@ def _feature_values(
             if spec.status != "REGISTERED":
                 raise ValueError(f"feature is not registered: {reference.feature_id!r}")
             resolved_inputs = dict(inputs or {})
+            selected_inputs = reference.inputs or spec.inputs
+            selected_parameters = dict(spec.parameters)
+            selected_parameters.update(reference.parameters)
             timeframe = spec.timeframe if reference.timeframe == "1d" else reference.timeframe
             if external_series is not None:
                 target_timestamps = tuple(bar.timestamp for bar in dataset.bars)
-                for input_name in spec.inputs:
+                for input_name in selected_inputs:
                     if input_name in resolved_inputs:
                         continue
                     series_id = input_name.rsplit(".", maxsplit=1)[0]
@@ -302,7 +305,15 @@ def _feature_values(
             try:
                 values = list(
                     calculate_feature(
-                        spec.model_copy(update={"timeframe": timeframe}), resolved_inputs
+                        spec.model_copy(
+                            update={
+                                "inputs": tuple(selected_inputs),
+                                "parameters": selected_parameters,
+                                "lookback": reference.lookback or spec.lookback,
+                                "timeframe": timeframe,
+                            }
+                        ),
+                        resolved_inputs,
                     )
                 )
             except FeatureCalculationError as exc:

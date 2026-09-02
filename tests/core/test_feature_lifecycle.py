@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from core.features.contracts import FeatureProposal, FeatureVerification
-from core.features.lifecycle import FeatureLifecycleError, register_feature_proposal
+from core.features.lifecycle import (
+    FeatureLifecycleError,
+    record_feature_proposal,
+    register_feature_proposal,
+)
 from core.features.registry import FeatureRegistry
 
 
@@ -67,3 +74,24 @@ def test_feature_proposal_rejects_executable_formula() -> None:
             formula="import requests",
             justification="not allowed",
         )
+
+
+def test_feature_proposal_is_persisted_as_pending_verification(tmp_path: Path) -> None:
+    proposal = FeatureProposal(
+        name="pending_macro",
+        family="macro",
+        inputs=("VIX.close",),
+        calculator="percentile",
+        lookback=20,
+        formula="percentile(VIX.close, 20)",
+        justification="regime filter",
+    )
+
+    record_feature_proposal(tmp_path / "feature-proposals.jsonl", proposal, generation=4)
+
+    record = json.loads(
+        (tmp_path / "feature-proposals.jsonl").read_text(encoding="utf-8")
+    )
+    assert record["status"] == "PENDING_VERIFICATION"
+    assert record["generation"] == 4
+    assert record["proposal"]["name"] == "pending_macro"

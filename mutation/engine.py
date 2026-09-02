@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from strategy_ir.schema import StrategyIR
+from strategy_ir.schema import FeatureRef, StrategyIR
 from strategy_ir.validator import validate_strategy
 
 
@@ -61,6 +61,16 @@ def _apply_one(data: dict[str, Any], operation: MutationOperation) -> None:
         _set_path(data, _required_path(operation), operation.value)
     elif op == "ADD_INDICATOR":
         _set_path(data, _required_path(operation), operation.value, allow_new=True)
+    elif op == "ADD_FEATURE":
+        feature = FeatureRef.model_validate(operation.value)
+        _set_path(
+            data,
+            _required_path(operation),
+            feature.model_dump(mode="python"),
+            allow_new=True,
+        )
+    elif op == "REMOVE_FEATURE":
+        _delete_path(data, _required_path(operation))
     elif op in {"REMOVE_INDICATOR", "REMOVE_REGIME_FILTER"}:
         _delete_path(data, _required_path(operation))
     elif op == "SWAP_INDICATOR":

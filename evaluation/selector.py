@@ -41,6 +41,7 @@ class FunnelInput:
     benchmark_dataset_hash: str | None = None
     validation_folds: tuple[Mapping[str, object], ...] = ()
     yearly_metrics: tuple[Mapping[str, object], ...] = ()
+    feature_lineage: tuple[Mapping[str, object], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,7 @@ class FunnelResult:
     full_exposure: float | None = None
     validation_folds: tuple[Mapping[str, object], ...] = ()
     yearly_metrics: tuple[Mapping[str, object], ...] = ()
+    feature_lineage: tuple[Mapping[str, object], ...] = ()
 
 
 def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResult:
@@ -219,6 +221,7 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         candidate.full_metrics.exposure,
         candidate.validation_folds,
         candidate.yearly_metrics,
+        candidate.feature_lineage,
     )
 
 

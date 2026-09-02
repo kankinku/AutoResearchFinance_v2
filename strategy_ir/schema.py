@@ -27,6 +27,9 @@ class FeatureRef(BaseModel):
     feature_id: str = Field(min_length=1)
     timeframe: Literal["1m", "5m", "15m", "1h", "1d", "1w", "1mo"] = "1d"
     lag_bars: int = Field(default=0, ge=0)
+    lookback: int | None = Field(default=None, gt=0)
+    inputs: tuple[str, ...] = ()
+    parameters: dict[str, int | float | str | bool] = Field(default_factory=dict)
 
 
 class Condition(BaseModel):

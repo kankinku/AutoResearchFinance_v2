@@ -42,6 +42,7 @@ python cli.py mode --state-dir state
 python cli.py dashboard-refresh --state-dir state --env-file .env
 python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
 python cli.py research-intent --state-dir state --env-file .env --project-root .
+python cli.py autoresearch --source strategies\normalized\golden_cross.json --data data\daily.parquet --series-data data\external-series.parquet --generations 20 --count 8 --method random --min-annual-trades 30 --min-qqq-cagr 0.10 --state-dir state --env-file .env
 ```
 
 For Codex Desktop, the MCP system orchestrator can preflight and start the local
@@ -113,6 +114,45 @@ python cli.py research-intent --state-dir state --env-file .env --project-root .
 The command records a validated intent in `state/llm/intents.jsonl`; the dashboard
 shows the provider state in the Codex LLM card. Keep KIS values only in the ignored
 `.env` file, never in a prompt or source file.
+
+### Codex 자동연구 터미널
+
+대화와 전략 연구를 한 터미널에서 사용하려면 다음처럼 실행합니다.
+
+```powershell
+python cli.py terminal
+```
+
+일반 문장은 Codex 질의로 전달되고, 터미널 명령은 다음과 같습니다.
+
+```text
+/mode chat
+/mode autoresearch
+/research 20
+/status
+/stop
+/help
+/exit
+```
+
+자동연구는 반드시 유한 세대 수로 실행되며, 각 세대는 Codex가 `ResearchIntent`만
+제안하고 로컬 Mutation Engine이 Strategy IR 후보를 만듭니다. 등록되지 않은
+인디케이터 제안은 검증·등록 전까지 실험에 사용되지 않습니다. 현재 연구 경로는
+Paper-only이며 주문을 생성하지 않습니다.
+
+비대화형 실행은 다음과 같습니다.
+
+```powershell
+python cli.py terminal --mode autoresearch --source strategies\normalized\golden_cross.json --data data\daily.parquet --iterations 20 --count 8 --min-annual-trades 30 --min-qqq-cagr 0.10
+```
+
+인디케이터는 이름만 선택하지 않습니다. Strategy IR에 canonical feature ID,
+입력 시계열, 시간봉, lag, lookback, parameters가 함께 기록됩니다. 예를 들어
+`US10Y.close`의 주봉 RSI는 등록된 RSI calculator에 `timeframe=1w`,
+`lookback=14`를 지정하는 방식입니다. VIX·금·DXY·QQQ·NASDAQ과 미국·일본·한국
+2년·10년·20년물도 같은 방식으로 선택할 수 있으며, 전략마다 필요한 항목만
+사용합니다. 계산은 로컬 as-of 엔진이 수행하고 feature lineage는 백테스트 원장,
+Knowledge, 대시보드에 전달됩니다.
 
 ## Codex Desktop connection
 
