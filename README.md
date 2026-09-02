@@ -136,36 +136,145 @@ The command records a validated intent in `state/llm/intents.jsonl`; the dashboa
 shows the provider state in the Codex LLM card. Keep KIS values only in the ignored
 `.env` file, never in a prompt or source file.
 
-### Codex 자동연구 터미널
+### Codex 자동연구 터미널 사용법
 
-대화와 전략 연구를 한 터미널에서 사용하려면 다음처럼 실행합니다.
+이 터미널은 두 가지 일을 합니다.
+
+1. 일반 문장을 Codex에 질문합니다.
+2. Codex가 연구 방향을 제안하고, 로컬 백테스트가 후보 전략을 평가합니다.
+
+연구는 항상 Paper-only·백테스트 전용으로 실행되며 주문을 생성하지 않습니다.
+반드시 저장소 루트(`C:\Users\hanji\Documents\ChatGPT\주식`)에서 실행하세요.
+
+#### 1. 일반 대화 터미널 시작
 
 ```powershell
-python cli.py terminal
+python cli.py terminal `
+  --mode chat `
+  --state-dir state `
+  --env-file .env `
+  --project-root .
 ```
 
-일반 문장은 Codex 질의로 전달되고, 터미널 명령은 다음과 같습니다.
+실행 후 `quant>` 프롬프트에 일반 문장을 입력하면 Codex가 읽기 전용으로 답합니다.
 
 ```text
-/mode chat
-/mode autoresearch
-/research 20
-/status
-/stop
-/help
-/exit
+quant> 현재 Champion과 최근 탈락 원인을 요약해줘
+quant> QQQ 대비 평가 게이트를 설명해줘
 ```
 
-자동연구는 반드시 유한 세대 수로 실행되며, 각 세대는 Codex가 `ResearchIntent`만
-제안하고 로컬 Mutation Engine이 Strategy IR 후보를 만듭니다. 등록되지 않은
-인디케이터 제안은 검증·등록 전까지 실험에 사용되지 않습니다. 현재 연구 경로는
-Paper-only이며 주문을 생성하지 않습니다.
+#### 2. Codex 자동연구 터미널 시작
 
-비대화형 실행은 다음과 같습니다.
+자동연구에는 반드시 전략 원본과 데이터 파일을 지정해야 합니다.
 
 ```powershell
-python cli.py terminal --mode autoresearch --source strategies\normalized\golden_cross.json --data data\daily.parquet --iterations 20 --count 8 --min-annual-trades 30 --min-qqq-cagr 0.10
+python cli.py terminal `
+  --mode autoresearch `
+  --source strategies\normalized\golden_cross.json `
+  --data data\daily.parquet `
+  --series-data data\external-series.parquet `
+  --iterations 20 `
+  --count 8 `
+  --min-trades 10 `
+  --min-annual-trades 30 `
+  --min-qqq-cagr 0.10 `
+  --state-dir state `
+  --env-file .env `
+  --project-root .
 ```
+
+터미널이 열린 뒤 다음을 입력합니다.
+
+```text
+quant> /research 20
+```
+
+`/research 20`은 Codex 제안과 로컬 평가를 20세대 수행합니다. 세대 수는 반드시
+양의 정수여야 하며, 현재 무한 반복은 안전상 지원하지 않습니다. 무한 반복이
+필요하면 여러 개의 유한 실행을 외부 스케줄러로 묶되, 각 실행의 상태와 결과를
+확인해야 합니다.
+
+#### 3. 터미널 명령
+
+| 명령 | 기능 |
+|---|---|
+| 일반 문장 | Codex 읽기 전용 질의 |
+| `/mode chat` | 일반 대화 모드로 변경 |
+| `/mode autoresearch` | 자동연구 모드로 변경 |
+| `/research 20` | 20세대 Codex 자동연구 실행 |
+| `/status` | 대시보드 상태 JSON 출력 |
+| `/help` | 도움말 출력 |
+| `/exit` | 터미널 종료 |
+| `/stop` | 중지 요청 상태를 출력; 실행 중인 동기 작업을 강제 종료하지는 않음 |
+
+현재 `/repeat`와 `/backtest`는 명령 파서에는 등록되어 있으나 REPL 실행 명령으로는
+연결되어 있지 않습니다. 반복 백테스트와 단일 백테스트는 아래의 직접 CLI 명령을
+사용하세요.
+
+#### 4. Codex 없이 반복 백테스트 실행
+
+```powershell
+python cli.py repeat-research `
+  --source strategies\normalized\golden_cross.json `
+  --data data\daily.parquet `
+  --series-data data\external-series.parquet `
+  --method random `
+  --count 8 `
+  --generations 20 `
+  --min-trades 10 `
+  --min-annual-trades 30 `
+  --min-qqq-cagr 0.10 `
+  --state-dir state
+```
+
+`--domain`을 지정하지 않으면 기준선 후보 1개만 반복합니다. 실제 파라미터 탐색을
+하려면 도메인을 하나 이상 추가해야 합니다.
+
+```powershell
+python cli.py repeat-research `
+  --source strategies\normalized\golden_cross.json `
+  --data data\daily.parquet `
+  --method grid `
+  --count 9 `
+  --generations 20 `
+  --min-annual-trades 30 `
+  --min-qqq-cagr 0.10 `
+  --domain '{"name":"indicators.sma_fast.period","values":[5,10,20]}' `
+  --domain '{"name":"risk.position_size_pct","values":[25,50,75]}' `
+  --state-dir state
+```
+
+#### 5. 진행 중 확인과 중지
+
+다른 PowerShell 창에서 상태를 확인합니다.
+
+```powershell
+python cli.py status --state-dir state
+Get-Content state\system\autoresearch.json
+Get-Content state\llm\status.json
+```
+
+현재 터미널에서 실행 중인 연구를 즉시 끝내려면 해당 창에서 `Ctrl+C`를 누릅니다.
+중단된 세대까지의 상태는 `state\system\autoresearch.json`에 남습니다.
+
+#### 6. 대시보드 함께 실행
+
+대시보드는 별도 PowerShell 창에서 실행합니다.
+
+```powershell
+python cli.py dashboard-refresh --state-dir state --env-file .env
+python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
+```
+
+브라우저에서 [http://127.0.0.1:8080/](http://127.0.0.1:8080/)을 엽니다. 연구 상태,
+Champion·Frontier, 평가 기록, Codex 연결 상태를 확인할 수 있습니다.
+
+#### 7. 안전상 실행하지 않는 명령
+
+`paper-order-smoke`는 연구 터미널과 별개의 주문 명령입니다. 현재 시스템의 기본
+상태는 `selected_mode=paper`, `orders_enabled=false`이며, 자동연구·일반 대화·
+대시보드 새로고침은 주문을 실행하지 않습니다. 주문 테스트가 필요할 때만 별도의
+명시적 확인 절차를 사용하세요.
 
 인디케이터는 이름만 선택하지 않습니다. Strategy IR에 canonical feature ID,
 입력 시계열, 시간봉, lag, lookback, parameters가 함께 기록됩니다. 예를 들어
