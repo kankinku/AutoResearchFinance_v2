@@ -17,6 +17,9 @@ def test_streamlit_dashboard_exposes_korean_live_research_view() -> None:
         "현재 세대",
         "Codex 연결",
         "백그라운드 탐색과 연결됨",
+        "이전 세대 이후",
+        "첫 세대 시작 후",
+        "장시간 대기 확인 필요",
         "사용 설명서",
         "@st.fragment(run_every=",
         "system/autoresearch.json",
@@ -50,3 +53,7 @@ def test_streamlit_dashboard_renders_generation_analysis_without_exception() -> 
 
     assert not app.exception
     assert any(item.label == "분석할 세대" for item in app.selectbox)
+    assert any(
+        "세대 이후" in item.value or "첫 세대 시작 후" in item.value
+        for item in app.markdown
+    )

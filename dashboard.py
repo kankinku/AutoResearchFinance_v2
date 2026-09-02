@@ -11,6 +11,7 @@ Information hierarchy:
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,6 +30,7 @@ st.set_page_config(
 # Constants
 # ---------------------------------------------------------------------------
 STATE_DIR = Path(__file__).resolve().parent / "state"
+RESEARCH_STALE_AFTER_SECONDS = 10 * 60
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +189,29 @@ def _safe_int(value: object, default: int = 0) -> int:
         return default
 
 
+def _elapsed_since(filename: str) -> float | None:
+    """Return seconds since a state file was last updated."""
+
+    filepath = STATE_DIR / filename
+    try:
+        return max(0.0, time.time() - filepath.stat().st_mtime)
+    except OSError:
+        return None
+
+
+def _format_elapsed(seconds: float | None) -> str:
+    if seconds is None:
+        return "확인 불가"
+    total_seconds = int(seconds)
+    minutes, remainder = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}시간 {minutes}분"
+    if minutes:
+        return f"{minutes}분 {remainder}초"
+    return f"{remainder}초"
+
+
 def _best_generation_record(
     records: list[dict[str, object]], generation: int
 ) -> dict[str, object] | None:
@@ -270,13 +295,20 @@ def render_live_research() -> None:
     progress = min(completed / requested, 1.0) if requested > 0 else 0.0
     records = research_state.get("generations", [])
     last_record = records[-1] if isinstance(records, list) and records else None
+    elapsed = _elapsed_since("system/autoresearch.json")
+    elapsed_label = "이전 세대 이후" if completed > 0 else "첫 세대 시작 후"
+    elapsed_text = _format_elapsed(elapsed)
+    stale = status == "RUNNING" and elapsed is not None and elapsed >= RESEARCH_STALE_AFTER_SECONDS
+    elapsed_color = "orange" if stale else "green"
+    elapsed_suffix = " · 장시간 대기 확인 필요" if stale else ""
 
     st.subheader(":material/sync: 자동 연구 진행 상황", anchor=False)
     with st.container(border=True):
         top_left, top_right = st.columns([3, 1])
         with top_left:
             st.markdown(
-                f"**{_status_label(status)}** · 백그라운드 탐색과 연결됨"
+                f"**{_status_label(status)}** · 백그라운드 탐색과 연결됨 · "
+                f":{elapsed_color}[{elapsed_label} {elapsed_text}{elapsed_suffix}]"
             )
             st.progress(progress, text=f"처리된 세대 {completed} / {requested}")
         with top_right:
