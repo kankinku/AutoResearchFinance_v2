@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from core.backtest.engine import BacktestEngine, BacktestRequest
+from core.backtest.engine import BacktestEngine, BacktestRequest, _indicator_values
 from core.data.contracts import Bar, MarketDataSet
 from core.features.contracts import FeatureSpec
 from strategy_ir.schema import Condition, IndicatorSpec
@@ -189,6 +189,64 @@ def test_strategy_backtest_supports_extended_registered_indicator_calculators() 
     )
 
     assert result.exit_status == "SUCCEEDED"
+
+
+def test_strategy_backtest_supports_imported_legacy_indicators() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index),
+            "TEST",
+            close - 1,
+            close + 1,
+            close - 2,
+            close,
+            1000,
+        )
+        for index, close in enumerate((10.0, 12.0, 11.0, 13.0, 13.0, 12.0))
+    )
+    strategy = validate_strategy(
+        {
+            "schema_version": 1,
+            "id": "legacy-indicators",
+            "family": "test",
+            "generation": 0,
+            "indicators": {
+                "change": {"type": "CHANGE"},
+                "maximum": {"type": "MAXIMUM", "period": 2},
+                "ibs": {"type": "IBS"},
+                "disparity": {"type": "DISPARITY", "period": 2},
+                "up": {"type": "CONSECUTIVE", "parameters": {"direction": "up"}},
+                "down": {"type": "CONSECUTIVE", "parameters": {"direction": "down"}},
+                "volatility": {"type": "VOLATILITY_IND", "period": 2},
+            },
+            "entry": {
+                "logic": "AND",
+                "conditions": [{"op": "greater_equal", "left": "change", "value": -1000}],
+            },
+            "exit": {
+                "logic": "OR",
+                "conditions": [{"op": "less_equal", "left": "change", "value": 1000}],
+            },
+            "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
+        }
+    )
+
+    values = _indicator_values(MarketDataSet("data-v1", "development", bars), strategy)
+
+    assert values["change"] == pytest.approx(
+        [None, 20.0, -8.333333, 18.181818, 0.0, -7.692307], abs=1e-5
+    )
+    assert values["maximum"] == pytest.approx(
+        [None, None, 12.0, 12.0, 13.0, 13.0], abs=1e-5
+    )
+    assert values["ibs"] == pytest.approx([2.0 / 3.0] * 6)
+    assert values["disparity"] == pytest.approx(
+        [None, 109.090909, 95.652174, 108.333333, 100.0, 96.0], abs=1e-5
+    )
+    assert values["up"] == [0.0, 1.0, 0.0, 1.0, 0.0, 0.0]
+    assert values["down"] == [0.0, 0.0, 1.0, 0.0, 0.0, 1.0]
+    assert values["volatility"][0] is None
+    assert values["volatility"][2] is not None
 
 
 def test_strategy_backtest_uses_declared_external_feature_values() -> None:

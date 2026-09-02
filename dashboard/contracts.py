@@ -44,6 +44,7 @@ class TestRecord(DashboardModel):
     total_return: float | None = None
     nasdaq_excess_return: float | None = None
     qqq_excess_return: float | None = None
+    qqq_cagr_delta: float | None = None
     max_drawdown: float | None = None
     risk_compliant: bool | None = None
     status: str

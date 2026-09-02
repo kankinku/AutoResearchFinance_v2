@@ -74,9 +74,9 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--seed", type=int, default=0)
     run_parser.add_argument("--min-trades", type=int, default=10)
     run_parser.add_argument(
-        "--min-qqq-excess",
+        "--min-qqq-cagr",
         type=float,
-        help="Optional minimum same-period QQQ excess return, e.g. 0.10 for 10%%",
+        help="Optional minimum same-period QQQ annualized excess return, e.g. 0.10",
     )
     run_parser.add_argument(
         "--domain",
@@ -296,7 +296,7 @@ def main(argv: list[str] | None = None) -> int:
             min_trades=args.min_trades,
             parameter_domains=parse_parameter_domains(domain_documents),
             series_data_path=args.series_data,
-            min_qqq_excess_return=args.min_qqq_excess,
+            min_qqq_cagr_delta=args.min_qqq_cagr,
         )
         print(json.dumps(evaluation_result, ensure_ascii=False))
         return 0

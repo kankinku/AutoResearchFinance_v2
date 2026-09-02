@@ -157,8 +157,8 @@ class CodexMCPServer:
         count = _positive_int(arguments.get("count", 1), "count")
         seed = _nonnegative_int(arguments.get("seed", 0), "seed")
         min_trades = _nonnegative_int(arguments.get("min_trades", 10), "min_trades")
-        min_qqq_excess = _optional_float(
-            arguments.get("min_qqq_excess_return"), "min_qqq_excess_return"
+        min_qqq_cagr = _optional_float(
+            arguments.get("min_qqq_cagr_delta"), "min_qqq_cagr_delta"
         )
         parameter_domains = parse_parameter_domains(arguments.get("parameter_domains"))
         return run_local_evaluation(
@@ -172,7 +172,7 @@ class CodexMCPServer:
             min_trades=min_trades,
             parameter_domains=parameter_domains,
             series_data_path=arguments.get("series_data_path"),
-            min_qqq_excess_return=min_qqq_excess,
+            min_qqq_cagr_delta=min_qqq_cagr,
         )
 
 
@@ -241,7 +241,7 @@ def _tools() -> list[dict[str, object]]:
                         },
                     },
                     "series_data_path": {"type": "string"},
-                    "min_qqq_excess_return": {"type": "number"},
+                    "min_qqq_cagr_delta": {"type": "number"},
                 },
                 "required": ["source_path", "data_path"],
                 "additionalProperties": False,

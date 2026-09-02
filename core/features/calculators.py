@@ -37,6 +37,18 @@ def calculate_feature(
         return _rsi(series[0], spec.lookback, str(spec.parameters.get("method", "sma")))
     if calculator == "returns":
         return _returns(series[0], spec.lookback)
+    if calculator == "change":
+        return _percent_change(series[0], spec.lookback)
+    if calculator == "maximum":
+        return _previous_rolling_maximum(series[0], spec.lookback)
+    if calculator == "ibs":
+        return _ibs(series[0], series[1], series[2])
+    if calculator == "disparity":
+        return _disparity(series[0], spec.lookback)
+    if calculator == "consecutive":
+        return _consecutive(series[0], str(spec.parameters.get("direction", "up")))
+    if calculator == "volatility_ind":
+        return _rolling_return_volatility(series[0], spec.lookback)
     if calculator == "spread":
         return _spread(series[0], series[1])
     if calculator == "rolling_correlation":
@@ -297,6 +309,68 @@ def _returns(values: NumberSeries, period: int) -> tuple[float | None, ...]:
         previous, current = values[index - period], values[index]
         if previous is not None and current is not None and previous != 0:
             result[index] = float(current) / float(previous) - 1.0
+    return tuple(result)
+
+
+def _percent_change(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    returns = _returns(values, period)
+    return tuple(None if value is None else value * 100.0 for value in returns)
+
+
+def _previous_rolling_maximum(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    result: list[float | None] = [None] * len(values)
+    for index in range(period, len(values)):
+        window = values[index - period : index]
+        if any(value is None for value in window):
+            continue
+        result[index] = max(float(value) for value in window if value is not None)
+    return tuple(result)
+
+
+def _ibs(
+    closes: NumberSeries, highs: NumberSeries, lows: NumberSeries
+) -> tuple[float | None, ...]:
+    result: list[float | None] = []
+    for close, high, low in zip(closes, highs, lows, strict=True):
+        if close is None or high is None or low is None:
+            result.append(None)
+            continue
+        spread = float(high) - float(low)
+        result.append(0.5 if spread == 0 else (float(close) - float(low)) / spread)
+    return tuple(result)
+
+
+def _disparity(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    average = _single_rolling(values, period, fmean)
+    return tuple(
+        None if current is None or mean is None or mean == 0 else float(current) / mean * 100.0
+        for current, mean in zip(values, average, strict=True)
+    )
+
+
+def _consecutive(values: NumberSeries, direction: str) -> tuple[float | None, ...]:
+    normalized = direction.lower()
+    if normalized not in {"up", "down"}:
+        raise FeatureCalculationError("consecutive direction must be up or down")
+    result: list[float | None] = [0.0] * len(values)
+    for index in range(1, len(values)):
+        current, previous = values[index], values[index - 1]
+        if current is None or previous is None:
+            result[index] = None
+            continue
+        matches = current > previous if normalized == "up" else current < previous
+        result[index] = (result[index - 1] or 0.0) + 1.0 if matches else 0.0
+    return tuple(result)
+
+
+def _rolling_return_volatility(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    changes = _returns(values, 1)
+    result: list[float | None] = [None] * len(values)
+    for index in range(period, len(values)):
+        window = changes[index - period + 1 : index + 1]
+        if any(value is None for value in window):
+            continue
+        result[index] = pstdev(float(value) for value in window if value is not None)
     return tuple(result)
 
 

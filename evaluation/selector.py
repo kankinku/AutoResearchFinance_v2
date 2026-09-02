@@ -17,7 +17,7 @@ class FunnelConfig:
     min_robust_score: float = 0.5
     require_validation: bool = True
     require_risk_compliance: bool = True
-    min_qqq_excess_return: float | None = None
+    min_qqq_cagr_delta: float | None = None
     champion_score: float | None = None
 
 
@@ -74,15 +74,17 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         or candidate.risk_evaluation is None
         or candidate.risk_evaluation.compliant
     )
-    qqq_excess = (
-        candidate.full_benchmark.qqq_excess_return
+    qqq_cagr_delta = (
+        candidate.full_benchmark.qqq_cagr_delta
         if candidate.full_benchmark is not None
         else None
     )
     qqq_target_passed = (
-        config.min_qqq_excess_return is None
-        or qqq_excess is not None
-        and qqq_excess >= config.min_qqq_excess_return
+        config.min_qqq_cagr_delta is None
+        or (
+            qqq_cagr_delta is not None
+            and qqq_cagr_delta >= config.min_qqq_cagr_delta
+        )
     )
     score = candidate.robustness.robust_score
     promotion_passed = config.champion_score is None or score > config.champion_score
@@ -131,10 +133,10 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
             None if risk_passed else "risk_policy_breach",
         ),
         GateDecision(
-            "qqq_excess_return",
+            "qqq_cagr_delta",
             qqq_target_passed,
-            config.min_qqq_excess_return,
-            qqq_excess,
+            config.min_qqq_cagr_delta,
+            qqq_cagr_delta,
             None if qqq_target_passed else "qqq_target_not_met",
         ),
         GateDecision(

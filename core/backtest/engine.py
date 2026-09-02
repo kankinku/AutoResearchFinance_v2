@@ -333,13 +333,17 @@ def _indicator(
         except Exception as exc:
             raise ValueError("unsupported indicator specification") from exc
     kind = spec.type.upper()
-    period = spec.period
-    if period is None:
-        raise ValueError(f"unsupported indicator {spec.type!r}")
+    period = spec.period or 1
     calculator = kind.lower()
     feature_inputs = {"close": inputs["close"]}
     if calculator in {"atr", "adx"}:
         feature_inputs = {field: inputs[field] for field in ("high", "low", "close")}
+    elif calculator == "ibs":
+        feature_inputs = {
+            "close": inputs["close"],
+            "high": inputs["high"],
+            "low": inputs["low"],
+        }
     elif calculator == "volume_breakout":
         feature_inputs = {"volume": inputs["volume"]}
     feature_spec = FeatureSpec(

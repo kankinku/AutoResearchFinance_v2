@@ -49,7 +49,7 @@ def run_local_evaluation(
     min_trades: int = 10,
     parameter_domains: Sequence[ParameterDomain] = (),
     series_data_path: object | None = None,
-    min_qqq_excess_return: float | None = None,
+    min_qqq_cagr_delta: float | None = None,
 ) -> dict[str, object]:
     source = resolve_project_input(project_root, source_path, ALLOWED_STRATEGY_SUFFIXES)
     data = resolve_project_input(project_root, data_path, frozenset({".parquet"}))
@@ -57,8 +57,8 @@ def run_local_evaluation(
         raise ValueError("evaluation method is invalid")
     if count < 1 or seed < 0 or min_trades < 0:
         raise ValueError("evaluation numeric options are invalid")
-    if min_qqq_excess_return is not None and not isfinite(min_qqq_excess_return):
-        raise ValueError("QQQ excess-return target must be finite")
+    if min_qqq_cagr_delta is not None and not isfinite(min_qqq_cagr_delta):
+        raise ValueError("QQQ CAGR target must be finite")
     domains = tuple(parameter_domains)
     if any(not isinstance(domain, ParameterDomain) for domain in domains):
         raise TypeError("parameter_domains must contain ParameterDomain values")
@@ -81,7 +81,7 @@ def run_local_evaluation(
         funnel=FunnelConfig(
             min_fast_trades=min_trades,
             min_full_trades=min_trades,
-            min_qqq_excess_return=min_qqq_excess_return,
+            min_qqq_cagr_delta=min_qqq_cagr_delta,
         ),
         benchmark_data=benchmark,
         feature_specs=feature_specs,

@@ -42,6 +42,11 @@ def append_funnel_results(
                     if result.risk_evaluation is not None
                     else None
                 ),
+                "qqq_cagr_delta": (
+                    result.full_benchmark.qqq_cagr_delta
+                    if result.full_benchmark is not None
+                    else None
+                ),
                 "status": result.status,
             }
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")

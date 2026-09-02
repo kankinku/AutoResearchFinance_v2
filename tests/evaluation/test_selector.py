@@ -40,7 +40,7 @@ def test_funnel_records_all_gates_and_admits_survivor() -> None:
         "robustness",
         "validation",
         "risk",
-        "qqq_excess_return",
+        "qqq_cagr_delta",
         "promotion",
     ]
     assert all(gate.passed for gate in result.gates)
@@ -114,11 +114,14 @@ def test_funnel_rejects_candidate_that_breaches_declared_daily_loss_policy() -> 
     assert result.status == "REJECT"
 
 
-def test_funnel_applies_qqq_excess_return_target_when_configured() -> None:
+def test_funnel_applies_qqq_annualized_excess_target_when_configured() -> None:
+    strategy_equity = (100.0,) + (110.0,) * 251 + (120.0,)
+    qqq_prices = (100.0,) + (105.0,) * 251 + (110.0,)
+    nasdaq_prices = (100.0,) + (106.0,) * 251 + (112.0,)
     benchmark = compare_benchmarks(
-        (100.0, 110.0, 120.0),
-        (100.0, 105.0, 110.0),
-        (100.0, 106.0, 112.0),
+        strategy_equity,
+        qqq_prices,
+        nasdaq_prices,
     )
     result = select_candidate(
         FunnelInput(
@@ -134,10 +137,10 @@ def test_funnel_applies_qqq_excess_return_target_when_configured() -> None:
             min_fast_trades=2,
             min_full_trades=2,
             min_robust_score=0.5,
-            min_qqq_excess_return=0.10,
+            min_qqq_cagr_delta=0.10,
         ),
     )
 
-    qqq_gate = next(gate for gate in result.gates if gate.name == "qqq_excess_return")
+    qqq_gate = next(gate for gate in result.gates if gate.name == "qqq_cagr_delta")
     assert qqq_gate.passed is False
     assert qqq_gate.threshold == 0.10
