@@ -3,21 +3,17 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Mapping
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from core.data.parquet import ParquetDataProvider
 from core.features.registry import default_feature_registry
-from dashboard.ledger import append_funnel_results
 from dashboard.service import DashboardService
-from evaluation.selector import FunnelConfig
 from integrations.codex_mcp_protocol import error, serve_lines, success, text_content
-from orchestration.pipeline import GenerationPipeline
+from orchestration.evaluation_runner import run_local_evaluation
 from research.llm.codex_exec import record_intent, sanitize_context, write_provider_status
 from research.llm.codex_schema import research_intent_schema
 from research.llm.director import ResearchIntent
-from strategy_ir.normalizer import normalize_source
+from runtime.system_controller import SystemController, SystemLaunchConfig
 
 
 class CodexMCPServer:
@@ -25,6 +21,7 @@ class CodexMCPServer:
         self.state_dir = state_dir.resolve()
         self.project_root = project_root.resolve()
         self.dashboard = DashboardService(self.state_dir)
+        self.system = SystemController(state_dir=self.state_dir, project_root=self.project_root)
 
     def handle(self, request: object) -> dict[str, Any] | None:
         if not isinstance(request, Mapping):
@@ -97,6 +94,14 @@ class CodexMCPServer:
             return self._submit_intent(arguments)
         if name == "run_evaluation":
             return self._run_evaluation(arguments)
+        if name == "check_system":
+            return self.system.preflight(_system_config(arguments)).as_payload()
+        if name == "start_system":
+            return self.system.start(_system_config(arguments))
+        if name == "get_system_status":
+            return self.system.status()
+        if name == "stop_system":
+            return self.system.stop()
         raise ValueError("unknown tool")
 
     def _research_context(self) -> dict[str, object]:
@@ -148,54 +153,20 @@ class CodexMCPServer:
         return {"status": "VALIDATED", "intent": payload}
 
     def _run_evaluation(self, arguments: dict[str, Any]) -> dict[str, object]:
-        source = self._project_path(
-            arguments.get("source_path"),
-            {".yaml", ".yml", ".json", ".py", ".pine", ".pinescript"},
-        )
-        data = self._project_path(arguments.get("data_path"), {".parquet"})
-        imported = normalize_source(source)
-        if imported.strategy is None:
-            raise ValueError("strategy source is unsupported")
         method = str(arguments.get("method", "grid"))
-        if method not in {"grid", "random", "bayesian"}:
-            raise ValueError("evaluation method is invalid")
         count = _positive_int(arguments.get("count", 1), "count")
         seed = _nonnegative_int(arguments.get("seed", 0), "seed")
         min_trades = _nonnegative_int(arguments.get("min_trades", 10), "min_trades")
-        result = GenerationPipeline().run(
-            parent=imported.strategy,
-            dataset=ParquetDataProvider.read(data),
-            operations=(),
-            domains=(),
+        return run_local_evaluation(
+            project_root=self.project_root,
+            state_dir=self.state_dir,
+            source_path=arguments.get("source_path"),
+            data_path=arguments.get("data_path"),
             method=method,
             count=count,
             seed=seed,
-            funnel=FunnelConfig(min_fast_trades=min_trades, min_full_trades=min_trades),
+            min_trades=min_trades,
         )
-        append_funnel_results(
-            self.state_dir / "test-records.jsonl",
-            generation=imported.strategy.generation + 1,
-            results=result.funnel,
-            timestamp=datetime.now(timezone.utc).isoformat(),
-        )
-        return {
-            "status": "COMPLETED",
-            "candidate_count": len(result.candidates),
-            "counts": {
-                status: sum(item.status == status for item in result.funnel)
-                for status in sorted({item.status for item in result.funnel})
-            },
-        }
-
-    def _project_path(self, value: object, suffixes: set[str]) -> Path:
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError("path is required")
-        candidate = (self.project_root / value).resolve()
-        if self.project_root not in candidate.parents:
-            raise PermissionError("path is outside project root")
-        if candidate.name.lower() == ".env" or candidate.suffix.lower() not in suffixes:
-            raise PermissionError("path is not an allowed research input")
-        return candidate
 
 
 def create_mcp_server(*, state_dir: Path, project_root: Path) -> CodexMCPServer:
@@ -255,7 +226,77 @@ def _tools() -> list[dict[str, object]]:
                 "additionalProperties": False,
             },
         },
+        {
+            "name": "check_system",
+            "description": (
+                "Check all prerequisites before starting the local paper research system."
+            ),
+            "inputSchema": _system_schema(),
+        },
+        {
+            "name": "start_system",
+            "description": (
+                "Start dashboard, research detection, and isolated Docker backtesting in parallel."
+            ),
+            "inputSchema": _system_schema(),
+        },
+        {
+            "name": "get_system_status",
+            "description": "Read managed system and worker status.",
+            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        },
+        {
+            "name": "stop_system",
+            "description": "Stop the managed local research and backtest system.",
+            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        },
     ]
+
+
+def _system_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "source_path": {"type": "string"},
+            "data_path": {"type": "string"},
+            "method": {"enum": ["grid", "random", "bayesian"], "type": "string"},
+            "count": {"minimum": 1, "type": "integer"},
+            "seed": {"minimum": 0, "type": "integer"},
+            "min_trades": {"minimum": 0, "type": "integer"},
+            "dashboard_port": {"minimum": 1, "maximum": 65535, "type": "integer"},
+            "docker_image": {"type": "string"},
+            "env_file": {"type": "string"},
+        },
+        "required": ["source_path", "data_path"],
+        "additionalProperties": False,
+    }
+
+
+def _system_config(arguments: dict[str, Any]) -> SystemLaunchConfig:
+    source_path = arguments.get("source_path")
+    data_path = arguments.get("data_path")
+    if not isinstance(source_path, str) or not source_path.strip():
+        raise ValueError("source_path is required")
+    if not isinstance(data_path, str) or not data_path.strip():
+        raise ValueError("data_path is required")
+    method = arguments.get("method", "random")
+    docker_image = arguments.get("docker_image", "quant-autoresearch-worker:local")
+    env_file = arguments.get("env_file", ".env")
+    if not all(
+        isinstance(value, str) and value.strip() for value in (method, docker_image, env_file)
+    ):
+        raise ValueError("system string options are invalid")
+    return SystemLaunchConfig(
+        source_path=source_path,
+        data_path=data_path,
+        method=method,
+        count=_positive_int(arguments.get("count", 8), "count"),
+        seed=_nonnegative_int(arguments.get("seed", 0), "seed"),
+        min_trades=_nonnegative_int(arguments.get("min_trades", 10), "min_trades"),
+        dashboard_port=_positive_int(arguments.get("dashboard_port", 8080), "dashboard_port"),
+        docker_image=docker_image,
+        env_file=env_file,
+    )
 
 
 def _tool_error(request_id: object, message: str) -> dict[str, Any]:

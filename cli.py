@@ -5,17 +5,14 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from core.data.parquet import ParquetDataProvider
 from core.features.registry import default_feature_registry
 from core.integrity.hashes import content_hash
-from dashboard.ledger import append_funnel_results
 from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
 from dashboard.state import DashboardStateReader
-from evaluation.selector import FunnelConfig
 from experiments.planner import plan_experiment
 from memory.state_files import StateFileStore
-from orchestration.pipeline import GenerationPipeline
+from orchestration.evaluation_runner import run_local_evaluation
 from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
 from research.llm.director import ResearchDirector
 from strategy_ir.normalizer import ImportStatus, normalize_source
@@ -66,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--count", type=int, default=1)
     run_parser.add_argument("--seed", type=int, default=0)
     run_parser.add_argument("--min-trades", type=int, default=10)
+    run_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     for command in ("resume", "rebuild-cache"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
@@ -239,41 +237,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     if args.command == "run-generation":
-        imported = normalize_source(args.source)
-        if imported.strategy is None:
-            print(json.dumps({"status": "UNSUPPORTED", "reason": imported.reason}))
-            return 2
-        pipeline_result = GenerationPipeline().run(
-            parent=imported.strategy,
-            dataset=ParquetDataProvider.read(args.data),
-            operations=(),
-            domains=(),
+        evaluation_result = run_local_evaluation(
+            project_root=Path("."),
+            state_dir=args.state_dir,
+            source_path=args.source,
+            data_path=args.data,
             method=args.method,
             count=args.count,
             seed=args.seed,
-            funnel=FunnelConfig(
-                min_fast_trades=args.min_trades,
-                min_full_trades=args.min_trades,
-            ),
+            min_trades=args.min_trades,
         )
-        append_funnel_results(
-            args.state_dir / "test-records.jsonl",
-            generation=imported.strategy.generation + 1,
-            results=pipeline_result.funnel,
-            timestamp=datetime.now().astimezone().isoformat(),
-        )
-        print(
-            json.dumps(
-                {
-                    "status": "COMPLETED",
-                    "candidate_count": len(pipeline_result.candidates),
-                    "counts": {
-                        status: sum(item.status == status for item in pipeline_result.funnel)
-                        for status in sorted({item.status for item in pipeline_result.funnel})
-                    },
-                }
-            )
-        )
+        print(json.dumps(evaluation_result, ensure_ascii=False))
         return 0
     if args.command == "resume":
         assert store is not None

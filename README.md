@@ -41,6 +41,11 @@ python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --por
 python cli.py research-intent --state-dir state --env-file .env --project-root .
 ```
 
+For Codex Desktop, the MCP system orchestrator can preflight and start the local
+dashboard, research detector, and isolated Docker backtest worker together. See
+`docs/operations/system-orchestrator.md` for registration and the natural-language
+command flow.
+
 The local paper operations dashboard is available at `http://127.0.0.1:8080/` after
 starting the last command. It reports the effective paper-only mode, sanitized KIS
 account snapshot, evaluation ledger, Champion strategy, generation trend, and worker

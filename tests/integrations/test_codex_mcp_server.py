@@ -37,6 +37,10 @@ def test_mcp_server_lists_only_safe_research_tools(tmp_path: Path) -> None:
         "get_dashboard_status",
         "submit_research_intent",
         "run_evaluation",
+        "check_system",
+        "start_system",
+        "get_system_status",
+        "stop_system",
     }
     assert not any("order" in name or "credential" in name for name in names)
 
@@ -118,3 +122,28 @@ def test_mcp_server_handles_notifications_and_invalid_requests(tmp_path: Path) -
     assert server.handle({"jsonrpc": "2.0", "method": "notifications/initialized"}) is None
     response = _call(server, {"jsonrpc": "2.0", "id": 6, "method": "unknown"})
     assert response["error"]
+
+
+def test_mcp_system_preflight_returns_actionable_blockers_without_starting(tmp_path: Path) -> None:
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+
+    response = _call(
+        server,
+        {
+            "jsonrpc": "2.0",
+            "id": 7,
+            "method": "tools/call",
+            "params": {
+                "name": "start_system",
+                "arguments": {
+                    "source_path": "strategies/missing.py",
+                    "data_path": "data/missing.parquet",
+                },
+            },
+        },
+    )
+
+    payload = _text(response)
+    assert payload["status"] == "BLOCKED"
+    assert payload["preflight"]["issues"]
+    assert "Docker" in str(payload["preflight"]["issues"])

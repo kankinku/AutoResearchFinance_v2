@@ -65,6 +65,10 @@ def test_mcp_tool_surface_has_no_order_or_credential_capability(tmp_path: Path) 
         "get_dashboard_status",
         "submit_research_intent",
         "run_evaluation",
+        "check_system",
+        "start_system",
+        "get_system_status",
+        "stop_system",
     }
     assert not any("order" in name or "credential" in name or "live" in name for name in names)
 
