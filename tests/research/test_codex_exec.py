@@ -93,6 +93,26 @@ def test_codex_exec_provider_rejects_failed_or_invalid_output(tmp_path: Path) ->
         CodexExecProvider(workdir=tmp_path, runner=invalid).propose({})
 
 
+def test_codex_exec_provider_repairs_with_an_independent_request(tmp_path: Path) -> None:
+    runner = FakeRunner(_valid_intent())
+    provider = CodexExecProvider(workdir=tmp_path, runner=runner)
+
+    payload = provider.repair(
+        {"feature_catalog": [{"name": "rsi"}], "KIS_PAPER_APP_SECRET": "redacted"},
+        {"mode": "mixed", "feature_proposal": {"name": "unsafe_feature"}},
+        "feature proposal requires verification",
+    )
+
+    assert payload == _valid_intent()
+    assert runner.command[:2] == ["codex", "exec"]
+    assert "--ephemeral" in runner.command
+    assert "--sandbox" in runner.command
+    request = json.loads(runner.input_text)
+    assert "independent intent repair" in request["instruction"].lower()
+    assert request["repair_error"] == "feature proposal requires verification"
+    assert "KIS_PAPER_APP_SECRET" not in json.dumps(request)
+
+
 def test_checked_in_schema_matches_model_schema() -> None:
     schema_path = Path(__file__).parents[2] / "schemas" / "research_intent.schema.json"
     assert json.loads(schema_path.read_text(encoding="utf-8")) == research_intent_schema()

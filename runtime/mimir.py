@@ -40,6 +40,7 @@ class MimirResearchOptions:
     min_annual_trades: int
     min_qqq_cagr: float | None
     domains: tuple[str, ...]
+    intent_repair_attempts: int
     state_dir: Path
     env_file: Path
     project_root: Path
@@ -95,7 +96,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         command = parse_mimir_command(tuple(argv) if argv is not None else _command_argv())
         if command.name == "help":
             print(terminal_help())
-            print("Mimir /research <generations> [--source PATH --data PATH]")
+            print(
+                "Mimir /research <generations> [--source PATH --data PATH "
+                "--intent-repairs N]"
+            )
             print("Mimir /status | Mimir /chat \"질문\" | Mimir /stop")
             return 0
         if command.name == "status":
@@ -140,6 +144,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     [json.loads(document) for document in options.domains]
                 ),
                 generations=options.generations,
+                intent_repair_attempts=options.intent_repair_attempts,
             ),
             director,
         )
@@ -174,6 +179,7 @@ def _parse_common_options(arguments: Sequence[str]) -> MimirResearchOptions:
         min_annual_trades=30,
         min_qqq_cagr=None,
         domains=(),
+        intent_repair_attempts=3,
         state_dir=parsed.state_dir,
         env_file=parsed.env_file,
         project_root=parsed.project_root,
@@ -193,12 +199,15 @@ def _parse_research_options(arguments: Sequence[str]) -> MimirResearchOptions:
     parser.add_argument("--min-annual-trades", type=int, default=30)
     parser.add_argument("--min-qqq-cagr", type=float)
     parser.add_argument("--domain", action="append", default=[])
+    parser.add_argument("--intent-repairs", type=int, default=3)
     parser.add_argument("--state-dir", type=Path, default=Path("state"))
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
     parser.add_argument("--project-root", type=Path, default=Path("."))
     parsed = parser.parse_args(list(arguments))
     if parsed.generations <= 0:
         raise ValueError("research requires a positive integer generation count")
+    if parsed.intent_repairs < 0:
+        raise ValueError("--intent-repairs cannot be negative")
     return MimirResearchOptions(
         generations=parsed.generations,
         source=parsed.source,
@@ -211,6 +220,7 @@ def _parse_research_options(arguments: Sequence[str]) -> MimirResearchOptions:
         min_annual_trades=parsed.min_annual_trades,
         min_qqq_cagr=parsed.min_qqq_cagr,
         domains=tuple(parsed.domain),
+        intent_repair_attempts=parsed.intent_repairs,
         state_dir=parsed.state_dir,
         env_file=parsed.env_file,
         project_root=parsed.project_root,

@@ -69,19 +69,43 @@ class CodexExecProvider:
         return payload
 
     def _propose(self, context: dict[str, Any]) -> dict[str, Any]:
-        self.workdir.mkdir(parents=True, exist_ok=True)
-        sanitized = sanitize_context(context)
-        prompt = json.dumps(
+        return self._execute_request(
             {
                 "instruction": (
                     "Return exactly one ResearchIntent JSON object. Do not edit files, "
                     "write Python, change evaluators, or access credentials."
                 ),
-                "context": sanitized,
-            },
-            ensure_ascii=False,
-            sort_keys=True,
+                "context": sanitize_context(context),
+            }
         )
+
+    def repair(
+        self,
+        context: dict[str, Any],
+        invalid_intent: dict[str, Any] | None,
+        error: str,
+    ) -> dict[str, Any]:
+        """Use a fresh read-only Codex process to repair an invalid intent."""
+
+        return self._execute_request(
+            {
+                "instruction": (
+                    "Act as an independent intent repair agent. Return exactly one "
+                    "ResearchIntent JSON object that fixes the supplied validation error. "
+                    "Use only registered feature selections and supported typed mutation "
+                    "operations with Strategy IR-root dotted paths. Remove any unregistered "
+                    "feature proposal. Do not edit files, write Python, change evaluators, "
+                    "access credentials, or place orders."
+                ),
+                "context": sanitize_context(context),
+                "invalid_intent": sanitize_context(invalid_intent),
+                "repair_error": error,
+            }
+        )
+
+    def _execute_request(self, request: Mapping[str, object]) -> dict[str, Any]:
+        self.workdir.mkdir(parents=True, exist_ok=True)
+        prompt = json.dumps(request, ensure_ascii=False, sort_keys=True)
         with tempfile.TemporaryDirectory(prefix=".codex-intent-", dir=self.workdir) as directory:
             output_path = Path(directory) / "intent.json"
             executable_parts = shlex.split(self.executable, posix=True)

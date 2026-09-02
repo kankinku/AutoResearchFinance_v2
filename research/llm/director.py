@@ -11,6 +11,10 @@ class IntentProvider(Protocol):
     def propose(self, context: dict[str, Any]) -> dict[str, Any]: ...
 
 
+class IntentRepairUnavailable(ValueError):
+    """Raised when the configured provider cannot repair an intent."""
+
+
 class FeatureSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -49,3 +53,17 @@ class ResearchDirector:
 
     def propose(self, context: dict[str, Any]) -> ResearchIntent:
         return ResearchIntent.model_validate(self.provider.propose(context))
+
+    def repair(
+        self,
+        context: dict[str, Any],
+        invalid_intent: dict[str, Any] | None,
+        error: str,
+    ) -> ResearchIntent:
+        repair = getattr(self.provider, "repair", None)
+        if not callable(repair):
+            raise IntentRepairUnavailable("configured provider has no repair capability")
+        payload = repair(dict(context), invalid_intent, error)
+        if not isinstance(payload, dict):
+            raise ValueError("intent repair response must be a mapping")
+        return ResearchIntent.model_validate(payload)

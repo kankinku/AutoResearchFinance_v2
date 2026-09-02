@@ -50,3 +50,28 @@ def test_director_rejects_forbidden_intent_fields() -> None:
             rationale="bad",
             python_patch="write evaluator",
         )
+
+
+def test_director_can_request_an_independent_repair() -> None:
+    class RepairProvider(OfflineProvider):
+        def repair(
+            self,
+            context: dict[str, object],
+            invalid_intent: dict[str, object] | None,
+            error: str,
+        ) -> dict[str, object]:
+            assert context == {"generation": 1}
+            assert invalid_intent == {"mode": "mixed"}
+            assert error == "invalid"
+            return {
+                "mode": "structure",
+                "parent_ids": ["S1"],
+                "operations": [],
+                "rationale": "repaired",
+            }
+
+    intent = ResearchDirector(RepairProvider()).repair(
+        {"generation": 1}, {"mode": "mixed"}, "invalid"
+    )
+
+    assert intent.rationale == "repaired"

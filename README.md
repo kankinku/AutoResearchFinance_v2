@@ -156,6 +156,7 @@ python -m pip install -e .
 Mimir /help
 Mimir /status
 Mimir /research 20
+Mimir /research 100 --intent-repairs 3
 Mimir /chat "최근 탈락 전략의 원인을 요약해줘"
 ```
 
@@ -193,6 +194,24 @@ Mimir /research 20 `
   --min-annual-trades 30 `
   --min-qqq-cagr 0.10
 ```
+
+Codex가 반환한 전략 제안이 등록되지 않은 인디케이터나 지원하지 않는 IR 변경을
+포함하면, Mimir는 별도의 읽기 전용 Codex 프로세스를 최대 3회 호출해 제안을
+복구합니다. `--intent-repairs 0`으로 복구 호출을 끌 수 있고, 복구 횟수는 세대마다
+독립적으로 적용됩니다. 복구에 실패해도 해당 세대는 부모 전략을 baseline으로
+평가한 뒤 다음 세대로 진행합니다.
+
+세대별 기록은 `state/system/autoresearch.json`에 남습니다.
+
+- `REPAIRED`: 복구된 제안으로 평가
+- `FALLBACK`: 제안 복구 실패 또는 후보 평가 실패 후 부모 전략으로 평가
+- `DEGRADED`: 후보와 fallback 평가가 모두 실패했지만 다음 세대로 계속 진행
+
+따라서 `Mimir /research 100`은 개별 세대 오류로 중단되지 않고 요청한 100세대를
+처리합니다. 최종 상태가 `COMPLETED_WITH_FALLBACKS` 또는
+`COMPLETED_WITH_ERRORS`이면 전략 품질 성공이 아니라, 모든 세대의 처리와 오류
+기록이 완료됐다는 뜻입니다. 모든 자동연구 실행은 현재처럼 주문을 끄고 백테스트만
+수행합니다.
 
 `Mimir /research`는 유한 세대만 허용합니다. 무한 반복은 지원하지 않으며, 실행 중
 즉시 중지하려면 해당 PowerShell 창에서 `Ctrl+C`를 누릅니다. 자동연구는 Paper-only
