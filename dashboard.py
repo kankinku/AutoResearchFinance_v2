@@ -49,7 +49,7 @@ def load_state(filename: str) -> dict[str, object] | None:
         return None
 
 
-@st.cache_data(ttl=10, show_spinner=False)
+@st.cache_data(ttl=5, show_spinner=False)
 def last_modified(filename: str) -> str:
     """Return a human-readable last-modified timestamp for a state file."""
     filepath = STATE_DIR / filename
@@ -58,6 +58,26 @@ def last_modified(filename: str) -> str:
     mtime = filepath.stat().st_mtime
     dt = datetime.fromtimestamp(mtime, tz=timezone.utc).astimezone()
     return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+
+@st.cache_data(ttl=5, show_spinner=False)
+def load_jsonl(filename: str) -> list[dict[str, object]]:
+    """백테스트 원장을 읽어 화면용 세대별 자료로 제공한다."""
+
+    filepath = STATE_DIR / filename
+    if not filepath.is_file():
+        return []
+    rows: list[dict[str, object]] = []
+    try:
+        for line in filepath.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            value = json.loads(line)
+            if isinstance(value, dict):
+                rows.append(value)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return rows
+    return rows
 
 
 def _fmt_pct(value: float | None, decimals: int = 2) -> str:
@@ -167,6 +187,77 @@ def _safe_int(value: object, default: int = 0) -> int:
         return default
 
 
+def _best_generation_record(
+    records: list[dict[str, object]], generation: int
+) -> dict[str, object] | None:
+    """해당 세대의 통과 후보를 우선하고, 없으면 최고 점수 탈락 후보를 반환한다."""
+
+    candidates = [
+        record
+        for record in records
+        if _safe_int(record.get("generation"), -1) == generation
+    ]
+    if not candidates:
+        return None
+    eligible = [record for record in candidates if str(record.get("status")) != "REJECT"]
+    pool = eligible or candidates
+    return max(pool, key=lambda item: float(item.get("score", float("-inf"))))
+
+
+def _lineage_rows(record: dict[str, object]) -> list[dict[str, object]]:
+    lineage = record.get("feature_lineage")
+    if not isinstance(lineage, list):
+        return []
+    rows: list[dict[str, object]] = []
+    for item in lineage:
+        if not isinstance(item, dict):
+            continue
+        rows.append(
+            {
+                "인디케이터": str(item.get("feature_id", "없음")),
+                "별칭": str(item.get("alias", "없음")),
+                "입력 자료": ", ".join(str(value) for value in item.get("inputs", [])),
+                "시간봉": str(item.get("timeframe", "없음")),
+                "지연 봉": str(item.get("lag_bars", "없음")),
+                "기간": str(item.get("lookback", "없음")),
+                "파라미터": json.dumps(
+                    item.get("parameters", {}), ensure_ascii=False, sort_keys=True
+                ),
+                "출처": ", ".join(str(value) for value in item.get("source_repositories", []))
+                or "내장 등록",
+            }
+        )
+    return rows
+
+
+def _intent_lineage_rows(intent: object) -> list[dict[str, object]]:
+    if not isinstance(intent, dict):
+        return []
+    selections = intent.get("feature_selections")
+    if not isinstance(selections, list):
+        return []
+    rows: list[dict[str, object]] = []
+    for item in selections:
+        if not isinstance(item, dict):
+            continue
+        rows.append(
+            {
+                "인디케이터": str(item.get("feature_id", "없음")),
+                "별칭": str(item.get("alias", "없음")),
+                "입력 자료": ", ".join(str(value) for value in item.get("inputs", []))
+                or "전략 기본 자료",
+                "시간봉": str(item.get("timeframe", "1d")),
+                "지연 봉": str(item.get("lag_bars", 0)),
+                "기간": str(item.get("lookback", "자동")),
+                "파라미터": json.dumps(
+                    item.get("parameters", {}), ensure_ascii=False, sort_keys=True
+                ),
+                "출처": "Codex 제안 · 등록 여부 검증 대상",
+            }
+        )
+    return rows
+
+
 @st.fragment(run_every="5s")
 def render_live_research() -> None:
     """백그라운드 Mimir 탐색 상태를 주기적으로 다시 읽어 표시한다."""
@@ -235,6 +326,273 @@ with st.expander("사용 설명서", expanded=False, icon=":material/help:"):
         "이 대시보드는 상태 파일을 읽기만 합니다. 주문을 실행하지 않으며, "
         "명령은 저장소 루트 터미널에서 직접 실행하세요."
     )
+
+
+def _safe_float(value: object, default: float | None = None) -> float | None:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+
+
+def _performance_rows(records: list[dict[str, object]]) -> list[dict[str, object]]:
+    generations = sorted(
+        {
+            _safe_int(record.get("generation"), -1)
+            for record in records
+            if _safe_int(record.get("generation"), -1) >= 0
+        }
+    )
+    rows: list[dict[str, object]] = []
+    for generation in generations:
+        record = _best_generation_record(records, generation)
+        if record is None:
+            continue
+        strategy_cagr = _safe_float(record.get("strategy_cagr"))
+        qqq_cagr = _safe_float(record.get("qqq_cagr"))
+        if strategy_cagr is None or qqq_cagr is None:
+            continue
+        rows.append(
+            {
+                "세대": generation,
+                "전략 연복리": strategy_cagr,
+                "QQQ 연복리": qqq_cagr,
+            }
+        )
+    return rows
+
+
+def _fold_rows(record: dict[str, object]) -> list[dict[str, object]]:
+    folds = record.get("validation_folds")
+    if not isinstance(folds, list):
+        return []
+    rows: list[dict[str, object]] = []
+    for fold in folds:
+        if not isinstance(fold, dict):
+            continue
+        rows.append(
+            {
+                "검증 구간": str(fold.get("fold", "없음")),
+                "학습 범위": f"{fold.get('train_start', '?')} ~ {fold.get('train_end', '?')}",
+                "검증 범위": f"{fold.get('test_start', '?')} ~ {fold.get('test_end', '?')}",
+                "전략 연복리": _fmt_pct(_safe_float(fold.get("strategy_cagr"))),
+                "QQQ 연복리": _fmt_pct(_safe_float(fold.get("qqq_cagr"))),
+                "거래 횟수": str(fold.get("trade_count", "없음")),
+                "통과": "통과" if fold.get("passed") else "미통과",
+            }
+        )
+    return rows
+
+
+@st.fragment(run_every="5s")
+def render_generation_analysis() -> None:
+    """현재·이전 세대의 최고 후보 구성과 성능 추이를 표시한다."""
+
+    research_state = load_state("system/autoresearch.json") or {}
+    test_records = load_jsonl("test-records.jsonl")
+    research_records = research_state.get("generations", [])
+    if not isinstance(research_records, list):
+        research_records = []
+    completed = _safe_int(research_state.get("completed_generations"))
+    generations = sorted(
+        {
+            _safe_int(record.get("generation"), -1)
+            for record in test_records
+            if _safe_int(record.get("generation"), -1) > 0
+        }
+        | {
+            _safe_int(record.get("generation"), -1)
+            for record in research_records
+            if isinstance(record, dict)
+            and _safe_int(record.get("generation"), -1) > 0
+        },
+        reverse=True,
+    )
+
+    st.subheader(":material/insights: 세대별 최고 전략 분석", anchor=False)
+    if not generations:
+        st.info(
+            "백테스트 원장이 아직 없습니다. 첫 세대 평가가 끝나면 인디케이터와 성능이 표시됩니다.",
+            icon=":material/hourglass_top:",
+        )
+        return
+
+    option_labels = [
+        "현재 세대" if generation == completed else f"{generation}세대"
+        for generation in generations
+    ]
+    selected_label = st.selectbox("분석할 세대", option_labels, key="generation_detail_select")
+    selected_index = option_labels.index(selected_label)
+    selected_generation = generations[selected_index]
+    best = _best_generation_record(test_records, selected_generation)
+    intent_record = next(
+        (
+            item
+            for item in research_records
+            if isinstance(item, dict)
+            and _safe_int(item.get("generation"), -1) == selected_generation
+        ),
+        {},
+    )
+
+    if best is None and not intent_record:
+        st.warning("선택한 세대의 후보 기록을 아직 찾지 못했습니다.")
+        return
+
+    strategy_cagr = _safe_float(best.get("strategy_cagr")) if best else None
+    qqq_cagr = _safe_float(best.get("qqq_cagr")) if best else None
+    qqq_delta = _safe_float(best.get("qqq_cagr_delta")) if best else None
+    score = _safe_float(best.get("score")) if best else None
+    status = (
+        str(best.get("status", "UNKNOWN"))
+        if best
+        else str(intent_record.get("intent_status", "PENDING"))
+    )
+    with st.container(border=True):
+        result_label = "최고 후보" if best else "제안된 후보 · 백테스트 결과 대기"
+        strategy_hash = best.get("strategy_hash", "평가 전") if best else "평가 전"
+        st.markdown(
+            f"**{selected_label} {result_label}** · {_status_label(status)} · "
+            f"전략 해시 `{strategy_hash}`"
+        )
+        metric_left, metric_mid, metric_right, metric_last = st.columns(4)
+        with metric_left:
+            st.metric("전략 연복리", _fmt_pct(strategy_cagr))
+        with metric_mid:
+            st.metric("QQQ 연복리", _fmt_pct(qqq_cagr))
+        with metric_right:
+            st.metric("QQQ 대비", _fmt_pct(qqq_delta), delta_color="normal")
+        with metric_last:
+            st.metric("최고 점수", _fmt_float(score))
+
+        lineage = (_lineage_rows(best) if best else []) or _intent_lineage_rows(
+            intent_record.get("intent") if isinstance(intent_record, dict) else None
+        )
+        st.markdown("**인디케이터와 입력 자료**")
+        if lineage:
+            st.dataframe(
+                pd.DataFrame(lineage),
+                hide_index=True,
+                column_config={
+                    "인디케이터": st.column_config.TextColumn(pinned=True),
+                    "입력 자료": st.column_config.TextColumn(width="medium"),
+                    "파라미터": st.column_config.TextColumn(width="medium"),
+                    "출처": st.column_config.TextColumn(width="medium"),
+                },
+            )
+        else:
+            st.caption("이 후보에 연결된 인디케이터 상세가 기록되지 않았습니다.")
+
+        if isinstance(intent_record, dict) and isinstance(intent_record.get("intent"), dict):
+            intent = intent_record["intent"]
+            if isinstance(intent, dict):
+                operation_rows = intent.get("operations", [])
+                with st.expander(
+                    "제안 변경 내용",
+                    expanded=False,
+                    icon=":material/tune:",
+                ):
+                    st.caption(
+                        "해당 세대에 제안된 Strategy IR 변경입니다. "
+                        "실제 적용 여부는 아래 후보 상태와 백테스트 결과로 확인합니다."
+                    )
+                    st.json(
+                        {
+                            "탐색 모드": intent.get("mode", "없음"),
+                            "부모 전략": intent.get("parent_ids", []),
+                            "변경 작업": operation_rows,
+                        },
+                        expanded=False,
+                    )
+
+        data_left, data_right = st.columns(2)
+        with data_left:
+            st.table(
+                {
+                    "전략 데이터 해시": str(best.get("dataset_hash", "평가 전"))
+                    if best
+                    else "평가 전",
+                    "벤치마크 데이터 해시": str(
+                        best.get("benchmark_dataset_hash", "평가 전")
+                    )
+                    if best
+                    else "평가 전",
+                    "전체 거래 횟수": str(best.get("trade_count", "평가 전"))
+                    if best
+                    else "평가 전",
+                    "위험 준수": (
+                        "통과" if best.get("risk_compliant") else "미통과"
+                    )
+                    if best
+                    else "평가 전",
+                }
+            )
+        with data_right:
+            st.table(
+                {
+                    "전략 누적 수익률": (
+                        _fmt_pct(_safe_float(best.get("total_return")))
+                        if best
+                        else "평가 전"
+                    ),
+                    "최대 낙폭": (
+                        _fmt_pct(_safe_float(best.get("max_drawdown")))
+                        if best
+                        else "평가 전"
+                    ),
+                    "샤프 지수": (
+                        _fmt_float(_safe_float(best.get("sharpe")))
+                        if best
+                        else "평가 전"
+                    ),
+                    "수익 요인": (
+                        _fmt_float(_safe_float(best.get("profit_factor")))
+                        if best
+                        else "평가 전"
+                    ),
+                }
+            )
+
+        fold_rows = _fold_rows(best) if best else []
+        if fold_rows:
+            with st.expander("검증 구간별 결과", expanded=False, icon=":material/fact_check:"):
+                st.dataframe(pd.DataFrame(fold_rows), hide_index=True)
+
+        intent = intent_record.get("intent") if isinstance(intent_record, dict) else None
+        if isinstance(intent, dict) and intent.get("rationale"):
+            st.caption(f"Codex 제안 이유: {intent['rationale']}")
+
+    performance_rows = _performance_rows(test_records)
+    if performance_rows:
+        st.markdown("**성능 향상 추이**")
+        performance_df = pd.DataFrame(performance_rows)
+        chart = (
+            alt.Chart(performance_df)
+            .transform_fold(
+                ["전략 연복리", "QQQ 연복리"],
+                as_=["비교 대상", "연복리 수익률"],
+            )
+            .mark_line(point=True)
+            .encode(
+                x=alt.X("세대:Q", title="세대"),
+                y=alt.Y("연복리 수익률:Q", title="연복리 수익률", axis=alt.Axis(format="%")),
+                color=alt.Color("비교 대상:N", title="비교 대상"),
+                tooltip=[
+                    alt.Tooltip("세대:Q", title="세대"),
+                    alt.Tooltip("비교 대상:N", title="비교 대상"),
+                    alt.Tooltip("연복리 수익률:Q", title="연복리", format=".2%"),
+                ],
+            )
+            .properties(height=280)
+        )
+        with st.container(border=True):
+            st.altair_chart(chart)
+            st.caption(
+                "각 세대의 통과 후보를 우선합니다. 없으면 최고 점수 후보를 표시합니다."
+            )
+
+
+render_generation_analysis()
 
 
 

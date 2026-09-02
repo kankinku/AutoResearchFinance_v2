@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from streamlit.testing.v1 import AppTest
+
 ROOT = Path(__file__).parents[2]
 
 
@@ -19,6 +21,13 @@ def test_streamlit_dashboard_exposes_korean_live_research_view() -> None:
         "@st.fragment(run_every=",
         "system/autoresearch.json",
         "llm/status.json",
+        "성능 향상 추이",
+        "인디케이터와 입력 자료",
+        "제안 변경 내용",
+        "백테스트 결과 대기",
+        "분석할 세대",
+        "feature_lineage",
+        "qqq_cagr",
     ):
         assert marker in source
 
@@ -31,5 +40,13 @@ def test_streamlit_dashboard_uses_korean_visible_section_labels() -> None:
         'st.subheader(":material/query_stats: 핵심 현황"',
         'st.subheader(":material/emoji_events: 최고 전략 성과"',
         'st.button(":material/play_arrow: 새 세대 실행"',
+        'st.selectbox("분석할 세대"',
     ):
         assert marker in source
+
+
+def test_streamlit_dashboard_renders_generation_analysis_without_exception() -> None:
+    app = AppTest.from_file(str(ROOT / "dashboard.py")).run(timeout=30)
+
+    assert not app.exception
+    assert any(item.label == "분석할 세대" for item in app.selectbox)
