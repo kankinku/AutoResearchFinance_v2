@@ -189,6 +189,72 @@ def _safe_int(value: object, default: int = 0) -> int:
         return default
 
 
+def _safe_float_value(value: object, default: float | None = None) -> float | None:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+
+
+def _phase_label(phase: object) -> str:
+    labels = {
+        "STARTING": "시작 준비",
+        "GENERATION": "세대 시작",
+        "PROPOSING": "Codex 전략 제안 중",
+        "REPAIRING": "Codex 복구 중",
+        "BACKTESTING": "백테스트 중",
+        "FINALIZING": "결과 기록 중",
+        "COMPLETED": "완료",
+        "FAILED": "실패",
+    }
+    value = str(phase or "UNKNOWN").upper()
+    return labels.get(value, value)
+
+
+def _event_rows(events: list[dict[str, object]]) -> list[dict[str, str]]:
+    labels = {
+        "run_started": "연구 시작",
+        "generation_started": "세대 시작",
+        "proposal_started": "전략 제안 호출 시작",
+        "proposal_completed": "전략 제안 완료",
+        "proposal_failed": "전략 제안 실패",
+        "repair_started": "복구 호출 시작",
+        "repair_completed": "복구 호출 완료",
+        "repair_failed": "복구 호출 실패",
+        "repair_unavailable": "복구 호출 불가",
+        "evaluation_started": "백테스트 시작",
+        "evaluation_completed": "백테스트 완료",
+        "evaluation_failed": "백테스트 실패",
+        "fallback_evaluation_started": "대체 백테스트 시작",
+        "fallback_evaluation_failed": "대체 백테스트 실패",
+        "generation_completed": "세대 기록 완료",
+        "run_completed": "연구 완료",
+        "run_failed": "연구 실패",
+    }
+    rows: list[dict[str, str]] = []
+    for event in reversed(events[-12:]):
+        detail = event.get("detail")
+        detail_text = ""
+        if isinstance(detail, dict):
+            detail_text = ", ".join(
+                f"{key}={value}" for key, value in detail.items()
+            )
+        error = str(event.get("error", ""))
+        if error:
+            detail_text = f"오류: {error}"
+        rows.append(
+            {
+                "시각": str(event.get("timestamp", "확인 불가")),
+                "세대": str(event.get("generation", "-")),
+                "단계": _phase_label(event.get("phase")),
+                "이벤트": labels.get(str(event.get("event")), str(event.get("event"))),
+                "경과 시간": f"{_safe_float_value(event.get('duration_seconds'), 0.0):.1f}초",
+                "상세": detail_text[:240],
+            }
+        )
+    return rows
+
+
 def _elapsed_since(filename: str) -> float | None:
     """Return seconds since a state file was last updated."""
 
@@ -196,6 +262,18 @@ def _elapsed_since(filename: str) -> float | None:
     try:
         return max(0.0, time.time() - filepath.stat().st_mtime)
     except OSError:
+        return None
+
+
+def _elapsed_from_timestamp(value: object) -> float | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        started = datetime.fromisoformat(value)
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        return max(0.0, time.time() - started.timestamp())
+    except ValueError:
         return None
 
 
@@ -292,11 +370,28 @@ def render_live_research() -> None:
     status = str(research_state.get("status", "UNKNOWN"))
     completed = _safe_int(research_state.get("completed_generations"))
     requested = _safe_int(research_state.get("requested_generations"))
+    current_generation = _safe_int(
+        research_state.get("current_generation"), completed + 1
+    )
+    current_phase = str(research_state.get("current_phase", "UNKNOWN"))
+    repair_attempt = _safe_int(research_state.get("repair_attempt"), 0)
+    repair_allowed = _safe_int(
+        research_state.get("repair_attempts_allowed"), 0
+    )
     progress = min(completed / requested, 1.0) if requested > 0 else 0.0
     records = research_state.get("generations", [])
     last_record = records[-1] if isinstance(records, list) and records else None
-    elapsed = _elapsed_since("system/autoresearch.json")
-    elapsed_label = "이전 세대 이후" if completed > 0 else "첫 세대 시작 후"
+    phase_elapsed = _elapsed_from_timestamp(research_state.get("phase_started_at"))
+    if phase_elapsed is None:
+        phase_elapsed = _safe_float_value(research_state.get("phase_elapsed_seconds"))
+    elapsed = (
+        phase_elapsed
+        if status == "RUNNING" and phase_elapsed is not None
+        else _elapsed_since("system/autoresearch.json")
+    )
+    elapsed_label = "현재 단계 경과" if phase_elapsed is not None else (
+        "이전 세대 이후" if completed > 0 else "첫 세대 시작 후"
+    )
     elapsed_text = _format_elapsed(elapsed)
     stale = status == "RUNNING" and elapsed is not None and elapsed >= RESEARCH_STALE_AFTER_SECONDS
     elapsed_color = "orange" if stale else "green"
@@ -314,13 +409,21 @@ def render_live_research() -> None:
         with top_right:
             st.metric("진행률", f"{progress * 100:.1f}%")
 
-        detail_left, detail_mid, detail_right = st.columns(3)
+        detail_left, detail_mid, detail_right, detail_extra = st.columns(4)
         with detail_left:
-            st.metric("현재 세대", str(completed + 1 if completed < requested else completed))
+            st.metric("현재 세대", str(current_generation if status == "RUNNING" else completed))
         with detail_mid:
             st.metric("Codex 연결", _status_label(llm_state.get("status")))
         with detail_right:
             st.metric("주문", "비활성화")
+        with detail_extra:
+            repair_text = (
+                f"{repair_attempt} / {repair_allowed}"
+                if repair_allowed
+                else "없음"
+            )
+            st.metric("복구 시도", repair_text)
+        st.caption(f"현재 단계: {_phase_label(current_phase)}")
         st.badge(_status_label(status), color=_status_color(status), icon=":material/info:")
 
         if isinstance(last_record, dict):
@@ -337,6 +440,11 @@ def render_live_research() -> None:
             )
         else:
             st.caption(f"마지막 상태 확인: {last_modified('system/autoresearch.json')}")
+
+        events = load_jsonl("system/research-events.jsonl")
+        if events:
+            with st.expander("상세 실행 로그", expanded=False, icon=":material/list:"):
+                st.dataframe(pd.DataFrame(_event_rows(events)), hide_index=True)
 
 
 render_live_research()

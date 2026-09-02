@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import time
@@ -127,10 +128,15 @@ def run_autoresearch(
     current = imported.strategy
     runner = evaluator or run_local_evaluation
     records: list[dict[str, object]] = []
-    _write_autoresearch_status(config, "RUNNING", completed_generations=0, records=records)
+    progress = _ResearchProgress(config, records)
+    progress.emit("run_started", phase="STARTING")
     feature_specs = research_feature_specs()
     try:
         for generation in range(config.generations):
+            generation_number = generation + 1
+            progress.emit(
+                "generation_started", phase="GENERATION", generation=generation_number
+            )
             parent_id = current.strategy_id
             context = build_research_context(config.state_dir, source_path=source)
             context.update(
@@ -151,18 +157,41 @@ def run_autoresearch(
             operations: tuple[MutationOperation, ...] = ()
 
             try:
+                progress.emit("proposal_started", phase="PROPOSING", generation=generation_number)
                 intent = director.propose(context)
                 record_intent(config.state_dir / "llm" / "intents.jsonl", intent)
                 proposal_to_record = intent.feature_proposal
                 operations = _preflight_intent(current, intent, feature_specs)
+                progress.emit(
+                    "proposal_completed",
+                    phase="PROPOSING",
+                    generation=generation_number,
+                    detail={"mode": intent.mode, "operation_count": len(operations)},
+                )
             except Exception as exc:
                 intent_error = _error_text(exc)
+                progress.emit(
+                    "proposal_failed",
+                    phase="PROPOSING",
+                    generation=generation_number,
+                    error=intent_error,
+                )
                 invalid_payload = _intent_payload(intent)
                 if intent is not None and intent.feature_proposal is not None:
                     proposal_to_record = intent.feature_proposal
                 repaired_intent: ResearchIntent | None = None
                 for attempt in range(config.intent_repair_attempts):
                     repair_attempts += 1
+                    progress.emit(
+                        "repair_started",
+                        phase="REPAIRING",
+                        generation=generation_number,
+                        repair_attempt=repair_attempts,
+                        detail={
+                            "allowed_attempts": config.intent_repair_attempts,
+                            "reason": intent_error,
+                        },
+                    )
                     try:
                         repaired_intent = director.repair(
                             context,
@@ -189,10 +218,24 @@ def run_autoresearch(
                             config.state_dir / "llm" / "intents.jsonl", repaired_intent
                         )
                         intent_status = "REPAIRED"
+                        progress.emit(
+                            "repair_completed",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            detail={"operation_count": len(operations)},
+                        )
                         break
                     except IntentRepairUnavailable as exc:
                         intent_error = _error_text(exc)
                         repair_errors.append(intent_error)
+                        progress.emit(
+                            "repair_unavailable",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            error=intent_error,
+                        )
                         repair_history.append(
                             {"attempt": attempt + 1, "status": "UNAVAILABLE"}
                         )
@@ -200,6 +243,13 @@ def run_autoresearch(
                     except Exception as exc:
                         intent_error = _error_text(exc)
                         repair_errors.append(intent_error)
+                        progress.emit(
+                            "repair_failed",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            error=intent_error,
+                        )
                         repair_history.append(
                             {
                                 "attempt": attempt + 1,
@@ -218,6 +268,9 @@ def run_autoresearch(
             evaluation: dict[str, object] | None = None
             evaluation_error: str | None = None
             try:
+                progress.emit(
+                    "evaluation_started", phase="BACKTESTING", generation=generation_number
+                )
                 evaluation = _run_intent_evaluation(
                     runner,
                     config,
@@ -225,10 +278,32 @@ def run_autoresearch(
                     operations=operations,
                     strategy=current,
                 )
+                progress.emit(
+                    "evaluation_completed",
+                    phase="BACKTESTING",
+                    generation=generation_number,
+                    detail={"status": evaluation.get("status", "UNKNOWN")},
+                )
             except Exception as exc:
                 evaluation_error = _error_text(exc)
+                progress.emit(
+                    "evaluation_failed",
+                    phase="BACKTESTING",
+                    generation=generation_number,
+                    error=evaluation_error,
+                )
                 while evaluation is None and repair_attempts < config.intent_repair_attempts:
                     repair_attempts += 1
+                    progress.emit(
+                        "repair_started",
+                        phase="REPAIRING",
+                        generation=generation_number,
+                        repair_attempt=repair_attempts,
+                        detail={
+                            "allowed_attempts": config.intent_repair_attempts,
+                            "reason": evaluation_error,
+                        },
+                    )
                     try:
                         repaired_intent = director.repair(
                             context,
@@ -262,9 +337,29 @@ def run_autoresearch(
                             operations=operations,
                             strategy=current,
                         )
+                        progress.emit(
+                            "repair_completed",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            detail={"operation_count": len(operations)},
+                        )
+                        progress.emit(
+                            "evaluation_completed",
+                            phase="BACKTESTING",
+                            generation=generation_number,
+                            detail={"status": evaluation.get("status", "UNKNOWN")},
+                        )
                     except IntentRepairUnavailable as repair_exc:
                         repair_error = _error_text(repair_exc)
                         repair_errors.append(repair_error)
+                        progress.emit(
+                            "repair_unavailable",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            error=repair_error,
+                        )
                         repair_history.append(
                             {"attempt": repair_attempts, "status": "UNAVAILABLE"}
                         )
@@ -273,6 +368,13 @@ def run_autoresearch(
                     except Exception as repair_exc:
                         repair_error = _error_text(repair_exc)
                         repair_errors.append(repair_error)
+                        progress.emit(
+                            "repair_failed",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            error=repair_error,
+                        )
                         repair_history.append(
                             {
                                 "attempt": repair_attempts,
@@ -286,6 +388,11 @@ def run_autoresearch(
                     intent_status = "FALLBACK"
                     operations = ()
                     try:
+                        progress.emit(
+                            "fallback_evaluation_started",
+                            phase="BACKTESTING",
+                            generation=generation_number,
+                        )
                         evaluation = _run_intent_evaluation(
                             runner,
                             config,
@@ -293,9 +400,21 @@ def run_autoresearch(
                             operations=operations,
                             strategy=current,
                         )
+                        progress.emit(
+                            "evaluation_completed",
+                            phase="BACKTESTING",
+                            generation=generation_number,
+                            detail={"status": evaluation.get("status", "UNKNOWN")},
+                        )
                     except Exception as fallback_exc:
                         evaluation_error = (
                             f"{evaluation_error}; fallback={_error_text(fallback_exc)}"
+                        )
+                        progress.emit(
+                            "fallback_evaluation_failed",
+                            phase="BACKTESTING",
+                            generation=generation_number,
+                            error=_error_text(fallback_exc),
                         )
 
             if proposal_to_record is not None:
@@ -342,29 +461,34 @@ def run_autoresearch(
             if evaluation_error is not None:
                 record["evaluation_error"] = evaluation_error
             records.append(record)
-            _write_autoresearch_status(
-                config,
-                "RUNNING",
+            progress.emit(
+                "generation_completed",
+                phase="FINALIZING",
+                generation=generation_number,
                 completed_generations=len(records),
-                records=records,
+                detail={
+                    "status": record.get("status", "UNKNOWN"),
+                    "intent_status": intent_status,
+                    "repair_attempts": repair_attempts,
+                },
             )
             if generation + 1 < config.generations and config.interval_seconds:
                 time.sleep(config.interval_seconds)
     except Exception as exc:
-        _write_autoresearch_status(
-            config,
-            "FAILED",
+        progress.emit(
+            "run_failed",
+            phase="FAILED",
+            status="FAILED",
             completed_generations=len(records),
-            records=records,
-            error=type(exc).__name__,
+            error=_error_text(exc),
         )
         raise
     final_status = _autoresearch_final_status(records)
-    _write_autoresearch_status(
-        config,
-        final_status,
+    progress.emit(
+        "run_completed",
+        phase="COMPLETED",
+        status=final_status,
         completed_generations=len(records),
-        records=records,
     )
     return {
         "status": final_status,
@@ -450,6 +574,14 @@ def _write_autoresearch_status(
     completed_generations: int,
     records: list[dict[str, object]],
     error: str | None = None,
+    current_generation: int | None = None,
+    current_phase: str | None = None,
+    phase_started_at: str | None = None,
+    phase_elapsed_seconds: float | None = None,
+    last_event: str | None = None,
+    last_event_at: str | None = None,
+    repair_attempt: int | None = None,
+    repair_attempts_allowed: int | None = None,
 ) -> None:
     payload: dict[str, object] = {
         "status": status,
@@ -458,6 +590,18 @@ def _write_autoresearch_status(
         "requested_generations": config.generations,
         "generations": records,
     }
+    payload.update(
+        {
+            "current_generation": current_generation,
+            "current_phase": current_phase,
+            "phase_started_at": phase_started_at,
+            "phase_elapsed_seconds": phase_elapsed_seconds,
+            "last_event": last_event,
+            "last_event_at": last_event_at,
+            "repair_attempt": repair_attempt,
+            "repair_attempts_allowed": repair_attempts_allowed,
+        }
+    )
     if error is not None:
         payload["error"] = error
     target = config.state_dir / "system" / "autoresearch.json"
@@ -467,6 +611,84 @@ def _write_autoresearch_status(
         json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8"
     )
     os.replace(temporary, target)
+
+
+class _ResearchProgress:
+    """Persist phase heartbeats without allowing diagnostics to stop research."""
+
+    def __init__(self, config: ResearchLoopConfig, records: list[dict[str, object]]) -> None:
+        self.config = config
+        self.records = records
+        self.phase = "STARTING"
+        self.phase_started_at = _utc_now()
+        self.phase_started_mono = time.monotonic()
+        self.current_generation: int | None = None
+
+    def emit(
+        self,
+        event: str,
+        *,
+        phase: str,
+        generation: int | None = None,
+        status: str = "RUNNING",
+        completed_generations: int | None = None,
+        repair_attempt: int | None = None,
+        error: str | None = None,
+        detail: Mapping[str, object] | None = None,
+    ) -> None:
+        if phase != self.phase:
+            self.phase = phase
+            self.phase_started_at = _utc_now()
+            self.phase_started_mono = time.monotonic()
+        if generation is not None:
+            self.current_generation = generation
+        now = _utc_now()
+        elapsed = round(max(0.0, time.monotonic() - self.phase_started_mono), 3)
+        payload: dict[str, object] = {
+            "timestamp": now,
+            "event": event,
+            "phase": self.phase,
+            "generation": self.current_generation,
+            "duration_seconds": elapsed,
+        }
+        if repair_attempt is not None:
+            payload["repair_attempt"] = repair_attempt
+        if error is not None:
+            payload["error"] = error
+        if detail:
+            payload["detail"] = sanitize_context(detail)
+        _append_research_event(self.config, payload)
+        _write_autoresearch_status(
+            self.config,
+            status,
+            completed_generations=(
+                len(self.records) if completed_generations is None else completed_generations
+            ),
+            records=self.records,
+            error=error if status == "FAILED" else None,
+            current_generation=self.current_generation,
+            current_phase=self.phase,
+            phase_started_at=self.phase_started_at,
+            phase_elapsed_seconds=elapsed,
+            last_event=event,
+            last_event_at=now,
+            repair_attempt=repair_attempt,
+            repair_attempts_allowed=self.config.intent_repair_attempts,
+        )
+
+
+def _append_research_event(config: ResearchLoopConfig, payload: Mapping[str, object]) -> None:
+    target = config.state_dir / "system" / "research-events.jsonl"
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+    except OSError:
+        return
+
+
+def _utc_now() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
 def _validate_config(config: ResearchLoopConfig) -> None:

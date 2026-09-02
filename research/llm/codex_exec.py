@@ -59,13 +59,13 @@ class CodexExecProvider:
         self._runner = runner or _run_codex
 
     def propose(self, context: dict[str, Any]) -> dict[str, Any]:
-        self._write_status("RUNNING", "NONE")
+        self._write_status("RUNNING", "NONE", operation="propose")
         try:
             payload = self._propose(context)
         except Exception:
-            self._write_status("OFFLINE", "FAILED")
+            self._write_status("OFFLINE", "FAILED", operation="propose")
             raise
-        self._write_status("ONLINE", "VALIDATED")
+        self._write_status("ONLINE", "VALIDATED", operation="propose")
         return payload
 
     def _propose(self, context: dict[str, Any]) -> dict[str, Any]:
@@ -87,21 +87,28 @@ class CodexExecProvider:
     ) -> dict[str, Any]:
         """Use a fresh read-only Codex process to repair an invalid intent."""
 
-        return self._execute_request(
-            {
-                "instruction": (
-                    "Act as an independent intent repair agent. Return exactly one "
-                    "ResearchIntent JSON object that fixes the supplied validation error. "
-                    "Use only registered feature selections and supported typed mutation "
-                    "operations with Strategy IR-root dotted paths. Remove any unregistered "
-                    "feature proposal. Do not edit files, write Python, change evaluators, "
-                    "access credentials, or place orders."
-                ),
-                "context": sanitize_context(context),
-                "invalid_intent": sanitize_context(invalid_intent),
-                "repair_error": error,
-            }
-        )
+        self._write_status("RUNNING", "REPAIRING", operation="repair")
+        try:
+            payload = self._execute_request(
+                {
+                    "instruction": (
+                        "Act as an independent intent repair agent. Return exactly one "
+                        "ResearchIntent JSON object that fixes the supplied validation error. "
+                        "Use only registered feature selections and supported typed mutation "
+                        "operations with Strategy IR-root dotted paths. Remove any unregistered "
+                        "feature proposal. Do not edit files, write Python, change evaluators, "
+                        "access credentials, or place orders."
+                    ),
+                    "context": sanitize_context(context),
+                    "invalid_intent": sanitize_context(invalid_intent),
+                    "repair_error": error,
+                }
+            )
+        except Exception:
+            self._write_status("OFFLINE", "FAILED", operation="repair")
+            raise
+        self._write_status("ONLINE", "REPAIRED", operation="repair")
+        return payload
 
     def _execute_request(self, request: Mapping[str, object]) -> dict[str, Any]:
         self.workdir.mkdir(parents=True, exist_ok=True)
@@ -172,18 +179,31 @@ class CodexExecProvider:
             status_path=status_path,
         )
 
-    def _write_status(self, status: str, last_result: str) -> None:
+    def _write_status(
+        self, status: str, last_result: str, *, operation: str | None = None
+    ) -> None:
         if self.status_path is not None:
-            write_provider_status(self.status_path, "codex_exec", status, last_result)
+            write_provider_status(
+                self.status_path, "codex_exec", status, last_result, operation=operation
+            )
 
 
-def write_provider_status(path: Path, provider: str, status: str, last_result: str) -> None:
+def write_provider_status(
+    path: Path,
+    provider: str,
+    status: str,
+    last_result: str,
+    *,
+    operation: str | None = None,
+) -> None:
     payload = {
         "provider": provider,
         "status": status,
         "last_result": last_result,
         "last_call_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
+    if operation is not None:
+        payload["operation"] = operation
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(path.suffix + ".tmp")
@@ -284,6 +304,8 @@ def _run_codex(
     timeout: float,
 ) -> CodexExecResult:
     command = _resolve_codex_command(command, env)
+    if sys.platform == "win32" and _is_windows_wrapper(command[0] if command else ""):
+        return _run_codex_windows_process_tree(command, input_text, cwd, env, timeout)
     try:
         completed = subprocess.run(
             command,
@@ -306,6 +328,61 @@ def _run_codex(
             )
         return CodexExecResult(127, "", f"Codex process could not start: {exc}")
     return CodexExecResult(completed.returncode, completed.stdout, completed.stderr)
+
+
+def _is_windows_wrapper(executable: str) -> bool:
+    return executable.lower().endswith((".cmd", ".bat", ".ps1"))
+
+
+def _run_codex_windows_process_tree(
+    command: list[str],
+    input_text: str,
+    cwd: Path,
+    env: dict[str, str],
+    timeout: float,
+) -> CodexExecResult:
+    """Run npm shims with a killable process tree on Windows."""
+
+    creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=cwd,
+        env=env,
+        creationflags=creationflags,
+        encoding="utf-8",
+        errors="replace",
+    )
+    try:
+        stdout, stderr = process.communicate(input=input_text, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill_windows_process_tree(process.pid)
+        process.communicate()
+        return CodexExecResult(
+            124,
+            "",
+            f"Codex execution timed out after {timeout:g} seconds; process tree terminated",
+        )
+    return CodexExecResult(process.returncode, stdout, stderr)
+
+
+def _kill_windows_process_tree(pid: int) -> None:
+    """Terminate only the process tree rooted at the Codex child we spawned."""
+
+    try:
+        subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"],
+            capture_output=True,
+            check=False,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except OSError:
+        return
 
 
 def _resolve_codex_command(command: list[str], env: Mapping[str, str]) -> list[str]:

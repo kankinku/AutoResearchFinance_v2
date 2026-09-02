@@ -301,3 +301,84 @@ def test_autoresearch_processes_all_requested_generations(tmp_path: Path) -> Non
     assert result["completed_generations"] == 100
     assert len(result["generations"]) == 100
     assert evaluated == list(range(100))
+
+
+def test_autoresearch_writes_phase_events_and_live_phase_status(tmp_path: Path) -> None:
+    source = tmp_path / "strategy.yaml"
+    _write_strategy(source)
+    observed: dict[str, object] = {}
+
+    def proposal(context: dict[str, object]) -> dict[str, object]:
+        status = json.loads(
+            (tmp_path / "state" / "system" / "autoresearch.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        observed["proposal_phase"] = status["current_phase"]
+        observed["proposal_generation"] = status["current_generation"]
+        return {
+            "mode": "structure",
+            "parent_ids": [str(context["source_strategy"]["id"])],
+            "operations": [],
+            "rationale": "record phase timing",
+        }
+
+    provider = CodexIntentProvider(proposal)
+
+    def fake_evaluation(**kwargs: object) -> dict[str, object]:
+        status = json.loads(
+            (tmp_path / "state" / "system" / "autoresearch.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        observed["evaluation_phase"] = status["current_phase"]
+        return {"status": "COMPLETED", "candidate_count": 1}
+
+    run_autoresearch(
+        ResearchLoopConfig(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="data.parquet",
+            generations=1,
+        ),
+        ResearchDirector(provider),
+        evaluator=fake_evaluation,
+    )
+
+    assert observed == {
+        "proposal_phase": "PROPOSING",
+        "proposal_generation": 1,
+        "evaluation_phase": "BACKTESTING",
+    }
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "state" / "system" / "research-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert [event["event"] for event in events] == [
+        "run_started",
+        "generation_started",
+        "proposal_started",
+        "proposal_completed",
+        "evaluation_started",
+        "evaluation_completed",
+        "generation_completed",
+        "run_completed",
+    ]
+    assert all(event["timestamp"] for event in events)
+    assert all(event["generation"] in {None, 1} for event in events)
+    assert all(
+        "duration_seconds" in event
+        for event in events
+        if event["event"].endswith("completed")
+    )
+    final_state = json.loads(
+        (tmp_path / "state" / "system" / "autoresearch.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert final_state["current_phase"] == "COMPLETED"
+    assert final_state["last_event"] == "run_completed"
+    assert final_state["completed_generations"] == 1

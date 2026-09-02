@@ -113,6 +113,19 @@ def test_codex_exec_provider_repairs_with_an_independent_request(tmp_path: Path)
     assert "KIS_PAPER_APP_SECRET" not in json.dumps(request)
 
 
+def test_codex_exec_provider_marks_repair_as_active_and_completed(tmp_path: Path) -> None:
+    runner = FakeRunner(_valid_intent())
+    status_path = tmp_path / "state" / "llm" / "status.json"
+    provider = CodexExecProvider(workdir=tmp_path, runner=runner, status_path=status_path)
+
+    provider.repair({}, {}, "invalid intent")
+
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    assert status["status"] == "ONLINE"
+    assert status["last_result"] == "REPAIRED"
+    assert status["operation"] == "repair"
+
+
 def test_checked_in_schema_matches_model_schema() -> None:
     schema_path = Path(__file__).parents[2] / "schemas" / "research_intent.schema.json"
     assert json.loads(schema_path.read_text(encoding="utf-8")) == research_intent_schema()
@@ -140,6 +153,7 @@ def test_codex_subprocess_decodes_utf8_output_on_windows(monkeypatch, tmp_path: 
         captured.update(kwargs)
         return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
+    monkeypatch.setattr(codex_exec.sys, "platform", "linux")
     monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
 
     result = codex_exec._run_codex(["codex"], "{}", tmp_path, {}, 1.0)
@@ -154,12 +168,50 @@ def test_codex_subprocess_reports_timeout(monkeypatch, tmp_path: Path) -> None:
         del args, kwargs
         raise subprocess.TimeoutExpired(cmd=["codex"], timeout=120)
 
+    monkeypatch.setattr(codex_exec.sys, "platform", "linux")
     monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
 
     result = codex_exec._run_codex(["codex"], "{}", tmp_path, {}, 120.0)
 
     assert result.returncode == 124
     assert "timed out after 120" in result.stderr
+
+
+def test_codex_subprocess_timeout_kills_the_spawned_process_tree(
+    monkeypatch, tmp_path: Path
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    class FakeProcess:
+        pid = 4321
+        returncode = 0
+
+        def communicate(
+            self, input: str | None = None, timeout: float | None = None
+        ) -> tuple[str, str]:
+            del input
+            if timeout is not None:
+                raise subprocess.TimeoutExpired(cmd=["codex"], timeout=1)
+            return "", ""
+
+    def fake_popen(*args: object, **kwargs: object) -> FakeProcess:
+        del args, kwargs
+        return FakeProcess()
+
+    def fake_run(command: list[str], **kwargs: object) -> object:
+        del kwargs
+        calls.append(tuple(command))
+        return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(codex_exec.sys, "platform", "win32")
+    monkeypatch.setattr(codex_exec.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
+
+    result = codex_exec._run_codex(["codex"], "{}", tmp_path, {}, 1.0)
+
+    assert result.returncode == 124
+    assert "timed out after 1" in result.stderr
+    assert calls == [("taskkill", "/PID", "4321", "/T", "/F")]
 
 
 def test_codex_subprocess_resolves_windows_executable(monkeypatch, tmp_path: Path) -> None:
@@ -169,14 +221,23 @@ def test_codex_subprocess_resolves_windows_executable(monkeypatch, tmp_path: Pat
         del path
         return r"C:\tools\codex.CMD" if name == "codex" else None
 
-    def fake_run(*args: object, **kwargs: object) -> object:
+    class FakeProcess:
+        returncode = 0
+
+        def communicate(
+            self, input: str | None = None, timeout: float | None = None
+        ) -> tuple[str, str]:
+            del input, timeout
+            return "", ""
+
+    def fake_popen(*args: object, **kwargs: object) -> FakeProcess:
         captured["args"] = args
         captured.update(kwargs)
-        return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+        return FakeProcess()
 
     monkeypatch.setattr(codex_exec.sys, "platform", "win32")
     monkeypatch.setattr(codex_exec.shutil, "which", fake_which)
-    monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
+    monkeypatch.setattr(codex_exec.subprocess, "Popen", fake_popen)
 
     result = codex_exec._run_codex(["codex", "--version"], "", tmp_path, {"PATH": "x"}, 1.0)
 
