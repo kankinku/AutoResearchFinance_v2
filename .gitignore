@@ -16,22 +16,27 @@ venv/
 !.env.example
 *.pem
 *.key
+.secrets/
+local_credentials/
 secrets/
 credentials/
 
 # Runtime-generated state and worker artifacts
-runs/
-logs/
-cache/
+/.omx/
+/runs/
+/logs/
+/cache/
+state/experiments.sqlite
+state/audit.jsonl
 state/*.sqlite-shm
 state/*.sqlite-wal
 state/results/*.parquet
 state/results/*.json
 state/locks/
-results/
+/results/
 
 # Worktree and local editor files
-.worktrees/
+/.worktrees/
 .idea/
 .vscode/
 dashboard_backup.py
