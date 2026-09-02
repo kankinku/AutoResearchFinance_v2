@@ -77,6 +77,30 @@ def test_mcp_server_returns_context_and_features_without_raw_data(tmp_path: Path
     assert isinstance(features["features"], list)
 
 
+def test_mcp_server_exposes_full_registered_feature_catalog(tmp_path: Path) -> None:
+    server = create_mcp_server(state_dir=tmp_path, project_root=tmp_path)
+
+    features = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 8,
+                "method": "tools/call",
+                "params": {"name": "list_features", "arguments": {}},
+            },
+        )
+    )
+
+    catalog = features["features"]
+    assert isinstance(catalog, list)
+    assert len(catalog) == 173
+    assert any(item.get("name") == "rsi" for item in catalog if isinstance(item, dict))
+    assert any(
+        item.get("name") == "us_20y_change" for item in catalog if isinstance(item, dict)
+    )
+
+
 def test_mcp_server_validates_and_records_intent_but_rejects_code_changes(tmp_path: Path) -> None:
     server = create_mcp_server(state_dir=tmp_path, project_root=tmp_path)
     valid = {

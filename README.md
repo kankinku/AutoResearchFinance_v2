@@ -36,6 +36,7 @@ python cli.py import-strategies --source path\to\strategy.py --strategies-dir st
 python cli.py import-strategies --repo https://github.com/ORG/REPO.git --ref main --kis-presets
 python cli.py plan-generation --parent champion-1 --method random --count 32 --seed 7
 python cli.py list-features
+python cli.py run-generation --source strategies\normalized\golden_cross.json --data data\daily.parquet --method random --count 8 --seed 7 --domain '{"name":"indicators.sma_fast.period","values":[5,10,20]}'
 python cli.py set-mode --state-dir state --mode paper
 python cli.py mode --state-dir state
 python cli.py dashboard-refresh --state-dir state --env-file .env
@@ -140,11 +141,35 @@ selection, and abstract knowledge extraction. Parquet datasets must carry
 `dataset_version` and `data_zone` metadata. The Docker runner mounts input read-only,
 disables networking, drops capabilities, and writes only to the run output directory.
 
+### 반복 백테스트 실행
+
+`run-generation`에 `--domain`을 반복 지정하면 Strategy IR의 파라미터를 변경해
+후보를 만듭니다. 도메인을 지정하지 않으면 `--count`와 관계없이 기준선 후보
+1개만 실행합니다.
+
+```powershell
+python cli.py run-generation `
+  --source strategies\normalized\golden_cross.json `
+  --data data\daily.parquet `
+  --series-data data\external-series.parquet `
+  --method grid --count 9 --seed 7 --min-trades 0 `
+  --domain '{"name":"indicators.sma_fast.period","values":[5,10,20]}' `
+  --domain '{"name":"risk.position_size_pct","values":[25,50,75]}' `
+  --state-dir state
+```
+
+`--series-data`는 `ParquetDataProvider.write_series` 계약을 따르는 외부 시계열
+파일입니다. VIX·금·DXY·각국 2년/10년/20년 금리와 같은 전략 입력을 제공할 수
+있습니다. QQQ와 NASDAQ 시계열이 모두 있으면 동일 기간 벤치마크 비교가 추가되고,
+매크로·금리만 있으면 벤치마크 없이 전략 입력으로만 사용됩니다. 외부 데이터는
+관측 시각과 `available_at`을 기준으로 as-of 정렬하여 미래 공개값을 차단합니다.
+
 External price, macro, rate, and benchmark series use the same versioned Parquet
 contract through `ParquetDataProvider.write_series/read_series`. The optional Feature
 Registry exposes VIX, gold, DXY, QQQ, Nasdaq, and US/Japan/Korea 2-year, 10-year, and
 20-year rate candidates. Any registered series can receive any registered transform on
-`1d`, `1w`, or `1mo`; for example, `US20Y.close@1w:rsi(period=14)`. A strategy selects
+`1m`, `5m`, `15m`, `1h`, `1d`, `1w`, or `1mo`; for example, `US20Y.close@1w:rsi(period=14)`.
+A strategy selects
 only the features it declares; no macro feature is implicitly mandatory. `list-features`
 reports the current selectable catalog, and the dashboard exposes it at
 `/api/features/catalog`.

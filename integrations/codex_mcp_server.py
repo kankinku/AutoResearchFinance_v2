@@ -6,10 +6,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from core.features.registry import default_feature_registry
+from core.features.registry import research_feature_specs
 from dashboard.service import DashboardService
 from integrations.codex_mcp_protocol import error, serve_lines, success, text_content
-from orchestration.evaluation_runner import run_local_evaluation
+from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
 from research.llm.codex_exec import record_intent, sanitize_context, write_provider_status
 from research.llm.codex_schema import research_intent_schema
 from research.llm.director import ResearchIntent
@@ -85,7 +85,7 @@ class CodexMCPServer:
                         "lookback": spec.lookback,
                         "timeframe": spec.timeframe,
                     }
-                    for spec in default_feature_registry().all()
+                    for spec in research_feature_specs()
                 ]
             }
         if name == "get_dashboard_status":
@@ -143,7 +143,7 @@ class CodexMCPServer:
                 "lookback": spec.lookback,
                 "timeframe": spec.timeframe,
             }
-            for spec in default_feature_registry().all()
+            for spec in research_feature_specs()
         ]
 
     def _submit_intent(self, arguments: dict[str, Any]) -> dict[str, object]:
@@ -157,6 +157,7 @@ class CodexMCPServer:
         count = _positive_int(arguments.get("count", 1), "count")
         seed = _nonnegative_int(arguments.get("seed", 0), "seed")
         min_trades = _nonnegative_int(arguments.get("min_trades", 10), "min_trades")
+        parameter_domains = parse_parameter_domains(arguments.get("parameter_domains"))
         return run_local_evaluation(
             project_root=self.project_root,
             state_dir=self.state_dir,
@@ -166,6 +167,8 @@ class CodexMCPServer:
             count=count,
             seed=seed,
             min_trades=min_trades,
+            parameter_domains=parameter_domains,
+            series_data_path=arguments.get("series_data_path"),
         )
 
 
@@ -221,6 +224,19 @@ def _tools() -> list[dict[str, object]]:
                     "count": {"minimum": 1, "type": "integer"},
                     "seed": {"minimum": 0, "type": "integer"},
                     "min_trades": {"minimum": 0, "type": "integer"},
+                    "parameter_domains": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "values": {"type": "array"},
+                            },
+                            "required": ["name", "values"],
+                            "additionalProperties": False,
+                        },
+                    },
+                    "series_data_path": {"type": "string"},
                 },
                 "required": ["source_path", "data_path"],
                 "additionalProperties": False,

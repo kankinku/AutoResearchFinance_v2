@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from itertools import pairwise
 from math import isfinite
 
@@ -27,6 +28,7 @@ class BacktestRequest:
     feature_specs: Mapping[str, FeatureSpec] | None = None
     feature_inputs: Mapping[str, Sequence[float | None]] | None = None
     external_series: SeriesDataSet | None = None
+    cost_stress_multiplier: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,7 @@ class Trade:
     quantity: float
     notional: float
     cost: float
+    symbol: str = ""
 
 
 @dataclass(frozen=True)
@@ -54,8 +57,13 @@ class BacktestEngine:
     def run(self, request: BacktestRequest) -> BacktestResult:
         if not request.run_id or request.initial_cash <= 0:
             raise ValueError("run_id and positive initial cash are required")
+        if request.cost_stress_multiplier < 0:
+            raise ValueError("cost stress multiplier cannot be negative")
         if request.strategy is not None:
             return self._run_strategy(request)
+        symbols = tuple(sorted({bar.symbol for bar in request.dataset.bars}))
+        if len(symbols) > 1:
+            return self._run_multi_symbol_passthrough(request, symbols)
         equity = [request.initial_cash]
         for previous, current in pairwise(request.dataset.bars):
             equity.append(equity[-1] * (current.close / previous.close))
@@ -69,7 +77,108 @@ class BacktestEngine:
             "SUCCEEDED",
         )
 
+    def _run_multi_symbol_passthrough(
+        self, request: BacktestRequest, symbols: tuple[str, ...]
+    ) -> BacktestResult:
+        allocation = request.initial_cash / len(symbols)
+        timelines: dict[str, dict[datetime, float]] = {}
+        for symbol in symbols:
+            bars = tuple(bar for bar in request.dataset.bars if bar.symbol == symbol)
+            symbol_curve = [allocation]
+            for previous, current in pairwise(bars):
+                symbol_curve.append(symbol_curve[-1] * (current.close / previous.close))
+            timelines[symbol] = {
+                bar.timestamp: value for bar, value in zip(bars, symbol_curve, strict=True)
+            }
+        timestamps = sorted(
+            {timestamp for timeline in timelines.values() for timestamp in timeline}
+        )
+        latest = {symbol: allocation for symbol in symbols}
+        equity_curve: list[float] = []
+        for timestamp in timestamps:
+            for symbol in symbols:
+                if timestamp in timelines[symbol]:
+                    latest[symbol] = timelines[symbol][timestamp]
+            equity_curve.append(sum(latest.values()))
+        total_curve = tuple(equity_curve)
+        return BacktestResult(
+            request.run_id,
+            request.strategy_hash,
+            request.dataset.dataset_hash,
+            total_curve,
+            content_hash(total_curve),
+            "SUCCEEDED",
+        )
+
     def _run_strategy(self, request: BacktestRequest) -> BacktestResult:
+        symbols = tuple(sorted({bar.symbol for bar in request.dataset.bars}))
+        if len(symbols) > 1:
+            return self._run_multi_symbol_strategy(request, symbols)
+        return self._run_single_symbol_strategy(request)
+
+    def _run_multi_symbol_strategy(
+        self, request: BacktestRequest, symbols: tuple[str, ...]
+    ) -> BacktestResult:
+        allocation = request.initial_cash / len(symbols)
+        results: list[tuple[str, tuple[Bar, ...], BacktestResult]] = []
+        full_width = len(request.dataset.bars)
+        for symbol in symbols:
+            indices = tuple(
+                index for index, bar in enumerate(request.dataset.bars) if bar.symbol == symbol
+            )
+            bars = tuple(request.dataset.bars[index] for index in indices)
+            dataset = MarketDataSet(request.dataset.version, request.dataset.zone, bars)
+            result = self._run_single_symbol_strategy(
+                BacktestRequest(
+                    f"{request.run_id}-{symbol}",
+                    request.strategy_hash,
+                    dataset,
+                    allocation,
+                    strategy=request.strategy,
+                    cost_model=request.cost_model,
+                    feature_values=_slice_mapping(request.feature_values, indices, full_width),
+                    feature_specs=request.feature_specs,
+                    feature_inputs=_slice_mapping(request.feature_inputs, indices, full_width),
+                    external_series=request.external_series,
+                    cost_stress_multiplier=request.cost_stress_multiplier,
+                )
+            )
+            results.append((symbol, bars, result))
+
+        timestamps = sorted({bar.timestamp for _, bars, _ in results for bar in bars})
+        timelines = {
+            symbol: {
+                bar.timestamp: equity
+                for bar, equity in zip(bars, result.equity_curve, strict=True)
+            }
+            for symbol, bars, result in results
+        }
+        latest = {symbol: allocation for symbol in symbols}
+        equity_curve: list[float] = []
+        for timestamp in timestamps:
+            for symbol in symbols:
+                if timestamp in timelines[symbol]:
+                    latest[symbol] = timelines[symbol][timestamp]
+            equity_curve.append(sum(latest.values()))
+        trades = tuple(
+            sorted(
+                (trade for _, _, result in results for trade in result.trades),
+                key=lambda trade: (trade.timestamp, trade.symbol, trade.side),
+            )
+        )
+        return BacktestResult(
+            request.run_id,
+            content_hash(request.strategy.model_dump(mode="json", by_alias=True))
+            if request.strategy is not None
+            else request.strategy_hash,
+            request.dataset.dataset_hash,
+            tuple(equity_curve),
+            content_hash(tuple(equity_curve)),
+            "SUCCEEDED",
+            trades,
+        )
+
+    def _run_single_symbol_strategy(self, request: BacktestRequest) -> BacktestResult:
         strategy = request.strategy
         assert strategy is not None
         values = _indicator_values(request.dataset, strategy)
@@ -89,28 +198,42 @@ class BacktestEngine:
         entry_price = 0.0
         equity: list[float] = []
         trades: list[Trade] = []
+        pending: str | None = None
         for index, bar in enumerate(request.dataset.bars):
-            should_exit = units > 0 and (
-                _rules_match(strategy.exit.conditions, strategy.exit.logic, values, index)
-                or _risk_exit(strategy, entry_price, bar.close)
-            )
-            if should_exit:
-                notional = units * bar.close
-                cost = _cost(request.cost_model, notional, "sell")
+            if pending == "exit" and units > 0:
+                notional = units * bar.open
+                cost = _cost(
+                    request.cost_model,
+                    notional,
+                    "sell",
+                    request.cost_stress_multiplier,
+                )
                 cash += notional - cost
-                trades.append(_trade(bar, "sell", units, cost))
+                trades.append(_trade(bar, "sell", units, cost, price=bar.open))
                 units = 0.0
                 entry_price = 0.0
-            should_enter = units == 0 and _rules_match(
-                strategy.entry.conditions, strategy.entry.logic, values, index
-            )
-            if should_enter:
+            elif pending == "entry" and units == 0:
                 notional = cash * strategy.risk.position_size_pct / 100
-                cost = _cost(request.cost_model, notional, "buy")
-                units = max(0.0, (notional - cost) / bar.close)
+                cost = _cost(
+                    request.cost_model,
+                    notional,
+                    "buy",
+                    request.cost_stress_multiplier,
+                )
+                units = max(0.0, (notional - cost) / bar.open)
                 cash -= notional
-                entry_price = bar.close
-                trades.append(_trade(bar, "buy", units, cost))
+                entry_price = bar.open
+                trades.append(_trade(bar, "buy", units, cost, price=bar.open))
+            pending = None
+
+            if units > 0:
+                exit_signal = _rules_match(
+                    strategy.exit.conditions, strategy.exit.logic, values, index
+                )
+                if exit_signal or _risk_exit(strategy, entry_price, bar.close):
+                    pending = "exit"
+            elif _rules_match(strategy.entry.conditions, strategy.entry.logic, values, index):
+                pending = "entry"
             equity.append(cash + units * bar.close)
         return BacktestResult(
             request.run_id,
@@ -290,13 +413,45 @@ def _risk_exit(strategy: StrategyIR, entry_price: float, price: float) -> bool:
     )
 
 
-def _cost(cost_model: CostModel | None, notional: float, side: str) -> float:
+def _cost(
+    cost_model: CostModel | None,
+    notional: float,
+    side: str,
+    stress_multiplier: float,
+) -> float:
     if cost_model is None:
         return 0.0
-    return cost_model.calculate(notional, side=side, stress_multiplier=1.0).total
+    return cost_model.calculate(
+        notional, side=side, stress_multiplier=stress_multiplier
+    ).total
 
 
-def _trade(bar: Bar, side: str, quantity: float, cost: float) -> Trade:
+def _trade(
+    bar: Bar, side: str, quantity: float, cost: float, *, price: float | None = None
+) -> Trade:
     timestamp = bar.timestamp.isoformat()
-    price = bar.close
-    return Trade(timestamp, side, price, quantity, quantity * price, cost)
+    execution_price = bar.close if price is None else price
+    return Trade(
+        timestamp,
+        side,
+        execution_price,
+        quantity,
+        quantity * execution_price,
+        cost,
+        bar.symbol,
+    )
+
+
+def _slice_mapping(
+    values: Mapping[str, Sequence[float | None]] | None,
+    indices: Sequence[int],
+    full_width: int,
+) -> Mapping[str, Sequence[float | None]] | None:
+    if values is None:
+        return None
+    return {
+        name: tuple(series[index] for index in indices)
+        if len(series) == full_width
+        else tuple(series)
+        for name, series in values.items()
+    }

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from core.backtest.engine import BacktestEngine, BacktestRequest, Trade
-from core.data.contracts import DataZone, MarketDataSet
+from core.costs.model import CostModel
+from core.costs.slippage import SlippageModel
+from core.data.contracts import Bar, DataZone, MarketDataSet, SeriesDataSet
+from core.features.contracts import FeatureSpec
 from core.validation.walk_forward import walk_forward_splits
 from evaluation.benchmark import BenchmarkComparison, BenchmarkData, compare_benchmarks
 from evaluation.metrics import Metrics, calculate_metrics
 from evaluation.risk import evaluate_risk_policy
 from evaluation.robustness import robust_statistics
+from evaluation.scoring import RobustnessInputs, robust_score
 from evaluation.selector import FunnelConfig, FunnelInput, FunnelResult, select_candidate
 from experiments.candidate_generator import Candidate, generate_candidates
 from memory.knowledge import extract_knowledge
@@ -32,6 +36,9 @@ class GenerationPipeline:
 
     def __init__(self, *, engine: BacktestEngine | None = None) -> None:
         self.engine = engine or BacktestEngine()
+        self.cost_model = CostModel(
+            "cost-v1", commission_bps=1.0, spread_bps=2.0, slippage=SlippageModel(5.0)
+        )
 
     def run(
         self,
@@ -47,6 +54,9 @@ class GenerationPipeline:
         observations: list[BayesianObservation] | None = None,
         benchmark_data: BenchmarkData | None = None,
         feature_values: Mapping[str, Sequence[float | None]] | None = None,
+        feature_specs: Mapping[str, FeatureSpec] | None = None,
+        feature_inputs: Mapping[str, Sequence[float | None]] | None = None,
+        external_series: SeriesDataSet | None = None,
     ) -> GenerationPipelineResult:
         if DataZone(dataset.zone) is DataZone.SEALED_OOS:
             raise PermissionError("generation research cannot use sealed OOS data")
@@ -62,14 +72,39 @@ class GenerationPipeline:
         fast_dataset = _fast_slice(dataset)
         fast_width = len(fast_dataset.bars)
         fast_features = _slice_feature_values(feature_values, fast_width)
-        fast_benchmark_data = benchmark_data.slice(fast_width) if benchmark_data else None
+        fast_inputs = _slice_feature_values(feature_inputs, fast_width)
+        fast_benchmark_data = (
+            benchmark_data.slice(_timestamp_count(fast_dataset)) if benchmark_data else None
+        )
         results: list[FunnelResult] = []
         for candidate in candidates:
             fast_metrics, _, fast_equity = self._evaluate(
-                candidate, fast_dataset, "fast", fast_features
+                candidate,
+                fast_dataset,
+                "fast",
+                fast_features,
+                feature_specs,
+                fast_inputs,
+                external_series,
             )
             full_metrics, trades, full_equity = self._evaluate(
-                candidate, dataset, "full", feature_values
+                candidate,
+                dataset,
+                "full",
+                feature_values,
+                feature_specs,
+                feature_inputs,
+                external_series,
+            )
+            stressed_metrics, _, _ = self._evaluate(
+                candidate,
+                dataset,
+                "stress",
+                feature_values,
+                feature_specs,
+                feature_inputs,
+                external_series,
+                cost_stress_multiplier=2.0,
             )
             risk_evaluation = evaluate_risk_policy(full_equity, candidate.strategy.risk)
             fast_benchmark = _compare(
@@ -78,8 +113,12 @@ class GenerationPipeline:
             full_benchmark = _compare(full_equity, benchmark_data, periods_per_year=252)
             robust = robust_statistics(
                 base_return=full_metrics.total_return,
-                stressed_return=full_metrics.total_return,
-                parameter_scores=(fast_metrics.total_return, full_metrics.total_return),
+                stressed_return=stressed_metrics.total_return,
+                parameter_scores=(
+                    fast_metrics.total_return,
+                    full_metrics.total_return,
+                    stressed_metrics.total_return,
+                ),
                 sharpe=full_metrics.sharpe or 0.0,
                 trials=max(1, len(candidates)),
                 observations=len(full_metrics.__dict__),
@@ -87,6 +126,20 @@ class GenerationPipeline:
                 + len(candidate.strategy.entry.conditions)
                 + len(candidate.strategy.exit.conditions),
             )
+            if robust.status == "OK":
+                robust = replace(
+                    robust,
+                    robust_score=robust_score(
+                        full_metrics,
+                        RobustnessInputs(
+                            robust.stability,
+                            robust.cost_sensitivity,
+                            len(candidate.strategy.indicators)
+                            + len(candidate.strategy.entry.conditions)
+                            + len(candidate.strategy.exit.conditions),
+                        ),
+                    ),
+                )
             validation_passed = bool(
                 walk_forward_splits(
                     tuple(range(len(dataset.bars))),
@@ -124,6 +177,10 @@ class GenerationPipeline:
         dataset: MarketDataSet,
         run_kind: str,
         feature_values: Mapping[str, Sequence[float | None]] | None = None,
+        feature_specs: Mapping[str, FeatureSpec] | None = None,
+        feature_inputs: Mapping[str, Sequence[float | None]] | None = None,
+        external_series: SeriesDataSet | None = None,
+        cost_stress_multiplier: float = 1.0,
     ) -> tuple[Metrics, tuple[Trade, ...], tuple[float, ...]]:
         backtest = self.engine.run(
             BacktestRequest(
@@ -133,6 +190,11 @@ class GenerationPipeline:
                 100_000.0,
                 strategy=candidate.strategy,
                 feature_values=feature_values,
+                feature_specs=feature_specs,
+                feature_inputs=feature_inputs,
+                external_series=external_series,
+                cost_model=self.cost_model,
+                cost_stress_multiplier=cost_stress_multiplier,
             )
         )
         pnls = _closed_trade_pnls(backtest.trades)
@@ -151,18 +213,27 @@ class GenerationPipeline:
 
 
 def _fast_slice(dataset: MarketDataSet) -> MarketDataSet:
-    width = max(2, len(dataset.bars) // 2)
-    return MarketDataSet(dataset.version, dataset.zone, dataset.bars[:width])
+    bars: list[Bar] = []
+    for symbol in sorted({bar.symbol for bar in dataset.bars}):
+        symbol_bars = tuple(bar for bar in dataset.bars if bar.symbol == symbol)
+        width = min(len(symbol_bars), max(2, len(symbol_bars) // 2))
+        bars.extend(symbol_bars[:width])
+    return MarketDataSet(dataset.version, dataset.zone, tuple(bars))
+
+
+def _timestamp_count(dataset: MarketDataSet) -> int:
+    return len({bar.timestamp for bar in dataset.bars})
 
 
 def _closed_trade_pnls(trades: tuple[Trade, ...]) -> tuple[float, ...]:
-    buys: list[Trade] = []
+    buys: dict[str, list[Trade]] = {}
     pnls: list[float] = []
     for trade in trades:
+        symbol_buys = buys.setdefault(trade.symbol, [])
         if trade.side == "buy":
-            buys.append(trade)
-        elif buys:
-            buy = buys.pop(0)
+            symbol_buys.append(trade)
+        elif symbol_buys:
+            buy = symbol_buys.pop(0)
             pnls.append((trade.price - buy.price) * trade.quantity - trade.cost - buy.cost)
     return tuple(pnls)
 

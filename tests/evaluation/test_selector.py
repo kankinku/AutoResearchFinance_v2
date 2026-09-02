@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from evaluation.benchmark import compare_benchmarks
 from evaluation.metrics import calculate_metrics
+from evaluation.risk import RiskEvaluation
 from evaluation.robustness import RobustnessReport
 from evaluation.selector import FunnelConfig, FunnelInput, select_candidate
 
@@ -38,6 +39,7 @@ def test_funnel_records_all_gates_and_admits_survivor() -> None:
         "full",
         "robustness",
         "validation",
+        "risk",
         "promotion",
     ]
     assert all(gate.passed for gate in result.gates)
@@ -89,3 +91,23 @@ def test_funnel_preserves_benchmark_comparison_as_an_additional_evaluation() -> 
 
     assert result.full_benchmark is benchmark
     assert result.full_benchmark.qqq_excess_return > 0
+
+
+def test_funnel_rejects_candidate_that_breaches_declared_daily_loss_policy() -> None:
+    risk = RiskEvaluation(None, 2.0, 1.0, "stop", 2.0, 1, False)
+    result = select_candidate(
+        FunnelInput(
+            "cand-risk",
+            "trend",
+            _metrics(),
+            _metrics(),
+            RobustnessReport("OK", 0.9, 0.8, 0.7, 0.1, 0.75),
+            validation_passed=True,
+            risk_evaluation=risk,
+        ),
+        FunnelConfig(min_fast_trades=2, min_full_trades=2, min_robust_score=0.5),
+    )
+
+    risk_gate = next(gate for gate in result.gates if gate.name == "risk")
+    assert risk_gate.passed is False
+    assert result.status == "REJECT"

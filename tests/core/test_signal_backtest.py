@@ -56,7 +56,7 @@ def test_strategy_backtest_uses_ir_signals_and_reports_trades() -> None:
         BacktestRequest(
             "run-signal",
             "ignored-by-strategy-hash",
-            _dataset((10, 9, 8, 9, 11, 10, 8)),
+            _dataset((10, 9, 8, 9, 11, 10, 8, 7)),
             initial_cash=10_000,
             strategy=_strategy(),
         )
@@ -66,7 +66,81 @@ def test_strategy_backtest_uses_ir_signals_and_reports_trades() -> None:
     assert len(result.trades) == 2
     assert result.trades[0].side == "buy"
     assert result.trades[1].side == "sell"
+    assert result.trades[0].price == 10
+    assert result.trades[1].price == 7
     assert result.equity_curve[-1] < result.equity_curve[0]
+
+
+def test_strategy_backtest_executes_signal_on_next_bar_open() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index),
+            "TEST",
+            open_price,
+            max(open_price, close),
+            min(open_price, close),
+            close,
+            1000,
+        )
+        for index, (open_price, close) in enumerate(((10, 20), (50, 60), (70, 80)))
+    )
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.entry.conditions = [Condition(op="greater_than", left="close", value=0)]
+    strategy.exit.conditions = [Condition(op="greater_than", left="close", value=0)]
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-next-open",
+            "hash",
+            MarketDataSet("data-v1", "development", bars),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert [(trade.side, trade.price) for trade in result.trades] == [
+        ("buy", 50),
+        ("sell", 70),
+    ]
+
+
+def test_strategy_backtest_handles_multiple_symbols_without_cross_symbol_bridging() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index),
+            symbol,
+            open_price,
+            max(open_price, close),
+            min(open_price, close),
+            close,
+            1000,
+        )
+        for symbol, prices in (
+            ("AAA", ((10, 20), (50, 60), (70, 80))),
+            ("BBB", ((100, 110), (150, 160), (170, 180))),
+        )
+        for index, (open_price, close) in enumerate(prices)
+    )
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.entry.conditions = [Condition(op="greater_than", left="close", value=0)]
+    strategy.exit.conditions = [Condition(op="greater_than", left="close", value=0)]
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-multi-symbol",
+            "hash",
+            MarketDataSet("data-v1", "development", bars),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert [(trade.symbol, trade.side, trade.price) for trade in result.trades] == [
+        ("AAA", "buy", 50),
+        ("BBB", "buy", 150),
+        ("AAA", "sell", 70),
+        ("BBB", "sell", 170),
+    ]
 
 
 def test_strategy_backtest_compares_price_reference_to_indicator_reference() -> None:
@@ -141,10 +215,10 @@ def test_strategy_backtest_uses_declared_external_feature_values() -> None:
         BacktestRequest(
             "run-feature",
             "hash",
-            _dataset((10, 10, 10)),
+            _dataset((10, 10, 10, 10)),
             1000,
             strategy=strategy,
-            feature_values={"vix": (0.1, 0.9, 0.1)},
+                feature_values={"vix": (0.1, 0.9, 0.1, 0.1)},
         )
     )
 
@@ -175,15 +249,15 @@ def test_strategy_backtest_applies_feature_reference_lag() -> None:
         BacktestRequest(
             "run-lagged-feature",
             "hash",
-            _dataset((10, 10, 10)),
+            _dataset((10, 10, 10, 10)),
             1000,
             strategy=strategy,
-            feature_values={"vix": (0.1, 0.9, 0.1)},
+                feature_values={"vix": (0.1, 0.9, 0.1, 0.1)},
         )
     )
 
     assert [trade.side for trade in result.trades] == ["buy"]
-    assert result.trades[0].timestamp.startswith("2024-01-03")
+    assert result.trades[0].timestamp.startswith("2024-01-04")
 
 
 def test_strategy_backtest_rejects_missing_external_feature_values() -> None:
@@ -235,11 +309,11 @@ def test_strategy_backtest_calculates_registered_feature_from_external_series() 
         BacktestRequest(
             "run-calculated-feature",
             "hash",
-            _dataset((10, 10, 10)),
+            _dataset((10, 10, 10, 10)),
             1000,
             strategy=strategy,
             feature_specs={"vix_percentile": feature_spec},
-            feature_inputs={"VIX.close": (10.0, 20.0, 5.0)},
+                feature_inputs={"VIX.close": (10.0, 20.0, 5.0, 5.0)},
         )
     )
 

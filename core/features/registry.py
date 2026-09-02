@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from core.features.catalog import semantic_feature_id
+from core.features.catalog import imported_feature_catalog, semantic_feature_id
 from core.features.contracts import FeatureSpec, FeatureVerification
 
 
@@ -99,3 +99,12 @@ def default_feature_registry() -> FeatureRegistry:
             verification,
         )
     return registry
+
+
+def research_feature_specs() -> tuple[FeatureSpec, ...]:
+    """Return imported indicators plus optional macro and benchmark features."""
+
+    imported = imported_feature_catalog().all()
+    existing = {spec.name for spec in imported}
+    optional = tuple(spec for spec in default_feature_registry().all() if spec.name not in existing)
+    return tuple(sorted((*imported, *optional), key=lambda spec: spec.name))

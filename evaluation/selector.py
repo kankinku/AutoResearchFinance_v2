@@ -16,6 +16,7 @@ class FunnelConfig:
     min_full_return: float = 0.0
     min_robust_score: float = 0.5
     require_validation: bool = True
+    require_risk_compliance: bool = True
     champion_score: float | None = None
 
 
@@ -67,6 +68,11 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         and candidate.robustness.robust_score >= config.min_robust_score
     )
     validation_passed = candidate.validation_passed if config.require_validation else True
+    risk_passed = (
+        not config.require_risk_compliance
+        or candidate.risk_evaluation is None
+        or candidate.risk_evaluation.compliant
+    )
     score = candidate.robustness.robust_score
     promotion_passed = config.champion_score is None or score > config.champion_score
     gates = (
@@ -101,6 +107,17 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
             True if config.require_validation else None,
             candidate.validation_passed,
             None if validation_passed else "validation",
+        ),
+        GateDecision(
+            "risk",
+            risk_passed,
+            True if config.require_risk_compliance else None,
+            (
+                candidate.risk_evaluation.compliant
+                if candidate.risk_evaluation is not None
+                else None
+            ),
+            None if risk_passed else "risk_policy_breach",
         ),
         GateDecision(
             "promotion",

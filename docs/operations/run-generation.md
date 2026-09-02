@@ -6,7 +6,7 @@
 3. Load development or authorized validation Parquet data. Never pass sealed OOS data to
    `GenerationPipeline`; its access is reserved for a promotion-gate process.
 4. Load optional external series with `ParquetDataProvider.read_series`; select a
-   `SeriesRef` timeframe (`1d`, `1w`, or `1mo`), emit only completed higher-timeframe
+   `SeriesRef` timeframe (`1m`, `5m`, `15m`, `1h`, `1d`, `1w`, or `1mo`), emit only completed higher-timeframe
    bars, align with `align_as_of`, and retain only observations available at the signal
    timestamp. This supports `US2Y`, `US10Y`, `US20Y`, `JP2Y`, `JP10Y`, `JP20Y`, `KR2Y`,
    `KR10Y`, and `KR20Y` as optional inputs.
@@ -19,6 +19,25 @@
    in knowledge; raw market rows and source prose do not belong there.
 7. Review `NEAR_MISS` entries through the Rescue Pool. A `SURVIVOR` is a research result,
    not permission to submit an order.
+
+## CLI parameter search
+
+The CLI accepts one JSON `--domain` per parameter. Without a domain, the run is an
+explicit one-candidate baseline; `--count` does not duplicate that baseline.
+
+```powershell
+python cli.py run-generation `
+  --source strategies\normalized\golden_cross.json `
+  --data data\daily.parquet --method grid --count 6 --seed 7 `
+  --domain '{"name":"indicators.sma_fast.period","values":[5,10,20]}' `
+  --domain '{"name":"risk.position_size_pct","values":[50,100]}'
+```
+
+The equivalent Codex Desktop MCP `run_evaluation` input uses
+`parameter_domains: [{"name": "...", "values": [...]}]`. Optional
+`series_data_path` supplies external macro/rate/benchmark series. Supplying QQQ and
+NASDAQ in that file adds same-period benchmark comparisons; macro/rate-only files are
+valid and simply omit the benchmark comparison.
 
 The reproducibility tuple is the Strategy IR, parameters, symbol/date range, dataset,
 evaluator, cost model, compiler, Docker image digest, and seed. Changing any member

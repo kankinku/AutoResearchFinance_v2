@@ -5,14 +5,14 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from core.features.registry import default_feature_registry
+from core.features.registry import research_feature_specs
 from core.integrity.hashes import content_hash
 from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
 from dashboard.state import DashboardStateReader
 from experiments.planner import plan_experiment
 from memory.state_files import StateFileStore
-from orchestration.evaluation_runner import run_local_evaluation
+from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
 from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
 from research.llm.director import ResearchDirector
 from strategy_import.pipeline import import_local_source
@@ -73,6 +73,17 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--count", type=int, default=1)
     run_parser.add_argument("--seed", type=int, default=0)
     run_parser.add_argument("--min-trades", type=int, default=10)
+    run_parser.add_argument(
+        "--domain",
+        action="append",
+        default=[],
+        help='JSON parameter domain, e.g. \'{"name":"indicators.fast.period","values":[5,10]}\'',
+    )
+    run_parser.add_argument(
+        "--series-data",
+        type=Path,
+        help="Optional external series Parquet containing macro/rate/benchmark observations",
+    )
     run_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     for command in ("resume", "rebuild-cache"):
         command_parser = subparsers.add_parser(command)
@@ -135,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
                             "lookback": spec.lookback,
                             "timeframe": spec.timeframe,
                         }
-                        for spec in default_feature_registry().all()
+                        for spec in research_feature_specs()
                     ],
                 },
                 ensure_ascii=False,
@@ -161,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
                         "lookback": spec.lookback,
                         "timeframe": spec.timeframe,
                     }
-                    for spec in default_feature_registry().all()
+                    for spec in research_feature_specs()
                 ],
             }
         )
@@ -268,6 +279,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     if args.command == "run-generation":
+        domain_documents = [json.loads(document) for document in args.domain]
         evaluation_result = run_local_evaluation(
             project_root=Path("."),
             state_dir=args.state_dir,
@@ -277,6 +289,8 @@ def main(argv: list[str] | None = None) -> int:
             count=args.count,
             seed=args.seed,
             min_trades=args.min_trades,
+            parameter_domains=parse_parameter_domains(domain_documents),
+            series_data_path=args.series_data,
         )
         print(json.dumps(evaluation_result, ensure_ascii=False))
         return 0
