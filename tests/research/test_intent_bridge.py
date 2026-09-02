@@ -57,6 +57,53 @@ def test_unregistered_feature_selection_is_not_experiment_eligible() -> None:
         intent_to_operations(intent, research_feature_specs())
 
 
+def test_primary_ohlcv_inputs_are_valid_feature_inputs() -> None:
+    intent = ResearchIntent(
+        mode="structure",
+        parent_ids=("QQQ-base",),
+        rationale="use a daily trend-strength feature",
+        feature_selections=(
+            {
+                "alias": "trend_strength",
+                "feature_id": "dmi_adx",
+                "inputs": ("high", "low", "close"),
+            },
+        ),
+    )
+
+    operations = intent_to_operations(intent, research_feature_specs())
+
+    assert operations[-1].value.inputs == ("high", "low", "close")
+
+
+def test_json_patch_intent_operations_are_converted_to_typed_mutations() -> None:
+    intent = ResearchIntent(
+        mode="mixed",
+        parent_ids=("QQQ-base",),
+        rationale="use a faster crossover and an entry filter",
+        operations=(
+            {
+                "op": "replace",
+                "path": "/source_strategy/indicators/sma_fast/period",
+                "value": 3,
+            },
+            {
+                "op": "add",
+                "path": "/source_strategy/entry/conditions/-",
+                "value": '{"op":"greater_than","left":"close","value":0}',
+            },
+        ),
+    )
+
+    operations = intent_to_operations(intent, research_feature_specs())
+
+    assert operations[0].op == "SET_PARAMETER"
+    assert operations[0].path == "indicators.sma_fast.period"
+    assert operations[1].op == "ADD_RULE"
+    assert operations[1].path == "entry.conditions"
+    assert operations[1].value == {"op": "greater_than", "left": "close", "value": 0}
+
+
 def test_feature_proposal_does_not_make_feature_eligible_in_same_intent() -> None:
     intent = ResearchIntent(
         mode="structure",

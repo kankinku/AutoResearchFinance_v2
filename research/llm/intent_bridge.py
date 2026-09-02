@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping
 
 from core.features.contracts import FeatureSpec
@@ -31,6 +32,7 @@ _ALLOWED_SERIES_PREFIXES = frozenset(
     }
 )
 _ALLOWED_SERIES_FIELDS = frozenset({"open", "high", "low", "close", "volume"})
+_PRIMARY_BAR_FIELDS = _ALLOWED_SERIES_FIELDS
 
 
 def intent_to_operations(
@@ -48,7 +50,7 @@ def intent_to_operations(
             "feature proposal requires verification before experiment eligibility"
         )
     specs = _index_specs(feature_specs)
-    operations = tuple(_operation_from_payload(item) for item in intent.operations)
+    operations = tuple(_operation_from_payload(item, specs) for item in intent.operations)
     selected = tuple(
         _selection_operation(selection, specs)
         for selection in intent.feature_selections
@@ -129,6 +131,8 @@ def _validate_inputs(inputs: tuple[str, ...]) -> None:
         raise IntentEligibilityError("feature inputs cannot be empty")
     for input_name in inputs:
         if "." not in input_name:
+            if input_name in _PRIMARY_BAR_FIELDS:
+                continue
             raise IntentEligibilityError(f"feature input must identify a series: {input_name}")
         series_id, field = input_name.rsplit(".", 1)
         if field not in _ALLOWED_SERIES_FIELDS:
@@ -137,11 +141,103 @@ def _validate_inputs(inputs: tuple[str, ...]) -> None:
             raise IntentEligibilityError(f"feature input series is not allowed: {input_name}")
 
 
-def _operation_from_payload(payload: Mapping[str, object]) -> MutationOperation:
+def _operation_from_payload(
+    payload: Mapping[str, object], specs: Mapping[str, FeatureSpec]
+) -> MutationOperation:
     op = payload.get("op")
     if not isinstance(op, str) or not op:
         raise IntentEligibilityError("intent operation op is required")
     path = payload.get("path")
     if path is not None and not isinstance(path, str):
         raise IntentEligibilityError("intent operation path must be a string")
-    return MutationOperation(op=op, path=path, value=payload.get("value"))
+    normalized_op, normalized_path = _normalize_operation(op, path)
+    value = _decode_json_value(payload.get("value"))
+    if normalized_op == "ADD_FEATURE":
+        value = _feature_reference(value, specs)
+    return MutationOperation(op=normalized_op, path=normalized_path, value=value)
+
+
+def _normalize_operation(op: str, path: str | None) -> tuple[str, str | None]:
+    normalized_path = _normalize_path(path)
+    lowered = op.lower()
+    if lowered not in {"add", "replace", "remove"}:
+        return op, normalized_path
+    if normalized_path is None:
+        raise IntentEligibilityError(f"{op} operation requires path")
+    if lowered == "replace":
+        if normalized_path.startswith("indicators.") and (
+            normalized_path.endswith(".period") or ".parameters." in normalized_path
+        ):
+            return "SET_PARAMETER", normalized_path
+        return "REPLACE_RULE", normalized_path
+    if lowered == "remove":
+        if normalized_path.startswith("features."):
+            return "REMOVE_FEATURE", normalized_path
+        return "REMOVE_RULE", normalized_path
+    if normalized_path.startswith("features."):
+        return "ADD_FEATURE", normalized_path
+    if normalized_path.startswith("indicators."):
+        return "ADD_INDICATOR", normalized_path
+    if normalized_path.startswith("regime_filters"):
+        return "ADD_REGIME_FILTER", _list_target_path(normalized_path)
+    return "ADD_RULE", _list_target_path(normalized_path)
+
+
+def _normalize_path(path: str | None) -> str | None:
+    if path is None or not path.startswith("/"):
+        return path
+    parts = path.lstrip("/").split("/")
+    if parts and parts[0] == "source_strategy":
+        parts = parts[1:]
+    if not parts or any(
+        not part or (part == "-" and index != len(parts) - 1)
+        for index, part in enumerate(parts)
+    ):
+        raise IntentEligibilityError(f"invalid intent operation path: {path}")
+    decoded = [part.replace("~1", "/").replace("~0", "~") for part in parts]
+    return ".".join(decoded)
+
+
+def _list_target_path(path: str) -> str:
+    return path[:-2] if path.endswith(".-") else path
+
+
+def _decode_json_value(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if not stripped.startswith(("{", "[")):
+        return value
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        return value
+
+
+def _feature_reference(value: object, specs: Mapping[str, FeatureSpec]) -> FeatureRef:
+    if not isinstance(value, Mapping):
+        raise IntentEligibilityError("ADD_FEATURE value must be an object")
+    feature_id = value.get("feature_id")
+    if not isinstance(feature_id, str) or not feature_id:
+        raise IntentEligibilityError("ADD_FEATURE value requires feature_id")
+    spec = specs.get(feature_id)
+    if spec is None:
+        raise IntentEligibilityError(f"feature is not registered: {feature_id}")
+    allowed = {
+        "feature_id",
+        "timeframe",
+        "lag_bars",
+        "lookback",
+        "inputs",
+        "parameters",
+    }
+    data = {key: item for key, item in value.items() if key in allowed}
+    data["feature_id"] = spec.name
+    if not data.get("inputs"):
+        data["inputs"] = spec.inputs
+    try:
+        reference = FeatureRef.model_validate(data)
+    except (TypeError, ValueError) as exc:
+        raise IntentEligibilityError(f"invalid ADD_FEATURE value: {exc}") from exc
+    _validate_inputs(tuple(reference.inputs))
+    return reference

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -20,9 +21,15 @@ def _valid_intent() -> dict[str, object]:
 
 
 class FakeRunner:
-    def __init__(self, payload: object, returncode: int = 0) -> None:
+    def __init__(
+        self,
+        payload: object,
+        returncode: int = 0,
+        stderr: str = "codex diagnostic must not leak",
+    ) -> None:
         self.payload = payload
         self.returncode = returncode
+        self.stderr = stderr
         self.command: list[str] = []
         self.input_text = ""
         self.cwd = Path()
@@ -43,7 +50,7 @@ class FakeRunner:
         self.env = env
         output_path = Path(command[command.index("-o") + 1])
         output_path.write_text(json.dumps(self.payload), encoding="utf-8")
-        return CodexExecResult(self.returncode, "", "codex diagnostic must not leak")
+        return CodexExecResult(self.returncode, "", self.stderr)
 
 
 def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path: Path) -> None:
@@ -76,8 +83,8 @@ def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path:
 
 
 def test_codex_exec_provider_rejects_failed_or_invalid_output(tmp_path: Path) -> None:
-    failed = FakeRunner(_valid_intent(), returncode=1)
-    with pytest.raises(ValueError, match="Codex execution failed"):
+    failed = FakeRunner(_valid_intent(), returncode=17, stderr="unsupported option: --sandbox")
+    with pytest.raises(ValueError, match=r"Codex execution failed \(exit 17\): unsupported option"):
         CodexExecProvider(workdir=tmp_path, runner=failed).propose({})
 
     invalid = FakeRunner({"python_patch": "danger"})
@@ -119,3 +126,22 @@ def test_codex_subprocess_decodes_utf8_output_on_windows(monkeypatch, tmp_path: 
     assert result.returncode == 0
     assert captured["encoding"] == "utf-8"
     assert captured["errors"] == "replace"
+
+
+def test_codex_subprocess_reports_timeout(monkeypatch, tmp_path: Path) -> None:
+    def fake_run(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        raise subprocess.TimeoutExpired(cmd=["codex"], timeout=120)
+
+    monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
+
+    result = codex_exec._run_codex(["codex"], "{}", tmp_path, {}, 120.0)
+
+    assert result.returncode == 124
+    assert "timed out after 120" in result.stderr
+
+
+def test_codex_exec_provider_uses_long_enough_default_timeout(tmp_path: Path) -> None:
+    provider = CodexExecProvider(workdir=tmp_path)
+
+    assert provider.timeout_seconds == 300.0

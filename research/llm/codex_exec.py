@@ -13,6 +13,8 @@ from typing import Any
 
 from research.llm.director import ResearchIntent
 
+DEFAULT_CODEX_TIMEOUT_SECONDS = 300.0
+
 
 @dataclass(frozen=True)
 class CodexExecResult:
@@ -34,7 +36,7 @@ class CodexExecProvider:
         workdir: Path,
         schema_path: Path | None = None,
         model: str | None = None,
-        timeout_seconds: float = 120.0,
+        timeout_seconds: float = DEFAULT_CODEX_TIMEOUT_SECONDS,
         status_path: Path | None = None,
         runner: ExecRunner | None = None,
     ) -> None:
@@ -101,7 +103,7 @@ class CodexExecProvider:
                 self.timeout_seconds,
             )
             if result.returncode != 0:
-                raise ValueError("Codex execution failed")
+                raise ValueError(_execution_error(result))
             try:
                 payload = json.loads(output_path.read_text(encoding="utf-8"))
                 intent = ResearchIntent.model_validate(payload)
@@ -124,7 +126,9 @@ class CodexExecProvider:
         executable = values.get("QUANT_CODEX_COMMAND", "codex")
         model = values.get("QUANT_CODEX_MODEL", "gpt-5.4-mini")
         try:
-            timeout = float(values.get("QUANT_CODEX_TIMEOUT_SECONDS", "120"))
+            timeout = float(
+                values.get("QUANT_CODEX_TIMEOUT_SECONDS", str(DEFAULT_CODEX_TIMEOUT_SECONDS))
+            )
         except ValueError as exc:
             raise ValueError("QUANT_CODEX_TIMEOUT_SECONDS must be numeric") from exc
         return cls(
@@ -260,6 +264,19 @@ def _run_codex(
             errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        del exc
-        return CodexExecResult(1, "", "")
+        if isinstance(exc, subprocess.TimeoutExpired):
+            return CodexExecResult(
+                124,
+                "",
+                f"Codex execution timed out after {timeout:g} seconds",
+            )
+        return CodexExecResult(127, "", f"Codex process could not start: {exc}")
     return CodexExecResult(completed.returncode, completed.stdout, completed.stderr)
+
+
+def _execution_error(result: CodexExecResult) -> str:
+    diagnostic = " ".join(result.stderr.split())
+    if len(diagnostic) > 1000:
+        diagnostic = diagnostic[:997] + "..."
+    suffix = f": {diagnostic}" if diagnostic else ""
+    return f"Codex execution failed (exit {result.returncode}){suffix}"
