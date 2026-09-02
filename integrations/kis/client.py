@@ -202,23 +202,41 @@ class KISPaperClient:
             for record in _records(payload.get("output1"))
             if _first_value(record, ("ovrs_pdno", "pdno", "symbol"))
         )
+        equity = _number(summary, ("ovrs_tot_evlu_amt", "tot_evlu_pfls_amt", "equity"))
+        cash = _number(summary, ("frcr_pchs_amt", "cash", "tot_frcr_cblc_smtl"))
+        buying_power = _number(summary, ("frcr_buy_psbl_amt", "buying_power"))
+        if equity is None or cash is None or buying_power is None:
+            present_payload = self._call(
+                "GET",
+                "/uapi/overseas-stock/v1/trading/inquire-present-balance",
+                tr_id="VTRP6504R",
+                params={
+                    "CANO": cano,
+                    "ACNT_PRDT_CD": product,
+                    "WCRC_FRCR_DVSN_CD": "02",
+                    "NATN_CD": "840",
+                    "TR_MKET_CD": "00",
+                    "INQR_DVSN_CD": "00",
+                },
+            )
+            present = _first_record(present_payload.get("output3"))
+            equity = equity if equity is not None else _number(
+                present,
+                ("frcr_evlu_tota", "tot_asst_amt", "evlu_amt_smtl"),
+            )
+            cash = cash if cash is not None else _number(
+                present,
+                ("frcr_use_psbl_amt", "tot_frcr_cblc_smtl", "cash"),
+            )
+            buying_power = buying_power if buying_power is not None else _number(
+                present,
+                ("ustl_buy_amt_smtl", "frcr_use_psbl_amt", "buying_power"),
+            )
         return KISAccountSnapshot(
             account_number=_mask_account(self.config.account_number),
-            equity=_required_number(
-                summary,
-                ("ovrs_tot_evlu_amt", "tot_evlu_pfls_amt", "equity"),
-                "equity",
-            ),
-            cash=_required_number(
-                summary,
-                ("frcr_pchs_amt", "cash", "tot_frcr_cblc_smtl"),
-                "cash",
-            ),
-            buying_power=_required_number(
-                summary,
-                ("frcr_buy_psbl_amt", "buying_power"),
-                "buying_power",
-            ),
+            equity=_required_number_from_value(equity, "equity"),
+            cash=_required_number_from_value(cash, "cash"),
+            buying_power=_required_number_from_value(buying_power, "buying_power"),
             holdings=holdings,
             captured_at=self._clock().isoformat(),
         )
@@ -338,6 +356,10 @@ def _number(output: Mapping[str, object], names: tuple[str, ...]) -> float | Non
 
 def _required_number(output: Mapping[str, object], names: tuple[str, ...], label: str) -> float:
     value = _number(output, names)
+    return _required_number_from_value(value, label)
+
+
+def _required_number_from_value(value: float | None, label: str) -> float:
     if value is None:
         raise KISAPIError(200, f"missing_{label}")
     return value

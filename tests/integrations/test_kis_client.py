@@ -237,3 +237,46 @@ def test_client_maps_read_only_account_snapshot(tmp_path: Path) -> None:
     assert account.holdings[0].quantity == pytest.approx(2)
     assert account.account_number == "******78-01"
     assert transport.calls[1]["headers"]["tr_id"] == "VTTS3012R"
+
+
+def test_client_maps_mock_present_balance_for_account_totals(tmp_path: Path) -> None:
+    env_path = tmp_path / ".env"
+    _env(env_path)
+    transport = RecordingTransport(
+        [
+            KISResponse(
+                200,
+                {"access_token": "placeholder", "access_token_token_expired": "2099-01-01"},
+            ),
+            KISResponse(
+                200,
+                {
+                    "rt_cd": "0",
+                    "output1": [],
+                    "output2": {
+                        "frcr_pchs_amt1": "0",
+                        "frcr_buy_amt_smtl1": "0",
+                    },
+                },
+            ),
+            KISResponse(
+                200,
+                {
+                    "rt_cd": "0",
+                    "output3": {
+                        "frcr_evlu_tota": "12000",
+                        "frcr_use_psbl_amt": "9500",
+                        "ustl_buy_amt_smtl": "9000",
+                    },
+                },
+            ),
+        ]
+    )
+    client = KISPaperClient(PaperKISConfig.from_env(env_path), transport=transport)
+
+    account = client.account_snapshot()
+
+    assert account.equity == pytest.approx(12000)
+    assert account.cash == pytest.approx(9500)
+    assert account.buying_power == pytest.approx(9000)
+    assert transport.calls[2]["headers"]["tr_id"] == "VTRP6504R"
