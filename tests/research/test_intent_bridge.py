@@ -104,6 +104,29 @@ def test_json_patch_intent_operations_are_converted_to_typed_mutations() -> None
     assert operations[1].value == {"op": "greater_than", "left": "close", "value": 0}
 
 
+def test_retain_operation_is_a_safe_noop() -> None:
+    intent = ResearchIntent(
+        mode="structure",
+        parent_ids=("QQQ-base",),
+        rationale="retain the parent when no safe mutation is found",
+        operations=({"op": "retain"},),
+    )
+
+    assert intent_to_operations(intent, research_feature_specs()) == ()
+
+
+def test_retain_operation_cannot_carry_a_mutation() -> None:
+    intent = ResearchIntent(
+        mode="structure",
+        parent_ids=("QQQ-base",),
+        rationale="invalid retain payload",
+        operations=({"op": "retain", "path": "risk.stop_loss_pct", "value": 1},),
+    )
+
+    with pytest.raises(IntentEligibilityError, match="retain"):
+        intent_to_operations(intent, research_feature_specs())
+
+
 def test_feature_proposal_does_not_make_feature_eligible_in_same_intent() -> None:
     intent = ResearchIntent(
         mode="structure",

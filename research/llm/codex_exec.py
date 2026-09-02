@@ -4,7 +4,9 @@ import datetime as dt
 import json
 import os
 import shlex
+import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -37,6 +39,7 @@ class CodexExecProvider:
         schema_path: Path | None = None,
         model: str | None = None,
         timeout_seconds: float = DEFAULT_CODEX_TIMEOUT_SECONDS,
+        service_tier: str = "fast",
         status_path: Path | None = None,
         runner: ExecRunner | None = None,
     ) -> None:
@@ -44,11 +47,14 @@ class CodexExecProvider:
             raise ValueError("Codex executable is required")
         if timeout_seconds <= 0:
             raise ValueError("Codex timeout must be positive")
+        if service_tier not in {"fast", "flex"}:
+            raise ValueError("Codex service tier must be fast or flex")
         self.executable = executable
         self.workdir = workdir.resolve()
         self.schema_path = schema_path or _default_schema_path()
         self.model = model.strip() if model and model.strip() else None
         self.timeout_seconds = timeout_seconds
+        self.service_tier = service_tier
         self.status_path = status_path
         self._runner = runner or _run_codex
 
@@ -84,6 +90,8 @@ class CodexExecProvider:
             command = [
                 *executable_parts,
                 "exec",
+                "-c",
+                f'service_tier="{self.service_tier}"',
                 "-",
                 "--ephemeral",
                 "--sandbox",
@@ -136,6 +144,7 @@ class CodexExecProvider:
             workdir=workdir,
             model=model,
             timeout_seconds=timeout,
+            service_tier=values.get("QUANT_CODEX_SERVICE_TIER", "fast").lower(),
             status_path=status_path,
         )
 
@@ -250,6 +259,7 @@ def _run_codex(
     env: dict[str, str],
     timeout: float,
 ) -> CodexExecResult:
+    command = _resolve_codex_command(command, env)
     try:
         completed = subprocess.run(
             command,
@@ -272,6 +282,26 @@ def _run_codex(
             )
         return CodexExecResult(127, "", f"Codex process could not start: {exc}")
     return CodexExecResult(completed.returncode, completed.stdout, completed.stderr)
+
+
+def _resolve_codex_command(command: list[str], env: Mapping[str, str]) -> list[str]:
+    if not command or sys.platform != "win32":
+        return command
+    path = env.get("PATH")
+    resolved = shutil.which(command[0], path=path)
+    if resolved is None and not os.path.splitext(command[0])[1]:
+        for suffix in (".cmd", ".exe", ".ps1"):
+            resolved = shutil.which(command[0] + suffix, path=path)
+            if resolved is not None:
+                break
+    if resolved is None:
+        return command
+    if resolved.lower().endswith(".ps1"):
+        shell = shutil.which("pwsh", path=path) or shutil.which("powershell.exe", path=path)
+        if shell is None:
+            return command
+        return [shell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", resolved, *command[1:]]
+    return [resolved, *command[1:]]
 
 
 def _execution_error(result: CodexExecResult) -> str:

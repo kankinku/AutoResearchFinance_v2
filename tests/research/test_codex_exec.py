@@ -72,6 +72,7 @@ def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path:
     assert "--output-schema" in runner.command
     assert "--ephemeral" in runner.command
     assert "--sandbox" in runner.command
+    assert runner.command[runner.command.index("-c") + 1] == 'service_tier="fast"'
     assert runner.env.get("KIS_PAPER_APP_SECRET") is None
     assert runner.env.get("OPENAI_API_KEY") is None
     assert runner.env.get("CODEX_API_KEY") is None
@@ -141,7 +142,30 @@ def test_codex_subprocess_reports_timeout(monkeypatch, tmp_path: Path) -> None:
     assert "timed out after 120" in result.stderr
 
 
+def test_codex_subprocess_resolves_windows_executable(monkeypatch, tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_which(name: str, path: str | None = None) -> str | None:
+        del path
+        return r"C:\tools\codex.CMD" if name == "codex" else None
+
+    def fake_run(*args: object, **kwargs: object) -> object:
+        captured["args"] = args
+        captured.update(kwargs)
+        return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    monkeypatch.setattr(codex_exec.sys, "platform", "win32")
+    monkeypatch.setattr(codex_exec.shutil, "which", fake_which)
+    monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
+
+    result = codex_exec._run_codex(["codex", "--version"], "", tmp_path, {"PATH": "x"}, 1.0)
+
+    assert result.returncode == 0
+    assert captured["args"] == ([r"C:\tools\codex.CMD", "--version"],)
+
+
 def test_codex_exec_provider_uses_long_enough_default_timeout(tmp_path: Path) -> None:
     provider = CodexExecProvider(workdir=tmp_path)
 
     assert provider.timeout_seconds == 300.0
+    assert provider.service_tier == "fast"

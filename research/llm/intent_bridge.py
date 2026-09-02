@@ -50,7 +50,12 @@ def intent_to_operations(
             "feature proposal requires verification before experiment eligibility"
         )
     specs = _index_specs(feature_specs)
-    operations = tuple(_operation_from_payload(item, specs) for item in intent.operations)
+    operations = tuple(
+        operation
+        for item in intent.operations
+        for operation in (_operation_from_payload(item, specs),)
+        if operation is not None
+    )
     selected = tuple(
         _selection_operation(selection, specs)
         for selection in intent.feature_selections
@@ -143,13 +148,17 @@ def _validate_inputs(inputs: tuple[str, ...]) -> None:
 
 def _operation_from_payload(
     payload: Mapping[str, object], specs: Mapping[str, FeatureSpec]
-) -> MutationOperation:
+) -> MutationOperation | None:
     op = payload.get("op")
     if not isinstance(op, str) or not op:
         raise IntentEligibilityError("intent operation op is required")
     path = payload.get("path")
     if path is not None and not isinstance(path, str):
         raise IntentEligibilityError("intent operation path must be a string")
+    if op.lower() == "retain":
+        if path is not None or payload.get("value") is not None:
+            raise IntentEligibilityError("retain operation cannot carry path or value")
+        return None
     normalized_op, normalized_path = _normalize_operation(op, path)
     value = _decode_json_value(payload.get("value"))
     if normalized_op == "ADD_FEATURE":

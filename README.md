@@ -200,7 +200,9 @@ Mimir /research 20 `
 
 인디케이터 카탈로그가 포함된 연구 요청은 일반 대화보다 오래 걸릴 수 있습니다. 기본
 Codex 실행 제한은 300초이며, 더 길게 허용하려면 `.env`의
-`QUANT_CODEX_TIMEOUT_SECONDS`를 초 단위로 설정합니다. 시간초과나 Codex 비정상 종료
+`QUANT_CODEX_TIMEOUT_SECONDS`를 초 단위로 설정합니다. Codex 설정 파일의 호환되지 않는
+`service_tier` 값은 자식 호출에서 기본값 `fast`로 덮어쓰며, 필요하면
+`QUANT_CODEX_SERVICE_TIER=fast` 또는 `flex`로 선택할 수 있습니다. 시간초과나 Codex 비정상 종료
 시에는 Mimir가 종료 코드와 진단 메시지를 함께 출력합니다.
 
 #### 기존 `quant>` 터미널 안에서 사용
