@@ -96,7 +96,10 @@ class SystemController:
             config.repeat_generations >= 1
             and config.interval_seconds >= 0
             and config.min_annual_trades >= 0,
-            "repeat_generations는 1 이상, interval_seconds와 min_annual_trades는 0 이상이어야 합니다.",
+            (
+                "repeat_generations는 1 이상, interval_seconds와 min_annual_trades는 "
+                "0 이상이어야 합니다."
+            ),
         )
 
         check(
