@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+ROOT = Path(__file__).parents[2]
+
+
+def test_streamlit_dashboard_exposes_korean_live_research_view() -> None:
+    source = (ROOT / "dashboard.py").read_text(encoding="utf-8")
+
+    for marker in (
+        "퀀트 자동 연구 대시보드",
+        "자동 연구 진행 상황",
+        "처리된 세대",
+        "현재 세대",
+        "Codex 연결",
+        "백그라운드 탐색과 연결됨",
+        "사용 설명서",
+        "@st.fragment(run_every=",
+        "system/autoresearch.json",
+        "llm/status.json",
+    ):
+        assert marker in source
+
+
+def test_streamlit_dashboard_uses_korean_visible_section_labels() -> None:
+    source = (ROOT / "dashboard.py").read_text(encoding="utf-8")
+
+    for marker in (
+        'st.title(":material/monitoring: 퀀트 자동 연구 대시보드"',
+        'st.subheader(":material/query_stats: 핵심 현황"',
+        'st.subheader(":material/emoji_events: 최고 전략 성과"',
+        'st.button(":material/play_arrow: 새 세대 실행"',
+    ):
+        assert marker in source
