@@ -111,6 +111,11 @@ def parse_terminal_command(line: str) -> TerminalCommand:
     text = line.strip()
     if not text:
         raise ValueError("terminal command cannot be empty")
+    words = text.split(maxsplit=1)
+    if words[0].casefold() == "mimir":
+        if len(words) == 1:
+            raise ValueError("Mimir command is required after the Mimir prefix")
+        text = words[1].strip()
     if not text.startswith("/"):
         return TerminalCommand("chat", (text,))
     try:

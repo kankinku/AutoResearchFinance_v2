@@ -15,6 +15,8 @@ from runtime.terminal import (
 def test_terminal_parser_separates_research_mode_and_chat_prompt() -> None:
     assert parse_terminal_command("/mode autoresearch").name == "mode"
     assert parse_terminal_command("/research 12").arguments == ("12",)
+    assert parse_terminal_command("Mimir /research 12").name == "research"
+    assert parse_terminal_command("Mimir /research 12").arguments == ("12",)
     command = parse_terminal_command("QQQ 전략의 최근 평가를 요약해줘")
     assert command.name == "chat"
     assert command.arguments == ("QQQ 전략의 최근 평가를 요약해줘",)

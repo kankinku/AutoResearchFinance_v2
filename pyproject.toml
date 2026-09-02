@@ -15,7 +15,29 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.30",
     "httpx>=0.27",
+    "streamlit>=1.30.0",
+    "plotly>=5.18.0",
 ]
+
+[project.scripts]
+mimir = "runtime.mimir:main"
+
+[tool.setuptools.packages.find]
+include = [
+    "core*",
+    "dashboard*",
+    "evaluation*",
+    "experiments*",
+    "integrations*",
+    "memory*",
+    "mutation*",
+    "orchestration*",
+    "research*",
+    "runtime*",
+    "strategy_import*",
+    "strategy_ir*",
+]
+exclude = ["docs*", "runs*", "scripts*", "state*", "strategies*", "tests*"]
 
 [project.optional-dependencies]
 dev = [
@@ -42,4 +64,4 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.10"
 strict = true
 packages = ["strategy_ir", "mutation", "experiments", "runtime", "core", "evaluation", "memory", "research", "orchestration", "integrations"]
-exclude = "(^tests/|^state/)"
+exclude = "(^tests/|^state/|dashboard_backup\\.py$)"

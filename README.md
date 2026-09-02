@@ -136,6 +136,95 @@ The command records a validated intent in `state/llm/intents.jsonl`; the dashboa
 shows the provider state in the Codex LLM card. Keep KIS values only in the ignored
 `.env` file, never in a prompt or source file.
 
+### Mimir 명령으로 시스템 호출하기
+
+`Mimir`는 Codex 대화와 자동연구를 짧은 명령으로 호출하는 Windows용 진입점입니다.
+두 진입점은 같은 로컬 연구 코드를 사용하므로 결과 저장 위치와 안전 정책이 같습니다.
+
+#### 설치
+
+저장소 루트에서 개발 모드로 한 번 설치합니다.
+
+```powershell
+python -m pip install -e .
+```
+
+설치 후 PowerShell에서 다음처럼 호출합니다. Windows에서는 명령 대소문자를 구분하지
+않으므로 `mimir`와 `Mimir`를 모두 사용할 수 있습니다.
+
+```powershell
+Mimir /help
+Mimir /status
+Mimir /research 20
+Mimir /chat "최근 탈락 전략의 원인을 요약해줘"
+```
+
+설치하지 않은 경우에는 같은 기능을 다음처럼 실행할 수 있습니다.
+
+```powershell
+python -m runtime.mimir /research 20
+```
+
+#### `Mimir /research 20` 설정
+
+세대 수만 지정한 간단한 명령은 전략·데이터 경로를 다음 순서로 찾습니다.
+
+1. `MIMIR_SOURCE`, `MIMIR_DATA`, `MIMIR_SERIES_DATA`를 `.env`에 지정
+2. `state/system/research_loop.json`에 저장된 마지막 연구 설정 사용
+3. 둘 다 없으면 실행하지 않고 누락된 설정을 안내
+
+새로운 기본값을 직접 지정하려면 `.env`에 다음을 추가합니다. 경로는 저장소 루트
+기준의 상대경로 또는 절대경로를 사용할 수 있습니다.
+
+```dotenv
+MIMIR_SOURCE=strategies/normalized/your-strategy.json
+MIMIR_DATA=runs/your-run/qqq_daily.parquet
+MIMIR_SERIES_DATA=runs/your-run/qqq_series.parquet
+```
+
+또는 명령에 직접 지정합니다.
+
+```powershell
+Mimir /research 20 `
+  --source strategies\normalized\your-strategy.json `
+  --data runs\your-run\qqq_daily.parquet `
+  --series-data runs\your-run\qqq_series.parquet `
+  --count 8 `
+  --min-annual-trades 30 `
+  --min-qqq-cagr 0.10
+```
+
+`Mimir /research`는 유한 세대만 허용합니다. 무한 반복은 지원하지 않으며, 실행 중
+즉시 중지하려면 해당 PowerShell 창에서 `Ctrl+C`를 누릅니다. 자동연구는 Paper-only
+백테스트 전용이고 KIS 주문 API를 호출하지 않습니다.
+
+#### 기존 `quant>` 터미널 안에서 사용
+
+기존 터미널도 그대로 사용할 수 있습니다.
+
+```powershell
+python cli.py terminal `
+  --mode autoresearch `
+  --source strategies\normalized\your-strategy.json `
+  --data runs\your-run\qqq_daily.parquet `
+  --series-data runs\your-run\qqq_series.parquet `
+  --iterations 20 `
+  --state-dir state `
+  --env-file .env `
+  --project-root .
+```
+
+이후 다음 두 방식이 모두 같은 명령으로 처리됩니다.
+
+```text
+quant> /research 20
+quant> Mimir /research 20
+```
+
+터미널 내부에서 `Mimir /research`를 사용할 때는 먼저 `--mode autoresearch`로
+시작해야 합니다. 일반 대화는 `quant>`에 문장을 그대로 입력하면 되고, 상태는
+`Mimir /status` 또는 `/status`로 확인할 수 있습니다.
+
 ### Codex 자동연구 터미널 사용법
 
 이 터미널은 두 가지 일을 합니다.
