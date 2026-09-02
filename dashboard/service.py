@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -135,6 +136,45 @@ class DashboardService:
             }
             for spec in imported_feature_catalog().all()
         ]
+
+    def strategy_catalog(self) -> list[dict[str, object]]:
+        """Return the persisted strategy catalog without credentials or source code."""
+
+        candidates = [
+            self.state_dir / "strategies" / "catalog.json",
+            self.state_dir.parent / "strategies" / "catalog.json",
+        ]
+        catalog_path = next((path for path in candidates if path.is_file()), None)
+        if catalog_path is None:
+            return []
+        try:
+            payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return []
+        records = payload.get("records", []) if isinstance(payload, dict) else []
+        if not isinstance(records, list):
+            return []
+        result: list[dict[str, object]] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            source = record.get("source", {})
+            source = source if isinstance(source, dict) else {}
+            result.append(
+                {
+                    "record_id": record.get("record_id"),
+                    "status": record.get("status", "UNKNOWN"),
+                    "origin": source.get("origin", "unknown"),
+                    "source_path": source.get("source_path", ""),
+                    "strategy_id": record.get("strategy_id"),
+                    "strategy_hash": record.get("strategy_hash"),
+                    "duplicate_kind": record.get("duplicate_kind", "NOT_APPLICABLE"),
+                    "duplicate_of": record.get("duplicate_of"),
+                    "reason": record.get("reason", ""),
+                    "profile": record.get("profile", {}),
+                }
+            )
+        return result
 
     def backtest_snapshot(self) -> BacktestSnapshot:
         """Return the read-only backtest view backed by the existing run ledger."""

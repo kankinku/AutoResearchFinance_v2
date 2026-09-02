@@ -1,0 +1,89 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "momentum",
+      "description": "당일 고가 대비 종가 위치로 매수 (장마감 후 권장)",
+      "id": "strong_close",
+      "name": "강한 종가"
+    }
+  },
+  "reason": "",
+  "record_id": "a98951ec1c6f11cf-7",
+  "semantic_fingerprint": "89b73c51d30653d12a273b4162d6f2c75e413d1c1731618fed4ee5e4b13cab03",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "a98951ec1c6f11cf4940ff2090c206af116b917f44a02b63b2db6b8ed12db0ed",
+    "source_path": "strategy_builder/strategy_core/preset/strong_close.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "ibs_1",
+          "op": "greater_equal",
+          "right": null,
+          "value": 0.8
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "ibs_1",
+          "op": "less_than",
+          "right": null,
+          "value": 0.5
+        }
+      ],
+      "logic": "OR"
+    },
+    "family": "momentum",
+    "features": {},
+    "generation": 0,
+    "id": "strong_close",
+    "indicators": {
+      "ibs_1": {
+        "parameters": {},
+        "period": null,
+        "type": "IBS"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "a98951ec1c6f11cf4940ff2090c206af116b917f44a02b63b2db6b8ed12db0ed",
+      "source_path": "strategy_builder/strategy_core/preset/strong_close.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 3.0,
+      "take_profit_pct": 5.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "03485b6c9242e9ca015bfd8037e8a50cd36c949df0af62af9dc6df69049b3576",
+  "strategy_id": "strong_close"
+}

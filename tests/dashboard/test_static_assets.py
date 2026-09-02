@@ -21,6 +21,8 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
         "aria-live",
         "계좌 상세",
         "인디케이터 카탈로그",
+        "전략 카탈로그",
+        "중복 판정",
         "copy-command",
         "프론티어 전략",
     ):
@@ -38,6 +40,8 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
     assert "fetch(\"/api/health\")" in javascript
     assert "fetch(\"/api/refresh\"" in javascript
     assert "fetch(\"/api/features/catalog\")" in javascript
+    assert "fetch(\"/api/strategies/catalog\")" in javascript
+    assert "renderStrategyCatalog" in javascript
     assert "renderFeatureCatalog" in javascript
     assert "escapeHtml" in javascript
     assert "textContent" in javascript

@@ -1,0 +1,89 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "reversal",
+      "description": "MA 대비 이격 기준 매수/매도",
+      "id": "disparity",
+      "name": "이격도"
+    }
+  },
+  "reason": "",
+  "record_id": "f3f2c52701f4b18d-3",
+  "semantic_fingerprint": "a223766b74c4fcbfb34401b6b9745a619b58e918e8ba6cc426b1141f8863cd4e",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "f3f2c52701f4b18def7a2e62d32a2f3ab80396dd72f01ca0df19fc59f86e6e9b",
+    "source_path": "strategy_builder/strategy_core/preset/disparity.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "disp_20",
+          "op": "less_than",
+          "right": null,
+          "value": 90
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "disp_20",
+          "op": "greater_than",
+          "right": null,
+          "value": 110
+        }
+      ],
+      "logic": "OR"
+    },
+    "family": "reversal",
+    "features": {},
+    "generation": 0,
+    "id": "disparity",
+    "indicators": {
+      "disp_20": {
+        "parameters": {},
+        "period": 20,
+        "type": "DISPARITY"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "f3f2c52701f4b18def7a2e62d32a2f3ab80396dd72f01ca0df19fc59f86e6e9b",
+      "source_path": "strategy_builder/strategy_core/preset/disparity.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 5.0,
+      "take_profit_pct": 10.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "7bfe35bc46c0315fd243f2f25661c12347b8a206abcc06724fd35ce91fb6d7bd",
+  "strategy_id": "disparity"
+}

@@ -1,0 +1,101 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "volatility",
+      "description": "변동성 최저에서 돌파 시 매수",
+      "id": "volatility",
+      "name": "변동성 확장"
+    }
+  },
+  "reason": "",
+  "record_id": "8bd1dd044cbd0f7e-9",
+  "semantic_fingerprint": "8bddbfe555d0b2a9d6d88ae6e176d67f34885103251a1d5d9ea859aeabb37029",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "8bd1dd044cbd0f7e339809c48a3c93c5a30eadb38612d58c7409acf682d2f6be",
+    "source_path": "strategy_builder/strategy_core/preset/volatility.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "vol_10",
+          "op": "less_than",
+          "right": null,
+          "value": 0.02
+        },
+        {
+          "enabled": true,
+          "left": "chg_1",
+          "op": "greater_equal",
+          "right": null,
+          "value": 3
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "chg_1",
+          "op": "less_equal",
+          "right": null,
+          "value": -3
+        }
+      ],
+      "logic": "OR"
+    },
+    "family": "volatility",
+    "features": {},
+    "generation": 0,
+    "id": "volatility",
+    "indicators": {
+      "chg_1": {
+        "parameters": {},
+        "period": null,
+        "type": "CHANGE"
+      },
+      "vol_10": {
+        "parameters": {},
+        "period": 10,
+        "type": "VOLATILITY_IND"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "8bd1dd044cbd0f7e339809c48a3c93c5a30eadb38612d58c7409acf682d2f6be",
+      "source_path": "strategy_builder/strategy_core/preset/volatility.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 3.0,
+      "take_profit_pct": 0.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "bae627deb1d59e8fc8f2b1c8c36999e1b8246a4e8f41e2e3125a0062858322c4",
+  "strategy_id": "volatility"
+}

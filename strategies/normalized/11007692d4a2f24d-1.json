@@ -1,0 +1,61 @@
+{
+  "entry": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "close",
+        "op": "less_than",
+        "right": "prev_high",
+        "value": null
+      }
+    ],
+    "logic": "AND"
+  },
+  "exit": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "close",
+        "op": "greater_than",
+        "right": "prev_high",
+        "value": null
+      }
+    ],
+    "logic": "OR"
+  },
+  "family": "reversal",
+  "features": {},
+  "generation": 0,
+  "id": "breakout_fail",
+  "indicators": {
+    "prev_high": {
+      "parameters": {},
+      "period": 20,
+      "type": "MAXIMUM"
+    }
+  },
+  "parents": [],
+  "provenance": {
+    "source_hash": "11007692d4a2f24d84f6282e49d7d9f5cd1b4ebd5769aeb07087455115a04ce0",
+    "source_path": "strategy_builder/strategy_core/preset/breakout_fail.py",
+    "source_type": "kis_builder_state"
+  },
+  "regime_filters": [],
+  "research": {
+    "mutation": [],
+    "parent_score": null
+  },
+  "risk": {
+    "daily_loss_action": "none",
+    "daily_loss_limit_pct": null,
+    "loss_tolerance_pct": null,
+    "max_concurrent_positions": null,
+    "max_total_exposure_pct": null,
+    "position_size_pct": 100.0,
+    "risk_appetite": null,
+    "stop_loss_pct": 3.0,
+    "take_profit_pct": 0.0,
+    "trailing_stop_pct": 0.0
+  },
+  "schema_version": 1
+}

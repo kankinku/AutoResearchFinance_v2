@@ -1,0 +1,66 @@
+{
+  "entry": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "sma_fast",
+        "op": "cross_above",
+        "right": "sma_slow",
+        "value": null
+      }
+    ],
+    "logic": "AND"
+  },
+  "exit": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "sma_fast",
+        "op": "cross_below",
+        "right": "sma_slow",
+        "value": null
+      }
+    ],
+    "logic": "AND"
+  },
+  "family": "trend",
+  "features": {},
+  "generation": 0,
+  "id": "golden_cross",
+  "indicators": {
+    "sma_fast": {
+      "parameters": {},
+      "period": 5,
+      "type": "SMA"
+    },
+    "sma_slow": {
+      "parameters": {},
+      "period": 20,
+      "type": "SMA"
+    }
+  },
+  "parents": [],
+  "provenance": {
+    "source_hash": "0a805e67c88e16dac72e8a6f8d9299a555bd56d1b5fa1dd2f0ca4b263bf16895",
+    "source_path": "strategy_builder/strategy_core/preset/golden_cross.py",
+    "source_type": "kis_builder_state"
+  },
+  "regime_filters": [],
+  "research": {
+    "mutation": [],
+    "parent_score": null
+  },
+  "risk": {
+    "daily_loss_action": "none",
+    "daily_loss_limit_pct": null,
+    "loss_tolerance_pct": null,
+    "max_concurrent_positions": null,
+    "max_total_exposure_pct": null,
+    "position_size_pct": 100.0,
+    "risk_appetite": null,
+    "stop_loss_pct": 5.0,
+    "take_profit_pct": 0.0,
+    "trailing_stop_pct": 0.0
+  },
+  "schema_version": 1
+}

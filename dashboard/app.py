@@ -63,6 +63,12 @@ def create_app(service: DashboardService | None = None) -> FastAPI:
             dashboard_service.feature_catalog(), headers={"Cache-Control": "no-store"}
         )
 
+    @app.get("/api/strategies/catalog")
+    def strategy_catalog() -> JSONResponse:
+        return JSONResponse(
+            dashboard_service.strategy_catalog(), headers={"Cache-Control": "no-store"}
+        )
+
     @app.get("/api/backtest")
     def backtest() -> JSONResponse:
         return JSONResponse(

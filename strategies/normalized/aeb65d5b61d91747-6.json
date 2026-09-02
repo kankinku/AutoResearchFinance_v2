@@ -1,0 +1,61 @@
+{
+  "entry": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "roc_1",
+        "op": "greater_than",
+        "right": null,
+        "value": 30
+      }
+    ],
+    "logic": "AND"
+  },
+  "exit": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "roc_1",
+        "op": "less_than",
+        "right": null,
+        "value": -20
+      }
+    ],
+    "logic": "OR"
+  },
+  "family": "momentum",
+  "features": {},
+  "generation": 0,
+  "id": "momentum",
+  "indicators": {
+    "roc_1": {
+      "parameters": {},
+      "period": 60,
+      "type": "ROC"
+    }
+  },
+  "parents": [],
+  "provenance": {
+    "source_hash": "aeb65d5b61d9174702811d63732a9afc83bcaf218627c4df469b46135c04f646",
+    "source_path": "strategy_builder/strategy_core/preset/momentum.py",
+    "source_type": "kis_builder_state"
+  },
+  "regime_filters": [],
+  "research": {
+    "mutation": [],
+    "parent_score": null
+  },
+  "risk": {
+    "daily_loss_action": "none",
+    "daily_loss_limit_pct": null,
+    "loss_tolerance_pct": null,
+    "max_concurrent_positions": null,
+    "max_total_exposure_pct": null,
+    "position_size_pct": 100.0,
+    "risk_appetite": null,
+    "stop_loss_pct": 5.0,
+    "take_profit_pct": 0.0,
+    "trailing_stop_pct": 0.0
+  },
+  "schema_version": 1
+}

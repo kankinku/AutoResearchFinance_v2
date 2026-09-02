@@ -18,7 +18,9 @@ def error(request_id: object, code: int, message: str) -> dict[str, Any]:
 
 
 def text_content(payload: object) -> list[dict[str, str]]:
-    return [{"type": "text", "text": json.dumps(payload, ensure_ascii=False, sort_keys=True)}]
+    # MCP text is transported through Windows stdio in some clients. ASCII JSON
+    # escapes keep Korean diagnostics intact when the console code page differs.
+    return [{"type": "text", "text": json.dumps(payload, ensure_ascii=True, sort_keys=True)}]
 
 
 def serve_lines(server: Any, lines: Iterable[str], output: TextIO) -> None:

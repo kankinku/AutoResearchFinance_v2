@@ -1,0 +1,73 @@
+{
+  "entry": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "vol_10",
+        "op": "less_than",
+        "right": null,
+        "value": 0.02
+      },
+      {
+        "enabled": true,
+        "left": "chg_1",
+        "op": "greater_equal",
+        "right": null,
+        "value": 3
+      }
+    ],
+    "logic": "AND"
+  },
+  "exit": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "chg_1",
+        "op": "less_equal",
+        "right": null,
+        "value": -3
+      }
+    ],
+    "logic": "OR"
+  },
+  "family": "volatility",
+  "features": {},
+  "generation": 0,
+  "id": "volatility",
+  "indicators": {
+    "chg_1": {
+      "parameters": {},
+      "period": null,
+      "type": "CHANGE"
+    },
+    "vol_10": {
+      "parameters": {},
+      "period": 10,
+      "type": "VOLATILITY_IND"
+    }
+  },
+  "parents": [],
+  "provenance": {
+    "source_hash": "8bd1dd044cbd0f7e339809c48a3c93c5a30eadb38612d58c7409acf682d2f6be",
+    "source_path": "strategy_builder/strategy_core/preset/volatility.py",
+    "source_type": "kis_builder_state"
+  },
+  "regime_filters": [],
+  "research": {
+    "mutation": [],
+    "parent_score": null
+  },
+  "risk": {
+    "daily_loss_action": "none",
+    "daily_loss_limit_pct": null,
+    "loss_tolerance_pct": null,
+    "max_concurrent_positions": null,
+    "max_total_exposure_pct": null,
+    "position_size_pct": 100.0,
+    "risk_appetite": null,
+    "stop_loss_pct": 3.0,
+    "take_profit_pct": 0.0,
+    "trailing_stop_pct": 0.0
+  },
+  "schema_version": 1
+}

@@ -262,8 +262,14 @@ def _condition_match(
             if condition.op == "cross_above"
             else previous_left >= previous_right and current < right
         )
-    assert condition.value is not None
-    target = float(condition.value)
+    if condition.right is not None:
+        target_value = values[condition.right][index]
+        if target_value is None:
+            return False
+        target = float(target_value)
+    else:
+        assert condition.value is not None
+        target = float(condition.value)
     if not isfinite(target):
         return False
     return {

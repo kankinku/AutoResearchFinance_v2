@@ -1,0 +1,98 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "pattern",
+      "description": "N일 연속 상승 시 매수",
+      "id": "consecutive",
+      "name": "연속 상승/하락"
+    }
+  },
+  "reason": "",
+  "record_id": "f9cce00416496cb2-2",
+  "semantic_fingerprint": "d998b2e35a25c7ed97762dce092a12e21d716860bba86b9057cabb07e8acebf5",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "f9cce00416496cb2fa3c800984e0c6d5636a41ae6f1e458ad61b88382e3a0803",
+    "source_path": "strategy_builder/strategy_core/preset/consecutive.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "up_days",
+          "op": "greater_equal",
+          "right": null,
+          "value": 5
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "down_days",
+          "op": "greater_equal",
+          "right": null,
+          "value": 5
+        }
+      ],
+      "logic": "OR"
+    },
+    "family": "pattern",
+    "features": {},
+    "generation": 0,
+    "id": "consecutive",
+    "indicators": {
+      "down_days": {
+        "parameters": {
+          "direction": "down"
+        },
+        "period": null,
+        "type": "CONSECUTIVE"
+      },
+      "up_days": {
+        "parameters": {
+          "direction": "up"
+        },
+        "period": null,
+        "type": "CONSECUTIVE"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "f9cce00416496cb2fa3c800984e0c6d5636a41ae6f1e458ad61b88382e3a0803",
+      "source_path": "strategy_builder/strategy_core/preset/consecutive.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 5.0,
+      "take_profit_pct": 0.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "9a542c98cded266a8080e5b8141e2d50092de89cc5da5982be65003a619e8e02",
+  "strategy_id": "consecutive"
+}

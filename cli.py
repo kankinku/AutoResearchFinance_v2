@@ -15,6 +15,8 @@ from memory.state_files import StateFileStore
 from orchestration.evaluation_runner import run_local_evaluation
 from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
 from research.llm.director import ResearchDirector
+from strategy_import.pipeline import import_local_source
+from strategy_import.sources import CloneManager, parse_github_source
 from strategy_ir.normalizer import ImportStatus, normalize_source
 
 
@@ -49,11 +51,19 @@ def build_parser() -> argparse.ArgumentParser:
     for command in ("import-strategy", "validate-strategy"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--source", type=Path, required=True)
+    import_parser = subparsers.add_parser(
+        "import-strategies", help="Clone or scan strategy sources without executing external code"
+    )
+    import_group = import_parser.add_mutually_exclusive_group(required=True)
+    import_group.add_argument("--source", type=Path)
+    import_group.add_argument("--repo")
+    import_parser.add_argument("--ref", default="main")
+    import_parser.add_argument("--strategies-dir", type=Path, default=Path("strategies"))
+    import_parser.add_argument("--dry-run", action="store_true")
+    import_parser.add_argument("--kis-presets", action="store_true")
     plan_parser = subparsers.add_parser("plan-generation")
     plan_parser.add_argument("--parent", action="append", required=True, dest="parents")
-    plan_parser.add_argument(
-        "--method", choices=("grid", "random", "bayesian"), required=True
-    )
+    plan_parser.add_argument("--method", choices=("grid", "random", "bayesian"), required=True)
     plan_parser.add_argument("--count", type=int, required=True)
     plan_parser.add_argument("--seed", type=int, required=True)
     run_parser = subparsers.add_parser("run-generation")
@@ -181,6 +191,27 @@ def main(argv: list[str] | None = None) -> int:
             host=args.host,
             port=args.port,
         )
+        return 0
+    if args.command == "import-strategies":
+        if args.repo:
+            source = parse_github_source(args.repo, ref=args.ref)
+            summary = import_local_source(
+                Path("."),
+                strategies_dir=args.strategies_dir,
+                source_origin=source.repository_url,
+                github_source=source,
+                dry_run=args.dry_run,
+                kis_presets=args.kis_presets,
+                clone_manager=CloneManager(),
+            )
+        else:
+            summary = import_local_source(
+                args.source,
+                strategies_dir=args.strategies_dir,
+                dry_run=args.dry_run,
+                kis_presets=args.kis_presets,
+            )
+        print(json.dumps(summary.as_dict(), ensure_ascii=False, default=str))
         return 0
     if args.command in {"dashboard-status", "dashboard-refresh"}:
         service = DashboardService.from_environment(args.state_dir, args.env_file)

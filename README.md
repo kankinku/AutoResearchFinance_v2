@@ -32,6 +32,8 @@ The approved architecture and the complete implementation plan are in `docs/arch
 python cli.py init --state-dir state
 python cli.py validate-strategy --source path\to\strategy.yaml
 python cli.py import-strategy --source path\to\strategy.py
+python cli.py import-strategies --source path\to\strategy.py --strategies-dir strategies
+python cli.py import-strategies --repo https://github.com/ORG/REPO.git --ref main --kis-presets
 python cli.py plan-generation --parent champion-1 --method random --count 32 --seed 7
 python cli.py list-features
 python cli.py set-mode --state-dir state --mode paper
@@ -51,6 +53,26 @@ starting the last command. It reports the effective paper-only mode, sanitized K
 account snapshot, evaluation ledger, Champion strategy, generation trend, and worker
 heartbeat state. See `docs/operations/paper-dashboard.md` for the safety boundary and
 refresh behavior.
+
+`import-strategies` is the safe external-strategy intake path. It scans local files or
+clones a public GitHub repository at a specified ref into a temporary directory, then
+uses AST/static analysis only. KIS builder presets can be imported with
+`--kis-presets`; the ten preset files under `strategy_builder/strategy_core/preset` use
+the same conversion and duplicate-detection path as any other source. Imported and
+normalized records are written under `strategies/`, while dynamic or non-representable
+logic is retained as `REVIEW_REQUIRED` with a reason. No external Python source is
+executed and no order endpoint is called.
+
+Use `--dry-run` to inspect counts without writing:
+
+```powershell
+python cli.py import-strategies --repo https://github.com/ORG/REPO.git --ref main --kis-presets --dry-run
+```
+
+The dashboard's 접힌 `전략 카탈로그` section reads `strategies/catalog.json` and shows
+conversion status, source path, duplicate classification, and review reasons. A
+successful import is not a Champion promotion; run the approved backtest pipeline
+separately before considering a strategy for Frontier.
 
 ## How to use the system
 

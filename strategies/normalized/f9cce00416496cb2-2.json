@@ -1,0 +1,70 @@
+{
+  "entry": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "up_days",
+        "op": "greater_equal",
+        "right": null,
+        "value": 5
+      }
+    ],
+    "logic": "AND"
+  },
+  "exit": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "down_days",
+        "op": "greater_equal",
+        "right": null,
+        "value": 5
+      }
+    ],
+    "logic": "OR"
+  },
+  "family": "pattern",
+  "features": {},
+  "generation": 0,
+  "id": "consecutive",
+  "indicators": {
+    "down_days": {
+      "parameters": {
+        "direction": "down"
+      },
+      "period": null,
+      "type": "CONSECUTIVE"
+    },
+    "up_days": {
+      "parameters": {
+        "direction": "up"
+      },
+      "period": null,
+      "type": "CONSECUTIVE"
+    }
+  },
+  "parents": [],
+  "provenance": {
+    "source_hash": "f9cce00416496cb2fa3c800984e0c6d5636a41ae6f1e458ad61b88382e3a0803",
+    "source_path": "strategy_builder/strategy_core/preset/consecutive.py",
+    "source_type": "kis_builder_state"
+  },
+  "regime_filters": [],
+  "research": {
+    "mutation": [],
+    "parent_score": null
+  },
+  "risk": {
+    "daily_loss_action": "none",
+    "daily_loss_limit_pct": null,
+    "loss_tolerance_pct": null,
+    "max_concurrent_positions": null,
+    "max_total_exposure_pct": null,
+    "position_size_pct": 100.0,
+    "risk_appetite": null,
+    "stop_loss_pct": 5.0,
+    "take_profit_pct": 0.0,
+    "trailing_stop_pct": 0.0
+  },
+  "schema_version": 1
+}

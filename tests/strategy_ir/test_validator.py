@@ -24,6 +24,18 @@ def test_validator_accepts_references_to_declared_external_features() -> None:
     assert validate_strategy(document).features["vix"].feature_id == "vix_percentile"
 
 
+def test_validator_accepts_comparison_between_two_declared_references() -> None:
+    document = example_document()
+    strategy = dict(document["strategy"])  # type: ignore[arg-type]
+    strategy["entry"] = {
+        "logic": "AND",
+        "conditions": [{"op": "greater_than", "left": "close", "right": "slow"}],
+    }
+    document["strategy"] = strategy
+
+    assert validate_strategy(document).entry.conditions[0].right == "slow"
+
+
 @pytest.mark.parametrize(
     "change, message",
     [

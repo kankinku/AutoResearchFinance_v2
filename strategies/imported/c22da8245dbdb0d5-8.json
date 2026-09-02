@@ -1,0 +1,108 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "trend",
+      "description": "MA 위/아래 추세 방향 매매",
+      "id": "trend_filter",
+      "name": "추세 필터"
+    }
+  },
+  "reason": "",
+  "record_id": "c22da8245dbdb0d5-8",
+  "semantic_fingerprint": "ed8b563563a1a9b6429dea6d185e19797bfe6275ed592ba8ea414816544e0d74",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "c22da8245dbdb0d5c9c955bd19a15691e75629723cb4106f030938d2ed910969",
+    "source_path": "strategy_builder/strategy_core/preset/trend_filter.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "close",
+          "op": "greater_than",
+          "right": "sma_1",
+          "value": null
+        },
+        {
+          "enabled": true,
+          "left": "chg_1",
+          "op": "greater_than",
+          "right": null,
+          "value": 0
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "close",
+          "op": "less_than",
+          "right": "sma_1",
+          "value": null
+        },
+        {
+          "enabled": true,
+          "left": "chg_1",
+          "op": "less_than",
+          "right": null,
+          "value": 0
+        }
+      ],
+      "logic": "AND"
+    },
+    "family": "trend",
+    "features": {},
+    "generation": 0,
+    "id": "trend_filter",
+    "indicators": {
+      "chg_1": {
+        "parameters": {},
+        "period": null,
+        "type": "CHANGE"
+      },
+      "sma_1": {
+        "parameters": {},
+        "period": 60,
+        "type": "SMA"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "c22da8245dbdb0d5c9c955bd19a15691e75629723cb4106f030938d2ed910969",
+      "source_path": "strategy_builder/strategy_core/preset/trend_filter.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 5.0,
+      "take_profit_pct": 0.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "e702965adf45b0cc1236f2fda34e797630cd689bd78443238ea6011dc7d8bfab",
+  "strategy_id": "trend_filter"
+}

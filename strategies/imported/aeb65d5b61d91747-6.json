@@ -1,0 +1,89 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "momentum",
+      "description": "N일 수익률 기준 매수/매도",
+      "id": "momentum",
+      "name": "모멘텀"
+    }
+  },
+  "reason": "",
+  "record_id": "aeb65d5b61d91747-6",
+  "semantic_fingerprint": "b9eb296ccbc5128bc2000a21ea81ab132a6b8bd46fbe6e6d3cd84cfdf97068a4",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "aeb65d5b61d9174702811d63732a9afc83bcaf218627c4df469b46135c04f646",
+    "source_path": "strategy_builder/strategy_core/preset/momentum.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "roc_1",
+          "op": "greater_than",
+          "right": null,
+          "value": 30
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "roc_1",
+          "op": "less_than",
+          "right": null,
+          "value": -20
+        }
+      ],
+      "logic": "OR"
+    },
+    "family": "momentum",
+    "features": {},
+    "generation": 0,
+    "id": "momentum",
+    "indicators": {
+      "roc_1": {
+        "parameters": {},
+        "period": 60,
+        "type": "ROC"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "aeb65d5b61d9174702811d63732a9afc83bcaf218627c4df469b46135c04f646",
+      "source_path": "strategy_builder/strategy_core/preset/momentum.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 5.0,
+      "take_profit_pct": 0.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "e434aa1f3a9dde2db1cd900c4e41a8b7c7d117d1d13e30f0e34166d3e1b7fbd3",
+  "strategy_id": "momentum"
+}

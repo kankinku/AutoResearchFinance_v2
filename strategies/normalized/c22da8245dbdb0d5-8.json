@@ -1,0 +1,80 @@
+{
+  "entry": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "close",
+        "op": "greater_than",
+        "right": "sma_1",
+        "value": null
+      },
+      {
+        "enabled": true,
+        "left": "chg_1",
+        "op": "greater_than",
+        "right": null,
+        "value": 0
+      }
+    ],
+    "logic": "AND"
+  },
+  "exit": {
+    "conditions": [
+      {
+        "enabled": true,
+        "left": "close",
+        "op": "less_than",
+        "right": "sma_1",
+        "value": null
+      },
+      {
+        "enabled": true,
+        "left": "chg_1",
+        "op": "less_than",
+        "right": null,
+        "value": 0
+      }
+    ],
+    "logic": "AND"
+  },
+  "family": "trend",
+  "features": {},
+  "generation": 0,
+  "id": "trend_filter",
+  "indicators": {
+    "chg_1": {
+      "parameters": {},
+      "period": null,
+      "type": "CHANGE"
+    },
+    "sma_1": {
+      "parameters": {},
+      "period": 60,
+      "type": "SMA"
+    }
+  },
+  "parents": [],
+  "provenance": {
+    "source_hash": "c22da8245dbdb0d5c9c955bd19a15691e75629723cb4106f030938d2ed910969",
+    "source_path": "strategy_builder/strategy_core/preset/trend_filter.py",
+    "source_type": "kis_builder_state"
+  },
+  "regime_filters": [],
+  "research": {
+    "mutation": [],
+    "parent_score": null
+  },
+  "risk": {
+    "daily_loss_action": "none",
+    "daily_loss_limit_pct": null,
+    "loss_tolerance_pct": null,
+    "max_concurrent_positions": null,
+    "max_total_exposure_pct": null,
+    "position_size_pct": 100.0,
+    "risk_appetite": null,
+    "stop_loss_pct": 5.0,
+    "take_profit_pct": 0.0,
+    "trailing_stop_pct": 0.0
+  },
+  "schema_version": 1
+}

@@ -48,9 +48,18 @@ def _validate_condition(condition: Condition, references: set[str], section_name
         if condition.value is not None:
             raise StrategyValidationError(f"cross operator cannot use value in {section_name}")
     elif condition.op in _COMPARISON_OPERATORS:
-        if condition.value is None:
-            raise StrategyValidationError(f"comparison requires value in {section_name}")
+        if condition.right is None and condition.value is None:
+            raise StrategyValidationError(
+                f"comparison requires value or right reference in {section_name}"
+            )
         if condition.right is not None:
-            raise StrategyValidationError(f"comparison cannot use right in {section_name}")
+            if condition.right not in references:
+                raise StrategyValidationError(
+                    f"unknown reference {condition.right!r} in {section_name}"
+                )
+            if condition.value is not None:
+                raise StrategyValidationError(
+                    f"comparison cannot use value with right reference in {section_name}"
+                )
     else:
         raise StrategyValidationError(f"unsupported operator {condition.op!r}")

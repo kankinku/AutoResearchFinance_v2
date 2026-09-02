@@ -3,12 +3,12 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from strategy_import.analyzers import analyze_python_source
 from strategy_ir.schema import Provenance, StrategyIR
 from strategy_ir.validator import StrategyValidationError, validate_strategy
 
@@ -37,28 +37,21 @@ def normalize_source(path: Path) -> ImportResult:
             strategy = _with_provenance(validate_strategy(document), path, source_hash, suffix[1:])
             return ImportResult(ImportStatus.NORMALIZED, source_hash, suffix[1:], strategy)
         if suffix == ".py":
-            document = _python_literal(raw.decode("utf-8"))
-            if document is not None:
-                strategy = _with_provenance(
-                    validate_strategy(document), path, source_hash, "python"
-                )
-                return ImportResult(ImportStatus.NORMALIZED, source_hash, "python", strategy)
-            regex_strategy = _regex_cross_strategy(raw.decode("utf-8"), path, source_hash, "python")
-            if regex_strategy is not None:
-                return ImportResult(ImportStatus.NORMALIZED, source_hash, "python", regex_strategy)
-            return _unsupported(
-                source_hash, "python", "Python source must expose a literal STRATEGY mapping"
-            )
-        if suffix in {".pine", ".pinescript"}:
-            regex_strategy = _regex_cross_strategy(
-                raw.decode("utf-8"), path, source_hash, "pinescript"
-            )
-            if regex_strategy is not None:
+            analysis = analyze_python_source(path)
+            if analysis.strategy is not None:
                 return ImportResult(
-                    ImportStatus.NORMALIZED, source_hash, "pinescript", regex_strategy
+                    ImportStatus.NORMALIZED,
+                    source_hash,
+                    analysis.source_type,
+                    analysis.strategy,
+                    analysis.reason,
                 )
+            return _unsupported(source_hash, "python", analysis.reason)
+        if suffix in {".pine", ".pinescript"}:
             return _unsupported(
-                source_hash, "pinescript", "cross-over mapping was not recognized"
+                source_hash,
+                "pinescript",
+                "Pine source requires an explicit static mapping; text patterns are not executed",
             )
         return _unsupported(
             source_hash, suffix.lstrip(".") or "unknown", "source type is unsupported"
@@ -86,40 +79,6 @@ def _python_literal(source: str) -> dict[str, Any] | None:
             value = ast.literal_eval(node.value)
             return value if isinstance(value, dict) else None
     return None
-
-
-def _regex_cross_strategy(
-    source: str, path: Path, source_hash: str, source_type: str
-) -> StrategyIR | None:
-    periods = [
-        int(value)
-        for value in re.findall(r"(?:SMA|EMA|ta\.sma|ta\.ema)[^\d]{0,20}(\d+)", source)
-    ]
-    has_cross = "crossover" in source.lower() or "cross_above" in source.lower()
-    has_exit = "crossunder" in source.lower() or "cross_below" in source.lower()
-    if len(periods) < 2 or not has_cross or not has_exit:
-        return None
-    document: dict[str, Any] = {
-        "schema_version": 1,
-        "id": path.stem,
-        "family": "imported",
-        "generation": 0,
-        "indicators": {
-            "fast": {"type": "SMA", "period": periods[0]},
-            "slow": {"type": "SMA", "period": periods[1]},
-        },
-        "entry": {
-            "logic": "AND",
-            "conditions": [{"op": "cross_above", "left": "fast", "right": "slow"}],
-        },
-        "exit": {
-            "logic": "OR",
-            "conditions": [{"op": "cross_below", "left": "fast", "right": "slow"}],
-        },
-        "risk": {"stop_loss_pct": 2.0, "take_profit_pct": 5.0},
-    }
-    strategy = _with_provenance(validate_strategy(document), path, source_hash, source_type)
-    return strategy
 
 
 def _with_provenance(

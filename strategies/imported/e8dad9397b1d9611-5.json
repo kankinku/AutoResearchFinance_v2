@@ -1,0 +1,89 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "reversal",
+      "description": "N일 평균 대비 이탈 시 매매",
+      "id": "mean_reversion",
+      "name": "평균회귀"
+    }
+  },
+  "reason": "",
+  "record_id": "e8dad9397b1d9611-5",
+  "semantic_fingerprint": "6e9d8517ab7342d081f472668a0b4fc12862b0076924632d2024c7d745c27d5d",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "e8dad9397b1d961166bc224ad66e997ebdb1ed9878d47f38dbf7b458e56db8ae",
+    "source_path": "strategy_builder/strategy_core/preset/mean_reversion.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "disp_5",
+          "op": "less_equal",
+          "right": null,
+          "value": 97
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "disp_5",
+          "op": "greater_equal",
+          "right": null,
+          "value": 103
+        }
+      ],
+      "logic": "OR"
+    },
+    "family": "reversal",
+    "features": {},
+    "generation": 0,
+    "id": "mean_reversion",
+    "indicators": {
+      "disp_5": {
+        "parameters": {},
+        "period": 5,
+        "type": "DISPARITY"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "e8dad9397b1d961166bc224ad66e997ebdb1ed9878d47f38dbf7b458e56db8ae",
+      "source_path": "strategy_builder/strategy_core/preset/mean_reversion.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 3.0,
+      "take_profit_pct": 3.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "f37c1225a0cb26604b9d10691c23b6b748ab89243bd652546406fa65f32c11cc",
+  "strategy_id": "mean_reversion"
+}

@@ -1,0 +1,89 @@
+{
+  "duplicate_kind": "NEW",
+  "duplicate_of": null,
+  "profile": {
+    "detected_constructs": [
+      "kis_builder_state"
+    ],
+    "metadata": {
+      "author": "KIS",
+      "category": "breakout",
+      "description": "52주 최고가 돌파 시 매수",
+      "id": "week52_high",
+      "name": "52주 신고가"
+    }
+  },
+  "reason": "",
+  "record_id": "2aad847d526b8faf-10",
+  "semantic_fingerprint": "a7bb9771dfb514c536e3c971e9c12b023e7b55974beccc7b1a50c5bf80cf5c61",
+  "source": {
+    "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+    "source_hash": "2aad847d526b8fafa8d3d3e693dbe10b47251818cd469de24d0e38ae90f701a0",
+    "source_path": "strategy_builder/strategy_core/preset/week52_high.py",
+    "source_type": "kis_builder_state"
+  },
+  "status": "NORMALIZED",
+  "strategy": {
+    "entry": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "close",
+          "op": "greater_than",
+          "right": "high_52w",
+          "value": null
+        }
+      ],
+      "logic": "AND"
+    },
+    "exit": {
+      "conditions": [
+        {
+          "enabled": true,
+          "left": "close",
+          "op": "less_than",
+          "right": "high_52w",
+          "value": null
+        }
+      ],
+      "logic": "OR"
+    },
+    "family": "breakout",
+    "features": {},
+    "generation": 0,
+    "id": "week52_high",
+    "indicators": {
+      "high_52w": {
+        "parameters": {},
+        "period": 252,
+        "type": "MAXIMUM"
+      }
+    },
+    "parents": [],
+    "provenance": {
+      "source_hash": "2aad847d526b8fafa8d3d3e693dbe10b47251818cd469de24d0e38ae90f701a0",
+      "source_path": "strategy_builder/strategy_core/preset/week52_high.py",
+      "source_type": "kis_builder_state"
+    },
+    "regime_filters": [],
+    "research": {
+      "mutation": [],
+      "parent_score": null
+    },
+    "risk": {
+      "daily_loss_action": "none",
+      "daily_loss_limit_pct": null,
+      "loss_tolerance_pct": null,
+      "max_concurrent_positions": null,
+      "max_total_exposure_pct": null,
+      "position_size_pct": 100.0,
+      "risk_appetite": null,
+      "stop_loss_pct": 5.0,
+      "take_profit_pct": 15.0,
+      "trailing_stop_pct": 0.0
+    },
+    "schema_version": 1
+  },
+  "strategy_hash": "c5c80229c584fcc2938c2b03e00ab1c0003c2204d906ceed2b9c1e19d9b0943e",
+  "strategy_id": "week52_high"
+}

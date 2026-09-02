@@ -69,6 +69,23 @@ def test_strategy_backtest_uses_ir_signals_and_reports_trades() -> None:
     assert result.equity_curve[-1] < result.equity_curve[0]
 
 
+def test_strategy_backtest_compares_price_reference_to_indicator_reference() -> None:
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.entry.conditions = [Condition(op="greater_than", left="close", right="slow")]
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-reference-comparison",
+            "hash",
+            _dataset((10, 9, 8, 9, 11, 10)),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert result.exit_status == "SUCCEEDED"
+
+
 def test_strategy_backtest_rejects_unsupported_indicator() -> None:
     strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
     strategy.indicators["unknown"] = {"type": "NOT_REAL"}  # type: ignore[assignment]

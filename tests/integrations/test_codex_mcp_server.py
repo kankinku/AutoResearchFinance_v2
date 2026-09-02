@@ -146,4 +146,4 @@ def test_mcp_system_preflight_returns_actionable_blockers_without_starting(tmp_p
     payload = _text(response)
     assert payload["status"] == "BLOCKED"
     assert payload["preflight"]["issues"]
-    assert "Docker" in str(payload["preflight"]["issues"])
+    assert "Docker" in str(payload["preflight"]["checks"])

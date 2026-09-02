@@ -1,0 +1,940 @@
+{
+  "records": [
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "reversal",
+          "description": "전고점 돌파 실패 시 매도",
+          "id": "breakout_fail",
+          "name": "돌파 실패"
+        }
+      },
+      "reason": "",
+      "record_id": "11007692d4a2f24d-1",
+      "semantic_fingerprint": "2ea8795591f7c116ada60f8b6a6855748818793bdc794fe0d70088a023515738",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "11007692d4a2f24d84f6282e49d7d9f5cd1b4ebd5769aeb07087455115a04ce0",
+        "source_path": "strategy_builder/strategy_core/preset/breakout_fail.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "close",
+              "op": "less_than",
+              "right": "prev_high",
+              "value": null
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "close",
+              "op": "greater_than",
+              "right": "prev_high",
+              "value": null
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "reversal",
+        "features": {},
+        "generation": 0,
+        "id": "breakout_fail",
+        "indicators": {
+          "prev_high": {
+            "parameters": {},
+            "period": 20,
+            "type": "MAXIMUM"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "11007692d4a2f24d84f6282e49d7d9f5cd1b4ebd5769aeb07087455115a04ce0",
+          "source_path": "strategy_builder/strategy_core/preset/breakout_fail.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 3.0,
+          "take_profit_pct": 0.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "a1379d63c7239fcb7257a224c3b8a8a7c0ae663f66f9a106554007c1b77f1abf",
+      "strategy_id": "breakout_fail"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "pattern",
+          "description": "N일 연속 상승 시 매수",
+          "id": "consecutive",
+          "name": "연속 상승/하락"
+        }
+      },
+      "reason": "",
+      "record_id": "f9cce00416496cb2-2",
+      "semantic_fingerprint": "d998b2e35a25c7ed97762dce092a12e21d716860bba86b9057cabb07e8acebf5",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "f9cce00416496cb2fa3c800984e0c6d5636a41ae6f1e458ad61b88382e3a0803",
+        "source_path": "strategy_builder/strategy_core/preset/consecutive.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "up_days",
+              "op": "greater_equal",
+              "right": null,
+              "value": 5
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "down_days",
+              "op": "greater_equal",
+              "right": null,
+              "value": 5
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "pattern",
+        "features": {},
+        "generation": 0,
+        "id": "consecutive",
+        "indicators": {
+          "down_days": {
+            "parameters": {
+              "direction": "down"
+            },
+            "period": null,
+            "type": "CONSECUTIVE"
+          },
+          "up_days": {
+            "parameters": {
+              "direction": "up"
+            },
+            "period": null,
+            "type": "CONSECUTIVE"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "f9cce00416496cb2fa3c800984e0c6d5636a41ae6f1e458ad61b88382e3a0803",
+          "source_path": "strategy_builder/strategy_core/preset/consecutive.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 5.0,
+          "take_profit_pct": 0.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "9a542c98cded266a8080e5b8141e2d50092de89cc5da5982be65003a619e8e02",
+      "strategy_id": "consecutive"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "reversal",
+          "description": "MA 대비 이격 기준 매수/매도",
+          "id": "disparity",
+          "name": "이격도"
+        }
+      },
+      "reason": "",
+      "record_id": "f3f2c52701f4b18d-3",
+      "semantic_fingerprint": "a223766b74c4fcbfb34401b6b9745a619b58e918e8ba6cc426b1141f8863cd4e",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "f3f2c52701f4b18def7a2e62d32a2f3ab80396dd72f01ca0df19fc59f86e6e9b",
+        "source_path": "strategy_builder/strategy_core/preset/disparity.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "disp_20",
+              "op": "less_than",
+              "right": null,
+              "value": 90
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "disp_20",
+              "op": "greater_than",
+              "right": null,
+              "value": 110
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "reversal",
+        "features": {},
+        "generation": 0,
+        "id": "disparity",
+        "indicators": {
+          "disp_20": {
+            "parameters": {},
+            "period": 20,
+            "type": "DISPARITY"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "f3f2c52701f4b18def7a2e62d32a2f3ab80396dd72f01ca0df19fc59f86e6e9b",
+          "source_path": "strategy_builder/strategy_core/preset/disparity.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 5.0,
+          "take_profit_pct": 10.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "7bfe35bc46c0315fd243f2f25661c12347b8a206abcc06724fd35ce91fb6d7bd",
+      "strategy_id": "disparity"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "trend",
+          "description": "단기 MA가 장기 MA를 상향 돌파 시 매수",
+          "id": "golden_cross",
+          "name": "골든크로스"
+        }
+      },
+      "reason": "",
+      "record_id": "0a805e67c88e16da-4",
+      "semantic_fingerprint": "e15fb56490a4c3ad21e033d5a068c419d1ec121c9aba50702c87e46f128778fb",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "0a805e67c88e16dac72e8a6f8d9299a555bd56d1b5fa1dd2f0ca4b263bf16895",
+        "source_path": "strategy_builder/strategy_core/preset/golden_cross.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "sma_fast",
+              "op": "cross_above",
+              "right": "sma_slow",
+              "value": null
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "sma_fast",
+              "op": "cross_below",
+              "right": "sma_slow",
+              "value": null
+            }
+          ],
+          "logic": "AND"
+        },
+        "family": "trend",
+        "features": {},
+        "generation": 0,
+        "id": "golden_cross",
+        "indicators": {
+          "sma_fast": {
+            "parameters": {},
+            "period": 5,
+            "type": "SMA"
+          },
+          "sma_slow": {
+            "parameters": {},
+            "period": 20,
+            "type": "SMA"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "0a805e67c88e16dac72e8a6f8d9299a555bd56d1b5fa1dd2f0ca4b263bf16895",
+          "source_path": "strategy_builder/strategy_core/preset/golden_cross.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 5.0,
+          "take_profit_pct": 0.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "0dce979c7adf529574491c6a5e805d149886b7a9331f2c0f09fb5704ae4f37d5",
+      "strategy_id": "golden_cross"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "reversal",
+          "description": "N일 평균 대비 이탈 시 매매",
+          "id": "mean_reversion",
+          "name": "평균회귀"
+        }
+      },
+      "reason": "",
+      "record_id": "e8dad9397b1d9611-5",
+      "semantic_fingerprint": "6e9d8517ab7342d081f472668a0b4fc12862b0076924632d2024c7d745c27d5d",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "e8dad9397b1d961166bc224ad66e997ebdb1ed9878d47f38dbf7b458e56db8ae",
+        "source_path": "strategy_builder/strategy_core/preset/mean_reversion.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "disp_5",
+              "op": "less_equal",
+              "right": null,
+              "value": 97
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "disp_5",
+              "op": "greater_equal",
+              "right": null,
+              "value": 103
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "reversal",
+        "features": {},
+        "generation": 0,
+        "id": "mean_reversion",
+        "indicators": {
+          "disp_5": {
+            "parameters": {},
+            "period": 5,
+            "type": "DISPARITY"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "e8dad9397b1d961166bc224ad66e997ebdb1ed9878d47f38dbf7b458e56db8ae",
+          "source_path": "strategy_builder/strategy_core/preset/mean_reversion.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 3.0,
+          "take_profit_pct": 3.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "f37c1225a0cb26604b9d10691c23b6b748ab89243bd652546406fa65f32c11cc",
+      "strategy_id": "mean_reversion"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "momentum",
+          "description": "N일 수익률 기준 매수/매도",
+          "id": "momentum",
+          "name": "모멘텀"
+        }
+      },
+      "reason": "",
+      "record_id": "aeb65d5b61d91747-6",
+      "semantic_fingerprint": "b9eb296ccbc5128bc2000a21ea81ab132a6b8bd46fbe6e6d3cd84cfdf97068a4",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "aeb65d5b61d9174702811d63732a9afc83bcaf218627c4df469b46135c04f646",
+        "source_path": "strategy_builder/strategy_core/preset/momentum.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "roc_1",
+              "op": "greater_than",
+              "right": null,
+              "value": 30
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "roc_1",
+              "op": "less_than",
+              "right": null,
+              "value": -20
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "momentum",
+        "features": {},
+        "generation": 0,
+        "id": "momentum",
+        "indicators": {
+          "roc_1": {
+            "parameters": {},
+            "period": 60,
+            "type": "ROC"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "aeb65d5b61d9174702811d63732a9afc83bcaf218627c4df469b46135c04f646",
+          "source_path": "strategy_builder/strategy_core/preset/momentum.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 5.0,
+          "take_profit_pct": 0.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "e434aa1f3a9dde2db1cd900c4e41a8b7c7d117d1d13e30f0e34166d3e1b7fbd3",
+      "strategy_id": "momentum"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "momentum",
+          "description": "당일 고가 대비 종가 위치로 매수 (장마감 후 권장)",
+          "id": "strong_close",
+          "name": "강한 종가"
+        }
+      },
+      "reason": "",
+      "record_id": "a98951ec1c6f11cf-7",
+      "semantic_fingerprint": "89b73c51d30653d12a273b4162d6f2c75e413d1c1731618fed4ee5e4b13cab03",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "a98951ec1c6f11cf4940ff2090c206af116b917f44a02b63b2db6b8ed12db0ed",
+        "source_path": "strategy_builder/strategy_core/preset/strong_close.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "ibs_1",
+              "op": "greater_equal",
+              "right": null,
+              "value": 0.8
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "ibs_1",
+              "op": "less_than",
+              "right": null,
+              "value": 0.5
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "momentum",
+        "features": {},
+        "generation": 0,
+        "id": "strong_close",
+        "indicators": {
+          "ibs_1": {
+            "parameters": {},
+            "period": null,
+            "type": "IBS"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "a98951ec1c6f11cf4940ff2090c206af116b917f44a02b63b2db6b8ed12db0ed",
+          "source_path": "strategy_builder/strategy_core/preset/strong_close.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 3.0,
+          "take_profit_pct": 5.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "03485b6c9242e9ca015bfd8037e8a50cd36c949df0af62af9dc6df69049b3576",
+      "strategy_id": "strong_close"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "trend",
+          "description": "MA 위/아래 추세 방향 매매",
+          "id": "trend_filter",
+          "name": "추세 필터"
+        }
+      },
+      "reason": "",
+      "record_id": "c22da8245dbdb0d5-8",
+      "semantic_fingerprint": "ed8b563563a1a9b6429dea6d185e19797bfe6275ed592ba8ea414816544e0d74",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "c22da8245dbdb0d5c9c955bd19a15691e75629723cb4106f030938d2ed910969",
+        "source_path": "strategy_builder/strategy_core/preset/trend_filter.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "close",
+              "op": "greater_than",
+              "right": "sma_1",
+              "value": null
+            },
+            {
+              "enabled": true,
+              "left": "chg_1",
+              "op": "greater_than",
+              "right": null,
+              "value": 0
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "close",
+              "op": "less_than",
+              "right": "sma_1",
+              "value": null
+            },
+            {
+              "enabled": true,
+              "left": "chg_1",
+              "op": "less_than",
+              "right": null,
+              "value": 0
+            }
+          ],
+          "logic": "AND"
+        },
+        "family": "trend",
+        "features": {},
+        "generation": 0,
+        "id": "trend_filter",
+        "indicators": {
+          "chg_1": {
+            "parameters": {},
+            "period": null,
+            "type": "CHANGE"
+          },
+          "sma_1": {
+            "parameters": {},
+            "period": 60,
+            "type": "SMA"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "c22da8245dbdb0d5c9c955bd19a15691e75629723cb4106f030938d2ed910969",
+          "source_path": "strategy_builder/strategy_core/preset/trend_filter.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 5.0,
+          "take_profit_pct": 0.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "e702965adf45b0cc1236f2fda34e797630cd689bd78443238ea6011dc7d8bfab",
+      "strategy_id": "trend_filter"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "volatility",
+          "description": "변동성 최저에서 돌파 시 매수",
+          "id": "volatility",
+          "name": "변동성 확장"
+        }
+      },
+      "reason": "",
+      "record_id": "8bd1dd044cbd0f7e-9",
+      "semantic_fingerprint": "8bddbfe555d0b2a9d6d88ae6e176d67f34885103251a1d5d9ea859aeabb37029",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "8bd1dd044cbd0f7e339809c48a3c93c5a30eadb38612d58c7409acf682d2f6be",
+        "source_path": "strategy_builder/strategy_core/preset/volatility.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "vol_10",
+              "op": "less_than",
+              "right": null,
+              "value": 0.02
+            },
+            {
+              "enabled": true,
+              "left": "chg_1",
+              "op": "greater_equal",
+              "right": null,
+              "value": 3
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "chg_1",
+              "op": "less_equal",
+              "right": null,
+              "value": -3
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "volatility",
+        "features": {},
+        "generation": 0,
+        "id": "volatility",
+        "indicators": {
+          "chg_1": {
+            "parameters": {},
+            "period": null,
+            "type": "CHANGE"
+          },
+          "vol_10": {
+            "parameters": {},
+            "period": 10,
+            "type": "VOLATILITY_IND"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "8bd1dd044cbd0f7e339809c48a3c93c5a30eadb38612d58c7409acf682d2f6be",
+          "source_path": "strategy_builder/strategy_core/preset/volatility.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 3.0,
+          "take_profit_pct": 0.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "bae627deb1d59e8fc8f2b1c8c36999e1b8246a4e8f41e2e3125a0062858322c4",
+      "strategy_id": "volatility"
+    },
+    {
+      "duplicate_kind": "NEW",
+      "duplicate_of": null,
+      "profile": {
+        "detected_constructs": [
+          "kis_builder_state"
+        ],
+        "metadata": {
+          "author": "KIS",
+          "category": "breakout",
+          "description": "52주 최고가 돌파 시 매수",
+          "id": "week52_high",
+          "name": "52주 신고가"
+        }
+      },
+      "reason": "",
+      "record_id": "2aad847d526b8faf-10",
+      "semantic_fingerprint": "a7bb9771dfb514c536e3c971e9c12b023e7b55974beccc7b1a50c5bf80cf5c61",
+      "source": {
+        "origin": "https://github.com/koreainvestment/open-trading-api@b4e6249714418aa57833d1cbbbced39cbcc5b125",
+        "source_hash": "2aad847d526b8fafa8d3d3e693dbe10b47251818cd469de24d0e38ae90f701a0",
+        "source_path": "strategy_builder/strategy_core/preset/week52_high.py",
+        "source_type": "kis_builder_state"
+      },
+      "status": "NORMALIZED",
+      "strategy": {
+        "entry": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "close",
+              "op": "greater_than",
+              "right": "high_52w",
+              "value": null
+            }
+          ],
+          "logic": "AND"
+        },
+        "exit": {
+          "conditions": [
+            {
+              "enabled": true,
+              "left": "close",
+              "op": "less_than",
+              "right": "high_52w",
+              "value": null
+            }
+          ],
+          "logic": "OR"
+        },
+        "family": "breakout",
+        "features": {},
+        "generation": 0,
+        "id": "week52_high",
+        "indicators": {
+          "high_52w": {
+            "parameters": {},
+            "period": 252,
+            "type": "MAXIMUM"
+          }
+        },
+        "parents": [],
+        "provenance": {
+          "source_hash": "2aad847d526b8fafa8d3d3e693dbe10b47251818cd469de24d0e38ae90f701a0",
+          "source_path": "strategy_builder/strategy_core/preset/week52_high.py",
+          "source_type": "kis_builder_state"
+        },
+        "regime_filters": [],
+        "research": {
+          "mutation": [],
+          "parent_score": null
+        },
+        "risk": {
+          "daily_loss_action": "none",
+          "daily_loss_limit_pct": null,
+          "loss_tolerance_pct": null,
+          "max_concurrent_positions": null,
+          "max_total_exposure_pct": null,
+          "position_size_pct": 100.0,
+          "risk_appetite": null,
+          "stop_loss_pct": 5.0,
+          "take_profit_pct": 15.0,
+          "trailing_stop_pct": 0.0
+        },
+        "schema_version": 1
+      },
+      "strategy_hash": "c5c80229c584fcc2938c2b03e00ab1c0003c2204d906ceed2b9c1e19d9b0943e",
+      "strategy_id": "week52_high"
+    }
+  ],
+  "schema_version": 1
+}
