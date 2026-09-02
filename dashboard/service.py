@@ -6,7 +6,15 @@ from pathlib import Path
 from typing import Literal, Protocol
 
 from core.features.catalog import imported_feature_catalog
-from dashboard.contracts import AccountSnapshot, DashboardHealth, DashboardSnapshot, Holding
+from dashboard.contracts import (
+    AccountSnapshot,
+    BacktestCapability,
+    BacktestSnapshot,
+    BacktestSummary,
+    DashboardHealth,
+    DashboardSnapshot,
+    Holding,
+)
 from dashboard.state import DashboardStateReader, SnapshotStore
 from integrations.kis.client import KISAccountSnapshot, KISPaperClient
 
@@ -127,6 +135,68 @@ class DashboardService:
             }
             for spec in imported_feature_catalog().all()
         ]
+
+    def backtest_snapshot(self) -> BacktestSnapshot:
+        """Return the read-only backtest view backed by the existing run ledger."""
+
+        snapshot = self.snapshot()
+        runs = snapshot.tests
+        success_statuses = {"SUCCEEDED", "SURVIVOR", "PASS", "VALIDATED"}
+        rejected_statuses = {"REJECT", "FAILED", "FAIL"}
+        returns = [run for run in runs if run.total_return is not None]
+        best = max(
+            returns,
+            key=lambda run: run.total_return if run.total_return is not None else float("-inf"),
+            default=None,
+        )
+        summary = BacktestSummary(
+            total_runs=len(runs),
+            succeeded_runs=sum(run.status.upper() in success_statuses for run in runs),
+            rejected_runs=sum(run.status.upper() in rejected_statuses for run in runs),
+            risk_compliant_runs=sum(run.risk_compliant is True for run in runs),
+            latest_run_at=runs[0].timestamp if runs else None,
+            best_run_id=best.run_id if best else None,
+            best_total_return=best.total_return if best else None,
+        )
+        capabilities = [
+            BacktestCapability(
+                id="validate_strategy",
+                label="전략 IR 검증",
+                status="CONNECTED",
+                description="현재 저장소의 Strategy IR 정규화·검증 명령과 연결됩니다.",
+                command="python cli.py validate-strategy --source <strategy.py>",
+            ),
+            BacktestCapability(
+                id="run_generation",
+                label="세대 백테스트",
+                status="CONNECTED",
+                description="검증된 전략과 Parquet 데이터를 Generation Pipeline으로 평가합니다.",
+                command=(
+                    "python cli.py run-generation --source <strategy.py> "
+                    "--data <data.parquet> --method grid --count 1 --seed 0 --min-trades 10"
+                ),
+            ),
+            BacktestCapability(
+                id="run_ledger",
+                label="실행 원장",
+                status="CONNECTED",
+                description="state/test-records.jsonl의 기록을 최신순으로 표시합니다.",
+            ),
+            BacktestCapability(
+                id="equity_curve",
+                label="성과 곡선",
+                status="NOT_AVAILABLE",
+                description="현재 실행 원장에는 시계열 equity curve가 저장되어 있지 않습니다.",
+            ),
+        ]
+        return BacktestSnapshot(
+            generated_at=snapshot.generated_at,
+            mode=snapshot.mode,
+            summary=summary,
+            runs=runs,
+            capabilities=capabilities,
+            warning_codes=snapshot.warning_codes,
+        )
 
     def _save(self, snapshot: DashboardSnapshot) -> DashboardSnapshot:
         self._store.write(snapshot)

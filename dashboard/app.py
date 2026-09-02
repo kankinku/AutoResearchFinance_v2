@@ -25,6 +25,13 @@ def create_app(service: DashboardService | None = None) -> FastAPI:
             return FileResponse(index_path)
         return JSONResponse({"status": "ONLINE", "message": "dashboard assets are not installed"})
 
+    @app.get("/backtest", include_in_schema=False, response_model=None)
+    def backtest_page() -> Response:
+        page_path = static_dir / "backtest.html"
+        if page_path.is_file():
+            return FileResponse(page_path)
+        return JSONResponse({"status": "ONLINE", "message": "backtest assets are not installed"})
+
     @app.get("/api/health")
     def health() -> JSONResponse:
         snapshot = dashboard_service.snapshot()
@@ -55,6 +62,23 @@ def create_app(service: DashboardService | None = None) -> FastAPI:
         return JSONResponse(
             dashboard_service.feature_catalog(), headers={"Cache-Control": "no-store"}
         )
+
+    @app.get("/api/backtest")
+    def backtest() -> JSONResponse:
+        return JSONResponse(
+            dashboard_service.backtest_snapshot().model_dump(mode="json"),
+            headers={"Cache-Control": "no-store"},
+        )
+
+    @app.get("/api/backtest/runs/{run_id}")
+    def backtest_run(run_id: str) -> JSONResponse:
+        record = next(
+            (item for item in dashboard_service.snapshot().tests if item.run_id == run_id),
+            None,
+        )
+        if record is None:
+            raise HTTPException(status_code=404, detail="backtest run not found")
+        return JSONResponse(record.model_dump(mode="json"), headers={"Cache-Control": "no-store"})
 
     @app.post("/api/refresh", response_model=DashboardSnapshot)
     def refresh() -> DashboardSnapshot:

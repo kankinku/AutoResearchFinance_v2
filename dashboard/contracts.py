@@ -111,6 +111,33 @@ class ResearchSummary(DashboardModel):
     rescue_count: int = 0
 
 
+class BacktestSummary(DashboardModel):
+    total_runs: int = 0
+    succeeded_runs: int = 0
+    rejected_runs: int = 0
+    risk_compliant_runs: int = 0
+    latest_run_at: str | None = None
+    best_run_id: str | None = None
+    best_total_return: float | None = None
+
+
+class BacktestCapability(DashboardModel):
+    id: str
+    label: str
+    status: Literal["CONNECTED", "NOT_AVAILABLE"]
+    description: str
+    command: str | None = None
+
+
+class BacktestSnapshot(DashboardModel):
+    generated_at: str
+    mode: ModeStatus = Field(default_factory=ModeStatus)
+    summary: BacktestSummary = Field(default_factory=BacktestSummary)
+    runs: list[TestRecord] = Field(default_factory=list)
+    capabilities: list[BacktestCapability] = Field(default_factory=list)
+    warning_codes: list[str] = Field(default_factory=list)
+
+
 class DashboardSnapshot(DashboardModel):
     schema_version: int = 1
     generated_at: str

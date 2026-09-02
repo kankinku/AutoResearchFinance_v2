@@ -56,3 +56,28 @@ def test_dashboard_has_no_remote_asset_dependency() -> None:
             assert "cdn." not in content
             assert "http://" not in content
             assert "https://" not in content
+
+
+def test_backtest_page_is_separate_and_connects_to_backtest_api() -> None:
+    html = (STATIC / "backtest.html").read_text(encoding="utf-8")
+    javascript = (STATIC / "backtest.js").read_text(encoding="utf-8")
+    research_html = (STATIC / "index.html").read_text(encoding="utf-8")
+
+    for marker in (
+        "백테스트 관리",
+        "실행 원장",
+        "선택 결과",
+        "검증된 전략 실행",
+        "실행 명령 복사",
+        "성과 곡선",
+        "연구 운영",
+        "aria-live",
+    ):
+        assert marker in html
+    assert 'href="/backtest"' in research_html
+    assert 'href="/"' in html
+    assert 'fetch("/api/backtest")' in javascript
+    assert "/api/backtest/runs/" in javascript
+    assert "navigator.clipboard.writeText" in javascript
+    assert "escapeHtml" in javascript
+    assert "https://" not in html
