@@ -52,6 +52,7 @@ def run_local_evaluation(
     parameter_domains: Sequence[ParameterDomain] = (),
     operations: Sequence[MutationOperation] = (),
     strategy_override: StrategyIR | None = None,
+    generation: int | None = None,
     series_data_path: object | None = None,
     min_qqq_cagr_delta: float | None = None,
     min_annual_trades: int | None = 30,
@@ -62,6 +63,8 @@ def run_local_evaluation(
         raise ValueError("evaluation method is invalid")
     if count < 1 or seed < 0 or min_trades < 0:
         raise ValueError("evaluation numeric options are invalid")
+    if generation is not None and generation < 1:
+        raise ValueError("generation must be positive")
     if min_annual_trades is not None and min_annual_trades < 0:
         raise ValueError("minimum annual trades cannot be negative")
     if min_qqq_cagr_delta is not None and not isfinite(min_qqq_cagr_delta):
@@ -100,9 +103,10 @@ def run_local_evaluation(
         feature_inputs=feature_inputs,
         external_series=series,
     )
+    record_generation = strategy.generation + 1 if generation is None else generation
     append_funnel_results(
         state_dir / "test-records.jsonl",
-        generation=strategy.generation + 1,
+        generation=record_generation,
         results=pipeline_result.funnel,
         timestamp=datetime.now(timezone.utc).isoformat(),
     )

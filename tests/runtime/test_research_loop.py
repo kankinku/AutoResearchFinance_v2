@@ -39,6 +39,27 @@ def test_research_loop_repeats_with_deterministic_seed_and_persists_status(
     assert '"min_annual_trades": 30' in payload
 
 
+def test_research_loop_passes_generation_to_evaluator(tmp_path: Path, monkeypatch) -> None:
+    generations: list[int] = []
+
+    def fake_evaluation(**kwargs: object) -> dict[str, object]:
+        generations.append(int(kwargs["generation"]))
+        return {"status": "COMPLETED", "candidate_count": 1}
+
+    monkeypatch.setattr(loop_module, "run_local_evaluation", fake_evaluation)
+    run_repeated_evaluation(
+        ResearchLoopConfig(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="data.parquet",
+            generations=3,
+        )
+    )
+
+    assert generations == [1, 2, 3]
+
+
 def test_research_loop_rejects_unbounded_or_zero_generation() -> None:
     config = ResearchLoopConfig(
         project_root=Path("."),
@@ -54,4 +75,3 @@ def test_research_loop_rejects_unbounded_or_zero_generation() -> None:
         assert "generations" in str(exc)
     else:
         raise AssertionError("zero-generation loop must be rejected")
-

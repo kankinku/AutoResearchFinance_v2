@@ -74,6 +74,7 @@ def test_autoresearch_connects_director_intent_to_each_generation(tmp_path: Path
     assert result["status"] == "COMPLETED"
     assert result["completed_generations"] == 2
     assert len(calls) == 2
+    assert [call["generation"] for call in calls] == [1, 2]
     assert all(
         any(operation.op == "ADD_FEATURE" for operation in kwargs["operations"])
         for kwargs in calls

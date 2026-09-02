@@ -95,6 +95,29 @@ def test_local_evaluation_without_domains_is_explicit_baseline(tmp_path: Path) -
     assert result["search_mode"] == "baseline"
 
 
+def test_local_evaluation_persists_explicit_generation_number(tmp_path: Path) -> None:
+    _strategy, _data, _series = _write_inputs(tmp_path)
+
+    run_local_evaluation(
+        project_root=tmp_path,
+        state_dir=tmp_path / "state",
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        count=1,
+        min_trades=0,
+        generation=4,
+    )
+
+    records = [
+        json.loads(line)
+        for line in (tmp_path / "state" / "test-records.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert records
+    assert {record["generation"] for record in records} == {4}
+
+
 def test_local_evaluation_applies_intent_operations_and_records_feature_lineage(
     tmp_path: Path,
 ) -> None:
