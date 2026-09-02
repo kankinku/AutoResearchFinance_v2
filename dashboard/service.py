@@ -58,6 +58,7 @@ class DashboardService:
                     "trend": fresh.trend,
                     "workers": fresh.workers,
                     "llm": fresh.llm,
+                    "research": fresh.research,
                     "warning_codes": sorted(
                         set((*stored.warning_codes, *fresh.warning_codes))
                     ),

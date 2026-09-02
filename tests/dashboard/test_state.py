@@ -48,6 +48,20 @@ def test_reader_builds_paper_only_snapshot_from_state_files(tmp_path: Path) -> N
             ],
         },
     )
+    _write(
+        tmp_path / "frontier.json",
+        {
+            "schema_version": 1,
+            "families": {
+                "macro": [{"strategy_id": "candidate-1"}],
+                "trend": [{"strategy_id": "candidate-2"}],
+            },
+        },
+    )
+    _write(
+        tmp_path / "rescue_pool.json",
+        {"schema_version": 1, "entries": [{"candidate_hash": "r1"}]},
+    )
     (tmp_path / "test-records.jsonl").write_text(
         "\n".join(
             [
@@ -105,7 +119,26 @@ def test_reader_builds_paper_only_snapshot_from_state_files(tmp_path: Path) -> N
     assert snapshot.tests[0].run_id == "run-1"
     assert snapshot.trend[0].generation == 3
     assert snapshot.workers[0].online_state == "ONLINE"
+    assert snapshot.research.frontier_count == 2
+    assert snapshot.research.family_count == 2
+    assert snapshot.research.known_good_count == 1
+    assert snapshot.research.rescue_count == 1
     assert "LIVE_MODE_REJECTED" in snapshot.warning_codes
+
+
+def test_reader_treats_missing_or_malformed_research_state_as_empty_and_warns(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "frontier.json").write_text("not-json", encoding="utf-8")
+    _write(tmp_path / "knowledge.json", {"known_good": "invalid"})
+    _write(tmp_path / "rescue_pool.json", {"entries": "invalid"})
+
+    snapshot = DashboardStateReader(tmp_path).read()
+
+    assert snapshot.research.frontier_count == 0
+    assert snapshot.research.known_good_count == 0
+    assert snapshot.research.rescue_count == 0
+    assert "FRONTIER_STATE_INVALID" in snapshot.warning_codes
 
 
 def test_reader_masks_account_and_classifies_stale_and_offline_workers(tmp_path: Path) -> None:

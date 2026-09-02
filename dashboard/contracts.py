@@ -100,6 +100,17 @@ class DashboardHealth(DashboardModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class ResearchSummary(DashboardModel):
+    frontier_count: int = 0
+    family_count: int = 0
+    frontier_families: dict[str, int] = Field(default_factory=dict)
+    known_good_count: int = 0
+    known_bad_count: int = 0
+    unexplored_count: int = 0
+    interactions_count: int = 0
+    rescue_count: int = 0
+
+
 class DashboardSnapshot(DashboardModel):
     schema_version: int = 1
     generated_at: str
@@ -110,6 +121,7 @@ class DashboardSnapshot(DashboardModel):
     trend: list[TrendPoint] = Field(default_factory=list)
     workers: list[WorkerStatus] = Field(default_factory=list)
     llm: LLMStatus = Field(default_factory=LLMStatus)
+    research: ResearchSummary = Field(default_factory=ResearchSummary)
     health: DashboardHealth | None = None
     warning_codes: list[str] = Field(default_factory=list)
 

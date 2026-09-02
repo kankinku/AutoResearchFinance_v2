@@ -11,27 +11,27 @@ def test_dashboard_assets_are_local_and_contain_required_sections() -> None:
 
     for marker in (
         "모의투자 전용",
-        "계좌",
-        "테스트 기록",
-        "최고 전략",
-        "전략 발전",
-        "병렬 작업",
+        "현재 상황",
+        "주의 필요",
+        "다음 행동",
+        "연구 현황",
+        "최근 평가",
+        "상세 분석",
         "새로고침",
         "aria-live",
-        "사용 방법",
-        "<details",
-        "<summary",
-        "열기",
-        "dashboard-refresh",
-        "integrations.codex_mcp_server",
-        "research-intent",
-        "copy-command",
+        "계좌 상세",
         "인디케이터 카탈로그",
-        "중복 통합",
-        "1주봉",
-        "1개월봉",
+        "copy-command",
+        "프론티어 전략",
     ):
         assert marker in html
+    assert "사용 방법" not in html
+    assert "<details" in html
+    assert "dashboard-refresh" not in html
+    assert "integrations.codex_mcp_server" not in html
+    assert "research-intent" not in html
+    assert html.count('id="system-status"') == 1
+    assert html.count('id="champion-score"') == 1
     assert "https://" not in html
     assert "http://" not in html
     assert "fetch(\"/api/dashboard\")" in javascript

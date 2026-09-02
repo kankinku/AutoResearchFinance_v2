@@ -13,6 +13,7 @@ from dashboard.contracts import (
     Holding,
     LLMStatus,
     ModeStatus,
+    ResearchSummary,
     StrategySummary,
     TestRecord,
     TrendPoint,
@@ -30,7 +31,12 @@ class DashboardStateReader:
         mode = self._read_mode(warnings)
         account = self._read_account(warnings)
         tests = self._read_tests(warnings)
-        strategy = self._read_strategy(warnings)
+        champion = self._json("champion.json", warnings, "CHAMPION_STATE_INVALID") or {}
+        knowledge = self._json("knowledge.json", warnings, "KNOWLEDGE_STATE_INVALID") or {}
+        frontier = self._json("frontier.json", warnings, "FRONTIER_STATE_INVALID") or {}
+        rescue = self._json("rescue_pool.json", warnings, "RESCUE_POOL_STATE_INVALID") or {}
+        strategy = self._read_strategy(champion, knowledge)
+        research = self._read_research(frontier, knowledge, rescue)
         workers = self._read_workers(warnings)
         llm = self._read_llm(warnings)
         trend = [
@@ -53,6 +59,7 @@ class DashboardStateReader:
             trend=trend,
             workers=workers,
             llm=llm,
+            research=research,
             warning_codes=sorted(set(warnings)),
         )
 
@@ -99,11 +106,10 @@ class DashboardStateReader:
                 warnings.append(f"TEST_RECORD_INVALID_{line_number}")
         return sorted(records, key=lambda record: record.timestamp, reverse=True)
 
-    def _read_strategy(self, warnings: list[str]) -> StrategySummary:
-        champion = self._json("champion.json", warnings, "CHAMPION_STATE_INVALID") or {}
+    @staticmethod
+    def _read_strategy(champion: dict[str, Any], knowledge: dict[str, Any]) -> StrategySummary:
         if isinstance(champion.get("champion"), Mapping):
             champion = {**champion, **champion["champion"]}
-        knowledge = self._json("knowledge.json", warnings, "KNOWLEDGE_STATE_INVALID") or {}
         candidate = next(
             (
                 item
@@ -132,6 +138,32 @@ class DashboardStateReader:
             nasdaq_excess_return=_optional_float(candidate.get("nasdaq_excess_return")),
             max_daily_loss_pct=_optional_float(candidate.get("max_daily_loss_pct")),
             risk_compliant=_optional_bool(candidate.get("risk_compliant")),
+        )
+
+    @staticmethod
+    def _read_research(
+        frontier: dict[str, Any], knowledge: dict[str, Any], rescue: dict[str, Any]
+    ) -> ResearchSummary:
+        raw_families = frontier.get("families", {})
+        families: dict[str, int] = {}
+        if isinstance(raw_families, Mapping):
+            for family, entries in raw_families.items():
+                if isinstance(entries, list):
+                    families[str(family)] = sum(isinstance(entry, Mapping) for entry in entries)
+        def list_count(name: str) -> int:
+            value = knowledge.get(name, [])
+            return len(value) if isinstance(value, list) else 0
+
+        rescue_entries = rescue.get("entries", [])
+        return ResearchSummary(
+            frontier_count=sum(families.values()),
+            family_count=len(families),
+            frontier_families=families,
+            known_good_count=list_count("known_good"),
+            known_bad_count=list_count("known_bad"),
+            unexplored_count=list_count("unexplored"),
+            interactions_count=list_count("interactions"),
+            rescue_count=len(rescue_entries) if isinstance(rescue_entries, list) else 0,
         )
 
     def _read_workers(self, warnings: list[str]) -> list[WorkerStatus]:
