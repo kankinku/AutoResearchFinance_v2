@@ -41,6 +41,7 @@ python cli.py set-mode --state-dir state --mode paper
 python cli.py mode --state-dir state
 python cli.py dashboard-refresh --state-dir state --env-file .env
 python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
+python cli.py paper-order-smoke --state-dir state --env-file .env --symbol QQQ --quantity 1 --confirm-paper-order
 python cli.py research-intent --state-dir state --env-file .env --project-root .
 python cli.py autoresearch --source strategies\normalized\golden_cross.json --data data\daily.parquet --series-data data\external-series.parquet --generations 20 --count 8 --method random --min-annual-trades 30 --min-qqq-cagr 0.10 --state-dir state --env-file .env
 ```
@@ -93,6 +94,26 @@ Open `http://127.0.0.1:8080/`. The dashboard's Quick Guide contains the same com
 with copy buttons. `init` is only for a new state directory; do not repeat it over a
 state directory whose experiment history you want to keep. `dashboard-refresh` reads
 paper account/quote data; it does not place orders.
+
+### 1회 KIS 모의주문 검증
+
+실제 KIS 모의계좌 주문 경로를 확인할 때만 다음 명령을 명시적으로 실행합니다.
+
+```powershell
+python cli.py paper-order-smoke `
+  --state-dir state `
+  --env-file .env `
+  --symbol QQQ `
+  --quantity 1 `
+  --confirm-paper-order
+```
+
+이 명령은 Paper 엔드포인트에서 시장가 매수 1건을 넣고, 주문체결 조회에서
+매수 체결 수량을 확인한 뒤, 체결된 수량만 시장가 매도합니다. 최종 잔고가
+기존 수량으로 돌아오지 않으면 성공으로 처리하지 않습니다. 매수 미체결,
+잔고 조회 실패, 장 운영시간 외 오류가 발생하면 매도 주문을 추가로 넣지
+않습니다. 연구 루프·대시보드 새로고침·Codex MCP에서는 주문을 실행하지
+않습니다.
 
 For Codex Desktop, register `.codex/config.toml.example` in the Desktop MCP settings.
 The local MCP server can then be started with:

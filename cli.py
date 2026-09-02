@@ -11,6 +11,9 @@ from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
 from dashboard.state import DashboardStateReader
 from experiments.planner import plan_experiment
+from integrations.kis.client import KISAPIError
+from integrations.kis.config import KISConfigError, PaperKISConfig
+from integrations.kis.paper_orders import KISPaperOrderClient, PaperOrderError
 from memory.state_files import StateFileStore
 from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
 from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
@@ -52,6 +55,19 @@ def build_parser() -> argparse.ArgumentParser:
         dashboard_command = subparsers.add_parser(command)
         dashboard_command.add_argument("--state-dir", type=Path, default=Path("state"))
         dashboard_command.add_argument("--env-file", type=Path, default=Path(".env"))
+    paper_order_parser = subparsers.add_parser(
+        "paper-order-smoke", help="Submit one paper buy, verify fill, then submit its sell"
+    )
+    paper_order_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    paper_order_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    paper_order_parser.add_argument("--symbol", default="QQQ")
+    paper_order_parser.add_argument("--quantity", type=int, default=1)
+    paper_order_parser.add_argument(
+        "--exchange", choices=("NASD", "NYSE", "AMEX"), default="NASD"
+    )
+    paper_order_parser.add_argument("--timeout-seconds", type=float, default=30.0)
+    paper_order_parser.add_argument("--poll-seconds", type=float, default=1.0)
+    paper_order_parser.add_argument("--confirm-paper-order", action="store_true")
     subparsers.choices["set-mode"].add_argument(
         "--mode", choices=("paper", "live"), required=True
     )
@@ -356,6 +372,62 @@ def main(argv: list[str] | None = None) -> int:
             port=args.port,
         )
         return 0
+    if args.command == "paper-order-smoke":
+        if not args.confirm_paper_order:
+            print(
+                json.dumps(
+                    {
+                        "status": "CONFIRMATION_REQUIRED",
+                        "reason": "pass --confirm-paper-order for the one-shot paper order",
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            return 2
+        try:
+            config = PaperKISConfig.from_env(args.env_file)
+            client = KISPaperOrderClient(config)
+            paper_result = client.run_buy_then_sell(
+                args.symbol,
+                quantity=args.quantity,
+                exchange=args.exchange,
+                timeout_seconds=args.timeout_seconds,
+                poll_seconds=args.poll_seconds,
+            )
+            paper_payload = {
+                "status": paper_result.status,
+                "mode": "paper",
+                "symbol": paper_result.buy.symbol,
+                "exchange": paper_result.buy.exchange,
+                "requested_quantity": paper_result.buy.requested_quantity,
+                "buy": {
+                    "order_id": paper_result.buy.order_id,
+                    "side": paper_result.buy.side,
+                    "requested_quantity": paper_result.buy.requested_quantity,
+                },
+                "filled_buy_quantity": paper_result.filled_buy_quantity,
+                "sell": (
+                    {
+                        "order_id": paper_result.sell.order_id,
+                        "side": paper_result.sell.side,
+                        "requested_quantity": paper_result.sell.requested_quantity,
+                    }
+                    if paper_result.sell is not None
+                    else None
+                ),
+                "filled_sell_quantity": paper_result.filled_sell_quantity,
+                "final_position_quantity": paper_result.final_position_quantity,
+            }
+            print(json.dumps(paper_payload, ensure_ascii=False))
+            return 0 if paper_result.status == "FLAT" else 2
+        except (KISConfigError, KISAPIError, PaperOrderError, ValueError, OSError) as exc:
+            print(
+                json.dumps(
+                    {"status": "ERROR", "mode": "paper", "reason": str(exc)},
+                    ensure_ascii=False,
+                )
+            )
+            return 2
     if args.command == "import-strategies":
         if args.repo:
             source = parse_github_source(args.repo, ref=args.ref)
