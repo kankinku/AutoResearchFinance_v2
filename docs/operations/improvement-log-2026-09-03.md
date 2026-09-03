@@ -99,6 +99,19 @@
 5. 세대별 proposal/repair timeout과 조기 종료 기준을 적용한다.
 6. 제안·복구·백테스트 시간의 중앙값과 p95를 별도로 집계한다.
 
+## 추가 반영 — 1단계 속도 최적화
+
+커밋: `08307b5`, `28dd446`
+
+- Codex 제안·복구 요청에서 Feature Registry의 선택에 필요한 필드는 유지하고, 구현 해시·원본 저장소·라이선스·중복 메타데이터를 제거했다.
+- 복구 agent에는 `mode`, `parent_ids`, `operations`, `rationale`, feature 정보만 전달하고 `python_patch`와 `evaluator_change`는 제거했다.
+- 실제 현재 연구 컨텍스트 기준 Feature Registry 173개 항목의 payload가 214.7KB에서 192.8KB로 감소했다.
+- 컨텍스트 payload 절감량은 21.97KB, 약 10.23%다.
+- 복구 payload 축소 단위 테스트에서는 불필요한 필드 제거 후 약 99.15%가 감소했다.
+- 검증 결과: `511 passed`, Ruff 통과, MyPy 통과.
+
+이번 단계는 요청량과 불필요한 반복 정보를 줄이는 구현이며, Codex의 실제 응답시간 단축 효과는 동일 모델·동일 요청을 통제한 별도 p50/p95 벤치마크가 필요하다.
+
 ## 근거 파일
 
 - 실행 상태: `state/test-5gen-20260903-diagnostics/system/autoresearch.json`
