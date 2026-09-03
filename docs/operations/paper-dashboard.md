@@ -17,7 +17,18 @@ python cli.py dashboard-refresh --state-dir state --env-file .env
 python cli.py dashboard --state-dir state --env-file .env --host 127.0.0.1 --port 8080
 ```
 
-Open `http://127.0.0.1:8080/` in a local browser. The dashboard polls local JSON endpoints every ten seconds. `dashboard-refresh` is the only dashboard action that contacts KIS, and it performs paper read-only health and account calls.
+Open `http://127.0.0.1:8080/` in a local browser. The dashboard polls local JSON endpoints every 15 seconds. `dashboard-refresh` is the only dashboard action that contacts KIS, and it performs paper read-only health and account calls.
+
+For unattended backtest research, use the supervisor in a separate PowerShell:
+
+```powershell
+.\scripts\start_dashboard.ps1
+```
+
+It keeps the localhost dashboard process alive, restarts it after an unexpected
+exit, refuses duplicate listeners on the same port, and appends lifecycle events
+to `state/system/dashboard-supervisor.log`. The browser refreshes research and
+backtest state every 15 seconds; it does not submit orders.
 
 ## Codex research connection
 

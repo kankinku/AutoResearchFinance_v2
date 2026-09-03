@@ -68,6 +68,16 @@ account snapshot, evaluation ledger, Champion strategy, generation trend, and wo
 heartbeat state. See `docs/operations/paper-dashboard.md` for the safety boundary and
 refresh behavior.
 
+백테스트 탐색 중 대시보드를 항상 유지하려면 별도 PowerShell에서 supervisor를
+실행한다. 대시보드가 종료되면 자동으로 재시작하며, 로그는
+`state/system/dashboard-supervisor.log`에 남긴다.
+
+```powershell
+.\scripts\start_dashboard.ps1
+```
+
+브라우저 화면은 백테스트·연구 상태를 15초마다 다시 읽는다.
+
 `import-strategies` is the safe external-strategy intake path. It scans local files or
 clones a public GitHub repository at a specified ref into a temporary directory, then
 uses AST/static analysis only. KIS builder presets can be imported with
