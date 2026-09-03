@@ -40,7 +40,6 @@ state/locks/
 /.worktrees/
 .idea/
 .vscode/
-dashboard_backup.py
 *.swp
 *.swo
 
