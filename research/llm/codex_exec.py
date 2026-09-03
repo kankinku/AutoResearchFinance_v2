@@ -16,6 +16,20 @@ from typing import Any
 from research.llm.director import ResearchIntent
 
 DEFAULT_CODEX_TIMEOUT_SECONDS = 300.0
+_FEATURE_CONTEXT_FIELDS = (
+    "name",
+    "canonical_id",
+    "aliases",
+    "family",
+    "inputs",
+    "calculator",
+    "lookback",
+    "timeframe",
+    "supported_timeframes",
+    "lag_bars",
+    "parameters",
+    "status",
+)
 
 
 @dataclass(frozen=True)
@@ -83,7 +97,7 @@ class CodexExecProvider:
                     "must carry an indicator object at indicators.<alias>. Do not edit "
                     "files, write Python, change evaluators, or access credentials."
                 ),
-                "context": sanitize_context(context),
+                "context": compact_research_context(context),
             }
         )
 
@@ -113,7 +127,7 @@ class CodexExecProvider:
                         "proposal. Do not edit files, write Python, change evaluators, access "
                         "credentials, or place orders."
                     ),
-                    "context": sanitize_context(context),
+                    "context": compact_research_context(context),
                     "invalid_intent": sanitize_context(invalid_intent),
                     "repair_error": error,
                 }
@@ -256,6 +270,31 @@ def sanitize_context(value: object) -> object:
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
     return str(value)
+
+
+def compact_research_context(context: Mapping[str, object]) -> dict[str, object]:
+    """Keep proposal inputs while dropping repeated catalog provenance metadata."""
+
+    sanitized = sanitize_context(context)
+    if not isinstance(sanitized, dict):
+        raise ValueError("research context must be an object")
+    catalog = sanitized.get("feature_catalog")
+    if not isinstance(catalog, list):
+        return sanitized
+    compact_catalog: list[object] = []
+    for item in catalog:
+        if not isinstance(item, Mapping):
+            compact_catalog.append(item)
+            continue
+        compact_catalog.append(
+            {
+                key: item[key]
+                for key in _FEATURE_CONTEXT_FIELDS
+                if key in item
+            }
+        )
+    sanitized["feature_catalog"] = compact_catalog
+    return sanitized
 
 
 def _sensitive_key(key: str) -> bool:

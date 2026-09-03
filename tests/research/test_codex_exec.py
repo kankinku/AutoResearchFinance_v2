@@ -88,6 +88,60 @@ def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path:
     assert "entry.conditions.<index>" in sent["instruction"]
 
 
+def test_codex_exec_provider_compacts_repeated_feature_metadata(
+    tmp_path: Path,
+) -> None:
+    runner = FakeRunner(_valid_intent())
+    provider = CodexExecProvider(workdir=tmp_path, runner=runner)
+    context = {
+        "generation": 5,
+        "source_strategy": {"id": "golden_cross", "indicators": {"fast": {"period": 8}}},
+        "feature_catalog": [
+            {
+                "name": "vix_percentile",
+                "canonical_id": "vix_percentile",
+                "aliases": ["vix_pct"],
+                "family": "macro",
+                "inputs": ["VIX.close"],
+                "calculator": "percentile",
+                "lookback": 20,
+                "timeframe": "1d",
+                "supported_timeframes": ["1d", "1w"],
+                "lag_bars": 1,
+                "parameters": {"window": 20},
+                "implementation_hash": "hash-that-is-not-needed-for-a-proposal",
+                "source_repositories": ["https://example.invalid/source"],
+                "source_licenses": ["MIT"],
+                "data_contract": "large repeated contract description",
+                "status": "VERIFIED",
+                "duplicate_group": "macro-vix",
+            }
+        ],
+    }
+
+    provider.propose(context)
+
+    sent = json.loads(runner.input_text)
+    feature = sent["context"]["feature_catalog"][0]
+    assert feature == {
+        "name": "vix_percentile",
+        "canonical_id": "vix_percentile",
+        "aliases": ["vix_pct"],
+        "family": "macro",
+        "inputs": ["VIX.close"],
+        "calculator": "percentile",
+        "lookback": 20,
+        "timeframe": "1d",
+        "supported_timeframes": ["1d", "1w"],
+        "lag_bars": 1,
+        "parameters": {"window": 20},
+        "status": "VERIFIED",
+    }
+    assert len(json.dumps(sent["context"], ensure_ascii=False)) < len(
+        json.dumps(context, ensure_ascii=False)
+    )
+
+
 def test_codex_exec_provider_rejects_failed_or_invalid_output(tmp_path: Path) -> None:
     failed = FakeRunner(_valid_intent(), returncode=17, stderr="unsupported option: --sandbox")
     with pytest.raises(ValueError, match=r"Codex execution failed \(exit 17\): unsupported option"):
