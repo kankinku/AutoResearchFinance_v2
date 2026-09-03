@@ -109,6 +109,9 @@
 - 컨텍스트 payload 절감량은 21.97KB, 약 10.23%다.
 - 복구 payload 축소 단위 테스트에서는 불필요한 필드 제거 후 약 99.15%가 감소했다.
 - 검증 결과: `511 passed`, Ruff 통과, MyPy 통과.
+- 연구 상태에 제안·복구·백테스트·세대별 `count`, `total_seconds`, `p50_seconds`, `p95_seconds`, `max_seconds`를 저장하도록 추가했다.
+- phase 전환 시 `duration_seconds`가 0으로 보일 수 있는 기존 기록을 보완하기 위해 시작·종료 이벤트 timestamp를 함께 계산한다.
+- 추가 검증 결과: `512 passed`, Ruff 통과, MyPy 통과.
 
 이번 단계는 요청량과 불필요한 반복 정보를 줄이는 구현이며, Codex의 실제 응답시간 단축 효과는 동일 모델·동일 요청을 통제한 별도 p50/p95 벤치마크가 필요하다.
 
