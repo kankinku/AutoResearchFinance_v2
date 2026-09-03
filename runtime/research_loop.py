@@ -23,6 +23,7 @@ from orchestration.evaluation_runner import (
     run_local_evaluation,
 )
 from research.llm.codex_exec import record_intent, sanitize_context
+from research.llm.contracts import CANONICAL_CONDITION_OPERATORS
 from research.llm.director import (
     IntentRepairUnavailable,
     ResearchDirector,
@@ -823,15 +824,7 @@ def _diagnostic_from_error(error: str, *, phase: str, generation: int) -> dict[s
     elif "unsupported operator" in error:
         diagnostic.update(
             {
-                "allowed_operators": [
-                    "cross_above",
-                    "cross_below",
-                    "less_than",
-                    "less_equal",
-                    "greater_than",
-                    "greater_equal",
-                    "equal",
-                ],
+                "allowed_operators": list(CANONICAL_CONDITION_OPERATORS),
                 "repair_action": "use_verified_condition_operator",
             }
         )
