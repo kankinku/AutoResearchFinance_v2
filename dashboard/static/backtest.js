@@ -1,7 +1,5 @@
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
-const statusLabels = {SURVIVOR:"통과", SUCCEEDED:"성공", PASS:"통과", REJECT:"거절", FAILED:"실패", FAIL:"실패", VALIDATED:"검증 완료", CONNECTED:"연결됨", NOT_AVAILABLE:"미연결"};
-const statusLabel = (value) => statusLabels[String(value ?? "").toUpperCase()] || String(value ?? "확인 필요");
 const fmt = (value) => value == null ? "—" : Number(value).toLocaleString("ko-KR", {maximumFractionDigits:2});
 const fmtPct = (value) => value == null ? "—" : `${(Number(value) * 100).toLocaleString("ko-KR", {maximumFractionDigits:1})}%`;
 const formatDate = (value) => { if (!value) return "—"; const date = new Date(value); return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("ko-KR", {dateStyle:"medium", timeStyle:"short"}); };
@@ -13,7 +11,7 @@ function commandText() {
   const data = $("data-source").value.trim() || "<data.parquet>";
   const method = $("method").value;
   const count = Math.max(1, Number.parseInt($("count").value || "1", 10));
-  return `python cli.py run-generation --source ${source} --data ${data} --method ${method} --count ${count} --seed 0 --min-trades 10`;
+  return `python cli.py run-generation --source ${source} --data ${data} --method ${method} --count ${count} --seed 0 --min-trades 10 --min-annual-trades 30 --min-qqq-cagr 0.10`;
 }
 
 function renderCommand() { $("run-command").textContent = commandText(); }

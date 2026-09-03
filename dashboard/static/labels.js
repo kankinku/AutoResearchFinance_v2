@@ -1,0 +1,4 @@
+const STATUS_LABELS = {paper:"모의투자", PAPER:"모의투자", RUNNING:"실행 중", COMPLETED:"완료", COMPLETED_WITH_FALLBACKS:"fallback 포함 완료", COMPLETED_WITH_ERRORS:"오류 포함 완료", REPAIRED:"복구 후 평가", FALLBACK:"부모 전략으로 대체 평가", ONLINE:"온라인", OFFLINE:"오프라인", STALE:"응답 지연", UNKNOWN:"확인 필요", ERROR:"오류", DEGRADED:"일부 기능 제한", EMPTY:"없음", PASS:"통과", FAIL:"실패", VALIDATED:"검증 완료", FAILED:"실패", REGISTERED:"검증 완료", PROPOSED:"검증 대기", QUARANTINED:"격리", NORMALIZED:"변환 완료", REVIEW_REQUIRED:"검토 필요", UNSUPPORTED:"지원 안 됨", NEW:"신규", EXACT_DUPLICATE:"완전 중복", PARTIAL_DUPLICATE:"부분 중복", NOT_APPLICABLE:"해당 없음", CONNECTED:"연결됨", NOT_AVAILABLE:"미연결"};
+const TIMEFRAME_LABELS = {"1m":"1분봉", "5m":"5분봉", "15m":"15분봉", "1h":"1시간봉", "1d":"일봉", "1w":"1주봉", "1mo":"1개월봉"};
+const statusLabel = (value) => STATUS_LABELS[String(value ?? "").toUpperCase()] || String(value ?? "확인 필요");
+const timeframeLabel = (value) => TIMEFRAME_LABELS[value] || String(value ?? "확인 필요");

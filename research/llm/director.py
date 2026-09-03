@@ -8,6 +8,7 @@ from typing import Any, Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from core.features.contracts import FeatureProposal
+from research.llm.contracts import require_canonical_dot_path
 from strategy_ir.schema import Condition, FeatureRef, IndicatorSpec
 
 
@@ -228,7 +229,7 @@ def _canonical_operation_path(path: str) -> str:
     normalized = re.sub(r"\[(\d+)\]", r".\1", path)
     if "[" in normalized or "]" in normalized:
         raise ValueError(f"unsupported path notation: {path}")
-    return normalized
+    return require_canonical_dot_path(normalized)
 
 
 def _decode_legacy_value(value: object) -> object:

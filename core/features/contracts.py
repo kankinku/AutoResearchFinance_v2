@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from strategy_ir.contracts import CANONICAL_TIMEFRAMES
+
 
 class FeatureContractError(ValueError):
     """Raised when a feature definition is not safe to calculate."""
@@ -47,7 +49,7 @@ class FeatureSpec(BaseModel):
     @field_validator("timeframe")
     @classmethod
     def validate_timeframe(cls, value: str) -> str:
-        if value not in {"1m", "5m", "15m", "1h", "1d", "1w", "1mo"}:
+        if value not in CANONICAL_TIMEFRAMES:
             raise ValueError("unsupported feature timeframe")
         return value
 

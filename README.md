@@ -1,5 +1,9 @@
 # Quant Autoresearch Harness
 
+시스템 전반의 용어·경로·연산자·상태 라벨·지시문 기준은
+[`docs/operations/notation-contract.md`](docs/operations/notation-contract.md)에 통합되어 있습니다.
+새로운 전략·feature·연구 명령은 이 계약의 canonical 표기만 사용합니다.
+
 An LLM-assisted autonomous quantitative research platform.
 
 The system separates responsibilities:

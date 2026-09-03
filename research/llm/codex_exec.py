@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from research.llm.contracts import canonical_intent_instruction
 from research.llm.director import ResearchIntent
 
 DEFAULT_CODEX_TIMEOUT_SECONDS = 300.0
@@ -110,18 +111,7 @@ class CodexExecProvider:
     def _propose(self, context: dict[str, Any]) -> dict[str, Any]:
         return self._execute_request(
             {
-                "instruction": (
-                    "Return exactly one ResearchIntent JSON object using only the canonical "
-                    "typed operation fields defined by the output schema. Never use JSON "
-                    "Patch add/replace/remove operations. ADD_RULE and ADD_REGIME_FILTER "
-                    "must use a condition object, SET_PARAMETER must use a scalar value, "
-                    "and ADD_FEATURE must use a typed feature object. Use only the verified "
-                    "condition operators cross_above, cross_below, less_than, less_equal, "
-                    "greater_than, greater_equal, or equal. Use dotted paths such as "
-                    "entry.conditions.<index> and indicators.<alias>; indicator changes "
-                    "must carry an indicator object at indicators.<alias>. Do not edit "
-                    "files, write Python, change evaluators, or access credentials."
-                ),
+                "instruction": canonical_intent_instruction(),
                 "context": compact_research_context(context),
             },
             timeout_seconds=self.proposal_timeout_seconds,
@@ -139,20 +129,7 @@ class CodexExecProvider:
         try:
             payload = self._execute_request(
                 {
-                    "instruction": (
-                        "Act as an independent intent repair agent. Return exactly one "
-                        "ResearchIntent JSON object that fixes the supplied validation error. "
-                        "Use only registered feature selections and canonical typed mutation "
-                        "operations with Strategy IR-root dotted paths. Never emit JSON Patch "
-                        "add/replace/remove operations. Condition targets must contain a "
-                        "condition object, not a boolean or list. Use only the verified "
-                        "condition operators cross_above, cross_below, less_than, less_equal, "
-                        "greater_than, greater_equal, or equal. Use dotted paths such as "
-                        "entry.conditions.<index> and indicators.<alias>, and carry indicator "
-                        "changes in the typed indicator field. Remove any unregistered feature "
-                        "proposal. Do not edit files, write Python, change evaluators, access "
-                        "credentials, or place orders."
-                    ),
+                    "instruction": canonical_intent_instruction(repair=True),
                     "context": compact_research_context(context),
                     "invalid_intent": compact_invalid_intent(invalid_intent),
                     "repair_error": error,

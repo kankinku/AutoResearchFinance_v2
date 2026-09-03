@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping
 
 from core.features.contracts import FeatureSpec
 from mutation.engine import MutationOperation, apply_operations
+from research.llm.contracts import require_canonical_dot_path
 from research.llm.director import FeatureSelection, IntentOperation, ResearchIntent
 from strategy_ir.schema import FeatureRef, StrategyIR
 
@@ -411,7 +412,10 @@ def _normalize_dot_path(path: str) -> str:
         raise IntentEligibilityError(
             f"unsupported path notation: {path}", code="INTENT_PATH_FORMAT"
         )
-    return normalized
+    try:
+        return require_canonical_dot_path(normalized)
+    except ValueError as exc:
+        raise IntentEligibilityError(str(exc), code="INTENT_PATH_FORMAT") from exc
 
 
 def _order_operations(

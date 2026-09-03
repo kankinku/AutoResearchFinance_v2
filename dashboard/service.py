@@ -18,6 +18,8 @@ from dashboard.contracts import (
 )
 from dashboard.state import DashboardStateReader, SnapshotStore
 from integrations.kis.client import KISAccountSnapshot, KISPaperClient
+from research.policy import default_evaluation_thresholds
+from strategy_ir.contracts import CANONICAL_TIMEFRAMES
 
 
 class PaperReadOnlyClient(Protocol):
@@ -118,7 +120,7 @@ class DashboardService:
     def feature_catalog(self) -> list[dict[str, object]]:
         """Return a credential-free projection for the dashboard catalog."""
 
-        supported_timeframes = ["1m", "5m", "15m", "1h", "1d", "1w", "1mo"]
+        supported_timeframes = list(CANONICAL_TIMEFRAMES)
         return [
             {
                 "canonical_name": spec.name,
@@ -198,6 +200,7 @@ class DashboardService:
             best_run_id=best.run_id if best else None,
             best_total_return=best.total_return if best else None,
         )
+        thresholds = default_evaluation_thresholds()
         capabilities = [
             BacktestCapability(
                 id="validate_strategy",
@@ -214,7 +217,8 @@ class DashboardService:
                 command=(
                     "python cli.py run-generation --source <strategy.py> "
                     "--data <data.parquet> --method grid --count 1 --seed 0 "
-                    "--min-trades 10 --min-annual-trades 30"
+                    f"--min-trades 10 --min-annual-trades {thresholds.min_annual_trades} "
+                    f"--min-qqq-cagr {thresholds.min_qqq_cagr_delta:g}"
                 ),
             ),
             BacktestCapability(

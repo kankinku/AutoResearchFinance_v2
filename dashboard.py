@@ -19,6 +19,8 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from dashboard.labels import status_label, timeframe_label
+
 st.set_page_config(
     page_title="퀀트 자동 연구 대시보드",
     page_icon=":material/monitoring:",
@@ -118,12 +120,6 @@ champion_data: dict[str, object] | None = (
     else None
 )
 families: dict[str, object] = (
-    champion_state.get("families", {})  # type: ignore[assignment]
-    if frontier_state
-    else {}
-)
-# Re-read families from frontier_state (champion_data assignment was wrong above)
-families = (
     frontier_state.get("families", {})  # type: ignore[assignment]
     if frontier_state
     else {}
@@ -153,22 +149,7 @@ rescue_entries: list[object] = (
 
 
 def _status_label(status: object) -> str:
-    labels = {
-        "RUNNING": "실행 중",
-        "COMPLETED": "완료",
-        "COMPLETED_WITH_FALLBACKS": "fallback 포함 완료",
-        "COMPLETED_WITH_ERRORS": "오류 포함 완료",
-        "FAILED": "실패",
-        "REPAIRED": "복구 후 평가",
-        "FALLBACK": "부모 전략으로 대체 평가",
-        "DEGRADED": "평가 오류",
-        "ONLINE": "온라인",
-        "OFFLINE": "오프라인",
-        "VALIDATED": "검증 완료",
-        "NONE": "호출 기록 없음",
-    }
-    value = str(status or "UNKNOWN").upper()
-    return labels.get(value, value)
+    return status_label(status)
 
 
 def _status_color(status: object) -> str:
@@ -320,7 +301,7 @@ def _lineage_rows(record: dict[str, object]) -> list[dict[str, object]]:
                 "인디케이터": str(item.get("feature_id", "없음")),
                 "별칭": str(item.get("alias", "없음")),
                 "입력 자료": ", ".join(str(value) for value in item.get("inputs", [])),
-                "시간봉": str(item.get("timeframe", "없음")),
+                "시간봉": timeframe_label(item.get("timeframe", "없음")),
                 "지연 봉": str(item.get("lag_bars", "없음")),
                 "기간": str(item.get("lookback", "없음")),
                 "파라미터": json.dumps(
@@ -349,7 +330,7 @@ def _intent_lineage_rows(intent: object) -> list[dict[str, object]]:
                 "별칭": str(item.get("alias", "없음")),
                 "입력 자료": ", ".join(str(value) for value in item.get("inputs", []))
                 or "전략 기본 자료",
-                "시간봉": str(item.get("timeframe", "1d")),
+                "시간봉": timeframe_label(item.get("timeframe", "1d")),
                 "지연 봉": str(item.get("lag_bars", 0)),
                 "기간": str(item.get("lookback", "자동")),
                 "파라미터": json.dumps(
