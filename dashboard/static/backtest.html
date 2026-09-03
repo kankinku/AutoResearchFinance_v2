@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="세대별 전략 백테스트 성과 대시보드">
   <title>퀀트 자동 연구 · 전략 탐색 성과 · 백테스트 관리</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=20260903">
 </head>
 <body>
   <header class="topbar">
@@ -20,6 +20,7 @@
 
   <main>
     <section class="safety-banner" role="status" aria-live="polite" aria-labelledby="safety-title"><span class="status-dot" aria-hidden="true"></span><div><strong id="safety-title">모의투자 전용</strong><span>이 화면은 백테스트 원장만 읽으며 주문을 생성하지 않습니다.</span></div><span class="badge badge-positive">주문 비활성화</span></section>
+    <details class="usage-help"><summary>사용 설명</summary><div><p><strong>빠르게 찾기:</strong> 빠른 보기 버튼으로 최근 세대나 QQQ 대비 우수한 세대만 먼저 확인합니다.</p><p><strong>정밀하게 찾기:</strong> 세대 검색·상태 필터·성과 기준 정렬을 함께 사용합니다.</p><p><strong>자세히 보기:</strong> 세대 표를 클릭하면 성과, 인디케이터, 연도별 안정성이 아래에 표시됩니다. 실행 ID와 해시는 상세 진단에서만 확인할 수 있습니다.</p></div></details>
 
     <section class="research-hero panel" aria-labelledby="research-title">
       <div class="section-heading"><div><p class="eyebrow">실시간 연구 연결</p><h2 id="research-title">현재 탐색 진행 상황</h2></div><span id="research-status" class="badge">상태 확인 중</span></div>
@@ -45,8 +46,13 @@
     <section class="panel" aria-labelledby="trend-title">
       <div class="section-heading"><div><p class="eyebrow">세대별 비교</p><h2 id="trend-title">성능 향상 추이</h2></div><span id="generation-count" class="badge">세대 0개</span></div>
       <p class="muted detail-intro">각 세대에서 선택된 최고 후보만 표시합니다. 그래프가 비어 있으면 아직 성과 자료가 기록되지 않은 상태입니다.</p>
-      <div class="performance-grid"><div><h3>성과 곡선 · 전략과 QQQ 연복리</h3><div id="cagr-chart" class="performance-chart" role="img" aria-label="세대별 전략과 QQQ 연복리 비교"></div></div><div><h3>점수 추이</h3><div id="score-chart" class="performance-chart" role="img" aria-label="세대별 최고 점수 추이"></div></div></div>
-      <div class="table-wrap"><table class="generation-table" data-generation="summary"><caption>세대별 최고 후보 성과 요약</caption><thead><tr><th>세대</th><th>후보수</th><th>전략 연복리</th><th>QQQ 연복리</th><th>QQQ 대비</th><th>점수</th><th>거래수</th><th>상태</th></tr></thead><tbody id="generation-summary-table"></tbody></table></div>
+      <div class="generation-explorer" aria-label="세대 탐색 도구">
+        <div class="quick-filter-line"><span class="label">빠른 보기</span><div class="quick-filters"><button type="button" class="quick-filter active" data-filter="all">전체 세대</button><button type="button" class="quick-filter" data-filter="recent">최근 세대</button><button type="button" class="quick-filter" data-filter="score">최고 점수</button><button type="button" class="quick-filter" data-filter="qqq">QQQ 대비 우수</button><button type="button" class="quick-filter" data-filter="risk">위험 준수</button></div></div>
+        <div class="explorer-controls"><label class="search-field">세대 검색<input id="generation-search" type="search" placeholder="세대 번호 또는 상태 검색" aria-label="세대 검색"></label><label>상태<select id="generation-status-filter" aria-label="세대 상태 필터"><option value="ALL">전체 상태</option></select></label><label>성과 기준<select id="generation-sort" aria-label="세대 정렬 기준"><option value="recent">최근 세대순</option><option value="strategy_cagr">전략 연복리 높은순</option><option value="qqq_delta">QQQ 대비 높은순</option><option value="score">최고 점수순</option><option value="drawdown">최대 낙폭 낮은순</option></select></label></div>
+        <p id="explorer-result" class="explorer-result muted" role="status" aria-live="polite">검색 결과 0개</p>
+      </div>
+      <div class="performance-grid"><div><h3>성과 곡선 · 전략과 QQQ 연복리</h3><p class="chart-legend"><span class="legend-strategy">■ 전략</span><span class="legend-benchmark">■ QQQ</span> · 안쪽만 스크롤</p><div id="cagr-chart" class="performance-chart" role="img" aria-label="세대별 전략과 QQQ 연복리 비교"></div></div><div><h3>점수 추이</h3><p class="chart-legend">세대별 최고 점수 · 안쪽만 스크롤</p><div id="score-chart" class="performance-chart" role="img" aria-label="세대별 최고 점수 추이"></div></div></div>
+      <div class="table-wrap scroll-table"><table class="generation-table" data-generation="summary"><caption>세대별 최고 후보 성과 요약 · 표 안에서 스크롤</caption><thead><tr><th>세대</th><th>후보수</th><th>전략 연복리</th><th>QQQ 연복리</th><th>QQQ 대비</th><th>점수</th><th>거래수</th><th>상태</th></tr></thead><tbody id="generation-summary-table"></tbody></table></div>
     </section>
 
     <section class="panel" aria-labelledby="analysis-title">
@@ -55,13 +61,13 @@
       <div id="analysis-content" hidden>
         <div class="selected-hero"><div><span id="selected-generation-label" class="eyebrow">—</span><h3 id="selected-status-copy">최고 후보</h3><p id="selected-rationale" class="muted">제안 사유 없음</p></div><span id="selected-status" class="badge">—</span></div>
         <div class="selected-kpi-grid" aria-label="선택 세대 성과"><div><span class="label">전략 연복리</span><strong id="selected-strategy-cagr">—</strong></div><div><span class="label">QQQ 연복리</span><strong id="selected-qqq-cagr">—</strong></div><div><span class="label">QQQ 대비</span><strong id="selected-qqq-delta">—</strong></div><div><span class="label">누적 수익률</span><strong id="selected-total-return">—</strong></div><div><span class="label">최대 낙폭</span><strong id="selected-drawdown">—</strong></div><div><span class="label">Sharpe</span><strong id="selected-sharpe">—</strong></div><div><span class="label">Sortino</span><strong id="selected-sortino">—</strong></div><div><span class="label">손익비</span><strong id="selected-profit-factor">—</strong></div><div><span class="label">거래수</span><strong id="selected-trades">—</strong></div><div><span class="label">위험 준수</span><strong id="selected-risk">—</strong></div></div>
-        <div class="analysis-grid"><div><h3>인디케이터 연결 · 인디케이터와 입력 자료</h3><div class="table-wrap"><table><caption>전략이 사용한 지표·자료·시간 설정</caption><thead><tr><th>인디케이터</th><th>입력 자료</th><th>시간봉</th><th>lag / 기간</th><th>파라미터</th><th>상태</th></tr></thead><tbody id="selected-features"></tbody></table></div></div><div><h3>연도별 안정성</h3><div class="table-wrap"><table><caption>완료 연도는 거래수 31회 이상이어야 통과</caption><thead><tr><th>연도</th><th>거래수</th><th>수익률</th><th>최대 낙폭</th><th>판정</th></tr></thead><tbody id="selected-yearly"></tbody></table></div></div></div>
+        <div class="analysis-grid"><div><h3>인디케이터 연결 · 인디케이터와 입력 자료</h3><div class="table-wrap scroll-table feature-scroll"><table><caption>전략이 사용한 지표·자료·시간 설정</caption><thead><tr><th>인디케이터</th><th>입력 자료</th><th>시간봉</th><th>lag / 기간</th><th>파라미터</th><th>상태</th></tr></thead><tbody id="selected-features"></tbody></table></div></div><div><h3>연도별 안정성</h3><div class="table-wrap scroll-table yearly-scroll"><table><caption>완료 연도는 거래수 31회 이상이어야 통과</caption><thead><tr><th>연도</th><th>거래수</th><th>수익률</th><th>최대 낙폭</th><th>판정</th></tr></thead><tbody id="selected-yearly"></tbody></table></div></div></div>
         <details class="proposal-details"><summary>제안 변경 내용</summary><div id="selected-proposal" class="detail-block muted">이 세대의 제안 기록 없음</div></details>
         <details class="diagnostic-details"><summary>상세 진단 · 실행 ID/해시/검증 근거</summary><div id="selected-diagnostics" class="detail-block"></div></details>
       </div>
     </section>
 
-    <details class="panel ledger-details"><summary><span><span class="eyebrow">진단용 원장</span><strong>전체 실행 원장</strong></span><span id="ledger-count" class="badge">0회</span></summary><div class="toolbar"><label class="search-field">검색<input id="run-search" type="search" placeholder="세대·상태·전략 해시 검색"></label><label>상태<select id="status-filter"><option value="ALL">전체 상태</option></select></label></div><p class="muted detail-intro">실행 ID와 해시는 여기에서만 노출됩니다. 기본 성과 화면에서는 세대와 지표만 사용합니다.</p><div class="table-wrap"><table><caption>state/test-records.jsonl에서 읽은 백테스트 실행 기록</caption><thead><tr><th>시간</th><th>세대</th><th>전략 연복리</th><th>QQQ 대비</th><th>최대 낙폭</th><th>위험</th><th>상태</th></tr></thead><tbody id="runs"></tbody></table></div></details>
+    <details class="panel ledger-details"><summary><span><span class="eyebrow">진단용 원장</span><strong>전체 실행 원장</strong></span><span id="ledger-count" class="badge">0회</span></summary><div class="toolbar"><label class="search-field">검색<input id="run-search" type="search" placeholder="세대·상태·전략 해시 검색"></label><label>상태<select id="status-filter"><option value="ALL">전체 상태</option></select></label></div><p class="muted detail-intro">실행 ID와 해시는 여기에서만 노출됩니다. 기본 성과 화면에서는 세대와 지표만 사용합니다.</p><div class="table-wrap scroll-table ledger-scroll"><table><caption>state/test-records.jsonl에서 읽은 백테스트 실행 기록</caption><thead><tr><th>시간</th><th>세대</th><th>전략 연복리</th><th>QQQ 대비</th><th>최대 낙폭</th><th>위험</th><th>상태</th></tr></thead><tbody id="runs"></tbody></table></div></details>
 
     <details class="panel command-details"><summary><span><span class="eyebrow">수동 실행</span><strong>검증된 전략 실행</strong></span><span class="badge">명령 준비</span></summary><p class="muted detail-intro">화면에서 직접 실행하지 않고 명령을 검토·복사합니다.</p><div class="form-grid"><label>전략 소스<input id="strategy-source" value="&lt;strategy.py&gt;" aria-label="전략 소스"></label><label>Parquet 데이터<input id="data-source" value="&lt;data.parquet&gt;" aria-label="Parquet 데이터"></label><label>탐색 방식<select id="method" aria-label="탐색 방식"><option value="grid">Grid</option><option value="random">Random</option><option value="bayesian">Bayesian</option></select></label><label>후보 수<input id="count" type="number" min="1" value="1" aria-label="후보 수"></label></div><div class="command-block"><code id="run-command">—</code><button id="copy-run-command" class="button button-small" type="button">실행 명령 복사</button></div><p id="command-feedback" class="muted action-note" role="status" aria-live="polite">실행 전에 전략·데이터 경로와 평가 범위를 확인하세요.</p></details>
   </main>

@@ -6,6 +6,7 @@ const formatDate = (value) => { if (!value) return "—"; const date = new Date(
 const statusText = (value) => value ? statusLabel(value) : "확인 필요";
 let payload = {runs:[], generations:[], capabilities:[], summary:{}, research:{}};
 let selectedGeneration = null;
+let quickFilter = "all";
 // generation_summary is the user-facing unit; run IDs stay in diagnostics.
 
 function setText(id, value) { const node = $(id); if (node) node.textContent = value; }
@@ -43,25 +44,38 @@ function renderSummary(summary) {
   setText("ledger-count", `${summary.total_runs || 0}회`);
 }
 
-function barRow(generation, label, value, max, className) {
+function chartBar(value, max, className) {
   const width = value == null || !max ? 0 : Math.min(100, Math.abs(Number(value)) / max * 100);
-  return `<div class="performance-row"><span class="performance-generation">${generation}세대</span><span class="performance-label">${label}</span><span class="metric-bar ${className}" style="width:${width}%"></span><strong>${value == null ? "—" : fmtPct(value)}</strong></div>`;
+  return `<span class="chart-bar-stack"><span class="metric-bar ${className}" style="width:${width}%"></span></span>`;
 }
 function renderCharts(generations) {
   const sorted = [...generations].sort((a, b) => a.generation - b.generation); const cagrValues = sorted.flatMap((item) => [item.best_strategy_cagr, item.best_qqq_cagr]).filter((value) => value != null).map(Math.abs); const scores = sorted.map((item) => item.best_score).filter((value) => value != null).map(Math.abs);
   const cagrMax = Math.max(...cagrValues, 0.01); const scoreMax = Math.max(...scores, 0.01);
-  $("cagr-chart").innerHTML = sorted.map((item) => `<div class="performance-group"><div class="performance-row-title">${item.generation}세대</div>${barRow(item.generation, "전략", item.best_strategy_cagr, cagrMax, "bar-strategy")}${barRow(item.generation, "QQQ", item.best_qqq_cagr, cagrMax, "bar-benchmark")}</div>`).join("") || `<p class="empty-copy">아직 평가 전</p>`;
-  $("score-chart").innerHTML = sorted.map((item) => { const width = item.best_score == null ? 0 : Math.min(100, Math.abs(Number(item.best_score)) / scoreMax * 100); return `<div class="performance-row"><span class="performance-generation">${item.generation}세대</span><span class="metric-bar bar-score" style="width:${width}%"></span><strong>${fmt(item.best_score)}</strong></div>`; }).join("") || `<p class="empty-copy">아직 평가 전</p>`;
+  $("cagr-chart").innerHTML = sorted.map((item) => `<div class="performance-row"><span class="performance-generation">${item.generation}세대</span><span class="performance-label">전략</span>${chartBar(item.best_strategy_cagr, cagrMax, "bar-strategy")}<strong>${fmtPct(item.best_strategy_cagr)}</strong><span class="performance-label">QQQ</span>${chartBar(item.best_qqq_cagr, cagrMax, "bar-benchmark")}<strong>${fmtPct(item.best_qqq_cagr)}</strong></div>`).join("") || `<p class="empty-copy">아직 평가 전</p>`;
+  $("score-chart").innerHTML = sorted.map((item) => { const width = item.best_score == null ? 0 : Math.min(100, Math.abs(Number(item.best_score)) / scoreMax * 100); return `<div class="performance-row"><span class="performance-generation">${item.generation}세대</span><span class="chart-bar-stack"><span class="metric-bar bar-score" style="width:${width}%"></span></span><strong>${fmt(item.best_score)}</strong></div>`; }).join("") || `<p class="empty-copy">아직 평가 전</p>`;
 }
 
+function filteredGenerations() {
+  const query = $("generation-search").value.trim().toLowerCase(); const status = $("generation-status-filter").value;
+  let items = payload.generations.filter((item) => (status === "ALL" || item.status === status) && (!query || `${item.generation} ${item.status}`.toLowerCase().includes(query)));
+  if (quickFilter === "recent") { const latest = Math.max(...items.map((item) => item.generation), -1); items = items.filter((item) => item.generation === latest); }
+  if (quickFilter === "score") { const best = Math.max(...items.map((item) => item.best_score ?? Number.NEGATIVE_INFINITY), Number.NEGATIVE_INFINITY); items = items.filter((item) => item.best_score === best); }
+  if (quickFilter === "qqq") items = items.filter((item) => item.best_qqq_cagr_delta != null && item.best_qqq_cagr_delta >= 0);
+  if (quickFilter === "risk") items = items.filter((item) => item.best_risk_compliant === true);
+  const key = $("generation-sort").value;
+  return items.sort((a, b) => { const values = {recent: [b.generation, a.generation], strategy_cagr: [b.best_strategy_cagr ?? -Infinity, a.best_strategy_cagr ?? -Infinity], qqq_delta: [b.best_qqq_cagr_delta ?? -Infinity, a.best_qqq_cagr_delta ?? -Infinity], score: [b.best_score ?? -Infinity, a.best_score ?? -Infinity], drawdown: [a.best_max_drawdown ?? Infinity, b.best_max_drawdown ?? Infinity]}; return (values[key] || values.recent)[0] - (values[key] || values.recent)[1]; });
+}
+function renderGenerationExplorer() {
+  const all = payload.generations || []; const visible = filteredGenerations(); const statuses = [...new Set(all.map((item) => item.status))].sort(); const statusFilter = $("generation-status-filter"); const previous = statusFilter.value;
+  statusFilter.innerHTML = `<option value="ALL">전체 상태</option>${statuses.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(statusText(value))}</option>`).join("")}`; statusFilter.value = statuses.includes(previous) ? previous : "ALL";
+  const suffix = quickFilter === "all" ? "" : ` · 빠른 보기: ${document.querySelector(`.quick-filter[data-filter="${quickFilter}"]`)?.textContent || "선택"}`; setText("explorer-result", `검색 결과 ${visible.length}개 / 전체 ${all.length}개${suffix}`);
+  $("generation-summary-table").innerHTML = visible.map((item) => `<tr data-generation="${item.generation}" class="generation-row ${item.generation === selectedGeneration ? "selected" : ""}"><td><button class="generation-link" type="button" data-generation="${item.generation}">${item.generation}세대</button></td><td>${fmt(item.candidate_count)}개</td><td>${fmtPct(item.best_strategy_cagr)}</td><td>${fmtPct(item.best_qqq_cagr)}</td><td>${fmtPct(item.best_qqq_cagr_delta)}</td><td>${fmt(item.best_score)}</td><td>${item.best_trade_count == null ? "—" : `${fmt(item.best_trade_count)}회`}</td><td><span class="badge ${stateClass(item.status)}">${escapeHtml(statusText(item.status))}</span></td></tr>`).join("") || `<tr><td colspan="8" class="muted">조건에 맞는 세대가 없습니다. 검색어·상태·빠른 보기를 확인하세요.</td></tr>`;
+  document.querySelectorAll(".generation-link").forEach((button) => button.addEventListener("click", () => { selectedGeneration = Number(button.dataset.generation); $("generation-select").value = String(selectedGeneration); renderGenerationExplorer(); renderSelectedGeneration(); })); renderCharts(visible);
+}
 function renderGenerations(generations) {
-  const sorted = [...generations].sort((a, b) => b.generation - a.generation); const select = $("generation-select");
-  select.innerHTML = sorted.map((item) => `<option value="${item.generation}">${item.generation}세대 · 최고 후보</option>`).join("");
+  const sorted = [...generations].sort((a, b) => b.generation - a.generation); const select = $("generation-select"); select.innerHTML = sorted.map((item) => `<option value="${item.generation}">${item.generation}세대 · 최고 후보</option>`).join("");
   if (selectedGeneration == null || !sorted.some((item) => item.generation === selectedGeneration)) selectedGeneration = sorted[0]?.generation ?? null;
-  if (selectedGeneration != null) select.value = String(selectedGeneration);
-  $("generation-summary-table").innerHTML = sorted.map((item) => `<tr data-generation="${item.generation}" class="generation-row ${item.generation === selectedGeneration ? "selected" : ""}"><td><button class="generation-link" type="button" data-generation="${item.generation}">${item.generation}세대</button></td><td>${fmt(item.candidate_count)}개</td><td>${fmtPct(item.best_strategy_cagr)}</td><td>${fmtPct(item.best_qqq_cagr)}</td><td>${fmtPct(item.best_qqq_cagr_delta)}</td><td>${fmt(item.best_score)}</td><td>${item.best_trade_count == null ? "—" : `${fmt(item.best_trade_count)}회`}</td><td><span class="badge ${stateClass(item.status)}">${escapeHtml(statusText(item.status))}</span></td></tr>`).join("") || `<tr><td colspan="8" class="muted">아직 평가 전</td></tr>`;
-  document.querySelectorAll(".generation-link").forEach((button) => button.addEventListener("click", () => { selectedGeneration = Number(button.dataset.generation); renderGenerations(payload.generations); renderSelectedGeneration(); }));
-  renderCharts(sorted);
+  if (selectedGeneration != null) select.value = String(selectedGeneration); renderGenerationExplorer();
 }
 
 function featureRows(item, summary) {
@@ -112,6 +126,10 @@ async function loadBacktest() {
 }
 
 $("generation-select").addEventListener("change", () => { selectedGeneration = Number($("generation-select").value); renderGenerations(payload.generations); renderSelectedGeneration(); });
+$("generation-search").addEventListener("input", renderGenerationExplorer);
+$("generation-status-filter").addEventListener("change", renderGenerationExplorer);
+$("generation-sort").addEventListener("change", renderGenerationExplorer);
+document.querySelectorAll(".quick-filter").forEach((button) => button.addEventListener("click", () => { quickFilter = button.dataset.filter; document.querySelectorAll(".quick-filter").forEach((item) => item.classList.toggle("active", item === button)); renderGenerationExplorer(); }));
 $("run-search").addEventListener("input", renderRuns); $("status-filter").addEventListener("change", renderRuns); $("refresh").addEventListener("click", loadBacktest);
 [$("strategy-source"), $("data-source"), $("method"), $("count")].forEach((input) => input.addEventListener("input", renderCommand));
 $("copy-run-command").addEventListener("click", async () => { try { await navigator.clipboard.writeText(commandText()); $("command-feedback").textContent = "실행 명령을 클립보드에 복사했습니다. 터미널에서 검토 후 실행하세요."; } catch (error) { $("command-feedback").textContent = "복사에 실패했습니다. 명령을 직접 선택해 복사하세요."; } });
