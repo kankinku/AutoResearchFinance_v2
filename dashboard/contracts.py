@@ -87,6 +87,41 @@ class TrendPoint(DashboardModel):
     total_return: float | None = None
     nasdaq_excess_return: float | None = None
     risk_compliant: bool | None = None
+    strategy_cagr: float | None = None
+    qqq_cagr: float | None = None
+    qqq_cagr_delta: float | None = None
+    max_drawdown: float | None = None
+    trade_count: int | None = None
+
+
+class BacktestResearchStatus(DashboardModel):
+    status: str = "UNKNOWN"
+    requested_generations: int = 0
+    completed_generations: int = 0
+    current_generation: int | None = None
+    current_phase: str = "UNKNOWN"
+    phase_started_at: str | None = None
+    phase_elapsed_seconds: float | None = None
+    last_completed_generation: int | None = None
+
+
+class GenerationSummary(DashboardModel):
+    generation: int
+    status: str = "UNKNOWN"
+    candidate_count: int = 0
+    best_run_id: str | None = None
+    best_score: float | None = None
+    best_strategy_cagr: float | None = None
+    best_qqq_cagr: float | None = None
+    best_qqq_cagr_delta: float | None = None
+    best_total_return: float | None = None
+    best_max_drawdown: float | None = None
+    best_sharpe: float | None = None
+    best_sortino: float | None = None
+    best_profit_factor: float | None = None
+    best_trade_count: int | None = None
+    best_risk_compliant: bool | None = None
+    proposal: dict[str, object] = Field(default_factory=dict)
 
 
 class WorkerStatus(DashboardModel):
@@ -137,6 +172,19 @@ class BacktestSummary(DashboardModel):
     latest_run_at: str | None = None
     best_run_id: str | None = None
     best_total_return: float | None = None
+    best_strategy_cagr: float | None = None
+    best_qqq_cagr: float | None = None
+    best_qqq_cagr_delta: float | None = None
+    best_max_drawdown: float | None = None
+    best_sharpe: float | None = None
+    best_sortino: float | None = None
+    best_profit_factor: float | None = None
+    best_trade_count: int | None = None
+    best_turnover: float | None = None
+    best_exposure: float | None = None
+    risk_compliance_rate: float | None = None
+    generation_count: int = 0
+    passing_generation_count: int = 0
 
 
 class BacktestCapability(DashboardModel):
@@ -151,6 +199,8 @@ class BacktestSnapshot(DashboardModel):
     generated_at: str
     mode: ModeStatus = Field(default_factory=ModeStatus)
     summary: BacktestSummary = Field(default_factory=BacktestSummary)
+    research: BacktestResearchStatus = Field(default_factory=BacktestResearchStatus)
+    generations: list[GenerationSummary] = Field(default_factory=list)
     runs: list[TestRecord] = Field(default_factory=list)
     capabilities: list[BacktestCapability] = Field(default_factory=list)
     warning_codes: list[str] = Field(default_factory=list)

@@ -48,15 +48,15 @@ def test_backtest_endpoint_exposes_run_ledger_summary_and_connected_actions(tmp_
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["summary"] == {
-        "total_runs": 2,
-        "succeeded_runs": 1,
-        "rejected_runs": 1,
-        "risk_compliant_runs": 1,
-        "latest_run_at": "2026-09-01T10:00:00+00:00",
-        "best_run_id": "run-good",
-        "best_total_return": 0.24,
-    }
+    assert payload["summary"]["total_runs"] == 2
+    assert payload["summary"]["succeeded_runs"] == 1
+    assert payload["summary"]["rejected_runs"] == 1
+    assert payload["summary"]["risk_compliant_runs"] == 1
+    assert payload["summary"]["latest_run_at"] == "2026-09-01T10:00:00+00:00"
+    assert payload["summary"]["best_run_id"] == "run-good"
+    assert payload["summary"]["best_total_return"] == 0.24
+    assert payload["summary"]["generation_count"] == 2
+    assert payload["summary"]["risk_compliance_rate"] == 0.5
     assert [item["run_id"] for item in payload["runs"]] == ["run-good", "run-bad"]
     actions = {item["id"]: item for item in payload["capabilities"]}
     assert actions["validate_strategy"]["status"] == "CONNECTED"

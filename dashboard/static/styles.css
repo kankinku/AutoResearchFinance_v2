@@ -36,3 +36,39 @@ footer { color:var(--muted); display:flex; justify-content:space-between; paddin
 @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } .research-grid { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:700px) { .topbar,.top-actions { align-items:flex-start; flex-direction:column; } .top-actions { width:100%; } .last-read { text-align:left; } .top-actions .button { width:100%; } .decision-grid,.two-column { grid-template-columns:1fr; } .toolbar { align-items:stretch; flex-direction:column; } .toolbar .search-field { max-width:none; } }
 @media (max-width:480px) { .topbar,main,footer { width:calc(100% - 24px); } .safety-banner { align-items:flex-start; flex-wrap:wrap; } .safety-banner .badge { margin-left:20px; } .overview-grid,.research-grid,.account-grid { grid-template-columns:1fr; } .family-row { grid-template-columns:90px 1fr 24px; } .summary-meta { float:none; display:block; margin:2px 0 0 28px; } footer { gap:8px; flex-direction:column; } }
+
+/* Performance-first backtest view */
+.research-hero { border-top:4px solid var(--blue); margin-bottom:14px; }
+.research-status-grid { display:grid; gap:18px; grid-template-columns:1fr 2fr 1fr 1fr; align-items:center; }
+.research-status-grid > div { display:grid; gap:3px; min-width:0; }
+.hero-number { font-size:30px; letter-spacing:-.06em; line-height:1.1; }
+.hero-number-small { font-size:22px; }
+.progress-column { align-self:stretch; justify-content:center; }
+.progress-label { display:flex; justify-content:space-between; gap:10px; }
+.progress-track { background:#e9eef7; border-radius:999px; height:10px; overflow:hidden; }
+.progress-track span { background:linear-gradient(90deg,#2563eb,#7c3aed); border-radius:inherit; display:block; height:100%; transition:width .3s ease; }
+.kpi-grid { grid-template-columns:repeat(4,1fr); margin-bottom:14px; }
+.kpi-grid .card { min-height:112px; }
+.performance-grid { display:grid; gap:24px; grid-template-columns:1fr 1fr; margin:20px 0; }
+.performance-grid h3,.analysis-grid h3 { font-size:14px; margin:0 0 10px; }
+.performance-chart { background:#f8fafc; border:1px solid var(--border); border-radius:10px; display:grid; gap:9px; min-height:92px; padding:12px; }
+.performance-group { border-bottom:1px solid #eef1f5; display:grid; gap:4px; padding-bottom:8px; }
+.performance-group:last-child { border-bottom:0; padding-bottom:0; }
+.performance-row { align-items:center; display:flex; gap:8px; min-height:18px; }
+.performance-row-title { color:var(--muted); font-size:11px; font-weight:700; }
+.performance-generation { color:var(--muted); flex:0 0 42px; font-size:11px; }
+.performance-label { color:var(--muted); flex:0 0 34px; font-size:11px; }
+.metric-bar { background:var(--blue); border-radius:4px; display:block; height:8px; min-width:2px; }
+.bar-benchmark { background:#98a2b3; }.bar-score { background:#7c3aed; flex:0 0 auto; }.performance-row strong { font-size:11px; margin-left:auto; }
+.generation-table .generation-row { cursor:pointer; }.generation-table .generation-row:hover,.generation-table .generation-row.selected { background:var(--blue-soft); }
+.generation-link { background:transparent; border:0; color:var(--blue); font-weight:750; padding:0; }.generation-link:hover { outline:0; }
+.generation-picker { align-items:center; display:flex; gap:8px; }.generation-picker label { color:var(--muted); font-size:12px; }.generation-picker select { border:1px solid var(--border); border-radius:8px; padding:8px; }
+.selected-hero { align-items:flex-start; background:linear-gradient(120deg,#eff6ff,#faf5ff); border:1px solid #dbe5ff; border-radius:10px; display:flex; justify-content:space-between; gap:16px; margin-bottom:14px; padding:16px; }.selected-hero h3 { font-size:19px; margin:0 0 4px; }.selected-hero .muted { max-width:760px; }
+.selected-kpi-grid { display:grid; gap:1px; grid-template-columns:repeat(5,1fr); margin-bottom:20px; overflow:hidden; }.selected-kpi-grid > div { background:#f8fafc; border:1px solid var(--border); display:grid; gap:3px; padding:11px; }.selected-kpi-grid strong { font-size:18px; }
+.analysis-grid { display:grid; gap:22px; grid-template-columns:1.15fr .85fr; }.analysis-grid > div { min-width:0; }
+.gate-pass,.gate-fail,.gate-pending { font-weight:750; }.gate-pass { color:var(--green); }.gate-fail { color:var(--red); }.gate-pending { color:var(--yellow); }
+.proposal-details,.diagnostic-details,.ledger-details,.command-details { margin-top:14px; }.proposal-details summary,.diagnostic-details summary,.ledger-details summary,.command-details summary { align-items:center; cursor:pointer; display:flex; justify-content:space-between; list-style:none; }.proposal-details summary::-webkit-details-marker,.diagnostic-details summary::-webkit-details-marker,.ledger-details summary::-webkit-details-marker,.command-details summary::-webkit-details-marker { display:none; }.proposal-details summary strong,.diagnostic-details summary strong,.ledger-details summary strong,.command-details summary strong { display:block; font-size:15px; margin-top:2px; }.detail-block { border-top:1px solid var(--border); margin-top:14px; padding-top:14px; }.proposal-list { display:grid; gap:7px; grid-template-columns:130px 1fr; margin:0; }.proposal-list dt { color:var(--muted); }.proposal-list dd { margin:0; }.warning-copy { background:var(--yellow-soft); border-radius:6px; color:var(--yellow); margin:12px 0 0; padding:8px; }
+.diagnostic-grid { display:grid; gap:18px; grid-template-columns:.8fr 1.2fr; }.diagnostic-grid .details { margin:0; }.diagnostic-grid table { margin-top:0; }.diagnostic-grid table + table { margin-top:14px; }
+.ledger-details > summary,.command-details > summary { margin:-2px; padding:2px; }.ledger-details[open] > summary,.command-details[open] > summary { border-bottom:1px solid var(--border); padding-bottom:14px; }.ledger-details .toolbar { margin-top:14px; }
+@media (max-width:900px){.research-status-grid,.analysis-grid,.diagnostic-grid{grid-template-columns:1fr 1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}.performance-grid{grid-template-columns:1fr}.selected-kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:600px){.research-status-grid,.analysis-grid,.diagnostic-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}.selected-kpi-grid{grid-template-columns:repeat(2,1fr)}.generation-picker{align-items:flex-end;flex-direction:column}.selected-hero{flex-direction:column}.proposal-list{grid-template-columns:1fr}}

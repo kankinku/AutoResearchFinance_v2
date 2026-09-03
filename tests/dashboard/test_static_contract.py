@@ -21,3 +21,25 @@ def test_backtest_command_shows_all_canonical_evaluation_gates() -> None:
     assert "--min-trades 10" in content
     assert "--min-annual-trades 30" in content
     assert "--min-qqq-cagr 0.10" in content
+
+
+def test_backtest_page_is_performance_first_and_hides_ids_in_diagnostics() -> None:
+    html = (STATIC / "backtest.html").read_text(encoding="utf-8")
+    javascript = (STATIC / "backtest.js").read_text(encoding="utf-8")
+    for marker in (
+        "현재 세대",
+        "전략 연복리",
+        "QQQ 연복리",
+        "QQQ 대비",
+        "성능 향상 추이",
+        "인디케이터와 입력 자료",
+        "연도별 안정성",
+        "상세 진단",
+        "전체 실행 원장",
+        "data-generation",
+    ):
+        assert marker in html
+    assert "renderResearch" in javascript
+    assert "renderGenerations" in javascript
+    assert "renderDiagnostics" in javascript
+    assert "generation_summary" in javascript

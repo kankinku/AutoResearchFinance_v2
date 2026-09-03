@@ -4,17 +4,20 @@ import json
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from core.features.registry import research_feature_specs
 from dashboard.contracts import (
     AccountSnapshot,
     BacktestCapability,
+    BacktestResearchStatus,
     BacktestSnapshot,
     BacktestSummary,
     DashboardHealth,
     DashboardSnapshot,
+    GenerationSummary,
     Holding,
+    TestRecord,
 )
 from dashboard.state import DashboardStateReader, SnapshotStore
 from integrations.kis.client import KISAccountSnapshot, KISPaperClient
@@ -70,9 +73,7 @@ class DashboardService:
                     "workers": fresh.workers,
                     "llm": fresh.llm,
                     "research": fresh.research,
-                    "warning_codes": sorted(
-                        set((*stored.warning_codes, *fresh.warning_codes))
-                    ),
+                    "warning_codes": sorted(set((*stored.warning_codes, *fresh.warning_codes))),
                 }
             )
         return self._with_health(snapshot)
@@ -178,6 +179,16 @@ class DashboardService:
             )
         return result
 
+    def _research_state(self) -> dict[str, Any]:
+        path = self.state_dir / "system" / "autoresearch.json"
+        if not path.is_file():
+            return {}
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
     def backtest_snapshot(self) -> BacktestSnapshot:
         """Return the read-only backtest view backed by the existing run ledger."""
 
@@ -185,12 +196,11 @@ class DashboardService:
         runs = snapshot.tests
         success_statuses = {"SUCCEEDED", "SURVIVOR", "PASS", "VALIDATED"}
         rejected_statuses = {"REJECT", "FAILED", "FAIL"}
-        returns = [run for run in runs if run.total_return is not None]
-        best = max(
-            returns,
-            key=lambda run: run.total_return if run.total_return is not None else float("-inf"),
-            default=None,
-        )
+        research_state = self._research_state()
+        generations = _generation_summaries(runs, research_state)
+        best_ids = {item.best_run_id for item in generations}
+        best = _best_record([run for run in runs if run.run_id in best_ids])
+        risk_count = sum(run.risk_compliant is True for run in runs)
         summary = BacktestSummary(
             total_runs=len(runs),
             succeeded_runs=sum(run.status.upper() in success_statuses for run in runs),
@@ -199,6 +209,21 @@ class DashboardService:
             latest_run_at=runs[0].timestamp if runs else None,
             best_run_id=best.run_id if best else None,
             best_total_return=best.total_return if best else None,
+            best_strategy_cagr=best.strategy_cagr if best else None,
+            best_qqq_cagr=best.qqq_cagr if best else None,
+            best_qqq_cagr_delta=best.qqq_cagr_delta if best else None,
+            best_max_drawdown=best.max_drawdown if best else None,
+            best_sharpe=best.sharpe if best else None,
+            best_sortino=best.sortino if best else None,
+            best_profit_factor=best.profit_factor if best else None,
+            best_trade_count=best.trade_count if best else None,
+            best_turnover=best.turnover if best else None,
+            best_exposure=best.exposure if best else None,
+            risk_compliance_rate=(risk_count / len(runs)) if runs else None,
+            generation_count=len(generations),
+            passing_generation_count=sum(
+                item.status.upper() in success_statuses for item in generations
+            ),
         )
         thresholds = default_evaluation_thresholds()
         capabilities = [
@@ -238,6 +263,8 @@ class DashboardService:
             generated_at=snapshot.generated_at,
             mode=snapshot.mode,
             summary=summary,
+            research=_research_status(research_state, self._clock()),
+            generations=generations,
             runs=runs,
             capabilities=capabilities,
             warning_codes=snapshot.warning_codes,
@@ -278,3 +305,138 @@ class DashboardService:
                 )
             }
         )
+
+
+def _best_record(records: list[TestRecord]) -> TestRecord | None:
+    if not records:
+        return None
+    eligible = [record for record in records if record.status.upper() != "REJECT"]
+    pool = eligible or records
+    return max(
+        pool,
+        key=lambda record: record.score if record.score is not None else float("-inf"),
+    )
+
+
+def _proposal_for_generation(state: dict[str, Any], generation: int) -> dict[str, object]:
+    entries = state.get("generations", [])
+    if not isinstance(entries, list):
+        return {}
+    entry = next(
+        (
+            item
+            for item in entries
+            if isinstance(item, dict) and _as_int(item.get("generation")) == generation
+        ),
+        None,
+    )
+    if not isinstance(entry, dict):
+        return {}
+    intent = entry.get("intent")
+    result: dict[str, object] = {
+        "status": entry.get("status", "UNKNOWN"),
+        "intent_status": entry.get("intent_status", "UNKNOWN"),
+        "intent_error": entry.get("intent_error"),
+        "operations": entry.get("operations", []),
+    }
+    if isinstance(intent, dict):
+        for key in ("mode", "parent_ids", "rationale", "feature_selections", "operations"):
+            if key in intent:
+                result[key] = intent[key]
+    return {key: value for key, value in result.items() if value not in (None, [], {})}
+
+
+def _generation_summaries(
+    runs: list[TestRecord], research_state: dict[str, Any]
+) -> list[GenerationSummary]:
+    grouped: dict[int, list[TestRecord]] = {}
+    for run in runs:
+        grouped.setdefault(run.generation, []).append(run)
+    summaries: list[GenerationSummary] = []
+    for generation in sorted(grouped):
+        best = _best_record(grouped[generation])
+        if best is None:
+            continue
+        summaries.append(
+            GenerationSummary(
+                generation=generation,
+                status=best.status,
+                candidate_count=len(grouped[generation]),
+                best_run_id=best.run_id,
+                best_score=best.score,
+                best_strategy_cagr=best.strategy_cagr,
+                best_qqq_cagr=best.qqq_cagr,
+                best_qqq_cagr_delta=best.qqq_cagr_delta,
+                best_total_return=best.total_return,
+                best_max_drawdown=best.max_drawdown,
+                best_sharpe=best.sharpe,
+                best_sortino=best.sortino,
+                best_profit_factor=best.profit_factor,
+                best_trade_count=best.trade_count,
+                best_risk_compliant=best.risk_compliant,
+                proposal=_proposal_for_generation(research_state, generation),
+            )
+        )
+    return summaries
+
+
+def _research_status(state: dict[str, Any], now: datetime) -> BacktestResearchStatus:
+    requested = _as_int(state.get("requested_generations"), 0) or 0
+    completed = _as_int(state.get("completed_generations"), 0) or 0
+    current = _as_int(state.get("current_generation"))
+    phase_started = state.get("phase_started_at")
+    elapsed: float | None = None
+    if isinstance(phase_started, str):
+        try:
+            started = datetime.fromisoformat(phase_started)
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            reference = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
+            elapsed = max(
+                0.0,
+                (
+                    reference.astimezone(timezone.utc) - started.astimezone(timezone.utc)
+                ).total_seconds(),
+            )
+        except ValueError:
+            elapsed = None
+    if elapsed is None:
+        elapsed = _as_float(state.get("phase_elapsed_seconds"))
+    if current is None and str(state.get("status", "")).upper() == "RUNNING":
+        current = completed + 1
+    return BacktestResearchStatus(
+        status=str(state.get("status", "UNKNOWN")),
+        requested_generations=requested,
+        completed_generations=completed,
+        current_generation=current,
+        current_phase=str(state.get("current_phase", "UNKNOWN")),
+        phase_started_at=phase_started if isinstance(phase_started, str) else None,
+        phase_elapsed_seconds=elapsed,
+        last_completed_generation=completed or None,
+    )
+
+
+def _as_int(value: object, default: int | None = None) -> int | None:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default
+
+
+def _as_float(value: object, default: float | None = None) -> float | None:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return default
+    return default
