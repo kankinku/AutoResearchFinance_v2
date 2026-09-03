@@ -7,7 +7,16 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from strategy_import.models import AnalysisResult, AnalysisStatus
-from strategy_ir.schema import Condition, IndicatorSpec, Provenance, RiskConfig, RuleSet, StrategyIR
+from strategy_ir.schema import (
+    Condition,
+    ConditionOperator,
+    IndicatorSpec,
+    IndicatorType,
+    Provenance,
+    RiskConfig,
+    RuleSet,
+    StrategyIR,
+)
 from strategy_ir.validator import StrategyValidationError, validate_strategy
 
 
@@ -145,7 +154,10 @@ def _kis_builder_state_to_ir(state: dict[str, Any], path: Path, source_hash: str
         numeric_period = int(period) if isinstance(period, (int, float)) and period > 0 else None
         extra = {str(k): v for k, v in params.items() if k != "period" and _scalar(v)}
         indicators[alias] = IndicatorSpec(
-            type=str(item.get("indicatorId") or item.get("type") or "UNKNOWN").upper(),
+            type=cast(
+                IndicatorType,
+                str(item.get("indicatorId") or item.get("type") or "UNKNOWN").upper(),
+            ),
             period=numeric_period,
             parameters=extra,
         )
@@ -185,7 +197,14 @@ def _rule_set(raw: Any, indicators: dict[str, IndicatorSpec]) -> RuleSet:
             if isinstance(right_raw, dict) and right_raw.get("type") == "value"
             else None
         )
-        conditions.append(Condition(op=operator, left=left, right=right, value=value))
+        conditions.append(
+            Condition(
+                op=cast(ConditionOperator, operator),
+                left=left,
+                right=right,
+                value=value,
+            )
+        )
     logic = str(raw.get("logic") or "AND").upper()
     if logic not in {"AND", "OR"}:
         raise ValueError("unsupported rule logic")

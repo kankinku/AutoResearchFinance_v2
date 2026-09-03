@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable, Mapping
 
 from core.features.contracts import FeatureSpec
@@ -65,7 +66,7 @@ def intent_to_operations(
         _selection_operation(selection, specs)
         for selection in intent.feature_selections
     )
-    return operations + selected
+    return _order_operations(operations + selected)
 
 
 def apply_intent(
@@ -179,7 +180,7 @@ def _typed_operation_from_model(
 ) -> MutationOperation | None:
     if operation.op == "RETAIN":
         return None
-    path = operation.path
+    path = _normalize_path(operation.path)
     if operation.op == "ADD_REGIME_FILTER":
         if path not in {None, "regime_filters"}:
             raise IntentEligibilityError(
@@ -217,6 +218,22 @@ def _typed_operation_from_model(
         if operation.indicator is None:
             raise IntentEligibilityError(
                 "indicator additions require an indicator object",
+                code="INTENT_VALUE_TYPE",
+            )
+        return MutationOperation(
+            operation.op,
+            path,
+            operation.indicator.model_dump(mode="python", exclude_none=True),
+        )
+    if operation.op == "SWAP_INDICATOR":
+        if path is None or not path.startswith("indicators.") or path == "indicators.":
+            raise IntentEligibilityError(
+                "indicator swaps require an indicators.<alias> target",
+                code="INTENT_PATH_TARGET",
+            )
+        if operation.indicator is None:
+            raise IntentEligibilityError(
+                "indicator swaps require an indicator object",
                 code="INTENT_VALUE_TYPE",
             )
         return MutationOperation(
@@ -325,8 +342,10 @@ def _normalize_operation(op: str, path: str | None) -> tuple[str, str | None]:
 
 
 def _normalize_path(path: str | None) -> str | None:
-    if path is None or not path.startswith("/"):
-        return path
+    if path is None:
+        return None
+    if not path.startswith("/"):
+        return _normalize_dot_path(path)
     parts = path.lstrip("/").split("/")
     if parts and parts[0] == "source_strategy":
         parts = parts[1:]
@@ -336,7 +355,36 @@ def _normalize_path(path: str | None) -> str | None:
     ):
         raise IntentEligibilityError(f"invalid intent operation path: {path}")
     decoded = [part.replace("~1", "/").replace("~0", "~") for part in parts]
-    return ".".join(decoded)
+    return _normalize_dot_path(".".join(decoded))
+
+
+def _normalize_dot_path(path: str) -> str:
+    normalized = re.sub(r"\[(\d+)\]", r".\1", path)
+    if "[" in normalized or "]" in normalized:
+        raise IntentEligibilityError(
+            f"unsupported path notation: {path}", code="INTENT_PATH_FORMAT"
+        )
+    return normalized
+
+
+def _order_operations(
+    operations: tuple[MutationOperation, ...],
+) -> tuple[MutationOperation, ...]:
+    """Apply declarations before rules that may reference their aliases."""
+
+    priority = {
+        "ADD_INDICATOR": 0,
+        "ADD_FEATURE": 0,
+        "SET_PARAMETER": 1,
+        "SWAP_INDICATOR": 1,
+        "ADD_RULE": 2,
+        "REPLACE_RULE": 2,
+        "ADD_REGIME_FILTER": 2,
+    }
+    ordered = sorted(
+        enumerate(operations), key=lambda item: (priority.get(item[1].op, 3), item[0])
+    )
+    return tuple(operation for _, operation in ordered)
 
 
 def _list_target_path(path: str) -> str:

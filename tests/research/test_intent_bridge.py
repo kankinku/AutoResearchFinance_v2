@@ -153,6 +153,67 @@ def test_canonical_indicator_operation_is_converted_to_an_indicator_value() -> N
     assert operations[0].value == {"type": "EMA", "period": 5, "parameters": {}}
 
 
+def test_canonical_swap_indicator_operation_is_converted_to_an_indicator_value() -> None:
+    intent = ResearchIntent(
+        mode="structure",
+        parent_ids=("QQQ-base",),
+        rationale="swap the fast average implementation",
+        operations=(
+            {
+                "op": "SWAP_INDICATOR",
+                "path": "indicators.fast",
+                "indicator": {"type": "EMA", "period": 5, "parameters": {}},
+            },
+        ),
+    )
+
+    operations = intent_to_operations(intent, research_feature_specs())
+
+    assert operations[0].op == "SWAP_INDICATOR"
+    assert operations[0].value == {"type": "EMA", "period": 5, "parameters": {}}
+
+
+def test_condition_paths_use_dot_index_and_feature_references_use_aliases() -> None:
+    intent = ResearchIntent(
+        mode="mixed",
+        parent_ids=("S001923",),
+        rationale="use a registered feature in a regime gate",
+        operations=(
+            {
+                "op": "REPLACE_RULE",
+                "path": "entry.conditions[0]",
+                "condition": {
+                    "op": "greater_than",
+                    "left": "features.vix_regime",
+                    "value": 0.8,
+                },
+            },
+        ),
+        feature_selections=(
+            {
+                "alias": "vix_regime",
+                "feature_id": "vix_percentile",
+                "inputs": ("VIX.close",),
+                "timeframe": "1d",
+                "lookback": 20,
+            },
+        ),
+    )
+
+    operations = intent_to_operations(intent, research_feature_specs())
+
+    assert operations[0].op == "ADD_FEATURE"
+    assert operations[0].path == "features.vix_regime"
+    assert operations[1].path == "entry.conditions.0"
+    assert operations[1].value["left"] == "vix_regime"
+
+    parent = validate_strategy(example_document())
+    child = apply_intent(parent, intent, research_feature_specs())
+
+    assert child.features["vix_regime"].feature_id == "vix_percentile"
+    assert child.entry.conditions[0].left == "vix_regime"
+
+
 def test_regime_filter_add_cannot_target_an_item_or_use_a_boolean() -> None:
     for path in ("regime_filters.0",):
         intent = ResearchIntent(

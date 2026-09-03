@@ -76,8 +76,12 @@ class CodexExecProvider:
                     "typed operation fields defined by the output schema. Never use JSON "
                     "Patch add/replace/remove operations. ADD_RULE and ADD_REGIME_FILTER "
                     "must use a condition object, SET_PARAMETER must use a scalar value, "
-                    "and ADD_FEATURE must use a typed feature object. Do not edit files, "
-                    "write Python, change evaluators, or access credentials."
+                    "and ADD_FEATURE must use a typed feature object. Use only the verified "
+                    "condition operators cross_above, cross_below, less_than, less_equal, "
+                    "greater_than, greater_equal, or equal. Use dotted paths such as "
+                    "entry.conditions.<index> and indicators.<alias>; indicator changes "
+                    "must carry an indicator object at indicators.<alias>. Do not edit "
+                    "files, write Python, change evaluators, or access credentials."
                 ),
                 "context": sanitize_context(context),
             }
@@ -101,9 +105,13 @@ class CodexExecProvider:
                         "Use only registered feature selections and canonical typed mutation "
                         "operations with Strategy IR-root dotted paths. Never emit JSON Patch "
                         "add/replace/remove operations. Condition targets must contain a "
-                        "condition object, not a boolean or list. Remove any unregistered "
-                        "feature proposal. Do not edit files, write Python, change evaluators, "
-                        "access credentials, or place orders."
+                        "condition object, not a boolean or list. Use only the verified "
+                        "condition operators cross_above, cross_below, less_than, less_equal, "
+                        "greater_than, greater_equal, or equal. Use dotted paths such as "
+                        "entry.conditions.<index> and indicators.<alias>, and carry indicator "
+                        "changes in the typed indicator field. Remove any unregistered feature "
+                        "proposal. Do not edit files, write Python, change evaluators, access "
+                        "credentials, or place orders."
                     ),
                     "context": sanitize_context(context),
                     "invalid_intent": sanitize_context(invalid_intent),

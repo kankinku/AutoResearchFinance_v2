@@ -451,6 +451,7 @@ def test_autoresearch_writes_phase_events_and_live_phase_status(tmp_path: Path) 
         "run_started",
         "generation_started",
         "proposal_started",
+        "preflight_completed",
         "proposal_completed",
         "evaluation_started",
         "evaluation_completed",

@@ -83,6 +83,9 @@ def test_codex_exec_provider_uses_schema_and_redacts_child_environment(tmp_path:
     assert sent["context"]["observations"] == [{"score": 0.8}]
     assert "canonical typed operation" in sent["instruction"]
     assert "never use json patch" in sent["instruction"].lower()
+    assert "greater_than" in sent["instruction"]
+    assert "indicators.<alias>" in sent["instruction"]
+    assert "entry.conditions.<index>" in sent["instruction"]
 
 
 def test_codex_exec_provider_rejects_failed_or_invalid_output(tmp_path: Path) -> None:
@@ -115,6 +118,8 @@ def test_codex_exec_provider_repairs_with_an_independent_request(tmp_path: Path)
     assert "KIS_PAPER_APP_SECRET" not in json.dumps(request)
     assert "condition object" in request["instruction"]
     assert "never emit json patch" in request["instruction"].lower()
+    assert "greater_than" in request["instruction"]
+    assert "indicators.<alias>" in request["instruction"]
 
 
 def test_codex_exec_provider_marks_repair_as_active_and_completed(tmp_path: Path) -> None:

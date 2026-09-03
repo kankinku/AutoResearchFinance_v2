@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from typing import Any, Literal, Protocol
 
@@ -65,12 +66,14 @@ class IntentOperation(BaseModel):
             return payload
         lowered = raw_op.lower()
         if lowered not in {"add", "replace", "remove", "retain"}:
+            if isinstance(payload.get("path"), str):
+                payload["path"] = _canonical_operation_path(payload["path"])
             return payload
         if lowered == "retain":
             if len(payload) == 1:
                 return {"op": "RETAIN"}
             return {"op": "RETAIN", "path": payload.get("path"), "value": payload.get("value")}
-        path = _legacy_path(payload.get("path"))
+        path = _canonical_operation_path(_legacy_path(payload.get("path")))
         raw_value = _decode_legacy_value(payload.get("value"))
         if lowered == "add":
             if path.startswith("regime_filters"):
@@ -127,6 +130,12 @@ class IntentOperation(BaseModel):
             if self.feature is not None or self.indicator is not None or self.logic is not None:
                 raise ValueError("REPLACE_RULE cannot carry an unrelated typed value")
         elif self.op == "ADD_FEATURE":
+            if (
+                self.path is None
+                or not self.path.startswith("features.")
+                or self.path == "features."
+            ):
+                raise ValueError("ADD_FEATURE operation requires a features.<alias> path")
             if self.feature is None:
                 raise ValueError("ADD_FEATURE operation requires a feature object")
             if (
@@ -137,6 +146,12 @@ class IntentOperation(BaseModel):
             ):
                 raise ValueError("ADD_FEATURE operation cannot carry an untyped value")
         elif self.op == "ADD_INDICATOR":
+            if (
+                self.path is None
+                or not self.path.startswith("indicators.")
+                or self.path == "indicators."
+            ):
+                raise ValueError("ADD_INDICATOR operation requires an indicators.<alias> path")
             if self.indicator is None:
                 raise ValueError("ADD_INDICATOR operation requires an indicator object")
             if (
@@ -146,6 +161,22 @@ class IntentOperation(BaseModel):
                 or self.logic is not None
             ):
                 raise ValueError("ADD_INDICATOR operation cannot carry an untyped value")
+        elif self.op == "SWAP_INDICATOR":
+            if (
+                self.path is None
+                or not self.path.startswith("indicators.")
+                or self.path == "indicators."
+            ):
+                raise ValueError("SWAP_INDICATOR operation requires an indicators.<alias> path")
+            if self.indicator is None:
+                raise ValueError("SWAP_INDICATOR operation requires an indicator object")
+            if (
+                self.value is not None
+                or self.condition is not None
+                or self.feature is not None
+                or self.logic is not None
+            ):
+                raise ValueError("SWAP_INDICATOR operation cannot carry an untyped value")
         elif self.op == "CHANGE_AND_OR":
             if self.logic is None:
                 raise ValueError("CHANGE_AND_OR operation requires logic")
@@ -191,6 +222,13 @@ def _legacy_path(value: object) -> str:
     decoded = [part.replace("~1", "/").replace("~0", "~") for part in parts]
     path = ".".join(decoded)
     return path[:-2] if path.endswith(".-") else path
+
+
+def _canonical_operation_path(path: str) -> str:
+    normalized = re.sub(r"\[(\d+)\]", r".\1", path)
+    if "[" in normalized or "]" in normalized:
+        raise ValueError(f"unsupported path notation: {path}")
+    return normalized
 
 
 def _decode_legacy_value(value: object) -> object:

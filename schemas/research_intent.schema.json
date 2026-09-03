@@ -4,7 +4,15 @@
       "additionalProperties": false,
       "properties": {
         "op": {
-          "minLength": 1,
+          "enum": [
+            "cross_above",
+            "cross_below",
+            "less_than",
+            "less_equal",
+            "greater_than",
+            "greater_equal",
+            "equal"
+          ],
           "title": "Op",
           "type": "string"
         },
@@ -284,7 +292,32 @@
       "additionalProperties": false,
       "properties": {
         "type": {
-          "minLength": 1,
+          "enum": [
+            "SMA",
+            "EMA",
+            "WMA",
+            "HMA",
+            "DEMA",
+            "TEMA",
+            "KAMA",
+            "WILDER",
+            "RSI",
+            "MACD",
+            "ATR",
+            "ADX",
+            "BOLLINGER",
+            "IBS",
+            "DISPARITY",
+            "CONSECUTIVE",
+            "VOLATILITY_IND",
+            "CHANGE",
+            "MAXIMUM",
+            "ROC",
+            "VOLUME_BREAKOUT",
+            "52_WEEK_HIGH",
+            "VOLATILITY_FILTER",
+            "REGIME_FILTER"
+          ],
           "title": "Type",
           "type": "string"
         },

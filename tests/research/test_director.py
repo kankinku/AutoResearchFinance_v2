@@ -107,3 +107,61 @@ def test_canonical_indicator_operation_requires_an_indicator_object() -> None:
 
     with pytest.raises(ValueError, match="indicator"):
         IntentOperation(op="ADD_INDICATOR", path="indicators.fast_ema", value=True)
+
+
+@pytest.mark.parametrize("op", ["ADD_FEATURE", "ADD_INDICATOR"])
+def test_add_operations_require_canonical_target_paths(op: str) -> None:
+    payload = {
+        "op": op,
+        "feature": {
+            "feature_id": "vix_percentile",
+            "timeframe": "1d",
+            "lag_bars": 0,
+            "lookback": 20,
+            "inputs": ["VIX.close"],
+            "parameters": {},
+        },
+    }
+    if op == "ADD_INDICATOR":
+        payload = {
+            "op": op,
+            "indicator": {"type": "EMA", "period": 5, "parameters": {}},
+        }
+
+    with pytest.raises(ValueError, match="path"):
+        IntentOperation.model_validate(payload)
+
+
+def test_intent_operation_records_a_canonical_dot_path() -> None:
+    operation = IntentOperation(
+        op="REPLACE_RULE",
+        path="entry.conditions[0]",
+        condition={"op": "greater_than", "left": "close", "value": 0},
+    )
+
+    assert operation.path == "entry.conditions.0"
+
+
+@pytest.mark.parametrize(
+    ("op", "path"),
+    [("ADD_FEATURE", "features."), ("ADD_INDICATOR", "indicators.")],
+)
+def test_add_operations_reject_empty_alias_paths(op: str, path: str) -> None:
+    payload = {
+        "op": op,
+        "path": path,
+    }
+    if op == "ADD_FEATURE":
+        payload["feature"] = {
+            "feature_id": "vix_percentile",
+            "timeframe": "1d",
+            "lag_bars": 0,
+            "lookback": 20,
+            "inputs": ["VIX.close"],
+            "parameters": {},
+        }
+    else:
+        payload["indicator"] = {"type": "EMA", "period": 5, "parameters": {}}
+
+    with pytest.raises(ValueError, match="path"):
+        IntentOperation.model_validate(payload)

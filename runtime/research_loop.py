@@ -165,6 +165,12 @@ def run_autoresearch(
                 proposal_to_record = intent.feature_proposal
                 operations = _preflight_intent(current, intent, feature_specs)
                 progress.emit(
+                    "preflight_completed",
+                    phase="VALIDATING",
+                    generation=generation_number,
+                    detail={"operation_count": len(operations)},
+                )
+                progress.emit(
                     "proposal_completed",
                     phase="PROPOSING",
                     generation=generation_number,
@@ -243,6 +249,13 @@ def run_autoresearch(
                             proposal_to_record = repaired_intent.feature_proposal
                         operations = _preflight_intent(
                             current, repaired_intent, feature_specs
+                        )
+                        progress.emit(
+                            "preflight_completed",
+                            phase="VALIDATING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            detail={"operation_count": len(operations)},
                         )
                         intent = repaired_intent
                         record_intent(

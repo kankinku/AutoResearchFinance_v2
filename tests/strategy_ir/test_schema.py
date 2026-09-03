@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from strategy_ir.schema import StrategyIR
+from strategy_ir.schema import Condition, StrategyIR
 
 
 def example_document() -> dict[str, object]:
@@ -92,3 +92,49 @@ def test_strategy_ir_rejects_unknown_fields_and_invalid_period() -> None:
     invalid["strategy"] = invalid_strategy
     with pytest.raises(ValidationError):
         StrategyIR.model_validate(invalid)
+
+
+def test_condition_normalizes_verified_operator_alias() -> None:
+    condition = Condition.model_validate(
+        {"op": "gt", "left": "rsi", "value": 70}
+    )
+
+    assert condition.op == "greater_than"
+
+
+def test_condition_rejects_unregistered_operator() -> None:
+    with pytest.raises(ValidationError):
+        Condition.model_validate(
+            {"op": "approximately", "left": "rsi", "value": 70}
+        )
+
+
+def test_indicator_type_normalizes_a_verified_type_name() -> None:
+    document = example_document()
+    strategy_document = dict(document["strategy"])  # type: ignore[arg-type]
+    strategy_document["indicators"] = {"fast": {"type": "ema", "period": 12}}
+    document["strategy"] = strategy_document
+    strategy = StrategyIR.model_validate(document)
+
+    assert strategy.indicators["fast"].type == "EMA"
+
+
+def test_indicator_type_rejects_an_unverified_type_name() -> None:
+    invalid = example_document()
+    invalid_strategy = dict(invalid["strategy"])  # type: ignore[arg-type]
+    invalid_strategy["indicators"] = {"fast": {"type": "not_a_real_indicator"}}
+    invalid["strategy"] = invalid_strategy
+
+    with pytest.raises(ValidationError):
+        StrategyIR.model_validate(invalid)
+
+
+def test_indicator_type_normalizes_legacy_verified_alias() -> None:
+    document = example_document()
+    strategy_document = dict(document["strategy"])  # type: ignore[arg-type]
+    strategy_document["indicators"] = {"high": {"type": "highest", "period": 20}}
+    document["strategy"] = strategy_document
+
+    strategy = StrategyIR.model_validate(document)
+
+    assert strategy.indicators["high"].type == "MAXIMUM"

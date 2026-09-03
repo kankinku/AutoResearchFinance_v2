@@ -213,6 +213,18 @@ scalar 값으로 반환해야 합니다. JSON Patch의 임의 `add`·`replace`·
 출력에서 허용하지 않습니다. 따라서 `regime_filters.0`에 리스트를 추가하거나 조건 자리에
 `true`, `[true]`, `{}`를 넣는 응답은 백테스트 전에 거부됩니다.
 
+조건 연산자는 검증된 `cross_above`, `cross_below`, `less_than`, `less_equal`,
+`greater_than`, `greater_equal`, `equal`만 사용합니다. 인디케이터는 검증된
+`IndicatorSpec`의 `type`, `period`, `parameters` 형식으로만 호출하며, 추가·교체 대상은
+반드시 `indicators.<alias>`입니다. feature·외부 시계열은 `features.<alias>`와
+`FeatureRef`를 사용합니다. 조건 참조는 alias만 사용하고, 경로는 `entry.conditions.0`처럼
+점 표기와 정수 index를 사용합니다. `entry.conditions[0]` 같은 입력은 경계에서 canonical
+표기로 정규화되어 기록됩니다.
+
+각 제안은 백테스트 전에 부모 Strategy IR 복제본에 dry-run으로 적용하고, 연산 순서·참조·자료형·
+등록 상태·최종 Strategy IR을 검증합니다. 성공한 canonical 제안만 실험 큐에 들어가며,
+검증 단계는 `research-events.jsonl`의 `preflight_completed` 이벤트로 기록됩니다.
+
 복구가 같은 잘못된 payload를 반복해서 반환하면 같은 Codex 호출을 계속하지 않습니다.
 해당 오류는 `state/system/repair-knowledge.jsonl`에 오류 코드, payload 서명, 세대,
 처리 결과로 누적되고, 그 세대는 부모 전략을 그대로 평가하는 `FALLBACK`으로 진행합니다.
