@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.data.contracts import SeriesObservation
+from core.features.time import to_utc
 
 
 class TimeFrame(str, Enum):
@@ -49,7 +49,7 @@ def resample_completed(
 ) -> tuple[SeriesObservation, ...]:
     """Collapse observations to the last completed point in each calendar period."""
 
-    ordered = tuple(sorted(observations, key=lambda item: _utc(item.timestamp)))
+    ordered = tuple(sorted(observations, key=lambda item: to_utc(item.timestamp)))
     if not ordered:
         return ()
     series_ids = {item.series_id for item in ordered}
@@ -68,7 +68,7 @@ def resample_completed(
     current_key: tuple[int, int] | tuple[int, int, int] | None = None
     current: SeriesObservation | None = None
     for observation in ordered:
-        timestamp = _utc(observation.timestamp)
+        timestamp = to_utc(observation.timestamp)
         key: tuple[int, int] | tuple[int, int, int]
         if timeframe is TimeFrame.WEEK:
             iso = timestamp.isocalendar()
@@ -82,9 +82,3 @@ def resample_completed(
     if current is not None:
         collapsed.append(current)
     return tuple(collapsed)
-
-
-def _utc(value: datetime) -> datetime:
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise ValueError("timestamp timezone is required")
-    return value.astimezone(timezone.utc)

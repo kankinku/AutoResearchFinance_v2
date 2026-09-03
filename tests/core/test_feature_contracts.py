@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -8,6 +8,7 @@ from core.data.contracts import DataContractError, DataZone, SeriesDataSet, Seri
 from core.features.alignment import align_as_of
 from core.features.contracts import FeatureSpec, FeatureVerification
 from core.features.registry import FeatureRegistrationError, FeatureRegistry
+from core.features.time import to_utc
 
 
 def _time(day: int, hour: int = 0) -> datetime:
@@ -47,6 +48,16 @@ def test_as_of_alignment_respects_observation_and_available_timestamps() -> None
     )
 
     assert aligned == (18.0, 18.0, 22.0)
+
+
+def test_to_utc_requires_timezone_and_normalizes_offsets() -> None:
+    offset = timezone(timedelta(hours=9))
+
+    assert to_utc(datetime(2024, 1, 1, 9, tzinfo=offset)) == datetime(
+        2024, 1, 1, tzinfo=timezone.utc
+    )
+    with pytest.raises(ValueError, match="timezone is required"):
+        to_utc(datetime(2024, 1, 1))
 
 
 def test_registry_rejects_incomplete_verification_and_registers_verified_feature() -> None:

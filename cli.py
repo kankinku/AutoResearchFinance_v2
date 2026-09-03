@@ -18,6 +18,7 @@ from memory.state_files import StateFileStore
 from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
 from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
 from research.llm.director import ResearchDirector
+from research.policy import default_evaluation_thresholds
 from runtime.research_loop import ResearchLoopConfig, run_autoresearch, run_repeated_evaluation
 from runtime.terminal import (
     CodexChatProvider,
@@ -31,6 +32,7 @@ from strategy_ir.normalizer import ImportStatus, normalize_source
 
 
 def build_parser() -> argparse.ArgumentParser:
+    evaluation_defaults = default_evaluation_thresholds()
     parser = argparse.ArgumentParser(prog="quant-autoresearch")
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command in ("init", "status"):
@@ -96,12 +98,17 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--count", type=int, default=1)
     run_parser.add_argument("--seed", type=int, default=0)
     run_parser.add_argument("--min-trades", type=int, default=10)
-    run_parser.add_argument("--min-annual-trades", type=int, default=30)
+    run_parser.add_argument(
+        "--min-annual-trades", type=int, default=evaluation_defaults.min_annual_trades
+    )
     run_parser.add_argument(
         "--min-qqq-cagr",
         type=float,
-        default=0.10,
-        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
+        default=evaluation_defaults.min_qqq_cagr_delta,
+        help=(
+            "Minimum same-period QQQ annualized excess return "
+            f"(default: {evaluation_defaults.min_qqq_cagr_delta:g})"
+        ),
     )
     run_parser.add_argument(
         "--domain",
@@ -125,12 +132,17 @@ def build_parser() -> argparse.ArgumentParser:
     repeat_parser.add_argument("--count", type=int, default=1)
     repeat_parser.add_argument("--seed", type=int, default=0)
     repeat_parser.add_argument("--min-trades", type=int, default=10)
-    repeat_parser.add_argument("--min-annual-trades", type=int, default=30)
+    repeat_parser.add_argument(
+        "--min-annual-trades", type=int, default=evaluation_defaults.min_annual_trades
+    )
     repeat_parser.add_argument(
         "--min-qqq-cagr",
         type=float,
-        default=0.10,
-        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
+        default=evaluation_defaults.min_qqq_cagr_delta,
+        help=(
+            "Minimum same-period QQQ annualized excess return "
+            f"(default: {evaluation_defaults.min_qqq_cagr_delta:g})"
+        ),
     )
     repeat_parser.add_argument("--generations", type=int, required=True)
     repeat_parser.add_argument("--interval-seconds", type=float, default=0.0)
@@ -153,12 +165,17 @@ def build_parser() -> argparse.ArgumentParser:
     autoresearch_parser.add_argument("--count", type=int, default=8)
     autoresearch_parser.add_argument("--seed", type=int, default=0)
     autoresearch_parser.add_argument("--min-trades", type=int, default=10)
-    autoresearch_parser.add_argument("--min-annual-trades", type=int, default=30)
+    autoresearch_parser.add_argument(
+        "--min-annual-trades", type=int, default=evaluation_defaults.min_annual_trades
+    )
     autoresearch_parser.add_argument(
         "--min-qqq-cagr",
         type=float,
-        default=0.10,
-        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
+        default=evaluation_defaults.min_qqq_cagr_delta,
+        help=(
+            "Minimum same-period QQQ annualized excess return "
+            f"(default: {evaluation_defaults.min_qqq_cagr_delta:g})"
+        ),
     )
     autoresearch_parser.add_argument("--generations", type=int, required=True)
     autoresearch_parser.add_argument("--interval-seconds", type=float, default=0.0)
@@ -180,12 +197,17 @@ def build_parser() -> argparse.ArgumentParser:
     terminal_parser.add_argument("--count", type=int, default=8)
     terminal_parser.add_argument("--seed", type=int, default=0)
     terminal_parser.add_argument("--min-trades", type=int, default=10)
-    terminal_parser.add_argument("--min-annual-trades", type=int, default=30)
+    terminal_parser.add_argument(
+        "--min-annual-trades", type=int, default=evaluation_defaults.min_annual_trades
+    )
     terminal_parser.add_argument(
         "--min-qqq-cagr",
         type=float,
-        default=0.10,
-        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
+        default=evaluation_defaults.min_qqq_cagr_delta,
+        help=(
+            "Minimum same-period QQQ annualized excess return "
+            f"(default: {evaluation_defaults.min_qqq_cagr_delta:g})"
+        ),
     )
     terminal_parser.add_argument("--interval-seconds", type=float, default=0.0)
     terminal_parser.add_argument("--domain", action="append", default=[])

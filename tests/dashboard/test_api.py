@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from dashboard.app import create_app
+from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
 from integrations.kis.client import KISAccountSnapshot, KISHolding
 
@@ -31,6 +32,10 @@ class FakeKIS:
             holdings=(KISHolding("AAPL", 2, 400, 10),),
             captured_at="2026-09-01T12:00:00+00:00",
         )
+
+
+def test_cli_dashboard_entrypoint_is_fastapi_runner() -> None:
+    assert run_dashboard.__module__ == "dashboard.run"
 
 
 def test_api_exposes_paper_health_and_sanitized_dashboard(tmp_path: Path) -> None:

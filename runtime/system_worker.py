@@ -13,7 +13,10 @@ from orchestration.evaluation_runner import (
 )
 from research.llm.codex_exec import CodexExecProvider, record_intent
 from research.llm.director import ResearchDirector, ResearchIntent
+from research.policy import default_evaluation_thresholds
 from runtime.research_loop import ResearchLoopConfig, run_repeated_evaluation
+
+_EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -102,8 +105,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--count", type=int, default=8)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--min-trades", type=int, default=10)
-    parser.add_argument("--min-annual-trades", type=int, default=30)
-    parser.add_argument("--min-qqq-cagr-delta", type=float)
+    parser.add_argument(
+        "--min-annual-trades", type=int, default=_EVALUATION_DEFAULTS.min_annual_trades
+    )
+    parser.add_argument(
+        "--min-qqq-cagr-delta", type=float, default=_EVALUATION_DEFAULTS.min_qqq_cagr_delta
+    )
     parser.add_argument("--series-data-path", default=None)
     parser.add_argument("--repeat-generations", type=int, default=1)
     parser.add_argument("--interval-seconds", type=float, default=0.0)

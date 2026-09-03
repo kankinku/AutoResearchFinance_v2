@@ -6,7 +6,7 @@ import pytest
 
 from core.evaluator.immutable_guard import assert_research_write_allowed
 from core.integrity.hashes import canonical_bytes, experiment_hash
-from research.policy import PolicyError, load_policy
+from research.policy import PolicyError, default_evaluation_thresholds, load_policy
 
 
 def test_canonical_bytes_ignore_mapping_order_but_hash_content() -> None:
@@ -60,6 +60,18 @@ def test_policy_ratios_must_sum_to_one() -> None:
             load_policy(invalid_path)
     finally:
         invalid_path.unlink()
+
+
+def test_policy_centralizes_operational_evaluation_thresholds() -> None:
+    policy = load_policy(Path("research/policy.yaml"))
+    thresholds = default_evaluation_thresholds()
+
+    assert policy.evaluation.min_qqq_cagr_delta == pytest.approx(0.10)
+    assert policy.evaluation.min_annual_trades == 30
+    assert thresholds.min_qqq_cagr_delta == pytest.approx(
+        policy.evaluation.min_qqq_cagr_delta
+    )
+    assert thresholds.min_annual_trades == policy.evaluation.min_annual_trades
 
 
 def test_research_cannot_write_protected_core_paths() -> None:

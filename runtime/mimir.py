@@ -10,8 +10,11 @@ from dashboard.state import DashboardStateReader
 from orchestration.evaluation_runner import parse_parameter_domains
 from research.llm.codex_exec import CodexExecProvider, _read_settings
 from research.llm.director import ResearchDirector
+from research.policy import default_evaluation_thresholds
 from runtime.research_loop import ResearchLoopConfig, run_autoresearch
 from runtime.terminal import CodexChatProvider, terminal_help
+
+_EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
 
 @dataclass(frozen=True)
@@ -176,8 +179,8 @@ def _parse_common_options(arguments: Sequence[str]) -> MimirResearchOptions:
         count=8,
         seed=0,
         min_trades=10,
-        min_annual_trades=30,
-        min_qqq_cagr=0.10,
+        min_annual_trades=_EVALUATION_DEFAULTS.min_annual_trades,
+        min_qqq_cagr=_EVALUATION_DEFAULTS.min_qqq_cagr_delta,
         domains=(),
         intent_repair_attempts=3,
         state_dir=parsed.state_dir,
@@ -196,12 +199,17 @@ def _parse_research_options(arguments: Sequence[str]) -> MimirResearchOptions:
     parser.add_argument("--count", type=int, default=8)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--min-trades", type=int, default=10)
-    parser.add_argument("--min-annual-trades", type=int, default=30)
+    parser.add_argument(
+        "--min-annual-trades", type=int, default=_EVALUATION_DEFAULTS.min_annual_trades
+    )
     parser.add_argument(
         "--min-qqq-cagr",
         type=float,
-        default=0.10,
-        help="QQQ 대비 최소 연복리 초과수익률 (기본값: 0.10 = 10%p)",
+        default=_EVALUATION_DEFAULTS.min_qqq_cagr_delta,
+        help=(
+            "QQQ 대비 최소 연복리 초과수익률 "
+            f"(기본값: {_EVALUATION_DEFAULTS.min_qqq_cagr_delta:g})"
+        ),
     )
     parser.add_argument("--domain", action="append", default=[])
     parser.add_argument("--intent-repairs", type=int, default=3)

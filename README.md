@@ -28,6 +28,11 @@ The approved architecture and the complete implementation plan are in `docs/arch
 
 날짜별 개선 사항과 실제 실행 성과는 [`docs/operations/improvement-log-2026-09-03.md`](docs/operations/improvement-log-2026-09-03.md)에 기록한다.
 
+운영 기준은 `dashboard/` FastAPI 대시보드와 `research/policy.yaml`이다. 루트의
+`dashboard.py`는 이전 Streamlit 화면의 보존·테스트용 파일이며 `cli.py dashboard`가
+실행하지 않는다. QQQ 대비 최소 연복리 초과수익률과 완료 연도별 최소 거래수 기본값은
+정책 파일에서 읽으며, 현재 기본값은 각각 0.10(10%p)과 30회 초과(31회 이상)이다.
+
 ## Quick start
 
 ```powershell

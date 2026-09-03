@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,8 @@ class EvaluationPolicy(BaseModel):
     robustness: bool
     validation: bool
     min_trade_count: int = Field(ge=0)
+    min_qqq_cagr_delta: float = Field(ge=0.0)
+    min_annual_trades: int = Field(ge=0)
 
 
 class RuntimePolicy(BaseModel):
@@ -72,6 +75,14 @@ class ResearchPolicy(BaseModel):
     deployment: DeploymentPolicy
 
 
+@dataclass(frozen=True)
+class EvaluationThresholds:
+    """Operational evaluation defaults shared by all command entrypoints."""
+
+    min_qqq_cagr_delta: float
+    min_annual_trades: int
+
+
 def load_policy(path: Path) -> ResearchPolicy:
     try:
         raw: Any = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -83,3 +94,14 @@ def load_policy(path: Path) -> ResearchPolicy:
     if policy.deployment.live_order_permission != "deny":
         raise PolicyError("live order permission must default to deny")
     return policy
+
+
+def default_evaluation_thresholds(path: Path | None = None) -> EvaluationThresholds:
+    """Load canonical evaluation thresholds from the repository policy."""
+
+    policy_path = path or Path(__file__).with_name("policy.yaml")
+    evaluation = load_policy(policy_path).evaluation
+    return EvaluationThresholds(
+        min_qqq_cagr_delta=evaluation.min_qqq_cagr_delta,
+        min_annual_trades=evaluation.min_annual_trades,
+    )

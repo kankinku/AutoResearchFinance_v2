@@ -1,5 +1,8 @@
 # Quant Autoresearch dashboard redesign
 
+> Status: historical Streamlit design. The active runtime is now the FastAPI/static
+> dashboard under `dashboard/`; this document is retained for design traceability.
+
 ## A. Understanding of the request
 
 Rebuild the existing Streamlit dashboard using the functional principles from the supplied dashboard prompt, while adapting them to the Quant Autoresearch Harness domain. The dashboard must reduce operator cognitive load, make the current research state trustworthy, and guide the next safe action. The prompt is a source of UX principles, not a literal visual or structural template.

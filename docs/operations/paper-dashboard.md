@@ -1,5 +1,12 @@
 # Paper dashboard operations
 
+## Canonical runtime
+
+The active CLI dashboard is the FastAPI application in `dashboard/`, served by
+`dashboard/run.py`. The root `dashboard.py` Streamlit application is a retained
+legacy/test surface from the earlier redesign and is not launched by `python cli.py dashboard`.
+New dashboard features must be added to the FastAPI/static application first.
+
 ## Start
 
 From the repository root:

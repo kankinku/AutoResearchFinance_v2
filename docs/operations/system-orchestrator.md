@@ -109,6 +109,8 @@ MCP `start_system` 예시:
 - KIS 계좌 조회와 주문·실전투자는 기동하지 않는다.
 - `sealed_oos` 데이터는 사전점검에서 차단된다.
 - Docker 이미지가 없으면 자동으로 인터넷 빌드하지 않고 빌드 명령만 안내한다.
-- 연구 탐지와 백테스트는 병렬로 시작되지만, 현재 생성된 `ResearchIntent`의 구조 변경을
-  같은 실행에 자동 반영하는 mutation 큐는 별도 후속 작업이다. 현재 백테스트는 사용자가
-  지정한 검증 전략·데이터 입력으로 실행된다.
+- 연구 탐지와 백테스트는 병렬로 시작된다. `start_system`의 `research_worker`는
+  `ResearchIntent`를 기록하는 역할이고, 같은 기동 요청의 `backtest_worker`는 사용자가
+  지정한 전략·데이터 입력을 검증한다. 따라서 이 MCP 기동 경로에서는 생성된 의도를
+  자동으로 다음 백테스트에 적용하지 않는다. 의도 적용까지 포함한 세대 반복은
+  `python cli.py autoresearch` 또는 `Mimir /research` 경로를 사용한다.

@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from strategy_import.analyzers import analyze_python_source
-from strategy_ir.schema import Provenance, StrategyIR
+from strategy_ir.provenance import with_provenance
+from strategy_ir.schema import StrategyIR
 from strategy_ir.validator import StrategyValidationError, validate_strategy
 
 
@@ -34,7 +35,7 @@ def normalize_source(path: Path) -> ImportResult:
     try:
         if suffix in {".yaml", ".yml", ".json"}:
             document = json.loads(raw.decode("utf-8")) if suffix == ".json" else _yaml(raw)
-            strategy = _with_provenance(validate_strategy(document), path, source_hash, suffix[1:])
+            strategy = with_provenance(validate_strategy(document), path, source_hash, suffix[1:])
             return ImportResult(ImportStatus.NORMALIZED, source_hash, suffix[1:], strategy)
         if suffix == ".py":
             analysis = analyze_python_source(path)
@@ -79,20 +80,6 @@ def _python_literal(source: str) -> dict[str, Any] | None:
             value = ast.literal_eval(node.value)
             return value if isinstance(value, dict) else None
     return None
-
-
-def _with_provenance(
-    strategy: StrategyIR, path: Path, source_hash: str, source_type: str
-) -> StrategyIR:
-    return strategy.model_copy(
-        update={
-            "provenance": Provenance(
-                source_path=path.as_posix(),
-                source_hash=source_hash,
-                source_type=source_type,
-            )
-        }
-    )
 
 
 def _unsupported(source_hash: str, source_type: str, reason: str) -> ImportResult:

@@ -13,7 +13,10 @@ from orchestration.evaluation_runner import parse_parameter_domains, run_local_e
 from research.llm.codex_exec import record_intent, sanitize_context, write_provider_status
 from research.llm.codex_schema import research_intent_schema
 from research.llm.director import ResearchIntent
+from research.policy import default_evaluation_thresholds
 from runtime.system_controller import SystemController, SystemLaunchConfig
+
+_EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
 
 class CodexMCPServer:
@@ -232,7 +235,11 @@ def _tools() -> list[dict[str, object]]:
                     "count": {"minimum": 1, "type": "integer"},
                     "seed": {"minimum": 0, "type": "integer"},
                     "min_trades": {"minimum": 0, "type": "integer"},
-                    "min_annual_trades": {"minimum": 0, "type": "integer", "default": 30},
+                    "min_annual_trades": {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": _EVALUATION_DEFAULTS.min_annual_trades,
+                    },
                     "parameter_domains": {
                         "type": "array",
                         "items": {
@@ -246,7 +253,10 @@ def _tools() -> list[dict[str, object]]:
                         },
                     },
                     "series_data_path": {"type": "string"},
-                    "min_qqq_cagr_delta": {"type": "number"},
+                    "min_qqq_cagr_delta": {
+                        "type": "number",
+                        "default": _EVALUATION_DEFAULTS.min_qqq_cagr_delta,
+                    },
                 },
                 "required": ["source_path", "data_path"],
                 "additionalProperties": False,
@@ -289,8 +299,15 @@ def _system_schema() -> dict[str, object]:
             "count": {"minimum": 1, "type": "integer"},
             "seed": {"minimum": 0, "type": "integer"},
             "min_trades": {"minimum": 0, "type": "integer"},
-            "min_annual_trades": {"minimum": 0, "type": "integer", "default": 30},
-            "min_qqq_cagr_delta": {"type": "number"},
+            "min_annual_trades": {
+                "minimum": 0,
+                "type": "integer",
+                "default": _EVALUATION_DEFAULTS.min_annual_trades,
+            },
+            "min_qqq_cagr_delta": {
+                "type": "number",
+                "default": _EVALUATION_DEFAULTS.min_qqq_cagr_delta,
+            },
             "series_data_path": {"type": "string"},
             "repeat_generations": {"minimum": 1, "type": "integer", "default": 1},
             "interval_seconds": {"minimum": 0, "type": "number", "default": 0},
@@ -337,10 +354,12 @@ def _system_config(arguments: dict[str, Any]) -> SystemLaunchConfig:
         seed=_nonnegative_int(arguments.get("seed", 0), "seed"),
         min_trades=_nonnegative_int(arguments.get("min_trades", 10), "min_trades"),
         min_annual_trades=_nonnegative_int(
-            arguments.get("min_annual_trades", 30), "min_annual_trades"
+            arguments.get("min_annual_trades", _EVALUATION_DEFAULTS.min_annual_trades),
+            "min_annual_trades",
         ),
         min_qqq_cagr_delta=_optional_float(
-            arguments.get("min_qqq_cagr_delta"), "min_qqq_cagr_delta"
+            arguments.get("min_qqq_cagr_delta", _EVALUATION_DEFAULTS.min_qqq_cagr_delta),
+            "min_qqq_cagr_delta",
         ),
         series_data_path=(
             arguments.get("series_data_path")

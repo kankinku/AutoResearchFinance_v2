@@ -29,6 +29,13 @@ def test_preflight_returns_actionable_blockers_for_missing_inputs_and_docker(
     assert any("Docker Desktop" in issue.action for issue in report.issues)
 
 
+def test_system_launch_defaults_match_research_policy() -> None:
+    config = SystemLaunchConfig(source_path="strategy.json", data_path="data.parquet")
+
+    assert config.min_qqq_cagr_delta == 0.10
+    assert config.min_annual_trades == 30
+
+
 def test_start_does_not_spawn_processes_when_preflight_is_blocked(tmp_path: Path) -> None:
     controller = SystemController(state_dir=tmp_path / "state", project_root=tmp_path)
     spawned: list[list[str]] = []

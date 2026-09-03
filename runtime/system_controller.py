@@ -17,9 +17,11 @@ from core.data.contracts import DataZone
 from core.data.parquet import ParquetDataProvider
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import ALLOWED_STRATEGY_SUFFIXES, resolve_project_input
+from research.policy import default_evaluation_thresholds
 
 ProcessFactory = Callable[[list[str], Path], Any]
 CommandRunner = Callable[[list[str], Path], tuple[int, str]]
+_EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
 
 @dataclass(frozen=True)
@@ -30,8 +32,8 @@ class SystemLaunchConfig:
     count: int = 8
     seed: int = 0
     min_trades: int = 10
-    min_annual_trades: int = 30
-    min_qqq_cagr_delta: float | None = None
+    min_annual_trades: int = _EVALUATION_DEFAULTS.min_annual_trades
+    min_qqq_cagr_delta: float | None = _EVALUATION_DEFAULTS.min_qqq_cagr_delta
     series_data_path: str | None = None
     repeat_generations: int = 1
     interval_seconds: float = 0.0

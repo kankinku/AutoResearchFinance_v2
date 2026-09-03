@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from strategy_import.models import AnalysisResult, AnalysisStatus
+from strategy_ir.provenance import with_provenance
 from strategy_ir.schema import (
     Condition,
     ConditionOperator,
     IndicatorSpec,
     IndicatorType,
-    Provenance,
     RiskConfig,
     RuleSet,
     StrategyIR,
@@ -38,7 +38,7 @@ def analyze_python_source(path: Path) -> AnalysisResult:
     literal = _find_named_literal(tree, {"STRATEGY", "STRATEGY_IR"})
     if literal is not None:
         try:
-            strategy = _with_provenance(validate_strategy(literal), path, source_hash, "python")
+            strategy = with_provenance(validate_strategy(literal), path, source_hash, "python")
             return AnalysisResult(AnalysisStatus.NORMALIZED, source_hash, "python", strategy)
         except StrategyValidationError as exc:
             return AnalysisResult(
@@ -112,7 +112,7 @@ def analyze_source_file(path: Path) -> AnalysisResult:
                 profile={"detected_constructs": ["unknown_source"]},
                 reason="source format requires a dedicated static analyzer",
             )
-        strategy = _with_provenance(
+        strategy = with_provenance(
             validate_strategy(document), path, source_hash, suffix.lstrip(".")
         )
         return AnalysisResult(AnalysisStatus.NORMALIZED, source_hash, suffix.lstrip("."), strategy)
@@ -176,7 +176,7 @@ def _kis_builder_state_to_ir(state: dict[str, Any], path: Path, source_hash: str
         "exit": exit_rules.model_dump(),
         "risk": risk.model_dump(),
     }
-    return _with_provenance(validate_strategy(document), path, source_hash, "kis_builder_state")
+    return with_provenance(validate_strategy(document), path, source_hash, "kis_builder_state")
 
 
 def _rule_set(raw: Any, indicators: dict[str, IndicatorSpec]) -> RuleSet:
@@ -283,15 +283,3 @@ def _metadata(state: dict[str, Any]) -> dict[str, Any]:
 
 def _scalar(value: Any) -> bool:
     return value is None or isinstance(value, (bool, int, float, str))
-
-
-def _with_provenance(
-    strategy: StrategyIR, path: Path, source_hash: str, source_type: str
-) -> StrategyIR:
-    return strategy.model_copy(
-        update={
-            "provenance": Provenance(
-                source_path=path.as_posix(), source_hash=source_hash, source_type=source_type
-            )
-        }
-    )

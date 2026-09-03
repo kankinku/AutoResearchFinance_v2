@@ -1,5 +1,8 @@
 # Quant Autoresearch dashboard redesign Implementation Plan
 
+> Status: historical plan. The active CLI entrypoint is `dashboard/run.py`; retain this
+> plan as traceability for the earlier Streamlit implementation.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild the Streamlit dashboard as an overview-first, user-friendly research operations surface with progressive detail, trustworthy empty states, and safe CLI guidance.

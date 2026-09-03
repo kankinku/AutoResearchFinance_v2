@@ -16,6 +16,8 @@ evaluation:
   robustness: true
   validation: true
   min_trade_count: 30
+  min_qqq_cagr_delta: 0.10
+  min_annual_trades: 30
 runtime:
   max_retries: 2
   job_timeout_seconds: 900

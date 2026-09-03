@@ -45,6 +45,19 @@ def test_mcp_server_lists_only_safe_research_tools(tmp_path: Path) -> None:
     assert not any("order" in name or "credential" in name for name in names)
 
 
+def test_mcp_evaluation_defaults_match_research_policy(tmp_path: Path) -> None:
+    server = create_mcp_server(state_dir=tmp_path, project_root=tmp_path)
+    response = _call(server, {"jsonrpc": "2.0", "id": 9, "method": "tools/list"})
+    result = response["result"]
+    assert isinstance(result, dict)
+    tools = result["tools"]
+    assert isinstance(tools, list)
+    evaluation = next(tool for tool in tools if tool["name"] == "run_evaluation")
+    schema = evaluation["inputSchema"]
+    assert schema["properties"]["min_annual_trades"]["default"] == 30
+    assert schema["properties"]["min_qqq_cagr_delta"]["default"] == 0.10
+
+
 def test_mcp_server_returns_context_and_features_without_raw_data(tmp_path: Path) -> None:
     server = create_mcp_server(state_dir=tmp_path, project_root=tmp_path)
 
