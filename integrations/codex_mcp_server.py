@@ -161,10 +161,12 @@ class CodexMCPServer:
         seed = _nonnegative_int(arguments.get("seed", 0), "seed")
         min_trades = _nonnegative_int(arguments.get("min_trades", 10), "min_trades")
         min_annual_trades = _nonnegative_int(
-            arguments.get("min_annual_trades", 30), "min_annual_trades"
+            arguments.get("min_annual_trades", _EVALUATION_DEFAULTS.min_annual_trades),
+            "min_annual_trades",
         )
         min_qqq_cagr = _optional_float(
-            arguments.get("min_qqq_cagr_delta"), "min_qqq_cagr_delta"
+            arguments.get("min_qqq_cagr_delta", _EVALUATION_DEFAULTS.min_qqq_cagr_delta),
+            "min_qqq_cagr_delta",
         )
         parameter_domains = parse_parameter_domains(arguments.get("parameter_domains"))
         return run_local_evaluation(
