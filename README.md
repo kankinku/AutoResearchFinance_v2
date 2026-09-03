@@ -26,6 +26,8 @@ python -m mypy .
 
 The approved architecture and the complete implementation plan are in `docs/architecture/` and `docs/superpowers/plans/`.
 
+날짜별 개선 사항과 실제 실행 성과는 [`docs/operations/improvement-log-2026-09-03.md`](docs/operations/improvement-log-2026-09-03.md)에 기록한다.
+
 ## Quick start
 
 ```powershell
