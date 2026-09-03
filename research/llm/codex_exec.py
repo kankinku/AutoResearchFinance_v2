@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import shlex
@@ -11,11 +12,12 @@ import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from research.llm.director import ResearchIntent
 
 DEFAULT_CODEX_TIMEOUT_SECONDS = 300.0
+MAX_REQUEST_CACHE_ENTRIES = 128
 _FEATURE_CONTEXT_FIELDS = (
     "name",
     "canonical_id",
@@ -79,6 +81,7 @@ class CodexExecProvider:
         self.service_tier = service_tier
         self.status_path = status_path
         self._runner = runner or _run_codex
+        self._request_cache: dict[str, str] = {}
 
     def propose(self, context: dict[str, Any]) -> dict[str, Any]:
         self._write_status("RUNNING", "NONE", operation="propose")
@@ -149,6 +152,10 @@ class CodexExecProvider:
     def _execute_request(self, request: Mapping[str, object]) -> dict[str, Any]:
         self.workdir.mkdir(parents=True, exist_ok=True)
         prompt = json.dumps(request, ensure_ascii=False, sort_keys=True)
+        cache_key = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+        cached = self._request_cache.get(cache_key)
+        if cached is not None:
+            return cast(dict[str, Any], json.loads(cached))
         with tempfile.TemporaryDirectory(prefix=".codex-intent-", dir=self.workdir) as directory:
             output_path = Path(directory) / "intent.json"
             executable_parts = shlex.split(self.executable, posix=True)
@@ -187,6 +194,11 @@ class CodexExecProvider:
         payload = intent.model_dump(mode="json", exclude_none=True)
         if payload.get("feature_selections") == []:
             payload.pop("feature_selections")
+        if len(self._request_cache) >= MAX_REQUEST_CACHE_ENTRIES:
+            self._request_cache.pop(next(iter(self._request_cache)))
+        self._request_cache[cache_key] = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True
+        )
         return payload
 
     @classmethod

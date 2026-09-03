@@ -30,6 +30,7 @@ class FakeRunner:
         self.payload = payload
         self.returncode = returncode
         self.stderr = stderr
+        self.calls = 0
         self.command: list[str] = []
         self.input_text = ""
         self.cwd = Path()
@@ -44,6 +45,7 @@ class FakeRunner:
         timeout: float,
     ) -> CodexExecResult:
         del timeout
+        self.calls += 1
         self.command = command
         self.input_text = input_text
         self.cwd = cwd
@@ -140,6 +142,18 @@ def test_codex_exec_provider_compacts_repeated_feature_metadata(
     assert len(json.dumps(sent["context"], ensure_ascii=False)) < len(
         json.dumps(context, ensure_ascii=False)
     )
+
+
+def test_codex_exec_provider_caches_identical_requests(tmp_path: Path) -> None:
+    runner = FakeRunner(_valid_intent())
+    provider = CodexExecProvider(workdir=tmp_path, runner=runner)
+    context = {"generation": 5, "source_strategy": {"id": "golden_cross"}}
+
+    first = provider.propose(context)
+    second = provider.propose(context)
+
+    assert first == second == _valid_intent()
+    assert runner.calls == 1
 
 
 def test_codex_exec_provider_rejects_failed_or_invalid_output(tmp_path: Path) -> None:
