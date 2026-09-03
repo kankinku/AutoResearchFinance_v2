@@ -879,6 +879,7 @@ def _write_autoresearch_status(
     last_event_at: str | None = None,
     repair_attempt: int | None = None,
     repair_attempts_allowed: int | None = None,
+    timing_summary: Mapping[str, object] | None = None,
 ) -> None:
     payload: dict[str, object] = {
         "status": status,
@@ -899,6 +900,8 @@ def _write_autoresearch_status(
             "repair_attempts_allowed": repair_attempts_allowed,
         }
     )
+    if timing_summary is not None:
+        payload["timing_summary"] = dict(timing_summary)
     if error is not None:
         payload["error"] = error
     target = config.state_dir / "system" / "autoresearch.json"
@@ -927,6 +930,7 @@ class _ResearchProgress:
         self.phase_started_at = _utc_now()
         self.phase_started_mono = time.monotonic()
         self.current_generation: int | None = None
+        self.events: list[dict[str, object]] = []
 
     def emit(
         self,
@@ -965,6 +969,7 @@ class _ResearchProgress:
                 payload["diagnostic"] = sanitized_detail.pop("diagnostic")
             if sanitized_detail:
                 payload["detail"] = sanitized_detail
+        self.events.append(payload)
         _append_research_event(self.config, payload)
         _write_autoresearch_status(
             self.config,
@@ -982,6 +987,7 @@ class _ResearchProgress:
             last_event_at=now,
             repair_attempt=repair_attempt,
             repair_attempts_allowed=self.config.intent_repair_attempts,
+            timing_summary=_timing_summary(self.events),
         )
 
 
@@ -993,6 +999,82 @@ def _append_research_event(config: ResearchLoopConfig, payload: Mapping[str, obj
             handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
     except OSError:
         return
+
+
+def _timing_summary(events: list[dict[str, object]]) -> dict[str, object]:
+    stage_events = {
+        "proposal": ("proposal_started", ("proposal_failed", "preflight_completed")),
+        "repair": (
+            "repair_started",
+            ("preflight_completed", "repair_failed", "repair_unavailable"),
+        ),
+        "backtest": ("evaluation_started", ("evaluation_completed",)),
+        "generation": ("generation_started", ("generation_completed",)),
+    }
+    return {
+        stage: _timing_stats(_paired_event_durations(events, start, terminals))
+        for stage, (start, terminals) in stage_events.items()
+    }
+
+
+def _paired_event_durations(
+    events: list[dict[str, object]], start_event: str, terminal_events: tuple[str, ...]
+) -> list[float]:
+    durations: list[float] = []
+    for index, event in enumerate(events):
+        if event.get("event") != start_event:
+            continue
+        generation = event.get("generation")
+        started_at = _event_datetime(event)
+        if started_at is None:
+            continue
+        for terminal in events[index + 1 :]:
+            if terminal.get("generation") != generation:
+                continue
+            if terminal.get("event") not in terminal_events:
+                continue
+            ended_at = _event_datetime(terminal)
+            if ended_at is not None:
+                durations.append(round(max(0.0, (ended_at - started_at).total_seconds()), 3))
+            break
+    return durations
+
+
+def _event_datetime(event: Mapping[str, object]) -> dt.datetime | None:
+    timestamp = event.get("timestamp")
+    if not isinstance(timestamp, str):
+        return None
+    try:
+        return dt.datetime.fromisoformat(timestamp)
+    except ValueError:
+        return None
+
+
+def _timing_stats(values: list[float]) -> dict[str, object]:
+    if not values:
+        return {
+            "count": 0,
+            "total_seconds": 0.0,
+            "p50_seconds": 0.0,
+            "p95_seconds": 0.0,
+            "max_seconds": 0.0,
+        }
+    ordered = sorted(values)
+    return {
+        "count": len(ordered),
+        "total_seconds": round(sum(ordered), 3),
+        "p50_seconds": _percentile(ordered, 0.50),
+        "p95_seconds": _percentile(ordered, 0.95),
+        "max_seconds": ordered[-1],
+    }
+
+
+def _percentile(values: list[float], fraction: float) -> float:
+    position = (len(values) - 1) * fraction
+    lower = int(position)
+    upper = min(lower + 1, len(values) - 1)
+    weighted = values[lower] + (values[upper] - values[lower]) * (position - lower)
+    return round(weighted, 3)
 
 
 def _utc_now() -> str:

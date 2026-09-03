@@ -7,6 +7,7 @@ from research.llm.director import ResearchDirector
 from research.llm.provider import CodexIntentProvider
 from runtime.research_loop import (
     ResearchLoopConfig,
+    _timing_summary,
     _write_autoresearch_status,
     run_autoresearch,
 )
@@ -546,3 +547,58 @@ def test_autoresearch_writes_phase_events_and_live_phase_status(tmp_path: Path) 
     assert final_state["current_phase"] == "COMPLETED"
     assert final_state["last_event"] == "run_completed"
     assert final_state["completed_generations"] == 1
+    timing = final_state["timing_summary"]
+    assert timing["proposal"]["count"] == 1
+    assert timing["repair"]["count"] == 0
+    assert timing["backtest"]["count"] == 1
+    assert timing["generation"]["count"] == 1
+    assert timing["proposal"]["p50_seconds"] >= 0
+    assert timing["proposal"]["p95_seconds"] >= timing["proposal"]["p50_seconds"]
+
+
+def test_timing_summary_pairs_research_events_and_calculates_percentiles() -> None:
+    events = [
+        {
+            "event": "generation_started",
+            "generation": 1,
+            "timestamp": "2026-09-03T00:00:00+00:00",
+        },
+        {
+            "event": "proposal_started",
+            "generation": 1,
+            "timestamp": "2026-09-03T00:00:01+00:00",
+        },
+        {
+            "event": "preflight_completed",
+            "generation": 1,
+            "timestamp": "2026-09-03T00:00:03+00:00",
+        },
+        {
+            "event": "evaluation_started",
+            "generation": 1,
+            "timestamp": "2026-09-03T00:00:03+00:00",
+        },
+        {
+            "event": "evaluation_completed",
+            "generation": 1,
+            "timestamp": "2026-09-03T00:00:04.500000+00:00",
+        },
+        {
+            "event": "generation_completed",
+            "generation": 1,
+            "timestamp": "2026-09-03T00:00:05+00:00",
+        },
+    ]
+
+    summary = _timing_summary(events)
+
+    assert summary["proposal"] == {
+        "count": 1,
+        "total_seconds": 2.0,
+        "p50_seconds": 2.0,
+        "p95_seconds": 2.0,
+        "max_seconds": 2.0,
+    }
+    assert summary["repair"]["count"] == 0
+    assert summary["backtest"]["total_seconds"] == 1.5
+    assert summary["generation"]["total_seconds"] == 5.0
