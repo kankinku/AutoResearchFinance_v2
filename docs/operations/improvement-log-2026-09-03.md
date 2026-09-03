@@ -116,6 +116,12 @@
 - 캐시는 검증에 성공한 응답만 저장하고 최대 128건으로 제한하며, 오류 응답은 저장하지 않는다.
 - 동일 요청 반복 테스트에서 Codex 프로세스 호출 횟수가 2회에서 1회로 줄었다.
 - 구현 검증 결과: `513 passed`, Ruff 통과, MyPy 통과.
+- 공통 Codex timeout을 유지하면서 제안과 복구 timeout을 각각 설정할 수 있도록 분리했다.
+- 새 설정: `QUANT_CODEX_PROPOSAL_TIMEOUT_SECONDS`, `QUANT_CODEX_REPAIR_TIMEOUT_SECONDS`.
+- 새 설정이 없으면 기존 `QUANT_CODEX_TIMEOUT_SECONDS`를 양쪽에 적용해 기존 환경과 하위 호환된다.
+- 제안·복구 timeout 전달 테스트와 Windows process-tree timeout 회귀 테스트를 통과했다.
+- 구현 검증 결과: `515 passed`, Ruff 통과, MyPy 통과.
+- timeout 분리는 대기 상한을 제어하는 개선이며, 실제 평균 응답시간 단축 효과는 통제된 20세대 벤치마크에서 별도 측정한다.
 
 이번 단계는 요청량과 불필요한 반복 정보를 줄이는 구현이며, Codex의 실제 응답시간 단축 효과는 동일 모델·동일 요청을 통제한 별도 p50/p95 벤치마크가 필요하다.
 
