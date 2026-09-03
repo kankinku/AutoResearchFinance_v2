@@ -176,6 +176,36 @@ def test_codex_exec_provider_repairs_with_an_independent_request(tmp_path: Path)
     assert "indicators.<alias>" in request["instruction"]
 
 
+def test_codex_exec_provider_compacts_invalid_intent_for_repair(tmp_path: Path) -> None:
+    runner = FakeRunner(_valid_intent())
+    provider = CodexExecProvider(workdir=tmp_path, runner=runner)
+    invalid_intent = {
+        "mode": "structure",
+        "parent_ids": ["golden_cross"],
+        "operations": [],
+        "rationale": "repair this proposal",
+        "feature_selections": [],
+        "feature_proposal": {"name": "vix_regime", "family": "macro"},
+        "python_patch": "must not be sent to the repair agent",
+        "evaluator_change": "must not be sent to the repair agent",
+    }
+
+    provider.repair({}, invalid_intent, "invalid target")
+
+    request = json.loads(runner.input_text)
+    sent_intent = request["invalid_intent"]
+    assert sent_intent == {
+        "mode": "structure",
+        "parent_ids": ["golden_cross"],
+        "operations": [],
+        "rationale": "repair this proposal",
+        "feature_selections": [],
+        "feature_proposal": {"name": "vix_regime", "family": "macro"},
+    }
+    assert "python_patch" not in request["invalid_intent"]
+    assert "evaluator_change" not in request["invalid_intent"]
+
+
 def test_codex_exec_provider_marks_repair_as_active_and_completed(tmp_path: Path) -> None:
     runner = FakeRunner(_valid_intent())
     status_path = tmp_path / "state" / "llm" / "status.json"

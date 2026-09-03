@@ -30,6 +30,14 @@ _FEATURE_CONTEXT_FIELDS = (
     "parameters",
     "status",
 )
+_REPAIR_INTENT_FIELDS = (
+    "mode",
+    "parent_ids",
+    "operations",
+    "rationale",
+    "feature_selections",
+    "feature_proposal",
+)
 
 
 @dataclass(frozen=True)
@@ -128,7 +136,7 @@ class CodexExecProvider:
                         "credentials, or place orders."
                     ),
                     "context": compact_research_context(context),
-                    "invalid_intent": sanitize_context(invalid_intent),
+                    "invalid_intent": compact_invalid_intent(invalid_intent),
                     "repair_error": error,
                 }
             )
@@ -295,6 +303,17 @@ def compact_research_context(context: Mapping[str, object]) -> dict[str, object]
         )
     sanitized["feature_catalog"] = compact_catalog
     return sanitized
+
+
+def compact_invalid_intent(value: Mapping[str, object] | None) -> dict[str, object] | None:
+    """Send only repair-relevant intent fields to the independent repair agent."""
+
+    if value is None:
+        return None
+    sanitized = sanitize_context(value)
+    if not isinstance(sanitized, Mapping):
+        return None
+    return {key: sanitized[key] for key in _REPAIR_INTENT_FIELDS if key in sanitized}
 
 
 def _sensitive_key(key: str) -> bool:
