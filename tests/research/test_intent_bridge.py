@@ -228,9 +228,39 @@ def test_regime_filter_add_cannot_target_an_item_or_use_a_boolean() -> None:
                 },
             ),
         )
-
         with pytest.raises(IntentEligibilityError, match="INTENT_"):
             intent_to_operations(intent, research_feature_specs())
+
+
+def test_intent_error_exposes_structured_path_diagnostic() -> None:
+    intent = ResearchIntent(
+        mode="structure",
+        parent_ids=("QQQ-base",),
+        rationale="invalid regime target",
+        operations=(
+            {
+                "op": "ADD_REGIME_FILTER",
+                "path": "regime_filters.0",
+                "condition": {
+                    "op": "greater_than",
+                    "left": "close",
+                    "value": 1,
+                },
+            },
+        ),
+    )
+
+    with pytest.raises(IntentEligibilityError) as raised:
+        intent_to_operations(intent, research_feature_specs())
+
+    assert raised.value.diagnostic == {
+        "code": "INTENT_PATH_TARGET",
+        "phase": "PREFLIGHT",
+        "path_received": "regime_filters.0",
+        "path_expected": "regime_filters",
+        "repair_action": "target_regime_filter_list",
+        "retryable": True,
+    }
 
     with pytest.raises(ValueError, match="condition"):
         ResearchIntent(

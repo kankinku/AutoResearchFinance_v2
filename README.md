@@ -230,6 +230,14 @@ scalar 값으로 반환해야 합니다. JSON Patch의 임의 `add`·`replace`·
 처리 결과로 누적되고, 그 세대는 부모 전략을 그대로 평가하는 `FALLBACK`으로 진행합니다.
 이 기록은 전략 성능 증거가 아니라 LLM·하네스 오류를 줄이기 위한 운영 지식입니다.
 
+오류 기록에는 `code`, `phase`, `generation`, `message`, `retryable`과 함께 오류 유형에
+따른 `path_expected`, `reference_received`, `available_references`, `available_targets`,
+`repair_action`이 포함됩니다. 동일 진단의 간결한 요약은 복구 Codex 요청에도 전달되므로,
+복구 agent가 부모 IR 전체를 추측하지 않고 오류 위치와 허용 형식을 바로 수정할 수 있습니다.
+`research-events.jsonl`에서는 `proposal_started`, `preflight_completed`,
+`repair_started`, `evaluation_started` 등의 이벤트별 `duration_seconds`로 각 단계 시간을
+분리해 확인할 수 있습니다.
+
 따라서 `Mimir /research 100`은 개별 세대 오류로 중단되지 않고 요청한 100세대를
 처리합니다. 최종 상태가 `COMPLETED_WITH_FALLBACKS` 또는
 `COMPLETED_WITH_ERRORS`이면 전략 품질 성공이 아니라, 모든 세대의 처리와 오류

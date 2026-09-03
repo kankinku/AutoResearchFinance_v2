@@ -216,6 +216,79 @@ def test_autoresearch_repairs_invalid_intent_and_continues(tmp_path: Path) -> No
     assert all(item["status"] == "REPAIRED" for item in result["generations"])
 
 
+def test_autoresearch_records_compact_diagnostic_for_repair(tmp_path: Path) -> None:
+    source = tmp_path / "strategy.yaml"
+    _write_strategy(source)
+    repair_errors: list[str] = []
+
+    class RepairingProvider:
+        def propose(self, context: dict[str, object]) -> dict[str, object]:
+            return {
+                "mode": "structure",
+                "parent_ids": [str(context["source_strategy"]["id"])],
+                "rationale": "invalid regime target",
+                "operations": [
+                    {
+                        "op": "ADD_REGIME_FILTER",
+                        "path": "regime_filters.0",
+                        "condition": {
+                            "op": "greater_than",
+                            "left": "close",
+                            "value": 1,
+                        },
+                    }
+                ],
+            }
+
+        def repair(
+            self,
+            context: dict[str, object],
+            invalid_intent: dict[str, object] | None,
+            error: str,
+        ) -> dict[str, object]:
+            del context, invalid_intent
+            repair_errors.append(error)
+            return {
+                "mode": "structure",
+                "parent_ids": ["loop-base"],
+                "operations": [],
+                "rationale": "retain after invalid proposal",
+            }
+
+    result = run_autoresearch(
+        ResearchLoopConfig(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="data.parquet",
+            generations=1,
+        ),
+        ResearchDirector(RepairingProvider()),
+        evaluator=lambda **kwargs: {"status": "COMPLETED", "candidate_count": 1},
+    )
+
+    assert result["status"] == "COMPLETED"
+    assert len(repair_errors) == 1
+    assert "code=INTENT_PATH_TARGET" in repair_errors[0]
+    assert "expected=regime_filters" in repair_errors[0]
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "state" / "system" / "research-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    failed = next(event for event in events if event["event"] == "proposal_failed")
+    assert failed["diagnostic"]["code"] == "INTENT_PATH_TARGET"
+    assert failed["diagnostic"]["generation"] == 1
+    knowledge = [
+        json.loads(line)
+        for line in (tmp_path / "state" / "system" / "repair-knowledge.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert knowledge[0]["diagnostic"]["path_expected"] == "regime_filters"
+
+
 def test_autoresearch_fallbacks_after_repair_exhaustion_and_reaches_all_generations(
     tmp_path: Path,
 ) -> None:

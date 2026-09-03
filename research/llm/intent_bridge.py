@@ -13,8 +13,19 @@ from strategy_ir.schema import FeatureRef, StrategyIR
 class IntentEligibilityError(ValueError):
     """Raised when an LLM intent cannot enter the local experiment queue."""
 
-    def __init__(self, message: str, *, code: str = "INTENT_INVALID") -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "INTENT_INVALID",
+        diagnostic: Mapping[str, object] | None = None,
+    ) -> None:
         self.code = code
+        self.diagnostic: dict[str, object] = {
+            "code": code,
+            "phase": "PREFLIGHT",
+            **dict(diagnostic or {}),
+        }
         super().__init__(f"{code}: {message}")
 
 
@@ -186,6 +197,12 @@ def _typed_operation_from_model(
             raise IntentEligibilityError(
                 "regime filter additions must target the regime_filters list",
                 code="INTENT_PATH_TARGET",
+                diagnostic={
+                    "path_received": path,
+                    "path_expected": "regime_filters",
+                    "repair_action": "target_regime_filter_list",
+                    "retryable": True,
+                },
             )
         return MutationOperation(operation.op, "regime_filters", _condition_value(operation))
     if operation.op == "ADD_RULE":
@@ -193,6 +210,12 @@ def _typed_operation_from_model(
             raise IntentEligibilityError(
                 "rule additions must target entry.conditions or exit.conditions",
                 code="INTENT_PATH_TARGET",
+                diagnostic={
+                    "path_received": path,
+                    "path_expected": "entry.conditions|exit.conditions",
+                    "repair_action": "target_rule_condition_list",
+                    "retryable": True,
+                },
             )
         return MutationOperation(operation.op, path, _condition_value(operation))
     if operation.op == "REPLACE_RULE" and operation.condition is not None:
@@ -200,6 +223,12 @@ def _typed_operation_from_model(
             raise IntentEligibilityError(
                 "condition replacement must target a rule condition",
                 code="INTENT_PATH_TARGET",
+                diagnostic={
+                    "path_received": path,
+                    "path_expected": "entry.conditions.<index>|exit.conditions.<index>",
+                    "repair_action": "target_rule_condition",
+                    "retryable": True,
+                },
             )
         return MutationOperation(operation.op, path, _condition_value(operation))
     if operation.op == "ADD_FEATURE":
@@ -207,6 +236,12 @@ def _typed_operation_from_model(
             raise IntentEligibilityError(
                 "feature additions require a features.<alias> target",
                 code="INTENT_PATH_TARGET",
+                diagnostic={
+                    "path_received": path,
+                    "path_expected": "features.<alias>",
+                    "repair_action": "set_canonical_target_path",
+                    "retryable": True,
+                },
             )
         return MutationOperation(operation.op, path, _feature_reference(operation.feature, specs))
     if operation.op == "ADD_INDICATOR":
@@ -214,6 +249,12 @@ def _typed_operation_from_model(
             raise IntentEligibilityError(
                 "indicator additions require an indicators.<alias> target",
                 code="INTENT_PATH_TARGET",
+                diagnostic={
+                    "path_received": path,
+                    "path_expected": "indicators.<alias>",
+                    "repair_action": "set_canonical_target_path",
+                    "retryable": True,
+                },
             )
         if operation.indicator is None:
             raise IntentEligibilityError(
@@ -230,6 +271,12 @@ def _typed_operation_from_model(
             raise IntentEligibilityError(
                 "indicator swaps require an indicators.<alias> target",
                 code="INTENT_PATH_TARGET",
+                diagnostic={
+                    "path_received": path,
+                    "path_expected": "indicators.<alias>",
+                    "repair_action": "set_canonical_target_path",
+                    "retryable": True,
+                },
             )
         if operation.indicator is None:
             raise IntentEligibilityError(

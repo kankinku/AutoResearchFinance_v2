@@ -4,6 +4,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
@@ -28,6 +29,7 @@ from research.llm.director import (
     ResearchIntent,
 )
 from research.llm.intent_bridge import (
+    IntentEligibilityError,
     apply_intent,
     intent_to_operations,
 )
@@ -178,13 +180,29 @@ def run_autoresearch(
                 )
             except Exception as exc:
                 intent_error = _error_text(exc)
+                diagnostic = _diagnostic_from_exception(
+                    exc,
+                    phase="PROPOSING",
+                    generation=generation_number,
+                    strategy=current,
+                    intent=intent,
+                )
                 progress.emit(
                     "proposal_failed",
                     phase="PROPOSING",
                     generation=generation_number,
                     error=intent_error,
+                    detail={"diagnostic": diagnostic},
                 )
                 invalid_payload = _intent_payload(intent)
+                _record_repair_knowledge(
+                    config,
+                    generation_number,
+                    invalid_payload,
+                    intent_error,
+                    status="PROPOSAL_FAILED",
+                    diagnostic=diagnostic,
+                )
                 if intent is not None and intent.feature_proposal is not None:
                     proposal_to_record = intent.feature_proposal
                 repaired_intent: ResearchIntent | None = None
@@ -230,7 +248,7 @@ def run_autoresearch(
                         repaired_intent = director.repair(
                             context,
                             invalid_payload,
-                            intent_error,
+                            _format_repair_error(intent_error, diagnostic),
                         )
                         attempted_repair_payloads.add(
                             _payload_signature(_intent_payload(repaired_intent))
@@ -293,6 +311,13 @@ def run_autoresearch(
                         break
                     except Exception as exc:
                         intent_error = _error_text(exc)
+                        diagnostic = _diagnostic_from_exception(
+                            exc,
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            strategy=current,
+                            intent=repaired_intent,
+                        )
                         repair_errors.append(intent_error)
                         progress.emit(
                             "repair_failed",
@@ -300,6 +325,7 @@ def run_autoresearch(
                             generation=generation_number,
                             repair_attempt=repair_attempts,
                             error=intent_error,
+                            detail={"diagnostic": diagnostic},
                         )
                         repair_history.append(
                             {
@@ -314,6 +340,7 @@ def run_autoresearch(
                             invalid_payload,
                             intent_error,
                             status="FAILED",
+                            diagnostic=diagnostic,
                         )
                         invalid_payload = _intent_payload(repaired_intent) or invalid_payload
                 else:
@@ -353,6 +380,11 @@ def run_autoresearch(
                 while evaluation is None and repair_attempts < config.intent_repair_attempts:
                     repair_input = _intent_payload(intent)
                     repair_input_signature = _payload_signature(repair_input)
+                    repair_diagnostic = _diagnostic_from_error(
+                        evaluation_error or "evaluation failed",
+                        phase="BACKTESTING",
+                        generation=generation_number,
+                    )
                     if repair_input_signature in attempted_repair_payloads:
                         duplicate_error = (
                             "INTENT_REPAIR_DUPLICATE: identical invalid repair payload "
@@ -393,7 +425,9 @@ def run_autoresearch(
                         repaired_intent = director.repair(
                             context,
                             _intent_payload(intent),
-                            evaluation_error,
+                            _format_repair_error(
+                                evaluation_error or "evaluation failed", repair_diagnostic
+                            ),
                         )
                         attempted_repair_payloads.add(
                             _payload_signature(_intent_payload(repaired_intent))
@@ -462,6 +496,13 @@ def run_autoresearch(
                         break
                     except Exception as repair_exc:
                         repair_error = _error_text(repair_exc)
+                        repair_diagnostic = _diagnostic_from_exception(
+                            repair_exc,
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            strategy=current,
+                            intent=repaired_intent,
+                        )
                         repair_errors.append(repair_error)
                         progress.emit(
                             "repair_failed",
@@ -469,6 +510,7 @@ def run_autoresearch(
                             generation=generation_number,
                             repair_attempt=repair_attempts,
                             error=repair_error,
+                            detail={"diagnostic": repair_diagnostic},
                         )
                         repair_history.append(
                             {
@@ -483,6 +525,7 @@ def run_autoresearch(
                             repair_input,
                             repair_error,
                             status="FAILED",
+                            diagnostic=repair_diagnostic,
                         )
                         evaluation_error = f"candidate={evaluation_error}; repair={repair_error}"
 
@@ -669,6 +712,7 @@ def _record_repair_knowledge(
     error: str,
     *,
     status: str,
+    diagnostic: Mapping[str, object] | None = None,
 ) -> None:
     target = config.state_dir / "system" / "repair-knowledge.jsonl"
     record = {
@@ -678,6 +722,10 @@ def _record_repair_knowledge(
         "error": error[:1000],
         "error_code": _error_code(error),
         "payload_signature": _payload_signature(payload),
+        "diagnostic": dict(
+            diagnostic
+            or _diagnostic_from_error(error, phase="REPAIRING", generation=generation)
+        ),
     }
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -692,6 +740,114 @@ def _error_code(error: str) -> str:
         if token.startswith("INTENT_"):
             return token
     return "INTENT_UNKNOWN"
+
+
+def _diagnostic_from_exception(
+    error: Exception,
+    *,
+    phase: str,
+    generation: int,
+    strategy: StrategyIR | None = None,
+    intent: ResearchIntent | None = None,
+) -> dict[str, object]:
+    if isinstance(error, IntentEligibilityError):
+        diagnostic = dict(error.diagnostic)
+    else:
+        diagnostic = _diagnostic_from_error(
+            _error_text(error), phase=phase, generation=generation
+        )
+    diagnostic.setdefault("phase", phase)
+    diagnostic["generation"] = generation
+    diagnostic.setdefault("message", _error_text(error))
+    if strategy is not None:
+        diagnostic["available_references"] = sorted(
+            {
+                *strategy.indicators,
+                *strategy.features,
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+            }
+        )
+        diagnostic["available_targets"] = sorted(
+            [
+                *(f"indicators.{name}" for name in strategy.indicators),
+                *(f"features.{name}" for name in strategy.features),
+                "entry.conditions.<index>",
+                "exit.conditions.<index>",
+                "regime_filters",
+            ]
+        )
+    if intent is not None:
+        diagnostic["operation_count"] = len(intent.operations) + len(intent.feature_selections)
+    match = re.search(r"unknown reference ['\"]([^'\"]+)['\"]", str(error))
+    if match:
+        diagnostic["reference_received"] = match.group(1)
+    return diagnostic
+
+
+def _diagnostic_from_error(error: str, *, phase: str, generation: int) -> dict[str, object]:
+    code = _error_code(error)
+    diagnostic: dict[str, object] = {
+        "code": code,
+        "phase": phase,
+        "generation": generation,
+        "message": error[:1000],
+        "retryable": code in {"INTENT_PATH_TARGET", "INTENT_VALUE_TYPE"},
+    }
+    if "features.<alias>" in error:
+        diagnostic.update(
+            {
+                "path_expected": "features.<alias>",
+                "repair_action": "set_canonical_target_path",
+            }
+        )
+    elif "indicators.<alias>" in error:
+        diagnostic.update(
+            {
+                "path_expected": "indicators.<alias>",
+                "repair_action": "set_canonical_target_path",
+            }
+        )
+    elif "regime_filters list" in error:
+        diagnostic.update(
+            {
+                "path_expected": "regime_filters",
+                "repair_action": "target_regime_filter_list",
+            }
+        )
+    elif "unknown reference" in error:
+        diagnostic["repair_action"] = "use_declared_indicator_or_feature_alias"
+    elif "unsupported operator" in error:
+        diagnostic.update(
+            {
+                "allowed_operators": [
+                    "cross_above",
+                    "cross_below",
+                    "less_than",
+                    "less_equal",
+                    "greater_than",
+                    "greater_equal",
+                    "equal",
+                ],
+                "repair_action": "use_verified_condition_operator",
+            }
+        )
+    return diagnostic
+
+
+def _format_repair_error(error: str, diagnostic: Mapping[str, object]) -> str:
+    fields = [
+        f"code={diagnostic.get('code', 'INTENT_UNKNOWN')}",
+        f"phase={diagnostic.get('phase', 'PREFLIGHT')}",
+    ]
+    for key in ("path_received", "path_expected", "repair_action"):
+        if key in diagnostic:
+            fields.append(f"{key}={diagnostic[key]}")
+    fields.append(f"message={error[:600]}")
+    return " ".join(fields)
 
 
 def _error_text(error: Exception) -> str:
@@ -804,7 +960,11 @@ class _ResearchProgress:
         if error is not None:
             payload["error"] = error
         if detail:
-            payload["detail"] = sanitize_context(detail)
+            sanitized_detail = sanitize_context(detail)
+            if isinstance(sanitized_detail, dict) and "diagnostic" in sanitized_detail:
+                payload["diagnostic"] = sanitized_detail.pop("diagnostic")
+            if sanitized_detail:
+                payload["detail"] = sanitized_detail
         _append_research_event(self.config, payload)
         _write_autoresearch_status(
             self.config,
