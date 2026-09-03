@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from runtime.mimir import MimirCommand, ResearchPaths, parse_mimir_command, resolve_research_paths
+from runtime.mimir import (
+    MimirCommand,
+    ResearchPaths,
+    _parse_research_options,
+    parse_mimir_command,
+    resolve_research_paths,
+)
 
 
 def test_parse_mimir_command_accepts_direct_slash_syntax() -> None:
@@ -79,3 +85,10 @@ def test_mimir_module_exposes_main_entrypoint() -> None:
     import runtime.mimir as mimir
 
     assert callable(mimir.main)
+
+
+def test_mimir_research_defaults_to_ten_percent_qqq_outperformance() -> None:
+    assert _parse_research_options(["20"]).min_qqq_cagr == pytest.approx(0.10)
+    assert _parse_research_options(["20", "--min-qqq-cagr", "0.25"]).min_qqq_cagr == pytest.approx(
+        0.25
+    )

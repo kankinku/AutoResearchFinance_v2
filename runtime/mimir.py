@@ -177,7 +177,7 @@ def _parse_common_options(arguments: Sequence[str]) -> MimirResearchOptions:
         seed=0,
         min_trades=10,
         min_annual_trades=30,
-        min_qqq_cagr=None,
+        min_qqq_cagr=0.10,
         domains=(),
         intent_repair_attempts=3,
         state_dir=parsed.state_dir,
@@ -197,7 +197,12 @@ def _parse_research_options(arguments: Sequence[str]) -> MimirResearchOptions:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--min-trades", type=int, default=10)
     parser.add_argument("--min-annual-trades", type=int, default=30)
-    parser.add_argument("--min-qqq-cagr", type=float)
+    parser.add_argument(
+        "--min-qqq-cagr",
+        type=float,
+        default=0.10,
+        help="QQQ 대비 최소 연복리 초과수익률 (기본값: 0.10 = 10%p)",
+    )
     parser.add_argument("--domain", action="append", default=[])
     parser.add_argument("--intent-repairs", type=int, default=3)
     parser.add_argument("--state-dir", type=Path, default=Path("state"))

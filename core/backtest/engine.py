@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from itertools import pairwise
 from math import isfinite
 
@@ -51,6 +51,17 @@ class BacktestResult:
     equity_curve_hash: str
     exit_status: str
     trades: tuple[Trade, ...] = ()
+
+
+@dataclass
+class _SymbolState:
+    bars: tuple[Bar, ...]
+    values: dict[str, list[float | None]]
+    index_by_timestamp: dict[datetime, int]
+    units: float = 0.0
+    entry_price: float = 0.0
+    pending: str | None = None
+    last_close: float = 0.0
 
 
 class BacktestEngine:
@@ -119,63 +130,171 @@ class BacktestEngine:
     def _run_multi_symbol_strategy(
         self, request: BacktestRequest, symbols: tuple[str, ...]
     ) -> BacktestResult:
+        strategy = request.strategy
+        assert strategy is not None
         allocation = request.initial_cash / len(symbols)
-        results: list[tuple[str, tuple[Bar, ...], BacktestResult]] = []
         full_width = len(request.dataset.bars)
+        states: dict[str, _SymbolState] = {}
         for symbol in symbols:
             indices = tuple(
                 index for index, bar in enumerate(request.dataset.bars) if bar.symbol == symbol
             )
             bars = tuple(request.dataset.bars[index] for index in indices)
             dataset = MarketDataSet(request.dataset.version, request.dataset.zone, bars)
-            result = self._run_single_symbol_strategy(
-                BacktestRequest(
-                    f"{request.run_id}-{symbol}",
-                    request.strategy_hash,
+            values = _indicator_values(dataset, strategy)
+            values.update(
+                _feature_values(
                     dataset,
-                    allocation,
-                    strategy=request.strategy,
-                    cost_model=request.cost_model,
-                    feature_values=_slice_mapping(request.feature_values, indices, full_width),
-                    feature_specs=request.feature_specs,
-                    feature_inputs=_slice_mapping(request.feature_inputs, indices, full_width),
-                    external_series=request.external_series,
-                    cost_stress_multiplier=request.cost_stress_multiplier,
+                    strategy,
+                    _slice_mapping(request.feature_values, indices, full_width),
+                    request.feature_specs,
+                    _slice_mapping(request.feature_inputs, indices, full_width),
+                    request.external_series,
                 )
             )
-            results.append((symbol, bars, result))
-
-        timestamps = sorted({bar.timestamp for _, bars, _ in results for bar in bars})
-        timelines = {
-            symbol: {
-                bar.timestamp: equity
-                for bar, equity in zip(bars, result.equity_curve, strict=True)
-            }
-            for symbol, bars, result in results
-        }
-        latest = {symbol: allocation for symbol in symbols}
-        equity_curve: list[float] = []
-        for timestamp in timestamps:
-            for symbol in symbols:
-                if timestamp in timelines[symbol]:
-                    latest[symbol] = timelines[symbol][timestamp]
-            equity_curve.append(sum(latest.values()))
-        trades = tuple(
-            sorted(
-                (trade for _, _, result in results for trade in result.trades),
-                key=lambda trade: (trade.timestamp, trade.symbol, trade.side),
+            states[symbol] = _SymbolState(
+                bars,
+                values,
+                {bar.timestamp: index for index, bar in enumerate(bars)},
+                last_close=bars[0].close,
             )
+
+        timestamps = sorted({bar.timestamp for state in states.values() for bar in state.bars})
+        cash = request.initial_cash
+        current_day: date | None = None
+        day_start_equity = cash
+        daily_loss_blocked = False
+        stopped = False
+        equity_curve: list[float] = []
+        trades: list[Trade] = []
+        for timestamp in timestamps:
+            current_bars = {
+                symbol: state.bars[state.index_by_timestamp[timestamp]]
+                for symbol, state in states.items()
+                if timestamp in state.index_by_timestamp
+            }
+            first_bar = current_bars[next(iter(current_bars))]
+            bar_day = first_bar.timestamp.date()
+            exposure_at_open = sum(
+                state.units
+                * current_bars.get(symbol, first_bar).open
+                if symbol in current_bars
+                else state.units * state.last_close
+                for symbol, state in states.items()
+            )
+            if bar_day != current_day:
+                current_day = bar_day
+                day_start_equity = cash + exposure_at_open
+                daily_loss_blocked = False
+            if _daily_loss_breached(strategy, day_start_equity, cash + exposure_at_open):
+                daily_loss_blocked = True
+
+            for symbol in symbols:
+                state = states[symbol]
+                bar = current_bars.get(symbol)
+                if bar is None or state.pending != "exit" or state.units <= 0:
+                    continue
+                notional = state.units * bar.open
+                cost = _cost(
+                    request.cost_model,
+                    notional,
+                    "sell",
+                    request.cost_stress_multiplier,
+                )
+                cash += notional - cost
+                trades.append(_trade(bar, "sell", state.units, cost, price=bar.open))
+                state.units = 0.0
+                state.entry_price = 0.0
+                state.pending = None
+
+            for symbol in symbols:
+                state = states[symbol]
+                bar = current_bars.get(symbol)
+                if bar is None or state.pending != "entry" or state.units > 0:
+                    continue
+                notional = allocation * strategy.risk.position_size_pct / 100
+                current_exposure = sum(
+                    candidate.units
+                    * current_bars.get(candidate_symbol, bar).open
+                    if candidate_symbol in current_bars
+                    else candidate.units * candidate.last_close
+                    for candidate_symbol, candidate in states.items()
+                )
+                equity_at_open = cash + current_exposure
+                concurrent = sum(candidate.units > 0 for candidate in states.values())
+                max_concurrent = strategy.risk.max_concurrent_positions
+                allowed_concurrent = (
+                    max_concurrent is None or concurrent < max_concurrent
+                )
+                if (
+                    not daily_loss_blocked
+                    and not stopped
+                    and allowed_concurrent
+                    and cash + 1e-9 >= notional
+                    and _exposure_allows(
+                        strategy, notional, equity_at_open, current_exposure
+                    )
+                ):
+                    cost = _cost(
+                        request.cost_model,
+                        notional,
+                        "buy",
+                        request.cost_stress_multiplier,
+                    )
+                    state.units = max(0.0, (notional - cost) / bar.open)
+                    cash -= notional
+                    state.entry_price = bar.open
+                    trades.append(_trade(bar, "buy", state.units, cost, price=bar.open))
+                state.pending = None
+
+            for symbol in symbols:
+                state = states[symbol]
+                bar = current_bars.get(symbol)
+                if bar is None:
+                    continue
+                index = state.index_by_timestamp[timestamp]
+                state.last_close = bar.close
+                if state.units > 0:
+                    if _rules_match(
+                        strategy.exit.conditions, strategy.exit.logic, state.values, index
+                    ) or _risk_exit(strategy, state.entry_price, bar.close):
+                        state.pending = "exit"
+                elif (
+                    not daily_loss_blocked
+                    and not stopped
+                    and _rules_match(
+                        strategy.entry.conditions, strategy.entry.logic, state.values, index
+                    )
+                ):
+                    state.pending = "entry"
+
+            marked_equity = cash + sum(
+                state.units * current_bars[symbol].close
+                if symbol in current_bars
+                else state.units * state.last_close
+                for symbol, state in states.items()
+            )
+            if _daily_loss_breached(strategy, day_start_equity, marked_equity):
+                daily_loss_blocked = True
+                if strategy.risk.daily_loss_action in {"reduce", "stop"}:
+                    for state in states.values():
+                        if state.units > 0:
+                            state.pending = "exit"
+                if strategy.risk.daily_loss_action == "stop":
+                    stopped = True
+            equity_curve.append(marked_equity)
+
+        trades_tuple = tuple(
+            sorted(trades, key=lambda trade: (trade.timestamp, trade.symbol, trade.side))
         )
         return BacktestResult(
             request.run_id,
-            content_hash(request.strategy.model_dump(mode="json", by_alias=True))
-            if request.strategy is not None
-            else request.strategy_hash,
+            content_hash(strategy.model_dump(mode="json", by_alias=True)),
             request.dataset.dataset_hash,
             tuple(equity_curve),
             content_hash(tuple(equity_curve)),
             "SUCCEEDED",
-            trades,
+            trades_tuple,
         )
 
     def _run_single_symbol_strategy(self, request: BacktestRequest) -> BacktestResult:
@@ -199,7 +318,21 @@ class BacktestEngine:
         equity: list[float] = []
         trades: list[Trade] = []
         pending: str | None = None
+        current_day: date | None = None
+        day_start_equity = cash
+        daily_loss_blocked = False
+        stopped = False
         for index, bar in enumerate(request.dataset.bars):
+            bar_day = bar.timestamp.date()
+            if bar_day != current_day:
+                current_day = bar_day
+                day_start_equity = cash + units * bar.open
+                daily_loss_blocked = False
+            if _daily_loss_breached(
+                strategy, day_start_equity, cash + units * bar.open
+            ):
+                daily_loss_blocked = True
+
             if pending == "exit" and units > 0:
                 notional = units * bar.open
                 cost = _cost(
@@ -214,16 +347,21 @@ class BacktestEngine:
                 entry_price = 0.0
             elif pending == "entry" and units == 0:
                 notional = cash * strategy.risk.position_size_pct / 100
-                cost = _cost(
-                    request.cost_model,
-                    notional,
-                    "buy",
-                    request.cost_stress_multiplier,
-                )
-                units = max(0.0, (notional - cost) / bar.open)
-                cash -= notional
-                entry_price = bar.open
-                trades.append(_trade(bar, "buy", units, cost, price=bar.open))
+                if (
+                    not daily_loss_blocked
+                    and not stopped
+                    and _entry_within_exposure_limit(strategy, notional, cash, units, bar.open)
+                ):
+                    cost = _cost(
+                        request.cost_model,
+                        notional,
+                        "buy",
+                        request.cost_stress_multiplier,
+                    )
+                    units = max(0.0, (notional - cost) / bar.open)
+                    cash -= notional
+                    entry_price = bar.open
+                    trades.append(_trade(bar, "buy", units, cost, price=bar.open))
             pending = None
 
             if units > 0:
@@ -232,9 +370,20 @@ class BacktestEngine:
                 )
                 if exit_signal or _risk_exit(strategy, entry_price, bar.close):
                     pending = "exit"
-            elif _rules_match(strategy.entry.conditions, strategy.entry.logic, values, index):
+            elif (
+                not daily_loss_blocked
+                and not stopped
+                and _rules_match(strategy.entry.conditions, strategy.entry.logic, values, index)
+            ):
                 pending = "entry"
-            equity.append(cash + units * bar.close)
+            marked_equity = cash + units * bar.close
+            if _daily_loss_breached(strategy, day_start_equity, marked_equity):
+                daily_loss_blocked = True
+                if strategy.risk.daily_loss_action in {"reduce", "stop"} and units > 0:
+                    pending = "exit"
+                if strategy.risk.daily_loss_action == "stop":
+                    stopped = True
+            equity.append(marked_equity)
         return BacktestResult(
             request.run_id,
             strategy_hash,
@@ -455,6 +604,34 @@ def _trade(
         cost,
         bar.symbol,
     )
+
+
+def _entry_within_exposure_limit(
+    strategy: StrategyIR, planned_notional: float, cash: float, units: float, price: float
+) -> bool:
+    equity = cash + units * price
+    current_exposure = units * price
+    return _exposure_allows(strategy, planned_notional, equity, current_exposure)
+
+
+def _exposure_allows(
+    strategy: StrategyIR, planned_notional: float, equity: float, current_exposure: float
+) -> bool:
+    limit = strategy.risk.max_total_exposure_pct
+    if limit is None:
+        return True
+    allowed_exposure = equity * limit / 100
+    return current_exposure + planned_notional <= allowed_exposure + 1e-9
+
+
+def _daily_loss_breached(
+    strategy: StrategyIR, day_start_equity: float, current_equity: float
+) -> bool:
+    limit = strategy.risk.daily_loss_limit_pct
+    if limit is None or strategy.risk.daily_loss_action == "none" or day_start_equity <= 0:
+        return False
+    loss_pct = (day_start_equity - current_equity) / day_start_equity * 100
+    return loss_pct >= limit - 1e-9
 
 
 def _slice_mapping(

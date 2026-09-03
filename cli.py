@@ -100,7 +100,8 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "--min-qqq-cagr",
         type=float,
-        help="Optional minimum same-period QQQ annualized excess return, e.g. 0.10",
+        default=0.10,
+        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
     )
     run_parser.add_argument(
         "--domain",
@@ -125,7 +126,12 @@ def build_parser() -> argparse.ArgumentParser:
     repeat_parser.add_argument("--seed", type=int, default=0)
     repeat_parser.add_argument("--min-trades", type=int, default=10)
     repeat_parser.add_argument("--min-annual-trades", type=int, default=30)
-    repeat_parser.add_argument("--min-qqq-cagr", type=float)
+    repeat_parser.add_argument(
+        "--min-qqq-cagr",
+        type=float,
+        default=0.10,
+        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
+    )
     repeat_parser.add_argument("--generations", type=int, required=True)
     repeat_parser.add_argument("--interval-seconds", type=float, default=0.0)
     repeat_parser.add_argument(
@@ -148,7 +154,12 @@ def build_parser() -> argparse.ArgumentParser:
     autoresearch_parser.add_argument("--seed", type=int, default=0)
     autoresearch_parser.add_argument("--min-trades", type=int, default=10)
     autoresearch_parser.add_argument("--min-annual-trades", type=int, default=30)
-    autoresearch_parser.add_argument("--min-qqq-cagr", type=float)
+    autoresearch_parser.add_argument(
+        "--min-qqq-cagr",
+        type=float,
+        default=0.10,
+        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
+    )
     autoresearch_parser.add_argument("--generations", type=int, required=True)
     autoresearch_parser.add_argument("--interval-seconds", type=float, default=0.0)
     autoresearch_parser.add_argument("--domain", action="append", default=[])
@@ -170,7 +181,12 @@ def build_parser() -> argparse.ArgumentParser:
     terminal_parser.add_argument("--seed", type=int, default=0)
     terminal_parser.add_argument("--min-trades", type=int, default=10)
     terminal_parser.add_argument("--min-annual-trades", type=int, default=30)
-    terminal_parser.add_argument("--min-qqq-cagr", type=float)
+    terminal_parser.add_argument(
+        "--min-qqq-cagr",
+        type=float,
+        default=0.10,
+        help="Minimum same-period QQQ annualized excess return (default: 0.10 = 10%p)",
+    )
     terminal_parser.add_argument("--interval-seconds", type=float, default=0.0)
     terminal_parser.add_argument("--domain", action="append", default=[])
     terminal_parser.add_argument("--state-dir", type=Path, default=Path("state"))

@@ -322,7 +322,7 @@ python cli.py terminal
 3. candidate/evaluation 기록에 feature lineage, timeframe, lag, data snapshot, implementation hash를 끝까지 전달해야 한다.
 4. LLM context에 평가 결과를 안전하게 압축해 다음 generation intent로 되돌리는 bridge가 필요하다.
 5. 직접 수정 모드의 disposable worktree·diff·보호 경로 검사를 end-to-end로 구현하고 테스트해야 한다.
-6. “일봉 종가 확정 후 다음 거래일 시가” 체결 규칙은 실제 backtest executor 경로를 다시 검증하고, 불일치하면 수정해야 한다.
+6. ~~“일봉 종가 확정 후 다음 거래일 시가” 체결 규칙은 실제 backtest executor 경로를 다시 검증하고, 불일치하면 수정해야 한다.~~ **완료(2026-09-03):** ordinary/risk exit next-bar-open 및 future-bar mutation 회귀 테스트가 통과했다.
 7. 기존 자동 연구 반복이 “전략 개선 성공”으로 오인되지 않도록 baseline 대비 동일 데이터 비교와 Champion/Frontier 승격 증거를 함께 저장해야 한다.
 
 ## 9. 구현 순서와 검증 기준

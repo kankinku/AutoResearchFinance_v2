@@ -90,6 +90,7 @@ def test_autoresearch_command_dispatches_to_bounded_codex_loop(
     config = captured["config"]
     assert config.generations == 2
     assert config.source_path == "strategy.yaml"
+    assert config.min_qqq_cagr_delta == 0.10
 
 
 def test_terminal_chat_command_uses_read_only_codex_chat_provider(

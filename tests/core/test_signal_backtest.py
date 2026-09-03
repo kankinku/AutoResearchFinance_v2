@@ -104,6 +104,96 @@ def test_strategy_backtest_executes_signal_on_next_bar_open() -> None:
     ]
 
 
+def test_strategy_backtest_blocks_entry_that_exceeds_total_exposure_limit() -> None:
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.entry.conditions = [Condition(op="greater_than", left="close", value=0)]
+    strategy.risk = strategy.risk.model_copy(
+        update={"position_size_pct": 100.0, "max_total_exposure_pct": 50.0}
+    )
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-exposure-limit",
+            "hash",
+            _dataset((10, 10, 10)),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert result.trades == ()
+
+
+def test_strategy_backtest_enforces_daily_loss_stop_before_new_entries() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 1, 2, 10 + index, tzinfo=timezone.utc),
+            "TEST",
+            open_price,
+            max(open_price, close),
+            min(open_price, close),
+            close,
+            1000,
+        )
+        for index, (open_price, close) in enumerate(
+            ((10, 10), (10, 5), (5, 5), (5, 5))
+        )
+    )
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.entry.conditions = [Condition(op="greater_than", left="close", value=0)]
+    strategy.exit.conditions = [Condition(op="greater_than", left="close", value=0)]
+    strategy.risk = strategy.risk.model_copy(
+        update={"daily_loss_limit_pct": 5.0, "daily_loss_action": "stop"}
+    )
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-daily-loss-stop",
+            "hash",
+            MarketDataSet("data-v1", "development", bars),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert [trade.side for trade in result.trades] == ["buy", "sell"]
+
+
+def test_multi_symbol_backtest_enforces_max_concurrent_positions() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index),
+            symbol,
+            open_price,
+            max(open_price, close),
+            min(open_price, close),
+            close,
+            1000,
+        )
+        for symbol, prices in (
+            ("AAA", ((10, 10), (10, 10), (10, 10))),
+            ("BBB", ((20, 20), (20, 20), (20, 20))),
+        )
+        for index, (open_price, close) in enumerate(prices)
+    )
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.entry.conditions = [Condition(op="greater_than", left="close", value=0)]
+    strategy.exit.conditions = []
+    strategy.risk = strategy.risk.model_copy(update={"max_concurrent_positions": 1})
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-concurrent-limit",
+            "hash",
+            MarketDataSet("data-v1", "development", bars),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert [(trade.symbol, trade.side) for trade in result.trades] == [("AAA", "buy")]
+
+
 def test_strategy_backtest_handles_multiple_symbols_without_cross_symbol_bridging() -> None:
     bars = tuple(
         Bar(
@@ -281,6 +371,73 @@ def test_strategy_backtest_uses_declared_external_feature_values() -> None:
     )
 
     assert [trade.side for trade in result.trades] == ["buy", "sell"]
+
+
+def test_strategy_backtest_risk_exit_executes_on_next_bar_open() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 2, 1, tzinfo=timezone.utc) + timedelta(days=index),
+            "TEST",
+            open_price,
+            max(open_price, close),
+            min(open_price, close),
+            close,
+            1000,
+        )
+        for index, (open_price, close) in enumerate(((10, 10), (20, 8), (30, 30)))
+    )
+    strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+    strategy.entry.conditions = [Condition(op="greater_than", left="close", value=0)]
+    strategy.exit.conditions = []
+    strategy.risk = strategy.risk.model_copy(update={"stop_loss_pct": 10.0})
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            "run-risk-next-open",
+            "hash",
+            MarketDataSet("data-v1", "development", bars),
+            1000,
+            strategy=strategy,
+        )
+    )
+
+    assert [(trade.side, trade.price) for trade in result.trades] == [
+        ("buy", 20),
+        ("sell", 30),
+    ]
+
+
+def test_strategy_backtest_signal_does_not_use_future_bars() -> None:
+    def run_with_future_close(future_close: float) -> tuple[str, float]:
+        prices = ((10.0, 10.0), (20.0, 20.0), (30.0, future_close))
+        bars = tuple(
+            Bar(
+                datetime(2024, 3, 1, tzinfo=timezone.utc) + timedelta(days=index),
+                "TEST",
+                open_price,
+                max(open_price, close),
+                min(open_price, close),
+                close,
+                1000,
+            )
+            for index, (open_price, close) in enumerate(prices)
+        )
+        strategy = _strategy().model_copy(deep=True)  # type: ignore[union-attr]
+        strategy.entry.conditions = [Condition(op="greater_than", left="close", value=15)]
+        strategy.exit.conditions = []
+        result = BacktestEngine().run(
+            BacktestRequest(
+                "run-no-lookahead",
+                "hash",
+                MarketDataSet("data-v1", "development", bars),
+                1000,
+                strategy=strategy,
+            )
+        )
+        assert result.trades
+        return result.trades[0].side, result.trades[0].price
+
+    assert run_with_future_close(5.0) == run_with_future_close(500.0)
 
 
 def test_strategy_backtest_applies_feature_reference_lag() -> None:

@@ -131,3 +131,34 @@
 - 단계 이벤트: `state/test-5gen-20260903-diagnostics/system/research-events.jsonl`
 - 복구 지식: `state/test-5gen-20260903-diagnostics/system/repair-knowledge.jsonl`
 - 후보 평가: `state/test-5gen-20260903-diagnostics/test-records.jsonl`
+
+## 필수 업데이트 착수 — QQQ 게이트·실행 위험 제한·체결 검증
+
+### 1. QQQ 대비 기본 게이트
+
+- `Mimir /research`, `autoresearch`, `repeat-research`, `run-generation`, `terminal`의
+  `--min-qqq-cagr` 기본값을 `0.10`으로 통일했다.
+- 명시적 CLI 값은 계속 우선하며, 기준을 완화하거나 강화하려면 사용자가 직접 값을
+  지정해야 한다.
+- 기본값 회귀 테스트와 CLI dispatch 테스트를 통과했다.
+
+### 3. 실행 단계 위험 제한
+
+- 단일 종목 체결 단계에서 `max_total_exposure_pct` 초과 진입을 fail-closed로 차단한다.
+- 일중 손실 한도 도달 시 `hold`는 신규 진입을 막고, `reduce`는 보유분 청산을 예약하며,
+  `stop`은 청산을 예약하고 이후 신규 진입을 중단한다.
+- 다종목 실행은 종목별 독립 백테스트가 아니라 시간순 공통 현금·포지션 상태를 사용해
+  `max_concurrent_positions`와 총 노출 한도를 우회하지 못한다.
+- 초과 노출·일중 손실 중단·다종목 동시 포지션 한도 테스트를 통과했다.
+
+### 4. 다음 거래일 시가·룩어헤드 검증
+
+- 일반 신호와 위험 청산 모두 신호 봉 이후 다음 봉 `open`에서만 체결된다.
+- 미래 봉의 종가만 변경해도 앞선 신호와 체결 가격이 변하지 않는 회귀 테스트를 추가했다.
+- 위 검증 결과를 위협 모델과 통합 설계 문서에 반영했다.
+
+### 현재 확인 범위
+
+- 구현 테스트: 새 위험·체결·게이트 테스트 통과.
+- 아직 수행하지 않은 항목: 전체 회귀 검사와 통제 20세대 탐색. 다음 단계에서 전체
+  `pytest`, Ruff, MyPy를 실행한 뒤 Paper-only 20세대 벤치마크를 시작한다.
