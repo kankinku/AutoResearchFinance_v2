@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import time
@@ -155,6 +156,7 @@ def run_autoresearch(
             intent_error: str | None = None
             proposal_to_record = None
             operations: tuple[MutationOperation, ...] = ()
+            attempted_repair_payloads: set[str] = set()
 
             try:
                 progress.emit("proposal_started", phase="PROPOSING", generation=generation_number)
@@ -181,6 +183,32 @@ def run_autoresearch(
                     proposal_to_record = intent.feature_proposal
                 repaired_intent: ResearchIntent | None = None
                 for attempt in range(config.intent_repair_attempts):
+                    repair_input_signature = _payload_signature(invalid_payload)
+                    if repair_input_signature in attempted_repair_payloads:
+                        duplicate_error = (
+                            "INTENT_REPAIR_DUPLICATE: identical invalid repair payload "
+                            "was already rejected"
+                        )
+                        repair_errors.append(duplicate_error)
+                        repair_history.append(
+                            {"attempt": attempt + 1, "status": "SKIPPED_DUPLICATE"}
+                        )
+                        _record_repair_knowledge(
+                            config,
+                            generation_number,
+                            invalid_payload,
+                            duplicate_error,
+                            status="SKIPPED_DUPLICATE",
+                        )
+                        progress.emit(
+                            "repair_skipped_duplicate",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            error=duplicate_error,
+                        )
+                        break
+                    attempted_repair_payloads.add(repair_input_signature)
                     repair_attempts += 1
                     progress.emit(
                         "repair_started",
@@ -197,6 +225,9 @@ def run_autoresearch(
                             context,
                             invalid_payload,
                             intent_error,
+                        )
+                        attempted_repair_payloads.add(
+                            _payload_signature(_intent_payload(repaired_intent))
                         )
                         repair_history.append(
                             {
@@ -239,6 +270,13 @@ def run_autoresearch(
                         repair_history.append(
                             {"attempt": attempt + 1, "status": "UNAVAILABLE"}
                         )
+                        _record_repair_knowledge(
+                            config,
+                            generation_number,
+                            invalid_payload,
+                            intent_error,
+                            status="UNAVAILABLE",
+                        )
                         break
                     except Exception as exc:
                         intent_error = _error_text(exc)
@@ -256,6 +294,13 @@ def run_autoresearch(
                                 "status": "FAILED",
                                 "error": intent_error,
                             }
+                        )
+                        _record_repair_knowledge(
+                            config,
+                            generation_number,
+                            invalid_payload,
+                            intent_error,
+                            status="FAILED",
                         )
                         invalid_payload = _intent_payload(repaired_intent) or invalid_payload
                 else:
@@ -293,6 +338,33 @@ def run_autoresearch(
                     error=evaluation_error,
                 )
                 while evaluation is None and repair_attempts < config.intent_repair_attempts:
+                    repair_input = _intent_payload(intent)
+                    repair_input_signature = _payload_signature(repair_input)
+                    if repair_input_signature in attempted_repair_payloads:
+                        duplicate_error = (
+                            "INTENT_REPAIR_DUPLICATE: identical invalid repair payload "
+                            "was already rejected"
+                        )
+                        repair_errors.append(duplicate_error)
+                        repair_history.append(
+                            {"attempt": repair_attempts, "status": "SKIPPED_DUPLICATE"}
+                        )
+                        _record_repair_knowledge(
+                            config,
+                            generation_number,
+                            repair_input,
+                            duplicate_error,
+                            status="SKIPPED_DUPLICATE",
+                        )
+                        progress.emit(
+                            "repair_skipped_duplicate",
+                            phase="REPAIRING",
+                            generation=generation_number,
+                            repair_attempt=repair_attempts,
+                            error=duplicate_error,
+                        )
+                        break
+                    attempted_repair_payloads.add(repair_input_signature)
                     repair_attempts += 1
                     progress.emit(
                         "repair_started",
@@ -309,6 +381,9 @@ def run_autoresearch(
                             context,
                             _intent_payload(intent),
                             evaluation_error,
+                        )
+                        attempted_repair_payloads.add(
+                            _payload_signature(_intent_payload(repaired_intent))
                         )
                         repair_history.append(
                             {
@@ -363,6 +438,13 @@ def run_autoresearch(
                         repair_history.append(
                             {"attempt": repair_attempts, "status": "UNAVAILABLE"}
                         )
+                        _record_repair_knowledge(
+                            config,
+                            generation_number,
+                            repair_input,
+                            repair_error,
+                            status="UNAVAILABLE",
+                        )
                         evaluation_error = f"candidate={evaluation_error}; repair={repair_error}"
                         break
                     except Exception as repair_exc:
@@ -381,6 +463,13 @@ def run_autoresearch(
                                 "status": "FAILED",
                                 "error": repair_error,
                             }
+                        )
+                        _record_repair_knowledge(
+                            config,
+                            generation_number,
+                            repair_input,
+                            repair_error,
+                            status="FAILED",
                         )
                         evaluation_error = f"candidate={evaluation_error}; repair={repair_error}"
 
@@ -551,6 +640,45 @@ def _intent_payload(intent: ResearchIntent | None) -> dict[str, object] | None:
     payload = intent.model_dump(mode="json", exclude_none=True)
     sanitized = sanitize_context(payload)
     return sanitized if isinstance(sanitized, dict) else None
+
+
+def _payload_signature(payload: object) -> str:
+    canonical = json.dumps(
+        sanitize_context(payload), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _record_repair_knowledge(
+    config: ResearchLoopConfig,
+    generation: int,
+    payload: object,
+    error: str,
+    *,
+    status: str,
+) -> None:
+    target = config.state_dir / "system" / "repair-knowledge.jsonl"
+    record = {
+        "timestamp": _utc_now(),
+        "generation": generation,
+        "status": status,
+        "error": error[:1000],
+        "error_code": _error_code(error),
+        "payload_signature": _payload_signature(payload),
+    }
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    except OSError:
+        return
+
+
+def _error_code(error: str) -> str:
+    for token in error.replace(";", " ").replace(":", " ").split():
+        if token.startswith("INTENT_"):
+            return token
+    return "INTENT_UNKNOWN"
 
 
 def _error_text(error: Exception) -> str:

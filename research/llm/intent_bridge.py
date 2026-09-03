@@ -5,12 +5,16 @@ from collections.abc import Iterable, Mapping
 
 from core.features.contracts import FeatureSpec
 from mutation.engine import MutationOperation, apply_operations
-from research.llm.director import FeatureSelection, ResearchIntent
+from research.llm.director import FeatureSelection, IntentOperation, ResearchIntent
 from strategy_ir.schema import FeatureRef, StrategyIR
 
 
 class IntentEligibilityError(ValueError):
     """Raised when an LLM intent cannot enter the local experiment queue."""
+
+    def __init__(self, message: str, *, code: str = "INTENT_INVALID") -> None:
+        self.code = code
+        super().__init__(f"{code}: {message}")
 
 
 _ALLOWED_SERIES_PREFIXES = frozenset(
@@ -47,7 +51,8 @@ def intent_to_operations(
 
     if intent.feature_proposal is not None:
         raise IntentEligibilityError(
-            "feature proposal requires verification before experiment eligibility"
+            "feature proposal requires verification before experiment eligibility",
+            code="INTENT_FEATURE_PROPOSAL_UNVERIFIED",
         )
     specs = _index_specs(feature_specs)
     operations = tuple(
@@ -78,7 +83,7 @@ def apply_intent(
     try:
         child = apply_operations(parent, list(operations))
     except ValueError as exc:
-        raise IntentEligibilityError(str(exc)) from exc
+        raise IntentEligibilityError(str(exc), code="INTENT_MUTATION_INVALID") from exc
     mutation_names = [
         f"{operation.op}:{operation.path or ''}".rstrip(":")
         for operation in operations
@@ -111,7 +116,8 @@ def _selection_operation(
     spec = specs.get(selection.feature_id)
     if spec is None:
         raise IntentEligibilityError(
-            f"feature is not registered: {selection.feature_id}"
+            f"feature is not registered: {selection.feature_id}",
+            code="INTENT_UNREGISTERED_FEATURE",
         )
     inputs = selection.inputs or spec.inputs
     _validate_inputs(inputs)
@@ -147,8 +153,10 @@ def _validate_inputs(inputs: tuple[str, ...]) -> None:
 
 
 def _operation_from_payload(
-    payload: Mapping[str, object], specs: Mapping[str, FeatureSpec]
+    payload: IntentOperation | Mapping[str, object], specs: Mapping[str, FeatureSpec]
 ) -> MutationOperation | None:
+    if isinstance(payload, IntentOperation):
+        return _typed_operation_from_model(payload, specs)
     op = payload.get("op")
     if not isinstance(op, str) or not op:
         raise IntentEligibilityError("intent operation op is required")
@@ -164,6 +172,130 @@ def _operation_from_payload(
     if normalized_op == "ADD_FEATURE":
         value = _feature_reference(value, specs)
     return MutationOperation(op=normalized_op, path=normalized_path, value=value)
+
+
+def _typed_operation_from_model(
+    operation: IntentOperation, specs: Mapping[str, FeatureSpec]
+) -> MutationOperation | None:
+    if operation.op == "RETAIN":
+        return None
+    path = operation.path
+    if operation.op == "ADD_REGIME_FILTER":
+        if path not in {None, "regime_filters"}:
+            raise IntentEligibilityError(
+                "regime filter additions must target the regime_filters list",
+                code="INTENT_PATH_TARGET",
+            )
+        return MutationOperation(operation.op, "regime_filters", _condition_value(operation))
+    if operation.op == "ADD_RULE":
+        if path not in {"entry.conditions", "exit.conditions"}:
+            raise IntentEligibilityError(
+                "rule additions must target entry.conditions or exit.conditions",
+                code="INTENT_PATH_TARGET",
+            )
+        return MutationOperation(operation.op, path, _condition_value(operation))
+    if operation.op == "REPLACE_RULE" and operation.condition is not None:
+        if path is None or not (path.endswith(".conditions") or ".conditions." in path):
+            raise IntentEligibilityError(
+                "condition replacement must target a rule condition",
+                code="INTENT_PATH_TARGET",
+            )
+        return MutationOperation(operation.op, path, _condition_value(operation))
+    if operation.op == "ADD_FEATURE":
+        if path is None or not path.startswith("features.") or path == "features.":
+            raise IntentEligibilityError(
+                "feature additions require a features.<alias> target",
+                code="INTENT_PATH_TARGET",
+            )
+        return MutationOperation(operation.op, path, _feature_reference(operation.feature, specs))
+    if operation.op == "ADD_INDICATOR":
+        if path is None or not path.startswith("indicators.") or path == "indicators.":
+            raise IntentEligibilityError(
+                "indicator additions require an indicators.<alias> target",
+                code="INTENT_PATH_TARGET",
+            )
+        if operation.indicator is None:
+            raise IntentEligibilityError(
+                "indicator additions require an indicator object",
+                code="INTENT_VALUE_TYPE",
+            )
+        return MutationOperation(
+            operation.op,
+            path,
+            operation.indicator.model_dump(mode="python", exclude_none=True),
+        )
+    if operation.op == "CHANGE_AND_OR":
+        if path not in {"entry.logic", "exit.logic"}:
+            raise IntentEligibilityError(
+                "logic changes must target entry.logic or exit.logic",
+                code="INTENT_PATH_TARGET",
+            )
+        return MutationOperation(operation.op, path, operation.logic)
+    if operation.op == "SET_PARAMETER":
+        if path is None or not _is_parameter_path(path):
+            raise IntentEligibilityError(
+                "parameter changes must target an indicator or risk parameter",
+                code="INTENT_PATH_TARGET",
+            )
+        return MutationOperation(operation.op, path, operation.value)
+    if operation.op in {
+        "REMOVE_RULE",
+        "REMOVE_FEATURE",
+        "REMOVE_INDICATOR",
+        "REMOVE_REGIME_FILTER",
+        "ENABLE_RULE",
+        "DISABLE_RULE",
+    } and not path:
+        raise IntentEligibilityError(
+            f"{operation.op} requires a target path", code="INTENT_PATH_TARGET"
+        )
+    assert path is not None
+    if operation.op == "REMOVE_REGIME_FILTER" and path == "regime_filters":
+        raise IntentEligibilityError(
+            "regime filter removal requires an item index",
+            code="INTENT_PATH_TARGET",
+        )
+    if operation.op == "REMOVE_FEATURE" and not path.startswith("features."):
+        raise IntentEligibilityError(
+            "feature removal must target features.<alias>", code="INTENT_PATH_TARGET"
+        )
+    if operation.op == "REMOVE_INDICATOR" and not path.startswith("indicators."):
+        raise IntentEligibilityError(
+            "indicator removal must target indicators.<alias>",
+            code="INTENT_PATH_TARGET",
+        )
+    if operation.op in {"ADD_RULE", "ADD_REGIME_FILTER"} and operation.condition is None:
+        raise IntentEligibilityError(
+            f"{operation.op} requires a condition object", code="INTENT_VALUE_TYPE"
+        )
+    return MutationOperation(operation.op, path, operation.value)
+
+
+def _is_parameter_path(path: str) -> bool:
+    if path.startswith("indicators."):
+        return path.endswith(".period") or ".parameters." in path
+    return path in {
+        "risk.stop_loss_pct",
+        "risk.take_profit_pct",
+        "risk.trailing_stop_pct",
+        "risk.position_size_pct",
+        "risk.risk_appetite",
+        "risk.loss_tolerance_pct",
+        "risk.daily_loss_limit_pct",
+        "risk.daily_loss_action",
+        "risk.max_concurrent_positions",
+        "risk.max_total_exposure_pct",
+    }
+
+
+def _condition_value(operation: IntentOperation) -> dict[str, object]:
+    if operation.condition is None:
+        raise IntentEligibilityError(
+            f"{operation.op} requires a condition object", code="INTENT_VALUE_TYPE"
+        )
+    return operation.condition.model_dump(
+        mode="python", exclude_none=True, exclude_defaults=True
+    )
 
 
 def _normalize_operation(op: str, path: str | None) -> tuple[str, str | None]:
@@ -224,14 +356,34 @@ def _decode_json_value(value: object) -> object:
 
 
 def _feature_reference(value: object, specs: Mapping[str, FeatureSpec]) -> FeatureRef:
+    if isinstance(value, FeatureRef):
+        spec = specs.get(value.feature_id)
+        if spec is None:
+            raise IntentEligibilityError(
+                f"feature is not registered: {value.feature_id}",
+                code="INTENT_UNREGISTERED_FEATURE",
+            )
+        data = value.model_dump(mode="python")
+        data["feature_id"] = spec.name
+        if not data.get("inputs"):
+            data["inputs"] = spec.inputs
+        _validate_inputs(tuple(data["inputs"]))
+        return FeatureRef.model_validate(data)
     if not isinstance(value, Mapping):
-        raise IntentEligibilityError("ADD_FEATURE value must be an object")
+        raise IntentEligibilityError(
+            "ADD_FEATURE value must be an object", code="INTENT_VALUE_TYPE"
+        )
     feature_id = value.get("feature_id")
     if not isinstance(feature_id, str) or not feature_id:
-        raise IntentEligibilityError("ADD_FEATURE value requires feature_id")
+        raise IntentEligibilityError(
+            "ADD_FEATURE value requires feature_id", code="INTENT_VALUE_TYPE"
+        )
     spec = specs.get(feature_id)
     if spec is None:
-        raise IntentEligibilityError(f"feature is not registered: {feature_id}")
+        raise IntentEligibilityError(
+            f"feature is not registered: {feature_id}",
+            code="INTENT_UNREGISTERED_FEATURE",
+        )
     allowed = {
         "feature_id",
         "timeframe",
@@ -247,6 +399,8 @@ def _feature_reference(value: object, specs: Mapping[str, FeatureSpec]) -> Featu
     try:
         reference = FeatureRef.model_validate(data)
     except (TypeError, ValueError) as exc:
-        raise IntentEligibilityError(f"invalid ADD_FEATURE value: {exc}") from exc
+        raise IntentEligibilityError(
+            f"invalid ADD_FEATURE value: {exc}", code="INTENT_VALUE_TYPE"
+        ) from exc
     _validate_inputs(tuple(reference.inputs))
     return reference

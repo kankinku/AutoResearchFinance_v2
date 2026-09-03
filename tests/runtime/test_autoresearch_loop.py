@@ -264,7 +264,67 @@ def test_autoresearch_fallbacks_after_repair_exhaustion_and_reaches_all_generati
     assert len(calls) == 2
     assert all(not call["operations"] for call in calls)
     assert all(item["status"] == "FALLBACK" for item in result["generations"])
-    assert all(item["repair_attempts"] == 2 for item in result["generations"])
+    assert all(item["repair_attempts"] == 1 for item in result["generations"])
+
+
+def test_autoresearch_skips_duplicate_repair_payload_and_records_knowledge(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "strategy.yaml"
+    _write_strategy(source)
+    repair_calls = 0
+
+    class RepeatingProvider:
+        def propose(self, context: dict[str, object]) -> dict[str, object]:
+            return {
+                "mode": "structure",
+                "parent_ids": [str(context["source_strategy"]["id"])],
+                "rationale": "invalid feature",
+                "feature_selections": [{"alias": "bad", "feature_id": "missing"}],
+            }
+
+        def repair(
+            self,
+            context: dict[str, object],
+            invalid_intent: dict[str, object] | None,
+            error: str,
+        ) -> dict[str, object]:
+            nonlocal repair_calls
+            del context, invalid_intent, error
+            repair_calls += 1
+            return {
+                "mode": "structure",
+                "parent_ids": ["loop-base"],
+                "rationale": "same invalid repair",
+                "feature_selections": [{"alias": "bad", "feature_id": "missing"}],
+            }
+
+    result = run_autoresearch(
+        ResearchLoopConfig(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="data.parquet",
+            generations=1,
+            intent_repair_attempts=3,
+        ),
+        ResearchDirector(RepeatingProvider()),
+        evaluator=lambda **kwargs: {"status": "COMPLETED", "candidate_count": 1},
+    )
+
+    assert result["generations"][0]["status"] == "FALLBACK"
+    assert repair_calls == 1
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "state" / "system" / "research-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert any(event["event"] == "repair_skipped_duplicate" for event in events)
+    knowledge = (tmp_path / "state" / "system" / "repair-knowledge.jsonl").read_text(
+        encoding="utf-8"
+    )
+    assert "INTENT_UNREGISTERED_FEATURE" in knowledge
 
 
 def test_autoresearch_processes_all_requested_generations(tmp_path: Path) -> None:

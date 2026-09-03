@@ -9,49 +9,6 @@ def research_intent_schema() -> dict[str, Any]:
     """Return the strict JSON Schema shared by Codex and local validation."""
     schema = ResearchIntent.model_json_schema()
     _make_strict(schema)
-    operations = schema["properties"]["operations"]
-    operations["items"] = {
-        "type": "object",
-        "properties": {
-            "op": {"type": "string"},
-            "path": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-            "value": {
-                "anyOf": [
-                    {
-                        "type": "array",
-                        "items": {"type": ["boolean", "integer", "null", "number", "string"]},
-                    },
-                    {"type": "boolean"},
-                    {"type": "number"},
-                    {"type": "null"},
-                    {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "properties": {},
-                        "required": [],
-                    },
-                    {"type": "string"},
-                ]
-            },
-            "other": {
-                "anyOf": [
-                    {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "properties": {},
-                        "required": [],
-                    },
-                    {"type": "null"},
-                ]
-            },
-            "min": {"anyOf": [{"type": "number"}, {"type": "null"}]},
-            "max": {"anyOf": [{"type": "number"}, {"type": "null"}]},
-            "step": {"anyOf": [{"type": "number"}, {"type": "null"}]},
-            "template": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        },
-        "required": ["op", "path", "value", "other", "min", "max", "step", "template"],
-        "additionalProperties": False,
-    }
     return schema
 
 

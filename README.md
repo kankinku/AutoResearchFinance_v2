@@ -207,6 +207,17 @@ Codex가 반환한 전략 제안이 등록되지 않은 인디케이터나 지�
 - `FALLBACK`: 제안 복구 실패 또는 후보 평가 실패 후 부모 전략으로 평가
 - `DEGRADED`: 후보와 fallback 평가가 모두 실패했지만 다음 세대로 계속 진행
 
+Codex의 출력은 `ResearchIntent`의 canonical typed operation 계약을 따라야 합니다.
+`ADD_RULE`과 `ADD_REGIME_FILTER`는 반드시 `Condition` 객체를 사용하고, 기간·수치 변경은
+scalar 값으로 반환해야 합니다. JSON Patch의 임의 `add`·`replace`·`remove` 조합은 Codex
+출력에서 허용하지 않습니다. 따라서 `regime_filters.0`에 리스트를 추가하거나 조건 자리에
+`true`, `[true]`, `{}`를 넣는 응답은 백테스트 전에 거부됩니다.
+
+복구가 같은 잘못된 payload를 반복해서 반환하면 같은 Codex 호출을 계속하지 않습니다.
+해당 오류는 `state/system/repair-knowledge.jsonl`에 오류 코드, payload 서명, 세대,
+처리 결과로 누적되고, 그 세대는 부모 전략을 그대로 평가하는 `FALLBACK`으로 진행합니다.
+이 기록은 전략 성능 증거가 아니라 LLM·하네스 오류를 줄이기 위한 운영 지식입니다.
+
 따라서 `Mimir /research 100`은 개별 세대 오류로 중단되지 않고 요청한 100세대를
 처리합니다. 최종 상태가 `COMPLETED_WITH_FALLBACKS` 또는
 `COMPLETED_WITH_ERRORS`이면 전략 품질 성공이 아니라, 모든 세대의 처리와 오류

@@ -104,6 +104,88 @@ def test_json_patch_intent_operations_are_converted_to_typed_mutations() -> None
     assert operations[1].value == {"op": "greater_than", "left": "close", "value": 0}
 
 
+def test_canonical_condition_operations_are_converted_to_condition_values() -> None:
+    intent = ResearchIntent(
+        mode="mixed",
+        parent_ids=("QQQ-base",),
+        rationale="add a typed macro regime filter",
+        operations=(
+            {
+                "op": "ADD_REGIME_FILTER",
+                "path": "regime_filters",
+                "condition": {
+                    "op": "less_than",
+                    "left": "US10Y.close",
+                    "value": 5,
+                },
+            },
+        ),
+    )
+
+    operations = intent_to_operations(intent, research_feature_specs())
+
+    assert operations[0].op == "ADD_REGIME_FILTER"
+    assert operations[0].path == "regime_filters"
+    assert operations[0].value == {
+        "op": "less_than",
+        "left": "US10Y.close",
+        "value": 5,
+    }
+
+
+def test_canonical_indicator_operation_is_converted_to_an_indicator_value() -> None:
+    intent = ResearchIntent(
+        mode="structure",
+        parent_ids=("QQQ-base",),
+        rationale="add a fast EMA",
+        operations=(
+            {
+                "op": "ADD_INDICATOR",
+                "path": "indicators.fast_ema",
+                "indicator": {"type": "EMA", "period": 5, "parameters": {}},
+            },
+        ),
+    )
+
+    operations = intent_to_operations(intent, research_feature_specs())
+
+    assert operations[0].op == "ADD_INDICATOR"
+    assert operations[0].value == {"type": "EMA", "period": 5, "parameters": {}}
+
+
+def test_regime_filter_add_cannot_target_an_item_or_use_a_boolean() -> None:
+    for path in ("regime_filters.0",):
+        intent = ResearchIntent(
+            mode="structure",
+            parent_ids=("QQQ-base",),
+            rationale="invalid regime filter operation",
+            operations=(
+                {
+                    "op": "ADD_REGIME_FILTER",
+                    "path": path,
+                    "condition": {"op": "greater_than", "left": "close", "value": 1},
+                },
+            ),
+        )
+
+        with pytest.raises(IntentEligibilityError, match="INTENT_"):
+            intent_to_operations(intent, research_feature_specs())
+
+    with pytest.raises(ValueError, match="condition"):
+        ResearchIntent(
+            mode="structure",
+            parent_ids=("QQQ-base",),
+            rationale="invalid regime filter value",
+            operations=(
+                {
+                    "op": "ADD_REGIME_FILTER",
+                    "path": "regime_filters",
+                    "condition": True,
+                },
+            ),
+        )
+
+
 def test_retain_operation_is_a_safe_noop() -> None:
     intent = ResearchIntent(
         mode="structure",
@@ -116,15 +198,13 @@ def test_retain_operation_is_a_safe_noop() -> None:
 
 
 def test_retain_operation_cannot_carry_a_mutation() -> None:
-    intent = ResearchIntent(
-        mode="structure",
-        parent_ids=("QQQ-base",),
-        rationale="invalid retain payload",
-        operations=({"op": "retain", "path": "risk.stop_loss_pct", "value": 1},),
-    )
-
-    with pytest.raises(IntentEligibilityError, match="retain"):
-        intent_to_operations(intent, research_feature_specs())
+    with pytest.raises(ValueError, match="RETAIN"):
+        ResearchIntent(
+            mode="structure",
+            parent_ids=("QQQ-base",),
+            rationale="invalid retain payload",
+            operations=({"op": "retain", "path": "risk.stop_loss_pct", "value": 1},),
+        )
 
 
 def test_feature_proposal_does_not_make_feature_eligible_in_same_intent() -> None:

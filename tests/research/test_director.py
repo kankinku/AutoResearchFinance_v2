@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from research.llm.director import ResearchDirector, ResearchIntent
+from research.llm.director import IntentOperation, ResearchDirector, ResearchIntent
 from research.llm.provider import OfflineProvider
 
 
@@ -75,3 +75,35 @@ def test_director_can_request_an_independent_repair() -> None:
     )
 
     assert intent.rationale == "repaired"
+
+
+def test_canonical_regime_filter_operation_requires_a_condition_object() -> None:
+    operation = IntentOperation(
+        op="ADD_REGIME_FILTER",
+        path="regime_filters",
+        condition={"op": "greater_than", "left": "VIX.close", "value": 25},
+    )
+
+    assert operation.condition is not None
+    assert operation.condition.left == "VIX.close"
+
+    with pytest.raises(ValueError, match="condition"):
+        IntentOperation(
+            op="ADD_REGIME_FILTER",
+            path="regime_filters",
+            condition=True,
+        )
+
+
+def test_canonical_indicator_operation_requires_an_indicator_object() -> None:
+    operation = IntentOperation(
+        op="ADD_INDICATOR",
+        path="indicators.fast_ema",
+        indicator={"type": "EMA", "period": 5, "parameters": {}},
+    )
+
+    assert operation.indicator is not None
+    assert operation.indicator.type == "EMA"
+
+    with pytest.raises(ValueError, match="indicator"):
+        IntentOperation(op="ADD_INDICATOR", path="indicators.fast_ema", value=True)

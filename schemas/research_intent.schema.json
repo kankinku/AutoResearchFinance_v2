@@ -1,5 +1,67 @@
 {
   "$defs": {
+    "Condition": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "minLength": 1,
+          "title": "Op",
+          "type": "string"
+        },
+        "left": {
+          "minLength": 1,
+          "title": "Left",
+          "type": "string"
+        },
+        "right": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Right"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "op",
+        "left",
+        "right",
+        "value",
+        "enabled"
+      ],
+      "title": "Condition",
+      "type": "object"
+    },
     "FeatureProposal": {
       "additionalProperties": false,
       "properties": {
@@ -76,6 +138,74 @@
       "title": "FeatureProposal",
       "type": "object"
     },
+    "FeatureRef": {
+      "additionalProperties": false,
+      "properties": {
+        "feature_id": {
+          "minLength": 1,
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "timeframe": {
+          "default": "1d",
+          "enum": [
+            "1m",
+            "5m",
+            "15m",
+            "1h",
+            "1d",
+            "1w",
+            "1mo"
+          ],
+          "title": "Timeframe",
+          "type": "string"
+        },
+        "lag_bars": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Lag Bars",
+          "type": "integer"
+        },
+        "lookback": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lookback"
+        },
+        "inputs": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "parameters": {
+          "additionalProperties": false,
+          "title": "Parameters",
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      "required": [
+        "feature_id",
+        "timeframe",
+        "lag_bars",
+        "lookback",
+        "inputs",
+        "parameters"
+      ],
+      "title": "FeatureRef",
+      "type": "object"
+    },
     "FeatureSelection": {
       "additionalProperties": false,
       "properties": {
@@ -149,6 +279,167 @@
       ],
       "title": "FeatureSelection",
       "type": "object"
+    },
+    "IndicatorSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "minLength": 1,
+          "title": "Type",
+          "type": "string"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        },
+        "parameters": {
+          "additionalProperties": false,
+          "title": "Parameters",
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      "required": [
+        "type",
+        "period",
+        "parameters"
+      ],
+      "title": "IndicatorSpec",
+      "type": "object"
+    },
+    "IntentOperation": {
+      "additionalProperties": false,
+      "description": "Strict operation envelope returned by Codex and consumed by the bridge.",
+      "properties": {
+        "op": {
+          "enum": [
+            "RETAIN",
+            "SET_PARAMETER",
+            "ADD_RULE",
+            "REPLACE_RULE",
+            "REMOVE_RULE",
+            "ADD_INDICATOR",
+            "REMOVE_INDICATOR",
+            "SWAP_INDICATOR",
+            "ADD_FEATURE",
+            "REMOVE_FEATURE",
+            "ADD_REGIME_FILTER",
+            "REMOVE_REGIME_FILTER",
+            "ENABLE_RULE",
+            "DISABLE_RULE",
+            "CHANGE_AND_OR",
+            "CHANGE_STOP",
+            "CHANGE_TAKE_PROFIT",
+            "CHANGE_TRAILING_STOP",
+            "CHANGE_POSITION_SIZE"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "condition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Condition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "feature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FeatureRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "indicator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IndicatorSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "enum": [
+                "AND",
+                "OR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Logic"
+        }
+      },
+      "required": [
+        "op",
+        "path",
+        "value",
+        "condition",
+        "feature",
+        "indicator",
+        "logic"
+      ],
+      "title": "IntentOperation",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -173,120 +464,7 @@
     "operations": {
       "default": [],
       "items": {
-        "type": "object",
-        "properties": {
-          "op": {
-            "type": "string"
-          },
-          "path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": [
-                    "boolean",
-                    "integer",
-                    "null",
-                    "number",
-                    "string"
-                  ]
-                }
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              },
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {},
-                "required": []
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "other": {
-            "anyOf": [
-              {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {},
-                "required": []
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "min": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "max": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "step": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "template": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "op",
-          "path",
-          "value",
-          "other",
-          "min",
-          "max",
-          "step",
-          "template"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/IntentOperation"
       },
       "title": "Operations",
       "type": "array"

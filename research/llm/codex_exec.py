@@ -72,7 +72,11 @@ class CodexExecProvider:
         return self._execute_request(
             {
                 "instruction": (
-                    "Return exactly one ResearchIntent JSON object. Do not edit files, "
+                    "Return exactly one ResearchIntent JSON object using only the canonical "
+                    "typed operation fields defined by the output schema. Never use JSON "
+                    "Patch add/replace/remove operations. ADD_RULE and ADD_REGIME_FILTER "
+                    "must use a condition object, SET_PARAMETER must use a scalar value, "
+                    "and ADD_FEATURE must use a typed feature object. Do not edit files, "
                     "write Python, change evaluators, or access credentials."
                 ),
                 "context": sanitize_context(context),
@@ -94,8 +98,10 @@ class CodexExecProvider:
                     "instruction": (
                         "Act as an independent intent repair agent. Return exactly one "
                         "ResearchIntent JSON object that fixes the supplied validation error. "
-                        "Use only registered feature selections and supported typed mutation "
-                        "operations with Strategy IR-root dotted paths. Remove any unregistered "
+                        "Use only registered feature selections and canonical typed mutation "
+                        "operations with Strategy IR-root dotted paths. Never emit JSON Patch "
+                        "add/replace/remove operations. Condition targets must contain a "
+                        "condition object, not a boolean or list. Remove any unregistered "
                         "feature proposal. Do not edit files, write Python, change evaluators, "
                         "access credentials, or place orders."
                     ),
