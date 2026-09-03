@@ -738,7 +738,14 @@ def _write_autoresearch_status(
     temporary.write_text(
         json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8"
     )
-    os.replace(temporary, target)
+    try:
+        os.replace(temporary, target)
+    except OSError:
+        try:
+            temporary.unlink()
+        except OSError:
+            pass
+        return
 
 
 class _ResearchProgress:

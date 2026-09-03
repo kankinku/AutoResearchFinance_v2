@@ -5,7 +5,11 @@ from pathlib import Path
 
 from research.llm.director import ResearchDirector
 from research.llm.provider import CodexIntentProvider
-from runtime.research_loop import ResearchLoopConfig, run_autoresearch
+from runtime.research_loop import (
+    ResearchLoopConfig,
+    _write_autoresearch_status,
+    run_autoresearch,
+)
 from strategy_ir.schema import StrategyIR
 
 
@@ -325,6 +329,32 @@ def test_autoresearch_skips_duplicate_repair_payload_and_records_knowledge(
         encoding="utf-8"
     )
     assert "INTENT_UNREGISTERED_FEATURE" in knowledge
+
+
+def test_autoresearch_status_write_permission_error_does_not_abort_research(
+    tmp_path: Path, monkeypatch
+) -> None:
+    config = ResearchLoopConfig(
+        project_root=tmp_path,
+        state_dir=tmp_path / "state",
+        source_path="strategy.yaml",
+        data_path="data.parquet",
+    )
+
+    def denied_replace(source: Path, target: Path) -> None:
+        del source, target
+        raise PermissionError("simulated Windows file lock")
+
+    monkeypatch.setattr("runtime.research_loop.os.replace", denied_replace)
+
+    _write_autoresearch_status(
+        config,
+        "RUNNING",
+        completed_generations=0,
+        records=[],
+        current_generation=1,
+        current_phase="PROPOSING",
+    )
 
 
 def test_autoresearch_processes_all_requested_generations(tmp_path: Path) -> None:
