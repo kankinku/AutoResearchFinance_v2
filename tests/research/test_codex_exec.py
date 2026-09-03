@@ -31,6 +31,7 @@ class FakeRunner:
         self.returncode = returncode
         self.stderr = stderr
         self.calls = 0
+        self.timeouts: list[float] = []
         self.command: list[str] = []
         self.input_text = ""
         self.cwd = Path()
@@ -44,7 +45,7 @@ class FakeRunner:
         env: dict[str, str],
         timeout: float,
     ) -> CodexExecResult:
-        del timeout
+        self.timeouts.append(timeout)
         self.calls += 1
         self.command = command
         self.input_text = input_text
@@ -154,6 +155,24 @@ def test_codex_exec_provider_caches_identical_requests(tmp_path: Path) -> None:
 
     assert first == second == _valid_intent()
     assert runner.calls == 1
+
+
+def test_codex_exec_provider_separates_proposal_and_repair_timeouts(
+    tmp_path: Path,
+) -> None:
+    runner = FakeRunner(_valid_intent())
+    provider = CodexExecProvider(
+        workdir=tmp_path,
+        timeout_seconds=300,
+        proposal_timeout_seconds=180,
+        repair_timeout_seconds=45,
+        runner=runner,
+    )
+
+    provider.propose({"generation": 1})
+    provider.repair({}, {}, "invalid intent")
+
+    assert runner.timeouts == [180, 45]
 
 
 def test_codex_exec_provider_rejects_failed_or_invalid_output(tmp_path: Path) -> None:

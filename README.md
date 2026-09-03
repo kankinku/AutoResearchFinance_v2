@@ -257,6 +257,11 @@ Codex 실행 제한은 300초이며, 더 길게 허용하려면 `.env`의
 `QUANT_CODEX_SERVICE_TIER=fast` 또는 `flex`로 선택할 수 있습니다. 시간초과나 Codex 비정상 종료
 시에는 Mimir가 종료 코드와 진단 메시지를 함께 출력합니다.
 
+제안과 복구의 timeout을 따로 조정하려면 `QUANT_CODEX_PROPOSAL_TIMEOUT_SECONDS`와
+`QUANT_CODEX_REPAIR_TIMEOUT_SECONDS`를 설정합니다. 복구는 구조화된 오류 수정 작업이므로
+기본 복구 제한을 더 짧게 둘 수 있습니다. 두 값을 지정하지 않으면 공통
+`QUANT_CODEX_TIMEOUT_SECONDS`가 양쪽에 적용됩니다.
+
 #### 기존 `quant>` 터미널 안에서 사용
 
 기존 터미널도 그대로 사용할 수 있습니다.

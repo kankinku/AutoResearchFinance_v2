@@ -63,6 +63,8 @@ class CodexExecProvider:
         schema_path: Path | None = None,
         model: str | None = None,
         timeout_seconds: float = DEFAULT_CODEX_TIMEOUT_SECONDS,
+        proposal_timeout_seconds: float | None = None,
+        repair_timeout_seconds: float | None = None,
         service_tier: str = "fast",
         status_path: Path | None = None,
         runner: ExecRunner | None = None,
@@ -71,6 +73,16 @@ class CodexExecProvider:
             raise ValueError("Codex executable is required")
         if timeout_seconds <= 0:
             raise ValueError("Codex timeout must be positive")
+        proposal_timeout = (
+            timeout_seconds if proposal_timeout_seconds is None else proposal_timeout_seconds
+        )
+        repair_timeout = (
+            timeout_seconds if repair_timeout_seconds is None else repair_timeout_seconds
+        )
+        if proposal_timeout <= 0:
+            raise ValueError("Codex proposal timeout must be positive")
+        if repair_timeout <= 0:
+            raise ValueError("Codex repair timeout must be positive")
         if service_tier not in {"fast", "flex"}:
             raise ValueError("Codex service tier must be fast or flex")
         self.executable = executable
@@ -78,6 +90,8 @@ class CodexExecProvider:
         self.schema_path = schema_path or _default_schema_path()
         self.model = model.strip() if model and model.strip() else None
         self.timeout_seconds = timeout_seconds
+        self.proposal_timeout_seconds = proposal_timeout
+        self.repair_timeout_seconds = repair_timeout
         self.service_tier = service_tier
         self.status_path = status_path
         self._runner = runner or _run_codex
@@ -109,7 +123,8 @@ class CodexExecProvider:
                     "files, write Python, change evaluators, or access credentials."
                 ),
                 "context": compact_research_context(context),
-            }
+            },
+            timeout_seconds=self.proposal_timeout_seconds,
         )
 
     def repair(
@@ -141,7 +156,8 @@ class CodexExecProvider:
                     "context": compact_research_context(context),
                     "invalid_intent": compact_invalid_intent(invalid_intent),
                     "repair_error": error,
-                }
+                },
+                timeout_seconds=self.repair_timeout_seconds,
             )
         except Exception:
             self._write_status("OFFLINE", "FAILED", operation="repair")
@@ -149,7 +165,9 @@ class CodexExecProvider:
         self._write_status("ONLINE", "REPAIRED", operation="repair")
         return payload
 
-    def _execute_request(self, request: Mapping[str, object]) -> dict[str, Any]:
+    def _execute_request(
+        self, request: Mapping[str, object], *, timeout_seconds: float
+    ) -> dict[str, Any]:
         self.workdir.mkdir(parents=True, exist_ok=True)
         prompt = json.dumps(request, ensure_ascii=False, sort_keys=True)
         cache_key = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
@@ -182,7 +200,7 @@ class CodexExecProvider:
                 prompt,
                 self.workdir,
                 _child_environment(),
-                self.timeout_seconds,
+                timeout_seconds,
             )
             if result.returncode != 0:
                 raise ValueError(_execution_error(result))
@@ -218,11 +236,22 @@ class CodexExecProvider:
             )
         except ValueError as exc:
             raise ValueError("QUANT_CODEX_TIMEOUT_SECONDS must be numeric") from exc
+        try:
+            proposal_timeout = _read_optional_timeout(
+                values, "QUANT_CODEX_PROPOSAL_TIMEOUT_SECONDS", timeout
+            )
+            repair_timeout = _read_optional_timeout(
+                values, "QUANT_CODEX_REPAIR_TIMEOUT_SECONDS", timeout
+            )
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
         return cls(
             executable=executable,
             workdir=workdir,
             model=model,
             timeout_seconds=timeout,
+            proposal_timeout_seconds=proposal_timeout,
+            repair_timeout_seconds=repair_timeout,
             service_tier=values.get("QUANT_CODEX_SERVICE_TIER", "fast").lower(),
             status_path=status_path,
         )
@@ -440,6 +469,7 @@ def _run_codex_windows_process_tree(
         encoding="utf-8",
         errors="replace",
     )
+
     try:
         stdout, stderr = process.communicate(input=input_text, timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -451,6 +481,16 @@ def _run_codex_windows_process_tree(
             f"Codex execution timed out after {timeout:g} seconds; process tree terminated",
         )
     return CodexExecResult(process.returncode, stdout, stderr)
+
+
+def _read_optional_timeout(values: Mapping[str, str], key: str, fallback: float) -> float:
+    raw = values.get(key)
+    if raw is None or not raw.strip():
+        return fallback
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise ValueError(f"{key} must be numeric") from exc
 
 
 def _kill_windows_process_tree(pid: int) -> None:
