@@ -29,6 +29,7 @@ credentials/
 /cache/
 state/experiments.sqlite
 state/audit.jsonl
+state/system/kis-access-incidents.jsonl
 state/*.sqlite-shm
 state/*.sqlite-wal
 state/results/*.parquet
