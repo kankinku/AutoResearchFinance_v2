@@ -12,6 +12,95 @@ from orchestration.evaluation_runner import build_research_context, run_local_ev
 from strategy_ir.schema import FeatureRef
 
 
+def test_rejected_evidence_accumulates_and_reaches_next_context(tmp_path: Path) -> None:
+    from memory.evidence_knowledge import sync_knowledge
+    from memory.research_evidence import research_evidence
+
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    state.mkdir()
+    prior = {"schema_version": 1, "known_good": [{"candidate_hash": "old"}],
+             "known_bad": [], "unexplored": [], "custom_field": {"keep": True}}
+    (state / "knowledge.json").write_text(json.dumps(prior), encoding="utf-8")
+    for _ in range(2):
+        run_local_evaluation(project_root=tmp_path, state_dir=state,
+                             source_path="strategy.yaml", data_path="bars.parquet")
+    knowledge = json.loads((state / "knowledge.json").read_text(encoding="utf-8"))
+    assert knowledge["known_good"] == prior["known_good"]
+    assert knowledge["custom_field"] == {"keep": True}
+    assert len(knowledge["known_bad"]) == 2
+    sync_knowledge(state)
+    assert json.loads((state / "knowledge.json").read_text(encoding="utf-8")) == knowledge
+    context = build_research_context(state)
+    assert len(context["failure_knowledge"]) == 1
+    assert context["failure_knowledge"][0]["occurrences"] == 2
+    assert all(r["causal_status"] == "UNKNOWN" for r in context["failure_knowledge"])
+    evidence = research_evidence(state)
+    assert len(evidence["runs"]) == 2
+    assert all(r["reject_count"] == 1 for r in evidence["runs"])
+    assert evidence["legacy"]["record_count"] == 0
+    assert evidence["runs"][0]["manifest"]["cost_model"]["version"] == "cost-v1"
+
+
+def test_changed_inputs_in_same_run_are_rejected(tmp_path: Path) -> None:
+    import pytest
+
+    from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
+
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    store = EvidenceStore(state)
+    store.append("run", "run:fixed", {
+        "research_run_id": "fixed", "requested_generations": 2, "seed": 0,
+    })
+    kwargs = dict(project_root=tmp_path, state_dir=state, source_path="strategy.yaml",
+                  data_path="bars.parquet", research_run_id="fixed")
+    run_local_evaluation(**kwargs, attempt_id="first", generation=1)
+    with pytest.raises(EvidenceIntegrityError, match="conflict"):
+        run_local_evaluation(**kwargs, attempt_id="second", generation=2, min_trades=999)
+
+
+def test_sealed_metadata_denied_before_loading_rows(tmp_path: Path, monkeypatch) -> None:
+    import pandas as pd
+    import pytest
+
+    from memory.evidence_store import EvidenceIntegrityError
+
+    _, data, _ = _write_inputs(tmp_path)
+    original = ParquetDataProvider.read(data)
+    ParquetDataProvider.write(data, MarketDataSet(original.version, DataZone.SEALED_OOS,
+                                                original.bars))
+    def forbidden(*args, **kwargs):
+        raise AssertionError("sealed rows were read")
+    monkeypatch.setattr(pd, "read_parquet", forbidden)
+    with pytest.raises(EvidenceIntegrityError, match="sealed"):
+        run_local_evaluation(project_root=tmp_path, state_dir=tmp_path / "state",
+                             source_path="strategy.yaml", data_path="bars.parquet")
+
+
+def test_actual_loop_feeds_first_rejection_to_second_proposal(tmp_path: Path) -> None:
+    from research.llm.director import ResearchDirector
+    from research.llm.provider import CodexIntentProvider
+    from runtime.research_loop import ResearchLoopConfig, run_autoresearch
+
+    _write_inputs(tmp_path)
+    contexts = []
+    def propose(context):
+        contexts.append(context)
+        return {"mode": "parameter", "parent_ids": ["runner-test"],
+                "operations": [], "rationale": "baseline control"}
+    outcome = run_autoresearch(
+        ResearchLoopConfig(project_root=tmp_path, state_dir=tmp_path / "state",
+                           source_path="strategy.yaml", data_path="bars.parquet",
+                           generations=2, intent_repair_attempts=0),
+        ResearchDirector(CodexIntentProvider(propose)),
+    )
+    assert contexts[0]["failure_knowledge"] == []
+    assert contexts[1]["failure_knowledge"]
+    assert contexts[1]["failure_knowledge"][0]["failed_gates"]
+    assert outcome["status"] == "COMPLETED"
+
+
 def _write_inputs(root: Path) -> tuple[Path, Path, Path]:
     strategy = root / "strategy.yaml"
     strategy.write_text(

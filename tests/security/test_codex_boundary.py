@@ -63,6 +63,7 @@ def test_mcp_tool_surface_has_no_order_or_credential_capability(tmp_path: Path) 
         "get_research_context",
         "list_features",
         "get_dashboard_status",
+        "get_research_evidence",
         "submit_research_intent",
         "run_evaluation",
         "check_system",

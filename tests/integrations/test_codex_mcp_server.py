@@ -35,6 +35,7 @@ def test_mcp_server_lists_only_safe_research_tools(tmp_path: Path) -> None:
         "get_research_context",
         "list_features",
         "get_dashboard_status",
+        "get_research_evidence",
         "submit_research_intent",
         "run_evaluation",
         "check_system",
@@ -86,6 +87,7 @@ def test_mcp_server_returns_context_and_features_without_raw_data(tmp_path: Path
 
     assert "raw_market_rows" not in context
     assert "sealed_oos" not in context
+    assert context["failure_knowledge"] == []
     assert context["feature_catalog"]
     assert isinstance(features["features"], list)
 

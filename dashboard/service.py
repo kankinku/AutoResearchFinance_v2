@@ -118,6 +118,22 @@ class DashboardService:
             degraded = self._with_warning(current, "KIS_REFRESH_FAILED")
             return self._save(self._with_health(degraded, kis_status="OFFLINE"))
 
+    def research_evidence(self, run_id: str | None = None) -> dict[str, Any]:
+        """Read attributable evidence without exposing corrupt source details."""
+        from memory.research_evidence import research_evidence
+
+        try:
+            return research_evidence(self.state_dir, run_id=run_id)
+        except (OSError, ValueError):
+            return {
+                "schema_version": 1,
+                "status": "INTEGRITY_ERROR",
+                "runs": [],
+                "legacy": {"status": "UNKNOWN", "record_count": None},
+                "sealed_oos_survival": {"status": "NOT_MEASURED", "value": None},
+                "orders_enabled": False,
+            }
+
     def feature_catalog(self) -> list[dict[str, object]]:
         """Return a credential-free projection for the dashboard catalog."""
 

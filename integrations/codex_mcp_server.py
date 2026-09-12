@@ -9,6 +9,7 @@ from typing import Any
 from core.features.registry import research_feature_specs
 from dashboard.service import DashboardService
 from integrations.codex_mcp_protocol import error, serve_lines, success, text_content
+from memory.evidence_knowledge import failure_context
 from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
 from research.llm.codex_exec import record_intent, sanitize_context, write_provider_status
 from research.llm.codex_schema import research_intent_schema
@@ -91,6 +92,13 @@ class CodexMCPServer:
                     for spec in research_feature_specs()
                 ]
             }
+        if name == "get_research_evidence":
+            run_id = arguments.get("research_run_id")
+            if run_id is not None and not isinstance(run_id, str):
+                raise ValueError("research_run_id must be a string")
+            if set(arguments) - {"research_run_id"}:
+                raise ValueError("unexpected evidence arguments")
+            return self.dashboard.research_evidence(run_id)
         if name == "get_dashboard_status":
             return self.dashboard.snapshot().model_dump(mode="json")
         if name == "submit_research_intent":
@@ -125,6 +133,7 @@ class CodexMCPServer:
         ]
         payload = sanitize_context(
             {
+                "failure_knowledge": failure_context(self.state_dir),
                 "generation": snapshot.strategy.generation or 0,
                 "champion": snapshot.strategy.model_dump(mode="json"),
                 "frontier": [],
@@ -214,6 +223,15 @@ def _tools() -> list[dict[str, object]]:
             "name": "list_features",
             "description": "List selectable feature candidates.",
             "inputSchema": empty,
+        },
+        {
+            "name": "get_research_evidence",
+            "description": "Read attributable research evidence; sealed OOS remains NOT_MEASURED.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"research_run_id": {"type": "string"}},
+                "additionalProperties": False,
+            },
         },
         {
             "name": "get_dashboard_status",

@@ -14,6 +14,7 @@ from typing import Any
 from core.features.contracts import FeatureSpec
 from core.features.lifecycle import record_feature_proposal
 from core.features.registry import research_feature_specs
+from memory.evidence_store import EvidenceIntegrityError
 from mutation.engine import MutationOperation
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import (
@@ -34,6 +35,7 @@ from research.llm.intent_bridge import (
     apply_intent,
     intent_to_operations,
 )
+from runtime.evidence_session import EvidenceSession
 from strategy_ir.normalizer import normalize_source
 from strategy_ir.schema import StrategyIR
 
@@ -66,7 +68,15 @@ def run_repeated_evaluation(
     evaluator: EvaluationRunner | None = None,
 ) -> dict[str, Any]:
     _validate_config(config)
-    runner = evaluator or run_local_evaluation
+    base_runner = evaluator or run_local_evaluation
+    evidence = EvidenceSession(
+        config.state_dir, requested_generations=config.generations, seed=config.seed,
+        settings={"method": config.method, "count": config.count,
+                  "parameter_domains": [asdict(domain) for domain in config.parameter_domains],
+                  "repair_attempts_allowed": config.intent_repair_attempts},
+    )
+    def runner(**kwargs: Any) -> dict[str, object]:
+        return evidence.evaluate(base_runner, **kwargs)
     records: list[dict[str, object]] = []
     _write_status(config, "RUNNING", completed_generations=0, records=records)
     try:
@@ -86,6 +96,7 @@ def run_repeated_evaluation(
                 min_annual_trades=config.min_annual_trades,
                 parameter_domains=config.parameter_domains,
             )
+            evidence.finish_generation(generation + 1, str(result.get("status", "UNKNOWN")), result)
             records.append(
                 {"generation": generation + 1, "seed": config.seed + generation, **result}
             )
@@ -98,6 +109,7 @@ def run_repeated_evaluation(
             if generation + 1 < config.generations and config.interval_seconds:
                 time.sleep(config.interval_seconds)
     except Exception as exc:
+        evidence.finish_run("FAILED")
         _write_status(
             config,
             "FAILED",
@@ -106,7 +118,9 @@ def run_repeated_evaluation(
             error=type(exc).__name__,
         )
         raise
+    evidence.finish_run("COMPLETED")
     return {
+        "research_run_id": evidence.run_id,
         "status": "COMPLETED",
         "completed_generations": len(records),
         "generations": records,
@@ -130,7 +144,15 @@ def run_autoresearch(
     if imported.strategy is None:
         raise ValueError("strategy source is unsupported")
     current = imported.strategy
-    runner = evaluator or run_local_evaluation
+    base_runner = evaluator or run_local_evaluation
+    evidence = EvidenceSession(
+        config.state_dir, requested_generations=config.generations, seed=config.seed,
+        settings={"method": config.method, "count": config.count,
+                  "parameter_domains": [asdict(domain) for domain in config.parameter_domains],
+                  "repair_attempts_allowed": config.intent_repair_attempts},
+    )
+    def runner(**kwargs: Any) -> dict[str, object]:
+        return evidence.evaluate(base_runner, **kwargs)
     records: list[dict[str, object]] = []
     progress = _ResearchProgress(config, records)
     progress.emit("run_started", phase="STARTING")
@@ -179,6 +201,8 @@ def run_autoresearch(
                     generation=generation_number,
                     detail={"mode": intent.mode, "operation_count": len(operations)},
                 )
+            except EvidenceIntegrityError:
+                raise
             except Exception as exc:
                 intent_error = _error_text(exc)
                 diagnostic = _diagnostic_from_exception(
@@ -310,6 +334,8 @@ def run_autoresearch(
                             status="UNAVAILABLE",
                         )
                         break
+                    except EvidenceIntegrityError:
+                        raise
                     except Exception as exc:
                         intent_error = _error_text(exc)
                         diagnostic = _diagnostic_from_exception(
@@ -370,6 +396,8 @@ def run_autoresearch(
                     generation=generation_number,
                     detail={"status": evaluation.get("status", "UNKNOWN")},
                 )
+            except EvidenceIntegrityError:
+                raise
             except Exception as exc:
                 evaluation_error = _error_text(exc)
                 progress.emit(
@@ -495,6 +523,8 @@ def run_autoresearch(
                         )
                         evaluation_error = f"candidate={evaluation_error}; repair={repair_error}"
                         break
+                    except EvidenceIntegrityError:
+                        raise
                     except Exception as repair_exc:
                         repair_error = _error_text(repair_exc)
                         repair_diagnostic = _diagnostic_from_exception(
@@ -552,6 +582,8 @@ def run_autoresearch(
                             generation=generation_number,
                             detail={"status": evaluation.get("status", "UNKNOWN")},
                         )
+                    except EvidenceIntegrityError:
+                        raise
                     except Exception as fallback_exc:
                         evaluation_error = (
                             f"{evaluation_error}; fallback={_error_text(fallback_exc)}"
@@ -606,6 +638,8 @@ def run_autoresearch(
                 record["repair_history"] = repair_history
             if evaluation_error is not None:
                 record["evaluation_error"] = evaluation_error
+            record["research_run_id"] = evidence.run_id
+            evidence.finish_generation(generation_number, str(record["status"]), evaluation)
             records.append(record)
             progress.emit(
                 "generation_completed",
@@ -621,6 +655,7 @@ def run_autoresearch(
             if generation + 1 < config.generations and config.interval_seconds:
                 time.sleep(config.interval_seconds)
     except Exception as exc:
+        evidence.finish_run("FAILED")
         progress.emit(
             "run_failed",
             phase="FAILED",
@@ -630,6 +665,7 @@ def run_autoresearch(
         )
         raise
     final_status = _autoresearch_final_status(records)
+    evidence.finish_run(final_status)
     progress.emit(
         "run_completed",
         phase="COMPLETED",
@@ -637,6 +673,7 @@ def run_autoresearch(
         completed_generations=len(records),
     )
     return {
+        "research_run_id": evidence.run_id,
         "status": final_status,
         "completed_generations": len(records),
         "generations": records,

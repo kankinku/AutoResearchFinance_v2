@@ -29,6 +29,8 @@ credentials/
 /cache/
 state/experiments.sqlite
 state/audit.jsonl
+state/system/research-evidence/
+**/state/system/research-evidence/
 state/system/kis-access-incidents.jsonl
 state/*.sqlite-shm
 state/*.sqlite-wal

@@ -41,6 +41,10 @@ def build_parser() -> argparse.ArgumentParser:
     for command in ("mode", "set-mode"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    evidence_parser = subparsers.add_parser("research-evidence")
+    evidence_parser.add_argument("--state-dir", type=Path, default=Path("state"))
+    evidence_parser.add_argument("--run-id")
+    evidence_parser.add_argument("--output", type=Path)
     subparsers.add_parser("list-features")
     research_parser = subparsers.add_parser(
         "research-intent", help="Ask the local Codex CLI for one validated research intent"
@@ -311,6 +315,17 @@ def _run_terminal_repl(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "research-evidence":
+        evidence_payload = DashboardService(args.state_dir).research_evidence(args.run_id)
+        serialized = json.dumps(evidence_payload, ensure_ascii=False, indent=2)
+        if args.output is not None:
+            try:
+                args.output.write_text(serialized + "\n", encoding="utf-8")
+            except OSError:
+                print(json.dumps({"status": "ERROR", "reason": "EXPORT_FAILED"}))
+                return 1
+        print(serialized)
+        return 1 if evidence_payload.get("status") == "INTEGRITY_ERROR" else 0
     state_commands = {"init", "status", "resume", "promote-paper", "mode", "set-mode"}
     store = StateFileStore(args.state_dir) if args.command in state_commands else None
     if args.command == "init":

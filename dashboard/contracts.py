@@ -37,6 +37,8 @@ class AccountSnapshot(DashboardModel):
 
 class TestRecord(DashboardModel):
     run_id: str
+    research_run_id: str | None = None
+    attempt_id: str | None = None
     strategy_hash: str
     generation: int = 0
     timestamp: str

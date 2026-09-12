@@ -13,6 +13,8 @@ def append_funnel_results(
     generation: int,
     results: Sequence[FunnelResult],
     timestamp: str,
+    research_run_id: str | None = None,
+    attempt_id: str | None = None,
 ) -> None:
     if generation < 0 or not timestamp or not results:
         raise ValueError("generation, timestamp, and results are required")
@@ -20,7 +22,11 @@ def append_funnel_results(
     with path.open("a", encoding="utf-8", newline="\n") as handle:
         for result in results:
             record = {
-                "run_id": f"{result.candidate_hash}-generation-{generation}",
+                "run_id": (f"{research_run_id}-{attempt_id}-{result.candidate_hash}"
+                           if research_run_id else
+                           f"{result.candidate_hash}-generation-{generation}"),
+                "research_run_id": research_run_id,
+                "attempt_id": attempt_id,
                 "strategy_hash": result.candidate_hash,
                 "generation": generation,
                 "timestamp": timestamp,

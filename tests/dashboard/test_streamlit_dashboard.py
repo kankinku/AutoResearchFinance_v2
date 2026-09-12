@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -54,8 +56,19 @@ def test_streamlit_dashboard_uses_korean_visible_section_labels() -> None:
         assert marker in source
 
 
-def test_streamlit_dashboard_renders_generation_analysis_without_exception() -> None:
-    app = AppTest.from_file(str(ROOT / "dashboard.py")).run(timeout=30)
+def test_streamlit_dashboard_renders_generation_analysis_without_exception(tmp_path: Path) -> None:
+    # The UI deliberately omits its generation selector when there are no runs.
+    # Supply a local fixture instead of depending on an operator's ignored state.
+    script = tmp_path / "dashboard.py"
+    script.write_text((ROOT / "dashboard.py").read_text(encoding="utf-8"), encoding="utf-8")
+    system = tmp_path / "state" / "system"
+    system.mkdir(parents=True)
+    (system / "autoresearch.json").write_text(json.dumps({
+        "status": "COMPLETED", "requested_generations": 1, "completed_generations": 1,
+        "phase_started_at": datetime.now(timezone.utc).isoformat(),
+        "generations": [{"generation": 1, "status": "COMPLETED"}],
+    }), encoding="utf-8")
+    app = AppTest.from_file(str(script)).run(timeout=30)
 
     assert not app.exception
     assert any(item.label == "분석할 세대" for item in app.selectbox)

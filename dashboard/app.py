@@ -69,6 +69,15 @@ def create_app(service: DashboardService | None = None) -> FastAPI:
             dashboard_service.strategy_catalog(), headers={"Cache-Control": "no-store"}
         )
 
+    @app.get("/api/research-evidence")
+    def research_evidence(run_id: str | None = None) -> JSONResponse:
+        payload = dashboard_service.research_evidence(run_id)
+        return JSONResponse(
+            payload,
+            status_code=503 if payload.get("status") == "INTEGRITY_ERROR" else 200,
+            headers={"Cache-Control": "no-store"},
+        )
+
     @app.get("/api/backtest")
     def backtest() -> JSONResponse:
         return JSONResponse(
