@@ -69,7 +69,10 @@ def run_repeated_evaluation(
     evaluator: EvaluationRunner | None = None,
 ) -> dict[str, Any]:
     _validate_config(config)
-    default_executor = QueuedEvaluationExecutor(config.state_dir)
+    default_executor = QueuedEvaluationExecutor(
+        config.state_dir,
+        project_root=config.project_root,
+    )
     base_runner = evaluator or (
         lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
     )
@@ -148,7 +151,10 @@ def run_autoresearch(
     if imported.strategy is None:
         raise ValueError("strategy source is unsupported")
     current = imported.strategy
-    default_executor = QueuedEvaluationExecutor(config.state_dir)
+    default_executor = QueuedEvaluationExecutor(
+        config.state_dir,
+        project_root=config.project_root,
+    )
     base_runner = evaluator or (
         lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
     )

@@ -95,3 +95,123 @@ Phase 3-1은 Docker worker를 실제 job consumer로 전환하지 않는다.
 
 다음 내부 단계에서 공통 job envelope/result contract를 파일 또는 IPC 경계로 직렬화한 뒤,
 Docker worker가 같은 job을 소비하도록 연결해야 한다.
+
+
+# Phase 3-2 — Cross-process / Docker evaluation worker
+
+## Shared job contract
+
+Phase 3-2 adds a versioned `EvaluationJobRequest` / `EvaluationJobResult` contract.
+Only project-relative research input paths and validated evaluation options cross the
+worker boundary. Typed parameter domains, mutation operations and StrategyIR overrides
+are converted to JSON-safe payloads and reconstructed in the worker.
+
+The queue of record for Docker execution is:
+
+```text
+state/system/evaluation-jobs/queue.sqlite
+```
+
+SQLite transactions make claim/update operations authoritative across processes. A host
+claims a job and assigns its lease before launching the container. The container must
+consume that already leased job; it cannot silently create or claim a different job.
+
+## Docker worker path
+
+Docker mode is opt-in. The default remains `local_scheduler`.
+
+Process environment:
+
+```text
+QUANT_EVALUATION_EXECUTION=docker_worker
+QUANT_EVALUATION_DOCKER_IMAGE=quant-autoresearch-worker:local
+```
+
+When enabled, the path is:
+
+```text
+EvaluationService / AutoResearch
+  -> QueuedEvaluationExecutor
+  -> PersistentJobQueue (SQLite)
+  -> lease job
+  -> docker run --network none --read-only ...
+  -> runtime.system_worker --role evaluation-job
+  -> load leased EvaluationJobRequest
+  -> run_local_evaluation
+  -> Evidence / Knowledge / ledger
+  -> EvaluationJobResult
+  -> PersistentJobQueue SUCCEEDED
+  -> host reads result
+```
+
+The project mount is read-only. Only the selected state directory is overlaid read-write.
+The container runs with no network, all Linux capabilities dropped,
+`no-new-privileges`, PID/memory/CPU limits and a noexec temporary filesystem.
+
+## Timeout enforcement
+
+Unlike the local Thread scheduler, Docker mode enforces the research policy
+`job_timeout_seconds` at the process/container boundary.
+
+If `docker run` exceeds the timeout:
+
+1. the host executes `docker rm -f <container>`,
+2. the local Docker CLI process is killed,
+3. the leased job is marked `TIMED_OUT`,
+4. retry policy is applied,
+5. after the maximum attempt count the job becomes `RETRY_EXHAUSTED`.
+
+A nonzero worker process that exits before updating the shared queue is marked
+`WorkerProcessError` and may be retried. A worker that records a deterministic
+error such as `ValueError` is not automatically retried.
+
+## Crash / lease recovery
+
+Because the lease is stored in SQLite rather than process memory, a new host process can
+call `reconcile_stale()` after an expired lease. The job is then either requeued or
+marked `RETRY_EXHAUSTED` according to its persisted attempt count.
+
+This recovery behavior is covered by an actual separate Python-process integration test,
+not only by two queue objects in the same interpreter.
+
+## Evidence semantics
+
+A worker that actually executes inside the Docker job path records:
+
+```json
+{
+  "execution_mode": "docker_worker",
+  "isolated": true,
+  "timeout_enforced": true
+}
+```
+
+The local path continues to record:
+
+```json
+{
+  "execution_mode": "local_scheduler",
+  "isolated": false,
+  "timeout_enforced": false
+}
+```
+
+Operational job logs continue to omit exception message bodies and retain only error
+classes.
+
+## Environment verification limitation
+
+The Moon development container used for Phase 3-2 does not expose a Docker CLI.
+Therefore a real Docker Engine smoke run cannot be executed from this environment.
+
+Validated here instead:
+
+- Docker command isolation and mount contract
+- forced `docker rm -f` cleanup on timeout
+- timeout/retry state transitions
+- persistent queue and lease recovery
+- real separate-process worker consumption
+- typed request/result round trip
+
+A host-side Docker smoke remains an environment acceptance check rather than a missing
+code path.

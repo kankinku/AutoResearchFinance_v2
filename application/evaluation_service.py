@@ -16,7 +16,10 @@ class EvaluationService:
     def __init__(self, *, project_root: Path, state_dir: Path) -> None:
         self.project_root = project_root.resolve()
         self.state_dir = state_dir.resolve()
-        self.executor = QueuedEvaluationExecutor(self.state_dir)
+        self.executor = QueuedEvaluationExecutor(
+            self.state_dir,
+            project_root=self.project_root,
+        )
 
     def run(
         self,

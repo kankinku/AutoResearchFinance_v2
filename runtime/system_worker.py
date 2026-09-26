@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from orchestration.evaluation_runner import (
@@ -10,10 +11,15 @@ from orchestration.evaluation_runner import (
     build_research_context,
     parse_parameter_domains,
     resolve_project_input,
+    run_local_evaluation,
 )
 from research.llm.codex_exec import CodexExecProvider, record_intent
 from research.llm.director import ResearchDirector, ResearchIntent
 from research.policy import default_evaluation_thresholds
+from runtime.heartbeat import WorkerHeartbeatStore
+from runtime.job_protocol import EvaluationJobRequest, EvaluationJobResult
+from runtime.persistent_queue import PersistentJobQueue
+from runtime.queue import JobStatus
 from runtime.research_loop import ResearchLoopConfig, run_repeated_evaluation
 
 _EVALUATION_DEFAULTS = default_evaluation_thresholds()
@@ -26,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
         _write_status(state_dir, args.role, "RUNNING")
         if args.role == "research":
             result = _run_research(args, state_dir)
+        elif args.role == "evaluation-job":
+            result = _run_evaluation_job(args, state_dir)
         else:
             result = run_repeated_evaluation(
                 ResearchLoopConfig(
@@ -49,9 +57,88 @@ def main(argv: list[str] | None = None) -> int:
             )
         _write_status(state_dir, args.role, "SUCCEEDED", result=result)
         return 0
-    except (OSError, PermissionError, TypeError, ValueError) as exc:
+    except Exception as exc:
         _write_status(state_dir, args.role, "FAILED", error=type(exc).__name__)
         return 2
+
+
+def _run_evaluation_job(
+    args: argparse.Namespace,
+    state_dir: Path,
+) -> dict[str, object]:
+    if not args.job_id:
+        raise ValueError("evaluation-job requires --job-id")
+    if args.lease_seconds <= 0:
+        raise ValueError("--lease-seconds must be positive")
+    queue = PersistentJobQueue(state_dir)
+    job = queue.get(args.job_id)
+    if job.status is not JobStatus.RUNNING:
+        raise ValueError(f"evaluation job is not leased: {args.job_id}")
+    if job.lease_until is None or job.lease_until <= datetime.now(timezone.utc):
+        raise ValueError(f"evaluation job lease expired: {args.job_id}")
+    heartbeat = WorkerHeartbeatStore(state_dir / "worker-heartbeats")
+    worker_id = f"docker-{job.job_id}"
+    heartbeat.record(
+        worker_id,
+        job_id=job.job_id,
+        role="backtest",
+        status="RUNNING",
+        attempt=job.attempt,
+    )
+    try:
+        request = EvaluationJobRequest.model_validate(job.payload)
+        execution_context = {
+            "job_id": job.job_id,
+            "queue_attempt": job.attempt,
+            "max_attempts": job.max_attempts,
+            "execution_mode": "docker_worker",
+            "isolated": True,
+            "timeout_enforced": True,
+            "lease_seconds": args.lease_seconds,
+        }
+        result = run_local_evaluation(
+            **request.evaluation_kwargs(
+                project_root=Path(args.project_root).resolve(),
+                state_dir=state_dir.resolve(),
+                execution_context=execution_context,
+            )
+        )
+        queue_result = EvaluationJobResult(
+            job_id=job.job_id,
+            queue_attempt=job.attempt,
+            status="SUCCEEDED",
+            result=result,
+        )
+        queue.succeed(job.job_id, queue_result.model_dump(mode="json"))
+        heartbeat.record(
+            worker_id,
+            job_id=job.job_id,
+            role="backtest",
+            status="SUCCEEDED",
+            attempt=job.attempt,
+        )
+        return {
+            "status": "SUCCEEDED",
+            "job_id": job.job_id,
+            "queue_attempt": job.attempt,
+        }
+    except Exception as exc:
+        try:
+            queue.fail(
+                job.job_id,
+                type(exc).__name__,
+                error_class=type(exc).__name__,
+            )
+        except ValueError:
+            pass
+        heartbeat.record(
+            worker_id,
+            job_id=job.job_id,
+            role="backtest",
+            status="FAILED",
+            attempt=job.attempt,
+        )
+        raise
 
 
 def _run_research(args: argparse.Namespace, state_dir: Path) -> dict[str, object]:
@@ -95,7 +182,11 @@ def _write_status(
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="quant-autoresearch-system-worker")
-    parser.add_argument("--role", choices=("research", "backtest"), required=True)
+    parser.add_argument(
+        "--role",
+        choices=("research", "backtest", "evaluation-job"),
+        required=True,
+    )
     parser.add_argument("--state-dir", required=True)
     parser.add_argument("--project-root", required=True)
     parser.add_argument("--env-file", default=".env")
@@ -115,6 +206,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--repeat-generations", type=int, default=1)
     parser.add_argument("--interval-seconds", type=float, default=0.0)
     parser.add_argument("--domain", action="append", default=[])
+    parser.add_argument("--job-id", default="")
+    parser.add_argument("--lease-seconds", type=float, default=300.0)
     return parser
 
 
