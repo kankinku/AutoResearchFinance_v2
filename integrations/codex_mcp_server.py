@@ -239,7 +239,8 @@ def _tools() -> list[dict[str, object]]:
         {
             "name": "start_system",
             "description": (
-                "Start dashboard, research detection, and isolated Docker backtesting in parallel."
+                "Start the dashboard and canonical research loop; evaluations use the "
+                "configured local scheduler or isolated Docker job backend."
             ),
             "inputSchema": _system_schema(),
         },

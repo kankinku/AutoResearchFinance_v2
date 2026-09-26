@@ -8,19 +8,19 @@ from pathlib import Path
 
 from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
-    build_research_context,
     parse_parameter_domains,
     resolve_project_input,
     run_local_evaluation,
 )
-from research.llm.codex_exec import CodexExecProvider, record_intent
-from research.llm.director import ResearchDirector, ResearchIntent
+from research.llm.codex_exec import CodexExecProvider
+from research.llm.director import ResearchDirector
 from research.policy import default_evaluation_thresholds
+from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.heartbeat import WorkerHeartbeatStore
 from runtime.job_protocol import EvaluationJobRequest, EvaluationJobResult
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import JobStatus
-from runtime.research_loop import ResearchLoopConfig, run_repeated_evaluation
+from runtime.research_loop import ResearchLoopConfig, run_autoresearch, run_repeated_evaluation
 
 _EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
@@ -144,15 +144,41 @@ def _run_evaluation_job(
 def _run_research(args: argparse.Namespace, state_dir: Path) -> dict[str, object]:
     project_root = Path(args.project_root).resolve()
     source = resolve_project_input(project_root, args.source_path, ALLOWED_STRATEGY_SUFFIXES)
-    context = build_research_context(state_dir, source_path=source)
     provider = CodexExecProvider.from_env(
         Path(args.env_file),
         workdir=project_root,
         status_path=state_dir / "llm" / "status.json",
     )
-    intent = ResearchIntent.model_validate(ResearchDirector(provider).propose(context))
-    record_intent(state_dir / "llm" / "intents.jsonl", intent)
-    return {"status": "INTENT_RECORDED", "mode": intent.mode, "parent_ids": list(intent.parent_ids)}
+    director = ResearchDirector(provider)
+    config = ResearchLoopConfig(
+        project_root=project_root,
+        state_dir=state_dir.resolve(),
+        source_path=source.relative_to(project_root).as_posix(),
+        data_path=args.data_path,
+        method=args.method,
+        count=args.count,
+        seed=args.seed,
+        min_trades=args.min_trades,
+        min_annual_trades=args.min_annual_trades,
+        min_qqq_cagr_delta=args.min_qqq_cagr_delta,
+        series_data_path=args.series_data_path,
+        parameter_domains=parse_parameter_domains(
+            [json.loads(document) for document in args.domain]
+        ),
+        generations=args.repeat_generations,
+        interval_seconds=args.interval_seconds,
+    )
+    executor = QueuedEvaluationExecutor(
+        state_dir,
+        project_root=project_root,
+        execution_mode=args.evaluation_execution,
+        docker_image=args.evaluation_docker_image,
+    )
+    return run_autoresearch(
+        config,
+        director,
+        evaluator=lambda **kwargs: executor.run(run_local_evaluation, **kwargs),
+    )
 
 
 def _write_status(
@@ -208,6 +234,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--domain", action="append", default=[])
     parser.add_argument("--job-id", default="")
     parser.add_argument("--lease-seconds", type=float, default=300.0)
+    parser.add_argument(
+        "--evaluation-execution",
+        choices=("local_scheduler", "docker_worker"),
+        default="local_scheduler",
+    )
+    parser.add_argument(
+        "--evaluation-docker-image",
+        default="quant-autoresearch-worker:local",
+    )
     return parser
 
 

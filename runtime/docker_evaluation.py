@@ -56,9 +56,7 @@ class DockerEvaluationRunner:
             raise ValueError("lease_seconds must be positive")
         project = project_root.resolve()
         state = state_dir.resolve()
-        if project != state and project not in state.parents:
-            raise ValueError("state_dir must be inside project_root for Docker evaluation")
-        container_name = _container_name(job_id, queue_attempt)
+        container_name = docker_evaluation_container_name(job_id, queue_attempt)
         command = [
             self.docker_binary,
             "run",
@@ -162,7 +160,7 @@ class DockerEvaluationRunner:
         return process.returncode, stdout, stderr
 
 
-def _container_name(job_id: str, queue_attempt: int) -> str:
+def docker_evaluation_container_name(job_id: str, queue_attempt: int) -> str:
     safe = re.sub(r"[^a-zA-Z0-9_.-]+", "-", job_id).strip("-.").lower()
     safe = safe[:42] or f"job-{os.getpid()}"
     return f"quant-eval-{safe}-{queue_attempt}"

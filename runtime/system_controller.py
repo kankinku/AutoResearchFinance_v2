@@ -18,6 +18,8 @@ from core.data.parquet import ParquetDataProvider
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import ALLOWED_STRATEGY_SUFFIXES, resolve_project_input
 from research.policy import default_evaluation_thresholds
+from runtime.docker_evaluation import docker_evaluation_container_name
+from runtime.persistent_queue import PersistentJobQueue
 
 ProcessFactory = Callable[[list[str], Path], Any]
 CommandRunner = Callable[[list[str], Path], tuple[int, str]]
@@ -81,7 +83,6 @@ class SystemController:
         self._process_factory = process_factory or _spawn_process
         self._command_runner = command_runner or _run_command
         self._processes: dict[str, Any] = {}
-        self._container_name: str | None = None
 
     def preflight(self, config: SystemLaunchConfig) -> PreflightReport:
         checks: list[dict[str, str]] = []
@@ -192,43 +193,67 @@ class SystemController:
             env_in_project and env_path.is_file(),
             f"{config.env_file}에 QUANT_CODEX_COMMAND와 모델 설정을 준비하세요.",
         )
-        docker_available = bool(shutil.which("docker"))
-        check(
-            "docker_cli",
-            "Docker CLI",
-            docker_available,
-            "Docker Desktop을 설치하고 실행하세요.",
+        evaluation_execution = _evaluation_execution(
+            self.project_root / config.env_file
         )
-        docker_ready = False
-        if docker_available:
-            return_code, _ = self._command_runner(
-                ["docker", "info", "--format", "{{.ServerVersion}}"], self.project_root
-            )
-            docker_ready = return_code == 0
+        execution_valid = evaluation_execution in {"local_scheduler", "docker_worker"}
+        check(
+            "evaluation_execution",
+            "평가 실행 백엔드",
+            execution_valid,
+            (
+                "QUANT_EVALUATION_EXECUTION은 local_scheduler 또는 "
+                "docker_worker여야 합니다."
+            ),
+        )
+        docker_required = evaluation_execution == "docker_worker"
+        docker_available = bool(shutil.which("docker"))
+        if docker_required:
             check(
-                "docker_engine",
-                "Docker Desktop engine",
-                docker_ready,
-                "Docker Desktop을 켠 뒤 Docker engine이 Ready 상태인지 확인하세요.",
+                "docker_cli",
+                "Docker CLI",
+                docker_available,
+                "Docker 평가 모드를 사용하려면 Docker Desktop을 설치하고 실행하세요.",
             )
-            if docker_ready:
-                image_name_ok = bool(
-                    re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", config.docker_image)
+            docker_ready = False
+            if docker_available:
+                return_code, _ = self._command_runner(
+                    ["docker", "info", "--format", "{{.ServerVersion}}"], self.project_root
                 )
-                image_code = 1
-                if image_name_ok:
-                    image_code, _ = self._command_runner(
-                        ["docker", "image", "inspect", config.docker_image], self.project_root
-                    )
+                docker_ready = return_code == 0
                 check(
-                    "docker_image",
-                    "Docker worker image",
-                    image_name_ok and image_code == 0,
-                    (
-                        f"docker build -t {config.docker_image} "
-                        "-f runtime/Dockerfile.worker . 를 실행하세요."
-                    ),
+                    "docker_engine",
+                    "Docker Desktop engine",
+                    docker_ready,
+                    "Docker Desktop을 켠 뒤 Docker engine이 Ready 상태인지 확인하세요.",
                 )
+                if docker_ready:
+                    image_name_ok = bool(
+                        re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", config.docker_image)
+                    )
+                    image_code = 1
+                    if image_name_ok:
+                        image_code, _ = self._command_runner(
+                            ["docker", "image", "inspect", config.docker_image],
+                            self.project_root,
+                        )
+                    check(
+                        "docker_image",
+                        "Docker evaluation worker image",
+                        image_name_ok and image_code == 0,
+                        (
+                            f"docker build -t {config.docker_image} "
+                            "-f runtime/Dockerfile.worker . 를 실행하세요."
+                        ),
+                    )
+        else:
+            checks.append(
+                {
+                    "id": "docker_cli",
+                    "label": "Docker CLI (local_scheduler에서는 선택 사항)",
+                    "status": "PASS",
+                }
+            )
         check(
             "dashboard_port",
             "Dashboard port",
@@ -264,7 +289,9 @@ class SystemController:
         relative_series = (
             series.relative_to(self.project_root).as_posix() if series is not None else None
         )
-        container_name = f"quant-autoresearch-backtest-{os.getpid()}"
+        evaluation_execution = _evaluation_execution(
+            self.project_root / config.env_file
+        )
         commands = {
             "dashboard": [
                 sys.executable,
@@ -279,42 +306,48 @@ class SystemController:
                 "--port",
                 str(config.dashboard_port),
             ],
-            "research_worker": [
-                sys.executable,
-                "-m",
-                "runtime.system_worker",
-                "--role",
-                "research",
-                "--state-dir",
-                str(self.state_dir),
-                "--project-root",
-                str(self.project_root),
-                "--env-file",
-                str(self.project_root / config.env_file),
-                "--source-path",
-                str(source),
-            ],
-            "backtest_worker": self._docker_command(
-                config, container_name, relative_source, relative_data, relative_series
+            "research_worker": self._research_worker_command(
+                config,
+                relative_source,
+                relative_data,
+                relative_series,
+                evaluation_execution,
             ),
         }
         started: list[dict[str, object]] = []
         try:
             for component_id, command in commands.items():
-                self._processes[component_id] = self._process_factory(command, self.project_root)
+                self._processes[component_id] = self._process_factory(
+                    command, self.project_root
+                )
                 process = self._processes[component_id]
                 started.append(
-                    {"id": component_id, "status": "STARTED", "pid": getattr(process, "pid", None)}
+                    {
+                        "id": component_id,
+                        "status": "STARTED",
+                        "pid": getattr(process, "pid", None),
+                    }
                 )
-            self._container_name = container_name
         except OSError as exc:
             self._terminate_started()
-            return {"status": "FAILED", "message": str(exc), "components": started}
+            return {
+                "status": "FAILED",
+                "message": str(exc),
+                "components": started,
+            }
+        started.append(
+            {
+                "id": "evaluation_backend",
+                "status": "CONFIGURED",
+                "mode": evaluation_execution,
+            }
+        )
         payload = {
             "status": "STARTED",
             "project_root": str(self.project_root),
             "dashboard_port": config.dashboard_port,
-            "container_name": container_name,
+            "container_name": None,
+            "evaluation_execution": evaluation_execution,
             "components": started,
             "preflight": report.as_payload(),
         }
@@ -332,36 +365,124 @@ class SystemController:
         if not isinstance(raw_payload, dict):
             return {"status": "UNKNOWN", "components": []}
         payload: dict[str, object] = raw_payload
-        if self._processes:
-            components = payload.get("components", [])
-            if isinstance(components, list):
-                for component in components:
-                    if not isinstance(component, dict):
-                        continue
-                    component_id = component.get("id")
-                    if not isinstance(component_id, str):
-                        continue
-                    process = self._processes.get(component_id)
-                    if process is not None:
-                        component["status"] = "RUNNING" if process.poll() is None else "EXITED"
         components = payload.get("components", [])
         if isinstance(components, list):
             for component in components:
                 if not isinstance(component, dict):
                     continue
                 component_id = component.get("id")
-                if component_id not in {"research_worker", "backtest_worker"}:
+                if not isinstance(component_id, str):
                     continue
-                worker_state = self._read_worker_state(str(component_id))
-                if worker_state is not None:
-                    component["status"] = worker_state
+                process = self._processes.get(component_id)
+                if process is not None:
+                    component["status"] = (
+                        "RUNNING" if process.poll() is None else "EXITED"
+                    )
+                if component_id == "research_worker":
+                    worker_state = self._read_worker_state(component_id)
+                    if worker_state is not None:
+                        component["status"] = worker_state
+                elif component_id == "evaluation_backend":
+                    running = PersistentJobQueue(self.state_dir).running()
+                    component["active_jobs"] = len(running)
+                    component["status"] = "RUNNING" if running else "READY"
         return payload
 
     def stop(self) -> dict[str, object]:
         self._terminate_started()
-        payload: dict[str, object] = {"status": "STOPPED", "components": []}
+        failed_cleanup = self._terminate_docker_jobs()
+        payload: dict[str, object] = {
+            "status": "STOPPED" if not failed_cleanup else "STOP_FAILED",
+            "components": [],
+        }
+        if failed_cleanup:
+            payload["cleanup_failed"] = failed_cleanup
         self._write_state(payload)
         return payload
+
+    def _research_worker_command(
+        self,
+        config: SystemLaunchConfig,
+        source_path: str,
+        data_path: str,
+        series_path: str | None,
+        evaluation_execution: str,
+    ) -> list[str]:
+        command = [
+            sys.executable,
+            "-m",
+            "runtime.system_worker",
+            "--role",
+            "research",
+            "--state-dir",
+            str(self.state_dir),
+            "--project-root",
+            str(self.project_root),
+            "--env-file",
+            str(self.project_root / config.env_file),
+            "--source-path",
+            source_path,
+            "--data-path",
+            data_path,
+            "--method",
+            config.method,
+            "--count",
+            str(config.count),
+            "--seed",
+            str(config.seed),
+            "--min-trades",
+            str(config.min_trades),
+            "--min-annual-trades",
+            str(config.min_annual_trades),
+            "--repeat-generations",
+            str(config.repeat_generations),
+            "--interval-seconds",
+            str(config.interval_seconds),
+            "--evaluation-execution",
+            evaluation_execution,
+            "--evaluation-docker-image",
+            config.docker_image,
+        ]
+        if config.min_qqq_cagr_delta is not None:
+            command.extend(
+                ["--min-qqq-cagr-delta", str(config.min_qqq_cagr_delta)]
+            )
+        if series_path is not None:
+            command.extend(["--series-data-path", series_path])
+        for domain in config.parameter_domains:
+            command.extend(
+                [
+                    "--domain",
+                    json.dumps(
+                        {"name": domain.name, "values": list(domain.values)},
+                        ensure_ascii=False,
+                    ),
+                ]
+            )
+        return command
+
+    def _terminate_docker_jobs(self) -> list[str]:
+        queue = PersistentJobQueue(self.state_dir)
+        running = queue.running()
+        if not running:
+            return []
+        if not shutil.which("docker"):
+            return [job.job_id for job in running]
+        failed: list[str] = []
+        for job in running:
+            container_name = docker_evaluation_container_name(job.job_id, job.attempt)
+            return_code, _ = self._command_runner(
+                ["docker", "rm", "-f", container_name],
+                self.project_root,
+            )
+            if return_code != 0:
+                failed.append(job.job_id)
+                continue
+            try:
+                queue.cancel_running(job.job_id)
+            except ValueError:
+                continue
+        return failed
 
     def _resolve_input(
         self,
@@ -393,74 +514,6 @@ class SystemController:
             and payload.get("orders_enabled") is False
         )
 
-    def _docker_command(
-        self,
-        config: SystemLaunchConfig,
-        container_name: str,
-        source_path: str,
-        data_path: str,
-        series_path: str | None = None,
-    ) -> list[str]:
-        command = [
-            "docker",
-            "run",
-            "--rm",
-            "--name",
-            container_name,
-            "--network",
-            "none",
-            "--cap-drop",
-            "ALL",
-            "--read-only",
-            "--tmpfs",
-            "/tmp:rw,noexec,nosuid,size=64m",
-            "--mount",
-            f"type=bind,source={self.project_root},target=/workspace,readonly",
-            "--mount",
-            f"type=bind,source={self.state_dir},target=/workspace/state",
-            "--workdir",
-            "/workspace",
-            config.docker_image,
-            "--role",
-            "backtest",
-            "--state-dir",
-            "/workspace/state",
-            "--project-root",
-            "/workspace",
-            "--source-path",
-            source_path,
-            "--data-path",
-            data_path,
-            "--method",
-            config.method,
-            "--count",
-            str(config.count),
-            "--seed",
-            str(config.seed),
-            "--min-trades",
-            str(config.min_trades),
-            "--min-annual-trades",
-            str(config.min_annual_trades),
-            "--repeat-generations",
-            str(config.repeat_generations),
-            "--interval-seconds",
-            str(config.interval_seconds),
-        ]
-        if config.min_qqq_cagr_delta is not None:
-            command.extend(["--min-qqq-cagr-delta", str(config.min_qqq_cagr_delta)])
-        if series_path is not None:
-            command.extend(["--series-data-path", series_path])
-        for domain in config.parameter_domains:
-            command.extend(
-                [
-                    "--domain",
-                    json.dumps(
-                        {"name": domain.name, "values": list(domain.values)},
-                        ensure_ascii=False,
-                    ),
-                ]
-            )
-        return command
 
     def _terminate_started(self) -> None:
         for process in self._processes.values():
@@ -469,10 +522,7 @@ class SystemController:
                     process.terminate()
             except (OSError, AttributeError):
                 continue
-        if self._container_name and shutil.which("docker"):
-            self._command_runner(["docker", "stop", self._container_name], self.project_root)
         self._processes.clear()
-        self._container_name = None
 
     def _write_state(self, payload: dict[str, object]) -> None:
         target = self.state_dir / "system" / "system.json"
@@ -521,6 +571,33 @@ def _port_available(port: int) -> bool:
         except OSError:
             return False
     return True
+
+
+def _evaluation_execution(env_file: Path | None = None) -> str:
+    configured = os.environ.get("QUANT_EVALUATION_EXECUTION")
+    if configured is not None:
+        return configured.strip()
+    if env_file is not None and env_file.is_file():
+        try:
+            lines = env_file.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lines = []
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, value = line.split("=", 1)
+            if name.strip() != "QUANT_EVALUATION_EXECUTION":
+                continue
+            raw_value = value.strip()
+            if (
+                len(raw_value) >= 2
+                and raw_value[0] == raw_value[-1]
+                and raw_value[0] in {'"', "'"}
+            ):
+                raw_value = raw_value[1:-1]
+            return raw_value.strip()
+    return "local_scheduler"
 
 
 def _codex_executable() -> str:

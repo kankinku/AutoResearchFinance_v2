@@ -215,3 +215,42 @@ Validated here instead:
 
 A host-side Docker smoke remains an environment acceptance check rather than a missing
 code path.
+
+
+# Phase 3-3 — SystemController orchestration unification
+
+Phase 3-3 removes the final legacy split in `SystemController.start()`.
+
+Previously:
+
+```text
+start_system
+  -> research_worker: propose one ResearchIntent and exit
+  -> backtest_worker: independently run repeated evaluation of the original strategy
+```
+
+That meant the two workers ran in parallel but did not form a causal research loop.
+
+Now:
+
+```text
+start_system
+  -> research_worker
+       -> run_autoresearch()
+       -> ResearchIntent
+       -> evaluation executor
+       -> Evidence / Knowledge
+       -> next generation
+```
+
+There is no permanently running `backtest_worker`. Docker evaluation uses the durable
+job path introduced in Phase 3-2 and creates a container only for a leased evaluation Job.
+
+The execution backend is selected internally through
+`QUANT_EVALUATION_EXECUTION=local_scheduler|docker_worker`; the public MCP schema remains
+unchanged. Local scheduler is the default. Docker prerequisites are mandatory only when
+`docker_worker` is selected.
+
+System status exposes a logical `evaluation_backend` component with the number of active
+persistent jobs. System stop terminates managed processes, forcibly removes active Docker
+evaluation containers, and marks successfully stopped persistent jobs as CANCELLED.

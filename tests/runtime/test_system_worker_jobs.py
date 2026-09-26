@@ -15,7 +15,7 @@ from core.data.parquet import ParquetDataProvider
 from runtime.job_protocol import EvaluationJobRequest, EvaluationJobResult
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import Job, JobStatus
-from runtime.system_worker import _run_evaluation_job
+from runtime.system_worker import _run_evaluation_job, _run_research
 
 
 def _leased_job(tmp_path: Path, job_id: str = "evaluation-job-1") -> PersistentJobQueue:
@@ -200,3 +200,93 @@ risk: {stop_loss_pct: 0, take_profit_pct: 0}
         state / "system" / "research-evidence" / "evidence.sqlite"
     )
     assert events.is_file()
+
+
+
+def test_research_worker_runs_canonical_autoresearch_with_selected_backend(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    (tmp_path / "strategy.yaml").write_text(
+        """schema_version: 1
+id: worker-research
+family: trend
+generation: 0
+indicators:
+  fast: {type: SMA, period: 2}
+entry: {logic: AND, conditions: [{op: greater_than, left: close, value: 0}]}
+exit: {logic: AND, conditions: [{op: less_than, left: close, value: 0}]}
+risk: {stop_loss_pct: 0, take_profit_pct: 0}
+""",
+        encoding="utf-8",
+    )
+    (tmp_path / "bars.parquet").write_bytes(b"fixture")
+    (tmp_path / ".env").write_text("QUANT_CODEX_COMMAND=codex", encoding="utf-8")
+    captured: dict[str, object] = {}
+
+    class FakeProvider:
+        @classmethod
+        def from_env(cls, *args: object, **kwargs: object) -> object:
+            return object()
+
+    class FakeExecutor:
+        def __init__(self, state_dir: Path, **kwargs: object) -> None:
+            captured["executor_state_dir"] = state_dir
+            captured["executor_kwargs"] = kwargs
+
+        def run(self, evaluator: object, **kwargs: object) -> dict[str, object]:
+            captured["evaluator"] = evaluator
+            captured["evaluation_kwargs"] = kwargs
+            return {"status": "COMPLETED"}
+
+    def fake_autoresearch(
+        config: object,
+        director: object,
+        *,
+        evaluator: object,
+    ) -> dict[str, object]:
+        captured["config"] = config
+        captured["director"] = director
+        assert callable(evaluator)
+        result = evaluator(generation=1, source_path="strategy.yaml", data_path="bars.parquet")
+        assert result == {"status": "COMPLETED"}
+        return {"status": "COMPLETED", "completed_generations": 1}
+
+    monkeypatch.setattr(worker_module, "CodexExecProvider", FakeProvider)
+    monkeypatch.setattr(worker_module, "ResearchDirector", lambda provider: "director")
+    monkeypatch.setattr(worker_module, "QueuedEvaluationExecutor", FakeExecutor)
+    monkeypatch.setattr(worker_module, "run_autoresearch", fake_autoresearch)
+
+    args = argparse.Namespace(
+        project_root=str(tmp_path),
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        env_file=str(tmp_path / ".env"),
+        method="random",
+        count=12,
+        seed=5,
+        min_trades=10,
+        min_annual_trades=30,
+        min_qqq_cagr_delta=0.1,
+        series_data_path=None,
+        domain=[],
+        repeat_generations=4,
+        interval_seconds=2.0,
+        evaluation_execution="docker_worker",
+        evaluation_docker_image="quant-worker:test",
+    )
+
+    result = _run_research(args, tmp_path / "state")
+
+    assert result == {"status": "COMPLETED", "completed_generations": 1}
+    config = captured["config"]
+    assert config.generations == 4
+    assert config.data_path == "bars.parquet"
+    assert config.method == "random"
+    assert config.count == 12
+    assert config.seed == 5
+    assert captured["director"] == "director"
+    executor_kwargs = captured["executor_kwargs"]
+    assert executor_kwargs["execution_mode"] == "docker_worker"
+    assert executor_kwargs["docker_image"] == "quant-worker:test"
+    assert captured["evaluator"] is worker_module.run_local_evaluation

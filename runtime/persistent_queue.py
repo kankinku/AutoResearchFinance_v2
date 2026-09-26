@@ -202,6 +202,30 @@ class PersistentJobQueue:
             )
             connection.commit()
 
+    def running(self) -> tuple[Job, ...]:
+        self._ensure_schema()
+        with sqlite3.connect(self.path, timeout=30) as connection:
+            rows = connection.execute(
+                """
+                SELECT job_id, payload, status, attempt, result, error, error_class,
+                       lease_until, max_attempts
+                FROM jobs
+                WHERE status=?
+                ORDER BY updated_at, job_id
+                """,
+                (JobStatus.RUNNING.value,),
+            ).fetchall()
+        return tuple(_row_to_job(row) for row in rows)
+
+    def cancel_running(self, job_id: str) -> None:
+        self._transition_running(
+            job_id,
+            JobStatus.CANCELLED,
+            result=None,
+            error="system stopped while worker was running",
+            error_class="SystemStopped",
+        )
+
     def reconcile_stale(self, *, now: datetime | None = None) -> tuple[str, ...]:
         self._ensure_schema()
         current = now or _now()
