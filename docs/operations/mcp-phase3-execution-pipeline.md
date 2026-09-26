@@ -278,3 +278,29 @@ Phase 3-4 makes managed-system ownership survive MCP/Controller recreation.
 A separate `scripts/verify_docker_evaluation.py` host acceptance command verifies real
 Docker Engine/image availability and can run one isolated evaluation Job without enabling
 orders.
+
+# Phase 3-7 — Real MCP stdio acceptance and locked runtime
+
+Phase 3-7 validates the actual MCP process boundary rather than only calling
+`CodexMCPServer.handle()` in the test process.
+
+`scripts/verify_mcp_runtime.py` starts a fresh
+`python -m integrations.codex_mcp_server` subprocess, communicates over the same
+line-delimited STDIO JSON-RPC transport, and verifies:
+
+1. `initialize` negotiates protocol `2024-11-05` and server name `quant-autoresearch`.
+2. `tools/list` exposes exactly the ten preserved Phase 0 public tools.
+3. `tools/call get_system_status` returns a valid non-error result.
+4. The acceptance path does not start research, submit intents, or enable orders.
+
+Host command:
+
+    uv run --locked python scripts/verify_mcp_runtime.py --project-root . --state-dir state/mcp-acceptance
+
+The trusted Codex configuration example now launches the MCP server through
+`uv run --locked python`, so the server uses the repository lockfile rather than an
+unrelated Python environment from PATH.
+
+The Parquet provider imports `pyarrow` directly and pandas reads with the pyarrow engine.
+`pyarrow>=14.0` is therefore now a normal runtime dependency instead of being injected
+only by validation commands.

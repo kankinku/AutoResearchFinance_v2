@@ -243,3 +243,16 @@ python scripts/verify_docker_evaluation.py `
 
 이 acceptance는 `docker_worker` backend를 사용해 후보 1개를 실제 Job으로 실행하며
 주문 기능은 활성화하지 않는다.
+
+## MCP 프로세스 자체 검증
+
+Docker 검증과 별개로 MCP STDIO 서버 자체는 실제 별도 프로세스에서 확인할 수 있다.
+
+    uv run --locked python scripts/verify_mcp_runtime.py --project-root . --state-dir state/mcp-acceptance
+
+이 검사는 `initialize → tools/list → get_system_status`만 수행하며 연구 실행,
+ResearchIntent 제출, KIS 주문은 수행하지 않는다. 정상 출력에는 protocol version,
+server name, public tool count, 현재 system status와 `orders_enabled=false`만 포함한다.
+
+Codex trusted MCP 설정도 `.codex/config.toml.example`처럼 `uv run --locked python`
+경로를 사용한다. 따라서 MCP 서버와 평가 런타임이 동일한 lockfile 의존성을 사용한다.
