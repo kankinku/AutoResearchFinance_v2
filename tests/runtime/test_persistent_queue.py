@@ -74,3 +74,39 @@ def test_persistent_queue_retries_terminal_timeout_then_exhausts(tmp_path: Path)
     exhausted = queue.get("job-1")
     assert exhausted.status is JobStatus.RETRY_EXHAUSTED
     assert exhausted.error_class == "TimeoutError"
+
+
+
+def test_persistent_queue_filters_jobs_by_managed_run(tmp_path: Path) -> None:
+    queue = PersistentJobQueue(tmp_path / "state")
+    queue.enqueue(Job("owned", {"managed_run_id": "run-1"}, max_attempts=2))
+    queue.enqueue(Job("other", {"managed_run_id": "run-2"}, max_attempts=2))
+    assert queue.claim(job_id="owned", lease_seconds=30) is not None
+    assert queue.claim(job_id="other", lease_seconds=30) is not None
+
+    assert [job.job_id for job in queue.running(managed_run_id="run-1")] == ["owned"]
+    assert [job.job_id for job in queue.jobs_for_run("run-2")] == ["other"]
+
+
+def test_reconcile_stale_only_updates_selected_managed_run(tmp_path: Path) -> None:
+    queue = PersistentJobQueue(tmp_path / "state")
+    queue.enqueue(Job("owned", {"managed_run_id": "run-1"}, max_attempts=2))
+    queue.enqueue(Job("other", {"managed_run_id": "run-2"}, max_attempts=2))
+    assert queue.claim(job_id="owned", lease_seconds=1) is not None
+    assert queue.claim(job_id="other", lease_seconds=1) is not None
+
+    future = datetime.now(timezone.utc) + timedelta(seconds=2)
+    assert queue.reconcile_stale(now=future, managed_run_id="run-1") == ("owned",)
+    assert queue.get("owned").status is JobStatus.QUEUED
+    assert queue.get("other").status is JobStatus.RUNNING
+
+
+def test_cancel_queued_records_owner_exit(tmp_path: Path) -> None:
+    queue = PersistentJobQueue(tmp_path / "state")
+    queue.enqueue(Job("owned", {"managed_run_id": "run-1"}, max_attempts=2))
+
+    queue.cancel_queued("owned")
+
+    cancelled = queue.get("owned")
+    assert cancelled.status is JobStatus.CANCELLED
+    assert cancelled.error_class == "OwnerExited"

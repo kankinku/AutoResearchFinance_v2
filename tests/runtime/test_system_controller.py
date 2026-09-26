@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import runtime.system_controller as controller_module
@@ -321,3 +322,237 @@ def test_stop_reports_cleanup_failure_without_claiming_success(
     assert result["status"] == "STOP_FAILED"
     assert result["cleanup_failed"] == ["job-1"]
     assert queue.get("job-1").status is JobStatus.RUNNING
+
+
+
+def _managed_state(
+    controller: SystemController,
+    *,
+    managed_run_id: str = "run-1",
+    dashboard_pid: int = 101,
+    research_pid: int = 102,
+) -> None:
+    controller._write_state(
+        {
+            "status": "STARTED",
+            "managed_run_id": managed_run_id,
+            "dashboard_port": 8080,
+            "evaluation_execution": "docker_worker",
+            "components": [
+                {
+                    "id": "dashboard",
+                    "status": "STARTED",
+                    "pid": dashboard_pid,
+                    "identity_markers": ["dashboard-owned"],
+                },
+                {
+                    "id": "research_worker",
+                    "status": "STARTED",
+                    "pid": research_pid,
+                    "identity_markers": ["research-owned", managed_run_id],
+                },
+                {
+                    "id": "evaluation_backend",
+                    "status": "CONFIGURED",
+                    "mode": "docker_worker",
+                    "active_jobs": 0,
+                    "queued_jobs": 0,
+                },
+            ],
+        }
+    )
+
+
+def test_status_recovers_live_processes_after_controller_recreation(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    first = SystemController(state_dir=state, project_root=tmp_path)
+    _managed_state(first)
+
+    recovered = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid in {101, 102},
+    )
+
+    payload = recovered.status()
+
+    assert payload["status"] == "RUNNING"
+    components = {
+        item["id"]: item
+        for item in payload["components"]
+        if isinstance(item, dict)
+    }
+    assert components["dashboard"]["status"] == "RUNNING"
+    assert components["dashboard"]["alive"] is True
+    assert components["research_worker"]["status"] == "RUNNING"
+    assert components["research_worker"]["alive"] is True
+    assert components["evaluation_backend"]["status"] == "READY"
+
+
+def test_start_blocks_duplicate_after_controller_recreation(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    first = SystemController(state_dir=state, project_root=tmp_path)
+    _managed_state(first)
+    spawned: list[list[str]] = []
+    recovered = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_factory=lambda command, cwd: spawned.append(command),  # type: ignore[arg-type]
+        process_probe=lambda pid, markers: pid in {101, 102},
+    )
+
+    result = recovered.start(
+        SystemLaunchConfig(
+            source_path="missing.py",
+            data_path="missing.parquet",
+        )
+    )
+
+    assert result["status"] == "ALREADY_RUNNING"
+    assert spawned == []
+
+
+def test_stale_worker_state_from_previous_run_is_ignored(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: False,
+    )
+    _managed_state(controller, managed_run_id="run-2")
+    worker_state = state / "system" / "research_worker.json"
+    worker_state.write_text(
+        '{"managed_run_id":"run-1","role":"research","status":"SUCCEEDED"}',
+        encoding="utf-8",
+    )
+
+    payload = controller.status()
+
+    components = {
+        item["id"]: item
+        for item in payload["components"]
+        if isinstance(item, dict)
+    }
+    assert components["research_worker"]["status"] == "EXITED"
+    assert payload["status"] == "STOPPED"
+
+
+def test_matching_terminal_worker_state_survives_controller_recreation(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid == 101,
+    )
+    _managed_state(controller, managed_run_id="run-2")
+    worker_state = state / "system" / "research_worker.json"
+    worker_state.write_text(
+        '{"managed_run_id":"run-2","role":"research","status":"SUCCEEDED"}',
+        encoding="utf-8",
+    )
+
+    payload = controller.status()
+
+    components = {
+        item["id"]: item
+        for item in payload["components"]
+        if isinstance(item, dict)
+    }
+    assert components["research_worker"]["status"] == "SUCCEEDED"
+    assert payload["status"] == "COMPLETED"
+
+
+def test_status_cancels_only_expired_jobs_owned_by_dead_managed_run(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: False,
+    )
+    _managed_state(controller, managed_run_id="run-1")
+    queue = PersistentJobQueue(state)
+    queue.enqueue(Job("owned", {"managed_run_id": "run-1"}, max_attempts=2))
+    queue.enqueue(Job("other", {"managed_run_id": "run-2"}, max_attempts=2))
+    assert queue.claim(job_id="owned", lease_seconds=30) is not None
+    assert queue.claim(job_id="other", lease_seconds=30) is not None
+    with sqlite3.connect(queue.path) as connection:
+        connection.execute(
+            "UPDATE jobs SET lease_until=? WHERE job_id IN (?, ?)",
+            ("2000-01-01T00:00:00+00:00", "owned", "other"),
+        )
+        connection.commit()
+
+    payload = controller.status()
+
+    assert queue.get("owned").status is JobStatus.CANCELLED
+    assert queue.get("owned").error_class == "OwnerExited"
+    assert queue.get("other").status is JobStatus.RUNNING
+    recovery = payload["recovery"]
+    assert recovery["reconciled_jobs"] == ["owned"]
+    assert recovery["cancelled_orphaned_jobs"] == ["owned"]
+
+
+def test_recovered_stop_terminates_owned_processes_and_owned_docker_jobs_only(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    state = tmp_path / "state"
+    first = SystemController(state_dir=state, project_root=tmp_path)
+    _managed_state(first, managed_run_id="run-1")
+    queue = PersistentJobQueue(state)
+    queue.enqueue(Job("owned", {"managed_run_id": "run-1"}, max_attempts=2))
+    queue.enqueue(Job("other", {"managed_run_id": "run-2"}, max_attempts=2))
+    owned = queue.claim(job_id="owned", lease_seconds=30)
+    other = queue.claim(job_id="other", lease_seconds=30)
+    assert owned is not None and other is not None
+    terminated: list[tuple[int, tuple[str, ...]]] = []
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        controller_module.shutil,
+        "which",
+        lambda name: "/usr/bin/docker" if name == "docker" else None,
+    )
+    recovered = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid in {101, 102},
+        process_terminator=lambda pid, markers: (
+            terminated.append((pid, markers)) or True
+        ),
+        command_runner=lambda command, cwd: (
+            commands.append(command) or (0, "")
+        ),
+    )
+
+    result = recovered.stop()
+
+    assert result["status"] == "STOPPED"
+    assert {pid for pid, _ in terminated} == {101, 102}
+    owned_name = docker_evaluation_container_name("owned", owned.attempt)
+    other_name = docker_evaluation_container_name("other", other.attempt)
+    assert ["docker", "rm", "-f", owned_name] in commands
+    assert ["docker", "rm", "-f", other_name] not in commands
+    assert queue.get("owned").status is JobStatus.CANCELLED
+    assert queue.get("other").status is JobStatus.RUNNING
+
+
+def test_aggregate_status_reports_degraded_when_dashboard_is_lost(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid == 102,
+    )
+    _managed_state(controller)
+
+    payload = controller.status()
+
+    assert payload["status"] == "DEGRADED"

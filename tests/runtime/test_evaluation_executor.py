@@ -381,3 +381,65 @@ def test_executor_docker_timeout_exhaustion_has_single_final_terminal_record(
         "RETRY_EXHAUSTED",
     ]
     assert [record["queue_attempt"] for record in records[-2:]] == [1, 2]
+
+
+
+def test_executor_records_managed_run_identity_in_local_context(tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    def evaluator(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {"status": "COMPLETED"}
+
+    QueuedEvaluationExecutor(
+        tmp_path / "state",
+        managed_run_id="managed-run-1",
+        max_retries=0,
+    ).run(evaluator, generation=1)
+
+    context = captured["execution_context"]
+    assert isinstance(context, dict)
+    assert context["managed_run_id"] == "managed-run-1"
+    records = _job_records(tmp_path / "state")
+    assert records[-1]["managed_run_id"] == "managed-run-1"
+
+
+def test_executor_persists_managed_run_identity_in_docker_job(tmp_path: Path) -> None:
+    _docker_inputs(tmp_path)
+
+    class FakeDockerRunner:
+        def run(self, **kwargs: object) -> SimpleNamespace:
+            state_dir = kwargs["state_dir"]
+            job_id = kwargs["job_id"]
+            assert isinstance(state_dir, Path)
+            assert isinstance(job_id, str)
+            queue = PersistentJobQueue(state_dir)
+            job = queue.get(job_id)
+            assert job.payload["managed_run_id"] == "managed-run-1"
+            queue.succeed(
+                job_id,
+                EvaluationJobResult(
+                    job_id=job_id,
+                    queue_attempt=job.attempt,
+                    status="SUCCEEDED",
+                    result={"status": "COMPLETED"},
+                ).model_dump(mode="json"),
+            )
+            return SimpleNamespace(returncode=0)
+
+    result = QueuedEvaluationExecutor(
+        tmp_path / "state",
+        project_root=tmp_path,
+        execution_mode="docker_worker",
+        docker_runner=FakeDockerRunner(),  # type: ignore[arg-type]
+        managed_run_id="managed-run-1",
+        max_retries=0,
+    ).run(
+        run_local_evaluation,
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        attempt_id="managed-docker",
+    )
+
+    assert result == {"status": "COMPLETED"}
+    assert _job_records(tmp_path / "state")[-1]["managed_run_id"] == "managed-run-1"

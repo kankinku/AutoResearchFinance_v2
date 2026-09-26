@@ -254,3 +254,27 @@ unchanged. Local scheduler is the default. Docker prerequisites are mandatory on
 System status exposes a logical `evaluation_backend` component with the number of active
 persistent jobs. System stop terminates managed processes, forcibly removes active Docker
 evaluation containers, and marks successfully stopped persistent jobs as CANCELLED.
+
+# Phase 3-4 — Durable managed lifecycle recovery
+
+Phase 3-4 makes managed-system ownership survive MCP/Controller recreation.
+
+- `managed_run_id` is propagated from `SystemController` to the research worker and
+  evaluation executor.
+- Persistent evaluation Jobs retain the same managed-run identity.
+- Managed process PID plus command-line identity markers are persisted so PID reuse cannot
+  cause an unrelated process to be treated as owned.
+- `get_system_status` reconstructs process liveness and queue activity from persisted state.
+- Duplicate `start_system` returns `ALREADY_RUNNING` when the existing managed runtime is
+  still active.
+- Concurrent start/stop transitions are serialized by a nonblocking cross-process lifecycle
+  file lock and return `BUSY` instead of racing.
+- Expired evaluation leases are reconciled only within their owning managed run. If the
+  research owner is gone, requeued orphan Jobs are cancelled as `OwnerExited`.
+- Recovered `stop_system` terminates only owned processes and owned Docker evaluation Jobs.
+- System health is aggregated into RUNNING, COMPLETED, FAILED, DEGRADED, STOPPED or
+  STOP_FAILED.
+
+A separate `scripts/verify_docker_evaluation.py` host acceptance command verifies real
+Docker Engine/image availability and can run one isolated evaluation Job without enabling
+orders.

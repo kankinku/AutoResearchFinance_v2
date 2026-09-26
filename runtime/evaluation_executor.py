@@ -46,12 +46,14 @@ class QueuedEvaluationExecutor:
         max_concurrency: int | None = None,
         max_retries: int | None = None,
         lease_seconds: float | None = None,
+        managed_run_id: str | None = None,
     ) -> None:
         policy = load_policy(
             Path(__file__).resolve().parents[1] / "research" / "policy.yaml"
         ).runtime
         self.state_dir = state_dir.resolve()
         self.project_root = project_root.resolve() if project_root is not None else None
+        self.managed_run_id = managed_run_id
         configured_mode = execution_mode or os.environ.get(
             "QUANT_EVALUATION_EXECUTION", "local_scheduler"
         )
@@ -102,9 +104,11 @@ class QueuedEvaluationExecutor:
     ) -> dict[str, object]:
         queue = JobQueue()
         job_id = _job_id(kwargs.get("attempt_id"))
+        payload_kwargs = dict(kwargs)
+        payload_kwargs["managed_run_id"] = self.managed_run_id
         job = Job(
             job_id,
-            _job_payload(kwargs),
+            _job_payload(payload_kwargs),
             max_attempts=self.max_retries + 1,
         )
         queue.enqueue(job)
@@ -160,9 +164,11 @@ class QueuedEvaluationExecutor:
         queue = PersistentJobQueue(self.state_dir)
         queue.reconcile_stale()
         job_id = _job_id(kwargs.get("attempt_id"))
+        request_kwargs = dict(kwargs)
+        request_kwargs["managed_run_id"] = self.managed_run_id
         request = EvaluationJobRequest.from_evaluation_kwargs(
             self.project_root,
-            kwargs,
+            request_kwargs,
         )
         queue.enqueue(
             Job(
@@ -237,7 +243,7 @@ class QueuedEvaluationExecutor:
 
     def _execution_context(self, job: Job) -> dict[str, object]:
         docker = self.execution_mode == "docker_worker"
-        return {
+        context: dict[str, object] = {
             "job_id": job.job_id,
             "queue_attempt": job.attempt,
             "max_attempts": job.max_attempts,
@@ -246,6 +252,9 @@ class QueuedEvaluationExecutor:
             "timeout_enforced": docker,
             "lease_seconds": self.lease_seconds,
         }
+        if self.managed_run_id is not None:
+            context["managed_run_id"] = self.managed_run_id
+        return context
 
     def _record_attempt(
         self,
@@ -275,6 +284,8 @@ class QueuedEvaluationExecutor:
             "timeout_enforced": docker,
             "lease_seconds": self.lease_seconds,
         }
+        if self.managed_run_id is not None:
+            payload["managed_run_id"] = self.managed_run_id
         target = self.state_dir / "system" / "evaluation-jobs.jsonl"
         target.parent.mkdir(parents=True, exist_ok=True)
         with self._log_lock:

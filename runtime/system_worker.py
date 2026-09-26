@@ -29,7 +29,12 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     state_dir = Path(args.state_dir)
     try:
-        _write_status(state_dir, args.role, "RUNNING")
+        _write_status(
+            state_dir,
+            args.role,
+            "RUNNING",
+            managed_run_id=getattr(args, "managed_run_id", "") or None,
+        )
         if args.role == "research":
             result = _run_research(args, state_dir)
         elif args.role == "evaluation-job":
@@ -55,10 +60,22 @@ def main(argv: list[str] | None = None) -> int:
                     ),
                 )
             )
-        _write_status(state_dir, args.role, "SUCCEEDED", result=result)
+        _write_status(
+            state_dir,
+            args.role,
+            "SUCCEEDED",
+            result=result,
+            managed_run_id=getattr(args, "managed_run_id", "") or None,
+        )
         return 0
     except Exception as exc:
-        _write_status(state_dir, args.role, "FAILED", error=type(exc).__name__)
+        _write_status(
+            state_dir,
+            args.role,
+            "FAILED",
+            error=type(exc).__name__,
+            managed_run_id=getattr(args, "managed_run_id", "") or None,
+        )
         return 2
 
 
@@ -96,6 +113,8 @@ def _run_evaluation_job(
             "timeout_enforced": True,
             "lease_seconds": args.lease_seconds,
         }
+        if request.managed_run_id is not None:
+            execution_context["managed_run_id"] = request.managed_run_id
         result = run_local_evaluation(
             **request.evaluation_kwargs(
                 project_root=Path(args.project_root).resolve(),
@@ -173,6 +192,7 @@ def _run_research(args: argparse.Namespace, state_dir: Path) -> dict[str, object
         project_root=project_root,
         execution_mode=args.evaluation_execution,
         docker_image=args.evaluation_docker_image,
+        managed_run_id=getattr(args, "managed_run_id", "") or None,
     )
     return run_autoresearch(
         config,
@@ -188,8 +208,11 @@ def _write_status(
     *,
     error: str | None = None,
     result: dict[str, object] | None = None,
+    managed_run_id: str | None = None,
 ) -> None:
     payload: dict[str, object] = {"role": role, "status": status}
+    if managed_run_id is not None:
+        payload["managed_run_id"] = managed_run_id
     if error is not None:
         payload["error"] = error
     if result is not None:
@@ -234,6 +257,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--domain", action="append", default=[])
     parser.add_argument("--job-id", default="")
     parser.add_argument("--lease-seconds", type=float, default=300.0)
+    parser.add_argument("--managed-run-id", default="")
     parser.add_argument(
         "--evaluation-execution",
         choices=("local_scheduler", "docker_worker"),

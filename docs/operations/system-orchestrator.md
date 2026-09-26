@@ -164,3 +164,82 @@ docker rm -f <evaluation-container>
 - validation / sealed OOS는 별도 promotion 경계를 유지한다.
 - 공개 CLI command, MCP tool schema, StrategyIR, Dashboard route는 변경하지 않는다.
 - Docker mode가 아니면 Docker가 없어도 연구 시스템을 실행할 수 있다.
+
+## Phase 3-4: 재시작 복구와 lifecycle 소유권
+
+관리 상태는 `state/system/system.json`에 `managed_run_id`, PID, 프로세스
+identity marker와 함께 기록된다. 따라서 MCP 서버나 `SystemController` 객체가 재생성돼도
+기존 Dashboard/research worker가 실제로 살아 있는지 다시 판별할 수 있다.
+
+PID만으로 소유권을 판단하지 않는다. PID가 운영체제에서 재사용될 수 있기 때문에
+프로세스 command line에 다음 marker가 모두 존재하는지 확인한다.
+
+- dashboard: `cli.py dashboard`, state directory, dashboard port
+- research worker: `runtime.system_worker --role research`, state directory,
+  `--managed-run-id <id>`
+
+marker가 일치하지 않는 프로세스는 현재 시스템의 소유 프로세스로 간주하지 않으며
+`stop_system`도 종료하지 않는다.
+
+### 중복 start 방지
+
+`start_system`은 먼저 persisted 상태를 복구한다. 동일한 managed runtime의
+Dashboard/research worker 또는 evaluation Job이 살아 있으면 새 시스템을 생성하지 않고
+`ALREADY_RUNNING`을 반환한다.
+
+동시에 여러 MCP 요청이 들어오는 경쟁 조건은
+`state/system/lifecycle.lock`의 nonblocking OS file lock으로 직렬화한다.
+다른 start/stop 변경이 진행 중이면 `BUSY`를 반환한다. 이 lock은 프로세스 종료 시
+운영체제가 자동 해제하므로 별도의 영구 stale lock 파일 소유권에 의존하지 않는다.
+
+### Job 소유권과 orphan 복구
+
+managed research가 생성한 evaluation Job에는 `managed_run_id`가 저장된다.
+상태 복구 및 중지는 다른 run의 Job을 건드리지 않고 해당 managed run에 속한 Job만 다룬다.
+
+research worker가 사라진 뒤 lease가 만료된 Job은:
+
+1. SQLite queue의 lease를 reconcile하고,
+2. 해당 run의 재큐잉 Job을 orphan으로 판정하고,
+3. `CANCELLED / OwnerExited`로 기록한다.
+
+다른 managed run의 실행 중 Job은 그대로 유지한다.
+
+### 집계 상태
+
+`get_system_status`는 persisted process 상태와 evaluation queue를 합쳐 다음과 같이
+집계한다.
+
+- `RUNNING`: research 또는 evaluation Job이 정상 실행 중
+- `COMPLETED`: research가 성공적으로 끝남
+- `FAILED`: research worker가 실패함
+- `DEGRADED`: 일부 필수 구성요소가 사라졌지만 다른 구성요소가 남음
+- `STOPPED`: 관리 런타임이 없음
+- `STOP_FAILED`: 소유 프로세스/컨테이너 cleanup 실패
+
+### 실제 Docker host acceptance
+
+Moon 개발 컨테이너처럼 Docker CLI가 노출되지 않는 환경에서는 정적/모의 검증만 가능하다.
+Docker Desktop이 있는 실제 host에서는 다음 스크립트로 Engine/image와 실제
+evaluation-job 컨테이너 경로를 확인한다.
+
+```powershell
+python scripts/verify_docker_evaluation.py `
+  --project-root . `
+  --image quant-autoresearch-worker:local `
+  --check-only
+```
+
+실제 전략과 development Parquet가 준비돼 있다면:
+
+```powershell
+python scripts/verify_docker_evaluation.py `
+  --project-root . `
+  --state-dir state/docker-acceptance `
+  --image quant-autoresearch-worker:local `
+  --source-path strategies/example.yaml `
+  --data-path data/example.parquet
+```
+
+이 acceptance는 `docker_worker` backend를 사용해 후보 1개를 실제 Job으로 실행하며
+주문 기능은 활성화하지 않는다.

@@ -48,6 +48,7 @@ class EvaluationJobRequest(BaseModel):
     min_annual_trades: int | None = Field(default=30, ge=0)
     research_run_id: str | None = None
     attempt_id: str | None = None
+    managed_run_id: str | None = None
 
     @classmethod
     def from_evaluation_kwargs(
@@ -99,6 +100,7 @@ class EvaluationJobRequest(BaseModel):
             ),
             research_run_id=_optional_text(kwargs.get("research_run_id")),
             attempt_id=_optional_text(kwargs.get("attempt_id")),
+            managed_run_id=_optional_text(kwargs.get("managed_run_id")),
         )
 
     def evaluation_kwargs(

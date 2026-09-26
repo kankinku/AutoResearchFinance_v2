@@ -202,7 +202,21 @@ class PersistentJobQueue:
             )
             connection.commit()
 
-    def running(self) -> tuple[Job, ...]:
+    def running(self, *, managed_run_id: str | None = None) -> tuple[Job, ...]:
+        return self._jobs_with_status(
+            JobStatus.RUNNING,
+            managed_run_id=managed_run_id,
+        )
+
+    def queued(self, *, managed_run_id: str | None = None) -> tuple[Job, ...]:
+        return self._jobs_with_status(
+            JobStatus.QUEUED,
+            managed_run_id=managed_run_id,
+        )
+
+    def jobs_for_run(self, managed_run_id: str) -> tuple[Job, ...]:
+        if not managed_run_id:
+            raise ValueError("managed_run_id is required")
         self._ensure_schema()
         with sqlite3.connect(self.path, timeout=30) as connection:
             rows = connection.execute(
@@ -210,12 +224,11 @@ class PersistentJobQueue:
                 SELECT job_id, payload, status, attempt, result, error, error_class,
                        lease_until, max_attempts
                 FROM jobs
-                WHERE status=?
                 ORDER BY updated_at, job_id
-                """,
-                (JobStatus.RUNNING.value,),
+                """
             ).fetchall()
-        return tuple(_row_to_job(row) for row in rows)
+        jobs = tuple(_row_to_job(row) for row in rows)
+        return tuple(job for job in jobs if _managed_run_id(job) == managed_run_id)
 
     def cancel_running(self, job_id: str) -> None:
         self._transition_running(
@@ -226,7 +239,42 @@ class PersistentJobQueue:
             error_class="SystemStopped",
         )
 
-    def reconcile_stale(self, *, now: datetime | None = None) -> tuple[str, ...]:
+    def cancel_queued(
+        self,
+        job_id: str,
+        *,
+        error_class: str = "OwnerExited",
+    ) -> None:
+        self._ensure_schema()
+        with sqlite3.connect(self.path, timeout=30) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            cursor = connection.execute(
+                """
+                UPDATE jobs
+                SET status=?, result=NULL, lease_until=NULL, error=?, error_class=?,
+                    updated_at=?
+                WHERE job_id=? AND status=?
+                """,
+                (
+                    JobStatus.CANCELLED.value,
+                    "queued evaluation lost its managed research owner",
+                    error_class,
+                    _timestamp(_now()),
+                    job_id,
+                    JobStatus.QUEUED.value,
+                ),
+            )
+            if cursor.rowcount != 1:
+                connection.rollback()
+                raise ValueError(f"job is not queued: {job_id}")
+            connection.commit()
+
+    def reconcile_stale(
+        self,
+        *,
+        now: datetime | None = None,
+        managed_run_id: str | None = None,
+    ) -> tuple[str, ...]:
         self._ensure_schema()
         current = now or _now()
         reconciled: list[str] = []
@@ -234,14 +282,18 @@ class PersistentJobQueue:
             connection.execute("BEGIN IMMEDIATE")
             rows = connection.execute(
                 """
-                SELECT job_id, attempt, max_attempts
+                SELECT job_id, payload, attempt, max_attempts
                 FROM jobs
                 WHERE status=? AND lease_until IS NOT NULL AND lease_until<=?
                 ORDER BY job_id
                 """,
                 (JobStatus.RUNNING.value, _timestamp(current)),
             ).fetchall()
-            for job_id, attempt, max_attempts in rows:
+            for job_id, payload, attempt, max_attempts in rows:
+                if managed_run_id is not None:
+                    decoded = _decode_object(payload)
+                    if decoded.get("managed_run_id") != managed_run_id:
+                        continue
                 exhausted = int(attempt) >= int(max_attempts)
                 connection.execute(
                     """
@@ -270,6 +322,29 @@ class PersistentJobQueue:
                 reconciled.append(str(job_id))
             connection.commit()
         return tuple(reconciled)
+
+    def _jobs_with_status(
+        self,
+        status: JobStatus,
+        *,
+        managed_run_id: str | None,
+    ) -> tuple[Job, ...]:
+        self._ensure_schema()
+        with sqlite3.connect(self.path, timeout=30) as connection:
+            rows = connection.execute(
+                """
+                SELECT job_id, payload, status, attempt, result, error, error_class,
+                       lease_until, max_attempts
+                FROM jobs
+                WHERE status=?
+                ORDER BY updated_at, job_id
+                """,
+                (status.value,),
+            ).fetchall()
+        jobs = tuple(_row_to_job(row) for row in rows)
+        if managed_run_id is None:
+            return jobs
+        return tuple(job for job in jobs if _managed_run_id(job) == managed_run_id)
 
     def _transition_running(
         self,
@@ -358,6 +433,11 @@ def _row_to_job(row: tuple[object, ...]) -> Job:
     )
 
 
+
+
+def _managed_run_id(job: Job) -> str | None:
+    value = job.payload.get("managed_run_id")
+    return value if isinstance(value, str) and value else None
 
 
 def _db_int(value: object, name: str) -> int:

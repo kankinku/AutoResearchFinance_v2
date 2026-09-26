@@ -274,6 +274,7 @@ risk: {stop_loss_pct: 0, take_profit_pct: 0}
         interval_seconds=2.0,
         evaluation_execution="docker_worker",
         evaluation_docker_image="quant-worker:test",
+        managed_run_id="managed-run-1",
     )
 
     result = _run_research(args, tmp_path / "state")
@@ -289,4 +290,5 @@ risk: {stop_loss_pct: 0, take_profit_pct: 0}
     executor_kwargs = captured["executor_kwargs"]
     assert executor_kwargs["execution_mode"] == "docker_worker"
     assert executor_kwargs["docker_image"] == "quant-worker:test"
+    assert executor_kwargs["managed_run_id"] == "managed-run-1"
     assert captured["evaluator"] is worker_module.run_local_evaluation
