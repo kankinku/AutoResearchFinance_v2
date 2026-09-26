@@ -29,6 +29,7 @@ from runtime.process_lifecycle import (
     terminate_process_tree,
 )
 from runtime.queue import JobStatus
+from runtime.runtime_snapshot import build_runtime_snapshot
 
 ProcessFactory = Callable[[list[str], Path], Any]
 CommandRunner = Callable[[list[str], Path], tuple[int, str]]
@@ -614,6 +615,10 @@ class SystemController:
             )
 
         payload["status"] = self._aggregate_status(payload)
+        payload["runtime"] = build_runtime_snapshot(
+            self.state_dir,
+            managed_run_id=managed_run_id,
+        )
         if recovery:
             payload["recovery"] = recovery
         elif "recovery" in payload:

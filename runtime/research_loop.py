@@ -167,7 +167,7 @@ def run_autoresearch(
     def runner(**kwargs: Any) -> dict[str, object]:
         return evidence.evaluate(base_runner, **kwargs)
     records: list[dict[str, object]] = []
-    progress = _ResearchProgress(config, records)
+    progress = _ResearchProgress(config, records, research_run_id=evidence.run_id)
     progress.emit("run_started", phase="STARTING")
     feature_specs = research_feature_specs()
     try:
@@ -911,6 +911,7 @@ def _write_autoresearch_status(
     config: ResearchLoopConfig,
     status: str,
     *,
+    research_run_id: str | None = None,
     completed_generations: int,
     records: list[dict[str, object]],
     error: str | None = None,
@@ -926,6 +927,7 @@ def _write_autoresearch_status(
 ) -> None:
     payload: dict[str, object] = {
         "status": status,
+        "research_run_id": research_run_id,
         "orders_enabled": False,
         "completed_generations": completed_generations,
         "requested_generations": config.generations,
@@ -966,9 +968,16 @@ def _write_autoresearch_status(
 class _ResearchProgress:
     """Persist phase heartbeats without allowing diagnostics to stop research."""
 
-    def __init__(self, config: ResearchLoopConfig, records: list[dict[str, object]]) -> None:
+    def __init__(
+        self,
+        config: ResearchLoopConfig,
+        records: list[dict[str, object]],
+        *,
+        research_run_id: str,
+    ) -> None:
         self.config = config
         self.records = records
+        self.research_run_id = research_run_id
         self.phase = "STARTING"
         self.phase_started_at = _utc_now()
         self.phase_started_mono = time.monotonic()
@@ -1017,6 +1026,7 @@ class _ResearchProgress:
         _write_autoresearch_status(
             self.config,
             status,
+            research_run_id=self.research_run_id,
             completed_generations=(
                 len(self.records) if completed_generations is None else completed_generations
             ),
