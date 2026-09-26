@@ -6,16 +6,13 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from core.features.registry import research_feature_specs
-from dashboard.service import DashboardService
+from application.services import ApplicationServices, create_application_services
 from integrations.codex_mcp_protocol import error, serve_lines, success, text_content
-from memory.evidence_knowledge import failure_context
-from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
-from research.llm.codex_exec import record_intent, sanitize_context, write_provider_status
+from orchestration.evaluation_runner import parse_parameter_domains
+from research.llm.codex_exec import write_provider_status
 from research.llm.codex_schema import research_intent_schema
-from research.llm.director import ResearchIntent
 from research.policy import default_evaluation_thresholds
-from runtime.system_controller import SystemController, SystemLaunchConfig
+from runtime.system_controller import SystemLaunchConfig
 
 _EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
@@ -24,8 +21,12 @@ class CodexMCPServer:
     def __init__(self, *, state_dir: Path, project_root: Path) -> None:
         self.state_dir = state_dir.resolve()
         self.project_root = project_root.resolve()
-        self.dashboard = DashboardService(self.state_dir)
-        self.system = SystemController(state_dir=self.state_dir, project_root=self.project_root)
+        self.services: ApplicationServices = create_application_services(
+            state_dir=self.state_dir,
+            project_root=self.project_root,
+        )
+        self.dashboard = self.services.dashboard
+        self.system = self.services.system.controller
 
     def handle(self, request: object) -> dict[str, Any] | None:
         if not isinstance(request, Mapping):
@@ -79,90 +80,38 @@ class CodexMCPServer:
         if name == "get_research_context":
             return self._research_context()
         if name == "list_features":
-            return {
-                "features": [
-                    {
-                        "name": spec.name,
-                        "family": spec.family,
-                        "inputs": list(spec.inputs),
-                        "calculator": spec.calculator,
-                        "lookback": spec.lookback,
-                        "timeframe": spec.timeframe,
-                    }
-                    for spec in research_feature_specs()
-                ]
-            }
+            return {"features": self.services.catalog.research_features()}
         if name == "get_research_evidence":
             run_id = arguments.get("research_run_id")
             if run_id is not None and not isinstance(run_id, str):
                 raise ValueError("research_run_id must be a string")
             if set(arguments) - {"research_run_id"}:
                 raise ValueError("unexpected evidence arguments")
-            return self.dashboard.research_evidence(run_id)
+            return self.services.research.evidence(run_id)
         if name == "get_dashboard_status":
-            return self.dashboard.snapshot().model_dump(mode="json")
+            return self.services.dashboard.snapshot().model_dump(mode="json")
         if name == "submit_research_intent":
             return self._submit_intent(arguments)
         if name == "run_evaluation":
             return self._run_evaluation(arguments)
         if name == "check_system":
-            return self.system.preflight(_system_config(arguments)).as_payload()
+            return self.services.system.preflight(_system_config(arguments))
         if name == "start_system":
-            return self.system.start(_system_config(arguments))
+            return self.services.system.start(_system_config(arguments))
         if name == "get_system_status":
-            return self.system.status()
+            return self.services.system.status()
         if name == "stop_system":
-            return self.system.stop()
+            return self.services.system.stop()
         raise ValueError("unknown tool")
 
     def _research_context(self) -> dict[str, object]:
-        snapshot = self.dashboard.snapshot()
-        observations = [
-            {
-                "run_id": item.run_id,
-                "strategy_hash": item.strategy_hash,
-                "generation": item.generation,
-                "score": item.score,
-                "total_return": item.total_return,
-                "nasdaq_excess_return": item.nasdaq_excess_return,
-                "max_drawdown": item.max_drawdown,
-                "risk_compliant": item.risk_compliant,
-                "status": item.status,
-            }
-            for item in snapshot.tests[:20]
-        ]
-        payload = sanitize_context(
-            {
-                "failure_knowledge": failure_context(self.state_dir),
-                "generation": snapshot.strategy.generation or 0,
-                "champion": snapshot.strategy.model_dump(mode="json"),
-                "frontier": [],
-                "observations": observations,
-                "feature_catalog": self._feature_catalog(),
-            }
-        )
-        if not isinstance(payload, dict):
-            raise ValueError("research context must be an object")
-        return payload
+        return self.services.research.context()
 
     def _feature_catalog(self) -> list[dict[str, object]]:
-        return [
-            {
-                "name": spec.name,
-                "family": spec.family,
-                "inputs": list(spec.inputs),
-                "calculator": spec.calculator,
-                "lookback": spec.lookback,
-                "timeframe": spec.timeframe,
-            }
-            for spec in research_feature_specs()
-        ]
+        return self.services.catalog.research_features()
 
     def _submit_intent(self, arguments: dict[str, Any]) -> dict[str, object]:
-        intent = ResearchIntent.model_validate(arguments)
-        payload = sanitize_context(intent.model_dump(mode="json", exclude_none=True))
-        record_intent(self.state_dir / "llm" / "intents.jsonl", intent)
-        return {"status": "VALIDATED", "intent": payload}
+        return self.services.research.validate_and_record_intent(arguments)
 
     def _run_evaluation(self, arguments: dict[str, Any]) -> dict[str, object]:
         method = str(arguments.get("method", "grid"))
@@ -178,9 +127,7 @@ class CodexMCPServer:
             "min_qqq_cagr_delta",
         )
         parameter_domains = parse_parameter_domains(arguments.get("parameter_domains"))
-        return run_local_evaluation(
-            project_root=self.project_root,
-            state_dir=self.state_dir,
+        return self.services.evaluation.run(
             source_path=arguments.get("source_path"),
             data_path=arguments.get("data_path"),
             method=method,
