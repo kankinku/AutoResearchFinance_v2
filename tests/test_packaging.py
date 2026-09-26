@@ -34,3 +34,18 @@ def test_codex_mcp_example_uses_locked_uv_runtime() -> None:
     assert 'command = "uv"' in contents
     assert '"run", "--locked", "python"' in contents
     assert '"integrations.codex_mcp_server"' in contents
+
+
+def test_validation_profiles_use_locked_declared_runtime() -> None:
+    import json
+
+    payload = json.loads(Path("moon.config.json").read_text(encoding="utf-8"))
+    commands = [
+        command
+        for profile in payload["validation"]["profiles"].values()
+        for command in profile
+    ]
+
+    assert commands
+    assert all("uv run --locked --extra dev" in command for command in commands)
+    assert all("--with" not in command for command in commands)

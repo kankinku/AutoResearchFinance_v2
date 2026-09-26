@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -29,13 +30,27 @@ def spawn_managed_process(
     )
 
 
-def process_matches(pid: int, markers: Sequence[str]) -> bool:
+def process_matches(
+    pid: int,
+    markers: Sequence[str],
+    *,
+    startup_retries: int = 4,
+    retry_delay_seconds: float = 0.01,
+) -> bool:
     if pid <= 0:
         return False
-    command_line = _command_line(pid)
-    if command_line is None:
-        return False
-    return all(marker in command_line for marker in markers if marker)
+    if startup_retries < 0:
+        raise ValueError("startup_retries cannot be negative")
+    if retry_delay_seconds < 0:
+        raise ValueError("retry_delay_seconds cannot be negative")
+
+    for attempt in range(startup_retries + 1):
+        command_line = _command_line(pid)
+        if command_line is not None:
+            return all(marker in command_line for marker in markers if marker)
+        if attempt < startup_retries:
+            time.sleep(retry_delay_seconds)
+    return False
 
 
 def terminate_process_tree(pid: int, markers: Sequence[str]) -> bool:

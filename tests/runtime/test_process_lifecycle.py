@@ -5,11 +5,50 @@ from pathlib import Path
 
 import pytest
 
+import runtime.process_lifecycle as lifecycle_module
 from runtime.process_lifecycle import (
     process_matches,
     spawn_managed_process,
     terminate_process_tree,
 )
+
+
+def test_process_matches_retries_transient_missing_command_line(monkeypatch) -> None:
+    calls = 0
+    sleeps: list[float] = []
+
+    def command_line(pid: int) -> str | None:
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            return None
+        return "python -m runtime.system_worker --managed-run-id run-1"
+
+    monkeypatch.setattr(lifecycle_module, "_command_line", command_line)
+    monkeypatch.setattr(lifecycle_module.time, "sleep", sleeps.append)
+
+    assert process_matches(
+        123,
+        ("runtime.system_worker", "--managed-run-id", "run-1"),
+        startup_retries=4,
+        retry_delay_seconds=0.02,
+    )
+    assert calls == 3
+    assert sleeps == [0.02, 0.02]
+
+
+def test_process_matches_does_not_retry_wrong_identity(monkeypatch) -> None:
+    calls = 0
+
+    def command_line(pid: int) -> str | None:
+        nonlocal calls
+        calls += 1
+        return "python unrelated-process"
+
+    monkeypatch.setattr(lifecycle_module, "_command_line", command_line)
+
+    assert process_matches(123, ("owned-marker",), startup_retries=4) is False
+    assert calls == 1
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX process lifecycle acceptance")

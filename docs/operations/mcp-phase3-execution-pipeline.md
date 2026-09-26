@@ -86,15 +86,14 @@ scheduler는 실행 중인 Python 함수를 강제 종료하지 않으므로 이
 - isolation / timeout enforcement 상태
 - lease seconds
 
-## 아직 하지 않은 것
+## Phase 3-1 당시 미완료 항목 — 이후 해결됨
 
-Phase 3-1은 Docker worker를 실제 job consumer로 전환하지 않는다.
+Phase 3-1 시점에는 Docker worker를 실제 job consumer로 전환하지 않았다.
 
 현재 `SystemController`가 시작하는 Docker backtest worker는 기존 별도 실행 방식이다.
 따라서 Phase 3-1의 실행 Evidence는 Docker 격리 또는 subprocess timeout을 주장하지 않는다.
 
-다음 내부 단계에서 공통 job envelope/result contract를 파일 또는 IPC 경계로 직렬화한 뒤,
-Docker worker가 같은 job을 소비하도록 연결해야 한다.
+이 항목은 Phase 3-2의 versioned job contract와 durable SQLite queue, Phase 3-3의 managed orchestration 통합으로 해결됐다. 아래 절은 당시 기준선 기록으로 남긴다.
 
 
 # Phase 3-2 — Cross-process / Docker evaluation worker
@@ -304,3 +303,46 @@ unrelated Python environment from PATH.
 The Parquet provider imports `pyarrow` directly and pandas reads with the pyarrow engine.
 `pyarrow>=14.0` is therefore now a normal runtime dependency instead of being injected
 only by validation commands.
+
+# Phase 3-5 — Integrated runtime observability
+
+get_system_status는 기존 tool schema를 바꾸지 않고 runtime snapshot을 추가로 반환한다.
+
+- research: research_run_id, 현재 generation/phase/event, 완료/요청 세대 수, repair attempt와 안전한 timing summary
+- evaluation: managed run 범위의 RUNNING/QUEUED job 수, attempt/max-attempt, lease, error class, execution/isolation/timeout metadata
+- evidence: 현재 research run의 event count, 마지막 event kind, 종료 여부와 integrity 상태
+- orders_enabled=false
+
+ResearchIntent 원문, 전략 payload, credential/provider 정보, exception message body는 snapshot에 넣지 않는다.
+
+# Phase 3-6 — Interruption and fresh-run recovery
+
+research owner가 비정상 종료되면 부분 세대를 같은 immutable Evidence run에서 이어 쓰지 않는다.
+
+1. 아직 claim되지 않은 해당 managed run의 queued evaluation은 OwnerExited로 취소한다.
+2. 이미 실행 중이며 lease가 유효한 job은 즉시 끊지 않는다.
+3. 활성 job이 사라진 뒤 stale RUNNING research를 INTERRUPTED로 전환한다.
+4. 기존 Evidence run에는 immutable end: INTERRUPTED event를 추가해 닫는다.
+5. 다음 start_system은 새 managed_run_id와 새 Evidence run을 만들고 restarted_from으로 이전 run 계보만 보존한다.
+
+따라서 crash recovery가 중복 generation/evidence를 생성하는 in-place resume로 오인되지 않는다.
+
+# Phase 3 완료 상태
+
+Phase 3의 실행 계층 목표는 모두 구현됐다.
+
+| 영역 | 최종 상태 |
+| --- | --- |
+| 평가 진입점 | Application/AutoResearch가 공통 QueuedEvaluationExecutor 사용 |
+| local fallback | local_scheduler, 동일 실행 contract, isolation/timeout false |
+| Docker worker | typed request/result + SQLite durable queue + per-job container |
+| timeout/retry | Docker process timeout, forced cleanup, transient-only retry, exhaustion |
+| lifecycle | managed run identity, PID identity guard, duplicate start, cross-process lock |
+| restart recovery | scoped lease/orphan recovery + explicit INTERRUPTED fresh-run policy |
+| Evidence | 실제 실행 모드/attempt metadata와 immutable research evidence |
+| MCP 관측성 | 기존 get_system_status에 sanitized integrated runtime snapshot |
+| MCP transport | 실제 별도 STDIO JSON-RPC subprocess acceptance 검증 |
+| runtime 재현성 | uv.lock + uv run --locked, pyarrow 정식 runtime dependency |
+| order safety | research/MCP acceptance 모두 주문 비활성; 기존 KIS gate 유지 |
+
+Moon 컨테이너에서는 Docker CLI가 노출되지 않으므로 실제 Docker Engine acceptance만 환경상 실행할 수 없다. 이는 scripts/verify_docker_evaluation.py로 Docker Desktop이 있는 host에서 확인한다. Docker command/isolation/timeout/cleanup contract는 자동 테스트로 검증한다.

@@ -1,20 +1,24 @@
 {
   "schemaVersion": 1,
   "validation": {
-    "profileOrder": ["fast", "normal", "release"],
+    "profileOrder": [
+      "fast",
+      "normal",
+      "release"
+    ],
     "profiles": {
       "fast": [
-        "uv run --extra dev --with 'pyarrow>=14.0' ruff check ."
+        "uv run --locked --extra dev ruff check ."
       ],
       "normal": [
-        "uv run --extra dev --with 'pyarrow>=14.0' ruff check .",
-        "uv run --extra dev --with 'pyarrow>=14.0' mypy .",
-        "uv run --extra dev --with 'pyarrow>=14.0' python -m pytest -q tests/contracts tests/integrations/test_codex_mcp_server.py tests/dashboard"
+        "uv run --locked --extra dev ruff check .",
+        "uv run --locked --extra dev mypy .",
+        "uv run --locked --extra dev python -m pytest -q tests/contracts tests/integrations/test_codex_mcp_server.py tests/dashboard"
       ],
       "release": [
-        "uv run --extra dev --with 'pyarrow>=14.0' ruff check .",
-        "uv run --extra dev --with 'pyarrow>=14.0' mypy .",
-        "uv run --extra dev --with 'pyarrow>=14.0' python -m pytest -q"
+        "uv run --locked --extra dev ruff check .",
+        "uv run --locked --extra dev mypy .",
+        "uv run --locked --extra dev python -m pytest -q"
       ]
     },
     "riskProfiles": {
