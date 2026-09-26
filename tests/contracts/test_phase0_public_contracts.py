@@ -9,6 +9,7 @@ from dashboard.service import DashboardService
 from integrations.codex_mcp_server import _tools, create_mcp_server
 from orchestration.evaluation_runner import run_local_evaluation
 from orchestration.generation import CANONICAL_STAGES
+from research.llm.codex_schema import research_intent_schema
 from runtime.research_loop import run_autoresearch
 from strategy_ir.schema import StrategyIR
 
@@ -39,7 +40,7 @@ EXPECTED_CLI_COMMANDS = {
     "validate-strategy",
 }
 
-EXPECTED_MCP_TOOLS = {
+BASELINE_MCP_TOOLS = {
     "get_research_context",
     "list_features",
     "get_dashboard_status",
@@ -50,6 +51,17 @@ EXPECTED_MCP_TOOLS = {
     "start_system",
     "get_system_status",
     "stop_system",
+}
+
+PHASE4_MCP_TOOLS = {
+    "initialize_research_state",
+    "get_workspace_status",
+    "set_research_mode",
+    "validate_research_cache",
+    "validate_strategy",
+    "import_strategies",
+    "list_strategies",
+    "plan_generation",
 }
 
 EXPECTED_DASHBOARD_ROUTES = {
@@ -119,7 +131,29 @@ def test_phase0_cli_command_surface_is_frozen() -> None:
 def test_phase0_mcp_tool_surface_is_frozen() -> None:
     tools = _tools()
     by_name = {str(tool["name"]): tool for tool in tools}
-    assert set(by_name) == EXPECTED_MCP_TOOLS
+    assert BASELINE_MCP_TOOLS.issubset(by_name)
+    assert set(by_name) == BASELINE_MCP_TOOLS | PHASE4_MCP_TOOLS
+
+    empty_schema = {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    }
+    for name in (
+        "get_research_context",
+        "list_features",
+        "get_dashboard_status",
+        "get_system_status",
+        "stop_system",
+    ):
+        assert by_name[name]["inputSchema"] == empty_schema
+
+    assert by_name["get_research_evidence"]["inputSchema"] == {
+        "type": "object",
+        "properties": {"research_run_id": {"type": "string"}},
+        "additionalProperties": False,
+    }
+    assert by_name["submit_research_intent"]["inputSchema"] == research_intent_schema()
 
     evaluation_schema = by_name["run_evaluation"]["inputSchema"]
     assert evaluation_schema["required"] == ["source_path", "data_path"]

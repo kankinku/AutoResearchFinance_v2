@@ -143,10 +143,12 @@ The local MCP server can then be started with:
 python -m integrations.codex_mcp_server --state-dir state --project-root .
 ```
 
-In Codex Desktop, use `get_dashboard_status` and `get_research_context` first, submit
-the resulting structured intent with `submit_research_intent`, and run only an
-approved local evaluation with `run_evaluation`. The server has no order or live
-account tool. For a non-interactive alternative, authenticate the Codex CLI and run:
+In Codex Desktop, use `get_workspace_status`, `get_dashboard_status`, and
+`get_research_context` first. The MCP also exposes static strategy validation/import,
+strategy catalog listing, generation planning, and managed evaluation/system controls.
+`set_research_mode` changes only the selected state and always keeps
+`orders_enabled=false`; the server has no order or live-account tool. For a
+non-interactive alternative, authenticate the Codex CLI and run:
 
 ```powershell
 codex login status
@@ -471,9 +473,11 @@ configuration or register the same command in Desktop MCP settings:
 python -m integrations.codex_mcp_server --state-dir state --project-root .
 ```
 
-The exposed tools are limited to sanitized research context, the feature catalog,
-dashboard status, validated intent submission, and local evaluation. There is no
-order, live-account, credential, arbitrary-write, raw-market, or sealed-OOS tool.
+The exposed tools cover sanitized research/workspace status, feature and strategy
+catalogs, static strategy validation/import, deterministic generation planning,
+validated intent submission, evaluation, and managed system lifecycle. Strategy import
+is static and defaults to dry-run. There is no order, live-account, credential,
+arbitrary-code, raw-market, or sealed-OOS tool.
 For an unattended/local subprocess call, use `research-intent`; it invokes the
 installed `codex exec` command and revalidates its structured output locally. The
 interactive Desktop conversation is not implicitly reused by a separate `codex exec`

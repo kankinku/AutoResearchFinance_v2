@@ -77,6 +77,46 @@ class CodexMCPServer:
         return success(request_id, {"content": text_content(payload), "isError": False})
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
+        if name == "initialize_research_state":
+            if arguments:
+                raise ValueError("initialization takes no arguments")
+            return self.services.workspace.initialize()
+        if name == "get_workspace_status":
+            if arguments:
+                raise ValueError("workspace status takes no arguments")
+            return self.services.workspace.status()
+        if name == "set_research_mode":
+            if set(arguments) != {"mode"}:
+                raise ValueError("set_research_mode requires only mode")
+            mode = arguments.get("mode")
+            if not isinstance(mode, str):
+                raise ValueError("mode must be a string")
+            return self.services.workspace.set_mode(mode)
+        if name == "validate_research_cache":
+            if set(arguments) - {"manifest_dir"}:
+                raise ValueError("unexpected cache validation arguments")
+            manifest_dir = arguments.get("manifest_dir", "manifests")
+            if not isinstance(manifest_dir, str) or not manifest_dir.strip():
+                raise ValueError("manifest_dir must be a string")
+            return self.services.workspace.validate_cache(manifest_dir=manifest_dir)
+        if name == "validate_strategy":
+            source_path = arguments.get("source_path")
+            if not isinstance(source_path, str) or not source_path.strip():
+                raise ValueError("source_path is required")
+            if set(arguments) - {"source_path"}:
+                raise ValueError("unexpected strategy validation arguments")
+            return self.services.strategy.validate(source_path)
+        if name == "import_strategies":
+            return self._import_strategies(arguments)
+        if name == "list_strategies":
+            strategies_dir = arguments.get("strategies_dir", "strategies")
+            if not isinstance(strategies_dir, str) or not strategies_dir.strip():
+                raise ValueError("strategies_dir must be a string")
+            if set(arguments) - {"strategies_dir"}:
+                raise ValueError("unexpected strategy list arguments")
+            return self.services.strategy.list_strategies(strategies_dir=strategies_dir)
+        if name == "plan_generation":
+            return self._plan_generation(arguments)
         if name == "get_research_context":
             return self._research_context()
         if name == "list_features":
@@ -103,6 +143,59 @@ class CodexMCPServer:
         if name == "stop_system":
             return self.services.system.stop()
         raise ValueError("unknown tool")
+
+    def _import_strategies(self, arguments: dict[str, Any]) -> dict[str, object]:
+        allowed = {
+            "source_path",
+            "repository_url",
+            "ref",
+            "strategies_dir",
+            "dry_run",
+            "kis_presets",
+        }
+        if set(arguments) - allowed:
+            raise ValueError("unexpected strategy import arguments")
+        source_path = arguments.get("source_path")
+        repository_url = arguments.get("repository_url")
+        ref = arguments.get("ref", "main")
+        strategies_dir = arguments.get("strategies_dir", "strategies")
+        dry_run = arguments.get("dry_run", True)
+        kis_presets = arguments.get("kis_presets", False)
+        if source_path is not None and not isinstance(source_path, str):
+            raise ValueError("source_path must be a string")
+        if repository_url is not None and not isinstance(repository_url, str):
+            raise ValueError("repository_url must be a string")
+        if not isinstance(ref, str) or not isinstance(strategies_dir, str):
+            raise ValueError("strategy import string options are invalid")
+        if not isinstance(dry_run, bool) or not isinstance(kis_presets, bool):
+            raise ValueError("strategy import boolean options are invalid")
+        return self.services.strategy.import_strategies(
+            source_path=source_path,
+            repository_url=repository_url,
+            ref=ref,
+            strategies_dir=strategies_dir,
+            dry_run=dry_run,
+            kis_presets=kis_presets,
+        )
+
+    def _plan_generation(self, arguments: dict[str, Any]) -> dict[str, object]:
+        allowed = {"parent_ids", "method", "count", "seed"}
+        if set(arguments) - allowed:
+            raise ValueError("unexpected generation plan arguments")
+        parent_ids = arguments.get("parent_ids")
+        if not isinstance(parent_ids, list) or not parent_ids:
+            raise ValueError("parent_ids must be a non-empty array")
+        if any(not isinstance(item, str) or not item.strip() for item in parent_ids):
+            raise ValueError("parent_ids must contain non-empty strings")
+        method = arguments.get("method")
+        if not isinstance(method, str):
+            raise ValueError("method is required")
+        return self.services.planning.plan_generation(
+            parent_ids=tuple(parent_ids),
+            method=method,
+            count=_positive_int(arguments.get("count"), "count"),
+            seed=_nonnegative_int(arguments.get("seed"), "seed"),
+        )
 
     def _research_context(self) -> dict[str, object]:
         return self.services.research.context()
@@ -161,6 +254,120 @@ def main(argv: list[str] | None = None) -> int:
 def _tools() -> list[dict[str, object]]:
     empty = {"type": "object", "properties": {}, "additionalProperties": False}
     return [
+        {
+            "name": "initialize_research_state",
+            "description": (
+                "Initialize missing paper-research state files without enabling orders. "
+                "Existing state is always preserved."
+            ),
+            "inputSchema": empty,
+        },
+        {
+            "name": "get_workspace_status",
+            "description": (
+                "Read sanitized research workspace state, mode, audit count, and manifest count."
+            ),
+            "inputSchema": empty,
+        },
+        {
+            "name": "set_research_mode",
+            "description": (
+                "Select paper or live mode state while keeping orders_enabled=false. "
+                "This does not grant trading permission."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "mode": {"enum": ["paper", "live"], "type": "string"},
+                },
+                "required": ["mode"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "validate_research_cache",
+            "description": (
+                "Validate experiment manifest files and report the valid manifest count."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "manifest_dir": {"type": "string", "default": "manifests"},
+                },
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "validate_strategy",
+            "description": (
+                "Statically validate and normalize one project strategy source without "
+                "executing it."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {"source_path": {"type": "string"}},
+                "required": ["source_path"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "import_strategies",
+            "description": (
+                "Statically scan a project source or HTTPS GitHub repository. "
+                "dry_run defaults to true; imported source is never executed."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "source_path": {"type": "string"},
+                    "repository_url": {"type": "string"},
+                    "ref": {"type": "string", "default": "main"},
+                    "strategies_dir": {"type": "string", "default": "strategies"},
+                    "dry_run": {"type": "boolean", "default": True},
+                    "kis_presets": {"type": "boolean", "default": False},
+                },
+                "oneOf": [
+                    {"required": ["source_path"]},
+                    {"required": ["repository_url"]},
+                ],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "list_strategies",
+            "description": "List sanitized records from the local imported strategy catalog.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "strategies_dir": {"type": "string", "default": "strategies"},
+                },
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "plan_generation",
+            "description": (
+                "Create a deterministic local experiment plan without executing research."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "parent_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                    },
+                    "method": {
+                        "enum": ["grid", "random", "bayesian"],
+                        "type": "string",
+                    },
+                    "count": {"minimum": 1, "type": "integer"},
+                    "seed": {"minimum": 0, "type": "integer"},
+                },
+                "required": ["parent_ids", "method", "count", "seed"],
+                "additionalProperties": False,
+            },
+        },
         {
             "name": "get_research_context",
             "description": "Read sanitized research context.",

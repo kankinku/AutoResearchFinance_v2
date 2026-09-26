@@ -32,6 +32,14 @@ def test_mcp_server_lists_only_safe_research_tools(tmp_path: Path) -> None:
     assert isinstance(tools, list)
     names = {str(tool["name"]) for tool in tools if isinstance(tool, dict)}
     assert names == {
+        "initialize_research_state",
+        "get_workspace_status",
+        "set_research_mode",
+        "validate_research_cache",
+        "validate_strategy",
+        "import_strategies",
+        "list_strategies",
+        "plan_generation",
         "get_research_context",
         "list_features",
         "get_dashboard_status",
@@ -43,7 +51,11 @@ def test_mcp_server_lists_only_safe_research_tools(tmp_path: Path) -> None:
         "get_system_status",
         "stop_system",
     }
-    assert not any("order" in name or "credential" in name for name in names)
+    assert not any(
+        forbidden in name
+        for name in names
+        for forbidden in ("order", "credential", "promote", "live", "direct_edit")
+    )
 
 
 def test_mcp_evaluation_defaults_match_research_policy(tmp_path: Path) -> None:
@@ -186,3 +198,211 @@ def test_mcp_system_preflight_returns_actionable_blockers_without_starting(tmp_p
     assert payload["status"] == "BLOCKED"
     assert payload["preflight"]["issues"]
     assert "Docker" in str(payload["preflight"]["checks"])
+
+
+
+def _write_phase4_strategy(root: Path) -> None:
+    (root / "strategy.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "id": "phase4-mcp",
+                "family": "trend",
+                "generation": 0,
+                "indicators": {"fast": {"type": "SMA", "period": 5}},
+                "entry": {
+                    "logic": "AND",
+                    "conditions": [
+                        {"op": "greater_than", "left": "close", "value": 0}
+                    ],
+                },
+                "exit": {
+                    "logic": "AND",
+                    "conditions": [
+                        {"op": "less_than", "left": "close", "value": 0}
+                    ],
+                },
+                "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_phase4_mcp_workspace_strategy_and_planning_tools_are_safe(tmp_path: Path) -> None:
+    _write_phase4_strategy(tmp_path)
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+
+    initialized = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 20,
+                "method": "tools/call",
+                "params": {
+                    "name": "initialize_research_state",
+                    "arguments": {},
+                },
+            },
+        )
+    )
+    assert initialized["status"] == "INITIALIZED"
+    assert initialized["orders_enabled"] is False
+
+    workspace = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 21,
+                "method": "tools/call",
+                "params": {"name": "get_workspace_status", "arguments": {}},
+            },
+        )
+    )
+    assert workspace["status"] == "READY"
+    assert workspace["orders_enabled"] is False
+
+    mode = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 211,
+                "method": "tools/call",
+                "params": {
+                    "name": "set_research_mode",
+                    "arguments": {"mode": "live"},
+                },
+            },
+        )
+    )
+    assert mode["status"] == "MODE_SELECTED"
+    assert mode["selected_mode"] == "live"
+    assert mode["orders_enabled"] is False
+
+    manifests = tmp_path / "manifests"
+    manifests.mkdir()
+    (manifests / "valid.json").write_text(
+        json.dumps({"experiment_hash": "hash-1"}),
+        encoding="utf-8",
+    )
+    cache = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 212,
+                "method": "tools/call",
+                "params": {
+                    "name": "validate_research_cache",
+                    "arguments": {},
+                },
+            },
+        )
+    )
+    assert cache["status"] == "VALIDATED"
+    assert cache["validated_manifests"] == 1
+    assert cache["orders_enabled"] is False
+
+    validated = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 22,
+                "method": "tools/call",
+                "params": {
+                    "name": "validate_strategy",
+                    "arguments": {"source_path": "strategy.json"},
+                },
+            },
+        )
+    )
+    assert validated["status"] == "VALID"
+    assert validated["strategy_id"] == "phase4-mcp"
+
+    imported = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 23,
+                "method": "tools/call",
+                "params": {
+                    "name": "import_strategies",
+                    "arguments": {"source_path": "strategy.json"},
+                },
+            },
+        )
+    )
+    assert imported["status"] == "DRY_RUN"
+    assert imported["orders_enabled"] is False
+    assert not (tmp_path / "strategies" / "catalog.json").exists()
+
+    planned = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 24,
+                "method": "tools/call",
+                "params": {
+                    "name": "plan_generation",
+                    "arguments": {
+                        "parent_ids": ["phase4-mcp"],
+                        "method": "random",
+                        "count": 8,
+                        "seed": 3,
+                    },
+                },
+            },
+        )
+    )
+    assert planned["parent_ids"] == ["phase4-mcp"]
+    assert planned["method"] == "random"
+    assert planned["count"] == 8
+    assert planned["seed"] == 3
+
+
+def test_phase4_mcp_strategy_tools_reject_project_escape_and_unsafe_repository(
+    tmp_path: Path,
+) -> None:
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+    outside = tmp_path.parent / "outside.json"
+    outside.write_text("{}", encoding="utf-8")
+
+    escaped = _call(
+        server,
+        {
+            "jsonrpc": "2.0",
+            "id": 25,
+            "method": "tools/call",
+            "params": {
+                "name": "validate_strategy",
+                "arguments": {"source_path": str(outside)},
+            },
+        },
+    )
+    escaped_result = escaped["result"]
+    assert isinstance(escaped_result, dict)
+    assert escaped_result["isError"] is True
+    assert str(outside) not in str(escaped)
+
+    unsafe_repo = _call(
+        server,
+        {
+            "jsonrpc": "2.0",
+            "id": 26,
+            "method": "tools/call",
+            "params": {
+                "name": "import_strategies",
+                "arguments": {"repository_url": "http://example.com/repo.git"},
+            },
+        },
+    )
+    unsafe_result = unsafe_repo["result"]
+    assert isinstance(unsafe_result, dict)
+    assert unsafe_result["isError"] is True
+    assert "example.com" not in str(unsafe_repo)

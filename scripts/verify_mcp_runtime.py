@@ -19,6 +19,14 @@ _REQUIRED_TOOLS = frozenset(
         "start_system",
         "get_system_status",
         "stop_system",
+        "initialize_research_state",
+        "get_workspace_status",
+        "set_research_mode",
+        "validate_research_cache",
+        "validate_strategy",
+        "import_strategies",
+        "list_strategies",
+        "plan_generation",
     }
 )
 

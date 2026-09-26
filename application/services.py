@@ -5,8 +5,11 @@ from pathlib import Path
 
 from application.catalog_service import FeatureCatalogService
 from application.evaluation_service import EvaluationService
+from application.planning_service import PlanningService
 from application.research_service import ResearchService
+from application.strategy_service import StrategyService
 from application.system_service import SystemService
+from application.workspace_service import WorkspaceService
 from dashboard.service import DashboardService
 
 
@@ -15,6 +18,9 @@ class ApplicationServices:
     catalog: FeatureCatalogService
     research: ResearchService
     evaluation: EvaluationService
+    planning: PlanningService
+    strategy: StrategyService
+    workspace: WorkspaceService
     system: SystemService
     dashboard: DashboardService
 
@@ -38,6 +44,12 @@ def create_application_services(
         evaluation=EvaluationService(
             project_root=resolved_root,
             state_dir=resolved_state,
+        ),
+        planning=PlanningService(),
+        strategy=StrategyService(project_root=resolved_root),
+        workspace=WorkspaceService(
+            state_dir=resolved_state,
+            project_root=resolved_root,
         ),
         system=SystemService(
             state_dir=resolved_state,
