@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from core.backtest.engine import BacktestEngine, BacktestRequest, Trade
 from core.costs.model import CostModel
 from core.costs.slippage import SlippageModel
 from core.data.contracts import Bar, DataZone, MarketDataSet, SeriesDataSet
+from core.data.timebase import equity_returns, equity_timestamps, periods_per_year
 from core.features.contracts import FeatureSpec
 from core.validation.walk_forward import walk_forward_splits
 from evaluation.benchmark import BenchmarkComparison, BenchmarkData, compare_benchmarks
 from evaluation.metrics import Metrics, calculate_metrics
-from evaluation.risk import evaluate_risk_policy
-from evaluation.robustness import robust_statistics
-from evaluation.scoring import RobustnessInputs, robust_score
+from evaluation.risk import RiskEvaluation, evaluate_risk_policy
+from evaluation.robustness import (
+    cpcv_return_scores,
+    probability_backtest_overfitting,
+    robust_statistics,
+)
 from evaluation.selector import FunnelConfig, FunnelInput, FunnelResult, select_candidate
 from evaluation.yearly import summarize_yearly_performance
 from experiments.candidate_generator import Candidate, generate_candidates
@@ -30,6 +34,22 @@ class GenerationPipelineResult:
     candidates: tuple[Candidate, ...]
     funnel: tuple[FunnelResult, ...]
     knowledge: dict[str, object]
+
+
+@dataclass(frozen=True)
+class _CandidateEvaluation:
+    candidate: Candidate
+    fast_metrics: Metrics
+    full_metrics: Metrics
+    stressed_metrics: Metrics
+    trades: tuple[Trade, ...]
+    full_equity: tuple[float, ...]
+    fast_benchmark: BenchmarkComparison | None
+    full_benchmark: BenchmarkComparison | None
+    risk_evaluation: RiskEvaluation
+    validation_folds: tuple[dict[str, object], ...]
+    yearly_metrics: tuple[dict[str, object], ...]
+    returns: tuple[float, ...]
 
 
 class GenerationPipeline:
@@ -59,8 +79,14 @@ class GenerationPipeline:
         feature_inputs: Mapping[str, Sequence[float | None]] | None = None,
         external_series: SeriesDataSet | None = None,
     ) -> GenerationPipelineResult:
-        if DataZone(dataset.zone) is DataZone.SEALED_OOS:
-            raise PermissionError("generation research cannot use sealed OOS data")
+        if DataZone(dataset.zone) is not DataZone.DEVELOPMENT:
+            raise PermissionError("generation research requires development market data")
+        if (
+            external_series is not None
+            and DataZone(external_series.zone) is not DataZone.DEVELOPMENT
+        ):
+            raise PermissionError("generation research requires development series data")
+
         candidates = generate_candidates(
             parent,
             operations,
@@ -77,7 +103,8 @@ class GenerationPipeline:
         fast_benchmark_data = (
             benchmark_data.slice(_timestamp_count(fast_dataset)) if benchmark_data else None
         )
-        results: list[FunnelResult] = []
+
+        evaluated: list[_CandidateEvaluation] = []
         for candidate in candidates:
             fast_metrics, _, fast_equity = self._evaluate(
                 candidate,
@@ -107,41 +134,22 @@ class GenerationPipeline:
                 external_series,
                 cost_stress_multiplier=2.0,
             )
-            risk_evaluation = evaluate_risk_policy(full_equity, candidate.strategy.risk)
+            risk_evaluation = evaluate_risk_policy(
+                full_equity,
+                candidate.strategy.risk,
+                timestamps=equity_timestamps(dataset, len(full_equity)),
+            )
             fast_benchmark = _compare(
-                fast_equity, fast_benchmark_data, periods_per_year=252
+                fast_equity,
+                fast_benchmark_data,
+                periods_per_year=periods_per_year(fast_dataset),
             )
-            full_benchmark = _compare(full_equity, benchmark_data, periods_per_year=252)
-            robust = robust_statistics(
-                base_return=full_metrics.total_return,
-                stressed_return=stressed_metrics.total_return,
-                parameter_scores=(
-                    fast_metrics.total_return,
-                    full_metrics.total_return,
-                    stressed_metrics.total_return,
-                ),
-                sharpe=full_metrics.sharpe or 0.0,
-                trials=max(1, len(candidates)),
-                observations=len(full_metrics.__dict__),
-                complexity=len(candidate.strategy.indicators)
-                + len(candidate.strategy.entry.conditions)
-                + len(candidate.strategy.exit.conditions),
+            full_benchmark = _compare(
+                full_equity,
+                benchmark_data,
+                periods_per_year=periods_per_year(dataset),
             )
-            if robust.status == "OK":
-                robust = replace(
-                    robust,
-                    robust_score=robust_score(
-                        full_metrics,
-                        RobustnessInputs(
-                            robust.stability,
-                            robust.cost_sensitivity,
-                            len(candidate.strategy.indicators)
-                            + len(candidate.strategy.entry.conditions)
-                            + len(candidate.strategy.exit.conditions),
-                        ),
-                    ),
-                )
-            validation_folds = self._walk_forward_evidence(
+            validation_folds = self._temporal_holdout_evidence(
                 candidate,
                 dataset,
                 funnel,
@@ -151,40 +159,92 @@ class GenerationPipeline:
                 external_series,
                 benchmark_data,
             )
-            validation_passed = bool(validation_folds) and all(
-                bool(fold["passed"]) for fold in validation_folds
-            )
             yearly_metrics = summarize_yearly_performance(dataset, full_equity, trades)
+            evaluated.append(
+                _CandidateEvaluation(
+                    candidate=candidate,
+                    fast_metrics=fast_metrics,
+                    full_metrics=full_metrics,
+                    stressed_metrics=stressed_metrics,
+                    trades=trades,
+                    full_equity=full_equity,
+                    fast_benchmark=fast_benchmark,
+                    full_benchmark=full_benchmark,
+                    risk_evaluation=risk_evaluation,
+                    validation_folds=validation_folds,
+                    yearly_metrics=yearly_metrics,
+                    returns=equity_returns(full_equity),
+                )
+            )
+
+        pbo: float | None = None
+        if len(evaluated) >= 2:
+            try:
+                pbo = probability_backtest_overfitting(
+                    tuple(item.returns for item in evaluated)
+                )
+            except ValueError:
+                pbo = None
+
+        results: list[FunnelResult] = []
+        for item in evaluated:
+            candidate = item.candidate
+            validation_scores = tuple(
+                float(value)
+                for fold in item.validation_folds
+                if isinstance((value := fold.get("strategy_total_return")), (int, float))
+            )
+            try:
+                resampling_scores = cpcv_return_scores(item.returns)
+            except ValueError:
+                resampling_scores = validation_scores
+            complexity = (
+                len(candidate.strategy.indicators)
+                + len(candidate.strategy.entry.conditions)
+                + len(candidate.strategy.exit.conditions)
+            )
+            robust = robust_statistics(
+                base_return=item.full_metrics.total_return,
+                stressed_return=item.stressed_metrics.total_return,
+                parameter_scores=resampling_scores,
+                sharpe=item.full_metrics.sharpe or 0.0,
+                trials=max(1, len(candidates)),
+                observations=len(item.returns),
+                complexity=complexity,
+                pbo=pbo,
+            )
+            validation_passed = bool(item.validation_folds) and all(
+                bool(fold["passed"]) for fold in item.validation_folds
+            )
             results.append(
                 select_candidate(
                     FunnelInput(
                         candidate.candidate_hash,
                         candidate.strategy.family,
-                        fast_metrics,
-                        full_metrics,
+                        item.fast_metrics,
+                        item.full_metrics,
                         robust,
                         validation_passed,
-                        fast_benchmark,
-                        full_benchmark,
-                        risk_evaluation,
+                        item.fast_benchmark,
+                        item.full_benchmark,
+                        item.risk_evaluation,
                         tuple(
                             sorted(ref.feature_id for ref in candidate.strategy.features.values())
                         ),
                         candidate.parameters,
                         dataset.dataset_hash,
                         external_series.dataset_hash if external_series is not None else None,
-                        validation_folds,
-                        yearly_metrics,
+                        item.validation_folds,
+                        item.yearly_metrics,
                         _feature_lineage(candidate.strategy, feature_specs),
                     ),
                     funnel,
                 )
             )
-            del trades
         knowledge = extract_knowledge(generation=parent.generation + 1, results=tuple(results))
         return GenerationPipelineResult(CANONICAL_STAGES, candidates, tuple(results), knowledge)
 
-    def _walk_forward_evidence(
+    def _temporal_holdout_evidence(
         self,
         candidate: Candidate,
         dataset: MarketDataSet,
@@ -195,18 +255,25 @@ class GenerationPipeline:
         external_series: SeriesDataSet | None,
         benchmark_data: BenchmarkData | None,
     ) -> tuple[dict[str, object], ...]:
-        indices = tuple(range(len(dataset.bars)))
+        timestamps = tuple(sorted({bar.timestamp for bar in dataset.bars}))
+        timestamp_indices = tuple(range(len(timestamps)))
         splits = walk_forward_splits(
-            indices,
-            train_size=max(1, len(indices) // 2),
-            test_size=max(1, len(indices) // 4),
-            step=max(1, len(indices) // 4),
+            timestamp_indices,
+            train_size=max(1, len(timestamp_indices) // 2),
+            test_size=max(1, len(timestamp_indices) // 4),
+            step=max(1, len(timestamp_indices) // 4),
         )
         evidence: list[dict[str, object]] = []
         for fold_index, (train_indices, test_indices) in enumerate(splits):
-            test_dataset = _select_dataset(dataset, test_indices)
-            test_feature_values = _select_feature_values(feature_values, test_indices)
-            test_feature_inputs = _select_feature_values(feature_inputs, test_indices)
+            test_timestamps = {timestamps[index] for index in test_indices}
+            test_bar_indices = tuple(
+                index
+                for index, bar in enumerate(dataset.bars)
+                if bar.timestamp in test_timestamps
+            )
+            test_dataset = _select_dataset(dataset, test_bar_indices)
+            test_feature_values = _select_feature_values(feature_values, test_bar_indices)
+            test_feature_inputs = _select_feature_values(feature_inputs, test_bar_indices)
             metrics, _, equity = self._evaluate(
                 candidate,
                 test_dataset,
@@ -217,7 +284,11 @@ class GenerationPipeline:
                 external_series,
             )
             comparison = (
-                _compare(equity, benchmark_data.select(test_indices), periods_per_year=252)
+                _compare(
+                    equity,
+                    benchmark_data.select(test_indices),
+                    periods_per_year=periods_per_year(test_dataset),
+                )
                 if benchmark_data is not None
                 else None
             )
@@ -242,10 +313,16 @@ class GenerationPipeline:
             evidence.append(
                 {
                     "fold": fold_index,
+                    "method": "temporal_holdout",
+                    "selection_applied": False,
                     "train_start": train_indices[0],
                     "train_end": train_indices[-1],
                     "test_start": test_indices[0],
                     "test_end": test_indices[-1],
+                    "train_start_at": timestamps[train_indices[0]].isoformat(),
+                    "train_end_at": timestamps[train_indices[-1]].isoformat(),
+                    "test_start_at": timestamps[test_indices[0]].isoformat(),
+                    "test_end_at": timestamps[test_indices[-1]].isoformat(),
                     "strategy_total_return": metrics.total_return,
                     "strategy_cagr": metrics.cagr,
                     "trade_count": metrics.trade_count,
@@ -295,7 +372,7 @@ class GenerationPipeline:
         metrics = calculate_metrics(
             backtest.equity_curve,
             pnls,
-            periods_per_year=252,
+            periods_per_year=periods_per_year(dataset),
             turnover=sum(trade.notional for trade in backtest.trades),
             exposure=len(pnls) / max(len(backtest.equity_curve), 1),
         )
@@ -350,7 +427,9 @@ def _fast_slice(dataset: MarketDataSet) -> MarketDataSet:
         symbol_bars = tuple(bar for bar in dataset.bars if bar.symbol == symbol)
         width = min(len(symbol_bars), max(2, len(symbol_bars) // 2))
         bars.extend(symbol_bars[:width])
-    return MarketDataSet(dataset.version, dataset.zone, tuple(bars))
+    return MarketDataSet(
+        dataset.version, dataset.zone, tuple(bars), dataset.timeframe, dataset.calendar
+    )
 
 
 def _timestamp_count(dataset: MarketDataSet) -> int:
@@ -380,7 +459,9 @@ def _slice_feature_values(
 
 def _select_dataset(dataset: MarketDataSet, indices: Sequence[int]) -> MarketDataSet:
     bars = tuple(dataset.bars[index] for index in indices)
-    return MarketDataSet(dataset.version, dataset.zone, bars)
+    return MarketDataSet(
+        dataset.version, dataset.zone, bars, dataset.timeframe, dataset.calendar
+    )
 
 
 def _select_feature_values(
@@ -396,7 +477,7 @@ def _select_feature_values(
 
 
 def _compare(
-    equity: Sequence[float], benchmark: BenchmarkData | None, *, periods_per_year: int
+    equity: Sequence[float], benchmark: BenchmarkData | None, *, periods_per_year: float
 ) -> BenchmarkComparison | None:
     if benchmark is None:
         return None

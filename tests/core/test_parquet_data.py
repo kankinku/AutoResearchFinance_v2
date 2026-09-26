@@ -52,3 +52,24 @@ def test_series_parquet_round_trip_preserves_availability_and_hash(tmp_path: Pat
 
     assert loaded.dataset_hash == dataset.dataset_hash
     assert loaded.observations[0].available_at == dataset.observations[0].available_at
+
+
+def test_parquet_round_trip_preserves_timebase_metadata(tmp_path: Path) -> None:
+    dataset = MarketDataSet(
+        "intraday-v1",
+        "development",
+        (
+            Bar(datetime(2024, 1, 2, 14, 30, tzinfo=timezone.utc), "QQQ", 10, 10, 10, 10, 100),
+            Bar(datetime(2024, 1, 2, 14, 45, tzinfo=timezone.utc), "QQQ", 11, 11, 11, 11, 100),
+        ),
+        timeframe="15m",
+        calendar="us_equities",
+    )
+    path = tmp_path / "intraday.parquet"
+
+    ParquetDataProvider.write(path, dataset)
+    loaded = ParquetDataProvider.read(path)
+
+    assert loaded.timeframe == "15m"
+    assert loaded.calendar == "us_equities"
+    assert loaded.dataset_hash == dataset.dataset_hash

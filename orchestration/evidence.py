@@ -21,10 +21,21 @@ def require_research_zone(path: Path) -> None:
     import pyarrow.parquet as parquet  # type: ignore[import-untyped]
 
     metadata = parquet.read_metadata(path).metadata or {}
-    if metadata.get(b"data_zone") == b"sealed_oos":
-        raise EvidenceIntegrityError("sealed OOS is not a research input")
-    if metadata.get(b"data_zone") not in {b"development", b"validation"}:
-        raise EvidenceIntegrityError("research data zone metadata is required")
+    zone = metadata.get(b"data_zone")
+    if zone != b"development":
+        if zone == b"validation":
+            raise EvidenceIntegrityError("validation data is promotion-only")
+        if zone == b"sealed_oos":
+            raise EvidenceIntegrityError("sealed OOS is promotion-gate-only")
+        raise EvidenceIntegrityError("development research data zone metadata is required")
+
+
+def require_validation_zone(path: Path) -> None:
+    import pyarrow.parquet as parquet
+
+    metadata = parquet.read_metadata(path).metadata or {}
+    if metadata.get(b"data_zone") != b"validation":
+        raise EvidenceIntegrityError("promotion validation requires validation data")
 
 
 def freeze_manifest(
@@ -37,10 +48,10 @@ def freeze_manifest(
     funnel: FunnelConfig,
     cost_model: CostModel,
 ) -> str:
-    if dataset.zone == DataZone.SEALED_OOS or (
-        series is not None and series.zone == DataZone.SEALED_OOS
-    ):
-        raise EvidenceIntegrityError("sealed OOS is not a research input")
+    if dataset.zone is not DataZone.DEVELOPMENT:
+        raise EvidenceIntegrityError("research manifest requires development market data")
+    if series is not None and series.zone is not DataZone.DEVELOPMENT:
+        raise EvidenceIntegrityError("research manifest requires development series data")
     root = Path(__file__).resolve().parents[1]
     files = sorted(
         p
@@ -63,6 +74,8 @@ def freeze_manifest(
         "dataset_hash": dataset.dataset_hash,
         "data_zone": DataZone(dataset.zone).value,
         "dataset_version": dataset.version,
+        "timeframe": dataset.timeframe,
+        "calendar": dataset.calendar,
         "series_hash": series.dataset_hash if series else None,
         "series_zone": DataZone(series.zone).value if series else None,
         "series_version": series.version if series else None,
@@ -108,6 +121,8 @@ def candidate_evidence(result: FunnelResult) -> dict[str, Any]:
         "family": result.family,
         "status": result.status,
         "score": _number(result.score),
+        "dsr": _number(result.robustness_dsr),
+        "pbo": _number(result.robustness_pbo),
         "failed_gates": [gate.name for gate in result.gates if not gate.passed],
         "gates": [
             {

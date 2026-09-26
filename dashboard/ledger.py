@@ -31,6 +31,8 @@ def append_funnel_results(
                 "generation": generation,
                 "timestamp": timestamp,
                 "score": result.score,
+                "dsr": result.robustness_dsr,
+                "pbo": result.robustness_pbo,
                 "total_return": result.full_total_return,
                 "nasdaq_excess_return": (
                     result.full_benchmark.nasdaq_excess_return

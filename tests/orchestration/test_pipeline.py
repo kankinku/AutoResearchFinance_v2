@@ -268,3 +268,105 @@ def test_generation_pipeline_uses_profitability_in_robust_score() -> None:
     )
 
     assert result.funnel[0].score > 0
+
+
+def test_generation_pipeline_rejects_validation_zone_research() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index),
+            "TEST",
+            100 + index,
+            101 + index,
+            99 + index,
+            100 + index,
+            1000,
+        )
+        for index in range(8)
+    )
+    strategy = validate_strategy(
+        {
+            "schema_version": 1,
+            "id": "validation-zone-denied",
+            "family": "trend",
+            "generation": 0,
+            "indicators": {"fast": {"type": "SMA", "period": 2}},
+            "entry": {
+                "logic": "AND",
+                "conditions": [{"op": "greater_than", "left": "close", "value": 0}],
+            },
+            "exit": {
+                "logic": "AND",
+                "conditions": [{"op": "less_than", "left": "close", "value": 0}],
+            },
+            "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
+        }
+    )
+
+    with pytest.raises(PermissionError, match="development"):
+        GenerationPipeline().run(
+            parent=strategy,
+            dataset=MarketDataSet("validation", DataZone.VALIDATION, bars),
+            operations=(),
+            domains=(),
+            method="grid",
+            count=1,
+            seed=0,
+            funnel=FunnelConfig(require_validation=False),
+        )
+
+
+def test_temporal_validation_is_labeled_as_holdout_not_optimization() -> None:
+    bars = tuple(
+        Bar(
+            datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index),
+            "TEST",
+            100 + index,
+            101 + index,
+            99 + index,
+            100 + index,
+            1000,
+        )
+        for index in range(12)
+    )
+    strategy = validate_strategy(
+        {
+            "schema_version": 1,
+            "id": "temporal-holdout-label",
+            "family": "trend",
+            "generation": 0,
+            "indicators": {"fast": {"type": "SMA", "period": 2}},
+            "entry": {
+                "logic": "AND",
+                "conditions": [{"op": "greater_than", "left": "close", "value": 0}],
+            },
+            "exit": {
+                "logic": "AND",
+                "conditions": [{"op": "less_than", "left": "close", "value": 0}],
+            },
+            "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
+        }
+    )
+
+    result = GenerationPipeline().run(
+        parent=strategy,
+        dataset=MarketDataSet("development", DataZone.DEVELOPMENT, bars),
+        operations=(),
+        domains=(),
+        method="grid",
+        count=1,
+        seed=0,
+        funnel=FunnelConfig(
+            min_fast_trades=0,
+            min_full_trades=0,
+            min_fast_return=-1,
+            min_full_return=-1,
+            min_robust_score=0,
+            require_validation=False,
+            require_risk_compliance=False,
+            min_annual_trades=None,
+        ),
+    )
+
+    assert result.funnel[0].validation_folds
+    assert all(fold["method"] == "temporal_holdout" for fold in result.funnel[0].validation_folds)
+    assert all(fold["selection_applied"] is False for fold in result.funnel[0].validation_folds)

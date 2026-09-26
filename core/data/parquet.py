@@ -23,6 +23,8 @@ class ParquetDataProvider:
             {
                 b"dataset_version": dataset.version.encode(),
                 b"data_zone": DataZone(dataset.zone).value.encode(),
+                b"timeframe": dataset.timeframe.encode(),
+                b"calendar": dataset.calendar.encode(),
             }
         )
         parquet.write_table(table.replace_schema_metadata(metadata), path)
@@ -50,7 +52,13 @@ class ParquetDataProvider:
             )
             for row in frame.itertuples(index=False)
         )
-        return MarketDataSet(metadata["dataset_version"], metadata["data_zone"], bars)
+        return MarketDataSet(
+            metadata["dataset_version"],
+            metadata["data_zone"],
+            bars,
+            metadata.get("timeframe", "1d"),
+            metadata.get("calendar", "us_equities"),
+        )
 
     @staticmethod
     def write_series(path: Path, dataset: SeriesDataSet) -> None:
@@ -103,6 +111,8 @@ def _metadata(path: Path) -> dict[str, str]:
         return {
             "dataset_version": decoded["dataset_version"],
             "data_zone": decoded["data_zone"],
+            **({"timeframe": decoded["timeframe"]} if "timeframe" in decoded else {}),
+            **({"calendar": decoded["calendar"]} if "calendar" in decoded else {}),
         }
     except KeyError as exc:
         raise ValueError("Parquet metadata must include dataset_version and data_zone") from exc

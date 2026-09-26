@@ -281,3 +281,30 @@ def test_research_context_exposes_registered_feature_selection_contract(tmp_path
     assert feature["status"] == "REGISTERED"
     assert feature["inputs"] == ["US20Y.close"]
     assert feature["supported_timeframes"] == ["1m", "5m", "15m", "1h", "1d", "1w", "1mo"]
+
+
+def test_validation_zone_is_rejected_as_research_input(tmp_path: Path) -> None:
+    import pytest
+
+    from memory.evidence_store import EvidenceIntegrityError
+
+    _strategy, data, _series = _write_inputs(tmp_path)
+    original = ParquetDataProvider.read(data)
+    ParquetDataProvider.write(
+        data,
+        MarketDataSet(
+            original.version,
+            DataZone.VALIDATION,
+            original.bars,
+            original.timeframe,
+            original.calendar,
+        ),
+    )
+
+    with pytest.raises(EvidenceIntegrityError, match="promotion-only"):
+        run_local_evaluation(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="bars.parquet",
+        )

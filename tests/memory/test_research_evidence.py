@@ -279,5 +279,5 @@ def test_validation_scope_comes_from_manifest_zone(tmp_path: Path) -> None:
         },
     )
     assert research_evidence(tmp_path)["runs"][0]["validation_survival"]["scope"] == (
-        "validation_walk_forward"
+        "validation_temporal_holdout"
     )

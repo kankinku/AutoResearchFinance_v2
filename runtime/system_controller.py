@@ -130,7 +130,7 @@ class SystemController:
             check,
             "market_data",
             "Parquet 데이터",
-            "버전 메타데이터가 있는 development/validation Parquet 데이터를 준비하세요.",
+            "버전 메타데이터가 있는 development Parquet 데이터를 준비하세요.",
         )
         series = None
         if config.series_data_path is not None:
@@ -148,8 +148,8 @@ class SystemController:
                     check(
                         "series_zone",
                         "외부 시계열 영역",
-                        DataZone(series_data.zone) is not DataZone.SEALED_OOS,
-                        "sealed_oos 외부 시계열은 연구 백테스트에 사용할 수 없습니다.",
+                        DataZone(series_data.zone) is DataZone.DEVELOPMENT,
+                        "연구 백테스트는 development 외부 시계열만 사용할 수 있습니다.",
                     )
                 except (OSError, TypeError, ValueError):
                     check(
@@ -162,12 +162,12 @@ class SystemController:
         if data is not None:
             try:
                 dataset = ParquetDataProvider.read(data)
-                data_ok = DataZone(dataset.zone) is not DataZone.SEALED_OOS
+                data_ok = DataZone(dataset.zone) is DataZone.DEVELOPMENT
                 check(
                     "data_zone",
-                    "OOS 봉인 영역 차단",
+                    "연구 데이터 영역",
                     data_ok,
-                    "sealed_oos 데이터는 연구 백테스트에 사용할 수 없습니다.",
+                    "연구 백테스트는 development 데이터만 사용할 수 있습니다.",
                 )
             except (OSError, TypeError, ValueError):
                 check(

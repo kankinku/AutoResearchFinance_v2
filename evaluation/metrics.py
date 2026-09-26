@@ -25,7 +25,7 @@ def calculate_metrics(
     equity_curve: Sequence[float],
     trade_pnls: Sequence[float],
     *,
-    periods_per_year: int,
+    periods_per_year: float,
     turnover: float = 0.0,
     exposure: float = 0.0,
 ) -> Metrics:
