@@ -29,6 +29,12 @@ from runtime.process_lifecycle import (
     terminate_process_tree,
 )
 from runtime.queue import JobStatus
+from runtime.recovery_state import (
+    append_recovery_event,
+    close_interrupted_evidence,
+    mark_autoresearch_interrupted,
+    runtime_interruption_origin,
+)
 from runtime.runtime_snapshot import build_runtime_snapshot
 
 ProcessFactory = Callable[[list[str], Path], Any]
@@ -286,7 +292,17 @@ class SystemController:
         try:
             with lifecycle_lock(self._lifecycle_lock_path()):
                 existing = self._reconcile_state(persist=True)
-                if self._has_active_runtime(existing):
+                restart_origin: dict[str, object] | None = None
+                if existing.get("status") == "INTERRUPTED":
+                    restart_origin = runtime_interruption_origin(existing.get("runtime"))
+                    failed_recovery = self._terminate_managed_processes(existing)
+                    if failed_recovery:
+                        return {
+                            "status": "RECOVERY_FAILED",
+                            "process_cleanup_failed": failed_recovery,
+                            "system": existing,
+                        }
+                elif self._has_active_runtime(existing):
                     return {
                         "status": "ALREADY_RUNNING",
                         "system": existing,
@@ -389,7 +405,20 @@ class SystemController:
                     "components": started,
                     "preflight": report.as_payload(),
                 }
+                if restart_origin is not None:
+                    payload["restarted_from"] = {
+                        "managed_run_id": _text(existing.get("managed_run_id")),
+                        **restart_origin,
+                    }
                 self._write_state(payload)
+                if restart_origin is not None:
+                    append_recovery_event(
+                        self.state_dir,
+                        event="RESTARTED",
+                        managed_run_id=_text(existing.get("managed_run_id")),
+                        origin=restart_origin,
+                        replacement_managed_run_id=managed_run_id,
+                    )
                 return payload
         except LifecycleBusyError:
             return {"status": "BUSY", "message": "system lifecycle change already in progress"}
@@ -579,8 +608,11 @@ class SystemController:
         recovery: dict[str, object] = {}
         queue = PersistentJobQueue(self.state_dir)
         if managed_run_id is not None and not research_alive:
-            reconciled = queue.reconcile_stale(managed_run_id=managed_run_id)
             cancelled: list[str] = []
+            for job in queue.queued(managed_run_id=managed_run_id):
+                queue.cancel_queued(job.job_id)
+                cancelled.append(job.job_id)
+            reconciled = queue.reconcile_stale(managed_run_id=managed_run_id)
             for job_id in reconciled:
                 job = queue.get(job_id)
                 if job.status is not JobStatus.QUEUED:
@@ -590,7 +622,7 @@ class SystemController:
             if reconciled:
                 recovery["reconciled_jobs"] = list(reconciled)
             if cancelled:
-                recovery["cancelled_orphaned_jobs"] = cancelled
+                recovery["cancelled_orphaned_jobs"] = sorted(set(cancelled))
 
         owned_jobs = (
             queue.jobs_for_run(managed_run_id)
@@ -614,11 +646,46 @@ class SystemController:
                 else "READY"
             )
 
-        payload["status"] = self._aggregate_status(payload)
         payload["runtime"] = build_runtime_snapshot(
             self.state_dir,
             managed_run_id=managed_run_id,
         )
+        if (
+            managed_run_id is not None
+            and not research_alive
+            and running_jobs == 0
+            and queued_jobs == 0
+        ):
+            runtime = payload.get("runtime")
+            research_runtime = (
+                runtime.get("research")
+                if isinstance(runtime, dict)
+                else None
+            )
+            if (
+                isinstance(research_runtime, dict)
+                and research_runtime.get("status") == "RUNNING"
+            ):
+                origin = mark_autoresearch_interrupted(self.state_dir)
+                if origin is not None:
+                    research_run_id = _text(origin.get("research_run_id"))
+                    closed = close_interrupted_evidence(
+                        self.state_dir,
+                        research_run_id=research_run_id,
+                    )
+                    append_recovery_event(
+                        self.state_dir,
+                        event="INTERRUPTED",
+                        managed_run_id=managed_run_id,
+                        origin=origin,
+                    )
+                    recovery["interrupted_research_run_id"] = research_run_id
+                    recovery["evidence_closed"] = closed
+                    payload["runtime"] = build_runtime_snapshot(
+                        self.state_dir,
+                        managed_run_id=managed_run_id,
+                    )
+        payload["status"] = self._aggregate_status(payload)
         if recovery:
             payload["recovery"] = recovery
         elif "recovery" in payload:
@@ -640,6 +707,19 @@ class SystemController:
         research = statuses.get("research_worker")
         evaluation = statuses.get("evaluation_backend")
 
+        runtime = payload.get("runtime")
+        runtime_research = runtime.get("research") if isinstance(runtime, dict) else None
+        runtime_research_status = (
+            _text(runtime_research.get("status"))
+            if isinstance(runtime_research, dict)
+            else None
+        )
+        if (
+            runtime_research_status == "INTERRUPTED"
+            and evaluation not in {"RUNNING", "QUEUED"}
+            and research != "RUNNING"
+        ):
+            return "INTERRUPTED"
         if research == "FAILED":
             return "FAILED"
         if research == "RUNNING" or evaluation in {"RUNNING", "QUEUED"}:

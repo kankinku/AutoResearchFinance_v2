@@ -1006,6 +1006,7 @@ class _ResearchProgress:
         elapsed = round(max(0.0, time.monotonic() - self.phase_started_mono), 3)
         payload: dict[str, object] = {
             "timestamp": now,
+            "research_run_id": self.research_run_id,
             "event": event,
             "phase": self.phase,
             "generation": self.current_generation,

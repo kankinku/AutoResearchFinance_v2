@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
 import runtime.system_controller as controller_module
+from memory.evidence_store import EvidenceStore
 from runtime.docker_evaluation import docker_evaluation_container_name
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import Job, JobStatus
@@ -556,3 +558,152 @@ def test_aggregate_status_reports_degraded_when_dashboard_is_lost(
     payload = controller.status()
 
     assert payload["status"] == "DEGRADED"
+
+
+
+def _running_autoresearch(state: Path, *, research_run_id: str = "research-1") -> None:
+    system = state / "system"
+    system.mkdir(parents=True, exist_ok=True)
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "RUNNING",
+                "research_run_id": research_run_id,
+                "current_generation": 2,
+                "current_phase": "BACKTESTING",
+                "completed_generations": 1,
+                "requested_generations": 3,
+                "last_event": "evaluation_started",
+                "last_event_at": "2026-09-26T00:00:00+00:00",
+                "orders_enabled": False,
+                "generations": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    EvidenceStore(state).append(
+        "run",
+        f"run:{research_run_id}",
+        {
+            "research_run_id": research_run_id,
+            "requested_generations": 3,
+            "seed": 0,
+        },
+    )
+
+
+def test_dead_research_owner_marks_run_interrupted_and_closes_evidence(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid == 101,
+    )
+    _managed_state(controller, managed_run_id="managed-1")
+    _running_autoresearch(state)
+    queue = PersistentJobQueue(state)
+    queue.enqueue(Job("queued-owned", {"managed_run_id": "managed-1"}, max_attempts=2))
+
+    payload = controller.status()
+
+    assert payload["status"] == "INTERRUPTED"
+    assert queue.get("queued-owned").status is JobStatus.CANCELLED
+    assert queue.get("queued-owned").error_class == "OwnerExited"
+    runtime = payload["runtime"]
+    assert runtime["research"]["status"] == "INTERRUPTED"
+    assert runtime["evidence"]["status"] == "INTERRUPTED"
+    assert runtime["evidence"]["closed"] is True
+    recovery = payload["recovery"]
+    assert recovery["cancelled_orphaned_jobs"] == ["queued-owned"]
+    assert recovery["interrupted_research_run_id"] == "research-1"
+    events = [
+        json.loads(line)
+        for line in (state / "system" / "recovery-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert events[-1]["event"] == "INTERRUPTED"
+    assert events[-1]["origin"]["research_run_id"] == "research-1"
+
+
+def test_live_evaluation_lease_prevents_premature_interruption(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid == 101,
+    )
+    _managed_state(controller, managed_run_id="managed-1")
+    _running_autoresearch(state)
+    queue = PersistentJobQueue(state)
+    queue.enqueue(Job("running-owned", {"managed_run_id": "managed-1"}, max_attempts=2))
+    assert queue.claim(job_id="running-owned", lease_seconds=60) is not None
+
+    payload = controller.status()
+
+    assert payload["status"] == "DEGRADED"
+    assert queue.get("running-owned").status is JobStatus.RUNNING
+    assert payload["runtime"]["research"]["status"] == "RUNNING"
+    assert payload["runtime"]["evidence"]["status"] == "OPEN"
+
+
+def test_start_after_interruption_creates_fresh_managed_run_with_lineage(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    first = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid == 101,
+    )
+    _managed_state(first, managed_run_id="managed-old")
+    _running_autoresearch(state, research_run_id="research-old")
+    assert first.status()["status"] == "INTERRUPTED"
+
+    (tmp_path / "strategy.py").write_text("strategy", encoding="utf-8")
+    (tmp_path / "data.parquet").write_bytes(b"fixture")
+    terminated: list[int] = []
+    spawned: list[list[str]] = []
+
+    class FakeProcess:
+        def __init__(self, pid: int) -> None:
+            self.pid = pid
+
+        def poll(self) -> None:
+            return None
+
+        def terminate(self) -> None:
+            return None
+
+    recovered = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid == 101,
+        process_terminator=lambda pid, markers: (terminated.append(pid) or True),
+        process_factory=lambda command, cwd: (
+            spawned.append(command) or FakeProcess(200 + len(spawned))
+        ),
+    )
+    recovered.preflight = lambda config: PreflightReport("READY", (), ())  # type: ignore[method-assign]
+
+    result = recovered.start(
+        SystemLaunchConfig(source_path="strategy.py", data_path="data.parquet")
+    )
+
+    assert result["status"] == "STARTED"
+    assert terminated == [101]
+    assert len(spawned) == 2
+    assert result["managed_run_id"] != "managed-old"
+    assert result["restarted_from"]["managed_run_id"] == "managed-old"
+    assert result["restarted_from"]["research_run_id"] == "research-old"
+    events = [
+        json.loads(line)
+        for line in (state / "system" / "recovery-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert events[-1]["event"] == "RESTARTED"
+    assert events[-1]["managed_run_id"] == "managed-old"
+    assert events[-1]["replacement_managed_run_id"] == result["managed_run_id"]
