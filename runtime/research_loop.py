@@ -35,6 +35,7 @@ from research.llm.intent_bridge import (
     apply_intent,
     intent_to_operations,
 )
+from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.evidence_session import EvidenceSession
 from strategy_ir.normalizer import normalize_source
 from strategy_ir.schema import StrategyIR
@@ -68,7 +69,10 @@ def run_repeated_evaluation(
     evaluator: EvaluationRunner | None = None,
 ) -> dict[str, Any]:
     _validate_config(config)
-    base_runner = evaluator or run_local_evaluation
+    default_executor = QueuedEvaluationExecutor(config.state_dir)
+    base_runner = evaluator or (
+        lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
+    )
     evidence = EvidenceSession(
         config.state_dir, requested_generations=config.generations, seed=config.seed,
         settings={"method": config.method, "count": config.count,
@@ -144,7 +148,10 @@ def run_autoresearch(
     if imported.strategy is None:
         raise ValueError("strategy source is unsupported")
     current = imported.strategy
-    base_runner = evaluator or run_local_evaluation
+    default_executor = QueuedEvaluationExecutor(config.state_dir)
+    base_runner = evaluator or (
+        lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
+    )
     evidence = EvidenceSession(
         config.state_dir, requested_generations=config.generations, seed=config.seed,
         settings={"method": config.method, "count": config.count,

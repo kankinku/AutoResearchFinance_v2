@@ -1,0 +1,97 @@
+# MCP 전환 Phase 3-1 — Queue 기반 평가 실행 경계
+
+## 목적
+
+Phase 3-1은 기존에 테스트에서만 사용되던 `JobQueue`, `LocalScheduler`,
+`ResourceManager`, `WorkerHeartbeatStore`를 실제 평가 실행 경로에 연결한다.
+
+외부 CLI/MCP 스키마, StrategyIR, Dashboard HTTP 경로, KIS paper/live 경계는 변경하지 않는다.
+
+## 실행 경로
+
+기존:
+
+```text
+CLI / MCP / AutoResearch
+  -> run_local_evaluation()
+  -> GenerationPipeline
+  -> BacktestEngine
+```
+
+Phase 3-1:
+
+```text
+CLI / MCP / AutoResearch
+  -> QueuedEvaluationExecutor
+  -> JobQueue
+  -> LocalScheduler
+  -> ResourceManager
+  -> local backtest worker
+  -> run_local_evaluation()
+  -> GenerationPipeline
+  -> Evidence / Knowledge / Dashboard projection
+```
+
+`run_local_evaluation()` 자체는 결정론적 내부 평가 함수로 유지한다. 따라서 직접 호출하면
+`direct_local`, Application Service와 AutoResearch 기본 경로에서는
+`local_scheduler`로 Evidence에 기록된다.
+
+## 재시도
+
+research policy의 `max_retries`, `job_timeout_seconds`, `max_concurrency`를
+executor 기본 설정으로 사용한다.
+
+현재 로컬 scheduler에서 자동 재시도하는 예외는 다음 worker/transport 계열로 제한한다.
+
+- `TimeoutError`
+- `ConnectionError`
+- `BrokenPipeError`
+
+전략 검증 실패, 입력 파일 오류 등 결정론적 오류는 재시도하지 않는다.
+
+최대 시도를 모두 소진하면 job은 `RETRY_EXHAUSTED`가 된다. job log에는 오류 본문을
+저장하지 않고 오류 클래스만 저장해 provider 또는 내부 상세정보가 상태 파일로 유출되지 않게 한다.
+
+## 실행 Evidence
+
+기존 `attempt.execution` 안에 worker metadata를 포함한다.
+
+로컬 scheduler의 현재 의미는 다음과 같다.
+
+```json
+{
+  "execution_mode": "local_scheduler",
+  "isolated": false,
+  "timeout_enforced": false
+}
+```
+
+여기서 `lease_seconds`는 queue lease/recovery 정책 값이다. 현재 Thread 기반 local
+scheduler는 실행 중인 Python 함수를 강제 종료하지 않으므로 이를 실제 timeout으로 표현하지 않는다.
+
+## Heartbeat / 운영 상태
+
+각 실행 job은 `state/worker-heartbeats/local-evaluation-*.json`에 worker heartbeat를 남긴다.
+상태는 RUNNING 이후 SUCCEEDED 또는 FAILED로 갱신되고 queue attempt 번호가 함께 기록된다.
+
+또한 `state/system/evaluation-jobs.jsonl`에는 민감한 오류 본문 없이 다음 운영 메타데이터를 남긴다.
+
+- job id
+- research run / attempt id
+- generation
+- queue attempt / max attempts
+- terminal status
+- error class
+- execution mode
+- isolation / timeout enforcement 상태
+- lease seconds
+
+## 아직 하지 않은 것
+
+Phase 3-1은 Docker worker를 실제 job consumer로 전환하지 않는다.
+
+현재 `SystemController`가 시작하는 Docker backtest worker는 기존 별도 실행 방식이다.
+따라서 Phase 3-1의 실행 Evidence는 Docker 격리 또는 subprocess timeout을 주장하지 않는다.
+
+다음 내부 단계에서 공통 job envelope/result contract를 파일 또는 IPC 경계로 직렬화한 뒤,
+Docker worker가 같은 job을 소비하도록 연결해야 한다.

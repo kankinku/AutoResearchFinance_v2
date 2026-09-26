@@ -24,6 +24,7 @@ class Job:
     attempt: int = 0
     result: dict[str, Any] | None = None
     error: str | None = None
+    error_class: str | None = None
     lease_until: datetime | None = None
     max_attempts: int = 3
 
@@ -70,14 +71,29 @@ class JobQueue:
         job = self.get(job_id)
         self._require_running(job)
         job.result = result
+        job.error = None
+        job.error_class = None
         job.status = JobStatus.SUCCEEDED
         job.lease_until = None
 
-    def fail(self, job_id: str, error: str) -> None:
+    def fail(self, job_id: str, error: str, *, error_class: str | None = None) -> None:
         job = self.get(job_id)
         self._require_running(job)
         job.error = error
+        job.error_class = error_class
         job.status = JobStatus.FAILED
+        job.lease_until = None
+
+    def retry_failed(self, job_id: str) -> None:
+        job = self.get(job_id)
+        if job.status is not JobStatus.FAILED:
+            raise ValueError(f"job is not failed: {job.job_id}")
+        if job.attempt >= job.max_attempts:
+            job.status = JobStatus.RETRY_EXHAUSTED
+            job.error = "worker failed after maximum attempts"
+            return
+        job.status = JobStatus.QUEUED
+        job.result = None
         job.lease_until = None
 
     def get(self, job_id: str) -> Job:

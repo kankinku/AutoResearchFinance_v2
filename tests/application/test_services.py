@@ -100,3 +100,8 @@ def test_evaluation_service_delegates_without_changing_arguments(
     assert captured["min_trades"] == 30
     assert captured["min_annual_trades"] == 31
     assert captured["min_qqq_cagr_delta"] == 0.1
+    execution = captured["execution_context"]
+    assert isinstance(execution, dict)
+    assert execution["execution_mode"] == "local_scheduler"
+    assert execution["isolated"] is False
+    assert execution["timeout_enforced"] is False

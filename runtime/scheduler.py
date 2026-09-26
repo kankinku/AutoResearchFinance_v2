@@ -18,14 +18,18 @@ class LocalScheduler:
         resources: ResourceManager,
         *,
         heartbeat_store: WorkerHeartbeatStore | None = None,
+        lease_seconds: float = 300.0,
     ) -> None:
         self.queue = queue
         self.resources = resources
+        if lease_seconds <= 0:
+            raise ValueError("lease_seconds must be positive")
         self.heartbeat_store = heartbeat_store
+        self.lease_seconds = lease_seconds
 
     def run(self, handler: JobHandler) -> dict[str, Job]:
         claimed: list[Job] = []
-        while (job := self.queue.claim()) is not None:
+        while (job := self.queue.claim(lease_seconds=self.lease_seconds)) is not None:
             claimed.append(job)
         with ThreadPoolExecutor(max_workers=len(claimed) or 1) as executor:
             futures = [executor.submit(self._execute, job, handler) for job in claimed]
@@ -56,7 +60,7 @@ class LocalScheduler:
                     attempt=job.attempt,
                 )
         except Exception as exc:
-            self.queue.fail(job.job_id, str(exc))
+            self.queue.fail(job.job_id, str(exc), error_class=type(exc).__name__)
             if self.heartbeat_store is not None:
                 self.heartbeat_store.record(
                     worker_id,

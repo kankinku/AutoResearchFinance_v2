@@ -6,6 +6,7 @@ from pathlib import Path
 from mutation.engine import MutationOperation
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import run_local_evaluation
+from runtime.evaluation_executor import QueuedEvaluationExecutor
 from strategy_ir.schema import StrategyIR
 
 
@@ -15,6 +16,7 @@ class EvaluationService:
     def __init__(self, *, project_root: Path, state_dir: Path) -> None:
         self.project_root = project_root.resolve()
         self.state_dir = state_dir.resolve()
+        self.executor = QueuedEvaluationExecutor(self.state_dir)
 
     def run(
         self,
@@ -35,7 +37,8 @@ class EvaluationService:
         research_run_id: str | None = None,
         attempt_id: str | None = None,
     ) -> dict[str, object]:
-        return run_local_evaluation(
+        return self.executor.run(
+            run_local_evaluation,
             project_root=self.project_root,
             state_dir=self.state_dir,
             source_path=source_path,
