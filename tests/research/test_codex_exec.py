@@ -330,6 +330,9 @@ def test_codex_subprocess_timeout_kills_the_spawned_process_tree(
         return type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
     monkeypatch.setattr(codex_exec.sys, "platform", "win32")
+    monkeypatch.setattr(
+        codex_exec.shutil, "which", lambda name, path=None: r"C:\tools\codex.CMD"
+    )
     monkeypatch.setattr(codex_exec.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(codex_exec.subprocess, "run", fake_run)
 

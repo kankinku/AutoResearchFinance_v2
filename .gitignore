@@ -1,4 +1,5 @@
 # Python and tooling
+/build/
 __pycache__/
 *.py[cod]
 .pytest_cache/
