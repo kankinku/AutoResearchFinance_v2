@@ -502,3 +502,70 @@ def test_hidden_legacy_internal_tools_remain_directly_callable_with_migration_me
             assert replacements == []
         else:
             assert expected_replacement in replacements
+
+
+
+def test_public_mcp_responses_include_versioned_contract_metadata(tmp_path: Path) -> None:
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+
+    initialized = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 70,
+                "method": "tools/call",
+                "params": {"name": "initialize_research_state", "arguments": {}},
+            },
+        )
+    )
+    features = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 71,
+                "method": "tools/call",
+                "params": {"name": "list_features", "arguments": {}},
+            },
+        )
+    )
+    system = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 72,
+                "method": "tools/call",
+                "params": {"name": "get_system_status", "arguments": {}},
+            },
+        )
+    )
+    preflight = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 73,
+                "method": "tools/call",
+                "params": {
+                    "name": "check_system",
+                    "arguments": {
+                        "source_path": "missing.json",
+                        "data_path": "missing.parquet",
+                    },
+                },
+            },
+        )
+    )
+
+    assert initialized["_contract"]["plane"] == "BOOTSTRAP_CONFIGURATION"
+    assert features["_contract"]["plane"] == "CATALOG_VALIDATION"
+    assert system["_contract"]["plane"] == "EVIDENCE_STATUS"
+    assert preflight["_contract"]["plane"] == "EXECUTION_LIFECYCLE"
+
+    for payload in (initialized, features, system, preflight):
+        contract = payload["_contract"]
+        assert contract["schema_version"] == 1
+        assert contract["orders_enabled"] is False
+        assert isinstance(contract["tool"], str)

@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.services import ApplicationServices, create_application_services
 from integrations.codex_mcp_protocol import error, serve_lines, success, text_content
 from orchestration.evaluation_runner import parse_parameter_domains
@@ -40,6 +41,22 @@ _TARGET_PUBLIC_TOOL_NAMES = frozenset(
         "stop_system",
     }
 )
+
+_PUBLIC_TOOL_PLANES: dict[str, PublicToolPlane] = {
+    "initialize_research_state": "BOOTSTRAP_CONFIGURATION",
+    "get_workspace_status": "BOOTSTRAP_CONFIGURATION",
+    "validate_strategy": "CATALOG_VALIDATION",
+    "import_strategies": "CATALOG_VALIDATION",
+    "list_strategies": "CATALOG_VALIDATION",
+    "list_features": "CATALOG_VALIDATION",
+    "get_research_evidence": "EVIDENCE_STATUS",
+    "get_dashboard_status": "EVIDENCE_STATUS",
+    "get_system_status": "EVIDENCE_STATUS",
+    "run_evaluation": "EXECUTION_LIFECYCLE",
+    "check_system": "EXECUTION_LIFECYCLE",
+    "start_system": "EXECUTION_LIFECYCLE",
+    "stop_system": "EXECUTION_LIFECYCLE",
+}
 
 _LEGACY_INTERNAL_REPLACEMENTS: dict[str, tuple[str, ...]] = {
     "set_research_mode": ("get_workspace_status",),
@@ -110,6 +127,7 @@ class CodexMCPServer:
         try:
             payload = self._dispatch(name, dict(arguments))
             payload = _with_legacy_compatibility(name, payload)
+            payload = _with_public_contract(name, payload)
         except (OSError, PermissionError, TypeError, ValueError):
             return _tool_error(request_id, "tool request failed")
         return success(request_id, {"content": text_content(payload), "isError": False})
@@ -521,6 +539,21 @@ def _tools() -> list[dict[str, object]]:
         if isinstance(tool.get("name"), str)
         and tool["name"] in _TARGET_PUBLIC_TOOL_NAMES
     ]
+
+
+def _with_public_contract(name: str, payload: object) -> object:
+    plane = _PUBLIC_TOOL_PLANES.get(name)
+    if plane is None or not isinstance(payload, dict):
+        return payload
+    metadata = PublicToolContractMetadata(
+        tool=name,
+        plane=plane,
+        orders_enabled=False,
+    )
+    return {
+        **payload,
+        "_contract": metadata.model_dump(mode="json"),
+    }
 
 
 def _with_legacy_compatibility(name: str, payload: object) -> object:

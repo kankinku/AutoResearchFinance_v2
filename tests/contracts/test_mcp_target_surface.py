@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from integrations.codex_mcp_server import _all_tools, _tools
+from integrations.codex_mcp_server import (
+    _PUBLIC_TOOL_PLANES,
+    _all_tools,
+    _tools,
+    _with_public_contract,
+)
 
 INVENTORY_PATH = Path("docs/operations/mcp-phase3-6-1-tool-inventory.json")
 TARGET_PATH = Path("docs/operations/mcp-phase3-6-2-target-surface.json")
@@ -167,3 +172,36 @@ def test_phase3_6_5_workspace_status_is_explicit_bootstrap_configuration_tool() 
         "properties": {},
         "additionalProperties": False,
     }
+
+
+
+def test_phase3_6_6_public_response_contract_covers_exact_13_tools() -> None:
+    assert set(_PUBLIC_TOOL_PLANES) == EXPECTED_TARGET
+    assert set(_PUBLIC_TOOL_PLANES.values()) == {
+        "BOOTSTRAP_CONFIGURATION",
+        "CATALOG_VALIDATION",
+        "EVIDENCE_STATUS",
+        "EXECUTION_LIFECYCLE",
+    }
+
+
+def test_phase3_6_6_public_response_contract_is_additive_and_versioned() -> None:
+    for name, plane in _PUBLIC_TOOL_PLANES.items():
+        original = {"status": "OK", "existing": {"preserved": True}}
+        payload = _with_public_contract(name, original)
+
+        assert isinstance(payload, dict)
+        assert payload["status"] == "OK"
+        assert payload["existing"] == {"preserved": True}
+        assert payload["_contract"] == {
+            "schema_version": 1,
+            "tool": name,
+            "plane": plane,
+            "orders_enabled": False,
+        }
+
+
+def test_phase3_6_6_legacy_responses_do_not_receive_public_contract_metadata() -> None:
+    for name in EXPECTED_REMOVED:
+        payload = _with_public_contract(name, {"status": "OK"})
+        assert payload == {"status": "OK"}
