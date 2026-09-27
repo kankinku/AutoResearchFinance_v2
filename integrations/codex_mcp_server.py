@@ -35,7 +35,7 @@ class CodexMCPServer:
         method = request.get("method")
         if not isinstance(method, str):
             return error(request_id, -32600, "method is required")
-        if method in {"initialize", "ping", "tools/list", "tools/call"}:
+        if method in {"initialize", "ping", "tools/list"}:
             write_provider_status(
                 self.state_dir / "llm" / "status.json",
                 "codex_desktop",

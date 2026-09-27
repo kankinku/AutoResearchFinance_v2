@@ -13,7 +13,6 @@ class WorkerHeartbeatStore:
 
     def __init__(self, root: Path, *, clock: Callable[[], datetime] | None = None) -> None:
         self.root = root
-        self.root.mkdir(parents=True, exist_ok=True)
         self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     def record(
@@ -29,6 +28,7 @@ class WorkerHeartbeatStore:
             raise ValueError("worker_id contains unsafe characters")
         if attempt < 0:
             raise ValueError("attempt cannot be negative")
+        self.root.mkdir(parents=True, exist_ok=True)
         payload = {
             "worker_id": worker_id,
             "job_id": job_id,
