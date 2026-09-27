@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "phase": "3-6.2",
+  "current_public_tool_count": 18,
+  "target_public_tool_count": 13,
+  "workspace_status_decision": "KEEP_AS_BOOTSTRAP_CONFIGURATION_PLANE",
+  "target_public_tools": [
+    "initialize_research_state",
+    "get_workspace_status",
+    "validate_strategy",
+    "import_strategies",
+    "list_strategies",
+    "list_features",
+    "get_research_evidence",
+    "get_dashboard_status",
+    "run_evaluation",
+    "check_system",
+    "start_system",
+    "get_system_status",
+    "stop_system"
+  ],
+  "groups": {
+    "bootstrap_configuration": [
+      "initialize_research_state",
+      "get_workspace_status"
+    ],
+    "catalog_validation": [
+      "validate_strategy",
+      "import_strategies",
+      "list_strategies",
+      "list_features"
+    ],
+    "evidence_status": [
+      "get_research_evidence",
+      "get_dashboard_status",
+      "get_system_status"
+    ],
+    "execution_lifecycle": [
+      "run_evaluation",
+      "check_system",
+      "start_system",
+      "stop_system"
+    ]
+  },
+  "removed_from_default_public_surface": [
+    {
+      "name": "set_research_mode",
+      "disposition": "INTERNALIZE",
+      "replacement": [
+        "get_workspace_status",
+        "CLI:set-mode"
+      ],
+      "retain_application_service": true,
+      "retain_cli": true,
+      "reason": "Public MCP is paper-research only. Selecting live never enables orders and can make managed paper preflight fail."
+    },
+    {
+      "name": "validate_research_cache",
+      "disposition": "INTERNALIZE",
+      "replacement": [
+        "CLI:rebuild-cache"
+      ],
+      "retain_application_service": true,
+      "retain_cli": true,
+      "reason": "Maintenance-only manifest validation; not a primary public research capability."
+    },
+    {
+      "name": "plan_generation",
+      "disposition": "INTERNALIZE",
+      "replacement": [
+        "start_system",
+        "run_evaluation",
+        "CLI:plan-generation"
+      ],
+      "retain_application_service": true,
+      "retain_cli": true,
+      "reason": "Low-level deterministic planning primitive; canonical autoresearch performs planning internally."
+    },
+    {
+      "name": "get_research_context",
+      "disposition": "INTERNALIZE",
+      "replacement": [
+        "list_features",
+        "get_research_evidence",
+        "get_dashboard_status",
+        "get_system_status"
+      ],
+      "retain_application_service": true,
+      "retain_cli": false,
+      "reason": "Prompt-oriented aggregate context duplicates narrower domain reads and is not consumed by the canonical managed loop."
+    },
+    {
+      "name": "submit_research_intent",
+      "disposition": "DEPRECATE",
+      "replacement": [
+        "start_system",
+        "run_evaluation",
+        "validate_strategy",
+        "get_system_status"
+      ],
+      "retain_application_service": true,
+      "retain_cli": true,
+      "reason": "Externally submitted intent journal entries have no production consumer; canonical execution is start_system or run_evaluation."
+    }
+  ],
+  "compatibility_policy": {
+    "add_new_aliases": false,
+    "add_custom_tool_schema_metadata": false,
+    "soft_deprecation_phase": "3-6.3",
+    "target_tools_list_phase": "3-6.4",
+    "legacy_dispatch_supported_through": "3-6.7",
+    "hard_dispatch_removal": "OUT_OF_PHASE_3_6_REQUIRES_EXPLICIT_LATER_APPROVAL",
+    "deprecation_signal": [
+      "tool description prefix",
+      "additive compatibility metadata in legacy call results"
+    ],
+    "hidden_dispatch_is_security_boundary": false
+  },
+  "phase_sequence": [
+    {
+      "phase": "3-6.3",
+      "action": "Soft-deprecate submit_research_intent while all 18 tools remain listed."
+    },
+    {
+      "phase": "3-6.4",
+      "action": "Switch tools/list to the 13-tool target surface; retain legacy dispatch shims for the five removed names."
+    },
+    {
+      "phase": "3-6.5",
+      "action": "Clarify and harden bootstrap/configuration status semantics for get_workspace_status without merging it into runtime status."
+    },
+    {
+      "phase": "3-6.6",
+      "action": "Strengthen output contracts for the 13 long-term public tools."
+    },
+    {
+      "phase": "3-6.7",
+      "action": "Final compatibility/security/stdio acceptance validation on the 13-tool public surface with legacy dispatch still bounded and documented."
+    }
+  ]
+}
