@@ -214,6 +214,36 @@ class PersistentJobQueue:
             managed_run_id=managed_run_id,
         )
 
+    def snapshot_jobs(
+        self,
+        *,
+        managed_run_id: str | None = None,
+    ) -> tuple[Job, ...]:
+        """Read queue state without creating or mutating the SQLite store."""
+
+        if not self.path.is_file():
+            return ()
+        try:
+            with sqlite3.connect(
+                self.path.resolve().as_uri() + "?mode=ro",
+                uri=True,
+                timeout=30,
+            ) as connection:
+                rows = connection.execute(
+                    """
+                    SELECT job_id, payload, status, attempt, result, error, error_class,
+                           lease_until, max_attempts
+                    FROM jobs
+                    ORDER BY updated_at, job_id
+                    """
+                ).fetchall()
+        except sqlite3.Error:
+            return ()
+        jobs = tuple(_row_to_job(row) for row in rows)
+        if managed_run_id is None:
+            return jobs
+        return tuple(job for job in jobs if _managed_run_id(job) == managed_run_id)
+
     def jobs_for_run(self, managed_run_id: str) -> tuple[Job, ...]:
         if not managed_run_id:
             raise ValueError("managed_run_id is required")

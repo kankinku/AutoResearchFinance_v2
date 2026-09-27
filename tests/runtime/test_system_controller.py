@@ -707,3 +707,48 @@ def test_start_after_interruption_creates_fresh_managed_run_with_lineage(
     assert events[-1]["event"] == "RESTARTED"
     assert events[-1]["managed_run_id"] == "managed-old"
     assert events[-1]["replacement_managed_run_id"] == result["managed_run_id"]
+
+
+
+def test_status_returns_consistent_runtime_schema_when_stopped(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(state_dir=state, project_root=tmp_path)
+
+    payload = controller.status()
+
+    assert payload["status"] == "STOPPED"
+    assert payload["components"] == []
+    runtime = payload["runtime"]
+    assert runtime["schema_version"] == 2
+    assert runtime["system"]["status"] == "STOPPED"
+    assert runtime["system"]["components"] == []
+    assert runtime["research"]["status"] == "NOT_STARTED"
+    assert runtime["orders_enabled"] is False
+    assert not state.exists()
+
+
+def test_status_runtime_system_view_matches_reconciled_components(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    first = SystemController(state_dir=state, project_root=tmp_path)
+    _managed_state(first, managed_run_id="run-typed")
+    recovered = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid in {101, 102},
+    )
+
+    payload = recovered.status()
+
+    runtime = payload["runtime"]
+    assert runtime["system"]["status"] == payload["status"] == "RUNNING"
+    assert runtime["system"]["managed_run_id"] == "run-typed"
+    top = {
+        item["id"]: item["status"]
+        for item in payload["components"]
+        if isinstance(item, dict)
+    }
+    nested = {
+        item["id"]: item["status"]
+        for item in runtime["system"]["components"]
+    }
+    assert nested == top

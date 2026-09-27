@@ -1,0 +1,161 @@
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class RuntimeModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class RuntimeComponentSnapshot(RuntimeModel):
+    id: str
+    status: str = "UNKNOWN"
+    alive: bool | None = None
+    pid: int | None = None
+    active_jobs: int = 0
+    queued_jobs: int = 0
+    mode: str | None = None
+
+
+class ManagedSystemSnapshot(RuntimeModel):
+    status: str = "STOPPED"
+    managed_run_id: str | None = None
+    started_at: str | None = None
+    evaluation_execution: str | None = None
+    components: list[RuntimeComponentSnapshot] = Field(default_factory=list)
+
+
+class ResearchIntentSnapshot(RuntimeModel):
+    status: Literal["AVAILABLE", "NOT_AVAILABLE"] = "NOT_AVAILABLE"
+    generation: int | None = None
+    intent_status: str | None = None
+    mode: str | None = None
+    parent_ids: list[str] = Field(default_factory=list)
+    operation_count: int = 0
+    repair_attempts: int = 0
+
+
+class ResearchRuntimeSnapshot(RuntimeModel):
+    status: str = "NOT_STARTED"
+    research_run_id: str | None = None
+    current_generation: int | None = None
+    current_phase: str = "UNKNOWN"
+    completed_generations: int = 0
+    requested_generations: int = 0
+    last_event: str | None = None
+    last_event_at: str | None = None
+    repair_attempt: int | None = None
+    repair_attempts_allowed: int | None = None
+    error_class: str | None = None
+    timing_summary: dict[str, object] = Field(default_factory=dict)
+    current_intent: ResearchIntentSnapshot = Field(default_factory=ResearchIntentSnapshot)
+
+
+class EvaluationJobSnapshot(RuntimeModel):
+    job_id: str
+    status: str
+    queue_attempt: int = 0
+    max_attempts: int = 1
+    error_class: str | None = None
+    lease_until: str | None = None
+
+
+class LatestEvaluationJobSnapshot(RuntimeModel):
+    job_id: str | None = None
+    status: str | None = None
+    queue_attempt: int | None = None
+    max_attempts: int | None = None
+    error_class: str | None = None
+    execution_mode: str | None = None
+    isolated: bool = False
+    timeout_enforced: bool = False
+    research_run_id: str | None = None
+    attempt_id: str | None = None
+    generation: int | None = None
+
+
+class EvaluationRuntimeSnapshot(RuntimeModel):
+    status: str = "READY"
+    counts: dict[str, int] = Field(default_factory=dict)
+    active_jobs: list[EvaluationJobSnapshot] = Field(default_factory=list)
+    queued_jobs: list[EvaluationJobSnapshot] = Field(default_factory=list)
+    latest_job: LatestEvaluationJobSnapshot | None = None
+
+
+class EvidenceRuntimeSnapshot(RuntimeModel):
+    status: str = "NOT_LINKED"
+    research_run_id: str | None = None
+    event_count: int = 0
+    last_event_kind: str | None = None
+    closed: bool = False
+
+
+class WorkerRuntimeSnapshot(RuntimeModel):
+    worker_id: str
+    job_id: str | None = None
+    role: str = "unknown"
+    status: str = "UNKNOWN"
+    last_heartbeat: str | None = None
+    online_state: Literal["ONLINE", "STALE", "OFFLINE", "UNKNOWN"] = "UNKNOWN"
+    attempt: int = 0
+    error_class: str | None = None
+
+
+class LLMRuntimeSnapshot(RuntimeModel):
+    provider: str = "codex_desktop"
+    status: str = "UNKNOWN"
+    last_result: str = "UNKNOWN"
+    last_call_at: str | None = None
+    operation: str | None = None
+
+
+class RecoveryRuntimeSnapshot(RuntimeModel):
+    status: Literal["NONE", "RECOVERED", "INTERRUPTED"] = "NONE"
+    last_event: str | None = None
+    last_event_at: str | None = None
+    reconciled_jobs: list[str] = Field(default_factory=list)
+    cancelled_orphaned_jobs: list[str] = Field(default_factory=list)
+    interrupted_research_run_id: str | None = None
+    evidence_closed: bool | None = None
+
+
+class KnowledgeRuntimeSnapshot(RuntimeModel):
+    status: Literal["CONNECTED", "MISSING", "INVALID"] = "MISSING"
+    source: Literal["EVIDENCE_PROJECTION"] = "EVIDENCE_PROJECTION"
+    known_good_count: int = 0
+    known_bad_count: int = 0
+    unexplored_count: int = 0
+    interactions_count: int = 0
+
+
+class StrategyStateRuntimeSnapshot(RuntimeModel):
+    champion_status: str = "MISSING"
+    champion_hash: str | None = None
+    champion_generation: int | None = None
+    champion_score: float | None = None
+    frontier_status: Literal["NOT_CONNECTED"] = "NOT_CONNECTED"
+    rescue_status: Literal["NOT_CONNECTED"] = "NOT_CONNECTED"
+
+
+class RuntimeErrorSummary(RuntimeModel):
+    source: str
+    error_class: str
+
+
+class RuntimeSnapshot(RuntimeModel):
+    schema_version: int = 2
+    system: ManagedSystemSnapshot = Field(default_factory=ManagedSystemSnapshot)
+    research: ResearchRuntimeSnapshot = Field(default_factory=ResearchRuntimeSnapshot)
+    evaluation: EvaluationRuntimeSnapshot = Field(default_factory=EvaluationRuntimeSnapshot)
+    evidence: EvidenceRuntimeSnapshot = Field(default_factory=EvidenceRuntimeSnapshot)
+    workers: list[WorkerRuntimeSnapshot] = Field(default_factory=list)
+    llm: LLMRuntimeSnapshot = Field(default_factory=LLMRuntimeSnapshot)
+    recovery: RecoveryRuntimeSnapshot = Field(default_factory=RecoveryRuntimeSnapshot)
+    knowledge: KnowledgeRuntimeSnapshot = Field(default_factory=KnowledgeRuntimeSnapshot)
+    strategy_state: StrategyStateRuntimeSnapshot = Field(
+        default_factory=StrategyStateRuntimeSnapshot
+    )
+    recent_errors: list[RuntimeErrorSummary] = Field(default_factory=list)
+    orders_enabled: Literal[False] = False

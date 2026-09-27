@@ -6,6 +6,7 @@ from pathlib import Path
 from memory.evidence_store import EvidenceStore
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import Job
+from runtime.runtime_contracts import RuntimeSnapshot
 from runtime.runtime_snapshot import build_runtime_snapshot
 
 
@@ -142,3 +143,178 @@ def test_runtime_snapshot_filters_jobs_by_managed_run(tmp_path: Path) -> None:
     assert [job["job_id"] for job in snapshot["evaluation"]["active_jobs"]] == [
         "owned"
     ]
+
+
+
+def test_runtime_snapshot_uses_typed_contract_and_adds_operational_views(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "RUNNING",
+                "research_run_id": "research-2",
+                "current_generation": 2,
+                "current_phase": "FINALIZING",
+                "completed_generations": 1,
+                "requested_generations": 3,
+                "generations": [
+                    {
+                        "generation": 2,
+                        "intent_status": "REPAIRED",
+                        "intent": {
+                            "mode": "parameter",
+                            "parent_ids": ["parent-1"],
+                            "operations": [{"op": "set_parameter"}],
+                            "rationale": "must not be exposed",
+                        },
+                        "operations": [{"op": "set_parameter", "path": "indicators.fast.period"}],
+                        "repair_attempts": 1,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (state / "knowledge.json").write_text(
+        json.dumps(
+            {
+                "known_good": [{"id": 1}],
+                "known_bad": [{"id": 2}, {"id": 3}],
+                "unexplored": [],
+                "interactions": [{"id": 4}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (state / "champion.json").write_text(
+        json.dumps(
+            {
+                "status": "CHAMPION",
+                "champion": {
+                    "status": "CHAMPION",
+                    "champion_hash": "abc123",
+                    "score": 1.25,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    llm_dir = state / "llm"
+    llm_dir.mkdir()
+    (llm_dir / "status.json").write_text(
+        json.dumps(
+            {
+                "provider": "codex_exec",
+                "status": "ONLINE",
+                "last_result": "PROPOSED",
+                "last_call_at": "2026-09-27T00:00:00+00:00",
+                "operation": "propose",
+            }
+        ),
+        encoding="utf-8",
+    )
+    heartbeat_dir = state / "worker-heartbeats"
+    heartbeat_dir.mkdir()
+    (heartbeat_dir / "eval-1.json").write_text(
+        json.dumps(
+            {
+                "worker_id": "eval-1",
+                "job_id": "job-1",
+                "role": "evaluation",
+                "status": "FAILED",
+                "last_heartbeat": "2026-09-27T00:00:00+00:00",
+                "attempt": 2,
+                "error": "ValueError: private worker detail",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (system / "recovery-events.jsonl").write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-09-27T00:01:00+00:00",
+                "event": "RESTARTED",
+                "managed_run_id": "managed-old",
+                "orders_enabled": False,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = build_runtime_snapshot(
+        state,
+        managed_run_id="managed-2",
+        system_state={
+            "status": "RUNNING",
+            "managed_run_id": "managed-2",
+            "started_at": "2026-09-27T00:00:00+00:00",
+            "evaluation_execution": "local_scheduler",
+            "components": [
+                {
+                    "id": "research_worker",
+                    "status": "RUNNING",
+                    "alive": True,
+                    "pid": 123,
+                    "identity_markers": ["private-marker"],
+                }
+            ],
+        },
+    )
+    snapshot = RuntimeSnapshot.model_validate(payload)
+
+    assert snapshot.schema_version == 2
+    assert snapshot.system.status == "RUNNING"
+    assert snapshot.system.managed_run_id == "managed-2"
+    assert snapshot.system.components[0].pid == 123
+    assert snapshot.research.current_intent.status == "AVAILABLE"
+    assert snapshot.research.current_intent.mode == "parameter"
+    assert snapshot.research.current_intent.parent_ids == ["parent-1"]
+    assert snapshot.research.current_intent.operation_count == 1
+    assert snapshot.research.current_intent.repair_attempts == 1
+    assert snapshot.llm.status == "ONLINE"
+    assert snapshot.knowledge.known_good_count == 1
+    assert snapshot.knowledge.known_bad_count == 2
+    assert snapshot.strategy_state.champion_hash == "abc123"
+    assert snapshot.strategy_state.frontier_status == "NOT_CONNECTED"
+    assert snapshot.strategy_state.rescue_status == "NOT_CONNECTED"
+    assert snapshot.recovery.last_event == "RESTARTED"
+    assert snapshot.workers[0].error_class == "ValueError"
+    serialized = json.dumps(payload)
+    assert "must not be exposed" not in serialized
+    assert "private worker detail" not in serialized
+    assert "private-marker" not in serialized
+
+
+def test_runtime_snapshot_read_does_not_create_state(tmp_path: Path) -> None:
+    state = tmp_path / "missing-state"
+
+    payload = build_runtime_snapshot(state, managed_run_id=None)
+
+    assert payload["research"]["status"] == "NOT_STARTED"
+    assert payload["evaluation"]["counts"] == {}
+    assert not state.exists()
+
+
+def test_runtime_snapshot_does_not_treat_initialized_frontier_as_live_state(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "frontier.json").write_text(
+        '{"schema_version":1,"families":{"trend":[{"id":"legacy"}]}}',
+        encoding="utf-8",
+    )
+    (state / "rescue_pool.json").write_text(
+        '{"schema_version":1,"entries":[{"id":"legacy"}]}',
+        encoding="utf-8",
+    )
+
+    payload = build_runtime_snapshot(state, managed_run_id=None)
+
+    assert payload["strategy_state"]["frontier_status"] == "NOT_CONNECTED"
+    assert payload["strategy_state"]["rescue_status"] == "NOT_CONNECTED"

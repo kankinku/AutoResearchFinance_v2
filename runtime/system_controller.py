@@ -578,10 +578,22 @@ class SystemController:
     def _reconcile_state(self, *, persist: bool) -> dict[str, object]:
         payload = self._read_state()
         if payload is None:
-            return {"status": "STOPPED", "components": []}
+            stopped: dict[str, object] = {"status": "STOPPED", "components": []}
+            stopped["runtime"] = build_runtime_snapshot(
+                self.state_dir,
+                managed_run_id=None,
+                system_state=stopped,
+            )
+            return stopped
         components = payload.get("components")
         if not isinstance(components, list):
-            return {"status": "UNKNOWN", "components": []}
+            unknown: dict[str, object] = {"status": "UNKNOWN", "components": []}
+            unknown["runtime"] = build_runtime_snapshot(
+                self.state_dir,
+                managed_run_id=_text(payload.get("managed_run_id")),
+                system_state=unknown,
+            )
+            return unknown
         managed_run_id = _text(payload.get("managed_run_id"))
         research_alive = False
         for component in components:
@@ -649,6 +661,8 @@ class SystemController:
         payload["runtime"] = build_runtime_snapshot(
             self.state_dir,
             managed_run_id=managed_run_id,
+            system_state=payload,
+            recovery_state=recovery,
         )
         if (
             managed_run_id is not None
@@ -684,12 +698,20 @@ class SystemController:
                     payload["runtime"] = build_runtime_snapshot(
                         self.state_dir,
                         managed_run_id=managed_run_id,
+                        system_state=payload,
+                        recovery_state=recovery,
                     )
         payload["status"] = self._aggregate_status(payload)
         if recovery:
             payload["recovery"] = recovery
         elif "recovery" in payload:
             payload.pop("recovery", None)
+        payload["runtime"] = build_runtime_snapshot(
+            self.state_dir,
+            managed_run_id=managed_run_id,
+            system_state=payload,
+            recovery_state=recovery,
+        )
         if persist:
             self._write_state(payload)
         return payload
