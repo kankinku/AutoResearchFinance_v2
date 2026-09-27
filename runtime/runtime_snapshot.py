@@ -24,6 +24,8 @@ from runtime.runtime_contracts import (
     ResearchRuntimeSnapshot,
     RuntimeComponentSnapshot,
     RuntimeErrorSummary,
+    RuntimeHealthIssue,
+    RuntimeHealthSummary,
     RuntimeSnapshot,
     StrategyStateRuntimeSnapshot,
     WorkerRuntimeSnapshot,
@@ -132,9 +134,21 @@ def read_runtime_snapshot(
         managed_run_id=managed_run_id,
         system_state=system_state,
     )
+    evaluation = jobs.model_copy(update={"latest_job": latest_job})
+    health = _runtime_health(
+        system=system,
+        research=research,
+        evaluation=evaluation,
+        evidence=evidence,
+        workers=workers,
+        llm=llm,
+        recovery=recovery,
+        knowledge=knowledge,
+        strategy_state=strategy_state,
+    )
     errors = _recent_errors(
         research=research,
-        evaluation=jobs,
+        evaluation=evaluation,
         latest_job=latest_job,
         workers=workers,
         llm=llm,
@@ -143,13 +157,14 @@ def read_runtime_snapshot(
     return RuntimeSnapshot(
         system=system,
         research=research,
-        evaluation=jobs.model_copy(update={"latest_job": latest_job}),
+        evaluation=evaluation,
         evidence=evidence,
         workers=workers,
         llm=llm,
         recovery=recovery,
         knowledge=knowledge,
         strategy_state=strategy_state,
+        health=health,
         recent_errors=errors,
         orders_enabled=False,
     )
@@ -1004,6 +1019,152 @@ def _promotion_audit_summary(path: Path) -> tuple[int, str | None, bool]:
         if timestamp is not None:
             last_at = timestamp
     return count, last_at, invalid
+
+
+_HEALTH_STATUS_RANK: dict[str, int] = {
+    "HEALTHY": 0,
+    "DEGRADED": 10,
+    "STALE": 20,
+    "UNAVAILABLE": 30,
+    "INTERRUPTED": 40,
+    "FAILING": 50,
+}
+
+
+def _runtime_health(
+    *,
+    system: ManagedSystemSnapshot,
+    research: ResearchRuntimeSnapshot,
+    evaluation: EvaluationRuntimeSnapshot,
+    evidence: EvidenceRuntimeSnapshot,
+    workers: list[WorkerRuntimeSnapshot],
+    llm: LLMRuntimeSnapshot,
+    recovery: RecoveryRuntimeSnapshot,
+    knowledge: KnowledgeRuntimeSnapshot,
+    strategy_state: StrategyStateRuntimeSnapshot,
+) -> RuntimeHealthSummary:
+    issues: list[RuntimeHealthIssue] = []
+
+    def add(
+        status: Literal["DEGRADED", "FAILING", "INTERRUPTED", "STALE", "UNAVAILABLE"],
+        source: str,
+        code: str,
+        *,
+        error_class: str | None = None,
+    ) -> None:
+        key = (status, source, code, error_class)
+        if any(
+            (item.status, item.source, item.code, item.error_class) == key
+            for item in issues
+        ):
+            return
+        issues.append(
+            RuntimeHealthIssue(
+                status=status,
+                source=source,
+                code=code,
+                error_class=error_class,
+            )
+        )
+
+    if evidence.integrity_status == "INTEGRITY_ERROR":
+        add("FAILING", "evidence", "EVIDENCE_INTEGRITY_ERROR")
+    if research.status == "FAILED":
+        add("FAILING", "research", "RESEARCH_FAILED", error_class=research.error_class)
+    if system.status == "FAILED":
+        add("FAILING", "system", "SYSTEM_FAILED")
+    for component in system.components:
+        if component.status == "FAILED":
+            add("FAILING", f"component:{component.id}", "COMPONENT_FAILED")
+
+    if research.status == "INTERRUPTED" or recovery.status == "INTERRUPTED":
+        add("INTERRUPTED", "research", "RESEARCH_INTERRUPTED")
+
+    if evaluation.status == "UNAVAILABLE" or evaluation.queue_health == "UNAVAILABLE":
+        add("UNAVAILABLE", "evaluation", "EVALUATION_QUEUE_UNAVAILABLE")
+
+    if research.is_stale:
+        add("STALE", "research", "RESEARCH_STALE")
+    for issue in evaluation.queue_issues:
+        if issue == "EXPIRED_RUNNING_LEASE":
+            add("STALE", "evaluation", issue)
+    for worker in workers:
+        if worker.online_state == "STALE":
+            add("STALE", f"worker:{worker.worker_id}", "WORKER_HEARTBEAT_STALE")
+        elif worker.online_state == "OFFLINE" and worker.status.upper() == "RUNNING":
+            add("STALE", f"worker:{worker.worker_id}", "WORKER_OFFLINE_WHILE_RUNNING")
+
+    if system.status == "DEGRADED":
+        add("DEGRADED", "system", "SYSTEM_DEGRADED")
+    if research.consistency_status == "WARN":
+        add("DEGRADED", "research", "RESEARCH_STATE_INCONSISTENT")
+    for issue in evaluation.queue_issues:
+        if issue in {
+            "RUNNING_LEASE_MISSING",
+            "RETRY_EXHAUSTED_PRESENT",
+            "TERMINAL_FAILURE_PRESENT",
+        }:
+            add("DEGRADED", "evaluation", issue)
+        elif issue in {
+            "ATTEMPT_RANGE_INVALID",
+            "QUEUED_WITHOUT_ATTEMPTS_REMAINING",
+        }:
+            add("FAILING", "evaluation", issue)
+    for worker in workers:
+        if worker.status.upper() == "FAILED":
+            add(
+                "DEGRADED",
+                f"worker:{worker.worker_id}",
+                "WORKER_FAILED",
+                error_class=worker.error_class,
+            )
+    if llm.status.upper() in {"OFFLINE", "FAILED", "ERROR"}:
+        add(
+            "DEGRADED",
+            "llm",
+            "LLM_PROVIDER_UNAVAILABLE",
+            error_class=_safe_error_token(llm.last_result),
+        )
+    if knowledge.sync_status in {"STALE", "MISSING", "INVALID"}:
+        add("DEGRADED", "knowledge", f"KNOWLEDGE_{knowledge.sync_status}")
+    if evidence.link_status == "MISSING_RUN":
+        add("DEGRADED", "evidence", "EVIDENCE_RUN_MISSING")
+    if strategy_state.champion_evidence_status == "NOT_FOUND":
+        add("DEGRADED", "strategy_state", "CHAMPION_EVIDENCE_NOT_FOUND")
+    if (
+        strategy_state.champion_hash is not None
+        and strategy_state.promotion_audit_status in {"MISSING", "INVALID"}
+    ):
+        add(
+            "DEGRADED",
+            "strategy_state",
+            f"PROMOTION_AUDIT_{strategy_state.promotion_audit_status}",
+        )
+
+    issues.sort(
+        key=lambda item: (
+            -_HEALTH_STATUS_RANK[item.status],
+            item.source,
+            item.code,
+            item.error_class or "",
+        )
+    )
+    status: Literal[
+        "HEALTHY", "DEGRADED", "FAILING", "INTERRUPTED", "STALE", "UNAVAILABLE"
+    ] = issues[0].status if issues else "HEALTHY"
+    recovery_action_count = len(
+        set(recovery.reconciled_jobs) | set(recovery.cancelled_orphaned_jobs)
+    )
+    return RuntimeHealthSummary(
+        status=status,
+        primary_source=issues[0].source if issues else None,
+        primary_code=issues[0].code if issues else None,
+        issue_count=len(issues),
+        issues=issues[:32],
+        recovery_action_count=recovery_action_count,
+        last_recovery_event=recovery.last_event,
+        interrupted_research_run_id=recovery.interrupted_research_run_id,
+    )
 
 
 def _recent_errors(

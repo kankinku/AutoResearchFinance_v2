@@ -222,6 +222,28 @@ class StrategyStateRuntimeSnapshot(RuntimeModel):
     rescue_status: Literal["NOT_CONNECTED"] = "NOT_CONNECTED"
 
 
+class RuntimeHealthIssue(RuntimeModel):
+    status: Literal[
+        "DEGRADED", "FAILING", "INTERRUPTED", "STALE", "UNAVAILABLE"
+    ]
+    source: str
+    code: str
+    error_class: str | None = None
+
+
+class RuntimeHealthSummary(RuntimeModel):
+    status: Literal[
+        "HEALTHY", "DEGRADED", "FAILING", "INTERRUPTED", "STALE", "UNAVAILABLE"
+    ] = "HEALTHY"
+    primary_source: str | None = None
+    primary_code: str | None = None
+    issue_count: int = 0
+    issues: list[RuntimeHealthIssue] = Field(default_factory=list)
+    recovery_action_count: int = 0
+    last_recovery_event: str | None = None
+    interrupted_research_run_id: str | None = None
+
+
 class RuntimeErrorSummary(RuntimeModel):
     source: str
     error_class: str
@@ -240,5 +262,6 @@ class RuntimeSnapshot(RuntimeModel):
     strategy_state: StrategyStateRuntimeSnapshot = Field(
         default_factory=StrategyStateRuntimeSnapshot
     )
+    health: RuntimeHealthSummary = Field(default_factory=RuntimeHealthSummary)
     recent_errors: list[RuntimeErrorSummary] = Field(default_factory=list)
     orders_enabled: Literal[False] = False

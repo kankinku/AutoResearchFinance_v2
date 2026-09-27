@@ -986,3 +986,264 @@ def test_evidence_integrity_error_propagates_to_derived_observability(
         snapshot["strategy_state"]["champion_evidence_status"]
         == "EVIDENCE_INTEGRITY_ERROR"
     )
+
+
+
+def test_runtime_health_is_healthy_when_no_active_fault_exists(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+
+    snapshot = build_runtime_snapshot(state, managed_run_id=None)
+
+    assert snapshot["health"] == {
+        "status": "HEALTHY",
+        "primary_source": None,
+        "primary_code": None,
+        "issue_count": 0,
+        "issues": [],
+        "recovery_action_count": 0,
+        "last_recovery_event": None,
+        "interrupted_research_run_id": None,
+    }
+    assert not state.exists()
+
+
+def test_runtime_health_prioritizes_evidence_integrity_over_interruption(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "INTERRUPTED",
+                "research_run_id": "broken-run",
+                "current_generation": 1,
+                "current_phase": "INTERRUPTED",
+                "completed_generations": 0,
+                "requested_generations": 1,
+                "last_event": "run_interrupted",
+                "last_event_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ),
+        encoding="utf-8",
+    )
+    store = EvidenceStore(state)
+    store.append(
+        "run",
+        "run:broken-run",
+        {
+            "research_run_id": "broken-run",
+            "requested_generations": 1,
+            "seed": 0,
+        },
+    )
+    with sqlite3.connect(store.path) as connection:
+        connection.execute("DROP TRIGGER prevent_update")
+        connection.execute(
+            "UPDATE events SET checksum='broken' WHERE id='run:broken-run'"
+        )
+        connection.commit()
+
+    health = build_runtime_snapshot(
+        state,
+        managed_run_id="managed-broken",
+        recovery_state={
+            "interrupted_research_run_id": "broken-run",
+            "evidence_closed": False,
+        },
+    )["health"]
+
+    assert health["status"] == "FAILING"
+    assert health["primary_source"] == "evidence"
+    assert health["primary_code"] == "EVIDENCE_INTEGRITY_ERROR"
+    assert any(issue["code"] == "RESEARCH_INTERRUPTED" for issue in health["issues"])
+    assert health["interrupted_research_run_id"] == "broken-run"
+
+
+def test_runtime_health_reports_interrupted_research_as_distinct_state(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "INTERRUPTED",
+                "research_run_id": "interrupted-run",
+                "current_generation": 2,
+                "current_phase": "INTERRUPTED",
+                "completed_generations": 1,
+                "requested_generations": 3,
+                "last_event": "run_interrupted",
+                "last_event_at": datetime.now(timezone.utc).isoformat(),
+                "generations": [{"generation": 1, "status": "REJECT"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    health = build_runtime_snapshot(
+        state,
+        managed_run_id="managed-interrupted",
+        recovery_state={
+            "interrupted_research_run_id": "interrupted-run",
+            "cancelled_orphaned_jobs": ["job-a"],
+            "reconciled_jobs": ["job-a", "job-b"],
+            "evidence_closed": True,
+        },
+    )["health"]
+
+    assert health["status"] == "INTERRUPTED"
+    assert health["primary_code"] == "RESEARCH_INTERRUPTED"
+    assert health["recovery_action_count"] == 2
+    assert health["interrupted_research_run_id"] == "interrupted-run"
+
+
+def test_runtime_health_prioritizes_unavailable_queue_over_stale_research(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    old = (datetime.now(timezone.utc) - timedelta(seconds=1900)).isoformat()
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "RUNNING",
+                "research_run_id": "stale-run",
+                "current_generation": 1,
+                "current_phase": "BACKTESTING",
+                "completed_generations": 0,
+                "requested_generations": 1,
+                "phase_started_at": old,
+                "last_event": "evaluation_started",
+                "last_event_at": old,
+            }
+        ),
+        encoding="utf-8",
+    )
+    queue_path = system / "evaluation-jobs" / "queue.sqlite"
+    queue_path.parent.mkdir(parents=True)
+    queue_path.write_bytes(b"not sqlite")
+
+    health = build_runtime_snapshot(state, managed_run_id="managed-stale")["health"]
+
+    assert health["status"] == "UNAVAILABLE"
+    assert health["primary_source"] == "evaluation"
+    assert health["primary_code"] == "EVALUATION_QUEUE_UNAVAILABLE"
+    assert any(issue["code"] == "RESEARCH_STALE" for issue in health["issues"])
+
+
+def test_runtime_health_reports_stale_without_converting_it_to_failure(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    old = (datetime.now(timezone.utc) - timedelta(seconds=1900)).isoformat()
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "RUNNING",
+                "research_run_id": "stale-only",
+                "current_generation": 1,
+                "current_phase": "BACKTESTING",
+                "completed_generations": 0,
+                "requested_generations": 1,
+                "phase_started_at": old,
+                "last_event": "evaluation_started",
+                "last_event_at": old,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    health = build_runtime_snapshot(state, managed_run_id=None)["health"]
+
+    assert health["status"] == "STALE"
+    assert health["primary_source"] == "research"
+    assert health["primary_code"] == "RESEARCH_STALE"
+
+
+def test_runtime_health_aggregates_degraded_sources_without_raw_details(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "knowledge.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "known_good": [],
+                "known_bad": [],
+                "unexplored": [],
+                "interactions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (state / "champion.json").write_text(
+        json.dumps(
+            {
+                "status": "CHAMPION",
+                "champion": {
+                    "status": "CHAMPION",
+                    "champion_hash": "unlinked-champion",
+                    "score": 1.0,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    llm = state / "llm"
+    llm.mkdir()
+    (llm / "status.json").write_text(
+        json.dumps(
+            {
+                "provider": "codex_exec",
+                "status": "OFFLINE",
+                "last_result": "TimeoutError: secret provider detail",
+                "operation": "propose",
+            }
+        ),
+        encoding="utf-8",
+    )
+    heartbeat = state / "worker-heartbeats"
+    heartbeat.mkdir()
+    (heartbeat / "worker-a.json").write_text(
+        json.dumps(
+            {
+                "worker_id": "worker-a",
+                "role": "evaluation",
+                "status": "FAILED",
+                "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+                "error": "ValueError: secret worker detail",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = build_runtime_snapshot(state, managed_run_id=None)
+    health = snapshot["health"]
+
+    assert health["status"] == "DEGRADED"
+    codes = {issue["code"] for issue in health["issues"]}
+    assert "LLM_PROVIDER_UNAVAILABLE" in codes
+    assert "WORKER_FAILED" in codes
+    assert "CHAMPION_EVIDENCE_NOT_FOUND" in codes
+    assert "PROMOTION_AUDIT_MISSING" in codes
+    serialized = json.dumps(health)
+    assert "secret provider detail" not in serialized
+    assert "secret worker detail" not in serialized
+    assert any(
+        issue["error_class"] == "TimeoutError"
+        for issue in health["issues"]
+        if issue["source"] == "llm"
+    )
+    assert any(
+        issue["error_class"] == "ValueError"
+        for issue in health["issues"]
+        if issue["source"] == "worker:worker-a"
+    )
