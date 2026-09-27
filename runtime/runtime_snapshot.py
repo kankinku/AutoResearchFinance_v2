@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
+from memory.evidence_store import EvidenceIntegrityError, EvidenceStore, digest
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import Job, JobStatus
 from runtime.runtime_contracts import (
@@ -108,16 +108,26 @@ def read_runtime_snapshot(
         managed_run_id=managed_run_id,
         recent_attempts=recent_attempts,
     )
+    evidence_events, evidence_integrity_error = _all_evidence_events(state_dir)
     evidence = _evidence_snapshot(
-        state_dir,
         research_run_id=research.research_run_id,
+        events=evidence_events,
+        integrity_error=evidence_integrity_error,
     )
     latest_job = _latest_job_record(recent_attempts)
     workers = _worker_snapshots(state_dir)
     llm = _llm_snapshot(state_dir)
     recovery = _recovery_snapshot(state_dir, recovery_state=recovery_state)
-    knowledge = _knowledge_snapshot(state_dir)
-    strategy_state = _strategy_state_snapshot(state_dir)
+    knowledge = _knowledge_snapshot(
+        state_dir,
+        evidence_events=evidence_events,
+        evidence_integrity_error=evidence_integrity_error,
+    )
+    strategy_state = _strategy_state_snapshot(
+        state_dir,
+        evidence_events=evidence_events,
+        evidence_integrity_error=evidence_integrity_error,
+    )
     system = _system_snapshot(
         managed_run_id=managed_run_id,
         system_state=system_state,
@@ -554,25 +564,57 @@ def _latest_job_record(
     )
 
 
-def _evidence_snapshot(
+def _all_evidence_events(
     state_dir: Path,
+) -> tuple[list[dict[str, Any]], bool]:
+    store = EvidenceStore(state_dir)
+    if not store.path.is_file():
+        return [], False
+    try:
+        return store.events(), False
+    except EvidenceIntegrityError:
+        return [], True
+
+
+def _evidence_snapshot(
     *,
     research_run_id: str | None,
+    events: list[dict[str, Any]],
+    integrity_error: bool,
 ) -> EvidenceRuntimeSnapshot:
-    if research_run_id is None:
-        return EvidenceRuntimeSnapshot()
-    try:
-        events = [
-            event
-            for event in EvidenceStore(state_dir).events()
-            if event["payload"].get("research_run_id") == research_run_id
-        ]
-    except EvidenceIntegrityError:
+    if integrity_error:
         return EvidenceRuntimeSnapshot(
             status="INTEGRITY_ERROR",
+            link_status="INTEGRITY_ERROR",
+            integrity_status="INTEGRITY_ERROR",
             research_run_id=research_run_id,
         )
-    end = next((event for event in reversed(events) if event["kind"] == "end"), None)
+    if research_run_id is None:
+        return EvidenceRuntimeSnapshot(
+            status="NOT_LINKED",
+            link_status="NOT_LINKED",
+            integrity_status="VERIFIED" if events else "NOT_PRESENT",
+        )
+
+    related = [
+        event
+        for event in events
+        if event["payload"].get("research_run_id") == research_run_id
+    ]
+    if not related:
+        return EvidenceRuntimeSnapshot(
+            status="OPEN",
+            link_status="MISSING_RUN",
+            integrity_status="VERIFIED" if events else "NOT_PRESENT",
+            research_run_id=research_run_id,
+        )
+
+    attempts = [event for event in related if event["kind"] == "attempt"]
+    generations = [event for event in related if event["kind"] == "generation"]
+    end = next((event for event in reversed(related) if event["kind"] == "end"), None)
+    manifest = next((event for event in related if event["kind"] == "manifest"), None)
+    last_attempt = attempts[-1] if attempts else None
+    last_generation = generations[-1] if generations else None
     evidence_status = (
         (_text(end["payload"].get("status")) or "UNKNOWN")
         if end is not None
@@ -580,9 +622,38 @@ def _evidence_snapshot(
     )
     return EvidenceRuntimeSnapshot(
         status=evidence_status,
+        link_status="LINKED",
+        integrity_status="VERIFIED",
         research_run_id=research_run_id,
-        event_count=len(events),
-        last_event_kind=events[-1]["kind"] if events else None,
+        event_count=len(related),
+        manifest_present=manifest is not None,
+        attempt_count=len(attempts),
+        generation_count=len(generations),
+        last_event_id=_text(related[-1].get("id")),
+        last_event_kind=_text(related[-1].get("kind")),
+        last_attempt_id=(
+            _text(last_attempt["payload"].get("attempt_id"))
+            if last_attempt is not None
+            else None
+        ),
+        last_attempt_status=(
+            _text(last_attempt["payload"].get("status"))
+            if last_attempt is not None
+            else None
+        ),
+        last_generation=(
+            _int_or_none(last_generation["payload"].get("generation"))
+            if last_generation is not None
+            else None
+        ),
+        last_generation_status=(
+            _text(last_generation["payload"].get("status"))
+            if last_generation is not None
+            else None
+        ),
+        terminal_status=(
+            _text(end["payload"].get("status")) if end is not None else None
+        ),
         closed=end is not None,
     )
 
@@ -676,39 +747,263 @@ def _recovery_snapshot(
     )
 
 
-def _knowledge_snapshot(state_dir: Path) -> KnowledgeRuntimeSnapshot:
+def _knowledge_snapshot(
+    state_dir: Path,
+    *,
+    evidence_events: list[dict[str, Any]],
+    evidence_integrity_error: bool,
+) -> KnowledgeRuntimeSnapshot:
     path = state_dir / "knowledge.json"
+    if evidence_integrity_error:
+        return KnowledgeRuntimeSnapshot(
+            status="MISSING" if not path.is_file() else "INVALID",
+            sync_status="EVIDENCE_INTEGRITY_ERROR",
+        )
+
+    expected_ids = _expected_knowledge_experiment_ids(evidence_events)
     if not path.is_file():
-        return KnowledgeRuntimeSnapshot(status="MISSING")
+        return KnowledgeRuntimeSnapshot(
+            status="MISSING",
+            sync_status="MISSING" if expected_ids else "NOT_APPLICABLE",
+            evidence_experiment_count=len(expected_ids),
+            missing_experiment_count=len(expected_ids),
+            projection_coverage_percent=0.0 if expected_ids else 100.0,
+        )
+
     payload = _read_json(path)
     if payload is None:
-        return KnowledgeRuntimeSnapshot(status="INVALID")
+        return KnowledgeRuntimeSnapshot(
+            status="INVALID",
+            sync_status="INVALID",
+            evidence_experiment_count=len(expected_ids),
+            missing_experiment_count=len(expected_ids),
+            projection_coverage_percent=0.0 if expected_ids else 100.0,
+        )
+
     names = ("known_good", "known_bad", "unexplored", "interactions")
     if any(not isinstance(payload.get(name, []), list) for name in names):
-        return KnowledgeRuntimeSnapshot(status="INVALID")
+        return KnowledgeRuntimeSnapshot(
+            status="INVALID",
+            sync_status="INVALID",
+            evidence_experiment_count=len(expected_ids),
+            missing_experiment_count=len(expected_ids),
+            projection_coverage_percent=0.0 if expected_ids else 100.0,
+        )
+
+    knowledge_lists = {
+        name: cast(list[object], payload.get(name, []))
+        for name in names
+    }
+    projected_ids: set[str] = set()
+    unverified_entries = 0
+    for name in ("known_good", "known_bad", "unexplored"):
+        for item in knowledge_lists[name]:
+            if not isinstance(item, Mapping):
+                unverified_entries += 1
+                continue
+            experiment_id = _text(item.get("experiment_id"))
+            if experiment_id is None:
+                unverified_entries += 1
+            else:
+                projected_ids.add(experiment_id)
+
+    missing_ids = expected_ids - projected_ids
+    sync_status: Literal["NOT_APPLICABLE", "IN_SYNC", "STALE"] = (
+        "NOT_APPLICABLE"
+        if not expected_ids
+        else "IN_SYNC"
+        if not missing_ids
+        else "STALE"
+    )
+    coverage = (
+        100.0
+        if not expected_ids
+        else round((len(expected_ids) - len(missing_ids)) * 100.0 / len(expected_ids), 1)
+    )
     return KnowledgeRuntimeSnapshot(
         status="CONNECTED",
-        known_good_count=len(cast(list[object], payload.get("known_good", []))),
-        known_bad_count=len(cast(list[object], payload.get("known_bad", []))),
-        unexplored_count=len(cast(list[object], payload.get("unexplored", []))),
-        interactions_count=len(cast(list[object], payload.get("interactions", []))),
+        sync_status=sync_status,
+        known_good_count=len(knowledge_lists["known_good"]),
+        known_bad_count=len(knowledge_lists["known_bad"]),
+        unexplored_count=len(knowledge_lists["unexplored"]),
+        interactions_count=len(knowledge_lists["interactions"]),
+        evidence_experiment_count=len(expected_ids),
+        projected_experiment_count=len(projected_ids),
+        missing_experiment_count=len(missing_ids),
+        unverified_entry_count=unverified_entries,
+        projection_coverage_percent=coverage,
     )
 
 
-def _strategy_state_snapshot(state_dir: Path) -> StrategyStateRuntimeSnapshot:
+def _expected_knowledge_experiment_ids(
+    events: list[dict[str, Any]],
+) -> set[str]:
+    expected: set[str] = set()
+    projected_statuses = {"REJECT", "NEAR_MISS", "SURVIVOR", "FRONTIER"}
+    for event in events:
+        if event.get("kind") != "attempt":
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, Mapping):
+            continue
+        research_run_id = _text(payload.get("research_run_id"))
+        attempt_id = _text(payload.get("attempt_id"))
+        candidates = payload.get("candidates")
+        if (
+            research_run_id is None
+            or attempt_id is None
+            or not isinstance(candidates, list)
+        ):
+            continue
+        for index, candidate in enumerate(candidates):
+            if not isinstance(candidate, Mapping):
+                continue
+            candidate_hash = _text(candidate.get("candidate_hash"))
+            status = _text(candidate.get("status"))
+            if candidate_hash is None or status not in projected_statuses:
+                continue
+            expected.add(
+                digest([research_run_id, attempt_id, index, candidate_hash])
+            )
+    return expected
+
+
+def _strategy_state_snapshot(
+    state_dir: Path,
+    *,
+    evidence_events: list[dict[str, Any]],
+    evidence_integrity_error: bool,
+) -> StrategyStateRuntimeSnapshot:
     payload = _read_json(state_dir / "champion.json")
     if payload is None:
         return StrategyStateRuntimeSnapshot()
+
     nested = payload.get("champion")
     champion = nested if isinstance(nested, Mapping) else payload
+    champion_hash = _text(champion.get("champion_hash"))
+    audit_records, last_promotion_at, audit_invalid = _promotion_audit_summary(
+        state_dir / "audit.jsonl"
+    )
+    if champion_hash is None:
+        return StrategyStateRuntimeSnapshot(
+            champion_status=_text(payload.get("status")) or "UNKNOWN",
+            promotion_audit_status="NOT_APPLICABLE",
+            frontier_status="NOT_CONNECTED",
+            rescue_status="NOT_CONNECTED",
+        )
+
+    evidence_match = (
+        None
+        if evidence_integrity_error
+        else _find_candidate_evidence(evidence_events, champion_hash)
+    )
+    evidence_status: Literal[
+        "LINKED", "NOT_FOUND", "EVIDENCE_INTEGRITY_ERROR"
+    ]
+    if evidence_integrity_error:
+        evidence_status = "EVIDENCE_INTEGRITY_ERROR"
+    elif evidence_match is None:
+        evidence_status = "NOT_FOUND"
+    else:
+        evidence_status = "LINKED"
+
+    audit_status: Literal["PRESENT", "MISSING", "INVALID"]
+    if audit_records > 0:
+        audit_status = "PRESENT"
+    elif audit_invalid:
+        audit_status = "INVALID"
+    else:
+        audit_status = "MISSING"
+
+    linked_payload: Mapping[str, object] | None = None
+    linked_candidate: Mapping[str, object] | None = None
+    if evidence_match is not None:
+        linked_payload, linked_candidate = evidence_match
+    linked_generation = (
+        _int_or_none(linked_payload.get("generation"))
+        if linked_payload is not None
+        else None
+    )
     return StrategyStateRuntimeSnapshot(
-        champion_status=_text(champion.get("status")) or _text(payload.get("status")) or "UNKNOWN",
-        champion_hash=_text(champion.get("champion_hash")),
-        champion_generation=_int_or_none(champion.get("generation")),
+        champion_status=_text(champion.get("status"))
+        or _text(payload.get("status"))
+        or "UNKNOWN",
+        champion_hash=champion_hash,
+        champion_family=_text(champion.get("family")),
+        champion_generation=_int_or_none(champion.get("generation")) or linked_generation,
         champion_score=_float_or_none(champion.get("score")),
+        champion_evidence_status=evidence_status,
+        champion_research_run_id=(
+            _text(linked_payload.get("research_run_id"))
+            if linked_payload is not None
+            else None
+        ),
+        champion_attempt_id=(
+            _text(linked_payload.get("attempt_id"))
+            if linked_payload is not None
+            else None
+        ),
+        champion_candidate_status=(
+            _text(linked_candidate.get("status"))
+            if linked_candidate is not None
+            else None
+        ),
+        promotion_audit_status=audit_status,
+        promotion_audit_records=audit_records,
+        last_promotion_at=last_promotion_at,
         frontier_status="NOT_CONNECTED",
         rescue_status="NOT_CONNECTED",
     )
+
+
+def _find_candidate_evidence(
+    events: list[dict[str, Any]],
+    candidate_hash: str,
+) -> tuple[Mapping[str, object], Mapping[str, object]] | None:
+    for event in reversed(events):
+        if event.get("kind") != "attempt":
+            continue
+        payload = event.get("payload")
+        if not isinstance(payload, Mapping):
+            continue
+        candidates = payload.get("candidates")
+        if not isinstance(candidates, list):
+            continue
+        for candidate in candidates:
+            if (
+                isinstance(candidate, Mapping)
+                and candidate.get("candidate_hash") == candidate_hash
+            ):
+                return payload, candidate
+    return None
+
+
+def _promotion_audit_summary(path: Path) -> tuple[int, str | None, bool]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return 0, None, False
+    count = 0
+    last_at: str | None = None
+    invalid = False
+    for raw in lines:
+        if not raw.strip():
+            continue
+        try:
+            payload = json.loads(raw)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            invalid = True
+            continue
+        if not isinstance(payload, dict):
+            invalid = True
+            continue
+        if payload.get("event") != "promote_champion":
+            continue
+        count += 1
+        timestamp = _text(payload.get("timestamp"))
+        if timestamp is not None:
+            last_at = timestamp
+    return count, last_at, invalid
 
 
 def _recent_errors(

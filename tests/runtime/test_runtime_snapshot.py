@@ -5,6 +5,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from memory.evidence_knowledge import sync_knowledge
 from memory.evidence_store import EvidenceStore
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import Job
@@ -111,13 +112,14 @@ def test_runtime_snapshot_aggregates_sanitized_research_jobs_and_evidence(
     assert "private exception body" not in json.dumps(snapshot)
 
     evidence = snapshot["evidence"]
-    assert evidence == {
-        "status": "COMPLETED",
-        "research_run_id": "research-1",
-        "event_count": 2,
-        "last_event_kind": "end",
-        "closed": True,
-    }
+    assert evidence["status"] == "COMPLETED"
+    assert evidence["link_status"] == "LINKED"
+    assert evidence["integrity_status"] == "VERIFIED"
+    assert evidence["research_run_id"] == "research-1"
+    assert evidence["event_count"] == 2
+    assert evidence["last_event_kind"] == "end"
+    assert evidence["terminal_status"] == "COMPLETED"
+    assert evidence["closed"] is True
     assert snapshot["orders_enabled"] is False
 
 
@@ -664,4 +666,323 @@ def test_evaluation_attempt_history_filters_managed_run_and_is_bounded(
     assert all(
         attempt["job_id"] != "foreign-job"
         for attempt in evaluation["recent_attempts"]
+    )
+
+
+
+def test_evidence_and_knowledge_snapshot_reports_verified_projection_sync(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "COMPLETED",
+                "research_run_id": "research-evidence",
+                "current_generation": 1,
+                "current_phase": "COMPLETED",
+                "completed_generations": 1,
+                "requested_generations": 1,
+                "last_event": "run_completed",
+                "last_event_at": datetime.now(timezone.utc).isoformat(),
+                "generations": [{"generation": 1, "status": "SURVIVOR"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    store = EvidenceStore(state)
+    store.append(
+        "run",
+        "run:research-evidence",
+        {
+            "research_run_id": "research-evidence",
+            "requested_generations": 1,
+            "seed": 0,
+        },
+    )
+    store.append(
+        "manifest",
+        "manifest:research-evidence",
+        {
+            "research_run_id": "research-evidence",
+            "comparison_key": "comparison-a",
+        },
+    )
+    store.append(
+        "attempt",
+        "attempt:attempt-a",
+        {
+            "research_run_id": "research-evidence",
+            "attempt_id": "attempt-a",
+            "generation": 1,
+            "status": "COMPLETED",
+            "candidates": [
+                {
+                    "candidate_hash": "candidate-a",
+                    "family": "trend",
+                    "status": "SURVIVOR",
+                    "failed_gates": [],
+                }
+            ],
+        },
+    )
+    store.append(
+        "generation",
+        "generation:research-evidence:1",
+        {
+            "research_run_id": "research-evidence",
+            "generation": 1,
+            "status": "SURVIVOR",
+            "attempt_id": "attempt-a",
+        },
+    )
+    store.append(
+        "end",
+        "end:research-evidence",
+        {
+            "research_run_id": "research-evidence",
+            "status": "COMPLETED",
+        },
+    )
+    sync_knowledge(state)
+
+    snapshot = build_runtime_snapshot(state, managed_run_id=None)
+    evidence = snapshot["evidence"]
+    knowledge = snapshot["knowledge"]
+
+    assert evidence["integrity_status"] == "VERIFIED"
+    assert evidence["link_status"] == "LINKED"
+    assert evidence["manifest_present"] is True
+    assert evidence["attempt_count"] == 1
+    assert evidence["generation_count"] == 1
+    assert evidence["last_event_id"] == "end:research-evidence"
+    assert evidence["last_attempt_id"] == "attempt-a"
+    assert evidence["last_attempt_status"] == "COMPLETED"
+    assert evidence["last_generation"] == 1
+    assert evidence["last_generation_status"] == "SURVIVOR"
+    assert evidence["terminal_status"] == "COMPLETED"
+
+    assert knowledge["status"] == "CONNECTED"
+    assert knowledge["sync_status"] == "IN_SYNC"
+    assert knowledge["evidence_experiment_count"] == 1
+    assert knowledge["projected_experiment_count"] == 1
+    assert knowledge["missing_experiment_count"] == 0
+    assert knowledge["projection_coverage_percent"] == 100.0
+
+
+def test_knowledge_snapshot_detects_stale_projection_without_syncing_it(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    store = EvidenceStore(state)
+    store.append(
+        "run",
+        "run:research-stale-knowledge",
+        {
+            "research_run_id": "research-stale-knowledge",
+            "requested_generations": 1,
+            "seed": 0,
+        },
+    )
+    store.append(
+        "attempt",
+        "attempt:stale-a",
+        {
+            "research_run_id": "research-stale-knowledge",
+            "attempt_id": "stale-a",
+            "generation": 1,
+            "status": "COMPLETED",
+            "candidates": [
+                {
+                    "candidate_hash": "candidate-stale",
+                    "family": "trend",
+                    "status": "REJECT",
+                    "failed_gates": ["robustness"],
+                }
+            ],
+        },
+    )
+    knowledge_path = state / "knowledge.json"
+    stale = {
+        "schema_version": 1,
+        "known_good": [],
+        "known_bad": [],
+        "unexplored": [],
+        "interactions": [],
+    }
+    knowledge_path.write_text(json.dumps(stale), encoding="utf-8")
+    before = knowledge_path.read_bytes()
+
+    knowledge = build_runtime_snapshot(state, managed_run_id=None)["knowledge"]
+
+    assert knowledge["status"] == "CONNECTED"
+    assert knowledge["sync_status"] == "STALE"
+    assert knowledge["evidence_experiment_count"] == 1
+    assert knowledge["projected_experiment_count"] == 0
+    assert knowledge["missing_experiment_count"] == 1
+    assert knowledge["projection_coverage_percent"] == 0.0
+    assert knowledge_path.read_bytes() == before
+
+
+def test_champion_snapshot_links_candidate_to_evidence_and_audit(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    state.mkdir()
+    store = EvidenceStore(state)
+    store.append(
+        "run",
+        "run:champion-run",
+        {
+            "research_run_id": "champion-run",
+            "requested_generations": 1,
+            "seed": 0,
+        },
+    )
+    store.append(
+        "attempt",
+        "attempt:champion-attempt",
+        {
+            "research_run_id": "champion-run",
+            "attempt_id": "champion-attempt",
+            "generation": 4,
+            "status": "COMPLETED",
+            "candidates": [
+                {
+                    "candidate_hash": "champion-candidate",
+                    "family": "trend",
+                    "status": "SURVIVOR",
+                    "score": 1.25,
+                    "failed_gates": [],
+                }
+            ],
+        },
+    )
+    (state / "champion.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "CHAMPION",
+                "champion": {
+                    "status": "CHAMPION",
+                    "champion_hash": "champion-candidate",
+                    "family": "trend",
+                    "score": 1.25,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (state / "audit.jsonl").write_text(
+        json.dumps(
+            {
+                "event": "promote_champion",
+                "actor": "human",
+                "timestamp": "2026-09-27T01:02:03+00:00",
+                "input_hash": "opaque",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    strategy = build_runtime_snapshot(state, managed_run_id=None)["strategy_state"]
+
+    assert strategy["champion_status"] == "CHAMPION"
+    assert strategy["champion_hash"] == "champion-candidate"
+    assert strategy["champion_family"] == "trend"
+    assert strategy["champion_generation"] == 4
+    assert strategy["champion_evidence_status"] == "LINKED"
+    assert strategy["champion_research_run_id"] == "champion-run"
+    assert strategy["champion_attempt_id"] == "champion-attempt"
+    assert strategy["champion_candidate_status"] == "SURVIVOR"
+    assert strategy["promotion_audit_status"] == "PRESENT"
+    assert strategy["promotion_audit_records"] == 1
+    assert strategy["last_promotion_at"] == "2026-09-27T01:02:03+00:00"
+    assert strategy["frontier_status"] == "NOT_CONNECTED"
+    assert strategy["rescue_status"] == "NOT_CONNECTED"
+
+
+def test_champion_snapshot_does_not_invent_evidence_provenance(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "champion.json").write_text(
+        json.dumps(
+            {
+                "status": "CHAMPION",
+                "champion": {
+                    "status": "CHAMPION",
+                    "champion_hash": "unknown-candidate",
+                    "score": 9.0,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    strategy = build_runtime_snapshot(state, managed_run_id=None)["strategy_state"]
+
+    assert strategy["champion_evidence_status"] == "NOT_FOUND"
+    assert strategy["champion_research_run_id"] is None
+    assert strategy["champion_attempt_id"] is None
+    assert strategy["promotion_audit_status"] == "MISSING"
+
+
+def test_evidence_integrity_error_propagates_to_derived_observability(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    store = EvidenceStore(state)
+    store.append(
+        "run",
+        "run:broken",
+        {
+            "research_run_id": "broken",
+            "requested_generations": 1,
+            "seed": 0,
+        },
+    )
+    with sqlite3.connect(store.path) as connection:
+        connection.execute("DROP TRIGGER prevent_update")
+        connection.execute("UPDATE events SET checksum='broken' WHERE id='run:broken'")
+        connection.commit()
+    system = state / "system"
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "RUNNING",
+                "research_run_id": "broken",
+                "current_generation": 1,
+                "current_phase": "GENERATION",
+                "completed_generations": 0,
+                "requested_generations": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (state / "champion.json").write_text(
+        json.dumps(
+            {
+                "status": "CHAMPION",
+                "champion": {
+                    "status": "CHAMPION",
+                    "champion_hash": "candidate-broken",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = build_runtime_snapshot(state, managed_run_id=None)
+
+    assert snapshot["evidence"]["integrity_status"] == "INTEGRITY_ERROR"
+    assert snapshot["evidence"]["link_status"] == "INTEGRITY_ERROR"
+    assert snapshot["knowledge"]["sync_status"] == "EVIDENCE_INTEGRITY_ERROR"
+    assert (
+        snapshot["strategy_state"]["champion_evidence_status"]
+        == "EVIDENCE_INTEGRITY_ERROR"
     )

@@ -129,9 +129,24 @@ class EvaluationRuntimeSnapshot(RuntimeModel):
 
 class EvidenceRuntimeSnapshot(RuntimeModel):
     status: str = "NOT_LINKED"
+    link_status: Literal[
+        "NOT_LINKED", "LINKED", "MISSING_RUN", "INTEGRITY_ERROR"
+    ] = "NOT_LINKED"
+    integrity_status: Literal[
+        "NOT_PRESENT", "VERIFIED", "INTEGRITY_ERROR"
+    ] = "NOT_PRESENT"
     research_run_id: str | None = None
     event_count: int = 0
+    manifest_present: bool = False
+    attempt_count: int = 0
+    generation_count: int = 0
+    last_event_id: str | None = None
     last_event_kind: str | None = None
+    last_attempt_id: str | None = None
+    last_attempt_status: str | None = None
+    last_generation: int | None = None
+    last_generation_status: str | None = None
+    terminal_status: str | None = None
     closed: bool = False
 
 
@@ -167,17 +182,42 @@ class RecoveryRuntimeSnapshot(RuntimeModel):
 class KnowledgeRuntimeSnapshot(RuntimeModel):
     status: Literal["CONNECTED", "MISSING", "INVALID"] = "MISSING"
     source: Literal["EVIDENCE_PROJECTION"] = "EVIDENCE_PROJECTION"
+    sync_status: Literal[
+        "NOT_APPLICABLE",
+        "IN_SYNC",
+        "STALE",
+        "MISSING",
+        "INVALID",
+        "EVIDENCE_INTEGRITY_ERROR",
+    ] = "NOT_APPLICABLE"
     known_good_count: int = 0
     known_bad_count: int = 0
     unexplored_count: int = 0
     interactions_count: int = 0
+    evidence_experiment_count: int = 0
+    projected_experiment_count: int = 0
+    missing_experiment_count: int = 0
+    unverified_entry_count: int = 0
+    projection_coverage_percent: float = 100.0
 
 
 class StrategyStateRuntimeSnapshot(RuntimeModel):
     champion_status: str = "MISSING"
     champion_hash: str | None = None
+    champion_family: str | None = None
     champion_generation: int | None = None
     champion_score: float | None = None
+    champion_evidence_status: Literal[
+        "NO_CHAMPION", "LINKED", "NOT_FOUND", "EVIDENCE_INTEGRITY_ERROR"
+    ] = "NO_CHAMPION"
+    champion_research_run_id: str | None = None
+    champion_attempt_id: str | None = None
+    champion_candidate_status: str | None = None
+    promotion_audit_status: Literal[
+        "NOT_APPLICABLE", "PRESENT", "MISSING", "INVALID"
+    ] = "NOT_APPLICABLE"
+    promotion_audit_records: int = 0
+    last_promotion_at: str | None = None
     frontier_status: Literal["NOT_CONNECTED"] = "NOT_CONNECTED"
     rescue_status: Literal["NOT_CONNECTED"] = "NOT_CONNECTED"
 
