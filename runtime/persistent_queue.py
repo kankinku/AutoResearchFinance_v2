@@ -221,8 +221,18 @@ class PersistentJobQueue:
     ) -> tuple[Job, ...]:
         """Read queue state without creating or mutating the SQLite store."""
 
+        jobs, _ = self.snapshot_jobs_with_status(managed_run_id=managed_run_id)
+        return jobs
+
+    def snapshot_jobs_with_status(
+        self,
+        *,
+        managed_run_id: str | None = None,
+    ) -> tuple[tuple[Job, ...], str]:
+        """Read queue state and report whether the durable store was readable."""
+
         if not self.path.is_file():
-            return ()
+            return (), "EMPTY"
         try:
             with sqlite3.connect(
                 self.path.resolve().as_uri() + "?mode=ro",
@@ -237,12 +247,12 @@ class PersistentJobQueue:
                     ORDER BY updated_at, job_id
                     """
                 ).fetchall()
-        except sqlite3.Error:
-            return ()
-        jobs = tuple(_row_to_job(row) for row in rows)
-        if managed_run_id is None:
-            return jobs
-        return tuple(job for job in jobs if _managed_run_id(job) == managed_run_id)
+            jobs = tuple(_row_to_job(row) for row in rows)
+        except (sqlite3.Error, TypeError, ValueError, json.JSONDecodeError):
+            return (), "UNAVAILABLE"
+        if managed_run_id is not None:
+            jobs = tuple(job for job in jobs if _managed_run_id(job) == managed_run_id)
+        return jobs, "READY"
 
     def jobs_for_run(self, managed_run_id: str) -> tuple[Job, ...]:
         if not managed_run_id:

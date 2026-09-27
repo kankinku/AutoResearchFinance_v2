@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -468,3 +469,199 @@ def test_research_snapshot_surfaces_projection_consistency_issues(
         "TERMINAL_PHASE_MISMATCH",
         "COMPLETED_RUN_GENERATION_MISMATCH",
     }
+
+
+
+def test_evaluation_snapshot_reports_retry_and_terminal_queue_state(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    queue = PersistentJobQueue(state)
+
+    queue.enqueue(
+        Job("retry-pending", {"managed_run_id": "managed-eval"}, max_attempts=3)
+    )
+    assert queue.claim(job_id="retry-pending", lease_seconds=30) is not None
+    queue.fail("retry-pending", "timeout detail", error_class="TimeoutError")
+    queue.retry_terminal("retry-pending")
+
+    queue.enqueue(
+        Job("exhausted", {"managed_run_id": "managed-eval"}, max_attempts=1)
+    )
+    assert queue.claim(job_id="exhausted", lease_seconds=30) is not None
+    queue.timeout("exhausted")
+    queue.retry_terminal("exhausted")
+
+    queue.enqueue(
+        Job("succeeded", {"managed_run_id": "managed-eval"}, max_attempts=2)
+    )
+    assert queue.claim(job_id="succeeded", lease_seconds=30) is not None
+    queue.succeed("succeeded", {"status": "COMPLETED"})
+
+    system = state / "system"
+    with (system / "evaluation-jobs.jsonl").open(
+        "w", encoding="utf-8", newline="\n"
+    ) as handle:
+        for record in (
+            {
+                "managed_run_id": "managed-eval",
+                "job_id": "retry-pending",
+                "status": "TIMED_OUT",
+                "queue_attempt": 1,
+                "max_attempts": 3,
+                "error_class": "TimeoutError",
+                "execution_mode": "docker_worker",
+                "isolated": True,
+                "timeout_enforced": True,
+                "attempt_id": "retry-attempt",
+                "generation": 1,
+                "error": "must not leak",
+            },
+            {
+                "managed_run_id": "managed-eval",
+                "job_id": "succeeded",
+                "status": "SUCCEEDED",
+                "queue_attempt": 1,
+                "max_attempts": 2,
+                "error_class": None,
+                "execution_mode": "docker_worker",
+                "isolated": True,
+                "timeout_enforced": True,
+                "attempt_id": "success-attempt",
+                "generation": 2,
+            },
+        ):
+            handle.write(json.dumps(record) + "\n")
+
+    evaluation = build_runtime_snapshot(
+        state, managed_run_id="managed-eval"
+    )["evaluation"]
+
+    assert evaluation["counts"] == {
+        "QUEUED": 1,
+        "RETRY_EXHAUSTED": 1,
+        "SUCCEEDED": 1,
+    }
+    assert evaluation["total_jobs"] == 3
+    assert evaluation["terminal_jobs"] == 2
+    assert evaluation["retry_summary"] == {
+        "jobs_with_retries": 0,
+        "retries_used": 0,
+        "retry_pending_jobs": 1,
+        "retry_exhausted_jobs": 1,
+    }
+    assert evaluation["queue_health"] == "WARN"
+    assert evaluation["queue_issues"] == ["RETRY_EXHAUSTED_PRESENT"]
+    queued = evaluation["queued_jobs"][0]
+    assert queued["job_id"] == "retry-pending"
+    assert queued["queue_attempt"] == 1
+    assert queued["max_attempts"] == 3
+    assert queued["attempts_remaining"] == 2
+    assert queued["retry_pending"] is True
+    assert [job["status"] for job in evaluation["recent_terminal_jobs"]] == [
+        "SUCCEEDED",
+        "RETRY_EXHAUSTED",
+    ]
+    assert [attempt["status"] for attempt in evaluation["recent_attempts"]] == [
+        "SUCCEEDED",
+        "TIMED_OUT",
+    ]
+    assert evaluation["latest_job"]["status"] == "SUCCEEDED"
+    assert "must not leak" not in json.dumps(evaluation)
+
+
+def test_evaluation_snapshot_marks_expired_running_lease_without_mutation(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    queue = PersistentJobQueue(state)
+    queue.enqueue(Job("stale", {"managed_run_id": "managed-eval"}, max_attempts=2))
+    assert queue.claim(job_id="stale", lease_seconds=30) is not None
+
+    with sqlite3.connect(queue.path) as connection:
+        connection.execute(
+            "UPDATE jobs SET lease_until=? WHERE job_id=?",
+            ("2020-01-01T00:00:00+00:00", "stale"),
+        )
+        connection.commit()
+
+    before = queue.get("stale")
+    evaluation = build_runtime_snapshot(
+        state, managed_run_id="managed-eval"
+    )["evaluation"]
+    after = queue.get("stale")
+
+    assert evaluation["queue_health"] == "WARN"
+    assert "EXPIRED_RUNNING_LEASE" in evaluation["queue_issues"]
+    assert evaluation["active_jobs"][0]["lease_expired"] is True
+    assert before.status == after.status
+    assert before.attempt == after.attempt
+    assert after.status.value == "RUNNING"
+
+
+def test_evaluation_snapshot_reports_unreadable_queue_without_repairing_it(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    queue_path = state / "system" / "evaluation-jobs" / "queue.sqlite"
+    queue_path.parent.mkdir(parents=True)
+    original = b"not-a-sqlite-database"
+    queue_path.write_bytes(original)
+
+    evaluation = build_runtime_snapshot(state, managed_run_id="managed-eval")[
+        "evaluation"
+    ]
+
+    assert evaluation["status"] == "UNAVAILABLE"
+    assert evaluation["queue_health"] == "UNAVAILABLE"
+    assert evaluation["queue_issues"] == ["QUEUE_UNREADABLE"]
+    assert queue_path.read_bytes() == original
+
+
+def test_evaluation_attempt_history_filters_managed_run_and_is_bounded(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    records = []
+    for index in range(25):
+        records.append(
+            {
+                "managed_run_id": "managed-a",
+                "job_id": f"job-{index}",
+                "status": "SUCCEEDED",
+                "queue_attempt": 1,
+                "max_attempts": 2,
+                "execution_mode": "local_scheduler",
+                "isolated": False,
+                "timeout_enforced": False,
+            }
+        )
+    records.append(
+        {
+            "managed_run_id": "managed-b",
+            "job_id": "foreign-job",
+            "status": "FAILED",
+            "queue_attempt": 1,
+            "max_attempts": 1,
+            "error_class": "ValueError",
+        }
+    )
+    (system / "evaluation-jobs.jsonl").write_text(
+        "".join(json.dumps(record) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+    evaluation = build_runtime_snapshot(state, managed_run_id="managed-a")[
+        "evaluation"
+    ]
+
+    assert len(evaluation["recent_attempts"]) == 20
+    assert evaluation["recent_attempts"][0]["job_id"] == "job-24"
+    assert evaluation["recent_attempts"][-1]["job_id"] == "job-5"
+    assert evaluation["latest_job"]["job_id"] == "job-24"
+    assert all(
+        attempt["job_id"] != "foreign-job"
+        for attempt in evaluation["recent_attempts"]
+    )

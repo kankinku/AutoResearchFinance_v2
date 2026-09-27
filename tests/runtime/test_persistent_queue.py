@@ -110,3 +110,26 @@ def test_cancel_queued_records_owner_exit(tmp_path: Path) -> None:
     cancelled = queue.get("owned")
     assert cancelled.status is JobStatus.CANCELLED
     assert cancelled.error_class == "OwnerExited"
+
+
+
+def test_snapshot_jobs_with_status_distinguishes_empty_and_unavailable_store(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    queue = PersistentJobQueue(state)
+
+    jobs, status = queue.snapshot_jobs_with_status()
+
+    assert jobs == ()
+    assert status == "EMPTY"
+    assert not state.exists()
+
+    queue.path.parent.mkdir(parents=True)
+    queue.path.write_bytes(b"invalid sqlite")
+
+    jobs, status = queue.snapshot_jobs_with_status()
+
+    assert jobs == ()
+    assert status == "UNAVAILABLE"
+    assert queue.path.read_bytes() == b"invalid sqlite"

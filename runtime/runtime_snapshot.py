@@ -10,7 +10,9 @@ from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import Job, JobStatus
 from runtime.runtime_contracts import (
+    EvaluationAttemptSnapshot,
     EvaluationJobSnapshot,
+    EvaluationRetrySummary,
     EvaluationRuntimeSnapshot,
     EvidenceRuntimeSnapshot,
     KnowledgeRuntimeSnapshot,
@@ -97,12 +99,20 @@ def read_runtime_snapshot(
 ) -> RuntimeSnapshot:
     research_payload = _read_json(state_dir / "system" / "autoresearch.json")
     research = _research_snapshot(research_payload)
-    jobs = _jobs_snapshot(state_dir, managed_run_id=managed_run_id)
+    recent_attempts = _recent_attempt_records(
+        state_dir,
+        managed_run_id=managed_run_id,
+    )
+    jobs = _jobs_snapshot(
+        state_dir,
+        managed_run_id=managed_run_id,
+        recent_attempts=recent_attempts,
+    )
     evidence = _evidence_snapshot(
         state_dir,
         research_run_id=research.research_run_id,
     )
-    latest_job = _latest_job_record(state_dir, managed_run_id=managed_run_id)
+    latest_job = _latest_job_record(recent_attempts)
     workers = _worker_snapshots(state_dir)
     llm = _llm_snapshot(state_dir)
     recovery = _recovery_snapshot(state_dir, recovery_state=recovery_state)
@@ -369,50 +379,130 @@ def _jobs_snapshot(
     state_dir: Path,
     *,
     managed_run_id: str | None,
+    recent_attempts: list[EvaluationAttemptSnapshot],
 ) -> EvaluationRuntimeSnapshot:
     queue = PersistentJobQueue(state_dir)
-    try:
-        jobs = queue.snapshot_jobs(managed_run_id=managed_run_id)
-    except (OSError, TypeError, ValueError):
-        return EvaluationRuntimeSnapshot(status="UNAVAILABLE")
+    jobs, read_status = queue.snapshot_jobs_with_status(managed_run_id=managed_run_id)
+    if read_status == "UNAVAILABLE":
+        return EvaluationRuntimeSnapshot(
+            status="UNAVAILABLE",
+            queue_health="UNAVAILABLE",
+            queue_issues=["QUEUE_UNREADABLE"],
+            recent_attempts=recent_attempts,
+        )
 
     counts: dict[str, int] = {}
     for job in jobs:
         counts[job.status.value] = counts.get(job.status.value, 0) + 1
+
+    now = datetime.now(timezone.utc)
+    terminal_statuses = {
+        JobStatus.SUCCEEDED,
+        JobStatus.FAILED,
+        JobStatus.TIMED_OUT,
+        JobStatus.CANCELLED,
+        JobStatus.RETRY_EXHAUSTED,
+    }
+    terminal = [job for job in jobs if job.status in terminal_statuses]
+    issues = _queue_health_issues(jobs, now=now)
+    retry_summary = EvaluationRetrySummary(
+        jobs_with_retries=sum(job.attempt >= 2 for job in jobs),
+        retries_used=sum(max(0, job.attempt - 1) for job in jobs),
+        retry_pending_jobs=sum(
+            job.status is JobStatus.QUEUED and job.attempt > 0 for job in jobs
+        ),
+        retry_exhausted_jobs=counts.get(JobStatus.RETRY_EXHAUSTED.value, 0),
+    )
     return EvaluationRuntimeSnapshot(
         status="READY",
+        queue_health="WARN" if issues else "HEALTHY",
+        queue_issues=issues,
         counts=counts,
+        total_jobs=len(jobs),
+        terminal_jobs=len(terminal),
+        retry_summary=retry_summary,
         active_jobs=[
-            _job_summary(job) for job in jobs if job.status is JobStatus.RUNNING
+            _job_summary(job, now=now)
+            for job in jobs
+            if job.status is JobStatus.RUNNING
         ],
         queued_jobs=[
-            _job_summary(job) for job in jobs if job.status is JobStatus.QUEUED
+            _job_summary(job, now=now)
+            for job in jobs
+            if job.status is JobStatus.QUEUED
         ],
+        recent_terminal_jobs=[
+            _job_summary(job, now=now) for job in reversed(terminal[-20:])
+        ],
+        recent_attempts=recent_attempts,
     )
 
 
-def _job_summary(job: Job) -> EvaluationJobSnapshot:
+def _queue_health_issues(jobs: tuple[Job, ...], *, now: datetime) -> list[str]:
+    issues: list[str] = []
+    if any(
+        job.status is JobStatus.RUNNING
+        and job.lease_until is not None
+        and job.lease_until <= now
+        for job in jobs
+    ):
+        issues.append("EXPIRED_RUNNING_LEASE")
+    if any(
+        job.status is JobStatus.RUNNING and job.lease_until is None
+        for job in jobs
+    ):
+        issues.append("RUNNING_LEASE_MISSING")
+    if any(
+        job.attempt < 0 or job.attempt > job.max_attempts
+        for job in jobs
+    ):
+        issues.append("ATTEMPT_RANGE_INVALID")
+    if any(
+        job.status is JobStatus.QUEUED
+        and job.attempt > 0
+        and job.attempt >= job.max_attempts
+        for job in jobs
+    ):
+        issues.append("QUEUED_WITHOUT_ATTEMPTS_REMAINING")
+    if any(job.status is JobStatus.RETRY_EXHAUSTED for job in jobs):
+        issues.append("RETRY_EXHAUSTED_PRESENT")
+    if any(job.status in {JobStatus.FAILED, JobStatus.TIMED_OUT} for job in jobs):
+        issues.append("TERMINAL_FAILURE_PRESENT")
+    return issues
+
+
+def _job_summary(job: Job, *, now: datetime) -> EvaluationJobSnapshot:
+    lease_expired = (
+        job.status is JobStatus.RUNNING
+        and job.lease_until is not None
+        and job.lease_until <= now
+    )
     return EvaluationJobSnapshot(
         job_id=job.job_id,
         status=job.status.value,
         queue_attempt=job.attempt,
         max_attempts=job.max_attempts,
+        retries_used=max(0, job.attempt - 1),
+        attempts_remaining=max(0, job.max_attempts - job.attempt),
+        retry_pending=job.status is JobStatus.QUEUED and job.attempt > 0,
         error_class=job.error_class,
         lease_until=job.lease_until.isoformat() if job.lease_until is not None else None,
+        lease_expired=lease_expired,
     )
 
 
-def _latest_job_record(
+def _recent_attempt_records(
     state_dir: Path,
     *,
     managed_run_id: str | None,
-) -> LatestEvaluationJobSnapshot | None:
+) -> list[EvaluationAttemptSnapshot]:
     path = state_dir / "system" / "evaluation-jobs.jsonl"
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return None
-    for raw in reversed(lines[-512:]):
+        return []
+    attempts: list[EvaluationAttemptSnapshot] = []
+    for raw in reversed(lines[-1024:]):
         if not raw.strip():
             continue
         try:
@@ -423,20 +513,45 @@ def _latest_job_record(
             continue
         if managed_run_id is not None and payload.get("managed_run_id") != managed_run_id:
             continue
-        return LatestEvaluationJobSnapshot(
-            job_id=_text(payload.get("job_id")),
-            status=_text(payload.get("status")),
-            queue_attempt=_int_or_none(payload.get("queue_attempt")),
-            max_attempts=_int_or_none(payload.get("max_attempts")),
-            error_class=_text(payload.get("error_class")),
-            execution_mode=_text(payload.get("execution_mode")),
-            isolated=payload.get("isolated") is True,
-            timeout_enforced=payload.get("timeout_enforced") is True,
-            research_run_id=_text(payload.get("research_run_id")),
-            attempt_id=_text(payload.get("attempt_id")),
-            generation=_int_or_none(payload.get("generation")),
+        attempts.append(
+            EvaluationAttemptSnapshot(
+                job_id=_text(payload.get("job_id")),
+                status=_text(payload.get("status")),
+                queue_attempt=_int_or_none(payload.get("queue_attempt")),
+                max_attempts=_int_or_none(payload.get("max_attempts")),
+                error_class=_text(payload.get("error_class")),
+                execution_mode=_text(payload.get("execution_mode")),
+                isolated=payload.get("isolated") is True,
+                timeout_enforced=payload.get("timeout_enforced") is True,
+                research_run_id=_text(payload.get("research_run_id")),
+                attempt_id=_text(payload.get("attempt_id")),
+                generation=_int_or_none(payload.get("generation")),
+            )
         )
-    return None
+        if len(attempts) >= 20:
+            break
+    return attempts
+
+
+def _latest_job_record(
+    attempts: list[EvaluationAttemptSnapshot],
+) -> LatestEvaluationJobSnapshot | None:
+    if not attempts:
+        return None
+    attempt = attempts[0]
+    return LatestEvaluationJobSnapshot(
+        job_id=attempt.job_id,
+        status=attempt.status,
+        queue_attempt=attempt.queue_attempt,
+        max_attempts=attempt.max_attempts,
+        error_class=attempt.error_class,
+        execution_mode=attempt.execution_mode,
+        isolated=attempt.isolated,
+        timeout_enforced=attempt.timeout_enforced,
+        research_run_id=attempt.research_run_id,
+        attempt_id=attempt.attempt_id,
+        generation=attempt.generation,
+    )
 
 
 def _evidence_snapshot(

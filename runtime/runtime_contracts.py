@@ -69,8 +69,33 @@ class EvaluationJobSnapshot(RuntimeModel):
     status: str
     queue_attempt: int = 0
     max_attempts: int = 1
+    retries_used: int = 0
+    attempts_remaining: int = 0
+    retry_pending: bool = False
     error_class: str | None = None
     lease_until: str | None = None
+    lease_expired: bool = False
+
+
+class EvaluationAttemptSnapshot(RuntimeModel):
+    job_id: str | None = None
+    status: str | None = None
+    queue_attempt: int | None = None
+    max_attempts: int | None = None
+    error_class: str | None = None
+    execution_mode: str | None = None
+    isolated: bool = False
+    timeout_enforced: bool = False
+    research_run_id: str | None = None
+    attempt_id: str | None = None
+    generation: int | None = None
+
+
+class EvaluationRetrySummary(RuntimeModel):
+    jobs_with_retries: int = 0
+    retries_used: int = 0
+    retry_pending_jobs: int = 0
+    retry_exhausted_jobs: int = 0
 
 
 class LatestEvaluationJobSnapshot(RuntimeModel):
@@ -89,9 +114,16 @@ class LatestEvaluationJobSnapshot(RuntimeModel):
 
 class EvaluationRuntimeSnapshot(RuntimeModel):
     status: str = "READY"
+    queue_health: Literal["HEALTHY", "WARN", "UNAVAILABLE"] = "HEALTHY"
+    queue_issues: list[str] = Field(default_factory=list)
     counts: dict[str, int] = Field(default_factory=dict)
+    total_jobs: int = 0
+    terminal_jobs: int = 0
+    retry_summary: EvaluationRetrySummary = Field(default_factory=EvaluationRetrySummary)
     active_jobs: list[EvaluationJobSnapshot] = Field(default_factory=list)
     queued_jobs: list[EvaluationJobSnapshot] = Field(default_factory=list)
+    recent_terminal_jobs: list[EvaluationJobSnapshot] = Field(default_factory=list)
+    recent_attempts: list[EvaluationAttemptSnapshot] = Field(default_factory=list)
     latest_job: LatestEvaluationJobSnapshot | None = None
 
 
