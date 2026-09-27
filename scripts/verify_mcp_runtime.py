@@ -9,24 +9,19 @@ from typing import Any
 
 _REQUIRED_TOOLS = frozenset(
     {
-        "get_research_context",
+        "initialize_research_state",
+        "get_workspace_status",
+        "validate_strategy",
+        "import_strategies",
+        "list_strategies",
         "list_features",
         "get_research_evidence",
         "get_dashboard_status",
-        "submit_research_intent",
         "run_evaluation",
         "check_system",
         "start_system",
         "get_system_status",
         "stop_system",
-        "initialize_research_state",
-        "get_workspace_status",
-        "set_research_mode",
-        "validate_research_cache",
-        "validate_strategy",
-        "import_strategies",
-        "list_strategies",
-        "plan_generation",
     }
 )
 

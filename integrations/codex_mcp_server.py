@@ -23,6 +23,36 @@ _SUBMIT_INTENT_REPLACEMENTS = (
     "get_system_status",
 )
 
+_TARGET_PUBLIC_TOOL_NAMES = frozenset(
+    {
+        "initialize_research_state",
+        "get_workspace_status",
+        "validate_strategy",
+        "import_strategies",
+        "list_strategies",
+        "list_features",
+        "get_research_evidence",
+        "get_dashboard_status",
+        "run_evaluation",
+        "check_system",
+        "start_system",
+        "get_system_status",
+        "stop_system",
+    }
+)
+
+_LEGACY_INTERNAL_REPLACEMENTS: dict[str, tuple[str, ...]] = {
+    "set_research_mode": ("get_workspace_status",),
+    "validate_research_cache": (),
+    "plan_generation": ("start_system", "run_evaluation"),
+    "get_research_context": (
+        "list_features",
+        "get_research_evidence",
+        "get_dashboard_status",
+        "get_system_status",
+    ),
+}
+
 
 class CodexMCPServer:
     def __init__(self, *, state_dir: Path, project_root: Path) -> None:
@@ -79,6 +109,7 @@ class CodexMCPServer:
             return _tool_error(request_id, "tool arguments must be an object")
         try:
             payload = self._dispatch(name, dict(arguments))
+            payload = _with_legacy_compatibility(name, payload)
         except (OSError, PermissionError, TypeError, ValueError):
             return _tool_error(request_id, "tool request failed")
         return success(request_id, {"content": text_content(payload), "isError": False})
@@ -211,19 +242,7 @@ class CodexMCPServer:
         return self.services.catalog.research_features()
 
     def _submit_intent(self, arguments: dict[str, Any]) -> dict[str, object]:
-        payload = self.services.research.validate_and_record_intent(arguments)
-        return {
-            **payload,
-            "_compatibility": {
-                "status": "DEPRECATED",
-                "replacement_tools": list(_SUBMIT_INTENT_REPLACEMENTS),
-                "note": (
-                    "This tool only validates and records an intent; it does not execute "
-                    "research. Use start_system for managed research or run_evaluation "
-                    "for one-shot evaluation."
-                ),
-            },
-        }
+        return self.services.research.validate_and_record_intent(arguments)
 
     def _run_evaluation(self, arguments: dict[str, Any]) -> dict[str, object]:
         method = str(arguments.get("method", "grid"))
@@ -270,7 +289,9 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _tools() -> list[dict[str, object]]:
+def _all_tools() -> list[dict[str, object]]:
+    """Return public and compatibility-only tool definitions."""
+
     empty = {"type": "object", "properties": {}, "additionalProperties": False}
     return [
         {
@@ -486,6 +507,50 @@ def _tools() -> list[dict[str, object]]:
             "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
         },
     ]
+
+
+def _tools() -> list[dict[str, object]]:
+    """Return the default public MCP surface."""
+
+    return [
+        tool
+        for tool in _all_tools()
+        if isinstance(tool.get("name"), str)
+        and tool["name"] in _TARGET_PUBLIC_TOOL_NAMES
+    ]
+
+
+def _with_legacy_compatibility(name: str, payload: object) -> object:
+    if not isinstance(payload, dict):
+        return payload
+    if name == "submit_research_intent":
+        return {
+            **payload,
+            "_compatibility": {
+                "status": "DEPRECATED",
+                "replacement_tools": list(_SUBMIT_INTENT_REPLACEMENTS),
+                "note": (
+                    "This tool only validates and records an intent; it does not execute "
+                    "research. Use start_system for managed research or run_evaluation "
+                    "for one-shot evaluation."
+                ),
+            },
+        }
+    replacements = _LEGACY_INTERNAL_REPLACEMENTS.get(name)
+    if replacements is None:
+        return payload
+    note = (
+        "This compatibility-only tool is no longer advertised in tools/list. "
+        "Use the listed public replacement tools or the documented host/CLI path."
+    )
+    return {
+        **payload,
+        "_compatibility": {
+            "status": "LEGACY_INTERNAL_TOOL",
+            "replacement_tools": list(replacements),
+            "note": note,
+        },
+    }
 
 
 def _system_schema() -> dict[str, object]:

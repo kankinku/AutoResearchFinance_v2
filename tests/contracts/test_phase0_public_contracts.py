@@ -6,7 +6,7 @@ from pathlib import Path
 from cli import build_parser
 from dashboard.app import create_app
 from dashboard.service import DashboardService
-from integrations.codex_mcp_server import _tools, create_mcp_server
+from integrations.codex_mcp_server import _all_tools, create_mcp_server
 from orchestration.evaluation_runner import run_local_evaluation
 from orchestration.generation import CANONICAL_STAGES
 from research.llm.codex_schema import research_intent_schema
@@ -129,7 +129,7 @@ def test_phase0_cli_command_surface_is_frozen() -> None:
 
 
 def test_phase0_mcp_tool_surface_is_frozen() -> None:
-    tools = _tools()
+    tools = _all_tools()
     by_name = {str(tool["name"]): tool for tool in tools}
     assert BASELINE_MCP_TOOLS.issubset(by_name)
     assert set(by_name) == BASELINE_MCP_TOOLS | PHASE4_MCP_TOOLS

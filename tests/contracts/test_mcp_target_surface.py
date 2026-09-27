@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from integrations.codex_mcp_server import _tools
+from integrations.codex_mcp_server import _all_tools, _tools
 
 INVENTORY_PATH = Path("docs/operations/mcp-phase3-6-1-tool-inventory.json")
 TARGET_PATH = Path("docs/operations/mcp-phase3-6-2-target-surface.json")
@@ -52,10 +52,10 @@ def test_phase3_6_2_target_surface_has_exact_13_long_term_tools() -> None:
     )
 
 
-def test_phase3_6_2_target_partition_covers_current_18_tool_surface() -> None:
-    current = {
+def test_phase3_6_2_target_partition_covers_legacy_18_tool_surface() -> None:
+    legacy = {
         str(tool["name"])
-        for tool in _tools()
+        for tool in _all_tools()
         if isinstance(tool, dict) and isinstance(tool.get("name"), str)
     }
     target = _load(TARGET_PATH)
@@ -67,9 +67,9 @@ def test_phase3_6_2_target_partition_covers_current_18_tool_surface() -> None:
         if isinstance(record, dict) and isinstance(record.get("name"), str)
     }
 
-    assert len(current) == 18
+    assert len(legacy) == 18
     assert removed == EXPECTED_REMOVED
-    assert EXPECTED_TARGET | EXPECTED_REMOVED == current
+    assert EXPECTED_TARGET | EXPECTED_REMOVED == legacy
     assert EXPECTED_TARGET.isdisjoint(EXPECTED_REMOVED)
 
 
@@ -132,22 +132,20 @@ def test_phase3_6_2_compatibility_policy_avoids_alias_sprawl_and_hard_removal() 
     assert compatibility["hidden_dispatch_is_security_boundary"] is False
 
 
-def test_phase3_6_2_does_not_change_current_tools_list_yet() -> None:
+def test_phase3_6_4_advertises_exact_target_13_tools() -> None:
     names = {
         str(tool["name"])
         for tool in _tools()
         if isinstance(tool, dict) and isinstance(tool.get("name"), str)
     }
 
-    assert len(names) == 18
-    assert EXPECTED_TARGET < names
-    assert EXPECTED_REMOVED < names
+    assert len(names) == 13
+    assert names == EXPECTED_TARGET
+    assert names.isdisjoint(EXPECTED_REMOVED)
 
 
-
-def test_phase3_6_3_soft_deprecation_keeps_18_tools_and_original_intent_schema() -> None:
-    tools = _tools()
-    by_name = {str(tool["name"]): tool for tool in tools}
+def test_phase3_6_3_soft_deprecation_definition_remains_in_legacy_catalog() -> None:
+    by_name = {str(tool["name"]): tool for tool in _all_tools()}
 
     assert len(by_name) == 18
     intent_tool = by_name["submit_research_intent"]

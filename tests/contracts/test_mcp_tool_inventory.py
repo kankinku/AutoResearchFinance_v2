@@ -4,7 +4,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from integrations.codex_mcp_server import _tools
+from integrations.codex_mcp_server import _all_tools
 
 INVENTORY_PATH = Path("docs/operations/mcp-phase3-6-1-tool-inventory.json")
 CLASSIFICATIONS = {
@@ -31,7 +31,7 @@ def _inventory() -> dict[str, object]:
 def test_phase3_6_1_inventory_covers_exact_public_mcp_surface() -> None:
     actual = {
         str(tool["name"])
-        for tool in _tools()
+        for tool in _all_tools()
         if isinstance(tool, dict) and isinstance(tool.get("name"), str)
     }
     payload = _inventory()
@@ -95,7 +95,7 @@ def test_phase3_6_1_inventory_identifies_only_current_dead_end_as_deprecate_cand
 
 
 def test_phase3_6_1_does_not_change_tool_names_or_input_schemas() -> None:
-    by_name = {str(tool["name"]): tool for tool in _tools()}
+    by_name = {str(tool["name"]): tool for tool in _all_tools()}
 
     assert set(by_name) == {
         "initialize_research_state",

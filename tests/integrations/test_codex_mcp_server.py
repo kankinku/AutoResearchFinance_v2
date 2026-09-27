@@ -34,17 +34,12 @@ def test_mcp_server_lists_only_safe_research_tools(tmp_path: Path) -> None:
     assert names == {
         "initialize_research_state",
         "get_workspace_status",
-        "set_research_mode",
-        "validate_research_cache",
         "validate_strategy",
         "import_strategies",
         "list_strategies",
-        "plan_generation",
-        "get_research_context",
         "list_features",
         "get_dashboard_status",
         "get_research_evidence",
-        "submit_research_intent",
         "run_evaluation",
         "check_system",
         "start_system",
@@ -428,7 +423,7 @@ def test_phase4_mcp_strategy_tools_reject_project_escape_and_unsafe_repository(
 
 
 
-def test_submit_research_intent_is_soft_deprecated_but_still_listed(
+def test_submit_research_intent_is_hidden_but_legacy_direct_call_still_works(
     tmp_path: Path,
 ) -> None:
     server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
@@ -438,21 +433,72 @@ def test_submit_research_intent_is_soft_deprecated_but_still_listed(
     assert isinstance(result, dict)
     tools = result["tools"]
     assert isinstance(tools, list)
-    by_name = {
-        str(tool["name"]): tool
+    names = {
+        str(tool["name"])
         for tool in tools
         if isinstance(tool, dict) and isinstance(tool.get("name"), str)
     }
+    assert "submit_research_intent" not in names
 
-    assert len(by_name) == 18
-    deprecated = by_name["submit_research_intent"]
-    description = str(deprecated["description"])
-    assert description.startswith("[DEPRECATED]")
-    for replacement in (
-        "start_system",
-        "run_evaluation",
-        "validate_strategy",
-        "get_system_status",
-    ):
-        assert replacement in description
-    assert "deprecated" not in deprecated
+    valid = {
+        "mode": "structure",
+        "parent_ids": ["champion-1"],
+        "operations": [],
+        "rationale": "legacy compatibility",
+    }
+    payload = _text(
+        _call(
+            server,
+            {
+                "jsonrpc": "2.0",
+                "id": 41,
+                "method": "tools/call",
+                "params": {"name": "submit_research_intent", "arguments": valid},
+            },
+        )
+    )
+    assert payload["status"] == "VALIDATED"
+    assert payload["_compatibility"]["status"] == "DEPRECATED"
+
+
+def test_hidden_legacy_internal_tools_remain_directly_callable_with_migration_metadata(
+    tmp_path: Path,
+) -> None:
+    _write_phase4_strategy(tmp_path)
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+
+    calls = (
+        ("set_research_mode", {"mode": "paper"}, "get_workspace_status"),
+        ("validate_research_cache", {}, None),
+        (
+            "plan_generation",
+            {
+                "parent_ids": ["phase4-mcp"],
+                "method": "random",
+                "count": 2,
+                "seed": 1,
+            },
+            "start_system",
+        ),
+        ("get_research_context", {}, "list_features"),
+    )
+    for index, (name, arguments, expected_replacement) in enumerate(calls, start=50):
+        payload = _text(
+            _call(
+                server,
+                {
+                    "jsonrpc": "2.0",
+                    "id": index,
+                    "method": "tools/call",
+                    "params": {"name": name, "arguments": arguments},
+                },
+            )
+        )
+        compatibility = payload["_compatibility"]
+        assert compatibility["status"] == "LEGACY_INTERNAL_TOOL"
+        replacements = compatibility["replacement_tools"]
+        assert isinstance(replacements, list)
+        if expected_replacement is None:
+            assert replacements == []
+        else:
+            assert expected_replacement in replacements
