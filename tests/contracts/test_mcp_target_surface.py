@@ -142,3 +142,14 @@ def test_phase3_6_2_does_not_change_current_tools_list_yet() -> None:
     assert len(names) == 18
     assert EXPECTED_TARGET < names
     assert EXPECTED_REMOVED < names
+
+
+
+def test_phase3_6_3_soft_deprecation_keeps_18_tools_and_original_intent_schema() -> None:
+    tools = _tools()
+    by_name = {str(tool["name"]): tool for tool in tools}
+
+    assert len(by_name) == 18
+    intent_tool = by_name["submit_research_intent"]
+    assert str(intent_tool["description"]).startswith("[DEPRECATED]")
+    assert set(intent_tool) == {"name", "description", "inputSchema"}

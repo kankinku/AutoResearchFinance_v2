@@ -146,8 +146,27 @@ def test_mcp_server_validates_and_records_intent_but_rejects_code_changes(tmp_pa
             "params": {"name": "submit_research_intent", "arguments": valid},
         },
     )
-    assert _text(accepted)["status"] == "VALIDATED"
-    assert (tmp_path / "llm" / "intents.jsonl").is_file()
+    accepted_payload = _text(accepted)
+    assert accepted_payload["status"] == "VALIDATED"
+    assert accepted_payload["_compatibility"] == {
+        "status": "DEPRECATED",
+        "replacement_tools": [
+            "start_system",
+            "run_evaluation",
+            "validate_strategy",
+            "get_system_status",
+        ],
+        "note": (
+            "This tool only validates and records an intent; it does not execute "
+            "research. Use start_system for managed research or run_evaluation "
+            "for one-shot evaluation."
+        ),
+    }
+    intent_path = tmp_path / "llm" / "intents.jsonl"
+    assert intent_path.is_file()
+    persisted = intent_path.read_text(encoding="utf-8")
+    assert "_compatibility" not in persisted
+    assert "DEPRECATED" not in persisted
 
     rejected = _call(
         server,
@@ -406,3 +425,34 @@ def test_phase4_mcp_strategy_tools_reject_project_escape_and_unsafe_repository(
     assert isinstance(unsafe_result, dict)
     assert unsafe_result["isError"] is True
     assert "example.com" not in str(unsafe_repo)
+
+
+
+def test_submit_research_intent_is_soft_deprecated_but_still_listed(
+    tmp_path: Path,
+) -> None:
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+
+    response = _call(server, {"jsonrpc": "2.0", "id": 40, "method": "tools/list"})
+    result = response["result"]
+    assert isinstance(result, dict)
+    tools = result["tools"]
+    assert isinstance(tools, list)
+    by_name = {
+        str(tool["name"]): tool
+        for tool in tools
+        if isinstance(tool, dict) and isinstance(tool.get("name"), str)
+    }
+
+    assert len(by_name) == 18
+    deprecated = by_name["submit_research_intent"]
+    description = str(deprecated["description"])
+    assert description.startswith("[DEPRECATED]")
+    for replacement in (
+        "start_system",
+        "run_evaluation",
+        "validate_strategy",
+        "get_system_status",
+    ):
+        assert replacement in description
+    assert "deprecated" not in deprecated

@@ -16,6 +16,13 @@ from runtime.system_controller import SystemLaunchConfig
 
 _EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
+_SUBMIT_INTENT_REPLACEMENTS = (
+    "start_system",
+    "run_evaluation",
+    "validate_strategy",
+    "get_system_status",
+)
+
 
 class CodexMCPServer:
     def __init__(self, *, state_dir: Path, project_root: Path) -> None:
@@ -204,7 +211,19 @@ class CodexMCPServer:
         return self.services.catalog.research_features()
 
     def _submit_intent(self, arguments: dict[str, Any]) -> dict[str, object]:
-        return self.services.research.validate_and_record_intent(arguments)
+        payload = self.services.research.validate_and_record_intent(arguments)
+        return {
+            **payload,
+            "_compatibility": {
+                "status": "DEPRECATED",
+                "replacement_tools": list(_SUBMIT_INTENT_REPLACEMENTS),
+                "note": (
+                    "This tool only validates and records an intent; it does not execute "
+                    "research. Use start_system for managed research or run_evaluation "
+                    "for one-shot evaluation."
+                ),
+            },
+        }
 
     def _run_evaluation(self, arguments: dict[str, Any]) -> dict[str, object]:
         method = str(arguments.get("method", "grid"))
@@ -394,7 +413,12 @@ def _tools() -> list[dict[str, object]]:
         },
         {
             "name": "submit_research_intent",
-            "description": "Validate and record a ResearchIntent.",
+            "description": (
+                "[DEPRECATED] Validate and record a ResearchIntent only; this does not "
+                "execute research. Use start_system for managed research, run_evaluation "
+                "for one-shot evaluation, validate_strategy for static validation, and "
+                "get_system_status for progress."
+            ),
             "inputSchema": research_intent_schema(),
         },
         {
