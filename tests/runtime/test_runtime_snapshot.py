@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from memory.evidence_store import EvidenceStore
@@ -318,3 +319,152 @@ def test_runtime_snapshot_does_not_treat_initialized_frontier_as_live_state(
 
     assert payload["strategy_state"]["frontier_status"] == "NOT_CONNECTED"
     assert payload["strategy_state"]["rescue_status"] == "NOT_CONNECTED"
+
+
+
+def test_research_snapshot_reports_precise_generation_progress(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    now = datetime.now(timezone.utc)
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "COMPLETED_WITH_ERRORS",
+                "research_run_id": "research-progress",
+                "current_generation": 3,
+                "current_phase": "COMPLETED",
+                "completed_generations": 3,
+                "requested_generations": 3,
+                "phase_started_at": (now - timedelta(seconds=5)).isoformat(),
+                "last_event": "run_completed",
+                "last_event_at": (now - timedelta(seconds=4)).isoformat(),
+                "generations": [
+                    {"generation": 1, "status": "REJECT"},
+                    {"generation": 2, "status": "FALLBACK"},
+                    {"generation": 3, "status": "DEGRADED"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    research = build_runtime_snapshot(state, managed_run_id=None)["research"]
+
+    assert research["completion_percent"] == 100.0
+    assert research["last_completed_generation"] == 3
+    assert research["last_completed_status"] == "DEGRADED"
+    assert research["last_non_degraded_generation"] == 2
+    assert research["phase_age_seconds"] is not None
+    assert research["last_event_age_seconds"] is not None
+    assert research["stale_after_seconds"] is None
+    assert research["is_stale"] is False
+    assert research["consistency_status"] == "OK"
+    assert research["consistency_issues"] == []
+
+
+def test_research_snapshot_marks_stale_backtest_after_conservative_timeout(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    now = datetime.now(timezone.utc)
+    old = (now - timedelta(seconds=1900)).isoformat()
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "RUNNING",
+                "research_run_id": "research-stale",
+                "current_generation": 2,
+                "current_phase": "BACKTESTING",
+                "completed_generations": 1,
+                "requested_generations": 4,
+                "phase_started_at": old,
+                "last_event": "evaluation_started",
+                "last_event_at": old,
+                "generations": [{"generation": 1, "status": "REJECT"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    research = build_runtime_snapshot(state, managed_run_id=None)["research"]
+
+    assert research["completion_percent"] == 25.0
+    assert research["stale_after_seconds"] == 1800.0
+    assert research["last_event_age_seconds"] >= 1800.0
+    assert research["is_stale"] is True
+    assert research["consistency_status"] == "OK"
+
+
+def test_research_snapshot_does_not_mark_valid_long_proposal_stale(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    now = datetime.now(timezone.utc)
+    recent = (now - timedelta(seconds=550)).isoformat()
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "RUNNING",
+                "research_run_id": "research-proposal",
+                "current_generation": 1,
+                "current_phase": "PROPOSING",
+                "completed_generations": 0,
+                "requested_generations": 2,
+                "phase_started_at": recent,
+                "last_event": "proposal_started",
+                "last_event_at": recent,
+                "generations": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    research = build_runtime_snapshot(state, managed_run_id=None)["research"]
+
+    assert research["stale_after_seconds"] == 600.0
+    assert research["is_stale"] is False
+    assert research["consistency_status"] == "OK"
+
+
+def test_research_snapshot_surfaces_projection_consistency_issues(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    system = state / "system"
+    system.mkdir(parents=True)
+    now = datetime.now(timezone.utc).isoformat()
+    (system / "autoresearch.json").write_text(
+        json.dumps(
+            {
+                "status": "COMPLETED",
+                "research_run_id": "research-inconsistent",
+                "current_generation": 4,
+                "current_phase": "BACKTESTING",
+                "completed_generations": 3,
+                "requested_generations": 2,
+                "phase_started_at": now,
+                "last_event": "run_completed",
+                "last_event_at": now,
+                "generations": [{"generation": 1, "status": "REJECT"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    research = build_runtime_snapshot(state, managed_run_id=None)["research"]
+
+    assert research["completion_percent"] == 100.0
+    assert research["consistency_status"] == "WARN"
+    assert set(research["consistency_issues"]) == {
+        "COMPLETED_EXCEEDS_REQUESTED",
+        "GENERATION_RECORD_COUNT_MISMATCH",
+        "CURRENT_GENERATION_EXCEEDS_REQUESTED",
+        "EVENT_PHASE_MISMATCH",
+        "TERMINAL_PHASE_MISMATCH",
+        "COMPLETED_RUN_GENERATION_MISMATCH",
+    }

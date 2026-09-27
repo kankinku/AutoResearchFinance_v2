@@ -27,6 +27,46 @@ from runtime.runtime_contracts import (
     WorkerRuntimeSnapshot,
 )
 
+_EVENT_PHASES: dict[str, str] = {
+    "run_started": "STARTING",
+    "generation_started": "GENERATION",
+    "proposal_started": "PROPOSING",
+    "proposal_completed": "PROPOSING",
+    "proposal_failed": "PROPOSING",
+    "preflight_completed": "VALIDATING",
+    "repair_started": "REPAIRING",
+    "repair_completed": "REPAIRING",
+    "repair_failed": "REPAIRING",
+    "repair_unavailable": "REPAIRING",
+    "repair_skipped_duplicate": "REPAIRING",
+    "evaluation_started": "BACKTESTING",
+    "evaluation_completed": "BACKTESTING",
+    "evaluation_failed": "BACKTESTING",
+    "fallback_evaluation_started": "BACKTESTING",
+    "fallback_evaluation_failed": "BACKTESTING",
+    "generation_completed": "FINALIZING",
+    "run_failed": "FAILED",
+    "run_completed": "COMPLETED",
+    "run_interrupted": "INTERRUPTED",
+}
+_PHASE_STALE_SECONDS: dict[str, float] = {
+    "STARTING": 300.0,
+    "GENERATION": 300.0,
+    "PROPOSING": 600.0,
+    "VALIDATING": 300.0,
+    "REPAIRING": 600.0,
+    "BACKTESTING": 1800.0,
+    "FINALIZING": 300.0,
+}
+_TERMINAL_RESEARCH_STATUSES = {
+    "COMPLETED",
+    "COMPLETED_WITH_ERRORS",
+    "COMPLETED_WITH_FALLBACKS",
+    "FAILED",
+    "INTERRUPTED",
+}
+
+
 
 def build_runtime_snapshot(
     state_dir: Path,
@@ -134,21 +174,151 @@ def _system_snapshot(
 def _research_snapshot(payload: Mapping[str, object] | None) -> ResearchRuntimeSnapshot:
     if payload is None:
         return ResearchRuntimeSnapshot()
+
+    status = _text(payload.get("status")) or "UNKNOWN"
+    current_generation = _int_or_none(payload.get("current_generation"))
+    current_phase = _text(payload.get("current_phase")) or "UNKNOWN"
+    completed = _nonnegative_int(payload.get("completed_generations"))
+    requested = _nonnegative_int(payload.get("requested_generations"))
+    phase_started_at = _text(payload.get("phase_started_at"))
+    last_event = _text(payload.get("last_event"))
+    last_event_at = _text(payload.get("last_event_at"))
+    now = datetime.now(timezone.utc)
+    phase_age = _age_seconds(phase_started_at, now=now)
+    event_age = _age_seconds(last_event_at, now=now)
+    stale_after = _PHASE_STALE_SECONDS.get(current_phase)
+    is_stale = (
+        status == "RUNNING"
+        and stale_after is not None
+        and event_age is not None
+        and event_age > stale_after
+    )
+    records = _generation_records(payload)
+    last_completed = records[-1] if records else None
+    non_degraded = [
+        record for record in records if _text(record.get("status")) != "DEGRADED"
+    ]
+    last_non_degraded = non_degraded[-1] if non_degraded else None
+    issues = _research_consistency_issues(
+        status=status,
+        current_generation=current_generation,
+        current_phase=current_phase,
+        completed=completed,
+        requested=requested,
+        last_event=last_event,
+        records=records,
+    )
+    consistency_status: Literal["OK", "WARN", "UNKNOWN"] = (
+        "UNKNOWN"
+        if status in {"NOT_STARTED", "UNKNOWN"} and not records
+        else "WARN"
+        if issues
+        else "OK"
+    )
     return ResearchRuntimeSnapshot(
-        status=_text(payload.get("status")) or "UNKNOWN",
+        status=status,
         research_run_id=_text(payload.get("research_run_id")),
-        current_generation=_int_or_none(payload.get("current_generation")),
-        current_phase=_text(payload.get("current_phase")) or "UNKNOWN",
-        completed_generations=_nonnegative_int(payload.get("completed_generations")),
-        requested_generations=_nonnegative_int(payload.get("requested_generations")),
-        last_event=_text(payload.get("last_event")),
-        last_event_at=_text(payload.get("last_event_at")),
+        current_generation=current_generation,
+        current_phase=current_phase,
+        completed_generations=completed,
+        requested_generations=requested,
+        completion_percent=_completion_percent(completed, requested),
+        last_completed_generation=(
+            _int_or_none(last_completed.get("generation"))
+            if last_completed is not None
+            else None
+        ),
+        last_completed_status=(
+            _text(last_completed.get("status")) if last_completed is not None else None
+        ),
+        last_non_degraded_generation=(
+            _int_or_none(last_non_degraded.get("generation"))
+            if last_non_degraded is not None
+            else None
+        ),
+        phase_started_at=phase_started_at,
+        phase_age_seconds=phase_age,
+        last_event=last_event,
+        last_event_at=last_event_at,
+        last_event_age_seconds=event_age,
+        stale_after_seconds=stale_after,
+        is_stale=is_stale,
+        consistency_status=consistency_status,
+        consistency_issues=issues,
         repair_attempt=_int_or_none(payload.get("repair_attempt")),
         repair_attempts_allowed=_int_or_none(payload.get("repair_attempts_allowed")),
         error_class=_error_class(payload.get("error")),
         timing_summary=_safe_timing_summary(payload.get("timing_summary")),
         current_intent=_current_intent_snapshot(payload),
     )
+
+
+def _generation_records(
+    payload: Mapping[str, object],
+) -> list[Mapping[str, object]]:
+    raw = payload.get("generations")
+    if not isinstance(raw, list):
+        return []
+    records = [
+        item
+        for item in raw
+        if isinstance(item, Mapping)
+        and _int_or_none(item.get("generation")) is not None
+    ]
+    return sorted(
+        records,
+        key=lambda item: _int_or_none(item.get("generation")) or 0,
+    )
+
+
+def _completion_percent(completed: int, requested: int) -> float:
+    if requested <= 0:
+        return 0.0
+    return round(min(100.0, max(0.0, completed * 100.0 / requested)), 1)
+
+
+def _age_seconds(value: str | None, *, now: datetime) -> float | None:
+    parsed = _datetime(value)
+    if parsed is None:
+        return None
+    return round(max(0.0, (now - parsed).total_seconds()), 3)
+
+
+def _research_consistency_issues(
+    *,
+    status: str,
+    current_generation: int | None,
+    current_phase: str,
+    completed: int,
+    requested: int,
+    last_event: str | None,
+    records: list[Mapping[str, object]],
+) -> list[str]:
+    issues: list[str] = []
+    if requested > 0 and completed > requested:
+        issues.append("COMPLETED_EXCEEDS_REQUESTED")
+    if len(records) != completed:
+        issues.append("GENERATION_RECORD_COUNT_MISMATCH")
+    if current_generation is not None:
+        if current_generation < completed:
+            issues.append("CURRENT_GENERATION_BEHIND_COMPLETED")
+        if requested > 0 and current_generation > requested:
+            issues.append("CURRENT_GENERATION_EXCEEDS_REQUESTED")
+    expected_phase = _EVENT_PHASES.get(last_event or "")
+    if expected_phase is not None and expected_phase != current_phase:
+        issues.append("EVENT_PHASE_MISMATCH")
+    if status.startswith("COMPLETED"):
+        if current_phase != "COMPLETED":
+            issues.append("TERMINAL_PHASE_MISMATCH")
+        if requested > 0 and completed != requested:
+            issues.append("COMPLETED_RUN_GENERATION_MISMATCH")
+    elif status == "FAILED" and current_phase != "FAILED":
+        issues.append("TERMINAL_PHASE_MISMATCH")
+    elif status == "INTERRUPTED" and current_phase != "INTERRUPTED":
+        issues.append("TERMINAL_PHASE_MISMATCH")
+    if status in _TERMINAL_RESEARCH_STATUSES and last_event is None:
+        issues.append("TERMINAL_EVENT_MISSING")
+    return issues
 
 
 def _current_intent_snapshot(payload: Mapping[str, object]) -> ResearchIntentSnapshot:

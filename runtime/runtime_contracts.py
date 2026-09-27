@@ -44,8 +44,19 @@ class ResearchRuntimeSnapshot(RuntimeModel):
     current_phase: str = "UNKNOWN"
     completed_generations: int = 0
     requested_generations: int = 0
+    completion_percent: float = 0.0
+    last_completed_generation: int | None = None
+    last_completed_status: str | None = None
+    last_non_degraded_generation: int | None = None
+    phase_started_at: str | None = None
+    phase_age_seconds: float | None = None
     last_event: str | None = None
     last_event_at: str | None = None
+    last_event_age_seconds: float | None = None
+    stale_after_seconds: float | None = None
+    is_stale: bool = False
+    consistency_status: Literal["OK", "WARN", "UNKNOWN"] = "UNKNOWN"
+    consistency_issues: list[str] = Field(default_factory=list)
     repair_attempt: int | None = None
     repair_attempts_allowed: int | None = None
     error_class: str | None = None
