@@ -7,6 +7,7 @@ import pytest
 
 from application.planning_service import PlanningService
 from application.strategy_service import StrategyService
+from application.workspace_contracts import WorkspaceStatusSnapshot
 from application.workspace_service import WorkspaceService
 from runtime.system_controller import SystemController, SystemLaunchConfig
 from strategy_import.sources import CloneManager
@@ -240,3 +241,88 @@ def test_github_strategy_import_uses_static_clone_boundary_without_network(
     assert result["normalized"] == 1
     assert result["orders_enabled"] is False
     assert not clone_root.exists()
+
+
+
+def test_workspace_status_is_typed_pure_read_before_initialization(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    service = WorkspaceService(state_dir=state, project_root=tmp_path)
+
+    snapshot = WorkspaceStatusSnapshot.model_validate(service.status())
+
+    assert snapshot.schema_version == 1
+    assert snapshot.plane == "BOOTSTRAP_CONFIGURATION"
+    assert snapshot.status == "NOT_INITIALIZED"
+    assert snapshot.initialized_components == []
+    assert snapshot.missing_components == [
+        "champion",
+        "frontier",
+        "knowledge",
+        "rescue_pool",
+        "mode",
+    ]
+    assert snapshot.invalid_components == []
+    assert snapshot.champion == "MISSING"
+    assert snapshot.selected_mode == "paper"
+    assert snapshot.mode_configured is False
+    assert snapshot.orders_enabled is False
+    assert not state.exists()
+
+
+def test_workspace_status_distinguishes_partial_and_invalid_bootstrap_state(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "champion.json").write_text(
+        json.dumps({"schema_version": 1, "status": "EMPTY", "champion": None}),
+        encoding="utf-8",
+    )
+    (state / "mode.json").write_text("{invalid", encoding="utf-8")
+    service = WorkspaceService(state_dir=state, project_root=tmp_path)
+
+    snapshot = WorkspaceStatusSnapshot.model_validate(service.status())
+
+    assert snapshot.status == "PARTIAL"
+    assert snapshot.initialized_components == ["champion"]
+    assert snapshot.invalid_components == ["mode"]
+    assert snapshot.missing_components == ["frontier", "knowledge", "rescue_pool"]
+    assert snapshot.champion == "EMPTY"
+    assert snapshot.mode_configured is False
+    assert snapshot.selected_mode == "paper"
+
+
+def test_workspace_status_reports_complete_bootstrap_configuration(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    service = WorkspaceService(state_dir=state, project_root=tmp_path)
+    service.initialize()
+    manifests = tmp_path / "manifests"
+    manifests.mkdir()
+    (manifests / "valid.json").write_text(
+        json.dumps({"experiment_hash": "hash-1"}),
+        encoding="utf-8",
+    )
+    (state / "audit.jsonl").write_text(
+        json.dumps({"event": "fixture"}) + "\n",
+        encoding="utf-8",
+    )
+
+    snapshot = WorkspaceStatusSnapshot.model_validate(service.status())
+
+    assert snapshot.status == "READY"
+    assert snapshot.initialized_components == [
+        "champion",
+        "frontier",
+        "knowledge",
+        "rescue_pool",
+        "mode",
+    ]
+    assert snapshot.missing_components == []
+    assert snapshot.invalid_components == []
+    assert snapshot.champion == "EMPTY"
+    assert snapshot.frontier_families == 0
+    assert snapshot.selected_mode == "paper"
+    assert snapshot.mode_configured is True
+    assert snapshot.audit_records == 1
+    assert snapshot.validated_manifests == 1
+    assert snapshot.orders_enabled is False

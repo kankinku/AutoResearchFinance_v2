@@ -305,7 +305,10 @@ def _all_tools() -> list[dict[str, object]]:
         {
             "name": "get_workspace_status",
             "description": (
-                "Read sanitized research workspace state, mode, audit count, and manifest count."
+                "Read bootstrap/configuration status: initialization completeness, selected "
+                "research mode, audit count, and validated manifest count. For managed "
+                "runtime health use get_system_status; for performance data use "
+                "get_dashboard_status."
             ),
             "inputSchema": empty,
         },

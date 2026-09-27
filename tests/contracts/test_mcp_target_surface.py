@@ -151,3 +151,19 @@ def test_phase3_6_3_soft_deprecation_definition_remains_in_legacy_catalog() -> N
     intent_tool = by_name["submit_research_intent"]
     assert str(intent_tool["description"]).startswith("[DEPRECATED]")
     assert set(intent_tool) == {"name", "description", "inputSchema"}
+
+
+
+def test_phase3_6_5_workspace_status_is_explicit_bootstrap_configuration_tool() -> None:
+    by_name = {str(tool["name"]): tool for tool in _tools()}
+    workspace = by_name["get_workspace_status"]
+
+    description = str(workspace["description"])
+    assert "bootstrap/configuration" in description
+    assert "get_system_status" in description
+    assert "get_dashboard_status" in description
+    assert workspace["inputSchema"] == {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    }
