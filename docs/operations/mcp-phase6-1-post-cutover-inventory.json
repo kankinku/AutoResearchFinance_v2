@@ -1,0 +1,55 @@
+{
+  "phase": "6.1",
+  "status": "STABILIZATION_INVENTORY_FROZEN",
+  "canonical": {
+    "entrypoint": "integrations.codex_mcp_server",
+    "transport": "official_sdk",
+    "sdk_adapter": "integrations.codex_mcp_sdk_server",
+    "shared_core": "integrations.codex_mcp_core"
+  },
+  "rollback": {
+    "entrypoint": "integrations.codex_mcp_manual_server",
+    "protocol_module": "integrations.codex_mcp_protocol.py",
+    "protocol_version": "2024-11-05",
+    "status": "VERIFIED_AVAILABLE"
+  },
+  "contracts": {
+    "public_tools": 13,
+    "hidden_legacy_dispatch": 5,
+    "public_contract_schema_version": 1,
+    "runtime_snapshot_schema_version": 2,
+    "orders_enabled": false
+  },
+  "technical_debt": {
+    "sdk_imports_legacy_protocol_for_text_content": true,
+    "shared_core_contains_manual_jsonrpc_handle": true,
+    "shared_core_imports_legacy_protocol_helpers": true,
+    "hidden_legacy_tool_dispatch_is_separate_from_transport_rollback": true,
+    "historical_docs_still_describe_pre_cutover_states": true
+  },
+  "stabilization_sequence": [
+    {
+      "phase": "6.2",
+      "name": "neutral payload codec extraction",
+      "action": "Move JSON text-content serialization to a transport-neutral helper and remove the canonical SDK adapter dependency on codex_mcp_protocol.py."
+    },
+    {
+      "phase": "6.3",
+      "name": "manual JSON-RPC ownership isolation",
+      "action": "Move legacy handle/request-envelope behavior out of shared core into the manual rollback adapter so shared core owns application dispatch only."
+    },
+    {
+      "phase": "6.4",
+      "name": "post-cutover contract and documentation consolidation",
+      "action": "Re-run canonical and rollback acceptance, mark historical transport docs clearly, and freeze the remaining rollback/hidden-dispatch retention policy without deleting either path."
+    }
+  ],
+  "non_goals": [
+    "delete_manual_rollback_transport",
+    "delete_hidden_legacy_tool_dispatch",
+    "change_public_tool_surface",
+    "change_application_services",
+    "change_finance_or_strategy_logic",
+    "change_order_permissions"
+  ]
+}

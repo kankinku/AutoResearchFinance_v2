@@ -95,3 +95,7 @@ canonical_sdk_cutover = COMPLETE
 rollback_path = VERIFIED
 orders_enabled=false
 ```
+
+다음 개발 단계는 **Phase 6.1 — post-cutover stabilization inventory**다.
+Phase 6은 rollback을 즉시 삭제하지 않고 canonical SDK와 legacy manual transport의
+코드 소유권을 분리해 post-cutover 구조를 안정화한다.
