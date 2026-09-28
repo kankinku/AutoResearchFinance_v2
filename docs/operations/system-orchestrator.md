@@ -250,9 +250,14 @@ Docker 검증과 별개로 MCP STDIO 서버 자체는 실제 별도 프로세스
 
     uv run --locked python scripts/verify_mcp_runtime.py --project-root . --state-dir state/mcp-acceptance
 
-이 검사는 `initialize → tools/list → get_system_status`만 수행하며 연구 실행,
-ResearchIntent 제출, KIS 주문은 수행하지 않는다. 정상 출력에는 protocol version,
-server name, public tool count, 현재 system status와 `orders_enabled=false`만 포함한다.
+이 검사는 실제 STDIO subprocess에서 `initialize → tools/list → get_system_status`를
+검증한 뒤, 공개 목록에서 숨겨진 5개 legacy 이름도 직접 호출해 compatibility metadata를
+확인한다. `plan_generation`은 계획만 만들고 `submit_research_intent`는 compatibility
+journal 기록만 수행하며, 평가 실행·managed research 시작·KIS 주문은 수행하지 않는다.
+
+정상 출력에는 protocol version, server name, public tool count(13),
+public contract schema version(1), legacy compatibility count(5), 현재 system status와
+`orders_enabled=false`만 포함한다.
 
 Codex trusted MCP 설정도 `.codex/config.toml.example`처럼 `uv run --locked python`
 경로를 사용한다. 따라서 MCP 서버와 평가 런타임이 동일한 lockfile 의존성을 사용한다.

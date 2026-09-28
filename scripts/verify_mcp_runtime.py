@@ -25,6 +25,14 @@ _REQUIRED_TOOLS = frozenset(
     }
 )
 
+_LEGACY_COMPATIBILITY = {
+    "set_research_mode": "LEGACY_INTERNAL_TOOL",
+    "validate_research_cache": "LEGACY_INTERNAL_TOOL",
+    "plan_generation": "LEGACY_INTERNAL_TOOL",
+    "get_research_context": "LEGACY_INTERNAL_TOOL",
+    "submit_research_intent": "DEPRECATED",
+}
+
 
 def run_acceptance(
     *,
@@ -53,6 +61,52 @@ def run_acceptance(
             "id": 3,
             "method": "tools/call",
             "params": {"name": "get_system_status", "arguments": {}},
+        },
+        {
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {"name": "set_research_mode", "arguments": {"mode": "paper"}},
+        },
+        {
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {"name": "validate_research_cache", "arguments": {}},
+        },
+        {
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "tools/call",
+            "params": {
+                "name": "plan_generation",
+                "arguments": {
+                    "parent_ids": ["acceptance-parent"],
+                    "method": "random",
+                    "count": 1,
+                    "seed": 0,
+                },
+            },
+        },
+        {
+            "jsonrpc": "2.0",
+            "id": 7,
+            "method": "tools/call",
+            "params": {"name": "get_research_context", "arguments": {}},
+        },
+        {
+            "jsonrpc": "2.0",
+            "id": 8,
+            "method": "tools/call",
+            "params": {
+                "name": "submit_research_intent",
+                "arguments": {
+                    "mode": "structure",
+                    "parent_ids": ["acceptance-parent"],
+                    "operations": [],
+                    "rationale": "stdio compatibility acceptance",
+                },
+            },
         },
     )
     request_text = "".join(json.dumps(item, sort_keys=True) + "\n" for item in requests)
@@ -83,6 +137,10 @@ def run_acceptance(
     initialize = _response_result(responses, 1)
     tools_result = _response_result(responses, 2)
     status_result = _response_result(responses, 3)
+    legacy_results = {
+        name: _response_result(responses, request_id)
+        for request_id, name in enumerate(_LEGACY_COMPATIBILITY, start=4)
+    }
 
     if initialize.get("protocolVersion") != "2024-11-05":
         raise RuntimeError("MCP protocol version mismatch")
@@ -107,12 +165,39 @@ def run_acceptance(
     status = system_status.get("status")
     if not isinstance(status, str):
         raise RuntimeError("get_system_status returned an invalid status")
+    contract = system_status.get("_contract")
+    if not isinstance(contract, dict):
+        raise RuntimeError("public MCP response contract is missing")
+    if contract != {
+        "schema_version": 1,
+        "tool": "get_system_status",
+        "plane": "EVIDENCE_STATUS",
+        "orders_enabled": False,
+    }:
+        raise RuntimeError("public MCP response contract mismatch")
+
+    for name, expected_status in _LEGACY_COMPATIBILITY.items():
+        result = legacy_results[name]
+        if result.get("isError") is not False:
+            raise RuntimeError(f"legacy compatibility call failed: {name}")
+        payload = _text_payload(result)
+        compatibility = payload.get("_compatibility")
+        if not isinstance(compatibility, dict):
+            raise RuntimeError(f"legacy compatibility metadata missing: {name}")
+        if compatibility.get("status") != expected_status:
+            raise RuntimeError(f"legacy compatibility status mismatch: {name}")
+        if "_contract" in payload:
+            raise RuntimeError(f"legacy tool incorrectly received public contract: {name}")
+        if payload.get("orders_enabled") is True:
+            raise RuntimeError(f"legacy tool exposed order capability: {name}")
 
     return {
         "status": "PASS",
         "protocol_version": initialize["protocolVersion"],
         "server_name": server_info["name"],
         "tool_count": len(tool_names),
+        "public_contract_schema_version": contract["schema_version"],
+        "legacy_compatibility_count": len(legacy_results),
         "system_status": status,
         "orders_enabled": False,
     }
@@ -132,7 +217,7 @@ def _responses(stdout: str) -> dict[int, dict[str, Any]]:
         request_id = payload.get("id")
         if isinstance(request_id, int):
             result[request_id] = payload
-    if set(result) != {1, 2, 3}:
+    if set(result) != set(range(1, 9)):
         raise RuntimeError("MCP server did not return all acceptance responses")
     return result
 

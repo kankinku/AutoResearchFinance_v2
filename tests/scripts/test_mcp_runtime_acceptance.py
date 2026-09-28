@@ -22,6 +22,8 @@ def test_real_mcp_stdio_subprocess_acceptance(tmp_path: Path) -> None:
         "protocol_version": "2024-11-05",
         "server_name": "quant-autoresearch",
         "tool_count": 13,
+        "public_contract_schema_version": 1,
+        "legacy_compatibility_count": 5,
         "system_status": "STOPPED",
         "orders_enabled": False,
     }
@@ -45,6 +47,8 @@ def test_mcp_acceptance_cli_prints_safe_summary(tmp_path: Path, capsys) -> None:
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "PASS"
     assert payload["tool_count"] == 13
+    assert payload["public_contract_schema_version"] == 1
+    assert payload["legacy_compatibility_count"] == 5
     assert payload["orders_enabled"] is False
     assert "content" not in payload
 

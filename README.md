@@ -58,9 +58,10 @@ python cli.py autoresearch --source strategies\normalized\golden_cross.json --da
 ```
 
 For Codex Desktop, the MCP system orchestrator can preflight and start the local
-dashboard, research detector, and isolated Docker backtest worker together. See
-`docs/operations/system-orchestrator.md` for registration and the natural-language
-command flow.
+dashboard and managed research worker with the selected evaluation backend. Docker
+evaluation is opt-in and creates one isolated container per evaluation job rather than
+a permanent backtest worker. See `docs/operations/system-orchestrator.md` for
+registration and the natural-language command flow.
 
 The local paper operations dashboard is available at `http://127.0.0.1:8080/` after
 starting the last command. It reports the effective paper-only mode, sanitized KIS
@@ -143,12 +144,18 @@ The local MCP server can then be started with:
 python -m integrations.codex_mcp_server --state-dir state --project-root .
 ```
 
-In Codex Desktop, use `get_workspace_status`, `get_dashboard_status`, and
-`get_research_context` first. The MCP also exposes static strategy validation/import,
-strategy catalog listing, generation planning, and managed evaluation/system controls.
-`set_research_mode` changes only the selected state and always keeps
-`orders_enabled=false`; the server has no order or live-account tool. For a
-non-interactive alternative, authenticate the Codex CLI and run:
+In Codex Desktop, use `get_workspace_status` for bootstrap/configuration state,
+`get_system_status` for managed runtime health, and `get_dashboard_status` for
+research/performance data. The public MCP surface contains 13 tools covering workspace
+bootstrap, static strategy/catalog operations, evidence/status reads, one-shot
+evaluation, and managed research lifecycle control. Public tool responses include an
+additive `_contract` block with `schema_version=1` and `orders_enabled=false`.
+
+Low-level compatibility names such as `set_research_mode`, `validate_research_cache`,
+`plan_generation`, `get_research_context`, and `submit_research_intent` are no longer
+advertised in `tools/list`; they remain direct-call compatibility shims through the
+Phase 3-6 compatibility window. The server has no order or live-account MCP tool.
+For a non-interactive alternative, authenticate the Codex CLI and run:
 
 ```powershell
 codex login status
