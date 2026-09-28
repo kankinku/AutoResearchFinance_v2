@@ -28,6 +28,11 @@ _RETRYABLE_ERRORS = {
 }
 
 
+
+def is_retryable_error(error_class: str | None) -> bool:
+    return error_class in _RETRYABLE_ERRORS
+
+
 class EvaluationExecutionError(RuntimeError):
     """Raised when the scheduled evaluation worker cannot complete a job."""
 
@@ -134,7 +139,7 @@ class QueuedEvaluationExecutor:
                 return current.result
             if (
                 current.status is JobStatus.FAILED
-                and current.error_class in _RETRYABLE_ERRORS
+                and is_retryable_error(current.error_class)
                 and current.attempt < current.max_attempts
             ):
                 self._record_attempt(current, kwargs, None)
@@ -142,7 +147,7 @@ class QueuedEvaluationExecutor:
                 continue
             if (
                 current.status is JobStatus.FAILED
-                and current.error_class in _RETRYABLE_ERRORS
+                and is_retryable_error(current.error_class)
                 and current.attempt >= current.max_attempts
             ):
                 queue.retry_failed(job_id)
@@ -216,7 +221,7 @@ class QueuedEvaluationExecutor:
                 return self._docker_result(current, kwargs)
             if (
                 current.status in {JobStatus.FAILED, JobStatus.TIMED_OUT}
-                and current.error_class in _RETRYABLE_ERRORS
+                and is_retryable_error(current.error_class)
             ):
                 if current.attempt < current.max_attempts:
                     self._record_attempt(current, kwargs, None)

@@ -622,3 +622,96 @@ def test_timeout_acceptance_cli_blocks_without_docker(
     assert '"status": "BLOCKED"' in output
     assert "Docker CLI is not available" in output
     assert '"orders_enabled": false' in output
+
+
+
+def test_retry_exhaustion_acceptance_retries_timeout_until_terminal(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    state = tmp_path / "state"
+    monkeypatch.setattr(acceptance.shutil, "which", lambda name: "/usr/bin/docker")
+    calls = 0
+
+    def fake_timeout(command, timeout, cleanup):  # type: ignore[no-untyped-def]
+        nonlocal calls
+        calls += 1
+        assert cleanup[:3] == ["/usr/bin/docker", "rm", "-f"]
+        raise acceptance.DockerWorkerTimeout("forced timeout")
+
+    monkeypatch.setattr(
+        acceptance.DockerEvaluationRunner,
+        "_subprocess",
+        staticmethod(fake_timeout),
+    )
+    monkeypatch.setattr(
+        acceptance.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=1, stdout="", stderr="not found"),
+    )
+
+    result = acceptance.run_retry_exhaustion_acceptance(
+        project_root=tmp_path,
+        state_dir=state,
+        image="quant-worker:test",
+        timeout_seconds=0.1,
+        max_retries=2,
+    )
+
+    assert calls == 3
+    assert result["status"] == "PASS"
+    assert result["queue_status"] == "RETRY_EXHAUSTED"
+    assert result["queue_attempt"] == 3
+    assert result["max_attempts"] == 3
+    assert result["max_retries"] == 2
+    assert result["error_class"] == "TimeoutError"
+    assert result["cleanup_count"] == 3
+    assert result["removed_container_count"] == 3
+    assert result["timeout_retryable"] is True
+    assert result["worker_process_retryable"] is True
+    assert result["deterministic_value_error_retryable"] is False
+    assert result["timeout_enforced"] is True
+    assert result["orders_enabled"] is False
+
+
+def test_retry_exhaustion_requires_at_least_one_retry(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(acceptance.shutil, "which", lambda name: "/usr/bin/docker")
+
+    try:
+        acceptance.run_retry_exhaustion_acceptance(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            image="quant-worker:test",
+            timeout_seconds=0.1,
+            max_retries=0,
+        )
+    except RuntimeError as exc:
+        assert "max_retries >= 1" in str(exc)
+    else:
+        raise AssertionError("retry exhaustion probe must require at least one retry")
+
+
+def test_retry_exhaustion_cli_blocks_without_docker(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.setattr(acceptance.shutil, "which", lambda name: None)
+
+    exit_code = acceptance.main(
+        [
+            "--project-root",
+            str(tmp_path),
+            "--verify-retry-exhaustion",
+            "--timeout-seconds",
+            "0.1",
+            "--max-retries",
+            "1",
+        ]
+    )
+
+    assert exit_code == 2
+    output = capsys.readouterr().out
+    assert '"status": "BLOCKED"' in output
+    assert "Docker CLI is not available" in output
+    assert '"orders_enabled": false' in output

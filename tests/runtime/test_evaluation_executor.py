@@ -11,6 +11,7 @@ from runtime.docker_evaluation import DockerWorkerTimeout
 from runtime.evaluation_executor import (
     EvaluationExecutionError,
     QueuedEvaluationExecutor,
+    is_retryable_error,
 )
 from runtime.job_protocol import EvaluationJobResult
 from runtime.persistent_queue import PersistentJobQueue
@@ -443,3 +444,18 @@ def test_executor_persists_managed_run_identity_in_docker_job(tmp_path: Path) ->
 
     assert result == {"status": "COMPLETED"}
     assert _job_records(tmp_path / "state")[-1]["managed_run_id"] == "managed-run-1"
+
+
+
+def test_retryable_error_policy_is_explicit() -> None:
+    for error_class in (
+        "TimeoutError",
+        "ConnectionError",
+        "BrokenPipeError",
+        "WorkerProcessError",
+    ):
+        assert is_retryable_error(error_class) is True
+
+    assert is_retryable_error("ValueError") is False
+    assert is_retryable_error("PermissionError") is False
+    assert is_retryable_error(None) is False

@@ -17,7 +17,7 @@ from runtime.docker_evaluation import (
     DockerWorkerTimeout,
     docker_evaluation_container_name,
 )
-from runtime.evaluation_executor import QueuedEvaluationExecutor
+from runtime.evaluation_executor import QueuedEvaluationExecutor, is_retryable_error
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import Job, JobStatus
 
@@ -364,6 +364,104 @@ def run_timeout_acceptance(
         "orders_enabled": False,
     }
 
+
+def run_retry_exhaustion_acceptance(
+    *,
+    project_root: Path,
+    state_dir: Path,
+    image: str,
+    timeout_seconds: float,
+    max_retries: int,
+) -> dict[str, object]:
+    if timeout_seconds <= 0:
+        raise RuntimeError("timeout_seconds must be positive")
+    if max_retries < 1:
+        raise RuntimeError("retry exhaustion acceptance requires max_retries >= 1")
+    executable = shutil.which("docker")
+    if not executable:
+        raise RuntimeError("Docker CLI is not available")
+    managed_run_id = f"host-retry-{uuid4().hex}"
+    job_id = f"retry-probe-{uuid4().hex}"
+    max_attempts = max_retries + 1
+    queue = PersistentJobQueue(state_dir)
+    queue.enqueue(
+        Job(
+            job_id,
+            {"role": "retry-exhaustion-acceptance", "managed_run_id": managed_run_id},
+            max_attempts=max_attempts,
+        )
+    )
+    cleanup_commands: list[list[str]] = []
+    removed_containers: list[str] = []
+    lease_seconds = max(timeout_seconds * 4.0, 2.0)
+
+    while True:
+        claimed = queue.claim(job_id=job_id, lease_seconds=lease_seconds)
+        if claimed is None:
+            raise RuntimeError("retry acceptance job could not be claimed")
+        container_name = docker_evaluation_container_name(job_id, claimed.attempt)
+        command, cleanup = timeout_probe_command(
+            image,
+            container_name=container_name,
+            sleep_seconds=max(timeout_seconds * 20.0, 5.0),
+            docker_executable=executable,
+        )
+        try:
+            DockerEvaluationRunner._subprocess(command, timeout_seconds, cleanup)
+        except DockerWorkerTimeout:
+            queue.timeout(job_id, error_class="TimeoutError")
+        else:
+            raise RuntimeError("retry timeout probe unexpectedly completed")
+        cleanup_commands.append(cleanup)
+
+        inspect = subprocess.run(
+            [executable, "container", "inspect", container_name],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+        if inspect.returncode == 0:
+            raise RuntimeError("retry probe container still exists after cleanup")
+        removed_containers.append(container_name)
+
+        current = queue.get(job_id)
+        if not is_retryable_error(current.error_class):
+            raise RuntimeError("timeout probe was not classified as retryable")
+        queue.retry_terminal(job_id)
+        current = queue.get(job_id)
+        if current.status is JobStatus.RETRY_EXHAUSTED:
+            break
+        if current.status is not JobStatus.QUEUED:
+            raise RuntimeError("retry probe entered an invalid queue state")
+
+    final = queue.get(job_id)
+    if final.attempt != max_attempts:
+        raise RuntimeError("retry exhaustion attempt count mismatch")
+    if final.error_class != "TimeoutError":
+        raise RuntimeError("retry exhaustion error class mismatch")
+    if is_retryable_error("ValueError"):
+        raise RuntimeError("deterministic ValueError must not be retryable")
+    return {
+        "status": "PASS",
+        "probe": "retry_exhaustion",
+        "job_id": job_id,
+        "managed_run_id": managed_run_id,
+        "queue_status": final.status.value,
+        "queue_attempt": final.attempt,
+        "max_attempts": final.max_attempts,
+        "max_retries": max_retries,
+        "error_class": final.error_class,
+        "cleanup_count": len(cleanup_commands),
+        "removed_container_count": len(removed_containers),
+        "timeout_retryable": is_retryable_error("TimeoutError"),
+        "worker_process_retryable": is_retryable_error("WorkerProcessError"),
+        "deterministic_value_error_retryable": is_retryable_error("ValueError"),
+        "timeout_enforced": True,
+        "orders_enabled": False,
+    }
+
 def run_acceptance(
     *,
     project_root: Path,
@@ -484,6 +582,17 @@ def main(argv: list[str] | None = None) -> int:
             result["checks"] = checks
             print(json.dumps(result, sort_keys=True))
             return 0
+        if args.verify_retry_exhaustion:
+            result = run_retry_exhaustion_acceptance(
+                project_root=project_root,
+                state_dir=state_dir,
+                image=args.image,
+                timeout_seconds=args.timeout_seconds,
+                max_retries=args.max_retries,
+            )
+            result["checks"] = checks
+            print(json.dumps(result, sort_keys=True))
+            return 0
         source_path = args.source_path
         data_path = args.data_path
         if args.prepare_fixture:
@@ -534,7 +643,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--series-data-path", default=None)
     parser.add_argument("--prepare-fixture", action="store_true")
     parser.add_argument("--verify-timeout", action="store_true")
+    parser.add_argument("--verify-retry-exhaustion", action="store_true")
     parser.add_argument("--timeout-seconds", type=float, default=0.5)
+    parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--check-build-context", action="store_true")
     parser.add_argument("--build-image", action="store_true")
     parser.add_argument("--check-only", action="store_true")
