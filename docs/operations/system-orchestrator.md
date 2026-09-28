@@ -223,23 +223,19 @@ Moon 개발 컨테이너처럼 Docker CLI가 노출되지 않는 환경에서는
 Windows + Docker Desktop 실행 순서는
 `docs/operations/mcp-phase3-7-1-docker-host-procedure.md`를 정본으로 사용한다.
 
-Docker Desktop host에서는 먼저 worker image를 같은 tag로 build한다.
-
-```powershell
-docker build `
-  --tag quant-autoresearch-worker:local `
-  --file runtime/Dockerfile.worker `
-  .
-```
-
-그 다음 repository lockfile 환경에서 Engine/image preflight를 확인한다.
+Docker Desktop host에서는 Phase 3-7.2 build acceptance로 worker image build와 inspect를
+한 번에 검증할 수 있다.
 
 ```powershell
 uv run --locked python scripts/verify_docker_evaluation.py `
   --project-root . `
   --image quant-autoresearch-worker:local `
+  --build-image `
   --check-only
 ```
+
+Docker가 없는 환경에서 build context만 확인하려면 `--check-build-context`를 사용한다.
+이 경로는 `STATIC_READY`와 `image_built=false`를 반환하며 실제 image build 성공을 의미하지 않는다.
 
 실제 전략과 development Parquet가 준비돼 있다면:
 
