@@ -160,4 +160,5 @@ SDK tool parity = NOT_YET_ENABLED
 orders_enabled=false
 ```
 
-다음 작업은 **Phase 5.3 — Tool schema / dispatch parity**다.
+Phase 5.3에서 Tool schema / dispatch parity를 완료했다. 현재 상태는
+`docs/operations/mcp-phase5-3-tool-dispatch-parity.md`를 따른다.

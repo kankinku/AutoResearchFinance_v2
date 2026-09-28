@@ -269,4 +269,6 @@ SDK 도입이 어떤 경우에도 `orders_enabled=false`를 완화하는 근거�
 현재 transport와 migration risk를 인벤토리했고, target을 공식 Python SDK v2
 저수준 `mcp.server.Server` + STDIO로 확정했다.
 
-Phase 5.2에서 SDK dependency와 parallel adapter skeleton을 추가했다.\n다음 작업은 **Phase 5.3 — Tool schema / dispatch parity**다.
+Phase 5.2에서 SDK dependency와 parallel adapter skeleton을 추가했고, Phase 5.3에서
+13개 public Tool schema와 5개 hidden legacy dispatch parity를 검증했다.
+다음 작업은 **Phase 5.4 — SDK STDIO shadow acceptance**다.

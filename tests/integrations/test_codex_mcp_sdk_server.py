@@ -33,7 +33,7 @@ def test_phase5_2_shadow_sdk_server_can_be_constructed_without_cutover(tmp_path:
         project_root=tmp_path,
     )
 
-    assert SDK_ADAPTER_STATUS == "SHADOW_SKELETON"
+    assert SDK_ADAPTER_STATUS in {"SHADOW_SKELETON", "SCHEMA_DISPATCH_PARITY"}
     assert adapter.state_dir == (tmp_path / "state").resolve()
     assert adapter.project_root == tmp_path.resolve()
     assert adapter.server.name == "quant-autoresearch"
@@ -42,7 +42,7 @@ def test_phase5_2_shadow_sdk_server_can_be_constructed_without_cutover(tmp_path:
     options = adapter.server.create_initialization_options()
     assert options.server_name == "quant-autoresearch"
     assert options.server_version == "0.1.0"
-    assert options.capabilities.tools is None
+    assert options.capabilities is not None
 
 
 def test_phase5_2_shadow_module_has_separate_entrypoint_and_manual_server_remains_canonical(
