@@ -1,5 +1,10 @@
 # MCP 전환 Phase 4 — 기능 보존 및 안전한 기능 확장
 
+> **역사적 문서:** 이 문서는 당시 10 → 18 Tool 확장 시점의 설계 기록이다.
+> 현재 운영 정본은 Phase 3-6의 **13 public Tool + 5 hidden legacy compatibility name** 구조이며,
+> 이 문서의 18 Tool surface로 되돌리지 않는다. 공식 SDK 전환 기준은
+> `mcp-phase5-1-sdk-migration-design.md`를 따른다.
+
 ## 목적
 
 Phase 4는 Phase 0에서 고정한 CLI 24개 기능과 Dashboard/MCP 기능을 다시 대조하고,

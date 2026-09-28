@@ -110,3 +110,6 @@ Phase 3-7의 **개발 및 acceptance harness 구축 범위는 완료**로 판정
 `host_acceptance_status = PENDING_EXTERNAL`을 유지한다.
 외부 host에서 정본 runbook을 실행해 모든 조건이 PASS가 된 뒤에만 실제 Host Acceptance 완료
 증거로 사용할 수 있다.
+
+다음 개발 단계는 **Phase 5.1 — 공식 MCP SDK 전환 인벤토리·호환성 설계**이며,
+Docker Host 외부 검증과 독립적으로 진행할 수 있다.

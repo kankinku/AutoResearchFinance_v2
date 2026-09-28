@@ -1,0 +1,76 @@
+{
+  "phase": "5.1",
+  "status": "DESIGN_FROZEN",
+  "current_transport": {
+    "kind": "manual_stdio_jsonrpc",
+    "protocol_module": "integrations/codex_mcp_protocol.py",
+    "server_module": "integrations/codex_mcp_server.py",
+    "protocol_version": "2024-11-05",
+    "server_name": "quant-autoresearch",
+    "entrypoint": "python -m integrations.codex_mcp_server",
+    "transport": "stdio"
+  },
+  "target_sdk": {
+    "package": "mcp",
+    "release_line": "2.x",
+    "version_constraint": "mcp>=2.2,<3",
+    "server_api": "mcp.server.Server",
+    "transport": "stdio",
+    "migration_mode": "parallel_adapter_then_cutover",
+    "rationale": [
+      "preserve exact input schemas",
+      "preserve explicit tool result shaping",
+      "allow tools/call routing for compatibility-only names that are not advertised"
+    ]
+  },
+  "contracts": {
+    "public_tools": [
+      "initialize_research_state",
+      "get_workspace_status",
+      "validate_strategy",
+      "import_strategies",
+      "list_strategies",
+      "list_features",
+      "get_research_evidence",
+      "get_dashboard_status",
+      "run_evaluation",
+      "check_system",
+      "start_system",
+      "get_system_status",
+      "stop_system"
+    ],
+    "hidden_legacy_tools": [
+      "set_research_mode",
+      "validate_research_cache",
+      "plan_generation",
+      "get_research_context",
+      "submit_research_intent"
+    ],
+    "public_response_contract_schema_version": 1,
+    "runtime_snapshot_schema_version": 2,
+    "orders_enabled": false,
+    "preserve_application_services": true,
+    "preserve_cli": true,
+    "preserve_strategy_and_finance_logic": true,
+    "preserve_hidden_legacy_dispatch_until_separate_approval": true
+  },
+  "cutover_gates": [
+    "official SDK dependency resolves from lockfile on Python 3.10-3.12",
+    "tools/list advertises exactly 13 public tools",
+    "five compatibility-only names remain absent from tools/list but directly callable",
+    "public tool input schemas remain semantically identical",
+    "public _contract metadata remains schema_version=1 and orders_enabled=false",
+    "legacy _compatibility metadata remains intact",
+    "sanitized tool errors do not expose rejected paths URLs credentials or provider details",
+    "real stdio subprocess acceptance passes through official SDK",
+    "CLI and Application Service behavior is unchanged",
+    "ruff mypy and full pytest pass"
+  ],
+  "non_goals": [
+    "add_order_tools",
+    "add_live_account_tools",
+    "remove_legacy_dispatch",
+    "change_application_services",
+    "change_strategy_or_finance_logic"
+  ]
+}
