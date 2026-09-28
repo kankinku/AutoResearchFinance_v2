@@ -4,6 +4,8 @@ import json
 from collections.abc import Iterable
 from typing import Any, TextIO
 
+from integrations.codex_mcp_payload import text_content_payload
+
 
 def success(request_id: object, result: dict[str, Any]) -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": request_id, "result": result}
@@ -18,9 +20,8 @@ def error(request_id: object, code: int, message: str) -> dict[str, Any]:
 
 
 def text_content(payload: object) -> list[dict[str, str]]:
-    # MCP text is transported through Windows stdio in some clients. ASCII JSON
-    # escapes keep Korean diagnostics intact when the console code page differs.
-    return [{"type": "text", "text": json.dumps(payload, ensure_ascii=True, sort_keys=True)}]
+    # Compatibility wrapper retained for the manual rollback transport.
+    return text_content_payload(payload)
 
 
 def serve_lines(server: Any, lines: Iterable[str], output: TextIO) -> None:

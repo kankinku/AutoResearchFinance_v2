@@ -15,7 +15,7 @@ from integrations.codex_mcp_core import (
     _with_legacy_compatibility,
     _with_public_contract,
 )
-from integrations.codex_mcp_protocol import text_content
+from integrations.codex_mcp_payload import text_content_payload
 from research.llm.codex_exec import write_provider_status
 
 SDK_ADAPTER_STATUS = "CANONICAL_SDK"
@@ -130,7 +130,7 @@ def _sdk_tool(definition: dict[str, object]) -> types.Tool:
 
 
 def _sdk_tool_result(payload: object, *, is_error: bool) -> types.CallToolResult:
-    content = text_content(payload)
+    content = text_content_payload(payload)
     text = content[0]["text"]
     return types.CallToolResult(
         content=[types.TextContent(type="text", text=text)],

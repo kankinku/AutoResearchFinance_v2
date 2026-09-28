@@ -246,4 +246,5 @@ Phase 6.3 = manual JSON-RPC ownership isolation
 Phase 6.4 = final stabilization/contract consolidation
 ```
 
-다음 작업은 **Phase 6.2 — neutral payload codec extraction**이다.
+Phase 6.2에서 neutral payload codec을 분리해 canonical SDK의 legacy protocol 직접 의존을 제거했다.
+다음 작업은 **Phase 6.3 — manual JSON-RPC ownership isolation**이다.
