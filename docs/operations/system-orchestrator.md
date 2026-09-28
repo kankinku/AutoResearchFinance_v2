@@ -220,11 +220,22 @@ research worker가 사라진 뒤 lease가 만료된 Job은:
 ### 실제 Docker host acceptance
 
 Moon 개발 컨테이너처럼 Docker CLI가 노출되지 않는 환경에서는 정적/모의 검증만 가능하다.
-Docker Desktop이 있는 실제 host에서는 다음 스크립트로 Engine/image와 실제
-evaluation-job 컨테이너 경로를 확인한다.
+Windows + Docker Desktop 실행 순서는
+`docs/operations/mcp-phase3-7-1-docker-host-procedure.md`를 정본으로 사용한다.
+
+Docker Desktop host에서는 먼저 worker image를 같은 tag로 build한다.
 
 ```powershell
-python scripts/verify_docker_evaluation.py `
+docker build `
+  --tag quant-autoresearch-worker:local `
+  --file runtime/Dockerfile.worker `
+  .
+```
+
+그 다음 repository lockfile 환경에서 Engine/image preflight를 확인한다.
+
+```powershell
+uv run --locked python scripts/verify_docker_evaluation.py `
   --project-root . `
   --image quant-autoresearch-worker:local `
   --check-only
@@ -233,7 +244,7 @@ python scripts/verify_docker_evaluation.py `
 실제 전략과 development Parquet가 준비돼 있다면:
 
 ```powershell
-python scripts/verify_docker_evaluation.py `
+uv run --locked python scripts/verify_docker_evaluation.py `
   --project-root . `
   --state-dir state/docker-acceptance `
   --image quant-autoresearch-worker:local `
