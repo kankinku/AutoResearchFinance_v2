@@ -66,6 +66,22 @@ def test_docker_acceptance_full_run_uses_isolated_executor(
 
     monkeypatch.setattr(acceptance, "QueuedEvaluationExecutor", FakeExecutor)
 
+    class FakeQueue:
+        def __init__(self, state_dir: Path) -> None:
+            captured["queue_state_dir"] = state_dir
+
+        def jobs_for_run(self, managed_run_id: str):  # type: ignore[no-untyped-def]
+            captured["queue_managed_run_id"] = managed_run_id
+            return (
+                SimpleNamespace(
+                    job_id="evaluation-host-acceptance",
+                    status=acceptance.JobStatus.SUCCEEDED,
+                    attempt=1,
+                ),
+            )
+
+    monkeypatch.setattr(acceptance, "PersistentJobQueue", FakeQueue)
+
     result = acceptance.run_acceptance(
         project_root=tmp_path,
         state_dir=tmp_path / "state",
@@ -82,6 +98,8 @@ def test_docker_acceptance_full_run_uses_isolated_executor(
     assert run["count"] == 1
     assert run["min_annual_trades"] == 0
     assert result["status"] == "PASS"
+    assert result["queue_status"] == "SUCCEEDED"
+    assert result["durable_job_count"] == 1
     assert result["orders_enabled"] is False
 
 
@@ -233,3 +251,79 @@ def test_build_image_blocks_when_docker_is_missing(
     assert '"status": "BLOCKED"' in output
     assert "Docker CLI is not available" in output
     assert '"orders_enabled": false' in output
+
+
+def test_prepare_acceptance_fixture_uses_checked_in_strategy_and_development_parquet(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    normalized = project / "strategies" / "normalized"
+    normalized.mkdir(parents=True)
+    (normalized / "fixture.json").write_text(
+        "{\"schema_version\": 1}",
+        encoding="utf-8",
+    )
+    state = project / "state" / "docker-acceptance"
+
+    source_path, data_path = acceptance.prepare_acceptance_fixture(
+        project_root=project,
+        state_dir=state,
+    )
+
+    assert source_path == "strategies/normalized/fixture.json"
+    assert data_path == "state/docker-acceptance/host-fixture/bars.parquet"
+    dataset = acceptance.ParquetDataProvider.read(project / data_path)
+    assert dataset.zone is acceptance.DataZone.DEVELOPMENT
+    assert dataset.version == "docker-host-acceptance-v1"
+    assert len(dataset.bars) == 80
+    assert {bar.symbol for bar in dataset.bars} == {"QQQ"}
+
+
+def test_prepare_acceptance_fixture_rejects_state_outside_project(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    (project / "strategies" / "normalized").mkdir(parents=True)
+
+    try:
+        acceptance.prepare_acceptance_fixture(
+            project_root=project,
+            state_dir=tmp_path / "outside-state",
+        )
+    except RuntimeError as exc:
+        assert "inside project root" in str(exc)
+    else:
+        raise AssertionError("outside state_dir must be rejected")
+
+
+def test_single_job_acceptance_rejects_missing_or_non_succeeded_durable_job(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class FakeExecutor:
+        def __init__(self, state_dir: Path, **kwargs: object) -> None:
+            pass
+
+        def run(self, evaluator: object, **kwargs: object) -> dict[str, object]:
+            return {"status": "COMPLETED", "candidate_count": 1}
+
+    class EmptyQueue:
+        def __init__(self, state_dir: Path) -> None:
+            pass
+
+        def jobs_for_run(self, managed_run_id: str):  # type: ignore[no-untyped-def]
+            return ()
+
+    monkeypatch.setattr(acceptance, "QueuedEvaluationExecutor", FakeExecutor)
+    monkeypatch.setattr(acceptance, "PersistentJobQueue", EmptyQueue)
+
+    try:
+        acceptance.run_acceptance(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            image="quant-worker:test",
+            source_path="strategy.json",
+            data_path="bars.parquet",
+        )
+    except RuntimeError as exc:
+        assert "exactly one durable job" in str(exc)
+    else:
+        raise AssertionError("missing durable job must fail acceptance")

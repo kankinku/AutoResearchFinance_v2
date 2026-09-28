@@ -4,11 +4,16 @@ import argparse
 import json
 import shutil
 import subprocess
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from core.data.contracts import Bar, DataZone, MarketDataSet
+from core.data.parquet import ParquetDataProvider
 from orchestration.evaluation_runner import run_local_evaluation
 from runtime.evaluation_executor import QueuedEvaluationExecutor
+from runtime.persistent_queue import PersistentJobQueue
+from runtime.queue import JobStatus
 
 DEFAULT_IMAGE = "quant-autoresearch-worker:local"
 WORKER_DOCKERFILE = Path("runtime/Dockerfile.worker")
@@ -154,6 +159,47 @@ def docker_prerequisites(
     return result
 
 
+def prepare_acceptance_fixture(
+    *,
+    project_root: Path,
+    state_dir: Path,
+) -> tuple[str, str]:
+    project = project_root.resolve()
+    state = state_dir.resolve()
+    if project != state and project not in state.parents:
+        raise RuntimeError("acceptance fixture state_dir must be inside project root")
+    strategies = sorted((project / "strategies" / "normalized").glob("*.json"))
+    if not strategies:
+        raise RuntimeError("no normalized strategy fixture is available")
+    source = strategies[0]
+    data = state / "host-fixture" / "bars.parquet"
+    start = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    bars = tuple(
+        Bar(
+            start + timedelta(days=index),
+            "QQQ",
+            100.0 + index * 0.25,
+            102.0 + index * 0.25,
+            98.0 + index * 0.25,
+            99.0 + index * 0.25 + (1.5 if index % 5 == 0 else 0.0),
+            1_000_000.0 + index,
+        )
+        for index in range(80)
+    )
+    ParquetDataProvider.write(
+        data,
+        MarketDataSet(
+            "docker-host-acceptance-v1",
+            DataZone.DEVELOPMENT,
+            bars,
+        ),
+    )
+    return (
+        source.relative_to(project).as_posix(),
+        data.relative_to(project).as_posix(),
+    )
+
+
 def run_acceptance(
     *,
     project_root: Path,
@@ -163,13 +209,15 @@ def run_acceptance(
     data_path: str,
     series_data_path: str | None = None,
 ) -> dict[str, object]:
+    managed_run_id = f"host-acceptance-{uuid4().hex}"
+    attempt_id = f"host-acceptance-{uuid4().hex}"
     executor = QueuedEvaluationExecutor(
         state_dir,
         project_root=project_root,
         execution_mode="docker_worker",
         docker_image=image,
         max_retries=0,
-        managed_run_id=f"host-acceptance-{uuid4().hex}",
+        managed_run_id=managed_run_id,
     )
     result = executor.run(
         run_local_evaluation,
@@ -182,12 +230,25 @@ def run_acceptance(
         min_trades=0,
         min_annual_trades=0,
         min_qqq_cagr_delta=None,
-        attempt_id=f"host-acceptance-{uuid4().hex}",
+        attempt_id=attempt_id,
     )
+    jobs = PersistentJobQueue(state_dir).jobs_for_run(managed_run_id)
+    if len(jobs) != 1:
+        raise RuntimeError("single-job acceptance did not produce exactly one durable job")
+    job = jobs[0]
+    if job.status is not JobStatus.SUCCEEDED:
+        raise RuntimeError("single-job acceptance did not persist SUCCEEDED queue state")
     return {
         "status": "PASS",
         "evaluation_status": result.get("status", "UNKNOWN"),
         "candidate_count": result.get("candidate_count"),
+        "managed_run_id": managed_run_id,
+        "research_run_id": result.get("research_run_id"),
+        "attempt_id": result.get("attempt_id"),
+        "job_id": job.job_id,
+        "queue_status": job.status.value,
+        "queue_attempt": job.attempt,
+        "durable_job_count": len(jobs),
         "state_dir": str(state_dir),
         "orders_enabled": False,
     }
@@ -234,16 +295,26 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
-        if not args.source_path or not args.data_path:
-            parser.error("--source-path and --data-path are required unless --check-only is used")
+        source_path = args.source_path
+        data_path = args.data_path
+        if args.prepare_fixture:
+            source_path, data_path = prepare_acceptance_fixture(
+                project_root=project_root,
+                state_dir=state_dir,
+            )
+        if not source_path or not data_path:
+            parser.error(
+                "--source-path and --data-path are required unless --prepare-fixture is used"
+            )
         result = run_acceptance(
             project_root=project_root,
             state_dir=state_dir,
             image=args.image,
-            source_path=args.source_path,
-            data_path=args.data_path,
+            source_path=source_path,
+            data_path=data_path,
             series_data_path=args.series_data_path,
         )
+        result["fixture_prepared"] = bool(args.prepare_fixture)
         result["checks"] = checks
         print(json.dumps(result, sort_keys=True))
         return 0
@@ -272,6 +343,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-path", default="")
     parser.add_argument("--data-path", default="")
     parser.add_argument("--series-data-path", default=None)
+    parser.add_argument("--prepare-fixture", action="store_true")
     parser.add_argument("--check-build-context", action="store_true")
     parser.add_argument("--build-image", action="store_true")
     parser.add_argument("--check-only", action="store_true")
