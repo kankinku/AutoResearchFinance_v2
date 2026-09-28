@@ -193,7 +193,8 @@ manual rollback acceptance = PASS
 orders_enabled=false
 ```
 
-다음 작업은 **Phase 6.3 — manual JSON-RPC ownership isolation**이다.
+Phase 6.3에서 raw JSON-RPC request/envelope 처리를 shared core에서 manual rollback layer로
+이동했고 `codex_mcp_core.py`의 legacy protocol dependency를 제거했다.
 
-Phase 6.3에서는 raw JSON-RPC request/envelope 처리를 shared core에서 manual rollback layer로
-이동해 `codex_mcp_core.py`가 legacy protocol module을 import하지 않도록 만든다.
+현재 상태는 `docs/operations/mcp-phase6-3-manual-jsonrpc-isolation.md`를 따른다.
+다음 작업은 **Phase 6.4 — post-cutover contract and documentation consolidation**이다.

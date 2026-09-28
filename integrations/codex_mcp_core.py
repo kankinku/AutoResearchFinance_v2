@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.services import ApplicationServices, create_application_services
-from integrations.codex_mcp_protocol import error, success, text_content
 from orchestration.evaluation_runner import parse_parameter_domains
-from research.llm.codex_exec import write_provider_status
 from research.llm.codex_schema import research_intent_schema
 from research.policy import default_evaluation_thresholds
 from runtime.system_controller import SystemLaunchConfig
@@ -79,56 +76,6 @@ class CodexMCPServer:
         )
         self.dashboard = self.services.dashboard
         self.system = self.services.system.controller
-
-    def handle(self, request: object) -> dict[str, Any] | None:
-        if not isinstance(request, Mapping):
-            return error(None, -32600, "invalid request")
-        request_id = request.get("id")
-        method = request.get("method")
-        if not isinstance(method, str):
-            return error(request_id, -32600, "method is required")
-        if method in {"initialize", "ping", "tools/list"}:
-            write_provider_status(
-                self.state_dir / "llm" / "status.json",
-                "codex_desktop",
-                "ONLINE",
-                "MCP_CONNECTED",
-            )
-        if "id" not in request and method.startswith("notifications/"):
-            return None
-        if method == "initialize":
-            return success(
-                request_id,
-                {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "quant-autoresearch", "version": "0.1.0"},
-                },
-            )
-        if method == "ping":
-            return success(request_id, {})
-        if method == "tools/list":
-            return success(request_id, {"tools": _tools()})
-        if method == "tools/call":
-            return self._call(request_id, request.get("params"))
-        if method == "notifications/initialized":
-            return None
-        return error(request_id, -32601, "method not found")
-
-    def _call(self, request_id: object, params: object) -> dict[str, Any]:
-        if not isinstance(params, Mapping) or not isinstance(params.get("name"), str):
-            return error(request_id, -32602, "tool name is required")
-        name = str(params["name"])
-        arguments = params.get("arguments", {})
-        if not isinstance(arguments, Mapping):
-            return _tool_error(request_id, "tool arguments must be an object")
-        try:
-            payload = self._dispatch(name, dict(arguments))
-            payload = _with_legacy_compatibility(name, payload)
-            payload = _with_public_contract(name, payload)
-        except (OSError, PermissionError, TypeError, ValueError):
-            return _tool_error(request_id, "tool request failed")
-        return success(request_id, {"content": text_content(payload), "isError": False})
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
         if name == "initialize_research_state":
@@ -661,13 +608,6 @@ def _system_config(arguments: dict[str, Any]) -> SystemLaunchConfig:
         dashboard_port=_positive_int(arguments.get("dashboard_port", 8080), "dashboard_port"),
         docker_image=docker_image,
         env_file=env_file,
-    )
-
-
-def _tool_error(request_id: object, message: str) -> dict[str, Any]:
-    return success(
-        request_id,
-        {"content": text_content({"status": "ERROR", "message": message}), "isError": True},
     )
 
 
