@@ -540,3 +540,85 @@ def test_canonical_evaluator_persists_verifiable_docker_execution_evidence(
     assert evidence["execution_mode"] == "docker_worker"
     assert evidence["isolated"] is True
     assert evidence["timeout_enforced"] is True
+
+
+
+def test_timeout_probe_command_is_hardened() -> None:
+    command, cleanup = acceptance.timeout_probe_command(
+        "quant-worker:test",
+        container_name="quant-eval-timeout-probe-1",
+        sleep_seconds=5.0,
+        docker_executable="docker",
+    )
+
+    assert command[:2] == ["docker", "run"]
+    assert "--network" in command and command[command.index("--network") + 1] == "none"
+    assert "--read-only" in command
+    assert "--cap-drop" in command and command[command.index("--cap-drop") + 1] == "ALL"
+    assert "--entrypoint" in command and command[command.index("--entrypoint") + 1] == "python"
+    assert cleanup == ["docker", "rm", "-f", "quant-eval-timeout-probe-1"]
+
+
+def test_timeout_acceptance_persists_timed_out_and_verifies_cleanup(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    state = tmp_path / "state"
+    monkeypatch.setattr(acceptance.shutil, "which", lambda name: "/usr/bin/docker")
+
+    def fake_timeout(command, timeout, cleanup):  # type: ignore[no-untyped-def]
+        assert command[0] == "/usr/bin/docker"
+        assert cleanup[:3] == ["/usr/bin/docker", "rm", "-f"]
+        raise acceptance.DockerWorkerTimeout("forced timeout")
+
+    monkeypatch.setattr(
+        acceptance.DockerEvaluationRunner,
+        "_subprocess",
+        staticmethod(fake_timeout),
+    )
+    monkeypatch.setattr(
+        acceptance.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=1, stdout="", stderr="not found"),
+    )
+
+    result = acceptance.run_timeout_acceptance(
+        project_root=tmp_path,
+        state_dir=state,
+        image="quant-worker:test",
+        timeout_seconds=0.1,
+    )
+
+    assert result["status"] == "PASS"
+    assert result["probe"] == "timeout"
+    assert result["queue_status"] == "TIMED_OUT"
+    assert result["queue_attempt"] == 1
+    assert result["max_attempts"] == 1
+    assert result["error_class"] == "TimeoutError"
+    assert result["container_removed"] is True
+    assert result["timeout_enforced"] is True
+    assert result["orders_enabled"] is False
+
+
+def test_timeout_acceptance_cli_blocks_without_docker(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.setattr(acceptance.shutil, "which", lambda name: None)
+
+    exit_code = acceptance.main(
+        [
+            "--project-root",
+            str(tmp_path),
+            "--verify-timeout",
+            "--timeout-seconds",
+            "0.1",
+        ]
+    )
+
+    assert exit_code == 2
+    output = capsys.readouterr().out
+    assert '"status": "BLOCKED"' in output
+    assert "Docker CLI is not available" in output
+    assert '"orders_enabled": false' in output

@@ -12,9 +12,14 @@ from core.data.contracts import Bar, DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from orchestration.evaluation_runner import run_local_evaluation
+from runtime.docker_evaluation import (
+    DockerEvaluationRunner,
+    DockerWorkerTimeout,
+    docker_evaluation_container_name,
+)
 from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.persistent_queue import PersistentJobQueue
-from runtime.queue import JobStatus
+from runtime.queue import Job, JobStatus
 
 DEFAULT_IMAGE = "quant-autoresearch-worker:local"
 WORKER_DOCKERFILE = Path("runtime/Dockerfile.worker")
@@ -251,6 +256,114 @@ def verify_docker_evidence(
     }
 
 
+
+def timeout_probe_command(
+    image: str,
+    *,
+    container_name: str,
+    sleep_seconds: float,
+    docker_executable: str = "docker",
+) -> tuple[list[str], list[str]]:
+    if sleep_seconds <= 0:
+        raise RuntimeError("timeout probe sleep must be positive")
+    command = [
+        docker_executable,
+        "run",
+        "--rm",
+        "--name",
+        container_name,
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges:true",
+        "--pids-limit",
+        "64",
+        "--memory",
+        "256m",
+        "--cpus",
+        "0.25",
+        "--tmpfs",
+        "/tmp:rw,noexec,nosuid,size=16m",
+        "--entrypoint",
+        "python",
+        image,
+        "-c",
+        f"import time; time.sleep({sleep_seconds!r})",
+    ]
+    return command, [docker_executable, "rm", "-f", container_name]
+
+
+def run_timeout_acceptance(
+    *,
+    project_root: Path,
+    state_dir: Path,
+    image: str,
+    timeout_seconds: float,
+) -> dict[str, object]:
+    if timeout_seconds <= 0:
+        raise RuntimeError("timeout_seconds must be positive")
+    executable = shutil.which("docker")
+    if not executable:
+        raise RuntimeError("Docker CLI is not available")
+    managed_run_id = f"host-timeout-{uuid4().hex}"
+    job_id = f"timeout-probe-{uuid4().hex}"
+    queue = PersistentJobQueue(state_dir)
+    queue.enqueue(
+        Job(
+            job_id,
+            {"role": "timeout-acceptance", "managed_run_id": managed_run_id},
+            max_attempts=1,
+        )
+    )
+    lease_seconds = max(timeout_seconds * 4.0, 2.0)
+    claimed = queue.claim(job_id=job_id, lease_seconds=lease_seconds)
+    if claimed is None:
+        raise RuntimeError("timeout acceptance job could not be claimed")
+    container_name = docker_evaluation_container_name(job_id, claimed.attempt)
+    command, cleanup = timeout_probe_command(
+        image,
+        container_name=container_name,
+        sleep_seconds=max(timeout_seconds * 20.0, 5.0),
+        docker_executable=executable,
+    )
+    try:
+        DockerEvaluationRunner._subprocess(command, timeout_seconds, cleanup)
+    except DockerWorkerTimeout:
+        queue.timeout(job_id, error_class="TimeoutError")
+    else:
+        raise RuntimeError("timeout probe unexpectedly completed before timeout")
+
+    current = queue.get(job_id)
+    if current.status is not JobStatus.TIMED_OUT:
+        raise RuntimeError("timeout probe did not persist TIMED_OUT queue state")
+    inspect = subprocess.run(
+        [executable, "container", "inspect", container_name],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        timeout=20,
+        check=False,
+    )
+    if inspect.returncode == 0:
+        raise RuntimeError("timed out Docker container still exists after cleanup")
+    return {
+        "status": "PASS",
+        "probe": "timeout",
+        "job_id": job_id,
+        "managed_run_id": managed_run_id,
+        "queue_status": current.status.value,
+        "queue_attempt": current.attempt,
+        "max_attempts": current.max_attempts,
+        "error_class": current.error_class,
+        "cleanup_command": cleanup,
+        "container_removed": True,
+        "timeout_enforced": True,
+        "orders_enabled": False,
+    }
+
 def run_acceptance(
     *,
     project_root: Path,
@@ -361,6 +474,16 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
+        if args.verify_timeout:
+            result = run_timeout_acceptance(
+                project_root=project_root,
+                state_dir=state_dir,
+                image=args.image,
+                timeout_seconds=args.timeout_seconds,
+            )
+            result["checks"] = checks
+            print(json.dumps(result, sort_keys=True))
+            return 0
         source_path = args.source_path
         data_path = args.data_path
         if args.prepare_fixture:
@@ -410,6 +533,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-path", default="")
     parser.add_argument("--series-data-path", default=None)
     parser.add_argument("--prepare-fixture", action="store_true")
+    parser.add_argument("--verify-timeout", action="store_true")
+    parser.add_argument("--timeout-seconds", type=float, default=0.5)
     parser.add_argument("--check-build-context", action="store_true")
     parser.add_argument("--build-image", action="store_true")
     parser.add_argument("--check-only", action="store_true")
