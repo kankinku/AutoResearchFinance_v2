@@ -253,6 +253,23 @@ uv run --locked python scripts/verify_docker_evaluation.py `
 동일 run/attempt/job의 immutable Evidence가 `execution_mode=docker_worker`,
 `isolated=true`, `timeout_enforced=true`를 기록했는지도 포함한다.
 
+Controller 재생성 이후에도 실행 중 managed runtime을 다시 제어할 수 있는지는
+Phase 3-7.7 host acceptance로 검증한다.
+
+```powershell
+uv run --locked --extra dev python scripts/verify_docker_evaluation.py `
+  --project-root . `
+  --state-dir state/docker-controller-restart-acceptance `
+  --image quant-autoresearch-worker:local `
+  --verify-controller-restart
+```
+
+이 검사는 실행 중 Docker Job과 persisted process identity를 만든 뒤 새 Controller에서
+`status=RUNNING` 및 active Job 복원을 확인하고, 같은 Controller의 `stop`이 소유
+프로세스/컨테이너를 정리해 Job을 `CANCELLED`, 최종 system을 `STOPPED`로 만드는지
+검증한다. 세부 계약은
+`docs/operations/mcp-phase3-7-7-controller-restart-recovery.md`를 따른다.
+
 ## MCP 프로세스 자체 검증
 
 Docker 검증과 별개로 MCP STDIO 서버 자체는 실제 별도 프로세스에서 확인할 수 있다.

@@ -4,6 +4,8 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -19,7 +21,9 @@ from runtime.docker_evaluation import (
 )
 from runtime.evaluation_executor import QueuedEvaluationExecutor, is_retryable_error
 from runtime.persistent_queue import PersistentJobQueue
+from runtime.process_lifecycle import spawn_managed_process
 from runtime.queue import Job, JobStatus
+from runtime.system_controller import SystemController
 
 DEFAULT_IMAGE = "quant-autoresearch-worker:local"
 WORKER_DOCKERFILE = Path("runtime/Dockerfile.worker")
@@ -462,6 +466,257 @@ def run_retry_exhaustion_acceptance(
         "orders_enabled": False,
     }
 
+
+def _wait_for_container_running(
+    executable: str,
+    *,
+    container_name: str,
+    project_root: Path,
+    timeout_seconds: float = 10.0,
+) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        try:
+            inspect = subprocess.run(
+                [
+                    executable,
+                    "container",
+                    "inspect",
+                    "--format",
+                    "{{.State.Running}}",
+                    container_name,
+                ],
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            inspect = None
+        if (
+            inspect is not None
+            and inspect.returncode == 0
+            and inspect.stdout.strip().lower() == "true"
+        ):
+            return
+        time.sleep(0.1)
+    raise RuntimeError("controller restart probe container did not become ready")
+
+
+def run_controller_restart_acceptance(
+    *,
+    project_root: Path,
+    state_dir: Path,
+    image: str,
+) -> dict[str, object]:
+    executable = shutil.which("docker")
+    if not executable:
+        raise RuntimeError("Docker CLI is not available")
+
+    managed_run_id = f"host-restart-{uuid4().hex}"
+    job_id = f"restart-probe-{uuid4().hex}"
+    queue = PersistentJobQueue(state_dir)
+    queue.enqueue(
+        Job(
+            job_id,
+            {
+                "role": "controller-restart-acceptance",
+                "managed_run_id": managed_run_id,
+            },
+            max_attempts=1,
+        )
+    )
+    claimed = queue.claim(job_id=job_id, lease_seconds=300.0)
+    if claimed is None:
+        raise RuntimeError("controller restart acceptance job could not be claimed")
+
+    container_name = docker_evaluation_container_name(job_id, claimed.attempt)
+    command, cleanup = timeout_probe_command(
+        image,
+        container_name=container_name,
+        sleep_seconds=300.0,
+        docker_executable=executable,
+    )
+    helpers: list[subprocess.Popen[bytes]] = []
+    docker_process: subprocess.Popen[bytes] | None = None
+
+    try:
+        dashboard_marker = f"moon-restart-dashboard-{managed_run_id}"
+        research_marker = f"moon-restart-research-{managed_run_id}"
+        helper_script = "import time; time.sleep(300)"
+        dashboard = spawn_managed_process(
+            [sys.executable, "-c", helper_script, dashboard_marker],
+            project_root,
+        )
+        research = spawn_managed_process(
+            [sys.executable, "-c", helper_script, research_marker],
+            project_root,
+        )
+        helpers.extend((dashboard, research))
+
+        first = SystemController(state_dir=state_dir, project_root=project_root)
+        first._write_state(
+            {
+                "status": "STARTED",
+                "managed_run_id": managed_run_id,
+                "dashboard_port": 8080,
+                "evaluation_execution": "docker_worker",
+                "orders_enabled": False,
+                "components": [
+                    {
+                        "id": "dashboard",
+                        "status": "STARTED",
+                        "pid": dashboard.pid,
+                        "identity_markers": [dashboard_marker],
+                    },
+                    {
+                        "id": "research_worker",
+                        "status": "STARTED",
+                        "pid": research.pid,
+                        "identity_markers": [research_marker],
+                    },
+                    {
+                        "id": "evaluation_backend",
+                        "status": "CONFIGURED",
+                        "mode": "docker_worker",
+                        "active_jobs": 0,
+                        "queued_jobs": 0,
+                    },
+                ],
+            }
+        )
+
+        docker_process = subprocess.Popen(
+            command,
+            cwd=project_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        _wait_for_container_running(
+            executable,
+            container_name=container_name,
+            project_root=project_root,
+        )
+
+        recovered = SystemController(state_dir=state_dir, project_root=project_root)
+        status = recovered.status()
+        if status.get("status") != "RUNNING":
+            raise RuntimeError("recreated controller did not recover RUNNING state")
+        if status.get("managed_run_id") != managed_run_id:
+            raise RuntimeError("recreated controller lost managed_run_id")
+
+        raw_components = status.get("components")
+        if not isinstance(raw_components, list):
+            raise RuntimeError("recreated controller returned invalid components")
+        components = {
+            item.get("id"): item
+            for item in raw_components
+            if isinstance(item, dict)
+        }
+        evaluation = components.get("evaluation_backend")
+        if not isinstance(evaluation, dict) or evaluation.get("active_jobs") != 1:
+            raise RuntimeError("recreated controller did not report active Docker job")
+
+        runtime = status.get("runtime")
+        runtime_evaluation = runtime.get("evaluation") if isinstance(runtime, dict) else None
+        active_jobs = (
+            runtime_evaluation.get("active_jobs")
+            if isinstance(runtime_evaluation, dict)
+            else None
+        )
+        if not isinstance(active_jobs, list) or not any(
+            isinstance(item, dict) and item.get("job_id") == job_id
+            for item in active_jobs
+        ):
+            raise RuntimeError("runtime snapshot did not recover active Docker job")
+        if not isinstance(runtime, dict) or runtime.get("orders_enabled") is not False:
+            raise RuntimeError("recovered runtime did not preserve orders_enabled=false")
+
+        stopped = recovered.stop()
+        if stopped.get("status") != "STOPPED":
+            raise RuntimeError("recovered controller could not stop managed system")
+        current = queue.get(job_id)
+        if current.status is not JobStatus.CANCELLED:
+            raise RuntimeError("recovered stop did not cancel owned Docker job")
+
+        inspect = subprocess.run(
+            [executable, "container", "inspect", container_name],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+        if inspect.returncode == 0:
+            raise RuntimeError("recovered stop left Docker container running")
+
+        for helper in helpers:
+            try:
+                helper.wait(timeout=5)
+            except (AttributeError, subprocess.TimeoutExpired):
+                raise RuntimeError("recovered stop left managed process running") from None
+
+        final_status = recovered.status()
+        final_runtime = final_status.get("runtime")
+        if final_status.get("status") != "STOPPED":
+            raise RuntimeError("controller did not persist STOPPED state")
+        if (
+            not isinstance(final_runtime, dict)
+            or final_runtime.get("orders_enabled") is not False
+        ):
+            raise RuntimeError("stopped runtime did not preserve orders_enabled=false")
+
+        return {
+            "status": "PASS",
+            "probe": "controller_restart",
+            "managed_run_id": managed_run_id,
+            "job_id": job_id,
+            "queue_attempt": claimed.attempt,
+            "recovered_status": status.get("status"),
+            "active_jobs_after_reconnect": evaluation.get("active_jobs"),
+            "stop_status": stopped.get("status"),
+            "queue_status_after_stop": current.status.value,
+            "container_name": container_name,
+            "container_removed": True,
+            "processes_stopped": True,
+            "final_status": final_status.get("status"),
+            "orders_enabled": False,
+        }
+    finally:
+        try:
+            subprocess.run(
+                cleanup,
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        for helper in helpers:
+            try:
+                if helper.poll() is None:
+                    helper.terminate()
+                    helper.wait(timeout=5)
+            except (AttributeError, OSError, subprocess.TimeoutExpired):
+                pass
+        if docker_process is not None:
+            try:
+                docker_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                docker_process.terminate()
+        try:
+            current = queue.get(job_id)
+            if current.status is JobStatus.RUNNING:
+                queue.cancel_running(job_id)
+            elif current.status is JobStatus.QUEUED:
+                queue.cancel_queued(job_id)
+        except (KeyError, ValueError):
+            pass
+
+
 def run_acceptance(
     *,
     project_root: Path,
@@ -593,6 +848,15 @@ def main(argv: list[str] | None = None) -> int:
             result["checks"] = checks
             print(json.dumps(result, sort_keys=True))
             return 0
+        if args.verify_controller_restart:
+            result = run_controller_restart_acceptance(
+                project_root=project_root,
+                state_dir=state_dir,
+                image=args.image,
+            )
+            result["checks"] = checks
+            print(json.dumps(result, sort_keys=True))
+            return 0
         source_path = args.source_path
         data_path = args.data_path
         if args.prepare_fixture:
@@ -644,6 +908,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--prepare-fixture", action="store_true")
     parser.add_argument("--verify-timeout", action="store_true")
     parser.add_argument("--verify-retry-exhaustion", action="store_true")
+    parser.add_argument("--verify-controller-restart", action="store_true")
     parser.add_argument("--timeout-seconds", type=float, default=0.5)
     parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--check-build-context", action="store_true")

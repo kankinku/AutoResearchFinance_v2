@@ -544,6 +544,66 @@ def test_recovered_stop_terminates_owned_processes_and_owned_docker_jobs_only(
     assert queue.get("other").status is JobStatus.RUNNING
 
 
+
+
+def test_recreated_controller_reports_active_owned_job_then_stops_it_safely(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    state = tmp_path / "state"
+    first = SystemController(state_dir=state, project_root=tmp_path)
+    _managed_state(first, managed_run_id="run-restart")
+    queue = PersistentJobQueue(state)
+    queue.enqueue(Job("owned-live", {"managed_run_id": "run-restart"}, max_attempts=2))
+    queue.enqueue(Job("foreign-live", {"managed_run_id": "run-other"}, max_attempts=2))
+    owned = queue.claim(job_id="owned-live", lease_seconds=60)
+    foreign = queue.claim(job_id="foreign-live", lease_seconds=60)
+    assert owned is not None and foreign is not None
+
+    commands: list[list[str]] = []
+    terminated: list[int] = []
+    monkeypatch.setattr(
+        controller_module.shutil,
+        "which",
+        lambda name: "/usr/bin/docker" if name == "docker" else None,
+    )
+    recovered = SystemController(
+        state_dir=state,
+        project_root=tmp_path,
+        process_probe=lambda pid, markers: pid in {101, 102},
+        process_terminator=lambda pid, markers: (terminated.append(pid) or True),
+        command_runner=lambda command, cwd: (commands.append(command) or (0, "")),
+    )
+
+    status = recovered.status()
+
+    assert status["status"] == "RUNNING"
+    components = {
+        item["id"]: item
+        for item in status["components"]
+        if isinstance(item, dict)
+    }
+    assert components["evaluation_backend"]["active_jobs"] == 1
+    assert components["evaluation_backend"]["queued_jobs"] == 0
+    assert len(status["runtime"]["evaluation"]["active_jobs"]) == 1
+    assert status["runtime"]["orders_enabled"] is False
+
+    result = recovered.stop()
+
+    assert result["status"] == "STOPPED"
+    assert set(terminated) == {101, 102}
+    owned_name = docker_evaluation_container_name("owned-live", owned.attempt)
+    foreign_name = docker_evaluation_container_name("foreign-live", foreign.attempt)
+    assert ["docker", "rm", "-f", owned_name] in commands
+    assert ["docker", "rm", "-f", foreign_name] not in commands
+    assert queue.get("owned-live").status is JobStatus.CANCELLED
+    assert queue.get("foreign-live").status is JobStatus.RUNNING
+
+    stopped = recovered.status()
+    assert stopped["status"] == "STOPPED"
+    assert stopped["runtime"]["orders_enabled"] is False
+
+
 def test_aggregate_status_reports_degraded_when_dashboard_is_lost(
     tmp_path: Path,
 ) -> None:

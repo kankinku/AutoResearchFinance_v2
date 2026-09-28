@@ -715,3 +715,78 @@ def test_retry_exhaustion_cli_blocks_without_docker(
     assert '"status": "BLOCKED"' in output
     assert "Docker CLI is not available" in output
     assert '"orders_enabled": false' in output
+
+
+
+def test_controller_restart_cli_runs_reconnect_acceptance(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(
+        acceptance,
+        "docker_prerequisites",
+        lambda image, project_root: {
+            "docker_cli": "PASS",
+            "docker_engine": "PASS",
+            "docker_image": "PASS",
+        },
+    )
+
+    def fake_restart(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "status": "PASS",
+            "probe": "controller_restart",
+            "recovered_status": "RUNNING",
+            "queue_status_after_stop": "CANCELLED",
+            "container_removed": True,
+            "processes_stopped": True,
+            "orders_enabled": False,
+        }
+
+    monkeypatch.setattr(acceptance, "run_controller_restart_acceptance", fake_restart)
+
+    exit_code = acceptance.main(
+        [
+            "--project-root",
+            str(tmp_path),
+            "--state-dir",
+            "state/restart-acceptance",
+            "--image",
+            "quant-worker:test",
+            "--verify-controller-restart",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["project_root"] == tmp_path.resolve()
+    assert captured["state_dir"] == (tmp_path / "state/restart-acceptance").resolve()
+    assert captured["image"] == "quant-worker:test"
+    output = capsys.readouterr().out
+    assert '"probe": "controller_restart"' in output
+    assert '"recovered_status": "RUNNING"' in output
+    assert '"orders_enabled": false' in output
+
+
+def test_controller_restart_cli_blocks_without_docker(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.setattr(acceptance.shutil, "which", lambda name: None)
+
+    exit_code = acceptance.main(
+        [
+            "--project-root",
+            str(tmp_path),
+            "--verify-controller-restart",
+        ]
+    )
+
+    assert exit_code == 2
+    output = capsys.readouterr().out
+    assert '"status": "BLOCKED"' in output
+    assert "Docker CLI is not available" in output
+    assert '"orders_enabled": false' in output
