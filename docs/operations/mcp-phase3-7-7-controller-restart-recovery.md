@@ -95,6 +95,6 @@ Controller restart/recovery acceptance 경로 구현 및 deterministic regressio
 
 실제 Docker Desktop host acceptance는 환경 의존 검증으로 남아 있다.
 
-다음 단계는 **Phase 3-7.8 — 최종 Host Acceptance 문서화**다.
-사용자 실행 명령, 실행 순서, PASS/BLOCKED 정상 출력과 최종 체크리스트를 하나의
-정본 문서로 확정한다.
+Phase 3-7.8에서 전체 Host Acceptance 실행 순서와 PASS/BLOCKED 판정을
+`mcp-phase3-7-8-final-host-acceptance.md`로 통합했다.
+Phase 3-7 개발 범위의 최종 상태는 `mcp-phase3-7-completion.md`를 따른다.

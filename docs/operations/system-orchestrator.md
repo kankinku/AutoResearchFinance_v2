@@ -220,8 +220,9 @@ research worker가 사라진 뒤 lease가 만료된 Job은:
 ### 실제 Docker host acceptance
 
 Moon 개발 컨테이너처럼 Docker CLI가 노출되지 않는 환경에서는 정적/모의 검증만 가능하다.
-Windows + Docker Desktop 실행 순서는
-`docs/operations/mcp-phase3-7-1-docker-host-procedure.md`를 정본으로 사용한다.
+Windows + Docker Desktop의 최종 실행 순서와 PASS/BLOCKED 판정은
+`docs/operations/mcp-phase3-7-8-final-host-acceptance.md`를 정본으로 사용한다.
+`mcp-phase3-7-1-docker-host-procedure.md`는 초기 Host 전제와 세부 근거 문서로 유지한다.
 
 Docker Desktop host에서는 Phase 3-7.2 build acceptance로 worker image build와 inspect를
 한 번에 검증할 수 있다.

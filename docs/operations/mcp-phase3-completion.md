@@ -85,4 +85,6 @@ Phase 3 이후 검증은 별도 pyarrow 주입 없이 `pyproject.toml`과 `uv.lo
 
 ## 남은 외부 환경 확인
 
-Phase 3 코드 범위에서 미완료 구현은 없다. 실제 Docker Engine acceptance만 Docker Desktop이 있는 host에서 실행해야 한다.
+Phase 3 코드 범위에서 미완료 구현은 없다. Docker Host Acceptance harness와 최종 runbook도 Phase 3-7에서 완료했다.
+실제 Docker Engine acceptance 증거만 Windows + Docker Desktop host에서 실행해야 한다.
+정본 실행 절차와 PASS/BLOCKED 기준은 `docs/operations/mcp-phase3-7-8-final-host-acceptance.md`를 따른다.
