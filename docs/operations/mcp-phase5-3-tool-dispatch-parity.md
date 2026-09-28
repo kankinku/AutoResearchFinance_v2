@@ -218,8 +218,8 @@ canonical manual adapter = UNCHANGED
 orders_enabled=false
 ```
 
-다음 작업은 **Phase 5.4 — SDK STDIO shadow acceptance**다.
+Phase 5.4에서 실제 별도 subprocess로 공식 SDK shadow server를 띄워 initialize, tools/list,
+public/legacy tools/call과 protocol negotiation을 검증했다. 결과와 정본 명령은
+`docs/operations/mcp-phase5-4-sdk-stdio-acceptance.md`를 따른다.
 
-Phase 5.4에서는 실제 별도 subprocess로 공식 SDK shadow server를 띄워 initialize, tools/list,
-public/legacy tools/call과 protocol negotiation을 검증한다. 그 전까지 production MCP 설정은
-기존 수동 entrypoint를 유지한다.
+다음 작업은 **Phase 5.5 — canonical SDK cutover**다.
