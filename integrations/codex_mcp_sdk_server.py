@@ -9,22 +9,22 @@ from mcp import types
 from mcp.server import Server, ServerRequestContext
 from mcp.server.stdio import stdio_server
 
-from integrations.codex_mcp_protocol import text_content
-from integrations.codex_mcp_server import (
+from integrations.codex_mcp_core import (
     CodexMCPServer,
     _tools,
     _with_legacy_compatibility,
     _with_public_contract,
 )
+from integrations.codex_mcp_protocol import text_content
 from research.llm.codex_exec import write_provider_status
 
-SDK_ADAPTER_STATUS = "SCHEMA_DISPATCH_PARITY"
+SDK_ADAPTER_STATUS = "CANONICAL_SDK"
 _SERVER_NAME = "quant-autoresearch"
 _SERVER_VERSION = "0.1.0"
 
 
 class SDKMCPServerAdapter:
-    """Official-SDK shadow adapter sharing the canonical MCP application dispatch."""
+    """Official-SDK adapter sharing the canonical MCP application dispatch."""
 
     def __init__(self, *, state_dir: Path, project_root: Path) -> None:
         self.state_dir = state_dir.resolve()
@@ -37,8 +37,8 @@ class SDKMCPServerAdapter:
             _SERVER_NAME,
             version=_SERVER_VERSION,
             description=(
-                "Shadow official-SDK adapter for quant-autoresearch. "
-                "Tool schema and dispatch parity are enabled before canonical cutover."
+                "Official-SDK adapter for quant-autoresearch. "
+                "Tool schema and dispatch parity are preserved after canonical cutover."
             ),
             on_list_tools=self.list_tools,
             on_call_tool=self.call_tool,
@@ -77,7 +77,7 @@ class SDKMCPServerAdapter:
         return _sdk_tool_result(payload, is_error=False)
 
     async def serve_stdio(self) -> None:
-        """Serve the shadow SDK adapter over stdio without changing the canonical entrypoint."""
+        """Serve the official SDK adapter over stdio."""
 
         async with stdio_server() as (read_stream, write_stream):
             await self.server.run(
@@ -94,8 +94,12 @@ def create_sdk_mcp_server(*, state_dir: Path, project_root: Path) -> SDKMCPServe
     )
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="quant-autoresearch-sdk-shadow")
+def main(
+    argv: list[str] | None = None,
+    *,
+    prog: str = "quant-autoresearch-sdk-shadow",
+) -> int:
+    parser = argparse.ArgumentParser(prog=prog)
     parser.add_argument("--state-dir", type=Path, default=Path("state"))
     parser.add_argument("--project-root", type=Path, default=Path("."))
     args = parser.parse_args(argv)

@@ -98,7 +98,7 @@ def test_phase5_3_sdk_tools_match_manual_public_schema_exactly(tmp_path: Path) -
         for tool in result.tools
     ]
 
-    assert SDK_ADAPTER_STATUS == "SCHEMA_DISPATCH_PARITY"
+    assert SDK_ADAPTER_STATUS == "CANONICAL_SDK"
     assert dumped == _tools()
     assert {tool.name for tool in result.tools} == PUBLIC_NAMES
 

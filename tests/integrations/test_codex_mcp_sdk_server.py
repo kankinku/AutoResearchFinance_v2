@@ -33,7 +33,7 @@ def test_phase5_2_shadow_sdk_server_can_be_constructed_without_cutover(tmp_path:
         project_root=tmp_path,
     )
 
-    assert SDK_ADAPTER_STATUS in {"SHADOW_SKELETON", "SCHEMA_DISPATCH_PARITY"}
+    assert SDK_ADAPTER_STATUS == "CANONICAL_SDK"
     assert adapter.state_dir == (tmp_path / "state").resolve()
     assert adapter.project_root == tmp_path.resolve()
     assert adapter.server.name == "quant-autoresearch"

@@ -19,6 +19,7 @@ def test_real_mcp_stdio_subprocess_acceptance(tmp_path: Path) -> None:
 
     assert result == {
         "status": "PASS",
+        "transport": "manual_rollback",
         "protocol_version": "2024-11-05",
         "server_name": "quant-autoresearch",
         "tool_count": 13,
@@ -46,6 +47,7 @@ def test_mcp_acceptance_cli_prints_safe_summary(tmp_path: Path, capsys) -> None:
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "PASS"
+    assert payload["transport"] == "manual_rollback"
     assert payload["tool_count"] == 13
     assert payload["public_contract_schema_version"] == 1
     assert payload["legacy_compatibility_count"] == 5

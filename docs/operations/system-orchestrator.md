@@ -273,18 +273,22 @@ uv run --locked --extra dev python scripts/verify_docker_evaluation.py `
 
 ## MCP 프로세스 자체 검증
 
-Docker 검증과 별개로 MCP STDIO 서버 자체는 실제 별도 프로세스에서 확인할 수 있다.
+Docker 검증과 별개로 canonical MCP STDIO 서버는 공식 Python MCP SDK 경로를 실제
+별도 프로세스에서 검증한다.
 
-    uv run --locked python scripts/verify_mcp_runtime.py --project-root . --state-dir state/mcp-acceptance
+    uv run --locked --extra dev python scripts/verify_mcp_sdk_runtime.py --project-root . --state-dir state/mcp-sdk-acceptance
 
-이 검사는 실제 STDIO subprocess에서 `initialize → tools/list → get_system_status`를
-검증한 뒤, 공개 목록에서 숨겨진 5개 legacy 이름도 직접 호출해 compatibility metadata를
-확인한다. `plan_generation`은 계획만 만들고 `submit_research_intent`는 compatibility
-journal 기록만 수행하며, 평가 실행·managed research 시작·KIS 주문은 수행하지 않는다.
+이 검사는 `python -m integrations.codex_mcp_server`를 실제 subprocess로 실행해 SDK
+protocol negotiation, 2024-11-05 client compatibility, public 13 Tool, hidden legacy
+5 direct call, public contract v1, sanitized error와 `orders_enabled=false`를 검증한다.
 
-정상 출력에는 protocol version, server name, public tool count(13),
-public contract schema version(1), legacy compatibility count(5), 현재 system status와
-`orders_enabled=false`만 포함한다.
+비상 rollback transport도 별도 acceptance를 유지한다.
 
-Codex trusted MCP 설정도 `.codex/config.toml.example`처럼 `uv run --locked python`
-경로를 사용한다. 따라서 MCP 서버와 평가 런타임이 동일한 lockfile 의존성을 사용한다.
+    uv run --locked --extra dev python scripts/verify_mcp_runtime.py --project-root . --state-dir state/mcp-manual-rollback-acceptance
+
+이 명령은 `integrations.codex_mcp_manual_server`의 legacy 2024-11-05 newline
+JSON-RPC 경로만 검증한다. production 설정은 아니다.
+
+Codex trusted MCP 설정은 `.codex/config.toml.example`처럼
+`integrations.codex_mcp_server`를 사용한다. 따라서 canonical MCP 서버와 평가
+런타임이 동일한 lockfile 의존성을 사용한다.

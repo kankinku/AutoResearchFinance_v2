@@ -138,11 +138,15 @@ python cli.py paper-order-smoke `
 않습니다.
 
 For Codex Desktop, register `.codex/config.toml.example` in the Desktop MCP settings.
-The local MCP server can then be started with:
+The canonical local MCP transport now uses the official Python MCP SDK and starts with:
 
 ```powershell
 python -m integrations.codex_mcp_server --state-dir state --project-root .
 ```
+
+If an emergency rollback is required, the legacy newline JSON-RPC transport remains
+available separately as `integrations.codex_mcp_manual_server`; do not switch to it
+unless diagnosing an SDK transport regression.
 
 In Codex Desktop, use `get_workspace_status` for bootstrap/configuration state,
 `get_system_status` for managed runtime health, and `get_dashboard_status` for
@@ -473,11 +477,18 @@ Knowledge, 대시보드에 전달됩니다.
 ## Codex Desktop connection
 
 Codex Desktop can connect to the local stdio MCP server using the credential-free
-example in `.codex/config.toml.example`. Copy its section into the trusted Codex
-configuration or register the same command in Desktop MCP settings:
+example in `.codex/config.toml.example`. The canonical entrypoint is backed by the
+official Python MCP SDK. Copy its section into the trusted Codex configuration or
+register the same command in Desktop MCP settings:
 
 ```powershell
 python -m integrations.codex_mcp_server --state-dir state --project-root .
+```
+
+The legacy manual transport is retained only as a rollback entrypoint:
+
+```powershell
+python -m integrations.codex_mcp_manual_server --state-dir state --project-root .
 ```
 
 The exposed tools cover sanitized research/workspace status, feature and strategy

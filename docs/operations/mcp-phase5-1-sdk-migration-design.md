@@ -271,5 +271,7 @@ SDK 도입이 어떤 경우에도 `orders_enabled=false`를 완화하는 근거�
 
 Phase 5.2에서 SDK dependency와 parallel adapter skeleton을 추가했고, Phase 5.3에서
 13개 public Tool schema와 5개 hidden legacy dispatch parity를 검증했다. Phase 5.4에서는
-공식 SDK subprocess STDIO와 2024-11-05 client compatibility까지 검증했다.
-다음 작업은 **Phase 5.5 — canonical SDK cutover**다.
+공식 SDK subprocess STDIO와 2024-11-05 client compatibility까지 검증했다. Phase 5.5에서
+canonical entrypoint를 공식 SDK로 전환하고 manual rollback 경로까지 검증했다.
+
+최종 상태는 `docs/operations/mcp-phase5-completion.md`를 따른다.

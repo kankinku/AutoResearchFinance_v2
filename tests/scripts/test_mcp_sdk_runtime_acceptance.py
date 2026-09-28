@@ -26,7 +26,7 @@ def test_real_sdk_stdio_shadow_acceptance(tmp_path: Path) -> None:
         "public_contract_schema_version": 1,
         "legacy_compatibility_count": 5,
         "system_status": "STOPPED",
-        "canonical_entrypoint": "manual",
+        "canonical_entrypoint": "sdk",
         "orders_enabled": False,
     }
 
@@ -55,7 +55,7 @@ def test_sdk_stdio_shadow_acceptance_cli_prints_safe_summary(
     assert payload["legacy_protocol_version"] == "2024-11-05"
     assert payload["tool_count"] == 13
     assert payload["legacy_compatibility_count"] == 5
-    assert payload["canonical_entrypoint"] == "manual"
+    assert payload["canonical_entrypoint"] == "sdk"
     assert payload["orders_enabled"] is False
     assert "content" not in payload
 

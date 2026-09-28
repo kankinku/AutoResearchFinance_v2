@@ -263,8 +263,8 @@ canonical manual adapter = UNCHANGED
 orders_enabled=false
 ```
 
-다음 작업은 **Phase 5.5 — canonical SDK cutover**다.
+Phase 5.5에서 `python -m integrations.codex_mcp_server`의 production entrypoint를
+공식 SDK adapter로 전환했고, 기존 수동 transport는
+`integrations.codex_mcp_manual_server` rollback 경로로 격리했다.
 
-Phase 5.5에서는 `python -m integrations.codex_mcp_server`의 production entrypoint를
-공식 SDK adapter로 전환하되, 기존 수동 transport를 rollback 경로로 격리하고 두 acceptance를
-모두 release gate로 사용한다.
+최종 cutover 결과는 `docs/operations/mcp-phase5-5-canonical-sdk-cutover.md`를 따른다.

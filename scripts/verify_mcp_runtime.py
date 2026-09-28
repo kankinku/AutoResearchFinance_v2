@@ -115,7 +115,7 @@ def run_acceptance(
             [
                 executable,
                 "-m",
-                "integrations.codex_mcp_server",
+                "integrations.codex_mcp_manual_server",
                 "--state-dir",
                 str(state),
                 "--project-root",
@@ -193,6 +193,7 @@ def run_acceptance(
 
     return {
         "status": "PASS",
+        "transport": "manual_rollback",
         "protocol_version": initialize["protocolVersion"],
         "server_name": server_info["name"],
         "tool_count": len(tool_names),
@@ -253,7 +254,7 @@ def _text_payload(result: dict[str, Any]) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Verify the quant-autoresearch MCP stdio server in a real subprocess."
+        description="Verify the manual rollback MCP stdio transport in a real subprocess."
     )
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--state-dir", default="state/mcp-acceptance")

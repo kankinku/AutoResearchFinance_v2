@@ -68,7 +68,7 @@ def run_acceptance(
     state = state_dir.resolve()
     executable = python_executable or sys.executable
 
-    _assert_manual_entrypoint_remains_canonical(root)
+    _assert_sdk_entrypoint_is_canonical()
 
     try:
         sdk_result = asyncio.run(
@@ -117,7 +117,7 @@ def run_acceptance(
         "public_contract_schema_version": sdk_result["public_contract_schema_version"],
         "legacy_compatibility_count": sdk_result["legacy_compatibility_count"],
         "system_status": sdk_result["system_status"],
-        "canonical_entrypoint": "manual",
+        "canonical_entrypoint": "sdk",
         "orders_enabled": False,
     }
 
@@ -134,7 +134,7 @@ async def _run_session_acceptance(
         command=python_executable,
         args=[
             "-m",
-            "integrations.codex_mcp_sdk_server",
+            "integrations.codex_mcp_server",
             "--state-dir",
             str(state_dir),
             "--project-root",
@@ -297,16 +297,16 @@ def _tool_payload(
     return payload
 
 
-def _assert_manual_entrypoint_remains_canonical(project_root: Path) -> None:
-    path = project_root / "integrations" / "codex_mcp_server.py"
-    text = path.read_text(encoding="utf-8")
-    if "from integrations.codex_mcp_protocol import" not in text or "serve_lines(" not in text:
-        raise RuntimeError("manual MCP entrypoint is no longer canonical")
+def _assert_sdk_entrypoint_is_canonical() -> None:
+    from integrations.codex_mcp_server import MCP_TRANSPORT
+
+    if MCP_TRANSPORT != "official_sdk":
+        raise RuntimeError("official SDK MCP entrypoint is not canonical")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Verify the official-SDK MCP shadow server over real stdio subprocesses."
+        description="Verify the canonical official-SDK MCP server over real stdio subprocesses."
     )
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--state-dir", default="state/mcp-sdk-acceptance")
