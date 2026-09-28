@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -62,7 +63,12 @@ def test_docker_acceptance_full_run_uses_isolated_executor(
         def run(self, evaluator: object, **kwargs: object) -> dict[str, object]:
             captured["evaluator"] = evaluator
             captured["run"] = kwargs
-            return {"status": "COMPLETED", "candidate_count": 1}
+            return {
+                "status": "COMPLETED",
+                "candidate_count": 1,
+                "research_run_id": "research-1",
+                "attempt_id": "attempt-1",
+            }
 
     monkeypatch.setattr(acceptance, "QueuedEvaluationExecutor", FakeExecutor)
 
@@ -82,6 +88,20 @@ def test_docker_acceptance_full_run_uses_isolated_executor(
 
     monkeypatch.setattr(acceptance, "PersistentJobQueue", FakeQueue)
 
+    def fake_verify_evidence(**kwargs: object) -> dict[str, object]:
+        captured["evidence"] = kwargs
+        return {
+            "status": "VERIFIED",
+            "event_id": "attempt:attempt-1",
+            "execution_mode": "docker_worker",
+            "isolated": True,
+            "timeout_enforced": True,
+            "job_id": kwargs["job_id"],
+            "managed_run_id": kwargs["managed_run_id"],
+        }
+
+    monkeypatch.setattr(acceptance, "verify_docker_evidence", fake_verify_evidence)
+
     result = acceptance.run_acceptance(
         project_root=tmp_path,
         state_dir=tmp_path / "state",
@@ -100,6 +120,12 @@ def test_docker_acceptance_full_run_uses_isolated_executor(
     assert result["status"] == "PASS"
     assert result["queue_status"] == "SUCCEEDED"
     assert result["durable_job_count"] == 1
+    assert result["evidence_verified"] is True
+    evidence_call = captured["evidence"]
+    assert evidence_call["research_run_id"] == "research-1"
+    assert evidence_call["attempt_id"] == "attempt-1"
+    assert evidence_call["job_id"] == "evaluation-host-acceptance"
+    assert evidence_call["managed_run_id"] == init["managed_run_id"]
     assert result["orders_enabled"] is False
 
 
@@ -327,3 +353,190 @@ def test_single_job_acceptance_rejects_missing_or_non_succeeded_durable_job(
         assert "exactly one durable job" in str(exc)
     else:
         raise AssertionError("missing durable job must fail acceptance")
+
+
+def _seed_docker_attempt_evidence(
+    state: Path,
+    *,
+    research_run_id: str = "research-1",
+    attempt_id: str = "attempt-1",
+    job_id: str = "evaluation-attempt-1",
+    managed_run_id: str = "managed-1",
+    isolated: bool = True,
+) -> None:
+    store = acceptance.EvidenceStore(state)
+    store.append(
+        "run",
+        f"run:{research_run_id}",
+        {
+            "research_run_id": research_run_id,
+            "requested_generations": 1,
+            "seed": 0,
+        },
+    )
+    store.append(
+        "attempt",
+        f"attempt:{attempt_id}",
+        {
+            "research_run_id": research_run_id,
+            "attempt_id": attempt_id,
+            "generation": 1,
+            "status": "COMPLETED",
+            "execution": {
+                "worker": {
+                    "execution_mode": "docker_worker",
+                    "isolated": isolated,
+                    "timeout_enforced": True,
+                    "job_id": job_id,
+                    "managed_run_id": managed_run_id,
+                }
+            },
+            "candidates": [],
+        },
+    )
+
+
+def test_verify_docker_evidence_links_attempt_to_job_and_managed_run(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    _seed_docker_attempt_evidence(state)
+
+    result = acceptance.verify_docker_evidence(
+        state_dir=state,
+        research_run_id="research-1",
+        attempt_id="attempt-1",
+        job_id="evaluation-attempt-1",
+        managed_run_id="managed-1",
+    )
+
+    assert result == {
+        "status": "VERIFIED",
+        "event_id": "attempt:attempt-1",
+        "execution_mode": "docker_worker",
+        "isolated": True,
+        "timeout_enforced": True,
+        "job_id": "evaluation-attempt-1",
+        "managed_run_id": "managed-1",
+    }
+
+
+def test_verify_docker_evidence_rejects_nonisolated_attempt(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    _seed_docker_attempt_evidence(state, isolated=False)
+
+    try:
+        acceptance.verify_docker_evidence(
+            state_dir=state,
+            research_run_id="research-1",
+            attempt_id="attempt-1",
+            job_id="evaluation-attempt-1",
+            managed_run_id="managed-1",
+        )
+    except RuntimeError as exc:
+        assert "isolated" in str(exc)
+    else:
+        raise AssertionError("nonisolated evidence must fail Docker acceptance")
+
+
+def test_verify_docker_evidence_rejects_job_identity_mismatch(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    _seed_docker_attempt_evidence(state)
+
+    try:
+        acceptance.verify_docker_evidence(
+            state_dir=state,
+            research_run_id="research-1",
+            attempt_id="attempt-1",
+            job_id="evaluation-other",
+            managed_run_id="managed-1",
+        )
+    except RuntimeError as exc:
+        assert "job_id" in str(exc)
+    else:
+        raise AssertionError("mismatched job identity must fail Docker acceptance")
+
+
+def test_verify_docker_evidence_rejects_missing_attempt(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    _seed_docker_attempt_evidence(state)
+
+    try:
+        acceptance.verify_docker_evidence(
+            state_dir=state,
+            research_run_id="research-1",
+            attempt_id="missing-attempt",
+            job_id="evaluation-attempt-1",
+            managed_run_id="managed-1",
+        )
+    except RuntimeError as exc:
+        assert "uniquely persisted" in str(exc)
+    else:
+        raise AssertionError("missing evidence attempt must fail Docker acceptance")
+
+
+def test_canonical_evaluator_persists_verifiable_docker_execution_evidence(
+    tmp_path: Path,
+) -> None:
+    strategy = tmp_path / "strategy.yaml"
+    strategy.write_text(
+        "schema_version: 1\n"
+        "id: docker-evidence-fixture\n"
+        "family: trend\n"
+        "generation: 0\n"
+        "indicators:\n"
+        "  fast: {type: SMA, period: 2}\n"
+        "entry: {logic: AND, conditions: [{op: greater_than, left: close, value: 0}]}\n"
+        "exit: {logic: AND, conditions: [{op: less_than, left: close, value: 0}]}\n"
+        "risk: {stop_loss_pct: 0, take_profit_pct: 0}\n",
+        encoding="utf-8",
+    )
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    bars = tuple(
+        acceptance.Bar(
+            start + timedelta(days=index),
+            "QQQ",
+            100.0 + index,
+            101.0 + index,
+            99.0 + index,
+            100.0 + index,
+            1_000.0,
+        )
+        for index in range(8)
+    )
+    acceptance.ParquetDataProvider.write(
+        tmp_path / "bars.parquet",
+        acceptance.MarketDataSet("docker-evidence-v1", acceptance.DataZone.DEVELOPMENT, bars),
+    )
+    state = tmp_path / "state"
+    result = acceptance.run_local_evaluation(
+        project_root=tmp_path,
+        state_dir=state,
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        count=1,
+        min_trades=0,
+        min_annual_trades=0,
+        attempt_id="attempt-real",
+        execution_context={
+            "job_id": "evaluation-attempt-real",
+            "queue_attempt": 1,
+            "max_attempts": 1,
+            "execution_mode": "docker_worker",
+            "isolated": True,
+            "timeout_enforced": True,
+            "lease_seconds": 60.0,
+            "managed_run_id": "managed-real",
+        },
+    )
+
+    evidence = acceptance.verify_docker_evidence(
+        state_dir=state,
+        research_run_id=str(result["research_run_id"]),
+        attempt_id=str(result["attempt_id"]),
+        job_id="evaluation-attempt-real",
+        managed_run_id="managed-real",
+    )
+
+    assert evidence["status"] == "VERIFIED"
+    assert evidence["execution_mode"] == "docker_worker"
+    assert evidence["isolated"] is True
+    assert evidence["timeout_enforced"] is True

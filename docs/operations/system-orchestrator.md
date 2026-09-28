@@ -249,7 +249,9 @@ uv run --locked python scripts/verify_docker_evaluation.py `
 ```
 
 이 acceptance는 `docker_worker` backend를 사용해 후보 1개를 실제 Job으로 실행하며
-주문 기능은 활성화하지 않는다.
+주문 기능은 활성화하지 않는다. PASS 조건에는 durable queue의 단일 `SUCCEEDED` Job뿐 아니라
+동일 run/attempt/job의 immutable Evidence가 `execution_mode=docker_worker`,
+`isolated=true`, `timeout_enforced=true`를 기록했는지도 포함한다.
 
 ## MCP 프로세스 자체 검증
 

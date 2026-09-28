@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from core.data.contracts import Bar, DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
+from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from orchestration.evaluation_runner import run_local_evaluation
 from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.persistent_queue import PersistentJobQueue
@@ -200,6 +201,56 @@ def prepare_acceptance_fixture(
     )
 
 
+def verify_docker_evidence(
+    *,
+    state_dir: Path,
+    research_run_id: str,
+    attempt_id: str,
+    job_id: str,
+    managed_run_id: str,
+) -> dict[str, object]:
+    if not all((research_run_id, attempt_id, job_id, managed_run_id)):
+        raise RuntimeError("docker evidence verification requires run/attempt/job identities")
+    try:
+        events = EvidenceStore(state_dir).events()
+    except EvidenceIntegrityError as exc:
+        raise RuntimeError("docker evidence store is not readable") from exc
+    matches = [
+        event
+        for event in events
+        if event.get("kind") == "attempt"
+        and isinstance(event.get("payload"), dict)
+        and event["payload"].get("research_run_id") == research_run_id
+        and event["payload"].get("attempt_id") == attempt_id
+    ]
+    if len(matches) != 1:
+        raise RuntimeError("docker evidence attempt was not uniquely persisted")
+    payload = matches[0]["payload"]
+    execution = payload.get("execution")
+    worker = execution.get("worker") if isinstance(execution, dict) else None
+    if not isinstance(worker, dict):
+        raise RuntimeError("docker evidence worker metadata is missing")
+    expected = {
+        "execution_mode": "docker_worker",
+        "isolated": True,
+        "timeout_enforced": True,
+        "job_id": job_id,
+        "managed_run_id": managed_run_id,
+    }
+    for name, value in expected.items():
+        if worker.get(name) != value:
+            raise RuntimeError(f"docker evidence metadata mismatch: {name}")
+    return {
+        "status": "VERIFIED",
+        "event_id": matches[0].get("id"),
+        "execution_mode": "docker_worker",
+        "isolated": True,
+        "timeout_enforced": True,
+        "job_id": job_id,
+        "managed_run_id": managed_run_id,
+    }
+
+
 def run_acceptance(
     *,
     project_root: Path,
@@ -238,17 +289,32 @@ def run_acceptance(
     job = jobs[0]
     if job.status is not JobStatus.SUCCEEDED:
         raise RuntimeError("single-job acceptance did not persist SUCCEEDED queue state")
+    research_run_id = result.get("research_run_id")
+    result_attempt_id = result.get("attempt_id")
+    if not isinstance(research_run_id, str) or not research_run_id:
+        raise RuntimeError("single-job acceptance result lacks research_run_id")
+    if not isinstance(result_attempt_id, str) or not result_attempt_id:
+        raise RuntimeError("single-job acceptance result lacks attempt_id")
+    evidence = verify_docker_evidence(
+        state_dir=state_dir,
+        research_run_id=research_run_id,
+        attempt_id=result_attempt_id,
+        job_id=job.job_id,
+        managed_run_id=managed_run_id,
+    )
     return {
         "status": "PASS",
         "evaluation_status": result.get("status", "UNKNOWN"),
         "candidate_count": result.get("candidate_count"),
         "managed_run_id": managed_run_id,
-        "research_run_id": result.get("research_run_id"),
-        "attempt_id": result.get("attempt_id"),
+        "research_run_id": research_run_id,
+        "attempt_id": result_attempt_id,
         "job_id": job.job_id,
         "queue_status": job.status.value,
         "queue_attempt": job.attempt,
         "durable_job_count": len(jobs),
+        "evidence_verified": evidence["status"] == "VERIFIED",
+        "evidence": evidence,
         "state_dir": str(state_dir),
         "orders_enabled": False,
     }
