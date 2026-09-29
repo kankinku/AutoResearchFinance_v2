@@ -46,6 +46,15 @@ def test_windows_host_acceptance_wrapper_requires_safe_json_contract() -> None:
     assert "WINDOWS_DOCKER_HOST_ACCEPTANCE=$($report.status)" in text
 
 
+def test_windows_host_acceptance_wrapper_handles_windows_powershell_native_stderr() -> None:
+    text = SCRIPT.read_text(encoding="utf-8")
+
+    assert '$ErrorActionPreference = "Continue"' in text
+    assert "$exitCode = $LASTEXITCODE" in text
+    assert "if ($exitCode -ne 0)" in text
+    assert "$ErrorActionPreference = $previousPreference" in text
+
+
 def test_windows_host_acceptance_wrapper_does_not_merge_or_mutate_branch() -> None:
     text = SCRIPT.read_text(encoding="utf-8").lower()
 

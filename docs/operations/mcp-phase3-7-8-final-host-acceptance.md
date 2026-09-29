@@ -60,6 +60,9 @@ state/windows-docker-host-acceptance/<timestamp>/report.json
 `WINDOWS_DOCKER_HOST_ACCEPTANCE=PASS`가 출력되고 report의 `status=PASS`일 때만
 외부 Host Acceptance를 PASS로 기록한다.
 
+Windows PowerShell 5.1에서는 `uv`가 정상적인 진행 정보를 stderr로 출력할 수 있으므로 wrapper는
+stderr 출력 자체가 아니라 native process의 `$LASTEXITCODE`를 기준으로 성공/실패를 판정한다.
+
 ## 0. Host 전제 확인
 
 저장소 루트에서 PowerShell을 연다.

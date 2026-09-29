@@ -17,10 +17,24 @@ function Require-Command {
 
 function Invoke-Native {
     param([string]$Command, [string[]]$Arguments = @())
-    $output = @(& $Command @Arguments 2>&1 | ForEach-Object { $_.ToString() })
-    if ($LASTEXITCODE -ne 0) {
+
+    # Windows PowerShell 5.1 can promote native-process stderr records to terminating
+    # errors when ErrorActionPreference=Stop, even when the process exits with code 0.
+    # uv intentionally writes progress/informational messages to stderr, so native
+    # commands must be judged by LASTEXITCODE instead.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = @(& $Command @Arguments 2>&1 | ForEach-Object { $_.ToString() })
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+
+    if ($exitCode -ne 0) {
         $joined = $output -join [Environment]::NewLine
-        throw "COMMAND_FAILED: $Command $($Arguments -join ' ') | exit=$LASTEXITCODE | $joined"
+        throw "COMMAND_FAILED: $Command $($Arguments -join ' ') | exit=$exitCode | $joined"
     }
     return $output
 }
