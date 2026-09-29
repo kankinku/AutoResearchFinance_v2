@@ -38,6 +38,7 @@ state/*.sqlite-wal
 state/results/*.parquet
 state/results/*.json
 state/locks/
+state/windows-docker-host-acceptance/
 /results/
 
 # Worktree and local editor files

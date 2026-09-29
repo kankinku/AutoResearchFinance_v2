@@ -38,12 +38,14 @@ def test_windows_host_acceptance_wrapper_runs_canonical_steps() -> None:
 
 def test_windows_host_acceptance_wrapper_requires_safe_json_contract() -> None:
     text = SCRIPT.read_text(encoding="utf-8")
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
 
     assert "orders_enabled must be false" in text
     assert 'status = "PASS"' in text
     assert "report.json" in text
     assert "WINDOWS_DOCKER_HOST_ACCEPTANCE=PASS" in text
     assert "WINDOWS_DOCKER_HOST_ACCEPTANCE=$($report.status)" in text
+    assert "state/windows-docker-host-acceptance/" in gitignore
 
 
 def test_windows_host_acceptance_wrapper_handles_windows_powershell_native_stderr() -> None:
