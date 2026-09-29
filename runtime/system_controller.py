@@ -522,7 +522,11 @@ class SystemController:
         running = (
             queue.running(managed_run_id=managed_run_id)
             if managed_run_id is not None
-            else queue.running()
+            else tuple(
+                job
+                for job in queue.running()
+                if "managed_run_id" not in job.payload
+            )
         )
         if not running:
             return []

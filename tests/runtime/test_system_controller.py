@@ -273,6 +273,40 @@ def test_status_reports_shared_evaluation_backend_activity(tmp_path: Path) -> No
     assert components["evaluation_backend"]["active_jobs"] == 1
 
 
+def test_stop_without_managed_run_cleans_only_legacy_unowned_docker_jobs(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    state = tmp_path / "state"
+    controller = SystemController(state_dir=state, project_root=tmp_path)
+    queue = PersistentJobQueue(state)
+    queue.enqueue(Job("legacy-unowned", {}, max_attempts=2))
+    queue.enqueue(Job("foreign-owned", {"managed_run_id": "other-run"}, max_attempts=2))
+    legacy = queue.claim(job_id="legacy-unowned", lease_seconds=30)
+    foreign = queue.claim(job_id="foreign-owned", lease_seconds=30)
+    assert legacy is not None and foreign is not None
+
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        controller_module.shutil,
+        "which",
+        lambda name: "/usr/bin/docker" if name == "docker" else None,
+    )
+    controller._command_runner = lambda command, cwd: (  # type: ignore[assignment]
+        commands.append(command) or (0, "")
+    )
+
+    result = controller.stop()
+
+    legacy_name = docker_evaluation_container_name("legacy-unowned", legacy.attempt)
+    foreign_name = docker_evaluation_container_name("foreign-owned", foreign.attempt)
+    assert result == {"status": "STOPPED", "components": []}
+    assert ["docker", "rm", "-f", legacy_name] in commands
+    assert ["docker", "rm", "-f", foreign_name] not in commands
+    assert queue.get("legacy-unowned").status is JobStatus.CANCELLED
+    assert queue.get("foreign-owned").status is JobStatus.RUNNING
+
+
 def test_stop_forcibly_removes_running_docker_jobs_and_cancels_queue(
     tmp_path: Path,
     monkeypatch,
