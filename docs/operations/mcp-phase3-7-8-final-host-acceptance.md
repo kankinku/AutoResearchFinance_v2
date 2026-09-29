@@ -35,6 +35,31 @@ orders_enabled=false
 이 문서가 실제 실행 순서와 최종 PASS/BLOCKED 판정의 정본이며, 위 문서는 각 단계의
 세부 설계 근거로 사용한다.
 
+## One-command wrapper
+
+현재 PR branch에는 아래 PowerShell wrapper가 포함되어 있다.
+
+```text
+scripts/verify_windows_docker_host_acceptance.ps1
+```
+
+Windows + Docker Desktop에서 현재 PR branch를 checkout한 뒤 저장소 루트에서 다음처럼 실행한다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify_windows_docker_host_acceptance.ps1 -RepoPath .
+```
+
+wrapper는 실행 전 local HEAD와 `origin/feat/autoresearch-runtime-mcp-sdk` HEAD가 같은지 확인하고,
+working tree가 깨끗한지 검증한 뒤 아래 Step 0~8을 순서대로 실행한다. 각 JSON probe에서
+`orders_enabled=false`를 강제하며 최종 결과는 다음 경로에 기록한다.
+
+```text
+state/windows-docker-host-acceptance/<timestamp>/report.json
+```
+
+`WINDOWS_DOCKER_HOST_ACCEPTANCE=PASS`가 출력되고 report의 `status=PASS`일 때만
+외부 Host Acceptance를 PASS로 기록한다.
+
 ## 0. Host 전제 확인
 
 저장소 루트에서 PowerShell을 연다.
