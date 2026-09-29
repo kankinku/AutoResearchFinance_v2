@@ -1,0 +1,184 @@
+{
+  "phase": "7.2",
+  "status": "PR_READY_INTERNAL",
+  "base": "origin/master",
+  "merge_base": "5875af8aff375dfcfe6548b5a06eae9ae02cf08f",
+  "branch": "docs/mcp-phase3-5-1-state-inventory",
+  "branch_name_is_stale": true,
+  "pre_package_head": "2cd7fca",
+  "pre_package_commit_count": 44,
+  "review_groups": [
+    {
+      "id": "G1",
+      "name": "baseline-application-finance-correctness",
+      "purpose": "Freeze the migration baseline, introduce application services, and correct finance/data/evaluation semantics.",
+      "commits": [
+        "e0304bf",
+        "061ea14",
+        "8b421c9"
+      ]
+    },
+    {
+      "id": "G2",
+      "name": "durable-execution-runtime",
+      "purpose": "Move evaluation to durable scheduling/worker boundaries, persist lifecycle state, expose runtime status, and recover interrupted runs.",
+      "commits": [
+        "2269cba",
+        "7d9d92d",
+        "27c380b",
+        "ef24713",
+        "429bf4f",
+        "77a2d62",
+        "684a354",
+        "a826922"
+      ]
+    },
+    {
+      "id": "G3",
+      "name": "safe-mcp-features-runtime-observability",
+      "purpose": "Expand safe MCP research capabilities and consolidate research/evaluation/evidence/health observability.",
+      "commits": [
+        "ad4efda",
+        "4168cb7",
+        "5aece21",
+        "31e3795",
+        "6063f40",
+        "c7e0ef5",
+        "b6d491f",
+        "3e6b790"
+      ]
+    },
+    {
+      "id": "G4",
+      "name": "public-mcp-surface-contracts",
+      "purpose": "Reduce and version the public MCP surface while retaining hidden compatibility dispatch.",
+      "commits": [
+        "8e210b8",
+        "a28b69b",
+        "04bf69c",
+        "fe44dfd",
+        "76834e2",
+        "4423bb5",
+        "e49eddb"
+      ]
+    },
+    {
+      "id": "G5",
+      "name": "docker-host-acceptance-harness",
+      "purpose": "Build deterministic Docker host acceptance for image build, execution, Evidence, timeout, retry exhaustion, and controller recovery.",
+      "commits": [
+        "39933ba",
+        "6745801",
+        "5d20995",
+        "f6a4779",
+        "ea429df",
+        "f777bf9",
+        "a3ad90b",
+        "3ea5f98"
+      ]
+    },
+    {
+      "id": "G6",
+      "name": "official-mcp-sdk-migration",
+      "purpose": "Introduce the official Python MCP SDK in parallel, prove parity over real stdio, and cut the canonical entrypoint over safely.",
+      "commits": [
+        "d8ef64b",
+        "e9017ec",
+        "4573904",
+        "5c2a5bb",
+        "db4e2f1"
+      ]
+    },
+    {
+      "id": "G7",
+      "name": "post-cutover-stabilization",
+      "purpose": "Decouple neutral payload encoding, isolate manual JSON-RPC ownership, and freeze the current operational source of truth.",
+      "commits": [
+        "9c2a27b",
+        "c63cff6",
+        "9e0b8ed",
+        "f782cbe"
+      ]
+    },
+    {
+      "id": "G8",
+      "name": "pre-integration-inventory",
+      "purpose": "Inventory integration scope, security boundaries, external blockers, and user-owned worktree boundaries.",
+      "commits": [
+        "2cd7fca"
+      ]
+    }
+  ],
+  "protected_path_review": {
+    "commit": "8b421c9",
+    "changed_files": 5,
+    "files": [
+      "core/backtest/engine.py",
+      "core/data/access.py",
+      "core/data/contracts.py",
+      "core/data/parquet.py",
+      "core/data/timebase.py"
+    ],
+    "reviewer_focus": [
+      "research role remains limited to development data",
+      "validation and sealed OOS capabilities remain gated",
+      "timeframe/calendar metadata preserves legacy daily US-equity hashes",
+      "annualization and equity timestamp alignment remain deterministic",
+      "Parquet metadata round-trips timeframe/calendar safely"
+    ]
+  },
+  "dependencies": {
+    "direct_additions": [
+      "pyarrow>=14.0",
+      "mcp>=2.2,<3"
+    ],
+    "resolved_versions": {
+      "pyarrow": "25.0.1",
+      "mcp": "2.2.0"
+    },
+    "lock_check": "PASS",
+    "reviewer_focus": [
+      "pyarrow is required for deterministic Parquet acceptance paths",
+      "mcp 2.2.0 is the locked canonical SDK implementation",
+      "trusted MCP config uses uv run --locked"
+    ]
+  },
+  "security": {
+    "secret_pattern_matches": 0,
+    "tracked_runtime_artifacts": 0,
+    "added_binary_files": 0,
+    "orders_enabled": false
+  },
+  "validation": {
+    "ruff": "PASS",
+    "mypy_source_files": 165,
+    "pytest_passed": 790,
+    "canonical_sdk_acceptance": "PASS",
+    "manual_rollback_acceptance": "PASS"
+  },
+  "merge_readiness": {
+    "status": "CONDITIONAL_EXTERNAL_PENDING",
+    "internal_release_gate": "PASS",
+    "docker_host_acceptance": "PENDING_EXTERNAL",
+    "merge_auditor_required": true,
+    "note": "The codebase is internally release-ready, but the real Windows Docker Host Acceptance remains external and must be represented explicitly in merge review."
+  },
+  "rollback": {
+    "primary": "Revert the integration PR/merge commit if merged behavior regresses.",
+    "transport_only": "Temporarily switch trusted MCP module from integrations.codex_mcp_server to integrations.codex_mcp_manual_server for SDK transport regression isolation.",
+    "forbidden": "Do not reset or clean the separate AutoResearchFinance_v2-analysis worktree because it contains user-owned uncommitted dependency changes."
+  },
+  "remote_actions": {
+    "branch_rename": "NOT_PERFORMED",
+    "push": "NOT_PERFORMED",
+    "pr_creation": "NOT_PERFORMED",
+    "merge": "NOT_PERFORMED"
+  },
+  "next_phase": "7.3",
+  "orders_enabled": false,
+  "phase7_2_release_gate": {
+    "ruff": "PASS",
+    "mypy_source_files": 165,
+    "pytest_passed": 790
+  }
+}
