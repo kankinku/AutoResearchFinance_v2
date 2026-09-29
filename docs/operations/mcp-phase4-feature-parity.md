@@ -1,5 +1,7 @@
 # MCP 전환 Phase 4 — 기능 보존 및 안전한 기능 확장
 
+> **역사적 단계 문서:** 이 문서는 당시 전환 단계의 설계·검증 기록이다. 현재 운영 정본은 `mcp-current-state.md`이며, 이 문서의 Tool 수·transport 상태·shadow/canonical 표현을 현재 설정으로 해석하지 않는다.
+
 > **역사적 문서:** 이 문서는 당시 10 → 18 Tool 확장 시점의 설계 기록이다.
 > 현재 운영 정본은 Phase 3-6의 **13 public Tool + 5 hidden legacy compatibility name** 구조이며,
 > 이 문서의 18 Tool surface로 되돌리지 않는다. 공식 SDK 전환 기준은

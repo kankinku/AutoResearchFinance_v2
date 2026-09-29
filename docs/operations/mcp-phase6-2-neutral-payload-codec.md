@@ -1,5 +1,7 @@
 # MCP Phase 6.2 — Neutral payload codec extraction
 
+> **역사적 단계 문서:** 이 문서는 해당 Phase의 완료/설계 스냅샷이다. 현재 운영 정본은 `mcp-current-state.md`이며, 실행 방법과 현재 구조는 정본 문서를 우선한다.
+
 ## 목적
 
 Phase 6.2는 canonical official-SDK transport가 legacy manual protocol 모듈의
@@ -196,5 +198,5 @@ orders_enabled=false
 Phase 6.3에서 raw JSON-RPC request/envelope 처리를 shared core에서 manual rollback layer로
 이동했고 `codex_mcp_core.py`의 legacy protocol dependency를 제거했다.
 
-현재 상태는 `docs/operations/mcp-phase6-3-manual-jsonrpc-isolation.md`를 따른다.
-다음 작업은 **Phase 6.4 — post-cutover contract and documentation consolidation**이다.
+현재 ownership 상태는 `docs/operations/mcp-phase6-3-manual-jsonrpc-isolation.md`를 따르며,
+Phase 6.4 consolidation까지 완료됐다. 현재 운영 정본은 `mcp-current-state.md`다.

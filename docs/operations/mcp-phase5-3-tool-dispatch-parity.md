@@ -1,5 +1,7 @@
 # MCP Phase 5.3 — Tool schema / dispatch parity
 
+> **역사적 단계 문서:** 이 문서는 당시 전환 단계의 설계·검증 기록이다. 현재 운영 정본은 `mcp-current-state.md`이며, 이 문서의 Tool 수·transport 상태·shadow/canonical 표현을 현재 설정으로 해석하지 않는다.
+
 ## 목적
 
 Phase 5.3은 공식 Python MCP SDK shadow adapter에 현재 운영 MCP 계약을 그대로 연결하는 단계다.

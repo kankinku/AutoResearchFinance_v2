@@ -1,5 +1,7 @@
 # MCP Phase 5.1 — 공식 Python SDK 전환 인벤토리·호환성 설계
 
+> **역사적 단계 문서:** 이 문서는 당시 전환 단계의 설계·검증 기록이다. 현재 운영 정본은 `mcp-current-state.md`이며, 이 문서의 Tool 수·transport 상태·shadow/canonical 표현을 현재 설정으로 해석하지 않는다.
+
 ## 목적
 
 Phase 5는 현재 직접 구현한 MCP JSON-RPC/STDIO transport를 공식 Python SDK로 교체하되,

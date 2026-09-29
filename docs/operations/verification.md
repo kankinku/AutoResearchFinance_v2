@@ -1,5 +1,7 @@
 # Verification evidence
 
+현재 MCP 운영 정본은 `docs/operations/mcp-current-state.md`를 따른다.
+
 The release gate is reproducible from the repository root using the locked project runtime:
 
     uv run --locked --extra dev ruff check .

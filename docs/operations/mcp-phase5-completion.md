@@ -1,5 +1,7 @@
 # MCP Phase 5 — 공식 SDK 전환 완료 보고서
 
+> **역사적 단계 문서:** 이 문서는 해당 Phase의 완료/설계 스냅샷이다. 현재 운영 정본은 `mcp-current-state.md`이며, 실행 방법과 현재 구조는 정본 문서를 우선한다.
+
 ## 완료 범위
 
 Phase 5는 직접 구현한 MCP STDIO/JSON-RPC transport를 공식 Python MCP SDK로
@@ -96,6 +98,6 @@ rollback_path = VERIFIED
 orders_enabled=false
 ```
 
-다음 개발 단계는 **Phase 6.1 — post-cutover stabilization inventory**다.
-Phase 6은 rollback을 즉시 삭제하지 않고 canonical SDK와 legacy manual transport의
-코드 소유권을 분리해 post-cutover 구조를 안정화한다.
+Phase 6 post-cutover stabilization까지 완료됐다.
+현재 운영 정본은 `docs/operations/mcp-current-state.md`이고,
+Phase 6 완료 상태는 `docs/operations/mcp-phase6-completion.md`를 따른다.

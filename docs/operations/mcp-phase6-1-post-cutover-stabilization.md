@@ -1,5 +1,7 @@
 # MCP Phase 6.1 — Post-cutover stabilization inventory
 
+> **역사적 단계 문서:** 이 문서는 해당 Phase의 완료/설계 스냅샷이다. 현재 운영 정본은 `mcp-current-state.md`이며, 실행 방법과 현재 구조는 정본 문서를 우선한다.
+
 ## 목적
 
 Phase 5에서 공식 Python MCP SDK가 canonical transport가 되었지만, cutover 직후 구조에는
@@ -248,4 +250,5 @@ Phase 6.4 = final stabilization/contract consolidation
 
 Phase 6.2에서 neutral payload codec을 분리해 canonical SDK의 legacy protocol 직접 의존을 제거했고,
 Phase 6.3에서 manual JSON-RPC ownership을 shared core 밖으로 격리했다.
-다음 작업은 **Phase 6.4 — post-cutover contract and documentation consolidation**이다.
+Phase 6.4에서 현재 운영 정본·역사 문서 표식·retention policy를 통합했다.
+최종 상태는 `docs/operations/mcp-phase6-completion.md`와 `mcp-current-state.md`를 따른다.

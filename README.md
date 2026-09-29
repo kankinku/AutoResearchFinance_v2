@@ -137,7 +137,8 @@ python cli.py paper-order-smoke `
 않습니다. 연구 루프·대시보드 새로고침·Codex MCP에서는 주문을 실행하지
 않습니다.
 
-For Codex Desktop, register `.codex/config.toml.example` in the Desktop MCP settings.
+For Codex Desktop, the current MCP source of truth is `docs/operations/mcp-current-state.md`.
+Register `.codex/config.toml.example` in the Desktop MCP settings.
 The canonical local MCP transport now uses the official Python MCP SDK and starts with:
 
 ```powershell

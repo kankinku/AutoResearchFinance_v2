@@ -273,6 +273,8 @@ uv run --locked --extra dev python scripts/verify_docker_evaluation.py `
 
 ## MCP 프로세스 자체 검증
 
+현재 MCP transport/Tool surface 정본은 `docs/operations/mcp-current-state.md`다.
+
 Docker 검증과 별개로 canonical MCP STDIO 서버는 공식 Python MCP SDK 경로를 실제
 별도 프로세스에서 검증한다.
 

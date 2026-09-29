@@ -1,5 +1,7 @@
 # MCP Phase 6.3 — Manual JSON-RPC ownership isolation
 
+> **역사적 단계 문서:** 이 문서는 해당 Phase의 완료/설계 스냅샷이다. 현재 운영 정본은 `mcp-current-state.md`이며, 실행 방법과 현재 구조는 정본 문서를 우선한다.
+
 ## 목적
 
 Phase 6.3은 Phase 6.2의 payload codec 분리에 이어, legacy 2024-11-05 JSON-RPC request/envelope
@@ -257,4 +259,6 @@ Python compatibility shim = PRESERVED
 orders_enabled=false
 ```
 
-다음 작업은 **Phase 6.4 — post-cutover contract and documentation consolidation**이다.
+Phase 6.4 consolidation까지 완료됐다.
+현재 운영 정본은 `docs/operations/mcp-current-state.md`, 완료 판정은
+`docs/operations/mcp-phase6-completion.md`를 따른다.
