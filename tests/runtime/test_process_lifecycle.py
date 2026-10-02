@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import signal
 import sys
 from pathlib import Path
 
@@ -49,6 +50,21 @@ def test_process_matches_does_not_retry_wrong_identity(monkeypatch) -> None:
 
     assert process_matches(123, ("owned-marker",), startup_retries=4) is False
     assert calls == 1
+
+
+def test_posix_termination_falls_back_to_pid_when_killpg_is_unavailable(
+    monkeypatch,
+) -> None:
+    calls: list[tuple[int, signal.Signals]] = []
+    monkeypatch.delattr(lifecycle_module.os, "killpg", raising=False)
+    monkeypatch.setattr(
+        lifecycle_module.os,
+        "kill",
+        lambda pid, sig: calls.append((pid, sig)),
+    )
+
+    assert lifecycle_module._terminate_posix(12345) is True
+    assert calls == [(12345, signal.SIGTERM)]
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX process lifecycle acceptance")

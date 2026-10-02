@@ -131,18 +131,21 @@ def _terminate_windows(pid: int) -> bool:
 
 
 def _terminate_posix(pid: int) -> bool:
-    try:
-        os.killpg(pid, signal.SIGTERM)
-        return True
-    except ProcessLookupError:
-        return True
-    except PermissionError:
-        return False
-    except OSError:
+    killpg = getattr(os, "killpg", None)
+    if callable(killpg):
         try:
-            os.kill(pid, signal.SIGTERM)
+            killpg(pid, signal.SIGTERM)
             return True
         except ProcessLookupError:
             return True
-        except OSError:
+        except PermissionError:
             return False
+        except OSError:
+            pass
+    try:
+        os.kill(pid, signal.SIGTERM)
+        return True
+    except ProcessLookupError:
+        return True
+    except OSError:
+        return False
