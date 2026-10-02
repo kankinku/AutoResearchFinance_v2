@@ -56,6 +56,7 @@ class DockerEvaluationRunner:
             raise ValueError("lease_seconds must be positive")
         project = project_root.resolve()
         state = state_dir.resolve()
+        container_state = _container_state_dir(project, state)
         container_name = docker_evaluation_container_name(job_id, queue_attempt)
         command = [
             self.docker_binary,
@@ -81,14 +82,14 @@ class DockerEvaluationRunner:
             "--mount",
             f"type=bind,source={project},target=/workspace,readonly",
             "--mount",
-            f"type=bind,source={state},target=/workspace/state",
+            f"type=bind,source={state},target={container_state}",
             "--workdir",
             "/workspace",
             self.image,
             "--role",
             "evaluation-job",
             "--state-dir",
-            "/workspace/state",
+            container_state,
             "--project-root",
             "/workspace",
             "--job-id",
@@ -158,6 +159,16 @@ class DockerEvaluationRunner:
                 process.communicate()
             raise DockerWorkerTimeout("docker evaluation worker timed out") from exc
         return process.returncode, stdout, stderr
+
+
+def _container_state_dir(project_root: Path, state_dir: Path) -> str:
+    try:
+        relative = state_dir.relative_to(project_root)
+    except ValueError:
+        return "/workspace/state"
+    if relative == Path("."):
+        return "/workspace/state"
+    return f"/workspace/{relative.as_posix()}"
 
 
 def docker_evaluation_container_name(job_id: str, queue_attempt: int) -> str:

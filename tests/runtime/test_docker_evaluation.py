@@ -37,6 +37,26 @@ def test_docker_evaluation_command_isolated_and_mounts_shared_state(tmp_path: Pa
     assert cleanup == ["docker", "rm", "-f", name]
 
 
+def test_docker_evaluation_command_preserves_nested_project_state_path(
+    tmp_path: Path,
+) -> None:
+    state = tmp_path / "state" / "windows-docker-host-acceptance" / "run" / "single"
+    state.mkdir(parents=True)
+    runner = DockerEvaluationRunner(image="quant-worker:test")
+
+    command, _, _ = runner.build_command(
+        project_root=tmp_path,
+        state_dir=state,
+        job_id="evaluation-attempt-1",
+        queue_attempt=1,
+        lease_seconds=30,
+    )
+
+    container_state = "/workspace/state/windows-docker-host-acceptance/run/single"
+    assert f"type=bind,source={state.resolve()},target={container_state}" in command
+    assert command[command.index("--state-dir") + 1] == container_state
+
+
 def test_docker_evaluation_runner_passes_timeout_and_cleanup_to_process(
     tmp_path: Path,
 ) -> None:
