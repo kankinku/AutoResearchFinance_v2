@@ -140,7 +140,13 @@ class BacktestEngine:
                 index for index, bar in enumerate(request.dataset.bars) if bar.symbol == symbol
             )
             bars = tuple(request.dataset.bars[index] for index in indices)
-            dataset = MarketDataSet(request.dataset.version, request.dataset.zone, bars)
+            dataset = MarketDataSet(
+                request.dataset.version,
+                request.dataset.zone,
+                bars,
+                request.dataset.timeframe,
+                request.dataset.calendar,
+            )
             values = _indicator_values(dataset, strategy)
             values.update(
                 _feature_values(

@@ -35,6 +35,7 @@ from research.llm.intent_bridge import (
     apply_intent,
     intent_to_operations,
 )
+from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.evidence_session import EvidenceSession
 from strategy_ir.normalizer import normalize_source
 from strategy_ir.schema import StrategyIR
@@ -68,7 +69,13 @@ def run_repeated_evaluation(
     evaluator: EvaluationRunner | None = None,
 ) -> dict[str, Any]:
     _validate_config(config)
-    base_runner = evaluator or run_local_evaluation
+    default_executor = QueuedEvaluationExecutor(
+        config.state_dir,
+        project_root=config.project_root,
+    )
+    base_runner = evaluator or (
+        lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
+    )
     evidence = EvidenceSession(
         config.state_dir, requested_generations=config.generations, seed=config.seed,
         settings={"method": config.method, "count": config.count,
@@ -144,7 +151,13 @@ def run_autoresearch(
     if imported.strategy is None:
         raise ValueError("strategy source is unsupported")
     current = imported.strategy
-    base_runner = evaluator or run_local_evaluation
+    default_executor = QueuedEvaluationExecutor(
+        config.state_dir,
+        project_root=config.project_root,
+    )
+    base_runner = evaluator or (
+        lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
+    )
     evidence = EvidenceSession(
         config.state_dir, requested_generations=config.generations, seed=config.seed,
         settings={"method": config.method, "count": config.count,
@@ -154,7 +167,7 @@ def run_autoresearch(
     def runner(**kwargs: Any) -> dict[str, object]:
         return evidence.evaluate(base_runner, **kwargs)
     records: list[dict[str, object]] = []
-    progress = _ResearchProgress(config, records)
+    progress = _ResearchProgress(config, records, research_run_id=evidence.run_id)
     progress.emit("run_started", phase="STARTING")
     feature_specs = research_feature_specs()
     try:
@@ -898,6 +911,7 @@ def _write_autoresearch_status(
     config: ResearchLoopConfig,
     status: str,
     *,
+    research_run_id: str | None = None,
     completed_generations: int,
     records: list[dict[str, object]],
     error: str | None = None,
@@ -913,6 +927,7 @@ def _write_autoresearch_status(
 ) -> None:
     payload: dict[str, object] = {
         "status": status,
+        "research_run_id": research_run_id,
         "orders_enabled": False,
         "completed_generations": completed_generations,
         "requested_generations": config.generations,
@@ -953,9 +968,16 @@ def _write_autoresearch_status(
 class _ResearchProgress:
     """Persist phase heartbeats without allowing diagnostics to stop research."""
 
-    def __init__(self, config: ResearchLoopConfig, records: list[dict[str, object]]) -> None:
+    def __init__(
+        self,
+        config: ResearchLoopConfig,
+        records: list[dict[str, object]],
+        *,
+        research_run_id: str,
+    ) -> None:
         self.config = config
         self.records = records
+        self.research_run_id = research_run_id
         self.phase = "STARTING"
         self.phase_started_at = _utc_now()
         self.phase_started_mono = time.monotonic()
@@ -984,6 +1006,7 @@ class _ResearchProgress:
         elapsed = round(max(0.0, time.monotonic() - self.phase_started_mono), 3)
         payload: dict[str, object] = {
             "timestamp": now,
+            "research_run_id": self.research_run_id,
             "event": event,
             "phase": self.phase,
             "generation": self.current_generation,
@@ -1004,6 +1027,7 @@ class _ResearchProgress:
         _write_autoresearch_status(
             self.config,
             status,
+            research_run_id=self.research_run_id,
             completed_generations=(
                 len(self.records) if completed_generations is None else completed_generations
             ),

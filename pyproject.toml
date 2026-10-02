@@ -10,6 +10,7 @@ requires-python = ">=3.10,<3.13"
 dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
+    "pyarrow>=14.0",
     "pydantic>=2.0",
     "pyyaml>=6.0",
     "fastapi>=0.110",
@@ -17,6 +18,7 @@ dependencies = [
     "httpx>=0.27",
     "streamlit>=1.30.0",
     "plotly>=5.18.0",
+    "mcp>=2.2,<3",
 ]
 
 [project.scripts]
@@ -24,6 +26,7 @@ mimir = "runtime.mimir:main"
 
 [tool.setuptools.packages.find]
 include = [
+    "application*",
     "core*",
     "dashboard*",
     "evaluation*",
@@ -63,5 +66,5 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.mypy]
 python_version = "3.10"
 strict = true
-packages = ["strategy_ir", "mutation", "experiments", "runtime", "core", "evaluation", "memory", "research", "orchestration", "integrations"]
+packages = ["application", "strategy_ir", "mutation", "experiments", "runtime", "core", "evaluation", "memory", "research", "orchestration", "integrations"]
 exclude = "(^tests/|^state/|dashboard_backup\\.py$)"

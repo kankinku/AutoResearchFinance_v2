@@ -98,7 +98,7 @@ def _run_summary(run: dict[str, Any], events: list[dict[str, Any]]) -> dict[str,
             "evaluated": len(valid),
             "scope": (
                 (str(manifests[0].get("data_zone", "unknown")) if manifests else "unknown")
-                + "_walk_forward"
+                + "_temporal_holdout"
             ),
         },
         "champion_improvement": _unmeasured("NO_SCOPED_PROMOTION_EVENTS"),

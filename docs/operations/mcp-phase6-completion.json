@@ -1,0 +1,55 @@
+{
+  "phase": "6",
+  "status": "COMPLETE",
+  "completed_subphases": [
+    "6.1",
+    "6.2",
+    "6.3",
+    "6.4"
+  ],
+  "canonical_transport": "official_sdk",
+  "canonical_entrypoint": "integrations.codex_mcp_server",
+  "public_tools": 13,
+  "hidden_legacy_dispatch": 5,
+  "public_contract_schema_version": 1,
+  "runtime_snapshot_schema_version": 2,
+  "ownership": {
+    "neutral_payload_codec": "integrations.codex_mcp_payload",
+    "shared_dispatch_core": "integrations.codex_mcp_core",
+    "official_sdk_adapter": "integrations.codex_mcp_sdk_server",
+    "manual_jsonrpc_adapter": "integrations.codex_mcp_manual_adapter",
+    "manual_protocol": "integrations.codex_mcp_protocol"
+  },
+  "manual_rollback": {
+    "retained": true,
+    "entrypoint": "integrations.codex_mcp_manual_server",
+    "protocol_version": "2024-11-05",
+    "deletion_requires_separate_approval": true
+  },
+  "hidden_legacy_dispatch_policy": {
+    "retained": true,
+    "advertised": false,
+    "deletion_requires_separate_approval": true
+  },
+  "external_pending": {
+    "docker_host_acceptance": true,
+    "reason": "Moon environment does not provide the required real Docker host validation environment."
+  },
+  "orders_enabled": false,
+  "acceptance": {
+    "canonical_sdk": "PASS",
+    "manual_rollback": "PASS",
+    "sdk_protocol_version": "2025-11-25",
+    "legacy_protocol_version": "2024-11-05",
+    "public_contract_schema_version": 1
+  },
+  "release_gate": {
+    "ruff": "PASS",
+    "mypy_source_files": 165,
+    "pytest_passed": 782
+  },
+  "documentation": {
+    "current_operational_source_of_truth": "docs/operations/mcp-current-state.md",
+    "unmarked_stale_documents": 0
+  }
+}

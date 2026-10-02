@@ -6,6 +6,7 @@ import pytest
 
 from core.data.access import DataAccessDenied, DataZone, InMemoryDataProvider
 from core.data.contracts import Bar, DataContractError, MarketDataSet
+from core.integrity.hashes import content_hash
 
 
 def bars() -> tuple[Bar, ...]:
@@ -39,6 +40,35 @@ def test_research_cannot_read_sealed_oos() -> None:
     )
 
     assert provider.read(DataZone.DEVELOPMENT, role="research").version == "dev"
-    with pytest.raises(DataAccessDenied, match="sealed"):
+    with pytest.raises(DataAccessDenied, match="development"):
+        provider.read(DataZone.VALIDATION, role="research")
+    with pytest.raises(DataAccessDenied, match="development"):
         provider.read(DataZone.SEALED_OOS, role="research")
+    assert provider.read(DataZone.VALIDATION, role="promotion_validation").version == "val"
     assert provider.read(DataZone.SEALED_OOS, role="promotion_gate").version == "oos"
+
+
+def test_default_daily_dataset_hash_remains_legacy_compatible() -> None:
+    dataset = MarketDataSet("data-v1", "development", bars())
+    expected = content_hash(
+        {
+            "version": "data-v1",
+            "zone": "development",
+            "bars": [bar.record() for bar in bars()],
+        }
+    )
+
+    assert dataset.dataset_hash == expected
+
+
+def test_nondefault_timebase_is_part_of_dataset_hash() -> None:
+    daily = MarketDataSet("data-v1", "development", bars())
+    intraday = MarketDataSet(
+        "data-v1",
+        "development",
+        bars(),
+        timeframe="15m",
+        calendar="us_equities",
+    )
+
+    assert intraday.dataset_hash != daily.dataset_hash

@@ -62,7 +62,7 @@ def compare_benchmarks(
     *,
     qqq_distributions: Sequence[float] | None = None,
     nasdaq_distributions: Sequence[float] | None = None,
-    periods_per_year: int = 252,
+    periods_per_year: float = 252,
 ) -> BenchmarkComparison:
     curves = (strategy_equity, qqq_prices, nasdaq_prices)
     if not strategy_equity or len({len(curve) for curve in curves}) != 1:

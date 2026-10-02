@@ -63,6 +63,7 @@ def run_local_evaluation(
     min_annual_trades: int | None = 30,
     research_run_id: str | None = None,
     attempt_id: str | None = None,
+    execution_context: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     source = resolve_project_input(project_root, source_path, ALLOWED_STRATEGY_SUFFIXES)
     data = resolve_project_input(project_root, data_path, frozenset({".parquet"}))
@@ -132,9 +133,17 @@ def run_local_evaluation(
     evidence.append("attempt", f"attempt:{attempt_id}", {
         "research_run_id": research_run_id, "attempt_id": attempt_id,
         "generation": record_generation, "seed": seed, "status": "COMPLETED",
-        "execution": {"parent_ir_hash": digest(strategy.model_dump(mode="json", by_alias=True)),
-                      "method": method, "count": count,
-                      "parameter_domains": [asdict(domain) for domain in domains]},
+        "execution": {
+            "parent_ir_hash": digest(strategy.model_dump(mode="json", by_alias=True)),
+            "method": method,
+            "count": count,
+            "parameter_domains": [asdict(domain) for domain in domains],
+            "worker": dict(execution_context or {
+                "execution_mode": "direct_local",
+                "isolated": False,
+                "timeout_enforced": False,
+            }),
+        },
         "candidates": [candidate_evidence(item) for item in pipeline_result.funnel],
     })
     sync_knowledge(state_dir)

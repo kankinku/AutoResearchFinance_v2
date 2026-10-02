@@ -40,6 +40,18 @@ def test_rejected_evidence_accumulates_and_reaches_next_context(tmp_path: Path) 
     assert all(r["reject_count"] == 1 for r in evidence["runs"])
     assert evidence["legacy"]["record_count"] == 0
     assert evidence["runs"][0]["manifest"]["cost_model"]["version"] == "cost-v1"
+    from memory.evidence_store import EvidenceStore
+
+    direct_attempts = [
+        event["payload"]
+        for event in EvidenceStore(state).events()
+        if event["kind"] == "attempt"
+    ]
+    assert direct_attempts
+    assert all(
+        attempt["execution"]["worker"]["execution_mode"] == "direct_local"
+        for attempt in direct_attempts
+    )
 
 
 def test_changed_inputs_in_same_run_are_rejected(tmp_path: Path) -> None:
@@ -99,6 +111,24 @@ def test_actual_loop_feeds_first_rejection_to_second_proposal(tmp_path: Path) ->
     assert contexts[1]["failure_knowledge"]
     assert contexts[1]["failure_knowledge"][0]["failed_gates"]
     assert outcome["status"] == "COMPLETED"
+
+    from memory.evidence_store import EvidenceStore
+
+    attempts = [
+        event["payload"]
+        for event in EvidenceStore(tmp_path / "state").events()
+        if event["kind"] == "attempt"
+    ]
+    assert attempts
+    assert all(
+        attempt["execution"]["worker"]["execution_mode"] == "local_scheduler"
+        for attempt in attempts
+    )
+    assert all(attempt["execution"]["worker"]["isolated"] is False for attempt in attempts)
+    assert all(
+        attempt["execution"]["worker"]["timeout_enforced"] is False
+        for attempt in attempts
+    )
 
 
 def _write_inputs(root: Path) -> tuple[Path, Path, Path]:
@@ -281,3 +311,30 @@ def test_research_context_exposes_registered_feature_selection_contract(tmp_path
     assert feature["status"] == "REGISTERED"
     assert feature["inputs"] == ["US20Y.close"]
     assert feature["supported_timeframes"] == ["1m", "5m", "15m", "1h", "1d", "1w", "1mo"]
+
+
+def test_validation_zone_is_rejected_as_research_input(tmp_path: Path) -> None:
+    import pytest
+
+    from memory.evidence_store import EvidenceIntegrityError
+
+    _strategy, data, _series = _write_inputs(tmp_path)
+    original = ParquetDataProvider.read(data)
+    ParquetDataProvider.write(
+        data,
+        MarketDataSet(
+            original.version,
+            DataZone.VALIDATION,
+            original.bars,
+            original.timeframe,
+            original.calendar,
+        ),
+    )
+
+    with pytest.raises(EvidenceIntegrityError, match="promotion-only"):
+        run_local_evaluation(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="bars.parquet",
+        )

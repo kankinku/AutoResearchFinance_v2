@@ -43,6 +43,8 @@ class TestRecord(DashboardModel):
     generation: int = 0
     timestamp: str
     score: float | None = None
+    dsr: float | None = None
+    pbo: float | None = None
     total_return: float | None = None
     nasdaq_excess_return: float | None = None
     qqq_excess_return: float | None = None

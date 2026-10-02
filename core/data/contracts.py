@@ -18,6 +18,10 @@ class DataZone(str, Enum):
     SEALED_OOS = "sealed_oos"
 
 
+SUPPORTED_TIMEFRAMES = frozenset({"1m", "5m", "15m", "1h", "1d", "1w", "1mo"})
+SUPPORTED_CALENDARS = frozenset({"us_equities", "continuous"})
+
+
 @dataclass(frozen=True)
 class Bar:
     timestamp: datetime
@@ -93,11 +97,17 @@ class MarketDataSet:
     version: str
     zone: DataZone | str
     bars: tuple[Bar, ...]
+    timeframe: str = "1d"
+    calendar: str = "us_equities"
 
     def __post_init__(self) -> None:
         if not self.version:
             raise DataContractError("dataset version cannot be empty")
         object.__setattr__(self, "zone", DataZone(self.zone))
+        if self.timeframe not in SUPPORTED_TIMEFRAMES:
+            raise DataContractError("dataset timeframe is invalid")
+        if self.calendar not in SUPPORTED_CALENDARS:
+            raise DataContractError("dataset calendar is invalid")
         keys = [(bar.symbol, bar.timestamp.astimezone(timezone.utc)) for bar in self.bars]
         if len(keys) != len(set(keys)):
             raise DataContractError("duplicate symbol/timestamp bars")
@@ -107,13 +117,16 @@ class MarketDataSet:
     @property
     def dataset_hash(self) -> str:
         zone = DataZone(self.zone)
-        return content_hash(
-            {
-                "version": self.version,
-                "zone": zone.value,
-                "bars": [bar.record() for bar in self.bars],
-            }
-        )
+        payload: dict[str, object] = {
+            "version": self.version,
+            "zone": zone.value,
+            "bars": [bar.record() for bar in self.bars],
+        }
+        # Preserve historical hashes for the legacy default daily US-equity contract.
+        if self.timeframe != "1d" or self.calendar != "us_equities":
+            payload["timeframe"] = self.timeframe
+            payload["calendar"] = self.calendar
+        return content_hash(payload)
 
 
 @dataclass(frozen=True)

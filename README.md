@@ -58,9 +58,10 @@ python cli.py autoresearch --source strategies\normalized\golden_cross.json --da
 ```
 
 For Codex Desktop, the MCP system orchestrator can preflight and start the local
-dashboard, research detector, and isolated Docker backtest worker together. See
-`docs/operations/system-orchestrator.md` for registration and the natural-language
-command flow.
+dashboard and managed research worker with the selected evaluation backend. Docker
+evaluation is opt-in and creates one isolated container per evaluation job rather than
+a permanent backtest worker. See `docs/operations/system-orchestrator.md` for
+registration and the natural-language command flow.
 
 The local paper operations dashboard is available at `http://127.0.0.1:8080/` after
 starting the last command. It reports the effective paper-only mode, sanitized KIS
@@ -136,17 +137,30 @@ python cli.py paper-order-smoke `
 않습니다. 연구 루프·대시보드 새로고침·Codex MCP에서는 주문을 실행하지
 않습니다.
 
-For Codex Desktop, register `.codex/config.toml.example` in the Desktop MCP settings.
-The local MCP server can then be started with:
+For Codex Desktop, the current MCP source of truth is `docs/operations/mcp-current-state.md`.
+Register `.codex/config.toml.example` in the Desktop MCP settings.
+The canonical local MCP transport now uses the official Python MCP SDK and starts with:
 
 ```powershell
 python -m integrations.codex_mcp_server --state-dir state --project-root .
 ```
 
-In Codex Desktop, use `get_dashboard_status` and `get_research_context` first, submit
-the resulting structured intent with `submit_research_intent`, and run only an
-approved local evaluation with `run_evaluation`. The server has no order or live
-account tool. For a non-interactive alternative, authenticate the Codex CLI and run:
+If an emergency rollback is required, the legacy newline JSON-RPC transport remains
+available separately as `integrations.codex_mcp_manual_server`; do not switch to it
+unless diagnosing an SDK transport regression.
+
+In Codex Desktop, use `get_workspace_status` for bootstrap/configuration state,
+`get_system_status` for managed runtime health, and `get_dashboard_status` for
+research/performance data. The public MCP surface contains 13 tools covering workspace
+bootstrap, static strategy/catalog operations, evidence/status reads, one-shot
+evaluation, and managed research lifecycle control. Public tool responses include an
+additive `_contract` block with `schema_version=1` and `orders_enabled=false`.
+
+Low-level compatibility names such as `set_research_mode`, `validate_research_cache`,
+`plan_generation`, `get_research_context`, and `submit_research_intent` are no longer
+advertised in `tools/list`; they remain direct-call compatibility shims through the
+Phase 3-6 compatibility window. The server has no order or live-account MCP tool.
+For a non-interactive alternative, authenticate the Codex CLI and run:
 
 ```powershell
 codex login status
@@ -464,16 +478,25 @@ Knowledge, 대시보드에 전달됩니다.
 ## Codex Desktop connection
 
 Codex Desktop can connect to the local stdio MCP server using the credential-free
-example in `.codex/config.toml.example`. Copy its section into the trusted Codex
-configuration or register the same command in Desktop MCP settings:
+example in `.codex/config.toml.example`. The canonical entrypoint is backed by the
+official Python MCP SDK. Copy its section into the trusted Codex configuration or
+register the same command in Desktop MCP settings:
 
 ```powershell
 python -m integrations.codex_mcp_server --state-dir state --project-root .
 ```
 
-The exposed tools are limited to sanitized research context, the feature catalog,
-dashboard status, validated intent submission, and local evaluation. There is no
-order, live-account, credential, arbitrary-write, raw-market, or sealed-OOS tool.
+The legacy manual transport is retained only as a rollback entrypoint:
+
+```powershell
+python -m integrations.codex_mcp_manual_server --state-dir state --project-root .
+```
+
+The exposed tools cover sanitized research/workspace status, feature and strategy
+catalogs, static strategy validation/import, deterministic generation planning,
+validated intent submission, evaluation, and managed system lifecycle. Strategy import
+is static and defaults to dry-run. There is no order, live-account, credential,
+arbitrary-code, raw-market, or sealed-OOS tool.
 For an unattended/local subprocess call, use `research-intent`; it invokes the
 installed `codex exec` command and revalidates its structured output locally. The
 interactive Desktop conversation is not implicitly reused by a separate `codex exec`

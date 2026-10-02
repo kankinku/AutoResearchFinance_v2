@@ -10,17 +10,37 @@ import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from core.data.contracts import DataZone
 from core.data.parquet import ParquetDataProvider
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import ALLOWED_STRATEGY_SUFFIXES, resolve_project_input
 from research.policy import default_evaluation_thresholds
+from runtime.docker_evaluation import docker_evaluation_container_name
+from runtime.lifecycle_lock import LifecycleBusyError, lifecycle_lock
+from runtime.persistent_queue import PersistentJobQueue
+from runtime.process_lifecycle import (
+    process_matches,
+    spawn_managed_process,
+    terminate_process_tree,
+)
+from runtime.queue import JobStatus
+from runtime.recovery_state import (
+    append_recovery_event,
+    close_interrupted_evidence,
+    mark_autoresearch_interrupted,
+    runtime_interruption_origin,
+)
+from runtime.runtime_snapshot import build_runtime_snapshot
 
 ProcessFactory = Callable[[list[str], Path], Any]
 CommandRunner = Callable[[list[str], Path], tuple[int, str]]
+ProcessProbe = Callable[[int, tuple[str, ...]], bool]
+ProcessTerminator = Callable[[int, tuple[str, ...]], bool]
 _EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
 
@@ -75,13 +95,16 @@ class SystemController:
         project_root: Path,
         process_factory: ProcessFactory | None = None,
         command_runner: CommandRunner | None = None,
+        process_probe: ProcessProbe | None = None,
+        process_terminator: ProcessTerminator | None = None,
     ) -> None:
         self.state_dir = state_dir.resolve()
         self.project_root = project_root.resolve()
-        self._process_factory = process_factory or _spawn_process
+        self._process_factory = process_factory or spawn_managed_process
         self._command_runner = command_runner or _run_command
+        self._process_probe = process_probe or process_matches
+        self._process_terminator = process_terminator or terminate_process_tree
         self._processes: dict[str, Any] = {}
-        self._container_name: str | None = None
 
     def preflight(self, config: SystemLaunchConfig) -> PreflightReport:
         checks: list[dict[str, str]] = []
@@ -130,7 +153,7 @@ class SystemController:
             check,
             "market_data",
             "Parquet 데이터",
-            "버전 메타데이터가 있는 development/validation Parquet 데이터를 준비하세요.",
+            "버전 메타데이터가 있는 development Parquet 데이터를 준비하세요.",
         )
         series = None
         if config.series_data_path is not None:
@@ -148,8 +171,8 @@ class SystemController:
                     check(
                         "series_zone",
                         "외부 시계열 영역",
-                        DataZone(series_data.zone) is not DataZone.SEALED_OOS,
-                        "sealed_oos 외부 시계열은 연구 백테스트에 사용할 수 없습니다.",
+                        DataZone(series_data.zone) is DataZone.DEVELOPMENT,
+                        "연구 백테스트는 development 외부 시계열만 사용할 수 있습니다.",
                     )
                 except (OSError, TypeError, ValueError):
                     check(
@@ -162,12 +185,12 @@ class SystemController:
         if data is not None:
             try:
                 dataset = ParquetDataProvider.read(data)
-                data_ok = DataZone(dataset.zone) is not DataZone.SEALED_OOS
+                data_ok = DataZone(dataset.zone) is DataZone.DEVELOPMENT
                 check(
                     "data_zone",
-                    "OOS 봉인 영역 차단",
+                    "연구 데이터 영역",
                     data_ok,
-                    "sealed_oos 데이터는 연구 백테스트에 사용할 수 없습니다.",
+                    "연구 백테스트는 development 데이터만 사용할 수 있습니다.",
                 )
             except (OSError, TypeError, ValueError):
                 check(
@@ -192,43 +215,67 @@ class SystemController:
             env_in_project and env_path.is_file(),
             f"{config.env_file}에 QUANT_CODEX_COMMAND와 모델 설정을 준비하세요.",
         )
-        docker_available = bool(shutil.which("docker"))
-        check(
-            "docker_cli",
-            "Docker CLI",
-            docker_available,
-            "Docker Desktop을 설치하고 실행하세요.",
+        evaluation_execution = _evaluation_execution(
+            self.project_root / config.env_file
         )
-        docker_ready = False
-        if docker_available:
-            return_code, _ = self._command_runner(
-                ["docker", "info", "--format", "{{.ServerVersion}}"], self.project_root
-            )
-            docker_ready = return_code == 0
+        execution_valid = evaluation_execution in {"local_scheduler", "docker_worker"}
+        check(
+            "evaluation_execution",
+            "평가 실행 백엔드",
+            execution_valid,
+            (
+                "QUANT_EVALUATION_EXECUTION은 local_scheduler 또는 "
+                "docker_worker여야 합니다."
+            ),
+        )
+        docker_required = evaluation_execution == "docker_worker"
+        docker_available = bool(shutil.which("docker"))
+        if docker_required:
             check(
-                "docker_engine",
-                "Docker Desktop engine",
-                docker_ready,
-                "Docker Desktop을 켠 뒤 Docker engine이 Ready 상태인지 확인하세요.",
+                "docker_cli",
+                "Docker CLI",
+                docker_available,
+                "Docker 평가 모드를 사용하려면 Docker Desktop을 설치하고 실행하세요.",
             )
-            if docker_ready:
-                image_name_ok = bool(
-                    re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", config.docker_image)
+            docker_ready = False
+            if docker_available:
+                return_code, _ = self._command_runner(
+                    ["docker", "info", "--format", "{{.ServerVersion}}"], self.project_root
                 )
-                image_code = 1
-                if image_name_ok:
-                    image_code, _ = self._command_runner(
-                        ["docker", "image", "inspect", config.docker_image], self.project_root
-                    )
+                docker_ready = return_code == 0
                 check(
-                    "docker_image",
-                    "Docker worker image",
-                    image_name_ok and image_code == 0,
-                    (
-                        f"docker build -t {config.docker_image} "
-                        "-f runtime/Dockerfile.worker . 를 실행하세요."
-                    ),
+                    "docker_engine",
+                    "Docker Desktop engine",
+                    docker_ready,
+                    "Docker Desktop을 켠 뒤 Docker engine이 Ready 상태인지 확인하세요.",
                 )
+                if docker_ready:
+                    image_name_ok = bool(
+                        re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", config.docker_image)
+                    )
+                    image_code = 1
+                    if image_name_ok:
+                        image_code, _ = self._command_runner(
+                            ["docker", "image", "inspect", config.docker_image],
+                            self.project_root,
+                        )
+                    check(
+                        "docker_image",
+                        "Docker evaluation worker image",
+                        image_name_ok and image_code == 0,
+                        (
+                            f"docker build -t {config.docker_image} "
+                            "-f runtime/Dockerfile.worker . 를 실행하세요."
+                        ),
+                    )
+        else:
+            checks.append(
+                {
+                    "id": "docker_cli",
+                    "label": "Docker CLI (local_scheduler에서는 선택 사항)",
+                    "status": "PASS",
+                }
+            )
         check(
             "dashboard_port",
             "Dashboard port",
@@ -242,126 +289,264 @@ class SystemController:
         return PreflightReport(status, tuple(checks), tuple(issues))
 
     def start(self, config: SystemLaunchConfig) -> dict[str, object]:
-        report = self.preflight(config)
-        if report.status != "READY":
-            return {"status": "BLOCKED", "preflight": report.as_payload()}
-        source = resolve_project_input(
-            self.project_root, config.source_path, ALLOWED_STRATEGY_SUFFIXES
-        )
-        data = resolve_project_input(
-            self.project_root, config.data_path, frozenset({".parquet"})
-        )
-        series = (
-            resolve_project_input(
-                self.project_root, config.series_data_path, frozenset({".parquet"})
-            )
-            if config.series_data_path is not None
-            else None
-        )
-        self.state_dir.mkdir(parents=True, exist_ok=True)
-        relative_source = source.relative_to(self.project_root).as_posix()
-        relative_data = data.relative_to(self.project_root).as_posix()
-        relative_series = (
-            series.relative_to(self.project_root).as_posix() if series is not None else None
-        )
-        container_name = f"quant-autoresearch-backtest-{os.getpid()}"
-        commands = {
-            "dashboard": [
-                sys.executable,
-                "cli.py",
-                "dashboard",
-                "--state-dir",
-                str(self.state_dir),
-                "--env-file",
-                str(self.project_root / config.env_file),
-                "--host",
-                "127.0.0.1",
-                "--port",
-                str(config.dashboard_port),
-            ],
-            "research_worker": [
-                sys.executable,
-                "-m",
-                "runtime.system_worker",
-                "--role",
-                "research",
-                "--state-dir",
-                str(self.state_dir),
-                "--project-root",
-                str(self.project_root),
-                "--env-file",
-                str(self.project_root / config.env_file),
-                "--source-path",
-                str(source),
-            ],
-            "backtest_worker": self._docker_command(
-                config, container_name, relative_source, relative_data, relative_series
-            ),
-        }
-        started: list[dict[str, object]] = []
         try:
-            for component_id, command in commands.items():
-                self._processes[component_id] = self._process_factory(command, self.project_root)
-                process = self._processes[component_id]
-                started.append(
-                    {"id": component_id, "status": "STARTED", "pid": getattr(process, "pid", None)}
+            with lifecycle_lock(self._lifecycle_lock_path()):
+                existing = self._reconcile_state(persist=True)
+                restart_origin: dict[str, object] | None = None
+                if existing.get("status") == "INTERRUPTED":
+                    restart_origin = runtime_interruption_origin(existing.get("runtime"))
+                    failed_recovery = self._terminate_managed_processes(existing)
+                    if failed_recovery:
+                        return {
+                            "status": "RECOVERY_FAILED",
+                            "process_cleanup_failed": failed_recovery,
+                            "system": existing,
+                        }
+                elif self._has_active_runtime(existing):
+                    return {
+                        "status": "ALREADY_RUNNING",
+                        "system": existing,
+                    }
+                report = self.preflight(config)
+                if report.status != "READY":
+                    return {"status": "BLOCKED", "preflight": report.as_payload()}
+                source = resolve_project_input(
+                    self.project_root, config.source_path, ALLOWED_STRATEGY_SUFFIXES
                 )
-            self._container_name = container_name
-        except OSError as exc:
-            self._terminate_started()
-            return {"status": "FAILED", "message": str(exc), "components": started}
-        payload = {
-            "status": "STARTED",
-            "project_root": str(self.project_root),
-            "dashboard_port": config.dashboard_port,
-            "container_name": container_name,
-            "components": started,
-            "preflight": report.as_payload(),
-        }
-        self._write_state(payload)
-        return payload
+                data = resolve_project_input(
+                    self.project_root, config.data_path, frozenset({".parquet"})
+                )
+                series = (
+                    resolve_project_input(
+                        self.project_root, config.series_data_path, frozenset({".parquet"})
+                    )
+                    if config.series_data_path is not None
+                    else None
+                )
+                self.state_dir.mkdir(parents=True, exist_ok=True)
+                relative_source = source.relative_to(self.project_root).as_posix()
+                relative_data = data.relative_to(self.project_root).as_posix()
+                relative_series = (
+                    series.relative_to(self.project_root).as_posix() if series is not None else None
+                )
+                evaluation_execution = _evaluation_execution(
+                    self.project_root / config.env_file
+                )
+                managed_run_id = uuid4().hex
+                commands = {
+                    "dashboard": [
+                        sys.executable,
+                        "cli.py",
+                        "dashboard",
+                        "--state-dir",
+                        str(self.state_dir),
+                        "--env-file",
+                        str(self.project_root / config.env_file),
+                        "--host",
+                        "127.0.0.1",
+                        "--port",
+                        str(config.dashboard_port),
+                    ],
+                    "research_worker": self._research_worker_command(
+                        config,
+                        relative_source,
+                        relative_data,
+                        relative_series,
+                        evaluation_execution,
+                        managed_run_id,
+                    ),
+                }
+                started: list[dict[str, object]] = []
+                try:
+                    for component_id, command in commands.items():
+                        self._processes[component_id] = self._process_factory(
+                            command, self.project_root
+                        )
+                        process = self._processes[component_id]
+                        pid = getattr(process, "pid", None)
+                        started.append(
+                            {
+                                "id": component_id,
+                                "status": "STARTED",
+                                "pid": pid if isinstance(pid, int) else None,
+                                "identity_markers": list(
+                                    self._identity_markers(
+                                        component_id,
+                                        managed_run_id=managed_run_id,
+                                        dashboard_port=config.dashboard_port,
+                                    )
+                                ),
+                            }
+                        )
+                except OSError as exc:
+                    self._terminate_in_memory_processes()
+                    return {
+                        "status": "FAILED",
+                        "message": str(exc),
+                        "components": started,
+                    }
+                started.append(
+                    {
+                        "id": "evaluation_backend",
+                        "status": "CONFIGURED",
+                        "mode": evaluation_execution,
+                        "active_jobs": 0,
+                        "queued_jobs": 0,
+                    }
+                )
+                payload = {
+                    "status": "STARTED",
+                    "managed_run_id": managed_run_id,
+                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "project_root": str(self.project_root),
+                    "dashboard_port": config.dashboard_port,
+                    "container_name": None,
+                    "evaluation_execution": evaluation_execution,
+                    "components": started,
+                    "preflight": report.as_payload(),
+                }
+                if restart_origin is not None:
+                    payload["restarted_from"] = {
+                        "managed_run_id": _text(existing.get("managed_run_id")),
+                        **restart_origin,
+                    }
+                self._write_state(payload)
+                if restart_origin is not None:
+                    append_recovery_event(
+                        self.state_dir,
+                        event="RESTARTED",
+                        managed_run_id=_text(existing.get("managed_run_id")),
+                        origin=restart_origin,
+                        replacement_managed_run_id=managed_run_id,
+                    )
+                return payload
+        except LifecycleBusyError:
+            return {"status": "BUSY", "message": "system lifecycle change already in progress"}
 
     def status(self) -> dict[str, object]:
-        path = self.state_dir / "system" / "system.json"
-        if not path.is_file():
-            return {"status": "STOPPED", "components": []}
-        try:
-            raw_payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, TypeError, ValueError, json.JSONDecodeError):
-            return {"status": "UNKNOWN", "components": []}
-        if not isinstance(raw_payload, dict):
-            return {"status": "UNKNOWN", "components": []}
-        payload: dict[str, object] = raw_payload
-        if self._processes:
-            components = payload.get("components", [])
-            if isinstance(components, list):
-                for component in components:
-                    if not isinstance(component, dict):
-                        continue
-                    component_id = component.get("id")
-                    if not isinstance(component_id, str):
-                        continue
-                    process = self._processes.get(component_id)
-                    if process is not None:
-                        component["status"] = "RUNNING" if process.poll() is None else "EXITED"
-        components = payload.get("components", [])
-        if isinstance(components, list):
-            for component in components:
-                if not isinstance(component, dict):
-                    continue
-                component_id = component.get("id")
-                if component_id not in {"research_worker", "backtest_worker"}:
-                    continue
-                worker_state = self._read_worker_state(str(component_id))
-                if worker_state is not None:
-                    component["status"] = worker_state
-        return payload
+        return self._reconcile_state(persist=True)
 
     def stop(self) -> dict[str, object]:
-        self._terminate_started()
-        payload: dict[str, object] = {"status": "STOPPED", "components": []}
-        self._write_state(payload)
-        return payload
+        try:
+            with lifecycle_lock(self._lifecycle_lock_path()):
+                current = self._reconcile_state(persist=False)
+                managed_run_id = _text(current.get("managed_run_id"))
+                failed_processes = self._terminate_managed_processes(current)
+                failed_cleanup = self._terminate_docker_jobs(managed_run_id)
+                payload: dict[str, object] = {
+                    "status": (
+                        "STOPPED"
+                        if not failed_processes and not failed_cleanup
+                        else "STOP_FAILED"
+                    ),
+                    "components": [],
+                }
+                if managed_run_id is not None:
+                    payload["managed_run_id"] = managed_run_id
+                if failed_processes:
+                    payload["process_cleanup_failed"] = failed_processes
+                if failed_cleanup:
+                    payload["cleanup_failed"] = failed_cleanup
+                self._write_state(payload)
+                return payload
+        except LifecycleBusyError:
+            return {"status": "BUSY", "message": "system lifecycle change already in progress"}
+
+
+    def _research_worker_command(
+        self,
+        config: SystemLaunchConfig,
+        source_path: str,
+        data_path: str,
+        series_path: str | None,
+        evaluation_execution: str,
+        managed_run_id: str,
+    ) -> list[str]:
+        command = [
+            sys.executable,
+            "-m",
+            "runtime.system_worker",
+            "--role",
+            "research",
+            "--state-dir",
+            str(self.state_dir),
+            "--project-root",
+            str(self.project_root),
+            "--env-file",
+            str(self.project_root / config.env_file),
+            "--source-path",
+            source_path,
+            "--data-path",
+            data_path,
+            "--method",
+            config.method,
+            "--count",
+            str(config.count),
+            "--seed",
+            str(config.seed),
+            "--min-trades",
+            str(config.min_trades),
+            "--min-annual-trades",
+            str(config.min_annual_trades),
+            "--repeat-generations",
+            str(config.repeat_generations),
+            "--interval-seconds",
+            str(config.interval_seconds),
+            "--evaluation-execution",
+            evaluation_execution,
+            "--evaluation-docker-image",
+            config.docker_image,
+            "--managed-run-id",
+            managed_run_id,
+        ]
+        if config.min_qqq_cagr_delta is not None:
+            command.extend(
+                ["--min-qqq-cagr-delta", str(config.min_qqq_cagr_delta)]
+            )
+        if series_path is not None:
+            command.extend(["--series-data-path", series_path])
+        for domain in config.parameter_domains:
+            command.extend(
+                [
+                    "--domain",
+                    json.dumps(
+                        {"name": domain.name, "values": list(domain.values)},
+                        ensure_ascii=False,
+                    ),
+                ]
+            )
+        return command
+
+    def _terminate_docker_jobs(self, managed_run_id: str | None) -> list[str]:
+        queue = PersistentJobQueue(self.state_dir)
+        running = (
+            queue.running(managed_run_id=managed_run_id)
+            if managed_run_id is not None
+            else tuple(
+                job
+                for job in queue.running()
+                if "managed_run_id" not in job.payload
+            )
+        )
+        if not running:
+            return []
+        if not shutil.which("docker"):
+            return [job.job_id for job in running]
+        failed: list[str] = []
+        for job in running:
+            container_name = docker_evaluation_container_name(job.job_id, job.attempt)
+            return_code, _ = self._command_runner(
+                ["docker", "rm", "-f", container_name],
+                self.project_root,
+            )
+            if return_code != 0:
+                failed.append(job.job_id)
+                continue
+            try:
+                queue.cancel_running(job.job_id)
+            except ValueError:
+                continue
+        return failed
 
     def _resolve_input(
         self,
@@ -393,108 +578,361 @@ class SystemController:
             and payload.get("orders_enabled") is False
         )
 
-    def _docker_command(
-        self,
-        config: SystemLaunchConfig,
-        container_name: str,
-        source_path: str,
-        data_path: str,
-        series_path: str | None = None,
-    ) -> list[str]:
-        command = [
-            "docker",
-            "run",
-            "--rm",
-            "--name",
-            container_name,
-            "--network",
-            "none",
-            "--cap-drop",
-            "ALL",
-            "--read-only",
-            "--tmpfs",
-            "/tmp:rw,noexec,nosuid,size=64m",
-            "--mount",
-            f"type=bind,source={self.project_root},target=/workspace,readonly",
-            "--mount",
-            f"type=bind,source={self.state_dir},target=/workspace/state",
-            "--workdir",
-            "/workspace",
-            config.docker_image,
-            "--role",
-            "backtest",
-            "--state-dir",
-            "/workspace/state",
-            "--project-root",
-            "/workspace",
-            "--source-path",
-            source_path,
-            "--data-path",
-            data_path,
-            "--method",
-            config.method,
-            "--count",
-            str(config.count),
-            "--seed",
-            str(config.seed),
-            "--min-trades",
-            str(config.min_trades),
-            "--min-annual-trades",
-            str(config.min_annual_trades),
-            "--repeat-generations",
-            str(config.repeat_generations),
-            "--interval-seconds",
-            str(config.interval_seconds),
-        ]
-        if config.min_qqq_cagr_delta is not None:
-            command.extend(["--min-qqq-cagr-delta", str(config.min_qqq_cagr_delta)])
-        if series_path is not None:
-            command.extend(["--series-data-path", series_path])
-        for domain in config.parameter_domains:
-            command.extend(
-                [
-                    "--domain",
-                    json.dumps(
-                        {"name": domain.name, "values": list(domain.values)},
-                        ensure_ascii=False,
-                    ),
-                ]
-            )
-        return command
 
-    def _terminate_started(self) -> None:
+    def _reconcile_state(self, *, persist: bool) -> dict[str, object]:
+        payload = self._read_state()
+        if payload is None:
+            stopped: dict[str, object] = {"status": "STOPPED", "components": []}
+            stopped["runtime"] = build_runtime_snapshot(
+                self.state_dir,
+                managed_run_id=None,
+                system_state=stopped,
+            )
+            return stopped
+        components = payload.get("components")
+        if not isinstance(components, list):
+            unknown: dict[str, object] = {"status": "UNKNOWN", "components": []}
+            unknown["runtime"] = build_runtime_snapshot(
+                self.state_dir,
+                managed_run_id=_text(payload.get("managed_run_id")),
+                system_state=unknown,
+            )
+            return unknown
+        managed_run_id = _text(payload.get("managed_run_id"))
+        research_alive = False
+        for component in components:
+            if not isinstance(component, dict):
+                continue
+            component_id = _text(component.get("id"))
+            if component_id not in {"dashboard", "research_worker"}:
+                continue
+            alive = self._component_alive(component, payload)
+            component["alive"] = alive
+            if component_id == "research_worker":
+                research_alive = alive
+                worker_state = self._read_worker_state(
+                    component_id,
+                    managed_run_id=managed_run_id,
+                )
+                if worker_state in {"SUCCEEDED", "FAILED"}:
+                    component["status"] = worker_state
+                else:
+                    component["status"] = "RUNNING" if alive else "EXITED"
+            else:
+                component["status"] = "RUNNING" if alive else "EXITED"
+
+        recovery: dict[str, object] = {}
+        queue = PersistentJobQueue(self.state_dir)
+        if managed_run_id is not None and not research_alive:
+            cancelled: list[str] = []
+            for job in queue.queued(managed_run_id=managed_run_id):
+                queue.cancel_queued(job.job_id)
+                cancelled.append(job.job_id)
+            reconciled = queue.reconcile_stale(managed_run_id=managed_run_id)
+            for job_id in reconciled:
+                job = queue.get(job_id)
+                if job.status is not JobStatus.QUEUED:
+                    continue
+                queue.cancel_queued(job_id)
+                cancelled.append(job_id)
+            if reconciled:
+                recovery["reconciled_jobs"] = list(reconciled)
+            if cancelled:
+                recovery["cancelled_orphaned_jobs"] = sorted(set(cancelled))
+
+        owned_jobs = (
+            queue.jobs_for_run(managed_run_id)
+            if managed_run_id is not None
+            else (*queue.running(), *queue.queued())
+        )
+        running_jobs = sum(job.status is JobStatus.RUNNING for job in owned_jobs)
+        queued_jobs = sum(job.status is JobStatus.QUEUED for job in owned_jobs)
+        for component in components:
+            if not isinstance(component, dict):
+                continue
+            if component.get("id") != "evaluation_backend":
+                continue
+            component["active_jobs"] = running_jobs
+            component["queued_jobs"] = queued_jobs
+            component["status"] = (
+                "RUNNING"
+                if running_jobs
+                else "QUEUED"
+                if queued_jobs
+                else "READY"
+            )
+
+        payload["runtime"] = build_runtime_snapshot(
+            self.state_dir,
+            managed_run_id=managed_run_id,
+            system_state=payload,
+            recovery_state=recovery,
+        )
+        if (
+            managed_run_id is not None
+            and not research_alive
+            and running_jobs == 0
+            and queued_jobs == 0
+        ):
+            runtime = payload.get("runtime")
+            research_runtime = (
+                runtime.get("research")
+                if isinstance(runtime, dict)
+                else None
+            )
+            if (
+                isinstance(research_runtime, dict)
+                and research_runtime.get("status") == "RUNNING"
+            ):
+                origin = mark_autoresearch_interrupted(self.state_dir)
+                if origin is not None:
+                    research_run_id = _text(origin.get("research_run_id"))
+                    closed = close_interrupted_evidence(
+                        self.state_dir,
+                        research_run_id=research_run_id,
+                    )
+                    append_recovery_event(
+                        self.state_dir,
+                        event="INTERRUPTED",
+                        managed_run_id=managed_run_id,
+                        origin=origin,
+                    )
+                    recovery["interrupted_research_run_id"] = research_run_id
+                    recovery["evidence_closed"] = closed
+                    payload["runtime"] = build_runtime_snapshot(
+                        self.state_dir,
+                        managed_run_id=managed_run_id,
+                        system_state=payload,
+                        recovery_state=recovery,
+                    )
+        payload["status"] = self._aggregate_status(payload)
+        if recovery:
+            payload["recovery"] = recovery
+        elif "recovery" in payload:
+            payload.pop("recovery", None)
+        payload["runtime"] = build_runtime_snapshot(
+            self.state_dir,
+            managed_run_id=managed_run_id,
+            system_state=payload,
+            recovery_state=recovery,
+        )
+        if persist:
+            self._write_state(payload)
+        return payload
+
+    def _aggregate_status(self, payload: dict[str, object]) -> str:
+        components = payload.get("components")
+        if not isinstance(components, list):
+            return "UNKNOWN"
+        statuses = {
+            str(component.get("id")): str(component.get("status"))
+            for component in components
+            if isinstance(component, dict) and component.get("id") is not None
+        }
+        dashboard = statuses.get("dashboard")
+        research = statuses.get("research_worker")
+        evaluation = statuses.get("evaluation_backend")
+
+        runtime = payload.get("runtime")
+        runtime_research = runtime.get("research") if isinstance(runtime, dict) else None
+        runtime_research_status = (
+            _text(runtime_research.get("status"))
+            if isinstance(runtime_research, dict)
+            else None
+        )
+        if (
+            runtime_research_status == "INTERRUPTED"
+            and evaluation not in {"RUNNING", "QUEUED"}
+            and research != "RUNNING"
+        ):
+            return "INTERRUPTED"
+        if research == "FAILED":
+            return "FAILED"
+        if research == "RUNNING" or evaluation in {"RUNNING", "QUEUED"}:
+            if dashboard == "EXITED" or research == "EXITED":
+                return "DEGRADED"
+            return "RUNNING"
+        if research == "SUCCEEDED":
+            return "COMPLETED" if dashboard != "EXITED" else "DEGRADED"
+        if dashboard == "RUNNING":
+            return "DEGRADED"
+        original = _text(payload.get("status"))
+        if original == "STOP_FAILED":
+            return "STOP_FAILED"
+        return "STOPPED"
+
+    def _has_active_runtime(self, payload: dict[str, object]) -> bool:
+        components = payload.get("components")
+        if not isinstance(components, list):
+            return False
+        for component in components:
+            if not isinstance(component, dict):
+                continue
+            component_id = component.get("id")
+            if component_id in {"dashboard", "research_worker"} and component.get("alive") is True:
+                return True
+            if component_id == "evaluation_backend":
+                if _nonnegative_int(component.get("active_jobs")) > 0:
+                    return True
+                if _nonnegative_int(component.get("queued_jobs")) > 0:
+                    return True
+        return False
+
+    def _component_alive(
+        self,
+        component: dict[str, object],
+        payload: dict[str, object],
+    ) -> bool:
+        component_id = _text(component.get("id"))
+        if component_id is None:
+            return False
+        process = self._processes.get(component_id)
+        if process is not None:
+            try:
+                return process.poll() is None
+            except (OSError, AttributeError):
+                return False
+        pid = _positive_pid(component.get("pid"))
+        if pid is None:
+            return False
+        markers = self._component_markers(component, payload)
+        return bool(markers) and self._process_probe(pid, markers)
+
+    def _component_markers(
+        self,
+        component: dict[str, object],
+        payload: dict[str, object],
+    ) -> tuple[str, ...]:
+        raw = component.get("identity_markers")
+        if isinstance(raw, list) and all(isinstance(item, str) for item in raw):
+            markers = tuple(item for item in raw if item)
+            if markers:
+                return markers
+        component_id = _text(component.get("id"))
+        managed_run_id = _text(payload.get("managed_run_id"))
+        dashboard_port = _nonnegative_int(payload.get("dashboard_port"))
+        if component_id is None:
+            return ()
+        return self._identity_markers(
+            component_id,
+            managed_run_id=managed_run_id,
+            dashboard_port=dashboard_port,
+        )
+
+    def _identity_markers(
+        self,
+        component_id: str,
+        *,
+        managed_run_id: str | None,
+        dashboard_port: int,
+    ) -> tuple[str, ...]:
+        if component_id == "dashboard":
+            return (
+                "cli.py",
+                "dashboard",
+                "--state-dir",
+                str(self.state_dir),
+                "--port",
+                str(dashboard_port),
+            )
+        if component_id == "research_worker":
+            markers = [
+                "runtime.system_worker",
+                "--role",
+                "research",
+                "--state-dir",
+                str(self.state_dir),
+            ]
+            if managed_run_id:
+                markers.extend(["--managed-run-id", managed_run_id])
+            return tuple(markers)
+        return ()
+
+    def _terminate_managed_processes(
+        self,
+        payload: dict[str, object],
+    ) -> list[str]:
+        components = payload.get("components")
+        if not isinstance(components, list):
+            self._terminate_in_memory_processes()
+            return []
+        failed: list[str] = []
+        for component in components:
+            if not isinstance(component, dict):
+                continue
+            component_id = _text(component.get("id"))
+            if component_id not in {"dashboard", "research_worker"}:
+                continue
+            pid = _positive_pid(component.get("pid"))
+            if pid is None or not self._component_alive(component, payload):
+                continue
+            markers = self._component_markers(component, payload)
+            if self._process_terminator(pid, markers):
+                continue
+            process = self._processes.get(component_id)
+            try:
+                if process is not None and process.poll() is None:
+                    process.terminate()
+                    continue
+            except (OSError, AttributeError):
+                pass
+            failed.append(component_id)
+        self._processes.clear()
+        return failed
+
+    def _terminate_in_memory_processes(self) -> None:
         for process in self._processes.values():
             try:
                 if process.poll() is None:
                     process.terminate()
             except (OSError, AttributeError):
                 continue
-        if self._container_name and shutil.which("docker"):
-            self._command_runner(["docker", "stop", self._container_name], self.project_root)
         self._processes.clear()
-        self._container_name = None
+
+    def _lifecycle_lock_path(self) -> Path:
+        return self.state_dir / "system" / "lifecycle.lock"
 
     def _write_state(self, payload: dict[str, object]) -> None:
         target = self.state_dir / "system" / "system.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_suffix(".tmp")
         temporary.write_text(
-            json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8"
+            json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
         )
         os.replace(temporary, target)
 
-    def _read_worker_state(self, component_id: str) -> str | None:
+    def _read_state(self) -> dict[str, object] | None:
+        path = self.state_dir / "system" / "system.json"
+        if not path.is_file():
+            return None
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return {str(key): value for key, value in payload.items()}
+
+    def _read_worker_state(
+        self,
+        component_id: str,
+        *,
+        managed_run_id: str | None,
+    ) -> str | None:
         path = self.state_dir / "system" / f"{component_id}.json"
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, TypeError, ValueError, json.JSONDecodeError):
             return None
-        status = payload.get("status") if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            return None
+        recorded_run_id = _text(payload.get("managed_run_id"))
+        if managed_run_id is not None and recorded_run_id != managed_run_id:
+            return None
+        status = payload.get("status")
         return status if isinstance(status, str) else None
 
-
-def _spawn_process(command: list[str], cwd: Path) -> subprocess.Popen[Any]:
-    return subprocess.Popen(command, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def _run_command(command: list[str], cwd: Path) -> tuple[int, str]:
@@ -521,6 +959,49 @@ def _port_available(port: int) -> bool:
         except OSError:
             return False
     return True
+
+
+def _text(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
+def _positive_pid(value: object) -> int | None:
+    if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+        return value
+    return None
+
+
+def _nonnegative_int(value: object) -> int:
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    return 0
+
+
+def _evaluation_execution(env_file: Path | None = None) -> str:
+    configured = os.environ.get("QUANT_EVALUATION_EXECUTION")
+    if configured is not None:
+        return configured.strip()
+    if env_file is not None and env_file.is_file():
+        try:
+            lines = env_file.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lines = []
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, value = line.split("=", 1)
+            if name.strip() != "QUANT_EVALUATION_EXECUTION":
+                continue
+            raw_value = value.strip()
+            if (
+                len(raw_value) >= 2
+                and raw_value[0] == raw_value[-1]
+                and raw_value[0] in {'"', "'"}
+            ):
+                raw_value = raw_value[1:-1]
+            return raw_value.strip()
+    return "local_scheduler"
 
 
 def _codex_executable() -> str:

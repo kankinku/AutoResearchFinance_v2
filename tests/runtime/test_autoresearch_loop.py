@@ -88,6 +88,17 @@ def test_autoresearch_connects_director_intent_to_each_generation(tmp_path: Path
         (tmp_path / "state" / "system" / "autoresearch.json").read_text(encoding="utf-8")
     )
     assert state["status"] == "COMPLETED"
+    assert state["research_run_id"] == result["research_run_id"]
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "state" / "system" / "research-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert events
+    assert {event["research_run_id"] for event in events} == {
+        result["research_run_id"]
+    }
     assert state["generations"][0]["intent"]["feature_selections"][0]["feature_id"] == (
         "vix_percentile"
     )

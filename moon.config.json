@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "validation": {
+    "profileOrder": [
+      "fast",
+      "normal",
+      "release"
+    ],
+    "profiles": {
+      "fast": [
+        "uv run --locked --extra dev ruff check ."
+      ],
+      "normal": [
+        "uv run --locked --extra dev ruff check .",
+        "uv run --locked --extra dev mypy .",
+        "uv run --locked --extra dev python -m pytest -q tests/contracts tests/integrations/test_codex_mcp_server.py tests/dashboard"
+      ],
+      "release": [
+        "uv run --locked --extra dev ruff check .",
+        "uv run --locked --extra dev mypy .",
+        "uv run --locked --extra dev python -m pytest -q"
+      ]
+    },
+    "riskProfiles": {
+      "low": "fast",
+      "medium": "normal",
+      "high": "release"
+    }
+  },
+  "risk": {
+    "highPathPatterns": [
+      "^core/",
+      "^evaluation/",
+      "^orchestration/",
+      "^runtime/",
+      "^integrations/kis/",
+      "^research/llm/",
+      "^moon\\.config\\.json$",
+      "^\\.github/workflows/"
+    ],
+    "mediumPathPatterns": [
+      "^integrations/",
+      "^memory/",
+      "^mutation/",
+      "^strategy_ir/",
+      "^strategy_import/",
+      "^dashboard/",
+      "^tests/",
+      "^docs/",
+      "^pyproject\\.toml$",
+      "^cli\\.py$"
+    ],
+    "highKeywords": [
+      "live",
+      "order",
+      "credential",
+      "secret",
+      "security",
+      "permission",
+      "promotion",
+      "production",
+      "finance",
+      "trading",
+      "인증",
+      "권한",
+      "보안",
+      "주문",
+      "실거래"
+    ],
+    "mediumKeywords": [
+      "mcp",
+      "api",
+      "service",
+      "schema",
+      "refactor",
+      "dependency",
+      "기능",
+      "리팩터링",
+      "의존성",
+      "스키마"
+    ]
+  },
+  "knowledge": {
+    "maxPermanentDocs": 50,
+    "ephemeralPatterns": [
+      "^docs/superpowers/(?:plans?|specs?)/"
+    ],
+    "generatedPatterns": [
+      "^\\.moon/"
+    ]
+  }
+}

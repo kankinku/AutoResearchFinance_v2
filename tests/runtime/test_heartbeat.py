@@ -41,3 +41,12 @@ def test_scheduler_updates_heartbeat_for_parallel_job(tmp_path: Path) -> None:
     payload = json.loads((tmp_path / "local-job-1.json").read_text(encoding="utf-8"))
     assert payload["status"] == "SUCCEEDED"
     assert payload["job_id"] == "job-1"
+
+
+
+def test_heartbeat_store_constructor_is_side_effect_free(tmp_path: Path) -> None:
+    root = tmp_path / "heartbeats"
+
+    WorkerHeartbeatStore(root)
+
+    assert not root.exists()

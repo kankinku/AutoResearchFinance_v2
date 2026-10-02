@@ -5,7 +5,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from core.features.registry import research_feature_specs
+from application.catalog_service import FeatureCatalogService
+from application.evaluation_service import EvaluationService
+from application.research_service import ResearchService
 from core.integrity.hashes import content_hash
 from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
@@ -15,8 +17,8 @@ from integrations.kis.client import KISAPIError
 from integrations.kis.config import KISConfigError, PaperKISConfig
 from integrations.kis.paper_orders import KISPaperOrderClient, PaperOrderError
 from memory.state_files import StateFileStore
-from orchestration.evaluation_runner import parse_parameter_domains, run_local_evaluation
-from research.llm.codex_exec import CodexExecProvider, record_intent, sanitize_context
+from orchestration.evaluation_runner import parse_parameter_domains
+from research.llm.codex_exec import CodexExecProvider, sanitize_context
 from research.llm.director import ResearchDirector
 from research.policy import default_evaluation_thresholds
 from runtime.research_loop import ResearchLoopConfig, run_autoresearch, run_repeated_evaluation
@@ -316,7 +318,7 @@ def _run_terminal_repl(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "research-evidence":
-        evidence_payload = DashboardService(args.state_dir).research_evidence(args.run_id)
+        evidence_payload = ResearchService(args.state_dir).evidence(args.run_id)
         serialized = json.dumps(evidence_payload, ensure_ascii=False, indent=2)
         if args.output is not None:
             try:
@@ -359,17 +361,7 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(
                 {
                     "status": "OK",
-                    "features": [
-                        {
-                            "name": spec.name,
-                            "family": spec.family,
-                            "inputs": list(spec.inputs),
-                            "calculator": spec.calculator,
-                            "lookback": spec.lookback,
-                            "timeframe": spec.timeframe,
-                        }
-                        for spec in research_feature_specs()
-                    ],
+                    "features": FeatureCatalogService().research_features(),
                 },
                 ensure_ascii=False,
             )
@@ -385,17 +377,7 @@ def main(argv: list[str] | None = None) -> int:
                 "observations": [
                     item.model_dump(mode="json") for item in snapshot.tests[:20]
                 ],
-                "feature_catalog": [
-                    {
-                        "name": spec.name,
-                        "family": spec.family,
-                        "inputs": list(spec.inputs),
-                        "calculator": spec.calculator,
-                        "lookback": spec.lookback,
-                        "timeframe": spec.timeframe,
-                    }
-                    for spec in research_feature_specs()
-                ],
+                "feature_catalog": FeatureCatalogService().research_features(),
             }
         )
         if not isinstance(context, dict):
@@ -406,7 +388,7 @@ def main(argv: list[str] | None = None) -> int:
             status_path=args.state_dir / "llm" / "status.json",
         )
         intent = ResearchDirector(provider).propose(context)
-        record_intent(args.state_dir / "llm" / "intents.jsonl", intent)
+        ResearchService(args.state_dir).record_intent(intent)
         print(
             json.dumps(
                 {
@@ -558,9 +540,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "run-generation":
         domain_documents = [json.loads(document) for document in args.domain]
-        evaluation_result = run_local_evaluation(
+        evaluation_result = EvaluationService(
             project_root=Path("."),
             state_dir=args.state_dir,
+        ).run(
             source_path=args.source,
             data_path=args.data,
             method=args.method,

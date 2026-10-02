@@ -1,0 +1,80 @@
+{
+  "phase": "7.3",
+  "status": "PREPUSH_GATE_READY",
+  "base": "origin/master",
+  "local_branch": "docs/mcp-phase3-5-1-state-inventory",
+  "local_branch_name_is_stale": true,
+  "local_branch_renamed": false,
+  "publication_target": "feat/autoresearch-runtime-mcp-sdk",
+  "pre_gate_head": "4d4a88b",
+  "pre_gate_ahead_origin_master": 45,
+  "behind_origin_master": 0,
+  "working_tree_clean": true,
+  "remote": {
+    "url": "https://github.com/kankinku/AutoResearchFinance_v2.git",
+    "default_branch": "master",
+    "default_branch_head": "5875af8aff375dfcfe6548b5a06eae9ae02cf08f",
+    "head_contained_by_remote_branch": false
+  },
+  "dry_run": {
+    "status": "PASS",
+    "current_local_branch_refspec": "PASS",
+    "recommended_publication_refspec": "PASS",
+    "remote_branch_existed_before": false,
+    "remote_branch_existed_after": false,
+    "remote_mutation_performed": false
+  },
+  "dependency_gate": {
+    "uv_lock_check": "PASS",
+    "mcp_sdk": "2.2.0",
+    "pyarrow": "25.0.1"
+  },
+  "mcp_acceptance": {
+    "canonical_sdk": "PASS",
+    "sdk_protocol_version": "2025-11-25",
+    "legacy_client_compatibility": "2024-11-05",
+    "manual_rollback": "PASS",
+    "public_tools": 13,
+    "hidden_legacy_dispatch": 5,
+    "public_contract_schema_version": 1,
+    "orders_enabled": false
+  },
+  "inherited_security_baseline": {
+    "source": "release-phase7-1-integration-inventory.json",
+    "secret_pattern_matches": 0,
+    "tracked_runtime_artifacts": 0,
+    "added_binary_files": 0
+  },
+  "external_pending": {
+    "docker_host_acceptance": "PENDING_EXTERNAL",
+    "environment": "real Windows + Docker Desktop host required"
+  },
+  "approval_boundary": {
+    "push_requires_user_approval": true,
+    "pr_creation_requires_user_approval": true,
+    "merge_requires_user_approval": true
+  },
+  "remote_actions": {
+    "branch_rename": "NOT_PERFORMED",
+    "push": "NOT_PERFORMED",
+    "pr_creation": "NOT_PERFORMED",
+    "merge": "NOT_PERFORMED"
+  },
+  "other_worktree_boundary": {
+    "path": "/shared/moon-workspace/AutoResearchFinance_v2-analysis",
+    "user_owned_uncommitted_changes": true,
+    "must_not_modify": true
+  },
+  "orders_enabled": false,
+  "next_phase": "7.4",
+  "fresh_security_scan": {
+    "secret_pattern_matches": 0,
+    "tracked_runtime_artifacts": 0,
+    "added_binary_files": 0
+  },
+  "phase7_3_release_gate": {
+    "ruff": "PASS",
+    "mypy_source_files": 165,
+    "pytest_passed": 794
+  }
+}

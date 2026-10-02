@@ -36,6 +36,8 @@ def test_ledger_appends_sanitized_funnel_results_for_dashboard(tmp_path: Path) -
                 "passed": True,
             },
         ),
+        robustness_dsr=0.72,
+        robustness_pbo=0.18,
         full_benchmark=compare_benchmarks(
             (100.0, 110.0, 121.0),
             (100.0, 105.0, 110.0),
@@ -58,6 +60,8 @@ def test_ledger_appends_sanitized_funnel_results_for_dashboard(tmp_path: Path) -
     assert payload["parameters"] == {"indicators.fast.period": 5}
     assert payload["dataset_hash"] == "data-hash"
     assert payload["strategy_cagr"] == 0.12
+    assert payload["dsr"] == 0.72
+    assert payload["pbo"] == 0.18
     assert payload["trade_count"] == 14
     assert payload["qqq_cagr"] is not None
     assert payload["gates"] == [
@@ -71,3 +75,5 @@ def test_ledger_appends_sanitized_funnel_results_for_dashboard(tmp_path: Path) -
     ]
     assert payload["validation_folds"][0]["qqq_cagr_delta"] == 0.02
     assert snapshot.tests[0].run_id == "strategy-1-generation-3"
+    assert snapshot.tests[0].dsr == 0.72
+    assert snapshot.tests[0].pbo == 0.18

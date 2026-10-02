@@ -1,0 +1,102 @@
+{
+  "phase": "7.1",
+  "status": "INTERNAL_RELEASE_READY",
+  "git": {
+    "branch": "docs/mcp-phase3-5-1-state-inventory",
+    "branch_name_is_stale": true,
+    "branch_rename_performed": false,
+    "behind_origin_master": 0,
+    "ahead_origin_master": 43,
+    "merge_commits": 0,
+    "remote_contains_head": false,
+    "push_performed": false,
+    "merge_performed": false,
+    "working_tree_clean_before_phase": true
+  },
+  "change_scope": {
+    "files_changed": 152,
+    "insertions": 25700,
+    "deletions": 935,
+    "commits": 43
+  },
+  "protected_paths": {
+    "paths": [
+      "core/data",
+      "core/backtest",
+      "core/evaluator",
+      "core/validation",
+      "core/costs",
+      "core/integrity"
+    ],
+    "changed_files": 5,
+    "commits": [
+      "8b421c9"
+    ],
+    "files": [
+      "core/backtest/engine.py",
+      "core/data/access.py",
+      "core/data/contracts.py",
+      "core/data/parquet.py",
+      "core/data/timebase.py"
+    ]
+  },
+  "dependencies": {
+    "lock_check": "PASS",
+    "direct_additions": [
+      "pyarrow>=14.0",
+      "mcp>=2.2,<3"
+    ],
+    "resolved_smoke_versions": {
+      "pyarrow": "25.0.1",
+      "mcp": "2.2.0"
+    },
+    "import_smoke": "PASS"
+  },
+  "security_scan": {
+    "secret_pattern_matches": 0,
+    "patterns_checked": [
+      "private_key",
+      "github_pat",
+      "aws_access_key",
+      "openai_key_like",
+      "bearer_token"
+    ],
+    "tracked_runtime_artifacts": 0,
+    "added_binary_files": 0
+  },
+  "validation_baseline": {
+    "ruff": "PASS",
+    "mypy_source_files": 165,
+    "pytest_passed": 782,
+    "canonical_sdk_acceptance": "PASS",
+    "manual_rollback_acceptance": "PASS"
+  },
+  "external_pending": {
+    "docker_host_acceptance": true,
+    "docker_host_status": "PENDING_EXTERNAL",
+    "push_requires_user_approval": true,
+    "merge_requires_user_approval": true
+  },
+  "other_worktree": {
+    "path": "/shared/moon-workspace/AutoResearchFinance_v2-analysis",
+    "branch": "feat/mcp-phase3-execution-pipeline",
+    "has_user_owned_changes": true,
+    "changed_files": [
+      "pyproject.toml",
+      "uv.lock"
+    ],
+    "must_not_modify": true
+  },
+  "integration_assessment": {
+    "commit_stack": "linear",
+    "integration_conflict_with_origin_master": "NONE_CURRENTLY",
+    "single_pr_size_risk": "HIGH",
+    "reason": "43 commits / 152 files / 25700 insertions is a large review surface even though the stack is linear and internally validated.",
+    "recommended_next_phase": "7.2"
+  },
+  "phase7_1_release_gate": {
+    "ruff": "PASS",
+    "mypy_source_files": 165,
+    "pytest_passed": 786
+  }
+}

@@ -79,6 +79,8 @@ class FunnelResult:
     validation_folds: tuple[Mapping[str, object], ...] = ()
     yearly_metrics: tuple[Mapping[str, object], ...] = ()
     feature_lineage: tuple[Mapping[str, object], ...] = ()
+    robustness_dsr: float | None = None
+    robustness_pbo: float | None = None
 
 
 def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResult:
@@ -222,6 +224,8 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         candidate.validation_folds,
         candidate.yearly_metrics,
         candidate.feature_lineage,
+        candidate.robustness.dsr,
+        candidate.robustness.pbo,
     )
 
 

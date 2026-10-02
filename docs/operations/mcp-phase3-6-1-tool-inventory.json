@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "phase": "3-6.1",
+  "categories": [
+    "PUBLIC_KEEP",
+    "DUPLICATE_OR_OVERLAP",
+    "INTERNALIZE_CANDIDATE",
+    "DEPRECATE_CANDIDATE"
+  ],
+  "effects": [
+    "READ_ONLY",
+    "READ_WITH_RECONCILIATION",
+    "STATE_MUTATION",
+    "EXECUTION_TRIGGER",
+    "LIFECYCLE_CONTROL"
+  ],
+  "tools": [
+    {
+      "name": "initialize_research_state",
+      "classification": "PUBLIC_KEEP",
+      "effect": "STATE_MUTATION",
+      "service": "WorkspaceService.initialize",
+      "cli_equivalent": [
+        "init"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "Safe bootstrap capability for a new MCP workspace. It creates only missing research state, preserves existing state, and keeps orders_enabled=false.",
+      "follow_up": "Keep public. Clarify that it is idempotent bootstrap, not reset."
+    },
+    {
+      "name": "get_workspace_status",
+      "classification": "DUPLICATE_OR_OVERLAP",
+      "effect": "READ_ONLY",
+      "service": "WorkspaceService.status",
+      "cli_equivalent": [
+        "status",
+        "mode",
+        "audit(partial)"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "Overlaps get_system_status/get_dashboard_status for general status, but still uniquely exposes initialization, selected mode, audit record count, and manifest count.",
+      "follow_up": "In 3-6.2 decide whether to keep as lightweight bootstrap status or fold its unique fields into one canonical status response."
+    },
+    {
+      "name": "set_research_mode",
+      "classification": "INTERNALIZE_CANDIDATE",
+      "effect": "STATE_MUTATION",
+      "service": "WorkspaceService.set_mode",
+      "cli_equivalent": [
+        "set-mode"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "The public MCP is paper-research only. Selecting live never enables orders and actively makes SystemController paper preflight fail, so exposing this state toggle to an agent is operationally confusing.",
+      "follow_up": "Prefer host/CLI-controlled mode selection; remove from public MCP only after a compatibility/deprecation step."
+    },
+    {
+      "name": "validate_research_cache",
+      "classification": "INTERNALIZE_CANDIDATE",
+      "effect": "READ_ONLY",
+      "service": "WorkspaceService.validate_cache",
+      "cli_equivalent": [
+        "rebuild-cache(actual behavior: manifest validation)"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "This is a maintenance/integrity helper that only counts valid manifests. It is not part of the primary research lifecycle and does not actually rebuild a cache.",
+      "follow_up": "Keep the service/CLI maintenance path; consider removing it from the default public MCP surface."
+    },
+    {
+      "name": "validate_strategy",
+      "classification": "PUBLIC_KEEP",
+      "effect": "READ_ONLY",
+      "service": "StrategyService.validate",
+      "cli_equivalent": [
+        "validate-strategy",
+        "import-strategy(validation role)"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "A safe static validation boundary before evaluation or import. It does not execute external source and is directly useful to an MCP agent.",
+      "follow_up": "Keep public."
+    },
+    {
+      "name": "import_strategies",
+      "classification": "PUBLIC_KEEP",
+      "effect": "STATE_MUTATION",
+      "service": "StrategyService.import_strategies",
+      "cli_equivalent": [
+        "import-strategies"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "The canonical safe strategy intake path. It defaults to dry-run, uses static analysis, constrains project paths/repository URLs, and never executes imported code.",
+      "follow_up": "Keep public; preserve dry_run=true default and path/repository safety tests."
+    },
+    {
+      "name": "list_strategies",
+      "classification": "PUBLIC_KEEP",
+      "effect": "READ_ONLY",
+      "service": "StrategyService.list_strategies",
+      "cli_equivalent": [],
+      "contract_maturity": "MODERATE",
+      "rationale": "Distinct read-only catalog discovery capability. It avoids making the agent infer imported strategies from filesystem state.",
+      "follow_up": "Keep public."
+    },
+    {
+      "name": "plan_generation",
+      "classification": "INTERNALIZE_CANDIDATE",
+      "effect": "READ_ONLY",
+      "service": "PlanningService.plan_generation",
+      "cli_equivalent": [
+        "plan-generation"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "Pure deterministic planning primitive, but it has no production caller outside MCP/tests and the canonical autoresearch loop performs its own experiment planning.",
+      "follow_up": "Retain as an internal/application primitive; consider hiding it from the default public tool list."
+    },
+    {
+      "name": "get_research_context",
+      "classification": "INTERNALIZE_CANDIDATE",
+      "effect": "READ_ONLY",
+      "service": "ResearchService.context",
+      "cli_equivalent": [
+        "research-intent(context construction only)"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "It is a synthesized LLM prompt-context projection combining champion, observations, failure knowledge, and the feature catalog. The canonical managed research loop constructs/uses its own context, and this method has no production caller except MCP.",
+      "follow_up": "Keep the context builder internally for diagnostics/tests; prefer domain-specific public reads rather than one large prompt-oriented payload."
+    },
+    {
+      "name": "list_features",
+      "classification": "PUBLIC_KEEP",
+      "effect": "READ_ONLY",
+      "service": "FeatureCatalogService.research_features",
+      "cli_equivalent": [
+        "list-features"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "Distinct capability discovery for valid feature candidates. It is smaller and more explicit than get_research_context.",
+      "follow_up": "Keep public."
+    },
+    {
+      "name": "get_research_evidence",
+      "classification": "PUBLIC_KEEP",
+      "effect": "READ_ONLY",
+      "service": "ResearchService.evidence",
+      "cli_equivalent": [
+        "research-evidence"
+      ],
+      "contract_maturity": "STRONG",
+      "rationale": "Authoritative attributable research-evidence interface with explicit integrity-error handling and sealed-OOS safety semantics.",
+      "follow_up": "Keep public."
+    },
+    {
+      "name": "get_dashboard_status",
+      "classification": "PUBLIC_KEEP",
+      "effect": "READ_ONLY",
+      "service": "DashboardService.snapshot",
+      "cli_equivalent": [
+        "dashboard-status"
+      ],
+      "contract_maturity": "STRONG",
+      "rationale": "Provides typed performance/account/trend/strategy dashboard data that is intentionally different from process/runtime health in get_system_status.",
+      "follow_up": "Keep public, but document the distinction: dashboard=data/performance plane, system status=runtime/control plane."
+    },
+    {
+      "name": "submit_research_intent",
+      "classification": "DEPRECATE_CANDIDATE",
+      "effect": "STATE_MUTATION",
+      "service": "ResearchService.validate_and_record_intent",
+      "cli_equivalent": [
+        "research-intent(recording role only)"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "The tool validates an intent and appends it to state/llm/intents.jsonl, but no production runtime consumes externally submitted journal entries. The journal is audit/supporting data, while start_system runs the canonical LLM->evaluation loop directly.",
+      "follow_up": "Highest-priority deprecation candidate. Do not remove until compatibility guidance is added; direct callers should use start_system or run_evaluation depending on intent."
+    },
+    {
+      "name": "run_evaluation",
+      "classification": "PUBLIC_KEEP",
+      "effect": "EXECUTION_TRIGGER",
+      "service": "EvaluationService.run",
+      "cli_equivalent": [
+        "run-generation"
+      ],
+      "contract_maturity": "MODERATE",
+      "rationale": "Useful bounded one-shot evaluation path over approved project inputs. It shares the canonical queued evaluator and is distinct from the multi-generation managed system.",
+      "follow_up": "Keep public as an advanced one-shot execution primitive; describe when to use it instead of start_system."
+    },
+    {
+      "name": "check_system",
+      "classification": "PUBLIC_KEEP",
+      "effect": "READ_ONLY",
+      "service": "SystemService.preflight",
+      "cli_equivalent": [],
+      "contract_maturity": "MODERATE",
+      "rationale": "Side-effect-free preflight is valuable before a potentially expensive managed start, even though start_system also performs preflight.",
+      "follow_up": "Keep public; pair its documentation directly with start_system."
+    },
+    {
+      "name": "start_system",
+      "classification": "PUBLIC_KEEP",
+      "effect": "EXECUTION_TRIGGER",
+      "service": "SystemService.start",
+      "cli_equivalent": [
+        "dashboard",
+        "repeat-research",
+        "autoresearch"
+      ],
+      "contract_maturity": "STRONG",
+      "rationale": "Canonical managed entry point for dashboard plus bounded autoresearch with the configured evaluation backend. It supersedes the old split intent/backtest workflow.",
+      "follow_up": "Keep as the primary research execution tool."
+    },
+    {
+      "name": "get_system_status",
+      "classification": "PUBLIC_KEEP",
+      "effect": "READ_WITH_RECONCILIATION",
+      "service": "SystemService.status",
+      "cli_equivalent": [
+        "resume(partial)",
+        "status(runtime role)"
+      ],
+      "contract_maturity": "STRONG",
+      "rationale": "Primary operational runtime/control-plane view. It returns the typed RuntimeSnapshot and may intentionally reconcile an active managed lifecycle.",
+      "follow_up": "Keep as the canonical runtime status tool."
+    },
+    {
+      "name": "stop_system",
+      "classification": "PUBLIC_KEEP",
+      "effect": "LIFECYCLE_CONTROL",
+      "service": "SystemService.stop",
+      "cli_equivalent": [],
+      "contract_maturity": "MODERATE",
+      "rationale": "Necessary paired lifecycle control for start_system, scoped to owned managed processes and evaluation jobs.",
+      "follow_up": "Keep public."
+    }
+  ],
+  "summary": {
+    "tool_count": 18,
+    "PUBLIC_KEEP": 12,
+    "DUPLICATE_OR_OVERLAP": 1,
+    "INTERNALIZE_CANDIDATE": 4,
+    "DEPRECATE_CANDIDATE": 1
+  }
+}

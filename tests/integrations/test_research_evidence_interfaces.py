@@ -75,7 +75,15 @@ def test_research_evidence_empty_interfaces_agree(
         {"id": 1, "method": "tools/call", "params": {"name": "get_research_evidence"}}
     )
     assert reply is not None
-    assert json.loads(reply["result"]["content"][0]["text"]) == expected
+    mcp_payload = json.loads(reply["result"]["content"][0]["text"])
+    contract = mcp_payload.pop("_contract")
+    assert mcp_payload == expected
+    assert contract == {
+        "schema_version": 1,
+        "tool": "get_research_evidence",
+        "plane": "EVIDENCE_STATUS",
+        "orders_enabled": False,
+    }
 
 
 def test_research_evidence_filter_forwarded(

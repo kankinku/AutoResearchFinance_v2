@@ -1,8 +1,14 @@
+# Canonical transport: official Python MCP SDK.
 # Copy this section to the trusted Codex configuration for this checkout.
 
 [mcp_servers.quant_autoresearch]
-command = "python"
-args = ["-m", "integrations.codex_mcp_server", "--state-dir", "state", "--project-root", "."]
+command = "uv"
+args = ["run", "--locked", "python", "-m", "integrations.codex_mcp_server", "--state-dir", "state", "--project-root", "."]
 cwd = "."
 enabled = true
 default_tools_approval_mode = "prompt"
+
+# Emergency rollback only: replace the module above with
+# "integrations.codex_mcp_manual_server". The rollback transport keeps the same
+# 13 public tools and 5 hidden compatibility calls but uses the legacy 2024-11-05
+# newline JSON-RPC implementation.
