@@ -194,7 +194,12 @@ def run_local_evaluation(
                     }
                 ),
             },
-            "candidates": [candidate_evidence(item) for item in pipeline_result.funnel],
+            "candidates": [
+                _candidate_snapshot_evidence(candidate, result)
+                for candidate, result in zip(
+                    pipeline_result.candidates, pipeline_result.funnel, strict=True
+                )
+            ],
             "train_only_selection": selection_payload,
             "market_data_quality": data_quality,
         },
@@ -242,6 +247,22 @@ def run_local_evaluation(
         },
         **_best_strategy_payload(pipeline_result),
     }
+
+
+def _candidate_snapshot_evidence(candidate: object, result: object) -> dict[str, object]:
+    """Persist replayable IR for eligible candidates, not unapproved near misses."""
+    from core.integrity.hashes import content_hash
+    from evaluation.selector import FunnelResult
+    from experiments.candidate_generator import Candidate
+
+    if not isinstance(candidate, Candidate) or not isinstance(result, FunnelResult):
+        raise TypeError("candidate/result Evidence pair is invalid")
+    payload: dict[str, object] = candidate_evidence(result)
+    if result.status in {"SURVIVOR", "FRONTIER", "CHAMPION_CANDIDATE", "CHAMPION"}:
+        ir = candidate.strategy.model_dump(mode="json", by_alias=True)
+        payload["strategy_ir"] = ir
+        payload["strategy_ir_hash"] = content_hash(ir)
+    return payload
 
 
 def _best_strategy_payload(pipeline_result: object) -> dict[str, object]:
