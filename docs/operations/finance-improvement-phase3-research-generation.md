@@ -1,0 +1,8 @@
+# T-003 partial — generation preparation and reporting boundaries
+
+- Extracted `build_generation_context` and `build_generation_record` from `runtime.research_loop.run_autoresearch` to a separately testable `runtime.research_generation` module. The main run continues to own worker dispatch, proposal/repair retries, fallback and immutable generation writes. This refactor does **not** change order permissions, evaluator parameters, or persisted response shape.
+- Fixed a functional integration bug discovered during decomposition: `run_autoresearch` used to call `build_research_context`, then replace its immutable evidence-backed Frontier with only the currently active parent. This discarded historical winners and prevented the research director from learning across generations. It now **retains historical eligible Frontier entries** and appends the currently active parent as an explicit hint unless already present.
+- Pure record assembly preserves original `PROPOSED`/`FALLBACK`/`DEGRADED` status rules, repair counts/history, sanitization, current parent identity, and research-run ID. The actual `EvidenceSession.finish_generation` remains in the loop with its exception/recovery semantics unchanged.
+- Added red-before/green-after `tests/runtime/test_research_generation.py` covering historical Frontier retention, no-history defaults and fallback/degraded record compatibility. Existing runtime and local evaluation regression tests pass.
+
+Not yet decomposed: proposal repair and post-backtest repair state machines, crash/retry/worker lifecycle ownership, and generation-level checkpoint restoration. No attempt to claim T-003 fully complete without those parity/acceptance tests.

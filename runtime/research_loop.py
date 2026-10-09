@@ -19,7 +19,6 @@ from mutation.engine import MutationOperation
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
-    build_research_context,
     resolve_project_input,
     run_local_evaluation,
 )
@@ -37,6 +36,7 @@ from research.llm.intent_bridge import (
 )
 from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.evidence_session import EvidenceSession
+from runtime.research_generation import build_generation_context, build_generation_record
 from strategy_ir.normalizer import normalize_source
 from strategy_ir.schema import StrategyIR
 
@@ -77,13 +77,20 @@ def run_repeated_evaluation(
         lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
     )
     evidence = EvidenceSession(
-        config.state_dir, requested_generations=config.generations, seed=config.seed,
-        settings={"method": config.method, "count": config.count,
-                  "parameter_domains": [asdict(domain) for domain in config.parameter_domains],
-                  "repair_attempts_allowed": config.intent_repair_attempts},
+        config.state_dir,
+        requested_generations=config.generations,
+        seed=config.seed,
+        settings={
+            "method": config.method,
+            "count": config.count,
+            "parameter_domains": [asdict(domain) for domain in config.parameter_domains],
+            "repair_attempts_allowed": config.intent_repair_attempts,
+        },
     )
+
     def runner(**kwargs: Any) -> dict[str, object]:
         return evidence.evaluate(base_runner, **kwargs)
+
     records: list[dict[str, object]] = []
     _write_status(config, "RUNNING", completed_generations=0, records=records)
     try:
@@ -159,13 +166,20 @@ def run_autoresearch(
         lambda **kwargs: default_executor.run(run_local_evaluation, **kwargs)
     )
     evidence = EvidenceSession(
-        config.state_dir, requested_generations=config.generations, seed=config.seed,
-        settings={"method": config.method, "count": config.count,
-                  "parameter_domains": [asdict(domain) for domain in config.parameter_domains],
-                  "repair_attempts_allowed": config.intent_repair_attempts},
+        config.state_dir,
+        requested_generations=config.generations,
+        seed=config.seed,
+        settings={
+            "method": config.method,
+            "count": config.count,
+            "parameter_domains": [asdict(domain) for domain in config.parameter_domains],
+            "repair_attempts_allowed": config.intent_repair_attempts,
+        },
     )
+
     def runner(**kwargs: Any) -> dict[str, object]:
         return evidence.evaluate(base_runner, **kwargs)
+
     records: list[dict[str, object]] = []
     progress = _ResearchProgress(config, records, research_run_id=evidence.run_id)
     progress.emit("run_started", phase="STARTING")
@@ -173,19 +187,9 @@ def run_autoresearch(
     try:
         for generation in range(config.generations):
             generation_number = generation + 1
-            progress.emit(
-                "generation_started", phase="GENERATION", generation=generation_number
-            )
+            progress.emit("generation_started", phase="GENERATION", generation=generation_number)
             parent_id = current.strategy_id
-            context = build_research_context(config.state_dir, source_path=source)
-            context.update(
-                {
-                    "generation": current.generation,
-                    "source_strategy": current.model_dump(mode="json", by_alias=True),
-                    "parent_ids_hint": [current.strategy_id],
-                    "frontier": [{"id": current.strategy_id, "family": current.family}],
-                }
-            )
+            context = build_generation_context(config.state_dir, source, current)
             intent: ResearchIntent | None = None
             repair_history: list[dict[str, object]] = []
             repair_errors: list[str] = []
@@ -303,9 +307,7 @@ def run_autoresearch(
                             and repaired_intent.feature_proposal is not None
                         ):
                             proposal_to_record = repaired_intent.feature_proposal
-                        operations = _preflight_intent(
-                            current, repaired_intent, feature_specs
-                        )
+                        operations = _preflight_intent(current, repaired_intent, feature_specs)
                         progress.emit(
                             "preflight_completed",
                             phase="VALIDATING",
@@ -314,9 +316,7 @@ def run_autoresearch(
                             detail={"operation_count": len(operations)},
                         )
                         intent = repaired_intent
-                        record_intent(
-                            config.state_dir / "llm" / "intents.jsonl", repaired_intent
-                        )
+                        record_intent(config.state_dir / "llm" / "intents.jsonl", repaired_intent)
                         intent_status = "REPAIRED"
                         progress.emit(
                             "repair_completed",
@@ -336,9 +336,7 @@ def run_autoresearch(
                             repair_attempt=repair_attempts,
                             error=intent_error,
                         )
-                        repair_history.append(
-                            {"attempt": attempt + 1, "status": "UNAVAILABLE"}
-                        )
+                        repair_history.append({"attempt": attempt + 1, "status": "UNAVAILABLE"})
                         _record_repair_knowledge(
                             config,
                             generation_number,
@@ -486,13 +484,9 @@ def run_autoresearch(
                             and repaired_intent.feature_proposal is not None
                         ):
                             proposal_to_record = repaired_intent.feature_proposal
-                        operations = _preflight_intent(
-                            current, repaired_intent, feature_specs
-                        )
+                        operations = _preflight_intent(current, repaired_intent, feature_specs)
                         intent = repaired_intent
-                        record_intent(
-                            config.state_dir / "llm" / "intents.jsonl", repaired_intent
-                        )
+                        record_intent(config.state_dir / "llm" / "intents.jsonl", repaired_intent)
                         intent_status = "REPAIRED"
                         evaluation = _run_intent_evaluation(
                             runner,
@@ -524,9 +518,7 @@ def run_autoresearch(
                             repair_attempt=repair_attempts,
                             error=repair_error,
                         )
-                        repair_history.append(
-                            {"attempt": repair_attempts, "status": "UNAVAILABLE"}
-                        )
+                        repair_history.append({"attempt": repair_attempts, "status": "UNAVAILABLE"})
                         _record_repair_knowledge(
                             config,
                             generation_number,
@@ -619,39 +611,20 @@ def run_autoresearch(
                 next_strategy = _strategy_from_evaluation(evaluation)
                 if next_strategy is not None:
                     current = next_strategy
-                status = intent_status if intent_status != "PROPOSED" else str(
-                    evaluation.get("status", "UNKNOWN")
-                )
-                record: dict[str, object] = {
-                    "generation": generation + 1,
-                    "parent_id": parent_id,
-                    "status": status,
-                    "intent_status": intent_status,
-                    "intent": _intent_payload(intent),
-                    "operations": [
-                        {"op": operation.op, "path": operation.path}
-                        for operation in operations
-                    ],
-                    "evaluation": sanitize_context(evaluation),
-                }
-            else:
-                record = {
-                    "generation": generation + 1,
-                    "parent_id": parent_id,
-                    "status": "DEGRADED",
-                    "intent_status": intent_status,
-                    "intent": _intent_payload(intent),
-                    "operations": [],
-                }
-            if intent_error is not None:
-                record["intent_error"] = intent_error
-            if repair_attempts:
-                record["repair_attempts"] = repair_attempts
-                record["repair_errors"] = repair_errors
-                record["repair_history"] = repair_history
-            if evaluation_error is not None:
-                record["evaluation_error"] = evaluation_error
-            record["research_run_id"] = evidence.run_id
+            record = build_generation_record(
+                generation=generation_number,
+                parent_id=parent_id,
+                intent=intent,
+                intent_status=intent_status,
+                operations=operations,
+                evaluation=evaluation,
+                intent_error=intent_error,
+                evaluation_error=evaluation_error,
+                repair_attempts=repair_attempts,
+                repair_errors=repair_errors,
+                repair_history=repair_history,
+                research_run_id=evidence.run_id,
+            )
             evidence.finish_generation(generation_number, str(record["status"]), evaluation)
             records.append(record)
             progress.emit(
@@ -774,8 +747,7 @@ def _record_repair_knowledge(
         "error_code": _error_code(error),
         "payload_signature": _payload_signature(payload),
         "diagnostic": dict(
-            diagnostic
-            or _diagnostic_from_error(error, phase="REPAIRING", generation=generation)
+            diagnostic or _diagnostic_from_error(error, phase="REPAIRING", generation=generation)
         ),
     }
     try:
@@ -804,9 +776,7 @@ def _diagnostic_from_exception(
     if isinstance(error, IntentEligibilityError):
         diagnostic = dict(error.diagnostic)
     else:
-        diagnostic = _diagnostic_from_error(
-            _error_text(error), phase=phase, generation=generation
-        )
+        diagnostic = _diagnostic_from_error(_error_text(error), phase=phase, generation=generation)
     diagnostic.setdefault("phase", phase)
     diagnostic["generation"] = generation
     diagnostic.setdefault("message", _error_text(error))
