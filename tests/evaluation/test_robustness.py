@@ -89,3 +89,32 @@ def test_cpcv_return_scores_use_held_out_return_paths() -> None:
 
     assert len(scores) == 4
     assert len(set(scores)) > 1
+
+
+def test_cost_sensitivity_cannot_reward_a_loss_made_worse_by_trading_costs() -> None:
+    report = robust_statistics(
+        base_return=-0.10,
+        stressed_return=-0.20,
+        parameter_scores=(-0.04, -0.05, -0.06),
+        sharpe=-0.4,
+        trials=10,
+        observations=100,
+        complexity=2,
+    )
+    assert report.status == "OK"
+    # Dividing two negative returns used to yield a positive, capped 100%
+    # resilience score even though added costs doubled the loss.
+    assert report.cost_sensitivity == 0
+
+
+def test_positive_return_stress_sensitivity_retains_existing_ratio() -> None:
+    report = robust_statistics(
+        base_return=0.20,
+        stressed_return=0.10,
+        parameter_scores=(0.10, 0.09, 0.11),
+        sharpe=1.0,
+        trials=10,
+        observations=100,
+        complexity=2,
+    )
+    assert report.cost_sensitivity == pytest.approx(0.5)

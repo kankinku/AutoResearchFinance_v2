@@ -17,11 +17,11 @@ Updated: 2026-10-09. Canonical architecture remains `docs/architecture/quant-aut
 | T-001 | P0 | DONE | none | Synthetic next-open/cost/IR golden fixture, baseline tests |
 | T-002 | P1 | PENDING | T-001 | Remove inversions in strategy_ir/core boundaries; public contracts unchanged |
 | T-003 | P1 | PENDING | T-001 | Split 556-line autoresearch orchestration by phase; recovery/queue parity |
-| T-004 | P0 | PENDING | T-001 | Point-in-time vendor data quality, warmup and missing-data contracts |
+| T-004 | P0 | PARTIAL | T-001 | DONE finite OHLCV rejection, historical fold warmup; PENDING vendor provenance, survivorship, corporate actions and missing-data policy |
 | T-005 | P0 | PARTIAL | T-001 | DONE trailing stop/regime gates; remaining risk policy assertions/edge cases |
 | T-006 | P0 | PARTIAL | T-005 | DONE exposure from marked positions; remaining accounting/returns audit |
-| T-007 | P0 | PENDING | T-004, T-006 | Proper train-only fit/selection, walk-forward and held-out gate; prevent OOS re-use |
-| T-008 | P0 | PENDING | T-007 | Statistical definition validation (CSCV/CPCV/PBO/DSR), multiple-test accounting |
+| T-007 | P0 | PARTIAL | T-004, T-006 | DONE test-window order isolation and warmup-only prefix; PENDING true train-only fit/selection, final sealed OOS |
+| T-008 | P0 | PARTIAL | T-007 | DONE reject false positive cost-resilience on losing strategies; PENDING independent DSR/PBO reference audit and trial accounting |
 | T-009 | P1 | PARTIAL | T-001 | DONE unique random draws; remaining cross-parent semantic dedup and versioned evaluation cache |
 | T-010 | P1 | PENDING | T-008, T-009 | Exploration/exploitation/crossover/rescue policy actually drives candidate sourcing |
 | T-011 | P1 | PENDING | T-010 | Durable frontier, rescue, champion and evidence-linked hypotheses |
@@ -40,6 +40,13 @@ Updated: 2026-10-09. Canonical architecture remains `docs/architecture/quant-aut
 ## Safety and test gates
 
 For each commit: `.venv/bin/ruff check .`, `.venv/bin/mypy .`, and `.venv/bin/python -m pytest -q` using the pinned venv/lock. Host Docker validation is not replaceable by the Python stub tests. No published release/merge or live-trading activation is implied by local green tests.
+
+## 2026-10-09 follow-up batch
+
+- `3094c3e`: reject NaN and infinite OHLCV values at construction; 15 red tests became green.
+- `a74cd52`: optionally forbid any warmup-history signals before `signal_start_at`.
+- `f58e8eb`: preserve causal warmup in temporal folds and measure only test-window metrics. `selection_applied=false` is unchanged; this remains *candidate holdout evidence*, not full train-only selection.
+- Follow-up robustness correction: negative-return strategies must never get positive cost-resilience merely from dividing two negative returns.
 
 ## Existing records
 

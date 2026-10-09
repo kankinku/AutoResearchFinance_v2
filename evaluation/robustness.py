@@ -42,7 +42,10 @@ def robust_statistics(
     if pbo is not None and not 0.0 <= pbo <= 1.0:
         raise ValueError("PBO must be between zero and one")
 
-    cost_sensitivity = clamp_unit(stressed_return / base_return)
+    # Cost resilience only has a meaningful positive ratio when the baseline
+    # strategy made money. A negative return worsened by costs must not score
+    # as perfectly resilient just because both numerator and denominator are negative.
+    cost_sensitivity = clamp_unit(stressed_return / base_return) if base_return > 0 else 0.0
     mean = fmean(parameter_scores)
     stability = clamp_unit(1.0 / (1.0 + pstdev(parameter_scores) / max(abs(mean), 1e-12)))
     dsr = deflated_sharpe_ratio(sharpe, trials=trials, observations=observations)
