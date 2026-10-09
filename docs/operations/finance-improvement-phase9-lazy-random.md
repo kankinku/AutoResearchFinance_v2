@@ -7,3 +7,7 @@ The replacement performs seeded uniform sampling without replacement from a mixe
 Tests explicitly forbid any call to `grid_search` from random search with 2**28 possible points; cover a 2**70 point space, mixed boolean/numeric identities, repeated domain values, invalid duplicate domain names and exactly matching the legacy seeded order for distinct small grids. `grid_search` and `bayesian_search` remain unchanged; Bayesian acquisition still materializes its grid and requires separate scaling work.
 
 No improvements to statistical OOS performance are implied; this change only removes an exponential memory bottleneck from the random mutation proposal stage.
+
+## Grid candidate generation follow-up
+
+The bounded `generate_candidates(method="grid", count=N)` previously called **unbounded** `grid_search(domains)` and sliced only *after* materializing the entire grid. `grid_search` now takes an optional `limit` and expands only the first N combinations with `itertools.islice`, while no-limit callers retain the exact original ordering and complete result. The grid branch in `experiments.candidate_generator._search` passes the candidate budget at generation time rather than slicing later. Tests check a 2**28 combination space with a 3-point prefix, negative-limit rejection and actual candidate-generator budget propagation. This change is about bounded grid enumeration, not Bayesian search or performance returns.

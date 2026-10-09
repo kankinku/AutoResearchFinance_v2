@@ -56,3 +56,24 @@ def test_deduplicator_removes_hash_duplicates_preserving_first() -> None:
 
     assert result.unique == (candidates[0],)
     assert result.duplicate_hashes == (candidates[0].candidate_hash,)
+
+
+def test_grid_candidate_generator_passes_budget_before_expanding_grid(monkeypatch) -> None:
+    import experiments.candidate_generator as module
+
+    def lazy_budgeted_grid(domain_values, *, limit=None):
+        assert limit == 2
+        assert domain_values
+        return [{"risk.stop_loss_pct": 2.0}, {"risk.stop_loss_pct": 3.0}]
+
+    monkeypatch.setattr(module, "grid_search", lazy_budgeted_grid)
+    parent = validate_strategy(example_document())
+    candidates = generate_candidates(
+        parent,
+        (),
+        (ParameterDomain("risk.stop_loss_pct", (2.0, 3.0)),),
+        method="grid",
+        count=2,
+        seed=9,
+    )
+    assert len(candidates) == 2

@@ -4,6 +4,7 @@ import itertools
 import math
 import random
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -31,12 +32,21 @@ class BayesianObservation:
 ParameterPoint: TypeAlias = dict[str, ParameterValue]
 
 
-def grid_search(domains: tuple[ParameterDomain, ...]) -> list[ParameterPoint]:
+def grid_search(
+    domains: tuple[ParameterDomain, ...], *, limit: int | None = None
+) -> list[ParameterPoint]:
+    """Expand a parameter grid, optionally stopping at a finite candidate budget."""
+    if limit is not None and limit < 0:
+        raise ValueError("grid limit must be non-negative")
     names = [domain.name for domain in domains]
-    return [
-        dict(zip(names, values, strict=True))
-        for values in itertools.product(*(d.values for d in domains))
-    ]
+    if len(set(names)) != len(names):
+        raise ValueError("duplicate parameter names are invalid")
+    points: Iterable[tuple[ParameterValue, ...]] = itertools.product(
+        *(domain.values for domain in domains)
+    )
+    if limit is not None:
+        points = itertools.islice(points, limit)
+    return [dict(zip(names, values, strict=True)) for values in points]
 
 
 def random_search(

@@ -43,8 +43,7 @@ def generate_candidates(
         all_operations = operations + parameter_operations
         strategy = apply_operations(parent, list(all_operations))
         operation_payload = [
-            {"op": op.op, "path": op.path, "value": _json_value(op.value)}
-            for op in all_operations
+            {"op": op.op, "path": op.path, "value": _json_value(op.value)} for op in all_operations
         ]
         candidate_hash = content_hash(
             {
@@ -75,7 +74,7 @@ def _search(
     observations: list[BayesianObservation],
 ) -> list[dict[str, ParameterValue]]:
     if method == "grid":
-        return grid_search(domains)[:count]
+        return grid_search(domains, limit=count)
     if method == "random":
         return random_search(domains, count=count, seed=seed)
     if method == "bayesian":

@@ -120,3 +120,18 @@ def test_random_search_matches_prior_seeded_sampling_on_unique_small_grid() -> N
 
     expected = random.Random(11).sample(grid_search(domains()), 4)
     assert random_search(domains(), count=4, seed=11) == expected
+
+
+def test_grid_search_can_take_only_a_small_prefix_without_full_materialization() -> None:
+    large = tuple(ParameterDomain(f"p{i}", (0, 1)) for i in range(28))
+    points = grid_search(large, limit=3)
+    assert len(points) == 3
+    assert all(len(point) == 28 for point in points)
+    assert points[0] == {f"p{i}": 0 for i in range(28)}
+
+
+def test_grid_search_rejects_invalid_limit() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="limit"):
+        grid_search(domains(), limit=-2)
