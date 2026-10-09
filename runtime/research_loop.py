@@ -36,7 +36,11 @@ from research.llm.intent_bridge import (
 )
 from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.evidence_session import EvidenceSession
-from runtime.research_generation import build_generation_context, build_generation_record
+from runtime.research_generation import (
+    build_generation_context,
+    build_generation_record,
+    select_intent_parent,
+)
 from strategy_ir.normalizer import normalize_source
 from strategy_ir.schema import StrategyIR
 
@@ -189,7 +193,10 @@ def run_autoresearch(
             generation_number = generation + 1
             progress.emit("generation_started", phase="GENERATION", generation=generation_number)
             parent_id = current.strategy_id
-            context = build_generation_context(config.state_dir, source, current)
+            context = build_generation_context(
+                config.state_dir, source, current, research_run_id=evidence.run_id
+            )
+            selected_parent = current
             intent: ResearchIntent | None = None
             repair_history: list[dict[str, object]] = []
             repair_errors: list[str] = []
@@ -205,7 +212,10 @@ def run_autoresearch(
                 intent = director.propose(context)
                 record_intent(config.state_dir / "llm" / "intents.jsonl", intent)
                 proposal_to_record = intent.feature_proposal
-                operations = _preflight_intent(current, intent, feature_specs)
+                selected_parent = select_intent_parent(
+                    current, intent, config.state_dir, research_run_id=evidence.run_id
+                )
+                operations = _preflight_intent(selected_parent, intent, feature_specs)
                 progress.emit(
                     "preflight_completed",
                     phase="VALIDATING",
@@ -307,7 +317,15 @@ def run_autoresearch(
                             and repaired_intent.feature_proposal is not None
                         ):
                             proposal_to_record = repaired_intent.feature_proposal
-                        operations = _preflight_intent(current, repaired_intent, feature_specs)
+                        selected_parent = select_intent_parent(
+                            current,
+                            repaired_intent,
+                            config.state_dir,
+                            research_run_id=evidence.run_id,
+                        )
+                        operations = _preflight_intent(
+                            selected_parent, repaired_intent, feature_specs
+                        )
                         progress.emit(
                             "preflight_completed",
                             phase="VALIDATING",
@@ -387,6 +405,7 @@ def run_autoresearch(
                 if intent_status != "REPAIRED":
                     intent_status = "FALLBACK"
                     operations = ()
+                    selected_parent = current
 
             evaluation: dict[str, object] | None = None
             evaluation_error: str | None = None
@@ -399,7 +418,7 @@ def run_autoresearch(
                     config,
                     generation,
                     operations=operations,
-                    strategy=current,
+                    strategy=selected_parent,
                 )
                 progress.emit(
                     "evaluation_completed",
@@ -484,7 +503,15 @@ def run_autoresearch(
                             and repaired_intent.feature_proposal is not None
                         ):
                             proposal_to_record = repaired_intent.feature_proposal
-                        operations = _preflight_intent(current, repaired_intent, feature_specs)
+                        selected_parent = select_intent_parent(
+                            current,
+                            repaired_intent,
+                            config.state_dir,
+                            research_run_id=evidence.run_id,
+                        )
+                        operations = _preflight_intent(
+                            selected_parent, repaired_intent, feature_specs
+                        )
                         intent = repaired_intent
                         record_intent(config.state_dir / "llm" / "intents.jsonl", repaired_intent)
                         intent_status = "REPAIRED"
@@ -493,7 +520,7 @@ def run_autoresearch(
                             config,
                             generation,
                             operations=operations,
-                            strategy=current,
+                            strategy=selected_parent,
                         )
                         progress.emit(
                             "repair_completed",
@@ -568,6 +595,7 @@ def run_autoresearch(
                 if evaluation is None:
                     intent_status = "FALLBACK"
                     operations = ()
+                    selected_parent = current
                     try:
                         progress.emit(
                             "fallback_evaluation_started",
@@ -613,7 +641,7 @@ def run_autoresearch(
                     current = next_strategy
             record = build_generation_record(
                 generation=generation_number,
-                parent_id=parent_id,
+                parent_id=(selected_parent.strategy_id if evaluation is not None else parent_id),
                 intent=intent,
                 intent_status=intent_status,
                 operations=operations,

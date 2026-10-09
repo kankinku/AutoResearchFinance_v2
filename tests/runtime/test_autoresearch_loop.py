@@ -81,8 +81,7 @@ def test_autoresearch_connects_director_intent_to_each_generation(tmp_path: Path
     assert len(calls) == 2
     assert [call["generation"] for call in calls] == [1, 2]
     assert all(
-        any(operation.op == "ADD_FEATURE" for operation in kwargs["operations"])
-        for kwargs in calls
+        any(operation.op == "ADD_FEATURE" for operation in kwargs["operations"]) for kwargs in calls
     )
     state = json.loads(
         (tmp_path / "state" / "system" / "autoresearch.json").read_text(encoding="utf-8")
@@ -96,9 +95,7 @@ def test_autoresearch_connects_director_intent_to_each_generation(tmp_path: Path
         .splitlines()
     ]
     assert events
-    assert {event["research_run_id"] for event in events} == {
-        result["research_run_id"]
-    }
+    assert {event["research_run_id"] for event in events} == {result["research_run_id"]}
     assert state["generations"][0]["intent"]["feature_selections"][0]["feature_id"] == (
         "vix_percentile"
     )
@@ -153,8 +150,7 @@ def test_autoresearch_queues_unregistered_feature_proposal_without_evaluating_it
     assert evaluated is True
     assert result["generations"][0]["status"] == "FALLBACK"
     queued = json.loads(
-        (tmp_path / "state" / "system" / "feature-proposals.jsonl")
-        .read_text(encoding="utf-8")
+        (tmp_path / "state" / "system" / "feature-proposals.jsonl").read_text(encoding="utf-8")
     )
     assert queued["status"] == "PENDING_VERIFICATION"
 
@@ -485,9 +481,7 @@ def test_autoresearch_writes_phase_events_and_live_phase_status(tmp_path: Path) 
 
     def proposal(context: dict[str, object]) -> dict[str, object]:
         status = json.loads(
-            (tmp_path / "state" / "system" / "autoresearch.json").read_text(
-                encoding="utf-8"
-            )
+            (tmp_path / "state" / "system" / "autoresearch.json").read_text(encoding="utf-8")
         )
         observed["proposal_phase"] = status["current_phase"]
         observed["proposal_generation"] = status["current_generation"]
@@ -502,9 +496,7 @@ def test_autoresearch_writes_phase_events_and_live_phase_status(tmp_path: Path) 
 
     def fake_evaluation(**kwargs: object) -> dict[str, object]:
         status = json.loads(
-            (tmp_path / "state" / "system" / "autoresearch.json").read_text(
-                encoding="utf-8"
-            )
+            (tmp_path / "state" / "system" / "autoresearch.json").read_text(encoding="utf-8")
         )
         observed["evaluation_phase"] = status["current_phase"]
         return {"status": "COMPLETED", "candidate_count": 1}
@@ -546,14 +538,10 @@ def test_autoresearch_writes_phase_events_and_live_phase_status(tmp_path: Path) 
     assert all(event["timestamp"] for event in events)
     assert all(event["generation"] in {None, 1} for event in events)
     assert all(
-        "duration_seconds" in event
-        for event in events
-        if event["event"].endswith("completed")
+        "duration_seconds" in event for event in events if event["event"].endswith("completed")
     )
     final_state = json.loads(
-        (tmp_path / "state" / "system" / "autoresearch.json").read_text(
-            encoding="utf-8"
-        )
+        (tmp_path / "state" / "system" / "autoresearch.json").read_text(encoding="utf-8")
     )
     assert final_state["current_phase"] == "COMPLETED"
     assert final_state["last_event"] == "run_completed"
@@ -613,3 +601,75 @@ def test_timing_summary_pairs_research_events_and_calculates_percentiles() -> No
     assert summary["repair"]["count"] == 0
     assert summary["backtest"]["total_seconds"] == 1.5
     assert summary["generation"]["total_seconds"] == 5.0
+
+
+def test_autoresearch_uses_replayable_same_run_frontier_parent(tmp_path: Path) -> None:
+    from core.integrity.hashes import content_hash
+    from memory.evidence_store import EvidenceStore
+    from strategy_ir.validator import validate_strategy
+    from tests.strategy_ir.test_schema import example_document
+
+    _write_strategy(tmp_path / "strategy.yaml")
+    parent = validate_strategy(example_document()).model_copy(
+        update={"strategy_id": "replayable-parent", "family": "momentum"}
+    )
+    snapshot = parent.model_dump(mode="json", by_alias=True)
+    proposals = 0
+    evaluated: list[str] = []
+
+    def provider(context: dict[str, object]) -> dict[str, object]:
+        nonlocal proposals
+        proposals += 1
+        if proposals == 2:
+            assert parent.strategy_id in context["replayable_parent_ids"]
+        return {
+            "mode": "structure",
+            "parent_ids": ["loop-base" if proposals == 1 else parent.strategy_id],
+            "operations": [],
+            "rationale": "use the available run-scoped parent",
+        }
+
+    def evaluator(**kwargs: object) -> dict[str, object]:
+        evaluated_parent = kwargs["strategy_override"]
+        assert isinstance(evaluated_parent, StrategyIR)
+        evaluated.append(evaluated_parent.strategy_id)
+        if len(evaluated) == 1:
+            store = EvidenceStore(tmp_path / "state")
+            store.append(
+                "attempt",
+                f"attempt:{kwargs['attempt_id']}",
+                {
+                    "research_run_id": kwargs["research_run_id"],
+                    "attempt_id": kwargs["attempt_id"],
+                    "generation": kwargs["generation"],
+                    "status": "COMPLETED",
+                    "candidates": [
+                        {
+                            "candidate_hash": "replayable-1",
+                            "status": "SURVIVOR",
+                            "family": "momentum",
+                            "score": 0.8,
+                            "failed_gates": [],
+                            "strategy_ir": snapshot,
+                            "strategy_ir_hash": content_hash(snapshot),
+                        }
+                    ],
+                },
+            )
+        return {"status": "COMPLETED", "candidate_count": 1}
+
+    result = run_autoresearch(
+        ResearchLoopConfig(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="data.parquet",
+            generations=2,
+            intent_repair_attempts=0,
+        ),
+        ResearchDirector(CodexIntentProvider(provider)),
+        evaluator=evaluator,
+    )
+    assert result["status"] == "COMPLETED"
+    assert evaluated == ["loop-base", parent.strategy_id]
+    assert result["generations"][1]["parent_id"] == parent.strategy_id

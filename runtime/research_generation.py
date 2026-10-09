@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from memory.evidence_frontier import frontier_parents
 from mutation.engine import MutationOperation
 from orchestration.evaluation_runner import build_research_context
 from research.llm.codex_exec import sanitize_context
@@ -14,7 +15,11 @@ from strategy_ir.schema import StrategyIR
 
 
 def build_generation_context(
-    state_dir: Path, source_path: Path | None, current: StrategyIR
+    state_dir: Path,
+    source_path: Path | None,
+    current: StrategyIR,
+    *,
+    research_run_id: str | None = None,
 ) -> dict[str, Any]:
     """Retain historic eligible frontier rather than erasing it each generation."""
     context = build_research_context(state_dir, source_path=source_path)
@@ -34,6 +39,12 @@ def build_generation_context(
             "generation": current.generation,
             "source_strategy": current.model_dump(mode="json", by_alias=True),
             "parent_ids_hint": [current.strategy_id],
+            "replayable_parent_ids": [
+                item.strategy_id
+                for item in frontier_parents(state_dir, research_run_id=research_run_id)
+            ]
+            if research_run_id is not None
+            else [],
             "frontier": frontier,
         }
     )
@@ -97,3 +108,22 @@ def build_generation_record(
         record["evaluation_error"] = evaluation_error
     record["research_run_id"] = research_run_id
     return record
+
+
+def select_intent_parent(
+    current: StrategyIR,
+    intent: ResearchIntent,
+    state_dir: Path,
+    *,
+    research_run_id: str,
+) -> StrategyIR:
+    """Require explicit, run-scoped, checked provenance for parent selection."""
+    if len(intent.parent_ids) != 1:
+        raise ValueError("multi-parent crossover is not supported by this intent executor")
+    requested = intent.parent_ids[0]
+    if requested == current.strategy_id:
+        return current
+    for parent in frontier_parents(state_dir, research_run_id=research_run_id):
+        if parent.strategy_id == requested:
+            return parent
+    raise ValueError("requested strategy is not an authorized parent")
