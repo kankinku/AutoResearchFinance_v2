@@ -39,6 +39,47 @@ def require_validation_zone(path: Path) -> None:
         raise EvidenceIntegrityError("promotion validation requires validation data")
 
 
+_HASHED_CODE_PACKAGES = (
+    "foundation",
+    "core",
+    "evaluation",
+    "strategy_ir",
+    "strategy_import",
+    "mutation",
+    "experiments",
+    "orchestration",
+    "research",
+    "runtime",
+    "memory",
+    "dashboard",
+    "integrations",
+    "application",
+    "schemas",
+)
+_HASHED_ROOT_FILES = ("pyproject.toml", "uv.lock", "cli.py", "dashboard.py")
+
+
+def project_code_hash(root: Path) -> str:
+    """Commit to all source/config inputs capable of changing a research result.
+
+    Excludes data, local state, credentials, tests, generated artifacts and
+    other mutable outputs. Paths are relative for relocation-independent hashes.
+    """
+    files = [
+        path
+        for package in _HASHED_CODE_PACKAGES
+        for path in (root / package).rglob("*")
+        if path.is_file() and path.suffix in {".py", ".yaml", ".json"}
+    ]
+    files.extend(root / name for name in _HASHED_ROOT_FILES if (root / name).is_file())
+    return digest(
+        {
+            path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted(files)
+        }
+    )
+
+
 def freeze_manifest(
     state_dir: Path,
     run_id: str,
@@ -54,21 +95,6 @@ def freeze_manifest(
     if series is not None and series.zone is not DataZone.DEVELOPMENT:
         raise EvidenceIntegrityError("research manifest requires development series data")
     root = Path(__file__).resolve().parents[1]
-    files = sorted(
-        p
-        for package in (
-            "core",
-            "evaluation",
-            "strategy_ir",
-            "mutation",
-            "experiments",
-            "orchestration",
-            "research",
-            "runtime",
-        )
-        for p in (root / package).rglob("*")
-        if p.suffix in {".py", ".yaml"}
-    )
     timestamps = [bar.timestamp for bar in dataset.bars]
     conditions = {
         "source_ir_hash": digest(source.model_dump(mode="json", by_alias=True)),
@@ -93,12 +119,7 @@ def freeze_manifest(
             "python": platform.python_version(),
             **{name: version(name) for name in ("numpy", "pandas", "pyarrow")},
         },
-        "code_hash": digest(
-            {
-                p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-                for p in files
-            }
-        ),
+        "code_hash": project_code_hash(root),
         "execution_mode": "local_python",
         "docker_image_digest": None,
     }
