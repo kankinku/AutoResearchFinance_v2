@@ -63,3 +63,12 @@ For each commit: `.venv/bin/ruff check .`, `.venv/bin/mypy .`, and `.venv/bin/py
 - T-005: `docs/operations/finance-improvement-phase2-risk.md`.
 - T-006: `docs/operations/finance-improvement-phase2-exposure.md`.
 - T-009: `docs/operations/finance-improvement-phase4-random-search.md`.
+
+## 2026-10-09 implementation continuation
+
+- `9e9cfa4` T-004: source-provenance contract with Parquet persistence, legacy hash compatibility, quality status and immutable run/attempt evidence. Vendor claims are *declared only*, not independently PIT-verified.
+- `366cfc9` T-003/T-011: extract pure generation context/result handling, and preserve evidence-backed frontier winners when the live director prepares the next generation. Proposal/repair state machines still need isolation.
+- `2342674` T-004: 24/7 intraday/daily/weekly missing-bar detection without synthetic fill; actual stock-market calendar reconciliation remains pending.
+- `8aaf4c0` T-009: seeded type-aware, uniform unique random parameter search in O(input domain widths + selected budget) memory; lazy indexed sampling works for 2**70 parameter combinations. Bayesian optimization and versioned evaluation caching remain pending.
+
+No runtime broker credentials, paper/live order flags, autonomous champion promotions, sealed holdout read or external Docker acceptance was authorized or performed in these commits.
