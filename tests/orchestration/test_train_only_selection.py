@@ -231,3 +231,33 @@ def test_changes_after_first_fold_do_not_affect_its_generated_candidates() -> No
         original.folds[0].generated_candidate_hashes == modified.folds[0].generated_candidate_hashes
     )
     assert original.folds[0].selected_candidate_hash == modified.folds[0].selected_candidate_hash
+
+
+def test_near_miss_candidates_cannot_become_next_best_strategy() -> None:
+    from dataclasses import replace
+
+    from orchestration.evaluation_runner import _best_strategy_payload
+
+    result = evaluate(data())
+    statuses = tuple(replace(item, status="NEAR_MISS") for item in result.funnel)
+    assert statuses
+    assert _best_strategy_payload(replace(result, funnel=statuses)) == {}
+
+
+def test_only_eligible_survivors_can_become_best_strategy() -> None:
+    from dataclasses import replace
+
+    from orchestration.evaluation_runner import _best_strategy_payload
+
+    result = evaluate(data())
+    assert len(result.funnel) >= 2
+    statuses = tuple(
+        replace(
+            item, status="SURVIVOR" if index == 0 else "NEAR_MISS", score=0.0 if index == 0 else 1.0
+        )
+        for index, item in enumerate(result.funnel)
+    )
+    chosen = _best_strategy_payload(replace(result, funnel=statuses))
+    assert chosen["best_strategy"] == result.candidates[0].strategy.model_dump(
+        mode="json", by_alias=True
+    )

@@ -271,7 +271,7 @@ def _best_strategy_payload(pipeline_result: object) -> dict[str, object]:
     eligible = [
         (candidate, result)
         for candidate, result in zip(candidates, results, strict=True)
-        if result.status != "REJECT"
+        if result.status in {"SURVIVOR", "FRONTIER", "CHAMPION_CANDIDATE", "CHAMPION"}
     ]
     if not eligible:
         return {}
