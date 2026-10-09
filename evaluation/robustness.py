@@ -53,12 +53,7 @@ def robust_statistics(
     complexity_penalty = 1.0 / (1.0 + max(complexity, 0) * 0.02)
     pbo_modifier = 1.0 if pbo is None else 1.0 - 0.5 * pbo
     score = clamp_unit(
-        (
-            0.30 * stability
-            + 0.20 * cost_sensitivity
-            + 0.25 * dsr
-            + 0.25 * return_quality
-        )
+        (0.30 * stability + 0.20 * cost_sensitivity + 0.25 * dsr + 0.25 * return_quality)
         * pbo_modifier
     )
     return RobustnessReport(
@@ -74,6 +69,8 @@ def robust_statistics(
 def deflated_sharpe_ratio(sharpe: float, *, trials: int, observations: int) -> float:
     if trials < 1 or observations < 2:
         raise ValueError("insufficient evidence for DSR")
+    if not math.isfinite(sharpe):
+        raise ValueError("DSR Sharpe ratio must be finite")
     expected_max = math.sqrt(2.0 * math.log(max(trials, 1)))
     standard_error = math.sqrt(max(1.0 + (sharpe * sharpe) / 2.0, 1e-12) / observations)
     return clamp_unit(NormalDist().cdf((sharpe - expected_max) / standard_error))
@@ -91,6 +88,8 @@ def cpcv_return_scores(
         raise ValueError("insufficient return observations for CPCV")
     if any(not math.isfinite(value) for value in returns):
         raise ValueError("CPCV returns must be finite")
+    if any(value < -1.0 for value in returns):
+        raise ValueError("CPCV returns cannot be below -100%")
     splits = cpcv_splits(tuple(range(len(returns))), groups=groups, test_groups=test_groups)
     return tuple(
         math.expm1(_log_return_score(returns, test_indices))
@@ -121,6 +120,10 @@ def probability_backtest_overfitting(
         raise ValueError("insufficient return observations for PBO")
     if any(not math.isfinite(value) for values in candidate_returns for value in values):
         raise ValueError("PBO returns must be finite")
+    if any(value < -1.0 for values in candidate_returns for value in values):
+        raise ValueError("PBO returns cannot be below -100%")
+    if all(values == candidate_returns[0] for values in candidate_returns[1:]):
+        raise ValueError("PBO candidate cohort is indistinguishable")
     aligned = candidate_returns
     splits = cscv_splits(tuple(range(width)), groups=groups, test_groups=test_groups)
     if not splits:

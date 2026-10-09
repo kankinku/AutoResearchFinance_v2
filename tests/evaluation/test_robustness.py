@@ -137,3 +137,26 @@ def test_pbo_rejects_nonfinite_returns_before_scoring() -> None:
 def test_cpcv_rejects_nonfinite_return_history() -> None:
     with pytest.raises(ValueError, match="finite"):
         cpcv_return_scores((0.01, 0.02, float("inf"), 0.03))
+
+
+def test_pbo_identical_candidate_histories_have_no_identifiable_ranking() -> None:
+    history = (0.01, 0.02, -0.01, 0.03, 0.01, -0.02, 0.04, 0.02)
+    with pytest.raises(ValueError, match="indistinguishable"):
+        probability_backtest_overfitting((history, history, history))
+
+
+def test_statistical_evaluators_reject_impossible_less_than_minus_100pct_returns() -> None:
+    history = (0.01, 0.02, -1.5, 0.03)
+    with pytest.raises(ValueError, match="below -100%"):
+        cpcv_return_scores(history)
+    with pytest.raises(ValueError, match="below -100%"):
+        probability_backtest_overfitting((history, (0.01, 0.01, 0.02, 0.03)))
+
+
+def test_dsr_rejects_non_finite_sharpe_before_any_probability_calculation() -> None:
+    from evaluation.robustness import deflated_sharpe_ratio
+
+    with pytest.raises(ValueError, match="finite"):
+        deflated_sharpe_ratio(float("nan"), trials=10, observations=100)
+    with pytest.raises(ValueError, match="finite"):
+        deflated_sharpe_ratio(float("inf"), trials=10, observations=100)

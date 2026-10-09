@@ -1,0 +1,7 @@
+# T-008 partial — degeneracy and physically impossible return safeguards
+
+PBO previously reported a numerical probability for an entirely identical return cohort. Every candidate had the same in/out-of-sample rank and CSCV's deterministic tie-break made the reported overfitting rate an artifact of ties rather than selection evidence. Now a cohort of completely indistinguishable histories fails with `ValueError` and the standard orchestration path leaves PBO unset (`None`), instead of communicating an invented numeric result. This is not equivalent to zero probability of overfitting.
+
+Likewise, a simple return below -100% is physically inconsistent with a fully paid, unlevered positive-equity return series: it is rejected by both PBO and CPCV instead of clamped to a total loss. The approximate DSR helper now rejects non-finite Sharpe inputs before evaluating the normal CDF. Existing finite, distinguishable historical fixtures and portfolio regression contracts stay unchanged.
+
+Known limitations remain: the DSR function is still a simplified heuristic and **has not been externally reference-validated** with full skew/kurtosis corrections, dependence-aware effective trials, and a disclosed annualization convention; PBO still assumes truly time-aligned comparable histories; CPCV embargo/purging for overlapping label horizons is not independently reviewed. No Sealed OOS claims or strategy promotions follow from these guards.
