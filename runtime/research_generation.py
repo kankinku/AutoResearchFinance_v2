@@ -9,8 +9,8 @@ from typing import Any
 from memory.evidence_frontier import frontier_parents
 from mutation.engine import MutationOperation
 from orchestration.evaluation_runner import build_research_context
-from research.llm.codex_exec import sanitize_context
 from research.llm.director import ResearchIntent
+from research.llm.gpt_context import sanitize_context
 from strategy_ir.schema import StrategyIR
 
 

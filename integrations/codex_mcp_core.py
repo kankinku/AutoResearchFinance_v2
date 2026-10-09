@@ -5,6 +5,7 @@ from typing import Any
 
 from application.chat_directed_research_service import ChatDirectedResearchService
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
+from application.research_batch_service import ResearchBatchService
 from application.services import ApplicationServices, create_application_services
 from orchestration.evaluation_runner import parse_parameter_domains
 from research.llm.codex_schema import research_intent_schema
@@ -137,6 +138,25 @@ class CodexMCPServer:
             return self.services.research.brief()
         if name == "run_research_step":
             return self._run_research_step(arguments)
+        if name in {
+            "start_research_batch",
+            "get_research_batch_status",
+            "get_research_batch_report",
+            "cancel_research_batch",
+        }:
+            batch = ResearchBatchService(project_root=self.project_root, state_dir=self.state_dir)
+            if name == "start_research_batch":
+                return batch.start(arguments)
+            if set(arguments) - {"job_id"}:
+                raise ValueError("only job_id is accepted")
+            job_id = arguments.get("job_id")
+            if job_id is not None and not isinstance(job_id, str):
+                raise ValueError("job_id must be a string")
+            if name == "get_research_batch_status":
+                return batch.status(job_id)
+            if name == "get_research_batch_report":
+                return batch.report(job_id)
+            return batch.cancel(job_id)
         if name == "get_dashboard_status":
             return self.services.dashboard.snapshot().model_dump(mode="json")
         if name == "submit_research_intent":

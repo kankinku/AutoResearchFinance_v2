@@ -1,38 +1,30 @@
-from __future__ import annotations
+"""Local LLM providers are decommissioned in favor of the GPT MCP boundary."""
 
-import json
+from __future__ import annotations
 
 import pytest
 
-from research.llm.provider import ConfiguredJSONProvider
+from research.llm.provider import ConfiguredJSONProvider, GPTIntentProvider
 
 
-def test_configured_provider_sends_context_and_returns_json_without_secret() -> None:
-    calls: list[tuple[str, dict[str, object], dict[str, str]]] = []
-
-    def transport(endpoint: str, body: dict[str, object], headers: dict[str, str]) -> str:
-        calls.append((endpoint, body, headers))
-        return json.dumps(
-            {"mode": "structure", "parent_ids": ["p1"], "rationale": "explore"}
-        )
-
-    provider = ConfiguredJSONProvider("https://llm.invalid", api_key="secret", transport=transport)
-    result = provider.propose({"generation": 2})
-
-    assert result["parent_ids"] == ["p1"]
-    assert calls[0][0] == "https://llm.invalid"
-    assert calls[0][1] == {"generation": 2}
-    assert calls[0][2]["Authorization"] == "Bearer secret"
-    assert "secret" not in json.dumps(result)
+def test_old_remote_llm_provider_is_unavailable() -> None:
+    with pytest.raises(RuntimeError, match="removed"):
+        ConfiguredJSONProvider("https://llm.invalid", api_key="not-used")
 
 
-def test_configured_provider_requires_endpoint_and_mapping_response() -> None:
-    with pytest.raises(ValueError, match="endpoint"):
-        ConfiguredJSONProvider("")
+def test_gpt_intent_provider_is_only_an_inprocess_adapter() -> None:
+    seen: list[dict[str, object]] = []
 
-    def bad_transport(endpoint: str, body: dict[str, object], headers: dict[str, str]) -> str:
-        return "[]"
+    def proposal(context: dict[str, object]) -> dict[str, object]:
+        seen.append(context)
+        return {
+            "mode": "structure",
+            "parent_ids": ["parent"],
+            "operations": [],
+            "rationale": "GPT hypothesis",
+        }
 
-    provider = ConfiguredJSONProvider("https://llm.invalid", transport=bad_transport)
-    with pytest.raises(ValueError, match="mapping"):
-        provider.propose({})
+    adapter = GPTIntentProvider(proposal)
+    result = adapter.propose({"generation": 1})
+    assert result["rationale"] == "GPT hypothesis"
+    assert seen == [{"generation": 1}]

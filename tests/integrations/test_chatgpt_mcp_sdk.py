@@ -23,10 +23,10 @@ def test_chatgpt_plane_does_not_mutate_legacy_public_surface(tmp_path: Path) -> 
         names = {tool.name for tool in published.tools}
         legacy = {str(item["name"]) for item in _tools()}
         assert len(legacy) == 13
-        assert len(names) == 11
+        assert len(names) == 14
         assert {"get_research_brief", "run_research_step"} <= names
         assert {"start_system", "stop_system", "check_system", "run_evaluation"}.isdisjoint(names)
-        assert len(names & legacy) == 9
+        assert len(names & legacy) == 8
         blocked = await adapter.call_tool(
             context, types.CallToolRequestParams(name="start_system", arguments={})
         )

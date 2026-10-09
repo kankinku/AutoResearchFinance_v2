@@ -54,25 +54,7 @@ def test_direct_edit_requires_confirmation_and_disposable_worktree(tmp_path: Pat
     )
 
 
-def test_codex_chat_provider_uses_read_only_exec_without_sensitive_environment(
-    tmp_path: Path,
-) -> None:
-    captured: dict[str, object] = {}
-
-    def runner(command: list[str], prompt: str, cwd: Path, env: dict[str, str], timeout: float):
-        captured.update(command=command, prompt=prompt, cwd=cwd, env=env, timeout=timeout)
-        return 0, "Codex response"
-
-    provider = CodexChatProvider(
-        executable="codex",
-        workdir=tmp_path,
-        runner=runner,
-    )
-
-    assert provider.ask("요약") == "Codex response"
-    assert captured["command"][:4] == ["codex", "exec", "-", "--ephemeral"]
-    assert "--sandbox" in captured["command"]
-    env = captured["env"]
-    assert isinstance(env, dict)
-    assert "OPENAI_API_KEY" not in env
-    assert not any(key.startswith("KIS_") for key in env)
+def test_retired_terminal_chat_cannot_run_codex(tmp_path: Path) -> None:
+    provider = CodexChatProvider(workdir=tmp_path)
+    with pytest.raises(RuntimeError, match="removed"):
+        provider.ask("요약")

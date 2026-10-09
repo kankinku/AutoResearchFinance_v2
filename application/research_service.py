@@ -8,8 +8,8 @@ from application.catalog_service import FeatureCatalogService
 from dashboard.service import DashboardService
 from memory.evidence_frontier import frontier_summary
 from memory.evidence_knowledge import failure_context
-from research.llm.codex_exec import record_intent, sanitize_context
 from research.llm.director import ResearchIntent
+from research.llm.gpt_context import record_intent, sanitize_context
 
 
 class ResearchService:

@@ -345,7 +345,7 @@ def _benchmark_data(dataset: MarketDataSet, series: SeriesDataSet | None) -> Ben
 def build_research_context(state_dir: Path, *, source_path: Path | None = None) -> dict[str, Any]:
     from core.features.registry import research_feature_specs
     from dashboard.state import DashboardStateReader
-    from research.llm.codex_exec import sanitize_context
+    from research.llm.gpt_context import sanitize_context
 
     snapshot = DashboardStateReader(state_dir).read()
     supported_timeframes = ["1m", "5m", "15m", "1h", "1d", "1w", "1mo"]

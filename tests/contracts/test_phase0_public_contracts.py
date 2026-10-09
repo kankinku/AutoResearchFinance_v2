@@ -15,7 +15,6 @@ from strategy_ir.schema import StrategyIR
 
 EXPECTED_CLI_COMMANDS = {
     "audit",
-    "autoresearch",
     "dashboard",
     "dashboard-refresh",
     "dashboard-status",
@@ -31,12 +30,10 @@ EXPECTED_CLI_COMMANDS = {
     "repeat-research",
     "request-live-approval",
     "research-evidence",
-    "research-intent",
     "resume",
     "run-generation",
     "set-mode",
     "status",
-    "terminal",
     "validate-strategy",
 }
 
@@ -124,7 +121,7 @@ def _subparser_choices(parser: argparse.ArgumentParser) -> set[str]:
     raise AssertionError("CLI subparser action is missing")
 
 
-def test_phase0_cli_command_surface_is_frozen() -> None:
+def test_gpt_only_cli_removes_embedded_model_commands() -> None:
     assert _subparser_choices(build_parser()) == EXPECTED_CLI_COMMANDS
 
 
@@ -208,8 +205,7 @@ def test_phase0_dashboard_http_surface_is_frozen() -> None:
 
 def test_phase0_strategy_ir_shape_is_frozen() -> None:
     actual = {
-        name: (field.alias, field.is_required())
-        for name, field in StrategyIR.model_fields.items()
+        name: (field.alias, field.is_required()) for name, field in StrategyIR.model_fields.items()
     }
     assert actual == EXPECTED_STRATEGY_FIELDS
 

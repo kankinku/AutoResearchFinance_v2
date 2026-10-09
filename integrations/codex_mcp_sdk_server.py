@@ -16,7 +16,7 @@ from integrations.codex_mcp_core import (
     _with_public_contract,
 )
 from integrations.codex_mcp_payload import text_content_payload
-from research.llm.codex_exec import write_provider_status
+from research.llm.gpt_context import write_provider_status
 
 SDK_ADAPTER_STATUS = "CANONICAL_SDK"
 _SERVER_NAME = "quant-autoresearch"
@@ -51,7 +51,7 @@ class SDKMCPServerAdapter:
     ) -> types.ListToolsResult:
         write_provider_status(
             self.state_dir / "llm" / "status.json",
-            "codex_desktop",
+            "gpt_mcp",
             "ONLINE",
             "MCP_CONNECTED",
         )

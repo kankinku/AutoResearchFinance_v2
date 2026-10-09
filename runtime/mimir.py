@@ -6,13 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from dashboard.state import DashboardStateReader
-from orchestration.evaluation_runner import parse_parameter_domains
-from research.llm.codex_exec import CodexExecProvider, _read_settings
-from research.llm.director import ResearchDirector
 from research.policy import default_evaluation_thresholds
-from runtime.research_loop import ResearchLoopConfig, run_autoresearch
-from runtime.terminal import CodexChatProvider, terminal_help
 
 _EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
@@ -78,9 +72,7 @@ def resolve_research_paths(
     resolved_source = _first_value(
         source, env_values.get("MIMIR_SOURCE"), state_values.get("source_path")
     )
-    resolved_data = _first_value(
-        data, env_values.get("MIMIR_DATA"), state_values.get("data_path")
-    )
+    resolved_data = _first_value(data, env_values.get("MIMIR_DATA"), state_values.get("data_path"))
     resolved_series = _first_value(
         series_data,
         env_values.get("MIMIR_SERIES_DATA"),
@@ -88,71 +80,39 @@ def resolve_research_paths(
     )
     if resolved_source is None or resolved_data is None:
         raise ValueError(
-            "research paths are missing; set --source/--data or "
-            "MIMIR_SOURCE/MIMIR_DATA in .env"
+            "research paths are missing; set --source/--data or MIMIR_SOURCE/MIMIR_DATA in .env"
         )
     return ResearchPaths(resolved_source, resolved_data, resolved_series)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Retired Mimir local-LLM entrypoint; show status only, never call a model."""
     try:
         command = parse_mimir_command(tuple(argv) if argv is not None else _command_argv())
         if command.name == "help":
-            print(terminal_help())
-            print(
-                "Mimir /research <generations> [--source PATH --data PATH "
-                "--intent-repairs N]"
-            )
-            print("Mimir /status | Mimir /chat \"질문\" | Mimir /stop")
+            print("Use ChatGPT Quant MCP tools to start research and query batch status.")
             return 0
         if command.name == "status":
             state_dir = _common_state_dir(command.arguments)
-            snapshot = DashboardStateReader(state_dir).read().model_dump(mode="json")
-            print(json.dumps(snapshot, ensure_ascii=False))
+            from pathlib import Path
+
+            from application.research_batch_service import ResearchBatchService
+
+            try:
+                status = ResearchBatchService(project_root=Path.cwd(), state_dir=state_dir).status()
+            except ValueError:
+                status = {"status": "NO_RESEARCH_BATCH", "orders_enabled": False}
+            print(json.dumps(status, ensure_ascii=False))
             return 0
-        if command.name == "stop":
-            print(json.dumps({"status": "STOP_REQUESTED", "orders_enabled": False}))
-            return 0
-        if command.name == "chat":
-            options = _parse_common_options(())
-            chat_provider = CodexChatProvider.from_env(
-                options.env_file, workdir=options.project_root
+        print(
+            json.dumps(
+                {
+                    "status": "REMOVED",
+                    "reason": "Use ChatGPT GPT MCP tools for research and cancellation.",
+                }
             )
-            print(chat_provider.ask(" ".join(command.arguments)))
-            return 0
-        options = _parse_research_options(command.arguments)
-        settings = _read_settings(options.env_file)
-        paths = resolve_research_paths(
-            source=options.source,
-            data=options.data,
-            series_data=options.series_data,
-            env_values=settings,
-            state_dir=options.state_dir,
         )
-        director = ResearchDirector(_codex_provider(options))
-        result = run_autoresearch(
-            ResearchLoopConfig(
-                project_root=options.project_root,
-                state_dir=options.state_dir,
-                source_path=paths.source,
-                data_path=paths.data,
-                series_data_path=paths.series_data,
-                method=options.method,
-                count=options.count,
-                seed=options.seed,
-                min_trades=options.min_trades,
-                min_annual_trades=options.min_annual_trades,
-                min_qqq_cagr_delta=options.min_qqq_cagr,
-                parameter_domains=parse_parameter_domains(
-                    [json.loads(document) for document in options.domains]
-                ),
-                generations=options.generations,
-                intent_repair_attempts=options.intent_repair_attempts,
-            ),
-            director,
-        )
-        print(json.dumps(result, ensure_ascii=False))
-        return 0
+        return 2
     except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "ERROR", "reason": str(exc)}, ensure_ascii=False))
         return 2
@@ -207,8 +167,7 @@ def _parse_research_options(arguments: Sequence[str]) -> MimirResearchOptions:
         type=float,
         default=_EVALUATION_DEFAULTS.min_qqq_cagr_delta,
         help=(
-            "QQQ 대비 최소 연복리 초과수익률 "
-            f"(기본값: {_EVALUATION_DEFAULTS.min_qqq_cagr_delta:g})"
+            f"QQQ 대비 최소 연복리 초과수익률 (기본값: {_EVALUATION_DEFAULTS.min_qqq_cagr_delta:g})"
         ),
     )
     parser.add_argument("--domain", action="append", default=[])
@@ -237,14 +196,6 @@ def _parse_research_options(arguments: Sequence[str]) -> MimirResearchOptions:
         state_dir=parsed.state_dir,
         env_file=parsed.env_file,
         project_root=parsed.project_root,
-    )
-
-
-def _codex_provider(options: MimirResearchOptions) -> CodexExecProvider:
-    return CodexExecProvider.from_env(
-        options.env_file,
-        workdir=options.project_root,
-        status_path=options.state_dir / "llm" / "status.json",
     )
 
 

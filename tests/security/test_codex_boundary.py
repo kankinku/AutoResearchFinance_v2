@@ -25,32 +25,9 @@ def test_codex_context_redacts_credentials_market_rows_and_sealed_oos() -> None:
     assert sanitized == {"feature_catalog": [{"name": "vix_percentile"}]}
 
 
-def test_codex_child_environment_has_no_trading_or_llm_api_secrets(monkeypatch) -> None:
-    monkeypatch.setenv("KIS_PAPER_APP_SECRET", "secret")
-    monkeypatch.setenv("OPENAI_API_KEY", "secret")
-    monkeypatch.setenv("CODEX_API_KEY", "secret")
-    monkeypatch.setenv("QUANT_LLM_API_KEY", "secret")
-
-    provider = CodexExecProvider(workdir=Path.cwd())
-    environment: dict[str, str] = {}
-
-    def runner(command, prompt, cwd, env, timeout):
-        del command, prompt, cwd, timeout
-        environment.update(env)
-        from research.llm.codex_exec import CodexExecResult
-
-        return CodexExecResult(1, "", "not returned")
-
-    provider._runner = runner  # type: ignore[method-assign]
-    with pytest.raises(ValueError):
-        provider.propose({})
-
-    assert "KIS_PAPER_APP_SECRET" not in environment
-    assert "OPENAI_API_KEY" not in environment
-    assert "CODEX_API_KEY" not in environment
-    assert "QUANT_LLM_API_KEY" not in environment
-
-
+def test_old_codex_provider_is_rejected_before_any_process_is_created() -> None:
+    with pytest.raises(RuntimeError, match="removed"):
+        CodexExecProvider(workdir=Path.cwd())
 
 
 def _schema_property_names(value: object) -> set[str]:
@@ -102,11 +79,7 @@ def test_mcp_tool_surface_has_no_order_or_credential_capability(tmp_path: Path) 
         "live_account",
         "direct_edit",
     )
-    assert not any(
-        forbidden in name
-        for name in names
-        for forbidden in forbidden_names
-    )
+    assert not any(forbidden in name for name in names for forbidden in forbidden_names)
 
     tools = response["result"]["tools"]  # type: ignore[index]
     sensitive_fields = {

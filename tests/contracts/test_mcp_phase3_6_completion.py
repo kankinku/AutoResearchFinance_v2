@@ -78,5 +78,7 @@ def test_phase3_6_internalized_capabilities_remain_available_in_cli() -> None:
     )
 
     assert completed.returncode == 0
-    for command in ("set-mode", "rebuild-cache", "plan-generation", "research-intent"):
+    for command in ("set-mode", "rebuild-cache", "plan-generation"):
         assert command in completed.stdout
+    assert "research-intent" not in completed.stdout
+    assert "autoresearch," not in completed.stdout

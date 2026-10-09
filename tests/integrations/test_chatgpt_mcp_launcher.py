@@ -22,7 +22,7 @@ def test_standalone_launcher_uses_worktree_and_correct_tool_plane() -> None:
             async with ClientSession(reader, writer) as session:
                 await session.initialize()
                 tools = await session.list_tools()
-                assert len(tools.tools) == 11
+                assert len(tools.tools) == 14
                 assert not any(tool.name == "start_system" for tool in tools.tools)
                 result = await session.call_tool("get_research_brief", {})
                 assert result.is_error is not True

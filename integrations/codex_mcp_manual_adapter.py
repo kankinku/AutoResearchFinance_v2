@@ -13,7 +13,7 @@ from integrations.codex_mcp_core import (
     _with_public_contract,
 )
 from integrations.codex_mcp_protocol import error, success, text_content
-from research.llm.codex_exec import write_provider_status
+from research.llm.gpt_context import write_provider_status
 
 
 class ManualCodexMCPServer(CoreCodexMCPServer):
@@ -29,7 +29,7 @@ class ManualCodexMCPServer(CoreCodexMCPServer):
         if method in {"initialize", "ping", "tools/list"}:
             write_provider_status(
                 self.state_dir / "llm" / "status.json",
-                "codex_desktop",
+                "gpt_mcp",
                 "ONLINE",
                 "MCP_CONNECTED",
             )

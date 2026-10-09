@@ -11,23 +11,14 @@ from application.research_service import ResearchService
 from core.integrity.hashes import content_hash
 from dashboard.run import run_dashboard
 from dashboard.service import DashboardService
-from dashboard.state import DashboardStateReader
 from experiments.planner import plan_experiment
 from integrations.kis.client import KISAPIError
 from integrations.kis.config import KISConfigError, PaperKISConfig
 from integrations.kis.paper_orders import KISPaperOrderClient, PaperOrderError
 from memory.state_files import StateFileStore
 from orchestration.evaluation_runner import parse_parameter_domains
-from research.llm.codex_exec import CodexExecProvider, sanitize_context
-from research.llm.director import ResearchDirector
 from research.policy import default_evaluation_thresholds
-from runtime.research_loop import ResearchLoopConfig, run_autoresearch, run_repeated_evaluation
-from runtime.terminal import (
-    CodexChatProvider,
-    parse_terminal_command,
-    terminal_help,
-    validate_direct_edit_gate,
-)
+from runtime.research_loop import ResearchLoopConfig, run_repeated_evaluation
 from strategy_import.pipeline import import_local_source
 from strategy_import.sources import CloneManager, parse_github_source
 from strategy_ir.normalizer import ImportStatus, normalize_source
@@ -48,12 +39,6 @@ def build_parser() -> argparse.ArgumentParser:
     evidence_parser.add_argument("--run-id")
     evidence_parser.add_argument("--output", type=Path)
     subparsers.add_parser("list-features")
-    research_parser = subparsers.add_parser(
-        "research-intent", help="Ask the local Codex CLI for one validated research intent"
-    )
-    research_parser.add_argument("--state-dir", type=Path, default=Path("state"))
-    research_parser.add_argument("--env-file", type=Path, default=Path(".env"))
-    research_parser.add_argument("--project-root", type=Path, default=Path("."))
     dashboard_parser = subparsers.add_parser("dashboard")
     dashboard_parser.add_argument("--state-dir", type=Path, default=Path("state"))
     dashboard_parser.add_argument("--env-file", type=Path, default=Path(".env"))
@@ -70,15 +55,11 @@ def build_parser() -> argparse.ArgumentParser:
     paper_order_parser.add_argument("--env-file", type=Path, default=Path(".env"))
     paper_order_parser.add_argument("--symbol", default="QQQ")
     paper_order_parser.add_argument("--quantity", type=int, default=1)
-    paper_order_parser.add_argument(
-        "--exchange", choices=("NASD", "NYSE", "AMEX"), default="NASD"
-    )
+    paper_order_parser.add_argument("--exchange", choices=("NASD", "NYSE", "AMEX"), default="NASD")
     paper_order_parser.add_argument("--timeout-seconds", type=float, default=30.0)
     paper_order_parser.add_argument("--poll-seconds", type=float, default=1.0)
     paper_order_parser.add_argument("--confirm-paper-order", action="store_true")
-    subparsers.choices["set-mode"].add_argument(
-        "--mode", choices=("paper", "live"), required=True
-    )
+    subparsers.choices["set-mode"].add_argument("--mode", choices=("paper", "live"), required=True)
     for command in ("import-strategy", "validate-strategy"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--source", type=Path, required=True)
@@ -159,69 +140,6 @@ def build_parser() -> argparse.ArgumentParser:
         help='JSON parameter domain, e.g. \'{"name":"indicators.fast.period","values":[5,10]}\'',
     )
     repeat_parser.add_argument("--state-dir", type=Path, default=Path("state"))
-    autoresearch_parser = subparsers.add_parser(
-        "autoresearch", help="Run bounded Codex-directed, paper-only strategy research"
-    )
-    autoresearch_parser.add_argument("--source", type=Path, required=True)
-    autoresearch_parser.add_argument("--data", type=Path, required=True)
-    autoresearch_parser.add_argument("--series-data", type=Path)
-    autoresearch_parser.add_argument(
-        "--method", choices=("grid", "random", "bayesian"), default="random"
-    )
-    autoresearch_parser.add_argument("--count", type=int, default=8)
-    autoresearch_parser.add_argument("--seed", type=int, default=0)
-    autoresearch_parser.add_argument("--min-trades", type=int, default=10)
-    autoresearch_parser.add_argument(
-        "--min-annual-trades", type=int, default=evaluation_defaults.min_annual_trades
-    )
-    autoresearch_parser.add_argument(
-        "--min-qqq-cagr",
-        type=float,
-        default=evaluation_defaults.min_qqq_cagr_delta,
-        help=(
-            "Minimum same-period QQQ annualized excess return "
-            f"(default: {evaluation_defaults.min_qqq_cagr_delta:g})"
-        ),
-    )
-    autoresearch_parser.add_argument("--generations", type=int, required=True)
-    autoresearch_parser.add_argument("--interval-seconds", type=float, default=0.0)
-    autoresearch_parser.add_argument("--domain", action="append", default=[])
-    autoresearch_parser.add_argument("--state-dir", type=Path, default=Path("state"))
-    autoresearch_parser.add_argument("--env-file", type=Path, default=Path(".env"))
-    autoresearch_parser.add_argument("--project-root", type=Path, default=Path("."))
-    terminal_parser = subparsers.add_parser(
-        "terminal", help="Open the Codex chat and bounded autoresearch terminal"
-    )
-    terminal_parser.add_argument(
-        "--mode", choices=("chat", "autoresearch", "direct-edit"), default="chat"
-    )
-    terminal_parser.add_argument("--prompt")
-    terminal_parser.add_argument("--source", type=Path)
-    terminal_parser.add_argument("--data", type=Path)
-    terminal_parser.add_argument("--series-data", type=Path)
-    terminal_parser.add_argument("--iterations", "--generations", dest="generations", type=int)
-    terminal_parser.add_argument("--count", type=int, default=8)
-    terminal_parser.add_argument("--seed", type=int, default=0)
-    terminal_parser.add_argument("--min-trades", type=int, default=10)
-    terminal_parser.add_argument(
-        "--min-annual-trades", type=int, default=evaluation_defaults.min_annual_trades
-    )
-    terminal_parser.add_argument(
-        "--min-qqq-cagr",
-        type=float,
-        default=evaluation_defaults.min_qqq_cagr_delta,
-        help=(
-            "Minimum same-period QQQ annualized excess return "
-            f"(default: {evaluation_defaults.min_qqq_cagr_delta:g})"
-        ),
-    )
-    terminal_parser.add_argument("--interval-seconds", type=float, default=0.0)
-    terminal_parser.add_argument("--domain", action="append", default=[])
-    terminal_parser.add_argument("--state-dir", type=Path, default=Path("state"))
-    terminal_parser.add_argument("--env-file", type=Path, default=Path(".env"))
-    terminal_parser.add_argument("--project-root", type=Path, default=Path("."))
-    terminal_parser.add_argument("--confirm-direct-edit", action="store_true")
-    terminal_parser.add_argument("--worktree", type=Path)
     for command in ("resume", "rebuild-cache"):
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--state-dir", type=Path, default=Path("state"))
@@ -237,82 +155,6 @@ def build_parser() -> argparse.ArgumentParser:
     audit_parser = subparsers.add_parser("audit")
     audit_parser.add_argument("--file", type=Path, default=Path("state/audit.jsonl"))
     return parser
-
-
-def _run_terminal_repl(args: argparse.Namespace) -> int:
-    mode = args.mode
-    print(terminal_help())
-    while True:
-        try:
-            line = input("quant> ")
-        except EOFError:
-            return 0
-        try:
-            command = parse_terminal_command(line)
-            if command.name == "exit":
-                return 0
-            if command.name == "help":
-                print(terminal_help())
-                continue
-            if command.name == "mode":
-                validate_direct_edit_gate(
-                    mode=command.arguments[0],
-                    confirmed=args.confirm_direct_edit,
-                    worktree=args.worktree,
-                    project_root=args.project_root,
-                )
-                mode = command.arguments[0]
-                print(json.dumps({"status": "MODE_CHANGED", "mode": mode}, ensure_ascii=False))
-                continue
-            if command.name == "status":
-                snapshot = DashboardStateReader(args.state_dir).read()
-                print(json.dumps(snapshot.model_dump(mode="json"), ensure_ascii=False))
-                continue
-            if command.name == "stop":
-                print(json.dumps({"status": "STOP_REQUESTED", "orders_enabled": False}))
-                continue
-            if command.name == "chat":
-                chat_provider = CodexChatProvider.from_env(
-                    args.env_file, workdir=args.project_root
-                )
-                print(chat_provider.ask(command.arguments[0]))
-                continue
-            if command.name == "research":
-                if mode != "autoresearch":
-                    raise ValueError("switch to autoresearch mode before /research")
-                if args.source is None or args.data is None:
-                    raise ValueError("terminal research requires --source and --data")
-                research_provider = CodexExecProvider.from_env(
-                    args.env_file,
-                    workdir=args.project_root,
-                    status_path=args.state_dir / "llm" / "status.json",
-                )
-                result = run_autoresearch(
-                    ResearchLoopConfig(
-                        project_root=args.project_root,
-                        state_dir=args.state_dir,
-                        source_path=str(args.source),
-                        data_path=str(args.data),
-                        series_data_path=str(args.series_data) if args.series_data else None,
-                        method="random",
-                        count=args.count,
-                        seed=args.seed,
-                        min_trades=args.min_trades,
-                        min_annual_trades=args.min_annual_trades,
-                        min_qqq_cagr_delta=args.min_qqq_cagr,
-                        parameter_domains=parse_parameter_domains(
-                            [json.loads(document) for document in args.domain]
-                        ),
-                        generations=int(command.arguments[0]),
-                        interval_seconds=args.interval_seconds,
-                    ),
-                    ResearchDirector(research_provider),
-                )
-                print(json.dumps(result, ensure_ascii=False))
-                continue
-            raise ValueError(f"terminal command is not available in REPL: {command.name}")
-        except (OSError, PermissionError, TypeError, ValueError) as exc:
-            print(json.dumps({"status": "ERROR", "reason": str(exc)}, ensure_ascii=False))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -362,38 +204,6 @@ def main(argv: list[str] | None = None) -> int:
                 {
                     "status": "OK",
                     "features": FeatureCatalogService().research_features(),
-                },
-                ensure_ascii=False,
-            )
-        )
-        return 0
-    if args.command == "research-intent":
-        snapshot = DashboardStateReader(args.state_dir).read()
-        context = sanitize_context(
-            {
-                "generation": snapshot.strategy.generation or 0,
-                "champion": snapshot.strategy.model_dump(mode="json"),
-                "frontier": [],
-                "observations": [
-                    item.model_dump(mode="json") for item in snapshot.tests[:20]
-                ],
-                "feature_catalog": FeatureCatalogService().research_features(),
-            }
-        )
-        if not isinstance(context, dict):
-            raise ValueError("research context must be an object")
-        provider = CodexExecProvider.from_env(
-            args.env_file,
-            workdir=args.project_root,
-            status_path=args.state_dir / "llm" / "status.json",
-        )
-        intent = ResearchDirector(provider).propose(context)
-        ResearchService(args.state_dir).record_intent(intent)
-        print(
-            json.dumps(
-                {
-                    "status": "VALIDATED",
-                    "intent": intent.model_dump(mode="json", exclude_none=True),
                 },
                 ensure_ascii=False,
             )
@@ -580,51 +390,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(repeat_result, ensure_ascii=False))
         return 0
-    if args.command == "autoresearch":
-        autoresearch_provider = CodexExecProvider.from_env(
-            args.env_file,
-            workdir=args.project_root,
-            status_path=args.state_dir / "llm" / "status.json",
-        )
-        autoresearch_result = run_autoresearch(
-            ResearchLoopConfig(
-                project_root=args.project_root,
-                state_dir=args.state_dir,
-                source_path=str(args.source),
-                data_path=str(args.data),
-                method=args.method,
-                count=args.count,
-                seed=args.seed,
-                min_trades=args.min_trades,
-                min_annual_trades=args.min_annual_trades,
-                min_qqq_cagr_delta=args.min_qqq_cagr,
-                series_data_path=str(args.series_data) if args.series_data else None,
-                parameter_domains=parse_parameter_domains(
-                    [json.loads(document) for document in args.domain]
-                ),
-                generations=args.generations,
-                interval_seconds=args.interval_seconds,
-            ),
-            ResearchDirector(autoresearch_provider),
-        )
-        print(json.dumps(autoresearch_result, ensure_ascii=False))
-        return 0
-    if args.command == "terminal":
-        validate_direct_edit_gate(
-            mode=args.mode,
-            confirmed=args.confirm_direct_edit,
-            worktree=args.worktree,
-            project_root=args.project_root,
-        )
-        if args.prompt:
-            if args.mode != "chat":
-                raise ValueError("--prompt mode is available only in chat mode")
-            chat_provider = CodexChatProvider.from_env(
-                args.env_file, workdir=args.project_root
-            )
-            print(chat_provider.ask(args.prompt))
-            return 0
-        return _run_terminal_repl(args)
     if args.command == "resume":
         assert store is not None
         champion = store.read("champion").payload
@@ -699,9 +464,7 @@ def main(argv: list[str] | None = None) -> int:
     champion = store.read("champion").payload
     frontier = store.read("frontier").payload
     print(
-        json.dumps(
-            {"champion": champion["status"], "frontier_families": len(frontier["families"])}
-        )
+        json.dumps({"champion": champion["status"], "frontier_families": len(frontier["families"])})
     )
     return 0
 

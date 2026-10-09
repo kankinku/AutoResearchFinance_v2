@@ -201,32 +201,14 @@ class SystemController:
                 )
         if source is not None and source.suffix.lower() not in ALLOWED_STRATEGY_SUFFIXES:
             data_ok = False
-        check(
-            "codex_cli",
-            "Codex CLI",
-            bool(shutil.which(_codex_executable())),
-            "Codex CLI를 설치하고 codex login status로 로그인 상태를 확인하세요.",
-        )
-        env_path = (self.project_root / config.env_file).resolve()
-        env_in_project = self.project_root in env_path.parents and env_path.name != ".env.example"
-        check(
-            "codex_config",
-            "Codex 연구 설정",
-            env_in_project and env_path.is_file(),
-            f"{config.env_file}에 QUANT_CODEX_COMMAND와 모델 설정을 준비하세요.",
-        )
-        evaluation_execution = _evaluation_execution(
-            self.project_root / config.env_file
-        )
+        # GPT decisions originate at the authenticated MCP boundary, not a local CLI.
+        evaluation_execution = _evaluation_execution(self.project_root / config.env_file)
         execution_valid = evaluation_execution in {"local_scheduler", "docker_worker"}
         check(
             "evaluation_execution",
             "평가 실행 백엔드",
             execution_valid,
-            (
-                "QUANT_EVALUATION_EXECUTION은 local_scheduler 또는 "
-                "docker_worker여야 합니다."
-            ),
+            ("QUANT_EVALUATION_EXECUTION은 local_scheduler 또는 docker_worker여야 합니다."),
         )
         docker_required = evaluation_execution == "docker_worker"
         docker_available = bool(shutil.which("docker"))
@@ -329,9 +311,7 @@ class SystemController:
                 relative_series = (
                     series.relative_to(self.project_root).as_posix() if series is not None else None
                 )
-                evaluation_execution = _evaluation_execution(
-                    self.project_root / config.env_file
-                )
+                evaluation_execution = _evaluation_execution(self.project_root / config.env_file)
                 managed_run_id = uuid4().hex
                 commands = {
                     "dashboard": [
@@ -435,9 +415,7 @@ class SystemController:
                 failed_cleanup = self._terminate_docker_jobs(managed_run_id)
                 payload: dict[str, object] = {
                     "status": (
-                        "STOPPED"
-                        if not failed_processes and not failed_cleanup
-                        else "STOP_FAILED"
+                        "STOPPED" if not failed_processes and not failed_cleanup else "STOP_FAILED"
                     ),
                     "components": [],
                 }
@@ -451,7 +429,6 @@ class SystemController:
                 return payload
         except LifecycleBusyError:
             return {"status": "BUSY", "message": "system lifecycle change already in progress"}
-
 
     def _research_worker_command(
         self,
@@ -500,9 +477,7 @@ class SystemController:
             managed_run_id,
         ]
         if config.min_qqq_cagr_delta is not None:
-            command.extend(
-                ["--min-qqq-cagr-delta", str(config.min_qqq_cagr_delta)]
-            )
+            command.extend(["--min-qqq-cagr-delta", str(config.min_qqq_cagr_delta)])
         if series_path is not None:
             command.extend(["--series-data-path", series_path])
         for domain in config.parameter_domains:
@@ -522,11 +497,7 @@ class SystemController:
         running = (
             queue.running(managed_run_id=managed_run_id)
             if managed_run_id is not None
-            else tuple(
-                job
-                for job in queue.running()
-                if "managed_run_id" not in job.payload
-            )
+            else tuple(job for job in queue.running() if "managed_run_id" not in job.payload)
         )
         if not running:
             return []
@@ -577,7 +548,6 @@ class SystemController:
             str(payload.get("selected_mode", "")).lower() == "paper"
             and payload.get("orders_enabled") is False
         )
-
 
     def _reconcile_state(self, *, persist: bool) -> dict[str, object]:
         payload = self._read_state()
@@ -655,11 +625,7 @@ class SystemController:
             component["active_jobs"] = running_jobs
             component["queued_jobs"] = queued_jobs
             component["status"] = (
-                "RUNNING"
-                if running_jobs
-                else "QUEUED"
-                if queued_jobs
-                else "READY"
+                "RUNNING" if running_jobs else "QUEUED" if queued_jobs else "READY"
             )
 
         payload["runtime"] = build_runtime_snapshot(
@@ -675,15 +641,8 @@ class SystemController:
             and queued_jobs == 0
         ):
             runtime = payload.get("runtime")
-            research_runtime = (
-                runtime.get("research")
-                if isinstance(runtime, dict)
-                else None
-            )
-            if (
-                isinstance(research_runtime, dict)
-                and research_runtime.get("status") == "RUNNING"
-            ):
+            research_runtime = runtime.get("research") if isinstance(runtime, dict) else None
+            if isinstance(research_runtime, dict) and research_runtime.get("status") == "RUNNING":
                 origin = mark_autoresearch_interrupted(self.state_dir)
                 if origin is not None:
                     research_run_id = _text(origin.get("research_run_id"))
@@ -736,9 +695,7 @@ class SystemController:
         runtime = payload.get("runtime")
         runtime_research = runtime.get("research") if isinstance(runtime, dict) else None
         runtime_research_status = (
-            _text(runtime_research.get("status"))
-            if isinstance(runtime_research, dict)
-            else None
+            _text(runtime_research.get("status")) if isinstance(runtime_research, dict) else None
         )
         if (
             runtime_research_status == "INTERRUPTED"
@@ -934,7 +891,6 @@ class SystemController:
         return status if isinstance(status, str) else None
 
 
-
 def _run_command(command: list[str], cwd: Path) -> tuple[int, str]:
     try:
         result = subprocess.run(
@@ -994,11 +950,7 @@ def _evaluation_execution(env_file: Path | None = None) -> str:
             if name.strip() != "QUANT_EVALUATION_EXECUTION":
                 continue
             raw_value = value.strip()
-            if (
-                len(raw_value) >= 2
-                and raw_value[0] == raw_value[-1]
-                and raw_value[0] in {'"', "'"}
-            ):
+            if len(raw_value) >= 2 and raw_value[0] == raw_value[-1] and raw_value[0] in {'"', "'"}:
                 raw_value = raw_value[1:-1]
             return raw_value.strip()
     return "local_scheduler"

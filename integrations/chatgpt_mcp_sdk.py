@@ -11,6 +11,7 @@ from mcp.server import ServerRequestContext
 from pydantic import Field, field_serializer
 
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
+from application.research_batch_service import MAX_CANDIDATES, MAX_GENERATIONS
 from integrations.codex_mcp_core import _chat_directed_step_schema, _tools
 from integrations.codex_mcp_sdk_server import (
     SDKMCPServerAdapter,
@@ -28,12 +29,15 @@ _CHATGPT_CANONICAL = frozenset(
         "list_features",
         "get_research_evidence",
         "get_dashboard_status",
-        "get_system_status",
     }
 )
 _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "get_research_brief": "EVIDENCE_STATUS",
     "run_research_step": "EXECUTION_LIFECYCLE",
+    "start_research_batch": "EXECUTION_LIFECYCLE",
+    "get_research_batch_status": "EVIDENCE_STATUS",
+    "get_research_batch_report": "EVIDENCE_STATUS",
+    "cancel_research_batch": "EXECUTION_LIFECYCLE",
 }
 
 
@@ -55,6 +59,50 @@ def chatgpt_tools() -> list[dict[str, object]]:
             "inputSchema": _chat_directed_step_schema(),
         },
     ]
+    step_schema = _chat_directed_step_schema()
+    step_properties = step_schema["properties"]
+    if not isinstance(step_properties, dict):
+        raise TypeError("research step tool properties are invalid")
+    batch_schema = {
+        **step_schema,
+        "properties": {
+            **step_properties,
+            "generations": {"type": "integer", "minimum": 1, "maximum": MAX_GENERATIONS},
+            "count": {"type": "integer", "minimum": 1, "maximum": MAX_CANDIDATES},
+        },
+        "required": ["source_path", "data_path", "intent", "generations"],
+    }
+    status_schema = {
+        "type": "object",
+        "properties": {"job_id": {"type": "string", "description": "Omit for most recent batch"}},
+        "additionalProperties": False,
+    }
+    custom.extend(
+        [
+            {
+                "name": "start_research_batch",
+                "description": "Execute a bounded 1-100 generation GPT-planned research batch. "
+                "No local LLM calls; returns job ID, status and measured ETA.",
+                "inputSchema": batch_schema,
+            },
+            {
+                "name": "get_research_batch_status",
+                "description": "Check batch completion, progress and historically measured ETA.",
+                "inputSchema": status_schema,
+            },
+            {
+                "name": "get_research_batch_report",
+                "description": "Report generation times, verified successor IDs and funnel counts. "
+                "Final report only after completion; no OOS approval implied.",
+                "inputSchema": status_schema,
+            },
+            {
+                "name": "cancel_research_batch",
+                "description": "Stop after current generation; retain completed Evidence.",
+                "inputSchema": status_schema,
+            },
+        ]
+    )
     return canonical + custom
 
 

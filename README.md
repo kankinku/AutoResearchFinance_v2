@@ -567,3 +567,7 @@ also needs a real account, data provider, calendar, image digest, and human appr
 #### 실제 Moon 고정 주소 연결 (이 사용자 환경)
 
 Moon의 기존 Tailscale Funnel `*.ts.net`을 재사용하는 Quant 전용 주소는 **`https://project-moon.taild689f9.ts.net/quant/mcp`** 입니다. Quant 전용 승인 키/OAuth를 적용했으므로 OpenAI Secure MCP Tunnel을 새로 생성할 필요가 없습니다. 사용자 ChatGPT 계정의 OAuth 연결 단계와 컨테이너 재생성 시 Supervisor 자동 시작 확인은 [`Quant Moon 고정 URL 운영 절차`](docs/operations/quant-moon-fixed-url-oauth.md)에 정리했습니다. 별도 OAuth 키나 Moon 키는 채팅에 제공하지 마세요.
+
+### GPT 전용 다세대 연구 (Codex 실행 제거)
+
+외부 ChatGPT가 MCP로 연구 가설을 검증·제출한 다음 `start_research_batch`로 유한 N세대를 시작할 수 있습니다. 별도 백테스트 워커가 돌기 때문에 채팅 연결을 유지할 필요가 없고 사용자가 나중에 `get_research_batch_status` / `get_research_batch_report`로 완료 여부, 누적 성과 및 기록 기반 예상 소요 시간을 조회합니다. Codex CLI 기반 AI 연구 실행 경로는 제거됐으며, 연구 중 별도 LLM 호출은 없습니다. 상세 설명: [`docs/operations/gpt-only-research-batches.md`](docs/operations/gpt-only-research-batches.md).

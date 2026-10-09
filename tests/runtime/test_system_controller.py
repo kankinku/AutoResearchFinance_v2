@@ -12,9 +12,7 @@ from runtime.queue import Job, JobStatus
 from runtime.system_controller import PreflightReport, SystemController, SystemLaunchConfig
 
 
-def test_preflight_local_mode_does_not_require_docker(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_preflight_local_mode_does_not_require_docker(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("QUANT_EVALUATION_EXECUTION", raising=False)
     monkeypatch.setattr(controller_module.shutil, "which", lambda name: None)
     state_dir = tmp_path / "state"
@@ -32,7 +30,7 @@ def test_preflight_local_mode_does_not_require_docker(
 
     assert report.status == "BLOCKED"
     issue_ids = {issue.id for issue in report.issues}
-    assert {"strategy_source", "market_data", "codex_cli"}.issubset(issue_ids)
+    assert {"strategy_source", "market_data"}.issubset(issue_ids)
     assert "docker_cli" not in issue_ids
     docker_check = next(check for check in report.checks if check["id"] == "docker_cli")
     assert docker_check["status"] == "PASS"
@@ -60,9 +58,7 @@ def test_preflight_docker_mode_requires_docker(tmp_path: Path, monkeypatch) -> N
     assert "docker_cli" in issue_ids
 
 
-def test_preflight_rejects_unknown_evaluation_backend(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_preflight_rejects_unknown_evaluation_backend(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("QUANT_EVALUATION_EXECUTION", "unknown")
     state_dir = tmp_path / "state"
     state_dir.mkdir()
@@ -157,8 +153,6 @@ def test_start_launches_dashboard_and_canonical_research_worker_only(
     assert research[research.index("--repeat-generations") + 1] == "3"
     assert research[research.index("--interval-seconds") + 1] == "2"
     assert research[research.index("--evaluation-execution") + 1] == "local_scheduler"
-
-
 
 
 def test_existing_env_file_can_select_docker_backend(
@@ -264,11 +258,7 @@ def test_status_reports_shared_evaluation_backend_activity(tmp_path: Path) -> No
 
     payload = controller.status()
 
-    components = {
-        item["id"]: item
-        for item in payload["components"]
-        if isinstance(item, dict)
-    }
+    components = {item["id"]: item for item in payload["components"] if isinstance(item, dict)}
     assert components["evaluation_backend"]["status"] == "RUNNING"
     assert components["evaluation_backend"]["active_jobs"] == 1
 
@@ -330,9 +320,7 @@ def test_stop_forcibly_removes_running_docker_jobs_and_cancels_queue(
     result = controller.stop()
 
     assert result == {"status": "STOPPED", "components": []}
-    expected_name = docker_evaluation_container_name(
-        "evaluation-attempt-1", claimed.attempt
-    )
+    expected_name = docker_evaluation_container_name("evaluation-attempt-1", claimed.attempt)
     assert ["docker", "rm", "-f", expected_name] in commands
     assert queue.get("evaluation-attempt-1").status is JobStatus.CANCELLED
 
@@ -358,7 +346,6 @@ def test_stop_reports_cleanup_failure_without_claiming_success(
     assert result["status"] == "STOP_FAILED"
     assert result["cleanup_failed"] == ["job-1"]
     assert queue.get("job-1").status is JobStatus.RUNNING
-
 
 
 def _managed_state(
@@ -415,11 +402,7 @@ def test_status_recovers_live_processes_after_controller_recreation(
     payload = recovered.status()
 
     assert payload["status"] == "RUNNING"
-    components = {
-        item["id"]: item
-        for item in payload["components"]
-        if isinstance(item, dict)
-    }
+    components = {item["id"]: item for item in payload["components"] if isinstance(item, dict)}
     assert components["dashboard"]["status"] == "RUNNING"
     assert components["dashboard"]["alive"] is True
     assert components["research_worker"]["status"] == "RUNNING"
@@ -466,11 +449,7 @@ def test_stale_worker_state_from_previous_run_is_ignored(tmp_path: Path) -> None
 
     payload = controller.status()
 
-    components = {
-        item["id"]: item
-        for item in payload["components"]
-        if isinstance(item, dict)
-    }
+    components = {item["id"]: item for item in payload["components"] if isinstance(item, dict)}
     assert components["research_worker"]["status"] == "EXITED"
     assert payload["status"] == "STOPPED"
 
@@ -493,11 +472,7 @@ def test_matching_terminal_worker_state_survives_controller_recreation(
 
     payload = controller.status()
 
-    components = {
-        item["id"]: item
-        for item in payload["components"]
-        if isinstance(item, dict)
-    }
+    components = {item["id"]: item for item in payload["components"] if isinstance(item, dict)}
     assert components["research_worker"]["status"] == "SUCCEEDED"
     assert payload["status"] == "COMPLETED"
 
@@ -558,12 +533,8 @@ def test_recovered_stop_terminates_owned_processes_and_owned_docker_jobs_only(
         state_dir=state,
         project_root=tmp_path,
         process_probe=lambda pid, markers: pid in {101, 102},
-        process_terminator=lambda pid, markers: (
-            terminated.append((pid, markers)) or True
-        ),
-        command_runner=lambda command, cwd: (
-            commands.append(command) or (0, "")
-        ),
+        process_terminator=lambda pid, markers: terminated.append((pid, markers)) or True,
+        command_runner=lambda command, cwd: commands.append(command) or (0, ""),
     )
 
     result = recovered.stop()
@@ -576,8 +547,6 @@ def test_recovered_stop_terminates_owned_processes_and_owned_docker_jobs_only(
     assert ["docker", "rm", "-f", other_name] not in commands
     assert queue.get("owned").status is JobStatus.CANCELLED
     assert queue.get("other").status is JobStatus.RUNNING
-
-
 
 
 def test_recreated_controller_reports_active_owned_job_then_stops_it_safely(
@@ -605,18 +574,14 @@ def test_recreated_controller_reports_active_owned_job_then_stops_it_safely(
         state_dir=state,
         project_root=tmp_path,
         process_probe=lambda pid, markers: pid in {101, 102},
-        process_terminator=lambda pid, markers: (terminated.append(pid) or True),
-        command_runner=lambda command, cwd: (commands.append(command) or (0, "")),
+        process_terminator=lambda pid, markers: terminated.append(pid) or True,
+        command_runner=lambda command, cwd: commands.append(command) or (0, ""),
     )
 
     status = recovered.status()
 
     assert status["status"] == "RUNNING"
-    components = {
-        item["id"]: item
-        for item in status["components"]
-        if isinstance(item, dict)
-    }
+    components = {item["id"]: item for item in status["components"] if isinstance(item, dict)}
     assert components["evaluation_backend"]["active_jobs"] == 1
     assert components["evaluation_backend"]["queued_jobs"] == 0
     assert len(status["runtime"]["evaluation"]["active_jobs"]) == 1
@@ -652,7 +617,6 @@ def test_aggregate_status_reports_degraded_when_dashboard_is_lost(
     payload = controller.status()
 
     assert payload["status"] == "DEGRADED"
-
 
 
 def _running_autoresearch(state: Path, *, research_run_id: str = "research-1") -> None:
@@ -775,7 +739,7 @@ def test_start_after_interruption_creates_fresh_managed_run_with_lineage(
         state_dir=state,
         project_root=tmp_path,
         process_probe=lambda pid, markers: pid == 101,
-        process_terminator=lambda pid, markers: (terminated.append(pid) or True),
+        process_terminator=lambda pid, markers: terminated.append(pid) or True,
         process_factory=lambda command, cwd: (
             spawned.append(command) or FakeProcess(200 + len(spawned))
         ),
@@ -801,7 +765,6 @@ def test_start_after_interruption_creates_fresh_managed_run_with_lineage(
     assert events[-1]["event"] == "RESTARTED"
     assert events[-1]["managed_run_id"] == "managed-old"
     assert events[-1]["replacement_managed_run_id"] == result["managed_run_id"]
-
 
 
 def test_status_returns_consistent_runtime_schema_when_stopped(tmp_path: Path) -> None:
@@ -836,13 +799,6 @@ def test_status_runtime_system_view_matches_reconciled_components(tmp_path: Path
     runtime = payload["runtime"]
     assert runtime["system"]["status"] == payload["status"] == "RUNNING"
     assert runtime["system"]["managed_run_id"] == "run-typed"
-    top = {
-        item["id"]: item["status"]
-        for item in payload["components"]
-        if isinstance(item, dict)
-    }
-    nested = {
-        item["id"]: item["status"]
-        for item in runtime["system"]["components"]
-    }
+    top = {item["id"]: item["status"] for item in payload["components"] if isinstance(item, dict)}
+    nested = {item["id"]: item["status"] for item in runtime["system"]["components"]}
     assert nested == top

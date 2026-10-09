@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 import shlex
-import subprocess
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-
-from research.llm.codex_exec import _child_environment, _read_settings
 
 
 class DirectEditGateError(ValueError):
@@ -19,89 +15,18 @@ class TerminalCommand:
     arguments: tuple[str, ...] = ()
 
 
-ChatRunner = Callable[[list[str], str, Path, dict[str, str], float], tuple[int, str]]
-
-
 class CodexChatProvider:
-    """Run a read-only Codex exec for ordinary terminal questions."""
+    """Retired compatibility class: no executable chat runtime exists."""
 
-    def __init__(
-        self,
-        *,
-        executable: str = "codex",
-        workdir: Path,
-        model: str | None = None,
-        timeout_seconds: float = 120.0,
-        runner: ChatRunner | None = None,
-    ) -> None:
-        if not executable.strip():
-            raise ValueError("Codex executable is required")
-        if timeout_seconds <= 0:
-            raise ValueError("Codex timeout must be positive")
-        self.executable = executable
+    def __init__(self, *, workdir: Path, **_kwargs: object) -> None:
         self.workdir = workdir.resolve()
-        self.model = model.strip() if model and model.strip() else None
-        self.timeout_seconds = timeout_seconds
-        self._runner = runner or _run_chat
 
     @classmethod
-    def from_env(cls, env_path: Path, *, workdir: Path) -> CodexChatProvider:
-        values = _read_settings(env_path)
-        try:
-            timeout = float(values.get("QUANT_CODEX_TIMEOUT_SECONDS", "120"))
-        except ValueError as exc:
-            raise ValueError("QUANT_CODEX_TIMEOUT_SECONDS must be numeric") from exc
-        return cls(
-            executable=values.get("QUANT_CODEX_COMMAND", "codex"),
-            workdir=workdir,
-            model=values.get("QUANT_CODEX_MODEL"),
-            timeout_seconds=timeout,
-        )
+    def from_env(cls, _env_path: Path, *, workdir: Path) -> CodexChatProvider:
+        raise RuntimeError("Local Codex was removed; use ChatGPT MCP")
 
-    def ask(self, prompt: str) -> str:
-        if not prompt.strip():
-            raise ValueError("chat prompt cannot be empty")
-        command = [
-            *shlex.split(self.executable, posix=True),
-            "exec",
-            "-",
-            "--ephemeral",
-            "--sandbox",
-            "read-only",
-        ]
-        if self.model is not None:
-            command[2:2] = ["-m", self.model]
-        returncode, output = self._runner(
-            command, prompt, self.workdir, _child_environment(), self.timeout_seconds
-        )
-        if returncode != 0:
-            raise ValueError("Codex chat execution failed")
-        return output.strip()
-
-
-def _run_chat(
-    command: list[str],
-    prompt: str,
-    cwd: Path,
-    env: dict[str, str],
-    timeout: float,
-) -> tuple[int, str]:
-    try:
-        result = subprocess.run(
-            command,
-            input=prompt,
-            text=True,
-            cwd=cwd,
-            env=env,
-            capture_output=True,
-            timeout=timeout,
-            check=False,
-            encoding="utf-8",
-            errors="replace",
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return 1, ""
-    return result.returncode, result.stdout
+    def ask(self, _prompt: str) -> str:
+        raise RuntimeError("Local Codex was removed; use ChatGPT MCP")
 
 
 _COMMANDS = frozenset({"mode", "research", "repeat", "backtest", "status", "stop", "help", "exit"})

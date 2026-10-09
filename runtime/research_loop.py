@@ -23,13 +23,13 @@ from orchestration.evaluation_runner import (
     resolve_project_input,
     run_local_evaluation,
 )
-from research.llm.codex_exec import record_intent, sanitize_context
 from research.llm.contracts import CANONICAL_CONDITION_OPERATORS
 from research.llm.director import (
     IntentRepairUnavailable,
     ResearchDirector,
     ResearchIntent,
 )
+from research.llm.gpt_context import record_intent, sanitize_context
 from research.llm.intent_bridge import (
     IntentEligibilityError,
     apply_intent,

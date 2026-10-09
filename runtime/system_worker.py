@@ -7,20 +7,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from orchestration.evaluation_runner import (
-    ALLOWED_STRATEGY_SUFFIXES,
     parse_parameter_domains,
-    resolve_project_input,
     run_local_evaluation,
 )
-from research.llm.codex_exec import CodexExecProvider
-from research.llm.director import ResearchDirector
 from research.policy import default_evaluation_thresholds
-from runtime.evaluation_executor import QueuedEvaluationExecutor
 from runtime.heartbeat import WorkerHeartbeatStore
 from runtime.job_protocol import EvaluationJobRequest, EvaluationJobResult
 from runtime.persistent_queue import PersistentJobQueue
 from runtime.queue import JobStatus
-from runtime.research_loop import ResearchLoopConfig, run_autoresearch, run_repeated_evaluation
+from runtime.research_loop import ResearchLoopConfig, run_repeated_evaluation
 
 _EVALUATION_DEFAULTS = default_evaluation_thresholds()
 
@@ -36,7 +31,7 @@ def main(argv: list[str] | None = None) -> int:
             managed_run_id=getattr(args, "managed_run_id", "") or None,
         )
         if args.role == "research":
-            result = _run_research(args, state_dir)
+            raise ValueError("local Codex research is removed; use GPT MCP research batches")
         elif args.role == "evaluation-job":
             result = _run_evaluation_job(args, state_dir)
         else:
@@ -158,47 +153,6 @@ def _run_evaluation_job(
             attempt=job.attempt,
         )
         raise
-
-
-def _run_research(args: argparse.Namespace, state_dir: Path) -> dict[str, object]:
-    project_root = Path(args.project_root).resolve()
-    source = resolve_project_input(project_root, args.source_path, ALLOWED_STRATEGY_SUFFIXES)
-    provider = CodexExecProvider.from_env(
-        Path(args.env_file),
-        workdir=project_root,
-        status_path=state_dir / "llm" / "status.json",
-    )
-    director = ResearchDirector(provider)
-    config = ResearchLoopConfig(
-        project_root=project_root,
-        state_dir=state_dir.resolve(),
-        source_path=source.relative_to(project_root).as_posix(),
-        data_path=args.data_path,
-        method=args.method,
-        count=args.count,
-        seed=args.seed,
-        min_trades=args.min_trades,
-        min_annual_trades=args.min_annual_trades,
-        min_qqq_cagr_delta=args.min_qqq_cagr_delta,
-        series_data_path=args.series_data_path,
-        parameter_domains=parse_parameter_domains(
-            [json.loads(document) for document in args.domain]
-        ),
-        generations=args.repeat_generations,
-        interval_seconds=args.interval_seconds,
-    )
-    executor = QueuedEvaluationExecutor(
-        state_dir,
-        project_root=project_root,
-        execution_mode=args.evaluation_execution,
-        docker_image=args.evaluation_docker_image,
-        managed_run_id=getattr(args, "managed_run_id", "") or None,
-    )
-    return run_autoresearch(
-        config,
-        director,
-        evaluator=lambda **kwargs: executor.run(run_local_evaluation, **kwargs),
-    )
 
 
 def _write_status(

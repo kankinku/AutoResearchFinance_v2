@@ -13,8 +13,8 @@ from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
     resolve_project_input,
 )
-from research.llm.codex_exec import record_intent
 from research.llm.director import ResearchIntent
+from research.llm.gpt_context import record_intent
 from research.llm.intent_bridge import apply_intent, intent_to_operations
 from runtime.evidence_session import EvidenceSession
 from strategy_ir.normalizer import normalize_source
