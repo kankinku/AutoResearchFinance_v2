@@ -22,7 +22,7 @@ from starlette.responses import Response
 from starlette.routing import Mount
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from integrations.codex_mcp_sdk_server import create_sdk_mcp_server
+from integrations.chatgpt_mcp_sdk import create_chatgpt_sdk_adapter
 
 
 class _AuthenticatedMCP:
@@ -62,7 +62,7 @@ def create_http_app(
 ) -> Starlette:
     """Build the official SDK HTTP ASGI app; never start it implicitly."""
     secret = require_access_token(token)
-    adapter = create_sdk_mcp_server(project_root=project_root, state_dir=state_dir)
+    adapter = create_chatgpt_sdk_adapter(project_root=project_root, state_dir=state_dir)
     session_manager = StreamableHTTPSessionManager(
         adapter.server,
         json_response=True,

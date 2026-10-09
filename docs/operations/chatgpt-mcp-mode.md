@@ -15,7 +15,7 @@ The tool response carries an additive public contract `orders_enabled=false`. Ca
 
 ## Local official MCP SDK
 
-The original canonical stdio command remains:
+The original 13-tool canonical public SDK interface is unchanged; the dedicated ChatGPT adapter exposes an 11-tool subset including the two new tools. The original canonical stdio command remains:
 
 ```bash
 PYTHONPATH="$PWD" .venv/bin/python -m integrations.codex_mcp_server --project-root . --state-dir state

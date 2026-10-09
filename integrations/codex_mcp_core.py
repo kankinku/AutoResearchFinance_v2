@@ -30,8 +30,6 @@ _TARGET_PUBLIC_TOOL_NAMES = frozenset(
         "list_strategies",
         "list_features",
         "get_research_evidence",
-        "get_research_brief",
-        "run_research_step",
         "get_dashboard_status",
         "run_evaluation",
         "check_system",
@@ -49,8 +47,6 @@ _PUBLIC_TOOL_PLANES: dict[str, PublicToolPlane] = {
     "list_strategies": "CATALOG_VALIDATION",
     "list_features": "CATALOG_VALIDATION",
     "get_research_evidence": "EVIDENCE_STATUS",
-    "get_research_brief": "EVIDENCE_STATUS",
-    "run_research_step": "EXECUTION_LIFECYCLE",
     "get_dashboard_status": "EVIDENCE_STATUS",
     "get_system_status": "EVIDENCE_STATUS",
     "run_evaluation": "EXECUTION_LIFECYCLE",
@@ -442,23 +438,6 @@ def _all_tools() -> list[dict[str, object]]:
                 "properties": {"research_run_id": {"type": "string"}},
                 "additionalProperties": False,
             },
-        },
-        {
-            "name": "get_research_brief",
-            "description": (
-                "Read sanitized research context, immutable Frontier and failure knowledge. "
-                "Use this before ChatGPT-directed hypotheses; no local LLM runs."
-            ),
-            "inputSchema": empty,
-        },
-        {
-            "name": "run_research_step",
-            "description": (
-                "Execute exactly one externally-authored ResearchIntent through the local "
-                "mutation engine and evidence-backed backtest. Single source parent only; "
-                "no internal Codex calls and no order permission."
-            ),
-            "inputSchema": _chat_directed_step_schema(),
         },
         {
             "name": "get_dashboard_status",

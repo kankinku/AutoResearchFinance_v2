@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from integrations.codex_mcp_core import _tools, create_mcp_server
+from integrations.chatgpt_mcp_sdk import chatgpt_tools
+from integrations.codex_mcp_core import create_mcp_server
 from memory.evidence_store import EvidenceStore
 from tests.orchestration.test_evaluation_runner import _write_inputs
 
@@ -21,7 +22,7 @@ def _intent(parent_id: str = "runner-test") -> dict[str, object]:
 
 
 def test_external_llm_tools_are_advertised_without_order_or_code_edit_access() -> None:
-    advertised = {item["name"]: item for item in _tools()}
+    advertised = {item["name"]: item for item in chatgpt_tools()}
     assert "get_research_brief" in advertised
     assert "run_research_step" in advertised
     schema = advertised["run_research_step"]["inputSchema"]
