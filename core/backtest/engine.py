@@ -75,8 +75,7 @@ class BacktestEngine:
         if request.cost_stress_multiplier < 0:
             raise ValueError("cost stress multiplier cannot be negative")
         if request.signal_start_at is not None and (
-            request.signal_start_at.tzinfo is None
-            or request.signal_start_at.utcoffset() is None
+            request.signal_start_at.tzinfo is None or request.signal_start_at.utcoffset() is None
         ):
             raise ValueError("signal start timezone is required")
         if request.strategy is not None:
@@ -155,6 +154,7 @@ class BacktestEngine:
                 bars,
                 request.dataset.timeframe,
                 request.dataset.calendar,
+                request.dataset.provenance,
             )
             values = _indicator_values(dataset, strategy)
             values.update(
@@ -191,8 +191,7 @@ class BacktestEngine:
             first_bar = current_bars[next(iter(current_bars))]
             bar_day = first_bar.timestamp.date()
             exposure_at_open = sum(
-                state.units
-                * current_bars.get(symbol, first_bar).open
+                state.units * current_bars.get(symbol, first_bar).open
                 if symbol in current_bars
                 else state.units * state.last_close
                 for symbol, state in states.items()
@@ -230,8 +229,7 @@ class BacktestEngine:
                     continue
                 notional = allocation * strategy.risk.position_size_pct / 100
                 current_exposure = sum(
-                    candidate.units
-                    * current_bars.get(candidate_symbol, bar).open
+                    candidate.units * current_bars.get(candidate_symbol, bar).open
                     if candidate_symbol in current_bars
                     else candidate.units * candidate.last_close
                     for candidate_symbol, candidate in states.items()
@@ -239,17 +237,13 @@ class BacktestEngine:
                 equity_at_open = cash + current_exposure
                 concurrent = sum(candidate.units > 0 for candidate in states.values())
                 max_concurrent = strategy.risk.max_concurrent_positions
-                allowed_concurrent = (
-                    max_concurrent is None or concurrent < max_concurrent
-                )
+                allowed_concurrent = max_concurrent is None or concurrent < max_concurrent
                 if (
                     not daily_loss_blocked
                     and not stopped
                     and allowed_concurrent
                     and cash + 1e-9 >= notional
-                    and _exposure_allows(
-                        strategy, notional, equity_at_open, current_exposure
-                    )
+                    and _exposure_allows(strategy, notional, equity_at_open, current_exposure)
                 ):
                     cost = _cost(
                         request.cost_model,
@@ -351,9 +345,7 @@ class BacktestEngine:
                 current_day = bar_day
                 day_start_equity = cash + units * bar.open
                 daily_loss_blocked = False
-            if _daily_loss_breached(
-                strategy, day_start_equity, cash + units * bar.open
-            ):
+            if _daily_loss_breached(strategy, day_start_equity, cash + units * bar.open):
                 daily_loss_blocked = True
 
             if pending == "exit" and units > 0:
@@ -598,9 +590,7 @@ def _condition_match(
     }[condition.op]
 
 
-def _regime_allows(
-    strategy: StrategyIR, values: dict[str, list[float | None]], index: int
-) -> bool:
+def _regime_allows(strategy: StrategyIR, values: dict[str, list[float | None]], index: int) -> bool:
     """Entry-only, conjunctive regime gates; disabled and empty gates are neutral."""
     return all(
         _condition_match(condition, values, index)
@@ -637,9 +627,7 @@ def _cost(
 ) -> float:
     if cost_model is None:
         return 0.0
-    return cost_model.calculate(
-        notional, side=side, stress_multiplier=stress_multiplier
-    ).total
+    return cost_model.calculate(notional, side=side, stress_multiplier=stress_multiplier).total
 
 
 def _trade(

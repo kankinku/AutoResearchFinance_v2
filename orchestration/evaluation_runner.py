@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from core.data.contracts import MarketDataSet, SeriesDataSet
 from core.data.parquet import ParquetDataProvider
+from core.data.quality import market_data_quality
 from core.features.alignment import align_as_of
 from core.features.registry import research_feature_specs
 from dashboard.ledger import append_funnel_results
@@ -90,6 +91,7 @@ def run_local_evaluation(
         raise ValueError("strategy source is unsupported")
     require_research_zone(data)
     dataset = ParquetDataProvider.read(data)
+    data_quality = market_data_quality(dataset).record()
     series = _read_series_input(project_root, series_data_path)
     feature_specs = {spec.name: spec for spec in research_feature_specs()}
     feature_inputs = _market_feature_inputs(dataset)
@@ -190,6 +192,7 @@ def run_local_evaluation(
             },
             "candidates": [candidate_evidence(item) for item in pipeline_result.funnel],
             "train_only_selection": selection_payload,
+            "market_data_quality": data_quality,
         },
     )
     sync_knowledge(state_dir)
@@ -225,6 +228,7 @@ def run_local_evaluation(
         "attempt_id": attempt_id,
         "status": "COMPLETED",
         "candidate_count": len(pipeline_result.candidates),
+        "market_data_quality": data_quality,
         "multiple_testing_trials": pipeline_result.multiple_testing_trials,
         "train_only_selection": selection_payload,
         "search_mode": "baseline" if not domains and not typed_operations else method,

@@ -558,7 +558,12 @@ def _fast_slice(dataset: MarketDataSet) -> MarketDataSet:
         width = min(len(symbol_bars), max(2, len(symbol_bars) // 2))
         bars.extend(symbol_bars[:width])
     return MarketDataSet(
-        dataset.version, dataset.zone, tuple(bars), dataset.timeframe, dataset.calendar
+        dataset.version,
+        dataset.zone,
+        tuple(bars),
+        dataset.timeframe,
+        dataset.calendar,
+        dataset.provenance,
     )
 
 
@@ -638,7 +643,14 @@ def _slice_feature_values(
 
 def _select_dataset(dataset: MarketDataSet, indices: Sequence[int]) -> MarketDataSet:
     bars = tuple(dataset.bars[index] for index in indices)
-    return MarketDataSet(dataset.version, dataset.zone, bars, dataset.timeframe, dataset.calendar)
+    return MarketDataSet(
+        dataset.version,
+        dataset.zone,
+        bars,
+        dataset.timeframe,
+        dataset.calendar,
+        dataset.provenance,
+    )
 
 
 def _select_feature_values(

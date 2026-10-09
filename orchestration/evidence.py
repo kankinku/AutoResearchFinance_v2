@@ -12,6 +12,7 @@ from typing import Any
 
 from core.costs.model import CostModel
 from core.data.contracts import DataZone, MarketDataSet, SeriesDataSet
+from core.data.quality import market_data_quality
 from evaluation.selector import FunnelConfig, FunnelResult
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore, digest
 from strategy_ir.schema import StrategyIR
@@ -74,6 +75,10 @@ def freeze_manifest(
         "dataset_hash": dataset.dataset_hash,
         "data_zone": DataZone(dataset.zone).value,
         "dataset_version": dataset.version,
+        "market_data_quality": market_data_quality(dataset).record(),
+        "market_source_provenance": (
+            dataset.provenance.record() if dataset.provenance is not None else None
+        ),
         "timeframe": dataset.timeframe,
         "calendar": dataset.calendar,
         "series_hash": series.dataset_hash if series else None,

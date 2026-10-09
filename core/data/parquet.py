@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 
-from core.data.contracts import Bar, DataZone, MarketDataSet, SeriesDataSet, SeriesObservation
+from core.data.contracts import (
+    Bar,
+    DataZone,
+    MarketDataSet,
+    MarketSourceProvenance,
+    SeriesDataSet,
+    SeriesObservation,
+)
 
 
 class ParquetDataProvider:
@@ -27,6 +35,10 @@ class ParquetDataProvider:
                 b"calendar": dataset.calendar.encode(),
             }
         )
+        if dataset.provenance is not None:
+            metadata[b"source_provenance"] = json.dumps(
+                dataset.provenance.record(), sort_keys=True, allow_nan=False
+            ).encode("utf-8")
         parquet.write_table(table.replace_schema_metadata(metadata), path)
 
     @staticmethod
@@ -58,6 +70,11 @@ class ParquetDataProvider:
             bars,
             metadata.get("timeframe", "1d"),
             metadata.get("calendar", "us_equities"),
+            (
+                MarketSourceProvenance.from_record(json.loads(metadata["source_provenance"]))
+                if "source_provenance" in metadata
+                else None
+            ),
         )
 
     @staticmethod
@@ -113,6 +130,11 @@ def _metadata(path: Path) -> dict[str, str]:
             "data_zone": decoded["data_zone"],
             **({"timeframe": decoded["timeframe"]} if "timeframe" in decoded else {}),
             **({"calendar": decoded["calendar"]} if "calendar" in decoded else {}),
+            **(
+                {"source_provenance": decoded["source_provenance"]}
+                if "source_provenance" in decoded
+                else {}
+            ),
         }
     except KeyError as exc:
         raise ValueError("Parquet metadata must include dataset_version and data_zone") from exc

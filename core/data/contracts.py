@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from math import isfinite
@@ -96,12 +96,81 @@ class SeriesObservation:
 
 
 @dataclass(frozen=True)
+class MarketSourceProvenance:
+    """Vendor-declared lineage; NOT independent proof of point-in-time validity."""
+
+    source_id: str
+    retrieved_at: datetime
+    revision_policy: str
+    universe_policy: str
+    corporate_action_policy: str
+    corporate_action_reference: str | None
+    includes_delisted: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.source_id, str) or not self.source_id.strip():
+            raise DataContractError("market source identifier is required")
+        if not isinstance(self.retrieved_at, datetime) or (
+            self.retrieved_at.tzinfo is None or self.retrieved_at.utcoffset() is None
+        ):
+            raise DataContractError("provenance retrieved_at timezone is required")
+        if self.revision_policy not in {"as_of", "latest"}:
+            raise DataContractError("provenance revision policy is invalid")
+        if self.universe_policy not in {"point_in_time", "current_constituents", "single_symbol"}:
+            raise DataContractError("provenance universe policy is invalid")
+        if self.corporate_action_policy not in {"raw", "split_adjusted", "total_return_adjusted"}:
+            raise DataContractError("provenance corporate action policy is invalid")
+        if (
+            self.corporate_action_reference is not None
+            and not self.corporate_action_reference.strip()
+        ):
+            raise DataContractError("provenance corporate action reference is invalid")
+        if type(self.includes_delisted) is not bool:
+            raise DataContractError("includes_delisted must be a boolean")
+
+    def record(self) -> dict[str, object]:
+        return {
+            **asdict(self),
+            "retrieved_at": self.retrieved_at.astimezone(timezone.utc).isoformat(),
+        }
+
+    @classmethod
+    def from_record(cls, raw: dict[str, object]) -> MarketSourceProvenance:
+        if set(raw) != {
+            "source_id",
+            "retrieved_at",
+            "revision_policy",
+            "universe_policy",
+            "corporate_action_policy",
+            "corporate_action_reference",
+            "includes_delisted",
+        }:
+            raise DataContractError("provenance metadata has invalid fields")
+        try:
+            retrieved = raw["retrieved_at"]
+            if not isinstance(retrieved, str):
+                raise TypeError("retrieved_at must be ISO timestamp")
+            return cls(
+                source_id=raw["source_id"],  # type: ignore[arg-type]
+                retrieved_at=datetime.fromisoformat(retrieved),
+                revision_policy=raw["revision_policy"],  # type: ignore[arg-type]
+                universe_policy=raw["universe_policy"],  # type: ignore[arg-type]
+                corporate_action_policy=raw["corporate_action_policy"],  # type: ignore[arg-type]
+                corporate_action_reference=raw["corporate_action_reference"],  # type: ignore[arg-type]
+                includes_delisted=raw["includes_delisted"],  # type: ignore[arg-type]
+            )
+        except (AttributeError, DataContractError, TypeError, ValueError) as exc:
+            raise DataContractError("provenance metadata is invalid") from exc
+
+
+@dataclass(frozen=True)
 class MarketDataSet:
     version: str
     zone: DataZone | str
     bars: tuple[Bar, ...]
     timeframe: str = "1d"
     calendar: str = "us_equities"
+    provenance: MarketSourceProvenance | None = None
 
     def __post_init__(self) -> None:
         if not self.version:
@@ -116,6 +185,11 @@ class MarketDataSet:
             raise DataContractError("duplicate symbol/timestamp bars")
         if list(keys) != sorted(keys):
             raise DataContractError("bars must be sorted by symbol and timestamp")
+        if self.provenance is not None:
+            if not isinstance(self.provenance, MarketSourceProvenance):
+                raise DataContractError("dataset provenance must use MarketSourceProvenance")
+            if self.bars and self.provenance.retrieved_at < max(bar.timestamp for bar in self.bars):
+                raise DataContractError("provenance snapshot predates market observations")
 
     @property
     def dataset_hash(self) -> str:
@@ -129,6 +203,8 @@ class MarketDataSet:
         if self.timeframe != "1d" or self.calendar != "us_equities":
             payload["timeframe"] = self.timeframe
             payload["calendar"] = self.calendar
+        if self.provenance is not None:
+            payload["provenance"] = self.provenance.record()
         return content_hash(payload)
 
 

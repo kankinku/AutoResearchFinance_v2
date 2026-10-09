@@ -17,7 +17,7 @@ Updated: 2026-10-09. Canonical architecture remains `docs/architecture/quant-aut
 | T-001 | P0 | DONE | none | Synthetic next-open/cost/IR golden fixture, baseline tests |
 | T-002 | P1 | PARTIAL | T-001 | DONE core validation-to-evaluation protocol and neutral IR/core hash dependency; remaining imports/inversions and full DAG audit |
 | T-003 | P1 | PENDING | T-001 | Split 556-line autoresearch orchestration by phase; recovery/queue parity |
-| T-004 | P0 | PARTIAL | T-001 | DONE finite OHLCV rejection, historical fold warmup; PENDING vendor provenance, survivorship, corporate actions and missing-data policy |
+| T-004 | P0 | PARTIAL | T-001 | DONE finite OHLCV, warmup, vendor-declared provenance/Parquet lineage and immutable quality audit; PENDING independent as-of verification, corporate action evidence, exchange session QA |
 | T-005 | P0 | PARTIAL | T-001 | DONE trailing stop/regime gates; remaining risk policy assertions/edge cases |
 | T-006 | P0 | PARTIAL | T-005 | DONE exposure from marked positions; remaining accounting/returns audit |
 | T-007 | P0 | PARTIAL | T-004, T-006 | DONE native price-strategy cohort train-only selection/holdout with immutable audit; PENDING upstream fold-specific generation, external as-of features, final sealed OOS |

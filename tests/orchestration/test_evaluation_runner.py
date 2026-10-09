@@ -434,3 +434,26 @@ def test_multiple_testing_trials_include_prior_research_attempts(tmp_path: Path)
     second = run_local_evaluation(**options)
     assert first["multiple_testing_trials"] == 2
     assert second["multiple_testing_trials"] == 4
+
+
+def test_unverified_market_data_is_flagged_in_response_and_immutable_manifest(
+    tmp_path: Path,
+) -> None:
+    from memory.evidence_store import EvidenceStore
+
+    _write_inputs(tmp_path)
+    result = run_local_evaluation(
+        project_root=tmp_path,
+        state_dir=tmp_path / "state",
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        min_trades=0,
+    )
+    assert result["market_data_quality"]["status"] == "UNVERIFIED"
+    assert result["market_data_quality"]["point_in_time_verified"] is False
+    events = EvidenceStore(tmp_path / "state").events()
+    manifest = next(event["payload"] for event in events if event["kind"] == "manifest")
+    attempt = next(event["payload"] for event in events if event["kind"] == "attempt")
+    assert manifest["market_data_quality"] == result["market_data_quality"]
+    assert attempt["market_data_quality"] == result["market_data_quality"]
+    assert manifest["market_source_provenance"] is None
