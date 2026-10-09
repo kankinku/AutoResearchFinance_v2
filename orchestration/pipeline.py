@@ -22,6 +22,7 @@ from evaluation.robustness import (
 from evaluation.selector import FunnelConfig, FunnelInput, FunnelResult, select_candidate
 from evaluation.yearly import summarize_yearly_performance
 from experiments.candidate_generator import Candidate, generate_candidates
+from experiments.deduplicator import deduplicate_candidates
 from memory.knowledge import extract_knowledge
 from mutation.engine import MutationOperation
 from mutation.parameter import BayesianObservation, ParameterDomain
@@ -90,7 +91,7 @@ class GenerationPipeline:
         ):
             raise PermissionError("generation research requires development series data")
 
-        candidates = generate_candidates(
+        generated = generate_candidates(
             parent,
             operations,
             domains,
@@ -99,6 +100,7 @@ class GenerationPipeline:
             seed=seed,
             observations=observations,
         )
+        candidates = deduplicate_candidates(list(generated), semantic=True).unique
         fast_dataset = _fast_slice(dataset)
         fast_width = len(fast_dataset.bars)
         fast_features = _slice_feature_values(feature_values, fast_width)

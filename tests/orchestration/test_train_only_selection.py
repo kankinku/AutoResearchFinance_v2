@@ -117,3 +117,27 @@ def test_train_only_selection_fails_closed_when_features_are_supplied() -> None:
     assert result.train_only_selection is not None
     assert result.train_only_selection.status == "UNSUPPORTED_UNVERIFIED_FEATURES"
     assert result.train_only_selection.folds == ()
+
+
+def test_pipeline_deduplicates_equivalent_generated_parameter_points() -> None:
+    result = GenerationPipeline().run(
+        parent=strategy(),
+        dataset=data(),
+        operations=(),
+        domains=(ParameterDomain("risk.stop_loss_pct", (1.0, 1.0)),),
+        method="grid",
+        count=2,
+        seed=2,
+        funnel=FunnelConfig(
+            min_fast_trades=0,
+            min_full_trades=0,
+            min_fast_return=-1,
+            min_full_return=-1,
+            min_robust_score=0,
+            require_validation=False,
+        ),
+    )
+    assert len(result.candidates) == 1
+    assert len(result.funnel) == 1
+    assert result.train_only_selection is not None
+    assert all(fold.candidate_count == 1 for fold in result.train_only_selection.folds)
