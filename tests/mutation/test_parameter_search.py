@@ -69,3 +69,54 @@ def test_random_search_deduplicates_repeated_parameter_domain_values() -> None:
 def test_empty_parameter_search_space_produces_one_unique_baseline() -> None:
     assert random_search((), count=8, seed=42) == [{}]
     assert random_search((), count=0, seed=42) == []
+
+
+def test_random_search_samples_huge_space_without_grid_materialization(monkeypatch) -> None:
+    import mutation.parameter as parameter
+
+    def grid_must_not_run(_domains):
+        raise AssertionError("random search must not materialize cartesian product")
+
+    monkeypatch.setattr(parameter, "grid_search", grid_must_not_run)
+    huge = tuple(ParameterDomain(f"p{i}", (0, 1)) for i in range(28))
+    first = random_search(huge, count=5, seed=123)
+    assert len(first) == 5
+    assert len({tuple(sorted(point.items())) for point in first}) == 5
+    assert first == random_search(huge, count=5, seed=123)
+
+
+def test_random_search_does_not_collapse_distinct_scalar_types() -> None:
+    domain = (ParameterDomain("a", (1, True, 1.0, 1, True)),)
+    points = random_search(domain, count=10, seed=9)
+    assert len(points) == 3
+    assert {(type(point["a"]).__name__, repr(point["a"])) for point in points} == {
+        ("int", "1"),
+        ("bool", "True"),
+        ("float", "1.0"),
+    }
+
+
+def test_random_search_rejects_duplicate_parameter_names() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="duplicate"):
+        random_search(
+            (ParameterDomain("a", (1, 2)), ParameterDomain("a", (2, 3))),
+            count=1,
+            seed=1,
+        )
+
+
+def test_random_search_handles_integer_space_beyond_system_range_limit() -> None:
+    # 2**70 does not fit into the length of a normal Python range.
+    huge = tuple(ParameterDomain(f"p{i}", (0, 1)) for i in range(70))
+    result = random_search(huge, count=3, seed=10)
+    assert len(result) == 3
+    assert len({tuple(point.items()) for point in result}) == 3
+
+
+def test_random_search_matches_prior_seeded_sampling_on_unique_small_grid() -> None:
+    import random
+
+    expected = random.Random(11).sample(grid_search(domains()), 4)
+    assert random_search(domains(), count=4, seed=11) == expected

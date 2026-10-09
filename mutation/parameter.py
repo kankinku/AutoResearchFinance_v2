@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import math
 import random
+import sys
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -41,25 +42,52 @@ def grid_search(domains: tuple[ParameterDomain, ...]) -> list[ParameterPoint]:
 def random_search(
     domains: tuple[ParameterDomain, ...], *, count: int, seed: int
 ) -> list[ParameterPoint]:
+    """Uniformly sample unique finite combinations without materializing a grid.
+
+    Sampling uses mixed-radix indices over the Cartesian product of each
+    domain's distinct, type-aware values. Memory is O(sum(domain widths) +
+    selected count), instead of O(product of domain widths).
+    """
     if count < 0:
         raise ValueError("count must be non-negative")
-    # Sampling with replacement wastes costly backtests when the requested
-    # budget exceeds the finite parameter space. Deduplicate repeated domain
-    # values as well as repeated randomly drawn combinations.
-    points = grid_search(domains)
-    unique: list[ParameterPoint] = []
-    seen: set[tuple[tuple[str, str, str], ...]] = set()
-    for point in points:
-        signature = tuple(
-            sorted((name, type(value).__name__, repr(value)) for name, value in point.items())
-        )
-        if signature in seen:
-            continue
-        seen.add(signature)
-        unique.append(point)
+    names = [domain.name for domain in domains]
+    if len(set(names)) != len(names):
+        raise ValueError("duplicate parameter names are invalid")
+    if count == 0:
+        return []
+    unique_values: list[tuple[ParameterValue, ...]] = []
+    for domain in domains:
+        seen: set[tuple[str, str]] = set()
+        values: list[ParameterValue] = []
+        for value in domain.values:
+            identity = (type(value).__name__, repr(value))
+            if identity not in seen:
+                seen.add(identity)
+                values.append(value)
+        unique_values.append(tuple(values))
+    width = math.prod(len(values) for values in unique_values)
+    take = min(count, width)
     generator = random.Random(seed)
-    indices = generator.sample(range(len(unique)), min(count, len(unique)))
-    return [unique[index] for index in indices]
+    if width <= sys.maxsize:
+        selected_indices = generator.sample(range(width), take)
+    else:
+        # range.__len__ cannot represent spaces wider than sys.maxsize.
+        # Big-int randrange keeps the operation bounded by the requested budget.
+        selected_indices = []
+        picked: set[int] = set()
+        while len(selected_indices) < take:
+            index = generator.randrange(width)
+            if index not in picked:
+                picked.add(index)
+                selected_indices.append(index)
+    points: list[ParameterPoint] = []
+    for index in selected_indices:
+        reversed_values: list[ParameterValue] = []
+        for domain_options in reversed(unique_values):
+            index, slot = divmod(index, len(domain_options))
+            reversed_values.append(domain_options[slot])
+        points.append(dict(zip(names, reversed(reversed_values), strict=True)))
+    return points
 
 
 def bayesian_search(
