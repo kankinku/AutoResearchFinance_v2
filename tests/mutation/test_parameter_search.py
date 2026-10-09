@@ -47,3 +47,25 @@ def test_bayesian_search_is_seeded_and_uses_observed_scores() -> None:
     assert len(first) == 3
     assert all(point in grid_search(domains()) for point in first)
     assert first[0] == {"fast": 10, "slow": 30}
+
+
+def test_random_search_never_repeats_combinations_when_budget_exceeds_space() -> None:
+    tiny = (ParameterDomain("fast", (5, 10)),)
+    first = random_search(tiny, count=8, seed=42)
+    second = random_search(tiny, count=8, seed=42)
+
+    assert first == second
+    assert len(first) == 2
+    assert {point["fast"] for point in first} == {5, 10}
+
+
+def test_random_search_deduplicates_repeated_parameter_domain_values() -> None:
+    repeated = (ParameterDomain("fast", (5, 5, 10)),)
+    result = random_search(repeated, count=3, seed=42)
+    assert len(result) == 2
+    assert {point["fast"] for point in result} == {5, 10}
+
+
+def test_empty_parameter_search_space_produces_one_unique_baseline() -> None:
+    assert random_search((), count=8, seed=42) == [{}]
+    assert random_search((), count=0, seed=42) == []

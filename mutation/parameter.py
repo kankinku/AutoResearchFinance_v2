@@ -43,12 +43,23 @@ def random_search(
 ) -> list[ParameterPoint]:
     if count < 0:
         raise ValueError("count must be non-negative")
+    # Sampling with replacement wastes costly backtests when the requested
+    # budget exceeds the finite parameter space. Deduplicate repeated domain
+    # values as well as repeated randomly drawn combinations.
     points = grid_search(domains)
+    unique: list[ParameterPoint] = []
+    seen: set[tuple[tuple[str, str, str], ...]] = set()
+    for point in points:
+        signature = tuple(
+            sorted((name, type(value).__name__, repr(value)) for name, value in point.items())
+        )
+        if signature in seen:
+            continue
+        seen.add(signature)
+        unique.append(point)
     generator = random.Random(seed)
-    if count <= len(points):
-        indices = generator.sample(range(len(points)), count)
-        return [points[index] for index in indices]
-    return [points[generator.randrange(len(points))] for _ in range(count)]
+    indices = generator.sample(range(len(unique)), min(count, len(unique)))
+    return [unique[index] for index in indices]
 
 
 def bayesian_search(

@@ -338,3 +338,29 @@ def test_validation_zone_is_rejected_as_research_input(tmp_path: Path) -> None:
             source_path="strategy.yaml",
             data_path="bars.parquet",
         )
+
+
+def test_local_random_research_without_domains_evaluates_one_unique_baseline(
+    tmp_path: Path,
+) -> None:
+    _strategy, _data, _series = _write_inputs(tmp_path)
+    result = run_local_evaluation(
+        project_root=tmp_path,
+        state_dir=tmp_path / "state",
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        method="random",
+        count=8,
+        seed=21,
+        min_trades=0,
+    )
+
+    assert result["status"] == "COMPLETED"
+    assert result["candidate_count"] == 1
+    records = [
+        json.loads(line)
+        for line in (tmp_path / "state" / "test-records.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+    ]
+    assert len(records) == 1
