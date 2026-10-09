@@ -77,9 +77,9 @@ def test_phase5_5_canonical_module_preserves_python_import_contract(tmp_path: Pa
     )
 
     assert isinstance(server, CodexMCPServer)
-    assert len(_tools()) == 13
-    assert len(_all_tools()) == 18
-    assert len(_PUBLIC_TOOL_PLANES) == 13
+    assert len(_tools()) == 15
+    assert len(_all_tools()) == 20
+    assert len(_PUBLIC_TOOL_PLANES) == 15
 
     payload = _with_public_contract(
         "get_system_status",

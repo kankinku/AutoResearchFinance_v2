@@ -3,10 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from application.chat_directed_research_service import ChatDirectedResearchService
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.services import ApplicationServices, create_application_services
 from orchestration.evaluation_runner import parse_parameter_domains
 from research.llm.codex_schema import research_intent_schema
+from research.llm.director import ResearchIntent
 from research.policy import default_evaluation_thresholds
 from runtime.system_controller import SystemLaunchConfig
 
@@ -28,6 +30,8 @@ _TARGET_PUBLIC_TOOL_NAMES = frozenset(
         "list_strategies",
         "list_features",
         "get_research_evidence",
+        "get_research_brief",
+        "run_research_step",
         "get_dashboard_status",
         "run_evaluation",
         "check_system",
@@ -45,6 +49,8 @@ _PUBLIC_TOOL_PLANES: dict[str, PublicToolPlane] = {
     "list_strategies": "CATALOG_VALIDATION",
     "list_features": "CATALOG_VALIDATION",
     "get_research_evidence": "EVIDENCE_STATUS",
+    "get_research_brief": "EVIDENCE_STATUS",
+    "run_research_step": "EXECUTION_LIFECYCLE",
     "get_dashboard_status": "EVIDENCE_STATUS",
     "get_system_status": "EVIDENCE_STATUS",
     "run_evaluation": "EXECUTION_LIFECYCLE",
@@ -129,6 +135,12 @@ class CodexMCPServer:
             if set(arguments) - {"research_run_id"}:
                 raise ValueError("unexpected evidence arguments")
             return self.services.research.evidence(run_id)
+        if name == "get_research_brief":
+            if arguments:
+                raise ValueError("research brief does not take arguments")
+            return self.services.research.brief()
+        if name == "run_research_step":
+            return self._run_research_step(arguments)
         if name == "get_dashboard_status":
             return self.services.dashboard.snapshot().model_dump(mode="json")
         if name == "submit_research_intent":
@@ -206,6 +218,57 @@ class CodexMCPServer:
 
     def _submit_intent(self, arguments: dict[str, Any]) -> dict[str, object]:
         return self.services.research.validate_and_record_intent(arguments)
+
+    def _run_research_step(self, arguments: dict[str, Any]) -> dict[str, object]:
+        allowed = {
+            "source_path",
+            "data_path",
+            "intent",
+            "method",
+            "count",
+            "seed",
+            "min_trades",
+            "min_annual_trades",
+            "min_qqq_cagr_delta",
+            "series_data_path",
+        }
+        if set(arguments) - allowed:
+            raise ValueError("unexpected research step arguments")
+        intent = arguments.get("intent")
+        if not isinstance(intent, dict):
+            raise ValueError("intent object is required")
+        source_path = arguments.get("source_path")
+        data_path = arguments.get("data_path")
+        if not isinstance(source_path, str) or not isinstance(data_path, str):
+            raise ValueError("source and data paths are required")
+        method = arguments.get("method", "random")
+        if not isinstance(method, str):
+            raise ValueError("method must be a string")
+        series_data_path = arguments.get("series_data_path")
+        if series_data_path is not None and not isinstance(series_data_path, str):
+            raise ValueError("series path must be a string")
+        return ChatDirectedResearchService(
+            project_root=self.project_root,
+            state_dir=self.state_dir,
+            evaluation=self.services.evaluation,
+        ).run(
+            source_path=source_path,
+            data_path=data_path,
+            intent_payload=intent,
+            method=method,
+            count=_positive_int(arguments.get("count", 1), "count"),
+            seed=_nonnegative_int(arguments.get("seed", 0), "seed"),
+            min_trades=_nonnegative_int(arguments.get("min_trades", 10), "min_trades"),
+            min_annual_trades=_nonnegative_int(
+                arguments.get("min_annual_trades", _EVALUATION_DEFAULTS.min_annual_trades),
+                "min_annual_trades",
+            ),
+            min_qqq_cagr_delta=_optional_float(
+                arguments.get("min_qqq_cagr_delta", _EVALUATION_DEFAULTS.min_qqq_cagr_delta),
+                "min_qqq_cagr_delta",
+            ),
+            series_data_path=series_data_path,
+        )
 
     def _run_evaluation(self, arguments: dict[str, Any]) -> dict[str, object]:
         method = str(arguments.get("method", "grid"))
@@ -381,6 +444,23 @@ def _all_tools() -> list[dict[str, object]]:
             },
         },
         {
+            "name": "get_research_brief",
+            "description": (
+                "Read sanitized research context, immutable Frontier and failure knowledge. "
+                "Use this before ChatGPT-directed hypotheses; no local LLM runs."
+            ),
+            "inputSchema": empty,
+        },
+        {
+            "name": "run_research_step",
+            "description": (
+                "Execute exactly one externally-authored ResearchIntent through the local "
+                "mutation engine and evidence-backed backtest. Single source parent only; "
+                "no internal Codex calls and no order permission."
+            ),
+            "inputSchema": _chat_directed_step_schema(),
+        },
+        {
             "name": "get_dashboard_status",
             "description": "Read local operations status.",
             "inputSchema": empty,
@@ -462,14 +542,36 @@ def _all_tools() -> list[dict[str, object]]:
     ]
 
 
+def _chat_directed_step_schema() -> dict[str, object]:
+    intent_schema = ResearchIntent.model_json_schema()
+    defs = intent_schema.pop("$defs", {})
+    return {
+        "type": "object",
+        "$defs": defs,
+        "properties": {
+            "source_path": {"type": "string"},
+            "data_path": {"type": "string"},
+            "intent": intent_schema,
+            "method": {"type": "string", "enum": ["grid", "random", "bayesian"]},
+            "count": {"type": "integer", "minimum": 1},
+            "seed": {"type": "integer", "minimum": 0},
+            "min_trades": {"type": "integer", "minimum": 0},
+            "min_annual_trades": {"type": "integer", "minimum": 0},
+            "min_qqq_cagr_delta": {"type": "number"},
+            "series_data_path": {"type": "string"},
+        },
+        "required": ["source_path", "data_path", "intent"],
+        "additionalProperties": False,
+    }
+
+
 def _tools() -> list[dict[str, object]]:
     """Return the default public MCP surface."""
 
     return [
         tool
         for tool in _all_tools()
-        if isinstance(tool.get("name"), str)
-        and tool["name"] in _TARGET_PUBLIC_TOOL_NAMES
+        if isinstance(tool.get("name"), str) and tool["name"] in _TARGET_PUBLIC_TOOL_NAMES
     ]
 
 

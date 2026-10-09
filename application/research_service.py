@@ -6,6 +6,7 @@ from typing import Any
 
 from application.catalog_service import FeatureCatalogService
 from dashboard.service import DashboardService
+from memory.evidence_frontier import frontier_summary
 from memory.evidence_knowledge import failure_context
 from research.llm.codex_exec import record_intent, sanitize_context
 from research.llm.director import ResearchIntent
@@ -54,6 +55,15 @@ class ResearchService:
         if not isinstance(payload, dict):
             raise ValueError("research context must be an object")
         return {str(key): value for key, value in payload.items()}
+
+    def brief(self) -> dict[str, object]:
+        """Bounded sanitized context, readable without running an internal LLM."""
+        return {
+            **self.context(),
+            "frontier": frontier_summary(self.state_dir)[:20],
+            "llm_controller": "external_mcp_client",
+            "orders_enabled": False,
+        }
 
     def evidence(self, run_id: str | None = None) -> dict[str, Any]:
         return self.dashboard.research_evidence(run_id)

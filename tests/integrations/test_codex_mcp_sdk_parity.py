@@ -23,6 +23,8 @@ PUBLIC_NAMES = {
     "list_strategies",
     "list_features",
     "get_research_evidence",
+    "get_research_brief",
+    "run_research_step",
     "get_dashboard_status",
     "run_evaluation",
     "check_system",
@@ -93,10 +95,7 @@ def test_phase5_3_sdk_tools_match_manual_public_schema_exactly(tmp_path: Path) -
     )
 
     result = asyncio.run(adapter.list_tools(_context(), None))
-    dumped = [
-        tool.model_dump(by_alias=True, exclude_none=True)
-        for tool in result.tools
-    ]
+    dumped = [tool.model_dump(by_alias=True, exclude_none=True) for tool in result.tools]
 
     assert SDK_ADAPTER_STATUS == "CANONICAL_SDK"
     assert dumped == _tools()

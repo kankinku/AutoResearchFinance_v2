@@ -48,7 +48,7 @@ def test_phase6_3_manual_adapter_owns_legacy_jsonrpc(tmp_path: Path) -> None:
 
     listed = server.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     assert listed is not None
-    assert len(listed["result"]["tools"]) == 13
+    assert len(listed["result"]["tools"]) == 15
 
 
 def test_phase6_3_canonical_python_import_shim_preserves_legacy_test_api(

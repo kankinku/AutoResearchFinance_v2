@@ -40,6 +40,8 @@ def test_mcp_server_lists_only_safe_research_tools(tmp_path: Path) -> None:
         "list_features",
         "get_dashboard_status",
         "get_research_evidence",
+        "get_research_brief",
+        "run_research_step",
         "run_evaluation",
         "check_system",
         "start_system",
@@ -118,9 +120,7 @@ def test_mcp_server_exposes_full_registered_feature_catalog(tmp_path: Path) -> N
     assert isinstance(catalog, list)
     assert len(catalog) == 173
     assert any(item.get("name") == "rsi" for item in catalog if isinstance(item, dict))
-    assert any(
-        item.get("name") == "us_20y_change" for item in catalog if isinstance(item, dict)
-    )
+    assert any(item.get("name") == "us_20y_change" for item in catalog if isinstance(item, dict))
 
 
 def test_mcp_server_validates_and_records_intent_but_rejects_code_changes(tmp_path: Path) -> None:
@@ -214,7 +214,6 @@ def test_mcp_system_preflight_returns_actionable_blockers_without_starting(tmp_p
     assert "Docker" in str(payload["preflight"]["checks"])
 
 
-
 def _write_phase4_strategy(root: Path) -> None:
     (root / "strategy.json").write_text(
         json.dumps(
@@ -226,15 +225,11 @@ def _write_phase4_strategy(root: Path) -> None:
                 "indicators": {"fast": {"type": "SMA", "period": 5}},
                 "entry": {
                     "logic": "AND",
-                    "conditions": [
-                        {"op": "greater_than", "left": "close", "value": 0}
-                    ],
+                    "conditions": [{"op": "greater_than", "left": "close", "value": 0}],
                 },
                 "exit": {
                     "logic": "AND",
-                    "conditions": [
-                        {"op": "less_than", "left": "close", "value": 0}
-                    ],
+                    "conditions": [{"op": "less_than", "left": "close", "value": 0}],
                 },
                 "risk": {"stop_loss_pct": 0, "take_profit_pct": 0},
             }
@@ -422,7 +417,6 @@ def test_phase4_mcp_strategy_tools_reject_project_escape_and_unsafe_repository(
     assert "example.com" not in str(unsafe_repo)
 
 
-
 def test_submit_research_intent_is_hidden_but_legacy_direct_call_still_works(
     tmp_path: Path,
 ) -> None:
@@ -502,7 +496,6 @@ def test_hidden_legacy_internal_tools_remain_directly_callable_with_migration_me
             assert replacements == []
         else:
             assert expected_replacement in replacements
-
 
 
 def test_public_mcp_responses_include_versioned_contract_metadata(tmp_path: Path) -> None:
