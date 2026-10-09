@@ -15,6 +15,7 @@ from core.features.registry import research_feature_specs
 from dashboard.ledger import append_funnel_results
 from evaluation.benchmark import BenchmarkData
 from evaluation.selector import FunnelConfig
+from memory.evidence_frontier import frontier_summary
 from memory.evidence_knowledge import failure_context, sync_knowledge
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore, digest
 from mutation.engine import MutationOperation
@@ -324,7 +325,7 @@ def build_research_context(state_dir: Path, *, source_path: Path | None = None) 
             "failure_knowledge": failure_context(state_dir),
             "generation": snapshot.strategy.generation or 0,
             "champion": snapshot.strategy.model_dump(mode="json"),
-            "frontier": [],
+            "frontier": frontier_summary(state_dir),
             "observations": [item.model_dump(mode="json") for item in snapshot.tests[:20]],
             "feature_catalog": [
                 {

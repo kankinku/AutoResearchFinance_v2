@@ -1,0 +1,5 @@
+# T-011 partial — read-only persistent Frontier reconstructed from Evidence
+
+`memory.evidence_frontier.frontier_summary` reconstructs the highest-scoring SURVIVOR/FRONTIER/CHAMPION_CANDIDATE/CHAMPION candidate per family by reading checksum-verified immutable attempt records. It does not trust or rewrite mutable `frontier.json`, does not create files when there are no observations, excludes nonfinite scores, and never promotes rejected or near-miss candidates into the frontier. The director's sanitized `build_research_context()` now includes this short list rather than a permanently empty `frontier` array. The list contains only candidate hashes, family labels, scores, and observed status — no credentials, market bars, or Sealed OOS rows.
+
+The next phase must persist or recover canonical Strategy IR for each eligible parent, separately handle near-miss rescue candidates, and ensure the runtime actually sources diverse candidates; reading an evidence-backed frontier is not equivalent to executing Frontier/Rescue/Crossover exploration. Official champion promotion remains a human/Sealed OOS authorization issue; no autonomous promotion was added.

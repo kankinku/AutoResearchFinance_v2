@@ -20,11 +20,11 @@ Updated: 2026-10-09. Canonical architecture remains `docs/architecture/quant-aut
 | T-004 | P0 | PARTIAL | T-001 | DONE finite OHLCV rejection, historical fold warmup; PENDING vendor provenance, survivorship, corporate actions and missing-data policy |
 | T-005 | P0 | PARTIAL | T-001 | DONE trailing stop/regime gates; remaining risk policy assertions/edge cases |
 | T-006 | P0 | PARTIAL | T-005 | DONE exposure from marked positions; remaining accounting/returns audit |
-| T-007 | P0 | PARTIAL | T-004, T-006 | DONE test-window order isolation and warmup-only prefix; PENDING true train-only fit/selection, final sealed OOS |
-| T-008 | P0 | PARTIAL | T-007 | DONE reject false positive cost-resilience on losing strategies; PENDING independent DSR/PBO reference audit and trial accounting |
-| T-009 | P1 | PARTIAL | T-001 | DONE unique random draws; remaining cross-parent semantic dedup and versioned evaluation cache |
-| T-010 | P1 | PENDING | T-008, T-009 | Exploration/exploitation/crossover/rescue policy actually drives candidate sourcing |
-| T-011 | P1 | PENDING | T-010 | Durable frontier, rescue, champion and evidence-linked hypotheses |
+| T-007 | P0 | PARTIAL | T-004, T-006 | DONE native price-strategy cohort train-only selection/holdout with immutable audit; PENDING upstream fold-specific generation, external as-of features, final sealed OOS |
+| T-008 | P0 | PARTIAL | T-007 | DONE cost-resilience sign, PBO/CPCV aligned finite inputs, within-workspace cumulative trials; PENDING independent DSR/PBO reference and all-workspace trial accounting |
+| T-009 | P1 | PARTIAL | T-001 | DONE unique random draws and execution-semantic dedup in pipeline; PENDING environment-versioned evaluation cache and cross-parent sourcing |
+| T-010 | P1 | PARTIAL | T-008, T-009 | DONE canonical policy-driven allocation planner; PENDING execution of source-specific generators and lineage evidence |
+| T-011 | P1 | PARTIAL | T-010 | DONE read-only immutable-evidence Frontier in director context; PENDING actual parent IR retrieval, Rescue and authorized champion flow |
 | T-012 | P1 | PENDING | T-011 | Evidence-based director; bounded calls, diagnostics, reproducible A/B benchmark |
 | T-013 | P1 | PENDING | T-012 | Full official SDK + queue/process/Docker ownership, Windows Host acceptance |
 | T-014 | P0 | PENDING | T-013 | Independent historical data run, frozen holdout, OOS report, security/regression signoff |
