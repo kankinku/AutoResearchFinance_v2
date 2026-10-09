@@ -38,6 +38,7 @@ class GenerationPipelineResult:
     funnel: tuple[FunnelResult, ...]
     knowledge: dict[str, object]
     train_only_selection: TrainOnlySelectionReport | None = None
+    multiple_testing_trials: int = 1
 
 
 @dataclass(frozen=True)
@@ -82,7 +83,10 @@ class GenerationPipeline:
         feature_specs: Mapping[str, FeatureSpec] | None = None,
         feature_inputs: Mapping[str, Sequence[float | None]] | None = None,
         external_series: SeriesDataSet | None = None,
+        prior_trials: int = 0,
     ) -> GenerationPipelineResult:
+        if prior_trials < 0:
+            raise ValueError("prior_trials must be nonnegative")
         if DataZone(dataset.zone) is not DataZone.DEVELOPMENT:
             raise PermissionError("generation research requires development market data")
         if (
@@ -101,6 +105,7 @@ class GenerationPipeline:
             observations=observations,
         )
         candidates = deduplicate_candidates(list(generated), semantic=True).unique
+        multiple_testing_trials = max(1, len(candidates) + prior_trials)
         fast_dataset = _fast_slice(dataset)
         fast_width = len(fast_dataset.bars)
         fast_features = _slice_feature_values(feature_values, fast_width)
@@ -211,7 +216,7 @@ class GenerationPipeline:
                 stressed_return=item.stressed_metrics.total_return,
                 parameter_scores=resampling_scores,
                 sharpe=item.full_metrics.sharpe or 0.0,
-                trials=max(1, len(candidates)),
+                trials=multiple_testing_trials,
                 observations=len(item.returns),
                 complexity=complexity,
                 pbo=pbo,
@@ -253,7 +258,12 @@ class GenerationPipeline:
             external_series=external_series,
         )
         return GenerationPipelineResult(
-            CANONICAL_STAGES, candidates, tuple(results), knowledge, selection
+            CANONICAL_STAGES,
+            candidates,
+            tuple(results),
+            knowledge,
+            selection,
+            multiple_testing_trials,
         )
 
     def _select_train_only(

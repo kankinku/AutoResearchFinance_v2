@@ -141,3 +141,25 @@ def test_pipeline_deduplicates_equivalent_generated_parameter_points() -> None:
     assert len(result.funnel) == 1
     assert result.train_only_selection is not None
     assert all(fold.candidate_count == 1 for fold in result.train_only_selection.folds)
+
+
+def test_prior_research_trials_are_counted_in_statistics() -> None:
+    result = GenerationPipeline().run(
+        parent=strategy(),
+        dataset=data(),
+        operations=(),
+        domains=(ParameterDomain("risk.position_size_pct", (50.0, 100.0)),),
+        method="grid",
+        count=2,
+        seed=2,
+        funnel=FunnelConfig(
+            min_fast_trades=0,
+            min_full_trades=0,
+            min_fast_return=-1,
+            min_full_return=-1,
+            min_robust_score=0,
+            require_validation=False,
+        ),
+        prior_trials=21,
+    )
+    assert result.multiple_testing_trials == 23

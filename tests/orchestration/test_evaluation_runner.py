@@ -417,3 +417,20 @@ def test_local_evaluation_exposes_train_only_evidence_for_price_strategies(
         if event["kind"] == "attempt"
     ]
     assert attempts[-1]["train_only_selection"] == selection
+
+
+def test_multiple_testing_trials_include_prior_research_attempts(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    options = dict(
+        project_root=tmp_path,
+        state_dir=tmp_path / "state",
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        parameter_domains=(ParameterDomain("indicators.fast.period", (2, 3)),),
+        count=2,
+        min_trades=0,
+    )
+    first = run_local_evaluation(**options)
+    second = run_local_evaluation(**options)
+    assert first["multiple_testing_trials"] == 2
+    assert second["multiple_testing_trials"] == 4

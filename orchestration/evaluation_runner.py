@@ -123,6 +123,11 @@ def run_local_evaluation(
     original = normalize_source(source).strategy
     if original is None:
         raise ValueError("strategy source is unsupported")
+    previous_trials = sum(
+        len(payload.get("candidates", ()))
+        for event in evidence.events()
+        if event.get("kind") == "attempt" and isinstance((payload := event.get("payload")), dict)
+    )
     pipeline = GenerationPipeline()
     freeze_manifest(
         state_dir,
@@ -146,6 +151,7 @@ def run_local_evaluation(
         feature_specs=feature_specs,
         feature_inputs=feature_inputs,
         external_series=series,
+        prior_trials=previous_trials,
     )
     selection_payload: dict[str, object] | None = (
         asdict(pipeline_result.train_only_selection)
@@ -170,6 +176,7 @@ def run_local_evaluation(
                 "parent_ir_hash": digest(strategy.model_dump(mode="json", by_alias=True)),
                 "method": method,
                 "count": count,
+                "multiple_testing_trials": pipeline_result.multiple_testing_trials,
                 "parameter_domains": [asdict(domain) for domain in domains],
                 "worker": dict(
                     execution_context
@@ -217,6 +224,7 @@ def run_local_evaluation(
         "attempt_id": attempt_id,
         "status": "COMPLETED",
         "candidate_count": len(pipeline_result.candidates),
+        "multiple_testing_trials": pipeline_result.multiple_testing_trials,
         "train_only_selection": selection_payload,
         "search_mode": "baseline" if not domains and not typed_operations else method,
         "counts": {

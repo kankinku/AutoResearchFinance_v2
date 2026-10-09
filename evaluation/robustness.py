@@ -89,6 +89,8 @@ def cpcv_return_scores(
 
     if len(returns) < groups:
         raise ValueError("insufficient return observations for CPCV")
+    if any(not math.isfinite(value) for value in returns):
+        raise ValueError("CPCV returns must be finite")
     splits = cpcv_splits(tuple(range(len(returns))), groups=groups, test_groups=test_groups)
     return tuple(
         math.expm1(_log_return_score(returns, test_indices))
@@ -111,10 +113,15 @@ def probability_backtest_overfitting(
 
     if len(candidate_returns) < 2:
         raise ValueError("insufficient candidate cohort for PBO")
-    width = min((len(values) for values in candidate_returns), default=0)
+    widths = {len(values) for values in candidate_returns}
+    if len(widths) != 1:
+        raise ValueError("PBO candidate returns must be chronologically aligned")
+    width = next(iter(widths))
     if width < groups:
         raise ValueError("insufficient return observations for PBO")
-    aligned = tuple(tuple(values[:width]) for values in candidate_returns)
+    if any(not math.isfinite(value) for values in candidate_returns for value in values):
+        raise ValueError("PBO returns must be finite")
+    aligned = candidate_returns
     splits = cscv_splits(tuple(range(width)), groups=groups, test_groups=test_groups)
     if not splits:
         raise ValueError("insufficient CSCV splits for PBO")

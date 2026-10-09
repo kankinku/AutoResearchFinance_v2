@@ -118,3 +118,22 @@ def test_positive_return_stress_sensitivity_retains_existing_ratio() -> None:
         complexity=2,
     )
     assert report.cost_sensitivity == pytest.approx(0.5)
+
+
+def test_pbo_rejects_unequal_return_histories_instead_of_truncating() -> None:
+    with pytest.raises(ValueError, match="aligned"):
+        probability_backtest_overfitting(
+            ((0.02, 0.01, 0.0, -0.01), (0.01, 0.03, 0.02, -0.01, 0.10))
+        )
+
+
+def test_pbo_rejects_nonfinite_returns_before_scoring() -> None:
+    with pytest.raises(ValueError, match="finite"):
+        probability_backtest_overfitting(
+            ((0.02, float("nan"), 0.0, -0.01), (0.01, 0.03, 0.02, -0.01))
+        )
+
+
+def test_cpcv_rejects_nonfinite_return_history() -> None:
+    with pytest.raises(ValueError, match="finite"):
+        cpcv_return_scores((0.01, 0.02, float("inf"), 0.03))
