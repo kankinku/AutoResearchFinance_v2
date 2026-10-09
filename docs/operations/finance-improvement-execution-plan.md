@@ -22,7 +22,7 @@ Updated: 2026-10-09. Canonical architecture remains `docs/architecture/quant-aut
 | T-006 | P0 | PARTIAL | T-005 | DONE exposure from marked positions; remaining accounting/returns audit |
 | T-007 | P0 | PARTIAL | T-004, T-006 | DONE native price-strategy cohort train-only selection/holdout with immutable audit; PENDING upstream fold-specific generation, external as-of features, final sealed OOS |
 | T-008 | P0 | PARTIAL | T-007 | DONE cost-resilience sign, PBO/CPCV aligned finite inputs, within-workspace cumulative trials; PENDING independent DSR/PBO reference and all-workspace trial accounting |
-| T-009 | P1 | PARTIAL | T-001 | DONE memory-bounded random search, bounded grid candidate enumeration, execution-semantic dedup; PENDING Bayesian scalability, version-aware cache and cross-parent sourcing |
+| T-009 | P1 | PARTIAL | T-001 | DONE memory-bounded random search, bounded grid candidate enumeration, execution-semantic dedup; DONE large-space bounded Bayesian candidate pool; PENDING version-aware cache and cross-parent sourcing |
 | T-010 | P1 | PARTIAL | T-008, T-009 | DONE canonical policy-driven allocation planner; PENDING execution of source-specific generators and lineage evidence |
 | T-011 | P1 | PARTIAL | T-010 | DONE read-only immutable-evidence Frontier in director context; PENDING actual parent IR retrieval, Rescue and authorized champion flow |
 | T-012 | P1 | PENDING | T-011 | Evidence-based director; bounded calls, diagnostics, reproducible A/B benchmark |

@@ -1,0 +1,9 @@
+# T-009 — bounded candidate pool for Bayesian-style mutation proposals
+
+Previously `bayesian_search` enumerated **every** combination with `grid_search(domains)` and scored them on every selection iteration. For large finite domains, even requesting one candidate could allocate huge amounts of memory.
+
+When the Cartesian product is <=4096 entries, the exact previous exhaustive selection/acquisition behavior is retained. For larger spaces, the algorithm now builds a **seeded finite sampling pool** using the already memory-bounded `random_search`, with a budget of `max(512, 8 * requested_count)`; it also includes in-domain previously observed combinations without counting those observations as new evaluation evidence. An explicit zero-mean prior shrinks estimates for unobserved points in the approximate mode, preventing a far-away, minimally supported point from inheriting the maximum observed score with unbounded optimism. Invalid duplicate names and non-finite observed scores fail closed. All selected candidates are still unique and reproducible under the same seed.
+
+The large-space mode is deliberately a **bounded approximate Bayesian-style acquisition**, not an exhaustive Bayesian optimizer nor a predictive posterior with formal uncertainty calibration. Candidate quality may differ from the pre-change exhaustive search; the decision threshold is deterministic. This improvement addresses time/memory, not verified strategy profitability.
+
+Tests exercise a 2**29 combination space with a monkeypatch that prohibits any grid construction, include the best previously observed valid candidate in a 10,000-combination pool, reject duplicate parameter names and preserve ordinary small-domain test results. Environmental-versioned result caching and cross-family search remain separate tasks.

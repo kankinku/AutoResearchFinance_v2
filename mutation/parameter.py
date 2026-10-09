@@ -109,8 +109,40 @@ def bayesian_search(
 ) -> list[ParameterPoint]:
     if count < 0:
         raise ValueError("count must be non-negative")
-    candidates = grid_search(domains)
-    if not candidates or count == 0:
+    if count == 0:
+        return []
+    names = [domain.name for domain in domains]
+    if len(set(names)) != len(names):
+        raise ValueError("duplicate parameter names are invalid")
+    if any(not math.isfinite(item.score) for item in observations):
+        raise ValueError("Bayesian observation scores must be finite")
+    space = math.prod(len(domain.values) for domain in domains)
+    if space <= 4096:
+        # Preserve exactly the pre-existing exhaustive acquisition/tie semantics.
+        candidates = grid_search(domains)
+    else:
+        # Bounded, seeded acquisition *candidate pool*, not an exact global
+        # Bayesian maximizer. Include known observed points explicitly so that
+        # exploitation never depends on a random sample hitting those points.
+        sample_count = max(count * 8, 512)
+        candidates = random_search(domains, count=sample_count, seed=seed)
+        signatures = {_stable_typed_point(point) for point in candidates}
+        allowed = {
+            domain.name: {(type(value).__name__, repr(value)) for value in domain.values}
+            for domain in domains
+        }
+        for observation in observations:
+            point = observation.parameters
+            if set(point) != set(names) or any(
+                (type(point[name]).__name__, repr(point[name])) not in allowed[name]
+                for name in names
+            ):
+                continue
+            signature = _stable_typed_point(point)
+            if signature not in signatures:
+                candidates.append(dict(point))
+                signatures.add(signature)
+    if not candidates:
         return []
     generator = random.Random(seed)
     selected: list[ParameterPoint] = []
@@ -118,7 +150,7 @@ def bayesian_search(
     for _ in range(min(count, len(candidates))):
         scored = [
             (
-                _acquisition(point, observations, selected),
+                _acquisition(point, observations, selected, shrink_prior=space > 4096),
                 generator.random(),
                 point,
             )
@@ -134,6 +166,8 @@ def _acquisition(
     point: ParameterPoint,
     observations: list[BayesianObservation],
     selected: list[ParameterPoint],
+    *,
+    shrink_prior: bool = False,
 ) -> float:
     exact_scores = [obs.score for obs in observations if obs.parameters == point]
     if exact_scores:
@@ -142,11 +176,11 @@ def _acquisition(
     elif observations:
         weights = [math.exp(-_distance(point, obs.parameters)) for obs in observations]
         total_weight = sum(weights)
-        mean = (
-            sum(weight * obs.score for weight, obs in zip(weights, observations, strict=True))
-            / total_weight
-        )
-        uncertainty = 1.0 / math.sqrt(total_weight)
+        prior_weight = 1.0 if shrink_prior else 0.0
+        mean = sum(
+            weight * obs.score for weight, obs in zip(weights, observations, strict=True)
+        ) / (total_weight + prior_weight)
+        uncertainty = 1.0 / math.sqrt(total_weight + prior_weight)
     else:
         mean, uncertainty = 0.0, 1.0
     diversity_penalty = 0.05 * sum(_distance(point, other) == 0 for other in selected)
@@ -160,3 +194,7 @@ def _distance(left: ParameterPoint, right: ParameterPoint) -> float:
 
 def _stable_point(point: ParameterPoint) -> str:
     return repr(sorted(point.items()))
+
+
+def _stable_typed_point(point: ParameterPoint) -> tuple[tuple[str, str, str], ...]:
+    return tuple(sorted((key, type(value).__name__, repr(value)) for key, value in point.items()))

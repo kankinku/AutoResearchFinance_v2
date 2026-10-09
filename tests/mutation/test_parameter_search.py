@@ -135,3 +135,38 @@ def test_grid_search_rejects_invalid_limit() -> None:
 
     with pytest.raises(ValueError, match="limit"):
         grid_search(domains(), limit=-2)
+
+
+def test_bayesian_search_bounded_for_large_parameter_product(monkeypatch) -> None:
+    import mutation.parameter as parameter
+
+    def exhaustive_forbidden(_domains, *, limit=None):
+        raise AssertionError("Bayesian search must not expand a huge grid")
+
+    monkeypatch.setattr(parameter, "grid_search", exhaustive_forbidden)
+    massive = tuple(ParameterDomain(f"k{i}", (0, 1)) for i in range(29))
+    result = bayesian_search(massive, [], count=5, seed=14)
+    assert len(result) == 5
+    assert result == bayesian_search(massive, [], count=5, seed=14)
+    assert len({tuple(sorted(point.items())) for point in result}) == 5
+
+
+def test_bayesian_large_pool_includes_observed_in_domain_points() -> None:
+    massive = (ParameterDomain("a", tuple(range(100))), ParameterDomain("b", tuple(range(100))))
+    observed = {"a": 99, "b": 99}
+    result = bayesian_search(
+        massive, [BayesianObservation(observed, score=5000.0)], count=1, seed=7
+    )
+    assert result == [observed]
+
+
+def test_bayesian_rejects_duplicate_names_on_large_grid() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="duplicate"):
+        bayesian_search(
+            (ParameterDomain("x", tuple(range(100))), ParameterDomain("x", tuple(range(100)))),
+            [],
+            count=1,
+            seed=4,
+        )
