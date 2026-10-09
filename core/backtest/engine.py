@@ -60,6 +60,7 @@ class _SymbolState:
     index_by_timestamp: dict[datetime, int]
     units: float = 0.0
     entry_price: float = 0.0
+    peak_close: float = 0.0
     pending: str | None = None
     last_close: float = 0.0
 
@@ -211,6 +212,7 @@ class BacktestEngine:
                 trades.append(_trade(bar, "sell", state.units, cost, price=bar.open))
                 state.units = 0.0
                 state.entry_price = 0.0
+                state.peak_close = 0.0
                 state.pending = None
 
             for symbol in symbols:
@@ -250,6 +252,7 @@ class BacktestEngine:
                     state.units = max(0.0, (notional - cost) / bar.open)
                     cash -= notional
                     state.entry_price = bar.open
+                    state.peak_close = bar.open
                     trades.append(_trade(bar, "buy", state.units, cost, price=bar.open))
                 state.pending = None
 
@@ -261,13 +264,17 @@ class BacktestEngine:
                 index = state.index_by_timestamp[timestamp]
                 state.last_close = bar.close
                 if state.units > 0:
+                    state.peak_close = max(state.peak_close, bar.close)
                     if _rules_match(
                         strategy.exit.conditions, strategy.exit.logic, state.values, index
-                    ) or _risk_exit(strategy, state.entry_price, bar.close):
+                    ) or _risk_exit(
+                        strategy, state.entry_price, bar.close, peak_close=state.peak_close
+                    ):
                         state.pending = "exit"
                 elif (
                     not daily_loss_blocked
                     and not stopped
+                    and _regime_allows(strategy, state.values, index)
                     and _rules_match(
                         strategy.entry.conditions, strategy.entry.logic, state.values, index
                     )
@@ -321,6 +328,7 @@ class BacktestEngine:
         cash = request.initial_cash
         units = 0.0
         entry_price = 0.0
+        peak_close = 0.0
         equity: list[float] = []
         trades: list[Trade] = []
         pending: str | None = None
@@ -351,6 +359,7 @@ class BacktestEngine:
                 trades.append(_trade(bar, "sell", units, cost, price=bar.open))
                 units = 0.0
                 entry_price = 0.0
+                peak_close = 0.0
             elif pending == "entry" and units == 0:
                 notional = cash * strategy.risk.position_size_pct / 100
                 if (
@@ -367,18 +376,23 @@ class BacktestEngine:
                     units = max(0.0, (notional - cost) / bar.open)
                     cash -= notional
                     entry_price = bar.open
+                    peak_close = bar.open
                     trades.append(_trade(bar, "buy", units, cost, price=bar.open))
             pending = None
 
             if units > 0:
+                peak_close = max(peak_close, bar.close)
                 exit_signal = _rules_match(
                     strategy.exit.conditions, strategy.exit.logic, values, index
                 )
-                if exit_signal or _risk_exit(strategy, entry_price, bar.close):
+                if exit_signal or _risk_exit(
+                    strategy, entry_price, bar.close, peak_close=peak_close
+                ):
                     pending = "exit"
             elif (
                 not daily_loss_blocked
                 and not stopped
+                and _regime_allows(strategy, values, index)
                 and _rules_match(strategy.entry.conditions, strategy.entry.logic, values, index)
             ):
                 pending = "entry"
@@ -574,12 +588,34 @@ def _condition_match(
     }[condition.op]
 
 
-def _risk_exit(strategy: StrategyIR, entry_price: float, price: float) -> bool:
+def _regime_allows(
+    strategy: StrategyIR, values: dict[str, list[float | None]], index: int
+) -> bool:
+    """Entry-only, conjunctive regime gates; disabled and empty gates are neutral."""
+    return all(
+        _condition_match(condition, values, index)
+        for condition in strategy.regime_filters
+        if condition.enabled
+    )
+
+
+def _risk_exit(
+    strategy: StrategyIR, entry_price: float, price: float, *, peak_close: float
+) -> bool:
+    """Evaluate close-confirmed risk exits; any triggered sell fills next open."""
     if entry_price <= 0:
         return False
     move_pct = (price / entry_price - 1) * 100
-    return (strategy.risk.stop_loss_pct > 0 and move_pct <= -strategy.risk.stop_loss_pct) or (
-        strategy.risk.take_profit_pct > 0 and move_pct >= strategy.risk.take_profit_pct
+    trailing = strategy.risk.trailing_stop_pct
+    return (
+        (strategy.risk.stop_loss_pct > 0 and move_pct <= -strategy.risk.stop_loss_pct)
+        or (strategy.risk.take_profit_pct > 0 and move_pct >= strategy.risk.take_profit_pct)
+        or (
+            trailing is not None
+            and trailing > 0
+            and peak_close > 0
+            and price <= peak_close * (1 - trailing / 100)
+        )
     )
 
 
