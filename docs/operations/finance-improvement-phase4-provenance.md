@@ -11,3 +11,7 @@ Implemented a backward-compatible, versioned **vendor declaration contract** for
 **Important limitations:** This layer does not verify vendor data externally, independently validate split/dividend adjustments, reconstruct historical constituents, detect all exchange-holiday/session gaps or secure a cryptographic signed source snapshot. A newer vendor snapshot, even if accompanied by `revision_policy=as_of`, is not proof of what a historical trader actually knew. Sealed OOS is not accessed. Separate genuine vendor audit and PIT availability checks remain required before T-004 is complete.
 
 Tests: `tests/core/test_market_data_provenance.py` and `tests/orchestration/test_evaluation_runner.py`, plus existing parquet, core, pipeline and runner regression tests.
+
+## Continuous-market cadence check
+
+As an extra synthetic coverage check, `market_data_quality` now reports `missing_continuous_bars` when per-symbol 24/7 timestamps skip more than one expected intraday/daily/weekly interval (allowing tolerance for timestamp drift). No rows are synthesized and no fill-forward occurs. Exchange-traded assets are explicitly **excluded** from this heuristic because weekends, DST and unsupplied holiday calendars cannot be safely inferred. Monthly bars are excluded because months are not fixed-length. Independent exchange-session validation is still required.

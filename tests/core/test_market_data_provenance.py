@@ -106,3 +106,56 @@ def test_invalid_provenance_metadata_fails_closed_before_using_vendor_claim() ->
         MarketSourceProvenance.from_record({**valid, "revision_policy": ["as_of"]})
     with pytest.raises(DataContractError, match="metadata"):
         MarketSourceProvenance.from_record({**valid, "source_id": 42})
+
+
+def test_missing_continuous_daily_session_is_reported_not_silently_filled() -> None:
+    bars = (
+        Bar(datetime(2024, 1, 2, tzinfo=timezone.utc), "BTC", 100, 101, 99, 100, 10),
+        Bar(datetime(2024, 1, 4, tzinfo=timezone.utc), "BTC", 100, 101, 99, 100, 10),
+    )
+    result = market_data_quality(
+        MarketDataSet(
+            "crypto-v1",
+            "development",
+            bars,
+            timeframe="1d",
+            calendar="continuous",
+            provenance=provenance(universe_policy="single_symbol"),
+        )
+    )
+    assert "missing_continuous_bars" in result.issues
+    assert result.status == "UNVERIFIED"
+
+
+def test_us_exchange_weekend_is_not_mistaken_for_missing_24h_bars() -> None:
+    bars = (
+        Bar(datetime(2024, 1, 5, tzinfo=timezone.utc), "AAA", 100, 101, 99, 100, 10),
+        Bar(datetime(2024, 1, 8, tzinfo=timezone.utc), "AAA", 100, 101, 99, 100, 10),
+    )
+    result = market_data_quality(
+        MarketDataSet(
+            "us-v1",
+            "development",
+            bars,
+            provenance=provenance(universe_policy="single_symbol"),
+        )
+    )
+    assert "missing_continuous_bars" not in result.issues
+
+
+def test_missing_continuous_intraday_bar_is_reported_per_symbol() -> None:
+    bars = (
+        Bar(datetime(2024, 1, 2, 0, 0, tzinfo=timezone.utc), "BTC", 100, 101, 99, 100, 10),
+        Bar(datetime(2024, 1, 2, 0, 30, tzinfo=timezone.utc), "BTC", 100, 101, 99, 100, 10),
+    )
+    result = market_data_quality(
+        MarketDataSet(
+            "crypto-15m",
+            "development",
+            bars,
+            timeframe="15m",
+            calendar="continuous",
+            provenance=provenance(universe_policy="single_symbol"),
+        )
+    )
+    assert "missing_continuous_bars" in result.issues
