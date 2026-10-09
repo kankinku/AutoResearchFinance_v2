@@ -38,7 +38,7 @@ manual rollback은 production default가 아니다.
 현재 공개 surface:
 
 ```text
-13 public
+15 public
 5 hidden legacy
 public contract = v1
 RuntimeSnapshot = v2
@@ -54,6 +54,8 @@ public Tool:
 - list_strategies
 - list_features
 - get_research_evidence
+- get_research_brief
+- run_research_step
 - get_dashboard_status
 - run_evaluation
 - check_system
@@ -146,7 +148,7 @@ uv run --locked --extra dev python scripts/verify_mcp_runtime.py \
 
 두 acceptance가 보장하는 공통 계약:
 
-- 13 public Tool
+- 15 public Tool
 - 5 hidden legacy direct compatibility calls
 - public contract v1
 - sanitized error boundary
@@ -191,3 +193,13 @@ orders_enabled=false
 ```
 
 다.
+
+## ChatGPT 외부 LLM 연구 실행 추가 (2026-10-09)
+
+`get_research_brief` (읽기 전용)과 `run_research_step` (단일 연구 의도 실행)를 공식 SDK 및 manual 호환 도구 목록에 추가했다. 후자는 사용자 대화 중 ChatGPT가 결정한 ResearchIntent를 등록된 feature, canonical IR 및 provenance 정책으로 검증한 후 지역 백테스트 엔진으로 전달하고 Evidence를 생성한다. **별도 Codex 프로세스를 시작하지 않는다.** 이전 `start_system`은 내부 Codex가 연구 판단을 수행하는 구형 자율 모드를 계속 제공하므로 별도로 취급한다.
+
+현재 정본 MCP 전송 방식은 여전히 stdio이다. 이 변경만으로 외부 ChatGPT 플러그인 연결과 원격 인증이 완료되는 것은 아니다. 주문 기능은 계속 비활성화된다.
+
+## Optional authenticated HTTP ingress (2026-10-09)
+
+`integrations.chatgpt_mcp_http` adds a separate, opt-in Streamable HTTP endpoint for external research-director clients, using the canonical official SDK dispatcher with required bearer token and loopback-only bind. `docs/operations/chatgpt-mcp-mode.md` documents transport, mode separation, examples and outstanding OAuth/ChatGPT plugin/deployment acceptance. Canonical stdio entrypoint remains unchanged.
