@@ -253,6 +253,11 @@ class GenerationPipeline:
         selection = self._select_train_only(
             candidates,
             dataset,
+            parent=parent,
+            operations=operations,
+            domains=domains,
+            count=count,
+            seed=seed,
             feature_values=feature_values,
             feature_inputs=feature_inputs,
             external_series=external_series,
@@ -273,6 +278,11 @@ class GenerationPipeline:
         candidates: tuple[Candidate, ...],
         dataset: MarketDataSet,
         *,
+        parent: StrategyIR,
+        operations: tuple[MutationOperation, ...],
+        domains: tuple[ParameterDomain, ...],
+        count: int,
+        seed: int,
         method: str,
         prior_observations_supplied: bool,
         feature_values: Mapping[str, Sequence[float | None]] | None,
@@ -323,9 +333,26 @@ class GenerationPipeline:
                 if train_begin <= bar.timestamp <= train_end
             )
             train_data = _select_dataset(dataset, training_indices)
+            # Do not share generated candidates between folds. Candidate
+            # mutations and parameter draws are recomputed after each fold's
+            # training dataset has been sealed. This generator is data-blind;
+            # source hypotheses from the parent remain unverified upstream.
+            generation_seed = seed + fold_id
+            fold_generated = generate_candidates(
+                parent,
+                operations,
+                domains,
+                method=method,
+                count=count,
+                seed=generation_seed,
+                observations=None,
+            )
+            fold_candidates = deduplicate_candidates(list(fold_generated), semantic=True).unique
+            if not fold_candidates:
+                return TrainOnlySelectionReport("INSUFFICIENT_CANDIDATES")
             scored = tuple(
                 (self._evaluate(candidate, train_data, f"select-train-{fold_id}")[0], candidate)
-                for candidate in candidates
+                for candidate in fold_candidates
             )
             # Deterministic pre-test tie-breaker; underperformance in the test
             # period must not influence the selected strategy or training score.
@@ -347,8 +374,13 @@ class GenerationPipeline:
                 TrainOnlyFold(
                     fold=fold_id,
                     selected_candidate_hash=chosen.candidate_hash,
-                    candidate_count=len(candidates),
+                    candidate_count=len(fold_candidates),
                     train_dataset_hash=train_data.dataset_hash,
+                    generation_seed=generation_seed,
+                    generated_candidate_hashes=tuple(
+                        candidate.candidate_hash for candidate in fold_candidates
+                    ),
+                    candidate_generation_cutoff_at=train_end.isoformat(),
                     train_total_return=train_metrics.total_return,
                     train_end_at=train_end.isoformat(),
                     test_start_at=test_begin.isoformat(),
@@ -358,7 +390,7 @@ class GenerationPipeline:
                 )
             )
         return TrainOnlySelectionReport(
-            "EVALUATED", tuple(evidence), len(evidence) * len(candidates)
+            "EVALUATED", tuple(evidence), sum(fold.candidate_count for fold in evidence)
         )
 
     def _temporal_holdout_evidence(

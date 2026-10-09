@@ -199,3 +199,35 @@ def test_fixed_cohort_train_selection_does_not_assert_upstream_fit_is_verified()
     assert report is not None
     assert report.status == "EVALUATED"
     assert report.upstream_selection_verified is False
+
+
+def test_each_fold_regenerates_candidates_only_after_training_cutoff(monkeypatch) -> None:
+    import orchestration.pipeline as pipeline_module
+
+    original = pipeline_module.generate_candidates
+    observed_seeds: list[int] = []
+
+    def traced_generate(*args, **kwargs):
+        observed_seeds.append(kwargs["seed"])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(pipeline_module, "generate_candidates", traced_generate)
+    report = evaluate(data()).train_only_selection
+    assert report is not None
+    assert report.status == "EVALUATED"
+    assert observed_seeds == [42, 42, 43]  # Cohort diagnostics, then each fold.
+    for fold in report.folds:
+        assert fold.candidate_generation_cutoff_at == fold.train_end_at
+        assert fold.generation_seed == 42 + fold.fold
+        assert fold.selected_candidate_hash in fold.generated_candidate_hashes
+        assert len(fold.generated_candidate_hashes) == fold.candidate_count
+
+
+def test_changes_after_first_fold_do_not_affect_its_generated_candidates() -> None:
+    original = evaluate(data()).train_only_selection
+    modified = evaluate(data((1000, 1000, 1000, 1000, 1000, 1000))).train_only_selection
+    assert original is not None and modified is not None
+    assert (
+        original.folds[0].generated_candidate_hashes == modified.folds[0].generated_candidate_hashes
+    )
+    assert original.folds[0].selected_candidate_hash == modified.folds[0].selected_candidate_hash

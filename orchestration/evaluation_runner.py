@@ -163,7 +163,11 @@ def run_local_evaluation(
     )
     if selection_payload is not None and pipeline_result.train_only_selection is not None:
         selection_payload["folds"] = [
-            asdict(fold) for fold in pipeline_result.train_only_selection.folds
+            {
+                **asdict(fold),
+                "generated_candidate_hashes": list(fold.generated_candidate_hashes),
+            }
+            for fold in pipeline_result.train_only_selection.folds
         ]
     record_generation = strategy.generation + 1 if generation is None else generation
     evidence.append(

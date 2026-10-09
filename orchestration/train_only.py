@@ -21,6 +21,9 @@ class TrainOnlyFold:
     test_total_return: float
     test_trade_count: int
     selection_applied: bool = True
+    generation_seed: int = 0
+    generated_candidate_hashes: tuple[str, ...] = ()
+    candidate_generation_cutoff_at: str = ""
 
 
 @dataclass(frozen=True)
