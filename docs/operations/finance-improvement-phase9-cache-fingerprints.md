@@ -1,0 +1,7 @@
+# T-009 partial — data-content/environment fingerprinted cache identity
+
+Legacy `ExperimentManifest` keyed result caching on dataset version, time bounds, IR, evaluator/compiler/cost/image versions and seed. A vendor could rewrite Parquet data with the same `dataset_version`, producing a misleading CACHE_HIT against a different time series. Likewise, transformed feature/benchmark rows or local worker code could differ without triggering a miss.
+
+Added optional `dataset_hash`, `benchmark_hash`, `feature_inputs_hash` and `code_hash` fields to `ExperimentManifest` and canonical `experiment_hash`. When present, these fields are committed to the cache identity. Tests assert that changing any such field results in `CACHE_MISS`, even when the version string stays unchanged. Absent optional fields preserve exact legacy manifest digest and existing cache tests; no retroactive rewrite of existing records.
+
+**Limit:** The real evaluation worker does **not yet automatically construct verified manifests or reuse/store results from this cache**. Reusing legacy entries without full fingerprints is not secure against silent data revisions. Production cache integration must require complete fingerprints (including dataset, features/benchmark, actual worker source, cost and runtime versions), rather than assuming optional hashes were provided, and retain original attempt Evidence/research trials accounting when reused. These changes alone do not assert end-to-end T-009 completion.

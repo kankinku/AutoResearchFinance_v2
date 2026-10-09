@@ -19,6 +19,10 @@ class ExperimentManifest:
     compiler_version: str
     image_digest: str
     seed: int
+    dataset_hash: str | None = None
+    benchmark_hash: str | None = None
+    feature_inputs_hash: str | None = None
+    code_hash: str | None = None
 
     @property
     def experiment_hash(self) -> str:
@@ -34,4 +38,8 @@ class ExperimentManifest:
             compiler_version=self.compiler_version,
             image_digest=self.image_digest,
             seed=self.seed,
+            dataset_hash=self.dataset_hash,
+            benchmark_hash=self.benchmark_hash,
+            feature_inputs_hash=self.feature_inputs_hash,
+            code_hash=self.code_hash,
         )

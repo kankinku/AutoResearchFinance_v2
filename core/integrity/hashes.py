@@ -20,6 +20,10 @@ def experiment_hash(
     compiler_version: str,
     image_digest: str,
     seed: int,
+    dataset_hash: str | None = None,
+    benchmark_hash: str | None = None,
+    feature_inputs_hash: str | None = None,
+    code_hash: str | None = None,
 ) -> str:
     manifest = {
         "strategy_ir": strategy_ir,
@@ -34,4 +38,12 @@ def experiment_hash(
         "image_digest": image_digest,
         "seed": seed,
     }
+    for key, value in (
+        ("dataset_hash", dataset_hash),
+        ("benchmark_hash", benchmark_hash),
+        ("feature_inputs_hash", feature_inputs_hash),
+        ("code_hash", code_hash),
+    ):
+        if value is not None:
+            manifest[key] = value
     return content_hash(manifest)
