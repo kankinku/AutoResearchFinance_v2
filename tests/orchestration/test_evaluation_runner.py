@@ -19,12 +19,21 @@ def test_rejected_evidence_accumulates_and_reaches_next_context(tmp_path: Path) 
     _write_inputs(tmp_path)
     state = tmp_path / "state"
     state.mkdir()
-    prior = {"schema_version": 1, "known_good": [{"candidate_hash": "old"}],
-             "known_bad": [], "unexplored": [], "custom_field": {"keep": True}}
+    prior = {
+        "schema_version": 1,
+        "known_good": [{"candidate_hash": "old"}],
+        "known_bad": [],
+        "unexplored": [],
+        "custom_field": {"keep": True},
+    }
     (state / "knowledge.json").write_text(json.dumps(prior), encoding="utf-8")
     for _ in range(2):
-        run_local_evaluation(project_root=tmp_path, state_dir=state,
-                             source_path="strategy.yaml", data_path="bars.parquet")
+        run_local_evaluation(
+            project_root=tmp_path,
+            state_dir=state,
+            source_path="strategy.yaml",
+            data_path="bars.parquet",
+        )
     knowledge = json.loads((state / "knowledge.json").read_text(encoding="utf-8"))
     assert knowledge["known_good"] == prior["known_good"]
     assert knowledge["custom_field"] == {"keep": True}
@@ -43,9 +52,7 @@ def test_rejected_evidence_accumulates_and_reaches_next_context(tmp_path: Path) 
     from memory.evidence_store import EvidenceStore
 
     direct_attempts = [
-        event["payload"]
-        for event in EvidenceStore(state).events()
-        if event["kind"] == "attempt"
+        event["payload"] for event in EvidenceStore(state).events() if event["kind"] == "attempt"
     ]
     assert direct_attempts
     assert all(
@@ -62,11 +69,22 @@ def test_changed_inputs_in_same_run_are_rejected(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
     state = tmp_path / "state"
     store = EvidenceStore(state)
-    store.append("run", "run:fixed", {
-        "research_run_id": "fixed", "requested_generations": 2, "seed": 0,
-    })
-    kwargs = dict(project_root=tmp_path, state_dir=state, source_path="strategy.yaml",
-                  data_path="bars.parquet", research_run_id="fixed")
+    store.append(
+        "run",
+        "run:fixed",
+        {
+            "research_run_id": "fixed",
+            "requested_generations": 2,
+            "seed": 0,
+        },
+    )
+    kwargs = dict(
+        project_root=tmp_path,
+        state_dir=state,
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        research_run_id="fixed",
+    )
     run_local_evaluation(**kwargs, attempt_id="first", generation=1)
     with pytest.raises(EvidenceIntegrityError, match="conflict"):
         run_local_evaluation(**kwargs, attempt_id="second", generation=2, min_trades=999)
@@ -80,14 +98,21 @@ def test_sealed_metadata_denied_before_loading_rows(tmp_path: Path, monkeypatch)
 
     _, data, _ = _write_inputs(tmp_path)
     original = ParquetDataProvider.read(data)
-    ParquetDataProvider.write(data, MarketDataSet(original.version, DataZone.SEALED_OOS,
-                                                original.bars))
+    ParquetDataProvider.write(
+        data, MarketDataSet(original.version, DataZone.SEALED_OOS, original.bars)
+    )
+
     def forbidden(*args, **kwargs):
         raise AssertionError("sealed rows were read")
+
     monkeypatch.setattr(pd, "read_parquet", forbidden)
     with pytest.raises(EvidenceIntegrityError, match="sealed"):
-        run_local_evaluation(project_root=tmp_path, state_dir=tmp_path / "state",
-                             source_path="strategy.yaml", data_path="bars.parquet")
+        run_local_evaluation(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="bars.parquet",
+        )
 
 
 def test_actual_loop_feeds_first_rejection_to_second_proposal(tmp_path: Path) -> None:
@@ -97,14 +122,25 @@ def test_actual_loop_feeds_first_rejection_to_second_proposal(tmp_path: Path) ->
 
     _write_inputs(tmp_path)
     contexts = []
+
     def propose(context):
         contexts.append(context)
-        return {"mode": "parameter", "parent_ids": ["runner-test"],
-                "operations": [], "rationale": "baseline control"}
+        return {
+            "mode": "parameter",
+            "parent_ids": ["runner-test"],
+            "operations": [],
+            "rationale": "baseline control",
+        }
+
     outcome = run_autoresearch(
-        ResearchLoopConfig(project_root=tmp_path, state_dir=tmp_path / "state",
-                           source_path="strategy.yaml", data_path="bars.parquet",
-                           generations=2, intent_repair_attempts=0),
+        ResearchLoopConfig(
+            project_root=tmp_path,
+            state_dir=tmp_path / "state",
+            source_path="strategy.yaml",
+            data_path="bars.parquet",
+            generations=2,
+            intent_repair_attempts=0,
+        ),
         ResearchDirector(CodexIntentProvider(propose)),
     )
     assert contexts[0]["failure_knowledge"] == []
@@ -125,10 +161,7 @@ def test_actual_loop_feeds_first_rejection_to_second_proposal(tmp_path: Path) ->
         for attempt in attempts
     )
     assert all(attempt["execution"]["worker"]["isolated"] is False for attempt in attempts)
-    assert all(
-        attempt["execution"]["worker"]["timeout_enforced"] is False
-        for attempt in attempts
-    )
+    assert all(attempt["execution"]["worker"]["timeout_enforced"] is False for attempt in attempts)
 
 
 def _write_inputs(root: Path) -> tuple[Path, Path, Path]:
@@ -146,8 +179,7 @@ def _write_inputs(root: Path) -> tuple[Path, Path, Path]:
         encoding="utf-8",
     )
     timestamps = tuple(
-        datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index)
-        for index in range(6)
+        datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=index) for index in range(6)
     )
     bars = tuple(
         Bar(timestamp, "QQQ", 100 + index, 101 + index, 99 + index, 100 + index, 1000)
@@ -176,9 +208,7 @@ def test_local_evaluation_runs_parameter_domain_and_benchmark(tmp_path: Path) ->
         source_path="strategy.yaml",
         data_path="bars.parquet",
         series_data_path="series.parquet",
-        parameter_domains=(
-            ParameterDomain("indicators.fast.period", (2, 3)),
-        ),
+        parameter_domains=(ParameterDomain("indicators.fast.period", (2, 3)),),
         count=2,
         min_trades=0,
         min_qqq_cagr_delta=0.10,
@@ -188,9 +218,9 @@ def test_local_evaluation_runs_parameter_domain_and_benchmark(tmp_path: Path) ->
     assert result["candidate_count"] == 2
     records = [
         json.loads(line)
-        for line in (tmp_path / "state" / "test-records.jsonl").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        for line in (tmp_path / "state" / "test-records.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert len(records) == 2
     assert all(record["nasdaq_excess_return"] is not None for record in records)
@@ -257,9 +287,7 @@ def test_local_evaluation_applies_intent_operations_and_records_feature_lineage(
     # Add the selected external series to the same versioned series input.
     series_data = ParquetDataProvider.read_series(series)
     timestamps = tuple(
-        item.timestamp
-        for item in series_data.observations
-        if item.series_id == "QQQ"
+        item.timestamp for item in series_data.observations if item.series_id == "QQQ"
     )
     observations = tuple(series_data.observations) + tuple(
         SeriesObservation("US10Y", timestamp, 1.0 + index)
@@ -292,9 +320,7 @@ def test_local_evaluation_applies_intent_operations_and_records_feature_lineage(
     )
 
     assert result["candidate_count"] == 1
-    record = json.loads(
-        (tmp_path / "state" / "test-records.jsonl").read_text(encoding="utf-8")
-    )
+    record = json.loads((tmp_path / "state" / "test-records.jsonl").read_text(encoding="utf-8"))
     assert record["feature_ids"] == ["rsi"]
     assert record["feature_lineage"][0]["timeframe"] == "1w"
 
@@ -304,9 +330,7 @@ def test_research_context_exposes_registered_feature_selection_contract(tmp_path
 
     context = build_research_context(tmp_path / "state", source_path=strategy)
 
-    feature = next(
-        item for item in context["feature_catalog"] if item["name"] == "us_20y_change"
-    )
+    feature = next(item for item in context["feature_catalog"] if item["name"] == "us_20y_change")
     assert feature["canonical_id"]
     assert feature["status"] == "REGISTERED"
     assert feature["inputs"] == ["US20Y.close"]
@@ -359,8 +383,37 @@ def test_local_random_research_without_domains_evaluates_one_unique_baseline(
     assert result["candidate_count"] == 1
     records = [
         json.loads(line)
-        for line in (tmp_path / "state" / "test-records.jsonl").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        for line in (tmp_path / "state" / "test-records.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert len(records) == 1
+
+
+def test_local_evaluation_exposes_train_only_evidence_for_price_strategies(
+    tmp_path: Path,
+) -> None:
+    from memory.evidence_store import EvidenceStore
+
+    _write_inputs(tmp_path)
+    result = run_local_evaluation(
+        project_root=tmp_path,
+        state_dir=tmp_path / "state",
+        source_path="strategy.yaml",
+        data_path="bars.parquet",
+        parameter_domains=(ParameterDomain("indicators.fast.period", (2, 3)),),
+        count=2,
+        min_trades=0,
+    )
+    selection = result["train_only_selection"]
+    assert isinstance(selection, dict)
+    assert selection["status"] == "EVALUATED"
+    assert selection["selection_trials"] > 0
+    assert all(fold["selection_applied"] is True for fold in selection["folds"])
+    assert selection["sealed_oos_evaluated"] is False
+    attempts = [
+        event["payload"]
+        for event in EvidenceStore(tmp_path / "state").events()
+        if event["kind"] == "attempt"
+    ]
+    assert attempts[-1]["train_only_selection"] == selection

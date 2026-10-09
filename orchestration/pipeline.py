@@ -26,6 +26,7 @@ from memory.knowledge import extract_knowledge
 from mutation.engine import MutationOperation
 from mutation.parameter import BayesianObservation, ParameterDomain
 from orchestration.generation import CANONICAL_STAGES
+from orchestration.train_only import TrainOnlyFold, TrainOnlySelectionReport
 from strategy_ir.schema import StrategyIR
 
 
@@ -35,6 +36,7 @@ class GenerationPipelineResult:
     candidates: tuple[Candidate, ...]
     funnel: tuple[FunnelResult, ...]
     knowledge: dict[str, object]
+    train_only_selection: TrainOnlySelectionReport | None = None
 
 
 @dataclass(frozen=True)
@@ -181,9 +183,7 @@ class GenerationPipeline:
         pbo: float | None = None
         if len(evaluated) >= 2:
             try:
-                pbo = probability_backtest_overfitting(
-                    tuple(item.returns for item in evaluated)
-                )
+                pbo = probability_backtest_overfitting(tuple(item.returns for item in evaluated))
             except ValueError:
                 pbo = None
 
@@ -243,7 +243,99 @@ class GenerationPipeline:
                 )
             )
         knowledge = extract_knowledge(generation=parent.generation + 1, results=tuple(results))
-        return GenerationPipelineResult(CANONICAL_STAGES, candidates, tuple(results), knowledge)
+        selection = self._select_train_only(
+            candidates,
+            dataset,
+            feature_values=feature_values,
+            feature_inputs=feature_inputs,
+            external_series=external_series,
+        )
+        return GenerationPipelineResult(
+            CANONICAL_STAGES, candidates, tuple(results), knowledge, selection
+        )
+
+    def _select_train_only(
+        self,
+        candidates: tuple[Candidate, ...],
+        dataset: MarketDataSet,
+        *,
+        feature_values: Mapping[str, Sequence[float | None]] | None,
+        feature_inputs: Mapping[str, Sequence[float | None]] | None,
+        external_series: SeriesDataSet | None,
+    ) -> TrainOnlySelectionReport:
+        """Choose a candidate from training returns, then freeze before test.
+
+        Precomputed and external features cannot be proven point-in-time safe by
+        this layer, so only native, causal price-indicator strategies are admitted.
+        The report does not qualify an experiment for sealed-OOS promotion.
+        """
+        if not candidates:
+            return TrainOnlySelectionReport("INSUFFICIENT_CANDIDATES")
+        # Market OHLCV input arrays and benchmark series are unused when all
+        # candidates use native indicators exclusively; do not block those.
+        if feature_values is not None or any(
+            candidate.strategy.features for candidate in candidates
+        ):
+            return TrainOnlySelectionReport(
+                "UNSUPPORTED_UNVERIFIED_FEATURES",
+                reason="point-in-time external feature provenance is unverified",
+            )
+        times = tuple(sorted({bar.timestamp for bar in dataset.bars}))
+        splits = walk_forward_splits(
+            tuple(range(len(times))),
+            train_size=max(1, len(times) // 2),
+            test_size=max(1, len(times) // 4),
+            step=max(1, len(times) // 4),
+        )
+        if not splits:
+            return TrainOnlySelectionReport("INSUFFICIENT_HISTORY")
+        evidence: list[TrainOnlyFold] = []
+        for fold_id, (train_indices, test_indices) in enumerate(splits):
+            train_begin, train_end = times[train_indices[0]], times[train_indices[-1]]
+            test_begin, test_end = times[test_indices[0]], times[test_indices[-1]]
+            training_indices = tuple(
+                index
+                for index, bar in enumerate(dataset.bars)
+                if train_begin <= bar.timestamp <= train_end
+            )
+            train_data = _select_dataset(dataset, training_indices)
+            scored = tuple(
+                (self._evaluate(candidate, train_data, f"select-train-{fold_id}")[0], candidate)
+                for candidate in candidates
+            )
+            # Deterministic pre-test tie-breaker; underperformance in the test
+            # period must not influence the selected strategy or training score.
+            train_metrics, chosen = sorted(
+                scored,
+                key=lambda item: (-item[0].total_return, item[1].candidate_hash),
+            )[0]
+            prefix_indices = tuple(
+                index for index, bar in enumerate(dataset.bars) if bar.timestamp <= test_end
+            )
+            prefix_data = _select_dataset(dataset, prefix_indices)
+            test_metrics, _, _ = self._evaluate(
+                chosen,
+                prefix_data,
+                f"select-test-{fold_id}",
+                signal_start_at=test_begin,
+            )
+            evidence.append(
+                TrainOnlyFold(
+                    fold=fold_id,
+                    selected_candidate_hash=chosen.candidate_hash,
+                    candidate_count=len(candidates),
+                    train_dataset_hash=train_data.dataset_hash,
+                    train_total_return=train_metrics.total_return,
+                    train_end_at=train_end.isoformat(),
+                    test_start_at=test_begin.isoformat(),
+                    test_end_at=test_end.isoformat(),
+                    test_total_return=test_metrics.total_return,
+                    test_trade_count=test_metrics.trade_count,
+                )
+            )
+        return TrainOnlySelectionReport(
+            "EVALUATED", tuple(evidence), len(evidence) * len(candidates)
+        )
 
     def _temporal_holdout_evidence(
         self,
@@ -268,9 +360,7 @@ class GenerationPipeline:
         for fold_index, (train_indices, test_indices) in enumerate(splits):
             test_timestamps = {timestamps[index] for index in test_indices}
             test_bar_indices = tuple(
-                index
-                for index, bar in enumerate(dataset.bars)
-                if bar.timestamp in test_timestamps
+                index for index, bar in enumerate(dataset.bars) if bar.timestamp in test_timestamps
             )
             test_dataset = _select_dataset(dataset, test_bar_indices)
             # Include only historical training/warmup bars and this fold's test
@@ -302,12 +392,9 @@ class GenerationPipeline:
                 if benchmark_data is not None
                 else None
             )
-            target_passed = (
-                comparison is not None
-                and (
-                    funnel.min_qqq_cagr_delta is None
-                    or comparison.qqq_cagr_delta >= funnel.min_qqq_cagr_delta
-                )
+            target_passed = comparison is not None and (
+                funnel.min_qqq_cagr_delta is None
+                or comparison.qqq_cagr_delta >= funnel.min_qqq_cagr_delta
             )
             return_passed = metrics.total_return >= funnel.min_full_return
             trade_passed = metrics.trade_count >= funnel.min_full_trades
@@ -317,8 +404,10 @@ class GenerationPipeline:
             ]
             if funnel.min_qqq_cagr_delta is not None:
                 failure_checks.append(("qqq_cagr_delta", not target_passed))
-            passed = trade_passed and return_passed and (
-                target_passed if funnel.min_qqq_cagr_delta is not None else True
+            passed = (
+                trade_passed
+                and return_passed
+                and (target_passed if funnel.min_qqq_cagr_delta is not None else True)
             )
             evidence.append(
                 {
@@ -344,14 +433,11 @@ class GenerationPipeline:
                     ),
                     "passed": passed,
                     "failure_reasons": [
-                        reason
-                        for reason, condition in failure_checks
-                        if condition
+                        reason for reason, condition in failure_checks if condition
                     ],
                 }
             )
         return tuple(evidence)
-
 
     def _evaluate(
         self,
@@ -540,9 +626,7 @@ def _slice_feature_values(
 
 def _select_dataset(dataset: MarketDataSet, indices: Sequence[int]) -> MarketDataSet:
     bars = tuple(dataset.bars[index] for index in indices)
-    return MarketDataSet(
-        dataset.version, dataset.zone, bars, dataset.timeframe, dataset.calendar
-    )
+    return MarketDataSet(dataset.version, dataset.zone, bars, dataset.timeframe, dataset.calendar)
 
 
 def _select_feature_values(
@@ -552,8 +636,7 @@ def _select_feature_values(
     if feature_values is None:
         return None
     return {
-        name: tuple(values[index] for index in indices)
-        for name, values in feature_values.items()
+        name: tuple(values[index] for index in indices) for name, values in feature_values.items()
     }
 
 

@@ -98,23 +98,41 @@ def run_local_evaluation(
     attempt_id = attempt_id or uuid4().hex
     evidence = EvidenceStore(state_dir)
     if standalone:
-        evidence.append("run", f"run:{research_run_id}", {
-            "research_run_id": research_run_id, "requested_generations": 1, "seed": seed,
-            "method": method, "count": count,
-        })
-    elif not any(e["kind"] == "run" and e["payload"]["research_run_id"] == research_run_id
-                 for e in evidence.events()):
+        evidence.append(
+            "run",
+            f"run:{research_run_id}",
+            {
+                "research_run_id": research_run_id,
+                "requested_generations": 1,
+                "seed": seed,
+                "method": method,
+                "count": count,
+            },
+        )
+    elif not any(
+        e["kind"] == "run" and e["payload"]["research_run_id"] == research_run_id
+        for e in evidence.events()
+    ):
         raise EvidenceIntegrityError("research run must be registered")
     funnel_config = FunnelConfig(
-        min_fast_trades=min_trades, min_full_trades=min_trades,
-        min_qqq_cagr_delta=min_qqq_cagr_delta, min_annual_trades=min_annual_trades,
+        min_fast_trades=min_trades,
+        min_full_trades=min_trades,
+        min_qqq_cagr_delta=min_qqq_cagr_delta,
+        min_annual_trades=min_annual_trades,
     )
     original = normalize_source(source).strategy
     if original is None:
         raise ValueError("strategy source is unsupported")
     pipeline = GenerationPipeline()
-    freeze_manifest(state_dir, research_run_id, source=original, dataset=dataset,
-                    series=series, funnel=funnel_config, cost_model=pipeline.cost_model)
+    freeze_manifest(
+        state_dir,
+        research_run_id,
+        source=original,
+        dataset=dataset,
+        series=series,
+        funnel=funnel_config,
+        cost_model=pipeline.cost_model,
+    )
     pipeline_result = pipeline.run(
         parent=strategy,
         dataset=dataset,
@@ -129,23 +147,43 @@ def run_local_evaluation(
         feature_inputs=feature_inputs,
         external_series=series,
     )
+    selection_payload: dict[str, object] | None = (
+        asdict(pipeline_result.train_only_selection)
+        if pipeline_result.train_only_selection is not None
+        else None
+    )
+    if selection_payload is not None and pipeline_result.train_only_selection is not None:
+        selection_payload["folds"] = [
+            asdict(fold) for fold in pipeline_result.train_only_selection.folds
+        ]
     record_generation = strategy.generation + 1 if generation is None else generation
-    evidence.append("attempt", f"attempt:{attempt_id}", {
-        "research_run_id": research_run_id, "attempt_id": attempt_id,
-        "generation": record_generation, "seed": seed, "status": "COMPLETED",
-        "execution": {
-            "parent_ir_hash": digest(strategy.model_dump(mode="json", by_alias=True)),
-            "method": method,
-            "count": count,
-            "parameter_domains": [asdict(domain) for domain in domains],
-            "worker": dict(execution_context or {
-                "execution_mode": "direct_local",
-                "isolated": False,
-                "timeout_enforced": False,
-            }),
+    evidence.append(
+        "attempt",
+        f"attempt:{attempt_id}",
+        {
+            "research_run_id": research_run_id,
+            "attempt_id": attempt_id,
+            "generation": record_generation,
+            "seed": seed,
+            "status": "COMPLETED",
+            "execution": {
+                "parent_ir_hash": digest(strategy.model_dump(mode="json", by_alias=True)),
+                "method": method,
+                "count": count,
+                "parameter_domains": [asdict(domain) for domain in domains],
+                "worker": dict(
+                    execution_context
+                    or {
+                        "execution_mode": "direct_local",
+                        "isolated": False,
+                        "timeout_enforced": False,
+                    }
+                ),
+            },
+            "candidates": [candidate_evidence(item) for item in pipeline_result.funnel],
+            "train_only_selection": selection_payload,
         },
-        "candidates": [candidate_evidence(item) for item in pipeline_result.funnel],
-    })
+    )
     sync_knowledge(state_dir)
     append_funnel_results(
         state_dir / "test-records.jsonl",
@@ -156,18 +194,30 @@ def run_local_evaluation(
         attempt_id=attempt_id,
     )
     if standalone:
-        evidence.append("generation", f"generation:{research_run_id}:{record_generation}", {
-            "research_run_id": research_run_id, "generation": record_generation,
-            "attempt_id": attempt_id, "status": "COMPLETED",
-        })
-        evidence.append("end", f"end:{research_run_id}", {
-            "research_run_id": research_run_id, "status": "COMPLETED",
-        })
+        evidence.append(
+            "generation",
+            f"generation:{research_run_id}:{record_generation}",
+            {
+                "research_run_id": research_run_id,
+                "generation": record_generation,
+                "attempt_id": attempt_id,
+                "status": "COMPLETED",
+            },
+        )
+        evidence.append(
+            "end",
+            f"end:{research_run_id}",
+            {
+                "research_run_id": research_run_id,
+                "status": "COMPLETED",
+            },
+        )
     return {
         "research_run_id": research_run_id,
         "attempt_id": attempt_id,
         "status": "COMPLETED",
         "candidate_count": len(pipeline_result.candidates),
+        "train_only_selection": selection_payload,
         "search_mode": "baseline" if not domains and not typed_operations else method,
         "counts": {
             status: sum(item.status == status for item in pipeline_result.funnel)
@@ -233,9 +283,7 @@ def _market_feature_inputs(dataset: MarketDataSet) -> dict[str, tuple[float, ...
     }
 
 
-def _benchmark_data(
-    dataset: MarketDataSet, series: SeriesDataSet | None
-) -> BenchmarkData | None:
+def _benchmark_data(dataset: MarketDataSet, series: SeriesDataSet | None) -> BenchmarkData | None:
     if series is None:
         return None
     target_timestamps = tuple(sorted({bar.timestamp for bar in dataset.bars}))
