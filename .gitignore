@@ -51,3 +51,6 @@ state/windows-docker-host-acceptance/
 # Raw external source dumps are never generated into the repository
 raw_sources/
 source_dumps/
+
+# Optional downloaded Secure MCP Tunnel tooling (never commit executable binaries)
+state/tools/

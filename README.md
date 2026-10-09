@@ -559,3 +559,7 @@ emergency cutoff.
 Paper trading is available only after an exact Champion-hash paper approval. The live
 KIS order capability is intentionally absent from the research package; a live deployment
 also needs a real account, data provider, calendar, image digest, and human approval.
+
+### ChatGPT 주도 MCP 연구 연결
+
+기존 Moon 연결과 원래 13개 Quant MCP 도구 계약은 유지됩니다. ChatGPT에서 **별도 외부 LLM 연구 지휘 인터페이스**를 사용하려면 `integrations.chatgpt_mcp_stdio`와 `scripts/run_chatgpt_mcp_stdio.sh`가 준비되어 있습니다. OpenAI Secure MCP Tunnel 연결·인증·Windows Docker 호스트 확인 절차는 [`docs/operations/chatgpt-secure-tunnel-runbook.md`](docs/operations/chatgpt-secure-tunnel-runbook.md)를 참고하세요. `scripts/check_chatgpt_tunnel_environment.sh`는 계정 키 내용을 출력하지 않고 준비 상태만 확인합니다. 원격 연결과 ChatGPT 플러그인 설치는 별도 승인이 필요하며, 실거래 주문 권한은 부여되지 않습니다.

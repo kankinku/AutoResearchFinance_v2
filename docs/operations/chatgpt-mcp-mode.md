@@ -40,3 +40,9 @@ ChatGPT UI/plugin registration, provider-supported OAuth/authorization behavior,
 ## Validation
 
 `tests/integrations/test_chatgpt_mcp_research.py` verifies visible tools, fail-closed parent and feature validation, one real research step with immutable Evidence, and zero local Codex calls. `tests/integrations/test_chatgpt_mcp_http.py` verifies unauthorized requests are rejected and authenticated official MCP initialization, tool listing and brief retrieval. SDK/manual compatibility tests verify the updated published tool surface.
+
+## Outbound-only Secure MCP Tunnel (preferred for private workstations)
+
+For ChatGPT connections on a private workstation, prefer the **dedicated official SDK stdio** entrypoint `integrations.chatgpt_mcp_stdio` via `scripts/run_chatgpt_mcp_stdio.sh`, wrapped by OpenAI Secure MCP Tunnel. This avoids deploying static-bearer HTTP authentication to the public Internet. It requires user-owned Platform tunnel ID and credentials and the user's direct ChatGPT plugin install action. The full Korean operator checklist, Windows Docker host example and acceptance gates are in `docs/operations/chatgpt-secure-tunnel-runbook.md`. The authenticated-loopback HTTP adapter remains optional but is not an OAuth-compatible public plugin authentication solution.
+
+The safe non-mutating environment diagnostic is `scripts/check_chatgpt_tunnel_environment.sh`; it reports credential *presence only*, not secret values. An external tunnel-client executable was **not** installed automatically.
