@@ -30,3 +30,4 @@ class TrainOnlySelectionReport:
     selection_trials: int = 0
     reason: str | None = None
     sealed_oos_evaluated: bool = False
+    upstream_selection_verified: bool = False

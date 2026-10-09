@@ -163,3 +163,39 @@ def test_prior_research_trials_are_counted_in_statistics() -> None:
         prior_trials=21,
     )
     assert result.multiple_testing_trials == 23
+
+
+def test_bayesian_previous_observations_cannot_claim_train_only_provenance() -> None:
+    from mutation.parameter import BayesianObservation
+
+    result = GenerationPipeline().run(
+        parent=strategy(),
+        dataset=data(),
+        operations=(),
+        domains=(ParameterDomain("risk.position_size_pct", (50.0, 100.0)),),
+        method="bayesian",
+        count=2,
+        seed=4,
+        observations=[BayesianObservation({"risk.position_size_pct": 100.0}, score=0.99)],
+        funnel=FunnelConfig(
+            min_fast_trades=0,
+            min_full_trades=0,
+            min_fast_return=-1,
+            min_full_return=-1,
+            min_robust_score=0,
+            require_validation=False,
+        ),
+    )
+    report = result.train_only_selection
+    assert report is not None
+    assert report.status == "UNVERIFIED_UPSTREAM_OPTIMIZATION"
+    assert report.folds == ()
+    assert report.upstream_selection_verified is False
+    assert report.sealed_oos_evaluated is False
+
+
+def test_fixed_cohort_train_selection_does_not_assert_upstream_fit_is_verified() -> None:
+    report = evaluate(data()).train_only_selection
+    assert report is not None
+    assert report.status == "EVALUATED"
+    assert report.upstream_selection_verified is False

@@ -256,6 +256,8 @@ class GenerationPipeline:
             feature_values=feature_values,
             feature_inputs=feature_inputs,
             external_series=external_series,
+            method=method,
+            prior_observations_supplied=bool(observations),
         )
         return GenerationPipelineResult(
             CANONICAL_STAGES,
@@ -271,6 +273,8 @@ class GenerationPipeline:
         candidates: tuple[Candidate, ...],
         dataset: MarketDataSet,
         *,
+        method: str,
+        prior_observations_supplied: bool,
         feature_values: Mapping[str, Sequence[float | None]] | None,
         feature_inputs: Mapping[str, Sequence[float | None]] | None,
         external_series: SeriesDataSet | None,
@@ -283,6 +287,14 @@ class GenerationPipeline:
         """
         if not candidates:
             return TrainOnlySelectionReport("INSUFFICIENT_CANDIDATES")
+        if method == "bayesian" and prior_observations_supplied:
+            return TrainOnlySelectionReport(
+                "UNVERIFIED_UPSTREAM_OPTIMIZATION",
+                reason=(
+                    "prior Bayesian observations lack fold-specific training-window "
+                    "provenance and may include later market information"
+                ),
+            )
         # Market OHLCV input arrays and benchmark series are unused when all
         # candidates use native indicators exclusively; do not block those.
         if feature_values is not None or any(
