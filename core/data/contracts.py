@@ -37,6 +37,9 @@ class Bar:
             raise DataContractError("timestamp timezone is required")
         if not self.symbol:
             raise DataContractError("symbol cannot be empty")
+        values = (self.open, self.high, self.low, self.close, self.volume)
+        if not all(isfinite(value) for value in values):
+            raise DataContractError("OHLCV values must be finite")
         if min(self.open, self.high, self.low, self.close) <= 0:
             raise DataContractError("prices must be positive")
         if self.high < max(self.open, self.close) or self.low > min(self.open, self.close):
