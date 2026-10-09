@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Protocol
 
-from evaluation.metrics import Metrics
+
+class MetricsView(Protocol):
+    """Minimal core contract independent of evaluation post-processing."""
+
+    trade_count: int
+    total_return: float
 
 
 @dataclass(frozen=True)
@@ -12,7 +18,7 @@ class GateResult:
     reasons: tuple[str, ...]
 
 
-def hard_gate(metrics: Metrics, *, min_trade_count: int, min_return: float) -> GateResult:
+def hard_gate(metrics: MetricsView, *, min_trade_count: int, min_return: float) -> GateResult:
     reasons: list[str] = []
     if metrics.trade_count < min_trade_count:
         reasons.append("trade_count")
