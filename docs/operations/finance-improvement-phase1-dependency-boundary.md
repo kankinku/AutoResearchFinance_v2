@@ -11,3 +11,7 @@ T-002 as a whole remains partial: the Strategy IR/compiler dependency on core in
 Compiler hashing formerly imported `core.integrity.hashes` from inside `strategy_ir`. Canonical JSON serialization and SHA-256 hashing now reside in neutral `foundation.hashes`; `strategy_ir.compiler` imports it directly, and `core.integrity.hashes` transparently re-exports both function objects to preserve API and historical data hashes. `experiment_hash` remains a core integrity function and its canonicalization delegates unchanged to the same function. `tests/strategy_ir/test_hash_boundary.py` asserts compiler import direction and validates byte-for-byte hash parity against the financial-core public contract. This intentionally avoids schema changes or any financial execution semantics changes.
 
 Other inbound edges to Strategy IR from `strategy_import` and `mutation` remain; T-002 is not fully resolved.
+
+## Packaging follow-up
+
+The neutral `foundation` package is included explicitly in setuptools package discovery and Mypy package lists in `pyproject.toml`; a static packaging test locks this dependency. Without that addition, local source tests could pass while an installed distribution lacked the shared hashing module. The worker Dockerfile presently copies the whole project, but this packaging test also prevents packaged deployments from omitting `foundation`.

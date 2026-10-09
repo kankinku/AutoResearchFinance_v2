@@ -31,6 +31,7 @@ include = [
     "dashboard*",
     "evaluation*",
     "experiments*",
+    "foundation*",
     "integrations*",
     "memory*",
     "mutation*",
@@ -66,5 +67,5 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.mypy]
 python_version = "3.10"
 strict = true
-packages = ["application", "strategy_ir", "mutation", "experiments", "runtime", "core", "evaluation", "memory", "research", "orchestration", "integrations"]
+packages = ["application", "strategy_ir", "mutation", "experiments", "foundation", "runtime", "core", "evaluation", "memory", "research", "orchestration", "integrations"]
 exclude = "(^tests/|^state/|dashboard_backup\\.py$)"

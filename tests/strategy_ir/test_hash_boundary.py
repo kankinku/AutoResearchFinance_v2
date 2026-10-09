@@ -24,3 +24,15 @@ def test_compiled_hash_remains_compatible_with_integrity_contract() -> None:
     strategy = StrategyIR.model_validate(example_document())
     canonical = strategy.model_dump(mode="json", by_alias=True, exclude={"provenance"})
     assert compile_strategy(strategy).manifest["strategy_hash"] == content_hash(canonical)
+
+
+def test_foundation_hashing_package_is_shipped_and_type_checked() -> None:
+    import pytest
+
+    tomllib = pytest.importorskip("tomllib")
+    root = Path(__file__).parents[2]
+    config = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    includes = config["tool"]["setuptools"]["packages"]["find"]["include"]
+    mypy_packages = config["tool"]["mypy"]["packages"]
+    assert "foundation*" in includes
+    assert "foundation" in mypy_packages
