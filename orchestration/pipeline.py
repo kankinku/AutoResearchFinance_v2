@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 
 from core.backtest.engine import BacktestEngine, BacktestRequest, Trade
 from core.costs.model import CostModel
@@ -272,16 +273,25 @@ class GenerationPipeline:
                 if bar.timestamp in test_timestamps
             )
             test_dataset = _select_dataset(dataset, test_bar_indices)
-            test_feature_values = _select_feature_values(feature_values, test_bar_indices)
-            test_feature_inputs = _select_feature_values(feature_inputs, test_bar_indices)
+            # Include only historical training/warmup bars and this fold's test
+            # window. The backtest engine forbids orders from the warmup bars.
+            prefix_indices = tuple(
+                index
+                for index, bar in enumerate(dataset.bars)
+                if bar.timestamp <= timestamps[test_indices[-1]]
+            )
+            prefix_dataset = _select_dataset(dataset, prefix_indices)
+            prefix_feature_values = _select_feature_values(feature_values, prefix_indices)
+            prefix_feature_inputs = _select_feature_values(feature_inputs, prefix_indices)
             metrics, _, equity = self._evaluate(
                 candidate,
-                test_dataset,
+                prefix_dataset,
                 f"validation-{fold_index}",
-                test_feature_values,
+                prefix_feature_values,
                 feature_specs,
-                test_feature_inputs,
+                prefix_feature_inputs,
                 external_series,
+                signal_start_at=timestamps[test_indices[0]],
             )
             comparison = (
                 _compare(
@@ -315,6 +325,7 @@ class GenerationPipeline:
                     "fold": fold_index,
                     "method": "temporal_holdout",
                     "selection_applied": False,
+                    "warmup_history_used": True,
                     "train_start": train_indices[0],
                     "train_end": train_indices[-1],
                     "test_start": test_indices[0],
@@ -352,6 +363,7 @@ class GenerationPipeline:
         feature_inputs: Mapping[str, Sequence[float | None]] | None = None,
         external_series: SeriesDataSet | None = None,
         cost_stress_multiplier: float = 1.0,
+        signal_start_at: datetime | None = None,
     ) -> tuple[Metrics, tuple[Trade, ...], tuple[float, ...]]:
         backtest = self.engine.run(
             BacktestRequest(
@@ -366,21 +378,41 @@ class GenerationPipeline:
                 external_series=external_series,
                 cost_model=self.cost_model,
                 cost_stress_multiplier=cost_stress_multiplier,
+                signal_start_at=signal_start_at,
             )
         )
-        pnls = _closed_trade_pnls(backtest.trades)
+        evaluation_dataset = dataset
+        trades = backtest.trades
+        equity = backtest.equity_curve
+        if signal_start_at is not None:
+            timestamps = equity_timestamps(dataset, len(equity))
+            equity = tuple(
+                value
+                for timestamp, value in zip(timestamps, equity, strict=True)
+                if timestamp >= signal_start_at
+            )
+            evaluation_dataset = _select_dataset(
+                dataset,
+                tuple(
+                    index
+                    for index, bar in enumerate(dataset.bars)
+                    if bar.timestamp >= signal_start_at
+                ),
+            )
+            trades = tuple(
+                trade
+                for trade in trades
+                if datetime.fromisoformat(trade.timestamp) >= signal_start_at
+            )
+        pnls = _closed_trade_pnls(trades)
         metrics = calculate_metrics(
-            backtest.equity_curve,
+            equity,
             pnls,
-            periods_per_year=periods_per_year(dataset),
-            turnover=sum(trade.notional for trade in backtest.trades),
-            exposure=_capital_exposure(dataset, backtest.equity_curve, backtest.trades),
+            periods_per_year=periods_per_year(evaluation_dataset),
+            turnover=sum(trade.notional for trade in trades),
+            exposure=_capital_exposure(evaluation_dataset, equity, trades),
         )
-        return (
-            metrics,
-            backtest.trades,
-            backtest.equity_curve,
-        )
+        return metrics, trades, equity
 
 
 def _feature_lineage(
