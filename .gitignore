@@ -54,3 +54,6 @@ source_dumps/
 
 # Optional downloaded Secure MCP Tunnel tooling (never commit executable binaries)
 state/tools/
+
+# Private Moon-hosted Quant OAuth approval key, tokens and runtime evidence
+state/moon-http/

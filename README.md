@@ -563,3 +563,7 @@ also needs a real account, data provider, calendar, image digest, and human appr
 ### ChatGPT 주도 MCP 연구 연결
 
 기존 Moon 연결과 원래 13개 Quant MCP 도구 계약은 유지됩니다. ChatGPT에서 **별도 외부 LLM 연구 지휘 인터페이스**를 사용하려면 `integrations.chatgpt_mcp_stdio`와 `scripts/run_chatgpt_mcp_stdio.sh`가 준비되어 있습니다. OpenAI Secure MCP Tunnel 연결·인증·Windows Docker 호스트 확인 절차는 [`docs/operations/chatgpt-secure-tunnel-runbook.md`](docs/operations/chatgpt-secure-tunnel-runbook.md)를 참고하세요. `scripts/check_chatgpt_tunnel_environment.sh`는 계정 키 내용을 출력하지 않고 준비 상태만 확인합니다. 원격 연결과 ChatGPT 플러그인 설치는 별도 승인이 필요하며, 실거래 주문 권한은 부여되지 않습니다.
+
+#### 실제 Moon 고정 주소 연결 (이 사용자 환경)
+
+Moon의 기존 Tailscale Funnel `*.ts.net`을 재사용하는 Quant 전용 주소는 **`https://project-moon.taild689f9.ts.net/quant/mcp`** 입니다. Quant 전용 승인 키/OAuth를 적용했으므로 OpenAI Secure MCP Tunnel을 새로 생성할 필요가 없습니다. 사용자 ChatGPT 계정의 OAuth 연결 단계와 컨테이너 재생성 시 Supervisor 자동 시작 확인은 [`Quant Moon 고정 URL 운영 절차`](docs/operations/quant-moon-fixed-url-oauth.md)에 정리했습니다. 별도 OAuth 키나 Moon 키는 채팅에 제공하지 마세요.
