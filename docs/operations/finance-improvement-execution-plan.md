@@ -15,7 +15,7 @@ Updated: 2026-10-09. Canonical architecture remains `docs/architecture/quant-aut
 | Task | Priority | Status | Dependencies | Acceptance criteria |
 | --- | --- | --- | --- | --- |
 | T-001 | P0 | DONE | none | Synthetic next-open/cost/IR golden fixture, baseline tests |
-| T-002 | P1 | PENDING | T-001 | Remove inversions in strategy_ir/core boundaries; public contracts unchanged |
+| T-002 | P1 | PARTIAL | T-001 | DONE core validation-to-evaluation protocol and neutral IR/core hash dependency; remaining imports/inversions and full DAG audit |
 | T-003 | P1 | PENDING | T-001 | Split 556-line autoresearch orchestration by phase; recovery/queue parity |
 | T-004 | P0 | PARTIAL | T-001 | DONE finite OHLCV rejection, historical fold warmup; PENDING vendor provenance, survivorship, corporate actions and missing-data policy |
 | T-005 | P0 | PARTIAL | T-001 | DONE trailing stop/regime gates; remaining risk policy assertions/edge cases |
@@ -47,6 +47,15 @@ For each commit: `.venv/bin/ruff check .`, `.venv/bin/mypy .`, and `.venv/bin/py
 - `a74cd52`: optionally forbid any warmup-history signals before `signal_start_at`.
 - `f58e8eb`: preserve causal warmup in temporal folds and measure only test-window metrics. `selection_applied=false` is unchanged; this remains *candidate holdout evidence*, not full train-only selection.
 - Follow-up robustness correction: negative-return strategies must never get positive cost-resilience merely from dividing two negative returns.
+
+## Final implementation additions — 2026-10-09
+
+- T-007: development-only frozen cohort train-selection and independently measured following period, separate immutable attempt Evidence; not a sealed-OOS promotion.
+- T-008: PBO/CPCV finite/aligned inputs and accumulated per-workspace optimizer attempts, still an approximation.
+- T-009/T-010: semantic candidate deduplication and policy-driven search *budget* allocation; actual 4-source generators and cache wiring not complete.
+- T-011: immutable-Evidence-based Frontier context; candidate strategy IR materialization and Rescue/Champion integration not complete.
+- T-002: core metric-view interface and neutral shared hashing. Packaging includes the new foundation module; source checkout with stale editable virtual environments requires environment refresh or repository-root `PYTHONPATH`.
+- Full regression at final code HEAD `f570564`: 862 passed, Ruff PASS, Mypy 170 source files PASS with repository-root `PYTHONPATH` used for stale editable venv. No real Windows Docker or sealed OOS evaluated.
 
 ## Existing records
 
