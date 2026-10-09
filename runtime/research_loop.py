@@ -14,7 +14,8 @@ from typing import Any
 from core.features.contracts import FeatureSpec
 from core.features.lifecycle import record_feature_proposal
 from core.features.registry import research_feature_specs
-from memory.evidence_store import EvidenceIntegrityError
+from core.integrity.hashes import content_hash
+from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from mutation.engine import MutationOperation
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import (
@@ -636,7 +637,9 @@ def run_autoresearch(
                 )
 
             if evaluation is not None:
-                next_strategy = _strategy_from_evaluation(evaluation)
+                next_strategy = _strategy_from_evaluation(
+                    evaluation, config.state_dir, research_run_id=evidence.run_id
+                )
                 if next_strategy is not None:
                     current = next_strategy
             record = build_generation_record(
@@ -695,14 +698,56 @@ def run_autoresearch(
     }
 
 
-def _strategy_from_evaluation(evaluation: Mapping[str, object]) -> StrategyIR | None:
+def _strategy_from_evaluation(
+    evaluation: Mapping[str, object],
+    state_dir: Path,
+    *,
+    research_run_id: str,
+) -> StrategyIR | None:
+    """Adopt a development successor only if its attempt has eligible immutable IR.
+
+    A worker response with a forged best_strategy or an unverified injected
+    evaluator cannot silently modify the source parent of later generations.
+    This is **not** authorized champion promotion or sealed OOS approval.
+    """
     payload = evaluation.get("best_strategy")
-    if not isinstance(payload, Mapping):
+    attempt_id = evaluation.get("attempt_id")
+    if (
+        not isinstance(payload, dict)
+        or not isinstance(attempt_id, str)
+        or not attempt_id
+        or evaluation.get("research_run_id") != research_run_id
+        or evaluation.get("status") != "COMPLETED"
+    ):
         return None
-    try:
-        return StrategyIR.model_validate(payload)
-    except (TypeError, ValueError):
+    claimed_hash = content_hash(payload)
+    for event in EvidenceStore(state_dir).events():
+        if event["id"] != f"attempt:{attempt_id}" or event["kind"] != "attempt":
+            continue
+        attempt = event["payload"]
+        if attempt["research_run_id"] != research_run_id or attempt["status"] != "COMPLETED":
+            return None
+        for candidate in attempt["candidates"]:
+            if candidate.get("status") not in {
+                "SURVIVOR",
+                "FRONTIER",
+                "CHAMPION_CANDIDATE",
+                "CHAMPION",
+            }:
+                continue
+            stored = candidate.get("strategy_ir")
+            if (
+                not isinstance(stored, dict)
+                or stored != payload
+                or candidate.get("strategy_ir_hash") != claimed_hash
+            ):
+                continue
+            try:
+                return StrategyIR.model_validate(payload)
+            except (TypeError, ValueError):
+                return None
         return None
+    return None
 
 
 def _preflight_intent(

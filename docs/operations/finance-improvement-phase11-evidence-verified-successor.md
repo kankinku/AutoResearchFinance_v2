@@ -1,0 +1,7 @@
+# T-011 — Evidence-verified development successor before next generation
+
+Previously any evaluator result containing a syntactically valid `best_strategy` could overwrite the next research parent. This includes dependency-injected evaluators returning aggregate counts without candidate evidence and hypothetical forged success responses. The selection decision was not independently associated with an immutable candidate, and a research run could silently continue with a strategy that never passed the funnel.
+
+`runtime.research_loop._strategy_from_evaluation` now requires all of: `status=COMPLETED`, the same research run and attempt IDs, a checksum-verified immutable Evidence attempt with `status=COMPLETED`, an eligible candidate (`SURVIVOR`, `FRONTIER`, `CHAMPION_CANDIDATE`, or `CHAMPION`), a canonical Strategy IR snapshot matching the response exactly, and matching content hashes. `NEAR_MISS` is not eligible. Missing/tampered/cross-run results fail closed by returning no successor, so the run continues with the previous research parent. This is **development successor selection**, not an authority to promote a champion, access Sealed OOS, or place orders.
+
+Direct unit tests cover an unverified evaluator response, a valid immutable snapshot, cross-run/attempt ID reuse, and payload tampering. Existing local-run and research-loop tests remain green. Full independent strategy validation and human approval gates remain separate prerequisites.

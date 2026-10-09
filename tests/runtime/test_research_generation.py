@@ -164,3 +164,65 @@ def test_research_parent_rejects_multiple_or_unknown_parents(tmp_path: Path) -> 
         )
         with pytest.raises(ValueError, match=expected):
             select_intent_parent(source, intent, tmp_path, research_run_id="new")
+
+
+def test_unverified_best_strategy_payload_cannot_advance_research(tmp_path: Path) -> None:
+    from runtime.research_loop import _strategy_from_evaluation
+
+    fake = _source().model_copy(update={"strategy_id": "arbitrary-fake-successor"})
+    result = {
+        "status": "COMPLETED",
+        "research_run_id": "run-a",
+        "attempt_id": "try1",
+        "best_strategy": fake.model_dump(mode="json", by_alias=True),
+    }
+    assert _strategy_from_evaluation(result, tmp_path, research_run_id="run-a") is None
+
+
+def test_only_eligible_immutable_attempt_snapshot_advances_research(tmp_path: Path) -> None:
+    from core.integrity.hashes import content_hash
+    from runtime.research_loop import _strategy_from_evaluation
+
+    eligible = _source().model_copy(update={"strategy_id": "audited-successor"})
+    ir = eligible.model_dump(mode="json", by_alias=True)
+    store = EvidenceStore(tmp_path)
+    store.append("run", "run:a", {"research_run_id": "a", "requested_generations": 1, "seed": 2})
+    store.append(
+        "attempt",
+        "attempt:try1",
+        {
+            "research_run_id": "a",
+            "attempt_id": "try1",
+            "generation": 1,
+            "status": "COMPLETED",
+            "candidates": [
+                {
+                    "candidate_hash": "c1",
+                    "family": eligible.family,
+                    "score": 0.6,
+                    "status": "SURVIVOR",
+                    "failed_gates": [],
+                    "strategy_ir": ir,
+                    "strategy_ir_hash": content_hash(ir),
+                }
+            ],
+        },
+    )
+    result = {
+        "status": "COMPLETED",
+        "research_run_id": "a",
+        "attempt_id": "try1",
+        "best_strategy": ir,
+    }
+    assert _strategy_from_evaluation(result, tmp_path, research_run_id="a") == eligible
+    assert _strategy_from_evaluation(result, tmp_path, research_run_id="b") is None
+    assert (
+        _strategy_from_evaluation({**result, "attempt_id": "forged"}, tmp_path, research_run_id="a")
+        is None
+    )
+    assert (
+        _strategy_from_evaluation(
+            {**result, "best_strategy": {**ir, "id": "tampered"}}, tmp_path, research_run_id="a"
+        )
+        is None
+    )
