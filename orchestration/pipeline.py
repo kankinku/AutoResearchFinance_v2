@@ -374,7 +374,7 @@ class GenerationPipeline:
             pnls,
             periods_per_year=periods_per_year(dataset),
             turnover=sum(trade.notional for trade in backtest.trades),
-            exposure=len(pnls) / max(len(backtest.equity_curve), 1),
+            exposure=_capital_exposure(dataset, backtest.equity_curve, backtest.trades),
         )
         return (
             metrics,
@@ -434,6 +434,55 @@ def _fast_slice(dataset: MarketDataSet) -> MarketDataSet:
 
 def _timestamp_count(dataset: MarketDataSet) -> int:
     return len({bar.timestamp for bar in dataset.bars})
+
+
+def _capital_exposure(
+    dataset: MarketDataSet,
+    equity_curve: tuple[float, ...],
+    trades: tuple[Trade, ...],
+) -> float:
+    """Average close-to-close fraction of equity held in long positions.
+
+    Orders fill at each bar's open, so holdings after that day's fills are
+    marked to the latest available *close*. For asynchronous multi-symbol bars,
+    use each symbol's most recent close; never count a completed round-trip as
+    a proxy for capital at risk.
+    """
+    timestamps = equity_timestamps(dataset, len(equity_curve))
+    if not timestamps:
+        return 0.0
+    prices_by_time: dict[str, dict[str, float]] = {}
+    for bar in dataset.bars:
+        prices_by_time.setdefault(bar.timestamp.isoformat(), {})[bar.symbol] = bar.close
+    trades_by_time: dict[str, list[Trade]] = {}
+    for trade in trades:
+        trades_by_time.setdefault(trade.timestamp, []).append(trade)
+    if set(trades_by_time) - set(prices_by_time):
+        raise ValueError("trade timestamp is not present in market data")
+
+    prices: dict[str, float] = {}
+    quantities: dict[str, float] = {}
+    fractions: list[float] = []
+    for timestamp, equity in zip(timestamps, equity_curve, strict=True):
+        key = timestamp.isoformat()
+        prices.update(prices_by_time[key])
+        for trade in trades_by_time.get(key, ()):
+            if trade.symbol not in prices:
+                raise ValueError("trade symbol is absent from market data")
+            if trade.side == "buy":
+                quantities[trade.symbol] = quantities.get(trade.symbol, 0.0) + trade.quantity
+            elif trade.side == "sell":
+                remaining = quantities.get(trade.symbol, 0.0) - trade.quantity
+                if remaining < -1e-8:
+                    raise ValueError("sell exceeds held quantity")
+                quantities[trade.symbol] = max(remaining, 0.0)
+            else:
+                raise ValueError("unsupported trade side")
+        if equity <= 0:
+            raise ValueError("equity must be positive for exposure")
+        invested = sum(quantity * prices[symbol] for symbol, quantity in quantities.items())
+        fractions.append(invested / equity)
+    return sum(fractions) / len(fractions)
 
 
 def _closed_trade_pnls(trades: tuple[Trade, ...]) -> tuple[float, ...]:
