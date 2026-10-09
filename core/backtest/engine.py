@@ -29,6 +29,9 @@ class BacktestRequest:
     feature_inputs: Mapping[str, Sequence[float | None]] | None = None
     external_series: SeriesDataSet | None = None
     cost_stress_multiplier: float = 1.0
+    # Earliest completed bar allowed to generate new entry signals. Previous
+    # bars can still warm up indicators, but cannot create any positions.
+    signal_start_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -71,6 +74,11 @@ class BacktestEngine:
             raise ValueError("run_id and positive initial cash are required")
         if request.cost_stress_multiplier < 0:
             raise ValueError("cost stress multiplier cannot be negative")
+        if request.signal_start_at is not None and (
+            request.signal_start_at.tzinfo is None
+            or request.signal_start_at.utcoffset() is None
+        ):
+            raise ValueError("signal start timezone is required")
         if request.strategy is not None:
             return self._run_strategy(request)
         symbols = tuple(sorted({bar.symbol for bar in request.dataset.bars}))
@@ -274,6 +282,7 @@ class BacktestEngine:
                 elif (
                     not daily_loss_blocked
                     and not stopped
+                    and (request.signal_start_at is None or timestamp >= request.signal_start_at)
                     and _regime_allows(strategy, state.values, index)
                     and _rules_match(
                         strategy.entry.conditions, strategy.entry.logic, state.values, index
@@ -392,6 +401,7 @@ class BacktestEngine:
             elif (
                 not daily_loss_blocked
                 and not stopped
+                and (request.signal_start_at is None or bar.timestamp >= request.signal_start_at)
                 and _regime_allows(strategy, values, index)
                 and _rules_match(strategy.entry.conditions, strategy.entry.logic, values, index)
             ):
