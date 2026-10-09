@@ -5,3 +5,9 @@
 Tests: `tests/core/validation/test_dependency_boundary.py` parses the core module and asserts no dependency on `evaluation` modules, and verifies an independent structural metric provider. The pre-change test failed. Existing hard-gate contracts pass.
 
 T-002 as a whole remains partial: the Strategy IR/compiler dependency on core integrity hashes, strategy importing, mutation definitions, and other inverted edges still require a separately audited dependency DAG refactor.
+
+## Compiler hash inversion (second patch)
+
+Compiler hashing formerly imported `core.integrity.hashes` from inside `strategy_ir`. Canonical JSON serialization and SHA-256 hashing now reside in neutral `foundation.hashes`; `strategy_ir.compiler` imports it directly, and `core.integrity.hashes` transparently re-exports both function objects to preserve API and historical data hashes. `experiment_hash` remains a core integrity function and its canonicalization delegates unchanged to the same function. `tests/strategy_ir/test_hash_boundary.py` asserts compiler import direction and validates byte-for-byte hash parity against the financial-core public contract. This intentionally avoids schema changes or any financial execution semantics changes.
+
+Other inbound edges to Strategy IR from `strategy_import` and `mutation` remain; T-002 is not fully resolved.
