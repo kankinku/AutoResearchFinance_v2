@@ -69,7 +69,38 @@ class SDKMCPServerAdapter:
             payload = self.dispatcher._dispatch(params.name, dict(arguments))
             payload = _with_legacy_compatibility(params.name, payload)
             payload = _with_public_contract(params.name, payload)
-        except (OSError, PermissionError, TypeError, ValueError):
+        except (OSError, PermissionError, TypeError, ValueError) as exc:
+            if params.name in {
+                "start_research_batch",
+                "get_research_batch_status",
+                "get_research_batch_report",
+                "cancel_research_batch",
+            }:
+                code = getattr(exc, "code", None)
+                if not isinstance(code, str):
+                    code = (
+                        "NO_BATCH_FOUND"
+                        if isinstance(exc, ValueError) and str(exc) == "research batch not found"
+                        else "INVALID_RESEARCH_INPUTS"
+                    )
+                message = {
+                    "DATA_FILE_NOT_FOUND": "No Parquet market data at data_path. "
+                    "Check research_inputs in get_research_brief.",
+                    "SOURCE_FILE_NOT_FOUND": "Strategy source_path does not exist. "
+                    "Check research_inputs in get_research_brief.",
+                    "PARENT_ID_MISMATCH": "intent.parent_ids does not match source "
+                    "strategy_id; check get_research_brief.",
+                    "NO_BATCH_FOUND": "No accepted research batch exists yet.",
+                }.get(code, "Check source_path, data_path, ResearchIntent and input permissions.")
+                return _sdk_tool_result(
+                    {
+                        "status": "ERROR",
+                        "error_code": code,
+                        "message": message,
+                        "orders_enabled": False,
+                    },
+                    is_error=True,
+                )
             return _sdk_tool_result(
                 {"status": "ERROR", "message": "tool request failed"},
                 is_error=True,

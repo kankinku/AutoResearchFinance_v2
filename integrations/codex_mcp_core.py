@@ -135,7 +135,12 @@ class CodexMCPServer:
         if name == "get_research_brief":
             if arguments:
                 raise ValueError("research brief does not take arguments")
-            return self.services.research.brief()
+            return {
+                **self.services.research.brief(),
+                "research_inputs": ResearchBatchService(
+                    project_root=self.project_root, state_dir=self.state_dir
+                ).describe_inputs(),
+            }
         if name == "run_research_step":
             return self._run_research_step(arguments)
         if name in {

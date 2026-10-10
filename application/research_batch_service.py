@@ -32,6 +32,16 @@ from strategy_ir.normalizer import normalize_source
 
 MAX_GENERATIONS = 100
 MAX_CANDIDATES = 64
+
+
+class BatchRequestError(ValueError):
+    """A safe, user-actionable research preflight failure."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 _TERMINAL = frozenset({"COMPLETED", "FAILED", "CANCELLED", "INTERRUPTED"})
 
 
@@ -97,8 +107,22 @@ class ResearchBatchService:
         data = args.get("data_path")
         if not isinstance(source, str) or not isinstance(data, str):
             raise ValueError("source_path and data_path are required")
-        source_abs = resolve_project_input(self.project_root, source, ALLOWED_STRATEGY_SUFFIXES)
-        data_abs = resolve_project_input(self.project_root, data, frozenset({".parquet"}))
+        try:
+            source_abs = resolve_project_input(self.project_root, source, ALLOWED_STRATEGY_SUFFIXES)
+        except FileNotFoundError as exc:
+            raise BatchRequestError(
+                "SOURCE_FILE_NOT_FOUND",
+                "source_path must refer to an existing strategy file. "
+                "Read get_research_brief.research_inputs for known paths.",
+            ) from exc
+        try:
+            data_abs = resolve_project_input(self.project_root, data, frozenset({".parquet"}))
+        except FileNotFoundError as exc:
+            raise BatchRequestError(
+                "DATA_FILE_NOT_FOUND",
+                "data_path must refer to an existing Parquet file inside this project. "
+                "No research was queued. Check get_research_brief.research_inputs.",
+            ) from exc
         series = args.get("series_data_path")
         if series is not None and not isinstance(series, str):
             raise ValueError("series_data_path must be a string")
@@ -114,7 +138,11 @@ class ResearchBatchService:
             raise ValueError("GPT must provide a structured ResearchIntent")
         intent = ResearchIntent.model_validate(args["intent"])
         if len(intent.parent_ids) != 1 or intent.parent_ids[0] != imported.strategy.strategy_id:
-            raise ValueError("intent requires the exact single source parent")
+            raise BatchRequestError(
+                "PARENT_ID_MISMATCH",
+                "intent.parent_ids must contain exactly one ID, matching the "
+                "strategy_id reported for source_path in get_research_brief.research_inputs.",
+            )
         if intent.primitive_request is not None:
             raise ValueError("unregistered primitive requests cannot be executed")
         feature_specs = research_feature_specs()
@@ -151,6 +179,51 @@ class ResearchBatchService:
             "min_trades": min_trades,
             "min_annual_trades": min_annual,
             "min_qqq_cagr_delta": delta,
+        }
+
+    def describe_inputs(self) -> dict[str, object]:
+        """Bounded, project-local input discovery; never invent market data."""
+        sources: list[dict[str, str]] = []
+        directory = self.project_root / "strategies" / "normalized"
+        for path in sorted(directory.glob("*.json"))[:100]:
+            try:
+                validated = resolve_project_input(
+                    self.project_root,
+                    path.relative_to(self.project_root).as_posix(),
+                    ALLOWED_STRATEGY_SUFFIXES,
+                )
+                result = normalize_source(validated)
+                if result.strategy is not None:
+                    sources.append(
+                        {
+                            "source_path": validated.relative_to(self.project_root).as_posix(),
+                            "strategy_id": result.strategy.strategy_id,
+                        }
+                    )
+            except (OSError, ValueError, PermissionError):
+                continue
+        datasets: list[str] = []
+        candidates = list(self.project_root.glob("*.parquet"))
+        for dirname in ("data", "datasets"):
+            candidates.extend((self.project_root / dirname).rglob("*.parquet"))
+        for path in sorted(set(candidates))[:200]:
+            try:
+                checked = resolve_project_input(
+                    self.project_root,
+                    path.relative_to(self.project_root).as_posix(),
+                    frozenset({".parquet"}),
+                )
+                datasets.append(checked.relative_to(self.project_root).as_posix())
+            except (OSError, ValueError, PermissionError):
+                continue
+        return {
+            "sources": sources,
+            "data_paths": datasets,
+            "ready_for_batch": bool(sources and datasets),
+            "note": (
+                "Choose an exact source_path and its strategy_id from sources. "
+                "Use an existing Parquet data_path; do not create or guess paths."
+            ),
         }
 
     def start(self, args: dict[str, Any]) -> dict[str, object]:

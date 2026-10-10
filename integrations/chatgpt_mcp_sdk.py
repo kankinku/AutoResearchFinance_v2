@@ -172,11 +172,21 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
             )
         result = await super().call_tool(_context, params)
         if self.audit is not None:
+            error_code = None
+            if (
+                result.is_error
+                and result.content
+                and isinstance(result.content[0], types.TextContent)
+            ):
+                try:
+                    error_code = json.loads(result.content[0].text).get("error_code")
+                except (ValueError, AttributeError):
+                    pass
             self.audit.emit(
                 "tool_call",
                 tool=params.name,
                 result="ERROR" if result.is_error else "OK",
-                error_code="TOOL_EXECUTION_FAILED" if result.is_error else None,
+                error_code=error_code or ("TOOL_EXECUTION_FAILED" if result.is_error else None),
             )
         if result.is_error or params.name not in _CHATGPT_CUSTOM:
             return result
