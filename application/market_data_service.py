@@ -162,9 +162,14 @@ class MarketDataService:
             configured = {name: name in self._providers for name in _SUPPORTED}
         else:
             kis_file = self.root / ".env"
+            try:
+                PaperKISConfig.from_env(kis_file)
+                kis_configured = True
+            except ValueError:
+                kis_configured = False
             configured = {
                 "tiingo": bool(self._tiingo_token()),
-                "kis": kis_file.is_file(),
+                "kis": kis_configured,
             }
         return {
             "providers": [

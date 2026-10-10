@@ -255,3 +255,13 @@ def test_market_tiingo_key_in_private_dotenv_only(
     status = service.provider_status()
     assert status["providers"][0]["configured"] is True
     assert "not-a-real-key" not in str(status)
+
+
+def test_tiingo_only_dotenv_does_not_claim_kis_configured(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("TIINGO_API_KEY", raising=False)
+    (tmp_path / ".env").write_text("TIINGO_API_KEY=test-placeholder\n", encoding="utf-8")
+    status = MarketDataService(tmp_path).provider_status()
+    by_name = {item["name"]: item["configured"] for item in status["providers"]}
+    assert by_name == {"tiingo": True, "kis": False}
