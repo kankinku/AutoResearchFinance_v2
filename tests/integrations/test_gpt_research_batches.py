@@ -69,6 +69,14 @@ def test_gpt_batch_runs_two_generations_and_reuses_history_for_eta(tmp_path: Pat
     assert len(report["generations"]) == 2
     assert all(float(item["duration_seconds"]) > 0 for item in report["generations"])
     assert report["total_measured_seconds"] > 0
+    assert report["evaluated_candidate_instances"] >= 1
+    assert report["unique_candidate_count"] is not None
+    assert report["duplicate_candidate_evaluations"] == (
+        report["evaluated_candidate_instances"] - report["unique_candidate_count"]
+    )
+    assert report["candidate_uniqueness_basis"] == "immutable_evidence"
+    assert report["research_intent_mode"] == "fixed_intent"
+    assert report["promoted_successor_generations"] >= 0
     assert len([x for x in EvidenceStore(state).events() if x["kind"] == "generation"]) == 2
     second = service.start(_request(generations=1))
     assert second["eta_basis"] == "historical"
@@ -92,4 +100,47 @@ def test_batch_validation_rejects_invalid_intents_and_generation_bounds(tmp_path
     ):
         with pytest.raises(ValueError):
             service.start(args)
+    assert not service.database.exists()
+
+
+def test_batch_parameter_domains_produce_distinct_audited_candidates(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    request = {
+        **_request(generations=1),
+        "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3, 4]}],
+        "count": 3,
+    }
+    started = service.start(request)
+    jid = str(started["job_id"])
+    for _ in range(150):
+        time.sleep(0.2)
+        status = service.status(jid)
+        if status["status"] not in {"QUEUED", "RUNNING"}:
+            break
+    assert status["status"] == "COMPLETED", status
+    report = service.report(jid)
+    assert report["evaluated_candidate_instances"] == 3
+    assert report["unique_candidate_count"] == 3
+    assert report["duplicate_candidate_evaluations"] == 0
+    assert report["repeated_candidate_warning"] is False
+    assert report["generations"][0]["candidate_count"] == 3
+
+
+@pytest.mark.parametrize(
+    "domain",
+    [
+        {"name": "entry.logic", "values": ["AND", "OR"]},
+        {"name": "indicators.fast.type", "values": ["SMA", "EMA"]},
+        {"name": "indicators.missing.period", "values": [3, 4]},
+        {"name": "indicators.fast.period", "values": [2] * 25},
+    ],
+)
+def test_batch_rejects_invalid_parameter_domains_before_job_creation(
+    tmp_path: Path, domain: dict[str, object]
+) -> None:
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    with pytest.raises(ValueError):
+        service.start({**_request(), "parameter_domains": [domain]})
     assert not service.database.exists()

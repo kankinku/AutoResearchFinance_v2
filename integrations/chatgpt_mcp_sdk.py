@@ -73,6 +73,35 @@ def chatgpt_tools() -> list[dict[str, object]]:
             **step_properties,
             "generations": {"type": "integer", "minimum": 1, "maximum": MAX_GENERATIONS},
             "count": {"type": "integer", "minimum": 1, "maximum": MAX_CANDIDATES},
+            "parameter_domains": {
+                "type": "array",
+                "maxItems": 4,
+                "description": (
+                    "Optional GPT-authored bounded search spaces. Different values "
+                    "produce distinct candidate strategies even if no prior candidate survives."
+                ),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string", "minLength": 1},
+                        "values": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 24,
+                            "items": {
+                                "anyOf": [
+                                    {"type": "integer"},
+                                    {"type": "number"},
+                                    {"type": "string"},
+                                    {"type": "boolean"},
+                                ]
+                            },
+                        },
+                    },
+                    "required": ["name", "values"],
+                    "additionalProperties": False,
+                },
+            },
         },
         "required": ["source_path", "data_path", "intent", "generations"],
     }

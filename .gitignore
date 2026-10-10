@@ -24,6 +24,8 @@ secrets/
 credentials/
 
 # Runtime-generated state and worker artifacts
+# Locally licensed vendor market data must never be committed.
+/data/
 /.omx/
 /runs/
 /logs/

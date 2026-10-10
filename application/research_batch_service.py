@@ -21,8 +21,13 @@ from uuid import uuid4
 
 from application.evaluation_service import EvaluationService
 from core.features.registry import research_feature_specs
-from memory.evidence_store import EvidenceIntegrityError
-from orchestration.evaluation_runner import ALLOWED_STRATEGY_SUFFIXES, resolve_project_input
+from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
+from mutation.engine import MutationOperation, apply_operations
+from orchestration.evaluation_runner import (
+    ALLOWED_STRATEGY_SUFFIXES,
+    parse_parameter_domains,
+    resolve_project_input,
+)
 from research.llm.director import ResearchIntent
 from research.llm.intent_bridge import apply_intent, intent_to_operations
 from runtime.evidence_session import EvidenceSession
@@ -100,6 +105,7 @@ class ResearchBatchService:
             "min_annual_trades",
             "min_qqq_cagr_delta",
             "series_data_path",
+            "parameter_domains",
         }
         if set(args) - allowed:
             raise ValueError("unexpected batch arguments")
@@ -147,7 +153,50 @@ class ResearchBatchService:
             raise ValueError("unregistered primitive requests cannot be executed")
         feature_specs = research_feature_specs()
         intent_to_operations(intent, feature_specs)
-        apply_intent(imported.strategy, intent, feature_specs)
+        parent_after_intent = apply_intent(imported.strategy, intent, feature_specs)
+        domains = parse_parameter_domains(args.get("parameter_domains"))
+        if len(domains) > 4 or any(len(domain.values) > 24 for domain in domains):
+            raise BatchRequestError(
+                "PARAMETER_DOMAIN_TOO_LARGE", "At most 4 domains of 24 values are supported."
+            )
+        if len({domain.name for domain in domains}) != len(domains):
+            raise BatchRequestError(
+                "DUPLICATE_PARAMETER_DOMAIN", "Parameter domain names must be unique."
+            )
+        for domain in domains:
+            if not (
+                (
+                    domain.name.startswith("indicators.")
+                    and (domain.name.endswith(".period") or ".parameters." in domain.name)
+                )
+                or domain.name
+                in {
+                    "risk.stop_loss_pct",
+                    "risk.take_profit_pct",
+                    "risk.trailing_stop_pct",
+                    "risk.position_size_pct",
+                    "risk.risk_appetite",
+                    "risk.loss_tolerance_pct",
+                    "risk.daily_loss_limit_pct",
+                    "risk.daily_loss_action",
+                    "risk.max_concurrent_positions",
+                    "risk.max_total_exposure_pct",
+                }
+            ):
+                raise BatchRequestError(
+                    "INVALID_PARAMETER_DOMAIN", "Only indicator/risk parameter paths are allowed."
+                )
+            for value in domain.values:
+                try:
+                    apply_operations(
+                        parent_after_intent,
+                        [MutationOperation("SET_PARAMETER", domain.name, value)],
+                    )
+                except ValueError as exc:
+                    raise BatchRequestError(
+                        "INVALID_PARAMETER_DOMAIN",
+                        "Domain values must be valid for the selected strategy parameter.",
+                    ) from exc
         generations = _bounded_int(args.get("generations"), "generations", 1, MAX_GENERATIONS)
         count = _bounded_int(args.get("count", 8), "count", 1, MAX_CANDIDATES)
         seed = _bounded_int(args.get("seed", 0), "seed", 0, 2**31 - 1 - MAX_GENERATIONS)
@@ -172,6 +221,9 @@ class ResearchBatchService:
                 series_abs.relative_to(self.project_root).as_posix() if series_abs else None
             ),
             "intent": intent.model_dump(mode="json", exclude_none=True),
+            "parameter_domains": [
+                {"name": domain.name, "values": list(domain.values)} for domain in domains
+            ],
             "generations": generations,
             "count": count,
             "method": method,
@@ -407,10 +459,34 @@ class ResearchBatchService:
             }
             for r in rows
         ]
+        # Generation count is not necessarily the number of independent strategy
+        # candidates. Count verified candidate hashes from immutable attempt Evidence.
+        hashes: list[str] = []
+        if isinstance(status["research_run_id"], str):
+            for event in EvidenceStore(self.state_dir).events():
+                payload = event["payload"]
+                if (
+                    event["kind"] == "attempt"
+                    and payload.get("research_run_id") == status["research_run_id"]
+                ):
+                    for candidate in payload.get("candidates", []):
+                        candidate_hash = candidate.get("candidate_hash")
+                        if isinstance(candidate_hash, str) and candidate_hash:
+                            hashes.append(candidate_hash)
+        distinct = len(set(hashes))
+        duplicate = len(hashes) - distinct
+        promotions = sum(item["parent_id"] != item["successor_id"] for item in generations)
         return {
             **status,
             "generations": generations,
             "total_measured_seconds": round(sum(float(r["seconds"]) for r in rows), 3),
+            "evaluated_candidate_instances": len(hashes),
+            "unique_candidate_count": distinct if hashes else None,
+            "duplicate_candidate_evaluations": duplicate if hashes else None,
+            "repeated_candidate_warning": duplicate > 0,
+            "promoted_successor_generations": promotions,
+            "candidate_uniqueness_basis": "immutable_evidence" if hashes else "not_measured",
+            "research_intent_mode": "fixed_intent",
             "final_report_ready": status["status"] in _TERMINAL,
             "oos_approved": False,
         }
@@ -482,6 +558,7 @@ class ResearchBatchService:
                     min_annual_trades=request["min_annual_trades"],
                     min_qqq_cagr_delta=request["min_qqq_cagr_delta"],
                     operations=operations,
+                    parameter_domains=parse_parameter_domains(request.get("parameter_domains")),
                     strategy_override=strategy,
                 )
                 next_strategy = _strategy_from_evaluation(

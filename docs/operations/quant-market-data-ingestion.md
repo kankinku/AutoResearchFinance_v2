@@ -53,10 +53,37 @@ requests should fail rather than silently pass as complete.
   The ingestion service intentionally supports provider swapping behind one
   internal interface without granting an external MCP broad broker capabilities.
 
-No keys were available in the audited Quant environment; integration tests
-use explicit mock HTTP/provider responses. No real Tiingo or KIS downloads
-are claimed. Configuration may require a Quant process restart if values are
-only injected at container start. The read-only `list_market_data` tool must
-report `configured=true` before a real download can succeed.
+## Actual-data acceptance and repeated-candidate diagnostics
+
+On 2026-10-10, the Tiingo read-only API returned 1,508 raw daily QQQ bars
+covering 2020-01-02 through 2025-12-31; the managed development Parquet
+round-trip and project-registered `mean_reversion` strategy preflight passed.
+This dataset is **not independently point-in-time or corporate-action
+verified** and may not be treated as sealed OOS performance evidence.
+
+A real-data one-generation batch (`bd0499db6920402dbbae1c4a1c645b49`)
+and fixed-intent five-generation batch (`62fa4863d8464272b0ca80a62e982592`)
+both completed, but the latter evaluated one unique rejected candidate five
+times. The batch report now exposes `evaluated_candidate_instances`,
+`unique_candidate_count`, `duplicate_candidate_evaluations`,
+`repeated_candidate_warning` and `promoted_successor_generations`, each
+grounded in existing immutable per-attempt candidate Evidence.
+
+To search multiple parameter values in `start_research_batch`, explicitly
+provide `parameter_domains`, for example:
+```json
+[{"name":"indicators.disp_5.period","values":[5,7,10,14]}]
+```
+Up to 4 approved parameter paths with 24 values each are allowed. A
+`method=random` seed can vary candidates between generations, but a small
+finite search space may still repeat previously evaluated candidates. A
+completed generation is **not** an independently discovered or promoted
+strategy. The worker does not independently ask GPT for fresh hypotheses; it
+uses the single supplied ResearchIntent for the batch.
+
+Data files under `/data/` are ignored by Git and are never bundled with
+source releases. The API key remains in a private local `.env`, not in the
+repository, research request, or logs. Deployment operators should rotate
+keys that have been shared in chats.
 
 Reference: https://www.tiingo.com/documentation/end-of-day
