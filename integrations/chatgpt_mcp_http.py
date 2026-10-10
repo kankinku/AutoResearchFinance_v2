@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
-from mcp.server.auth.routes import (
+from mcp.server.auth.routes import (  # type: ignore[attr-defined]
     MetadataHandler,
     build_metadata,
     cors_middleware,

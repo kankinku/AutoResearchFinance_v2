@@ -44,7 +44,7 @@ class MCPAuditLog:
         count: int | None = None,
         elapsed_ms: int | None = None,
     ) -> None:
-        record = {
+        record: dict[str, str | int] = {
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "request_id": _REQUEST_ID.get(),
             "event": event,

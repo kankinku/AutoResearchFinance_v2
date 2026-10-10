@@ -39,6 +39,9 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "get_research_batch_status": "EVIDENCE_STATUS",
     "get_research_batch_report": "EVIDENCE_STATUS",
     "cancel_research_batch": "EXECUTION_LIFECYCLE",
+    "list_market_data": "EVIDENCE_STATUS",
+    "validate_market_data": "CATALOG_VALIDATION",
+    "download_market_data": "EXECUTION_LIFECYCLE",
 }
 
 
@@ -101,6 +104,54 @@ def chatgpt_tools() -> list[dict[str, object]]:
                 "name": "cancel_research_batch",
                 "description": "Stop after current generation; retain completed Evidence.",
                 "inputSchema": status_schema,
+            },
+        ]
+    )
+    custom.extend(
+        [
+            {
+                "name": "list_market_data",
+                "description": (
+                    "List exact local immutable market-data paths and whether read-only "
+                    "Tiingo/KIS sources are configured. No credentials or rows exposed."
+                ),
+                "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+            },
+            {
+                "name": "validate_market_data",
+                "description": (
+                    "Inspect existing managed Parquet OHLCV, declared lineage and quality."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"data_path": {"type": "string"}},
+                    "required": ["data_path"],
+                    "additionalProperties": False,
+                },
+            },
+            {
+                "name": "download_market_data",
+                "description": (
+                    "Explicitly fetch US equity/ETF daily prices from configured read-only "
+                    "Tiingo or KIS, verify date coverage, and save immutable development "
+                    "Parquet. No account orders, API keys, or arbitrary URLs accepted."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "provider": {"type": "string", "enum": ["tiingo", "kis"]},
+                        "symbol": {"type": "string", "minLength": 1, "maxLength": 15},
+                        "start": {"type": "string", "format": "date"},
+                        "end": {"type": "string", "format": "date"},
+                        "price_policy": {
+                            "type": "string",
+                            "enum": ["raw", "total_return_adjusted"],
+                            "default": "raw",
+                        },
+                    },
+                    "required": ["provider", "symbol", "start", "end"],
+                    "additionalProperties": False,
+                },
             },
         ]
     )

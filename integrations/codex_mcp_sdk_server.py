@@ -9,6 +9,7 @@ from mcp import types
 from mcp.server import Server, ServerRequestContext
 from mcp.server.stdio import stdio_server
 
+from application.market_data_service import MarketDataError
 from integrations.codex_mcp_core import (
     CodexMCPServer,
     _tools,
@@ -70,6 +71,20 @@ class SDKMCPServerAdapter:
             payload = _with_legacy_compatibility(params.name, payload)
             payload = _with_public_contract(params.name, payload)
         except (OSError, PermissionError, TypeError, ValueError) as exc:
+            if isinstance(exc, MarketDataError) and params.name in {
+                "list_market_data",
+                "download_market_data",
+                "validate_market_data",
+            }:
+                return _sdk_tool_result(
+                    {
+                        "status": "ERROR",
+                        "error_code": exc.code,
+                        "message": str(exc),
+                        "orders_enabled": False,
+                    },
+                    is_error=True,
+                )
             if params.name in {
                 "start_research_batch",
                 "get_research_batch_status",

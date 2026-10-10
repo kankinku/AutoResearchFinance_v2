@@ -147,6 +147,8 @@ class KISPaperClient:
         exchange = _exchange(exchange)
         _date(start)
         _date(end)
+        if start > end:
+            raise ValueError("start date must not exceed end date")
         payload = self._call(
             "GET",
             "/uapi/overseas-price/v1/quotations/dailyprice",
@@ -163,7 +165,7 @@ class KISPaperClient:
         bars: list[Bar] = []
         for record in _records(payload.get("output2")):
             date = str(_first_value(record, ("xymd", "stck_bsop_date", "date")) or "")
-            if not date:
+            if not date or date < start or date > end:
                 continue
             opening = _required_number(record, ("open", "ovrs_nmix_oprc", "stck_oprc"), "open")
             high = _required_number(record, ("high", "ovrs_nmix_hgpr", "stck_hgpr"), "high")
@@ -230,17 +232,29 @@ class KISPaperClient:
                 },
             )
             present = _first_record(present_payload.get("output3"))
-            equity = equity if equity is not None else _number(
-                present,
-                ("frcr_evlu_tota", "tot_asst_amt", "evlu_amt_smtl"),
+            equity = (
+                equity
+                if equity is not None
+                else _number(
+                    present,
+                    ("frcr_evlu_tota", "tot_asst_amt", "evlu_amt_smtl"),
+                )
             )
-            cash = cash if cash is not None else _number(
-                present,
-                ("frcr_use_psbl_amt", "tot_frcr_cblc_smtl", "cash"),
+            cash = (
+                cash
+                if cash is not None
+                else _number(
+                    present,
+                    ("frcr_use_psbl_amt", "tot_frcr_cblc_smtl", "cash"),
+                )
             )
-            buying_power = buying_power if buying_power is not None else _number(
-                present,
-                ("ustl_buy_amt_smtl", "frcr_use_psbl_amt", "buying_power"),
+            buying_power = (
+                buying_power
+                if buying_power is not None
+                else _number(
+                    present,
+                    ("ustl_buy_amt_smtl", "frcr_use_psbl_amt", "buying_power"),
+                )
             )
         return KISAccountSnapshot(
             account_number=_mask_account(self.config.account_number),
