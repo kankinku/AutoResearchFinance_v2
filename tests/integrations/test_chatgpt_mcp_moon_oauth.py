@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+import json
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -55,6 +56,14 @@ def test_moon_oauth_registration_approval_pkce_and_scope(tmp_path: Path) -> None
                 meta = await client.get("/.well-known/oauth-authorization-server")
                 assert meta.status_code == 200, meta.text
                 assert meta.json()["token_endpoint"].startswith(PUBLIC)
+                assert meta.json()["token_endpoint_auth_methods_supported"] == [
+                    "none",
+                    "client_secret_post",
+                ]
+                assert (
+                    "client_secret_basic"
+                    not in meta.json()["token_endpoint_auth_methods_supported"]
+                )
                 redirect = "https://chatgpt.com/connector_platform_oauth_redirect"
                 registered = await client.post(
                     "/register",
@@ -142,6 +151,66 @@ def test_moon_oauth_registration_approval_pkce_and_scope(tmp_path: Path) -> None
                     tool["securitySchemes"] == [{"type": "oauth2", "scopes": ["mcp:tools"]}]
                     for tool in listed.json()["result"]["tools"]
                 )
+                called = await client.post(
+                    "/mcp",
+                    follow_redirects=True,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 3,
+                        "method": "tools/call",
+                        "params": {"name": "get_workspace_status", "arguments": {}},
+                    },
+                    headers={**headers, "authorization": f"Bearer {access}"},
+                )
+                assert called.status_code == 200
+                assert called.json()["result"]["isError"] is False
+                unknown = await client.post(
+                    "/mcp",
+                    follow_redirects=True,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 4,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "nonexistent_tool",
+                            "arguments": {"canary": "DONT_LOG_THIS_SECRET"},
+                        },
+                    },
+                    headers={**headers, "authorization": f"Bearer {access}"},
+                )
+                assert unknown.status_code == 200
+                assert unknown.json()["result"]["isError"] is True
+                audit_file = tmp_path / "research" / "logs" / "mcp-events.jsonl"
+                audit_data = audit_file.read_text(encoding="utf-8")
+                records = [json.loads(line) for line in audit_data.splitlines()]
+                assert any(r["event"] == "tools_list" and r["count"] == 14 for r in records)
+                assert any(
+                    r["event"] == "tool_call"
+                    and r["tool"] == "get_workspace_status"
+                    and r["result"] == "OK"
+                    for r in records
+                )
+                assert any(
+                    r["event"] == "http_response"
+                    and r["route"] == "mcp"
+                    and r["http_status"] == 401
+                    for r in records
+                )
+                assert any(
+                    r["event"] == "tool_call"
+                    and r["tool"] == "unknown"
+                    and r["error_code"] == "UNKNOWN_TOOL"
+                    for r in records
+                )
+                assert any(
+                    r["event"] == "http_response"
+                    and r["route"] == "oauth_consent"
+                    and r["http_status"] == 401
+                    for r in records
+                )
+                assert "DONT_LOG_THIS_SECRET" not in audit_data
+                assert access not in audit_data and KEY not in audit_data
+                assert audit_file.stat().st_mode & 0o077 == 0
                 replay = await client.post(
                     "/token",
                     data={

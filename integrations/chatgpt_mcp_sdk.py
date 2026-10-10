@@ -18,6 +18,7 @@ from integrations.codex_mcp_sdk_server import (
     _sdk_tool,
     _sdk_tool_result,
 )
+from integrations.quant_mcp_diagnostics import MCPAuditLog
 
 _CHATGPT_CANONICAL = frozenset(
     {
@@ -122,9 +123,17 @@ class _OAuthToolsResult(types.ListToolsResult):
 class ChatGPTMCPAdapter(SDKMCPServerAdapter):
     """Distinct official SDK tool plane with no local-LLM autonomous actions."""
 
-    def __init__(self, *, state_dir: Path, project_root: Path, require_oauth: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        state_dir: Path,
+        project_root: Path,
+        require_oauth: bool = False,
+        audit: MCPAuditLog | None = None,
+    ) -> None:
         super().__init__(state_dir=state_dir, project_root=project_root)
         self.require_oauth = require_oauth
+        self.audit = audit
 
     async def list_tools(
         self,
@@ -132,6 +141,8 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
         _params: types.PaginatedRequestParams | None,
     ) -> types.ListToolsResult:
         tools = [_sdk_tool(item) for item in chatgpt_tools()]
+        if self.audit is not None:
+            self.audit.emit("tools_list", result="OK", count=len(tools))
         if not self.require_oauth:
             return types.ListToolsResult(tools=tools)
         return _OAuthToolsResult(
@@ -152,10 +163,21 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
         params: types.CallToolRequestParams,
     ) -> types.CallToolResult:
         if params.name not in (_CHATGPT_CANONICAL | _CHATGPT_CUSTOM.keys()):
+            if self.audit is not None:
+                self.audit.emit(
+                    "tool_call", tool="unknown", result="ERROR", error_code="UNKNOWN_TOOL"
+                )
             return _sdk_tool_result(
                 {"status": "ERROR", "message": "tool request failed"}, is_error=True
             )
         result = await super().call_tool(_context, params)
+        if self.audit is not None:
+            self.audit.emit(
+                "tool_call",
+                tool=params.name,
+                result="ERROR" if result.is_error else "OK",
+                error_code="TOOL_EXECUTION_FAILED" if result.is_error else None,
+            )
         if result.is_error or params.name not in _CHATGPT_CUSTOM:
             return result
         content = result.content[0]
@@ -175,8 +197,15 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
 
 
 def create_chatgpt_sdk_adapter(
-    *, state_dir: Path, project_root: Path, require_oauth: bool = False
+    *,
+    state_dir: Path,
+    project_root: Path,
+    require_oauth: bool = False,
+    audit: MCPAuditLog | None = None,
 ) -> ChatGPTMCPAdapter:
     return ChatGPTMCPAdapter(
-        state_dir=state_dir, project_root=project_root, require_oauth=require_oauth
+        state_dir=state_dir,
+        project_root=project_root,
+        require_oauth=require_oauth,
+        audit=audit,
     )

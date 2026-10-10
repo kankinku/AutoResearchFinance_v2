@@ -15,10 +15,13 @@ from typing import Any
 
 import uvicorn
 from mcp.server.auth.routes import (
+    MetadataHandler,
+    build_metadata,
+    cors_middleware,
     create_auth_routes,
     create_protected_resource_routes,
 )
-from mcp.server.auth.settings import ClientRegistrationOptions
+from mcp.server.auth.settings import ClientRegistrationOptions, RevocationOptions
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl
@@ -29,6 +32,7 @@ from starlette.routing import BaseRoute, Mount, Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from integrations.chatgpt_mcp_sdk import create_chatgpt_sdk_adapter
+from integrations.quant_mcp_diagnostics import MCPAuditLog, MCPRequestDiagnostics
 from integrations.quant_oauth import QuantOAuthProvider
 
 
@@ -167,10 +171,12 @@ def create_http_app(
     if token is None and oauth is None:
         raise ValueError("at least one MCP authentication method is required")
     secret = require_access_token(token) if token is not None else None
+    audit = MCPAuditLog(state_dir) if oauth is not None else None
     adapter = create_chatgpt_sdk_adapter(
         project_root=project_root,
         state_dir=state_dir,
         require_oauth=oauth is not None,
+        audit=audit,
     )
     session_manager = StreamableHTTPSessionManager(
         adapter.server,
@@ -191,15 +197,20 @@ def create_http_app(
     routes: list[BaseRoute] = [Mount("/mcp", app=session_manager.handle_request)]
     if oauth is not None:
         issuer, resource = AnyHttpUrl(oauth.public_base), AnyHttpUrl(oauth.resource)
-        routes.extend(
-            create_auth_routes(
-                oauth,
-                issuer,
-                client_registration_options=ClientRegistrationOptions(
-                    enabled=True, valid_scopes=["mcp:tools"], default_scopes=["mcp:tools"]
-                ),
-            )
+        registration = ClientRegistrationOptions(
+            enabled=True, valid_scopes=["mcp:tools"], default_scopes=["mcp:tools"]
         )
+        auth_routes = create_auth_routes(oauth, issuer, client_registration_options=registration)
+        metadata = build_metadata(issuer, None, registration, RevocationOptions())
+        # SDK 2.2.0 incorrectly advertises only confidential clients here.
+        # The Quant provider supports public PKCE and secret_post, not secret_basic.
+        metadata.token_endpoint_auth_methods_supported = ["none", "client_secret_post"]
+        auth_routes[0] = Route(
+            "/.well-known/oauth-authorization-server",
+            endpoint=cors_middleware(MetadataHandler(metadata).handle, ["GET", "OPTIONS"]),
+            methods=["GET", "OPTIONS"],
+        )
+        routes.extend(auth_routes)
         routes.extend(
             create_protected_resource_routes(
                 resource,
@@ -213,6 +224,8 @@ def create_http_app(
     if oauth is not None:
         app.add_middleware(_OAuthToolSchemaResponse)
     app.add_middleware(_AuthenticatedMCP, token=secret, oauth=oauth)
+    if audit is not None:
+        app.add_middleware(MCPRequestDiagnostics, audit=audit)
     return app
 
 
