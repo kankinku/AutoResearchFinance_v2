@@ -189,6 +189,65 @@ def propose_next_hypothesis(
         entry_variants()
     risk_domain("risk.take_profit_pct", profit_values, "RISK_TAKE_PROFIT_EXPERIMENT")
 
+    # Structural fallbacks are attempted only after the bounded entry/risk menu.
+    # The mutation engine and strategy validator, not this planner, determine
+    # whether a proposed Strategy IR is executable and semantically novel.
+    for index, condition in enumerate(parent.exit.conditions):
+        value = condition.value
+        if (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and isfinite(value)
+            and condition.op in {"less_than", "less_equal", "greater_than", "greater_equal"}
+        ):
+            for delta, label in (
+                (-1.0, "EXIT_THRESHOLD_EXPERIMENT_TIGHTER"),
+                (1.0, "EXIT_THRESHOLD_EXPERIMENT_LOOSER"),
+            ):
+                payload = condition.model_dump(mode="python")
+                payload["value"] = round(float(value) + delta, 6)
+                variants.append(
+                    (
+                        label,
+                        preferred,
+                        (
+                            *initial_operations,
+                            MutationOperation("REPLACE_RULE", f"exit.conditions.{index}", payload),
+                        ),
+                        initial_domains,
+                    )
+                )
+            break
+
+    # A registered RSI confirmation alongside the existing entry signal is
+    # an actual indicator/rule composition, rather than a parameter-only edit.
+    # Avoid shadowing an existing RSI signal or an existing generated alias.
+    alias = "adaptive_rsi_14"
+    if alias not in parent.indicators and not any(
+        item.type == "RSI" for item in parent.indicators.values()
+    ):
+        variants.append(
+            (
+                "INDICATOR_RSI_ENTRY_CONFIRMATION",
+                preferred,
+                (
+                    *initial_operations,
+                    MutationOperation(
+                        "ADD_INDICATOR",
+                        f"indicators.{alias}",
+                        {"type": "RSI", "period": 14, "parameters": {}},
+                    ),
+                    MutationOperation(
+                        "ADD_RULE",
+                        "entry.conditions",
+                        {"left": alias, "op": "less_equal", "value": 35, "enabled": True},
+                    ),
+                    MutationOperation("CHANGE_AND_OR", "entry.logic", "AND"),
+                ),
+                initial_domains,
+            )
+        )
+
     for label, trigger, operations, domains in variants:
         if label in used_hypotheses:
             continue

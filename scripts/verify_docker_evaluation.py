@@ -10,6 +10,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
+# Direct CLI invocation puts scripts/ on sys.path, not the repository root.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from core.data.contracts import Bar, DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
