@@ -28,6 +28,7 @@ from memory.knowledge import extract_knowledge
 from mutation.engine import MutationOperation
 from mutation.parameter import BayesianObservation, ParameterDomain
 from orchestration.generation import CANONICAL_STAGES
+from orchestration.purged_cpcv import PurgedCPCVReport, run_purged_cpcv
 from orchestration.train_only import TrainOnlyFold, TrainOnlySelectionReport
 from strategy_ir.schema import StrategyIR
 
@@ -41,6 +42,7 @@ class GenerationPipelineResult:
     train_only_selection: TrainOnlySelectionReport | None = None
     multiple_testing_trials: int = 1
     duplicate_skipped: int = 0
+    purged_cpcv: PurgedCPCVReport | None = None
 
 
 @dataclass(frozen=True)
@@ -87,6 +89,8 @@ class GenerationPipeline:
         external_series: SeriesDataSet | None = None,
         prior_trials: int = 0,
         excluded_semantic_hashes: tuple[str, ...] = (),
+        cpcv_label_end_indices: tuple[int, ...] | None = None,
+        cpcv_embargo_bars: int = 0,
     ) -> GenerationPipelineResult:
         if prior_trials < 0:
             raise ValueError("prior_trials must be nonnegative")
@@ -276,6 +280,33 @@ class GenerationPipeline:
             prior_observations_supplied=bool(observations),
             excluded_semantic_hashes=excluded_semantic_hashes,
         )
+        cpcv_report: PurgedCPCVReport | None = None
+        if cpcv_label_end_indices is not None:
+            if (
+                any(candidate.strategy.features for candidate in candidates)
+                or external_series is not None
+            ):
+                cpcv_report = PurgedCPCVReport(
+                    "UNSUPPORTED_UNVERIFIED_FEATURES",
+                    reason="external data/feature release times are unverified",
+                )
+            elif method == "bayesian" and observations:
+                cpcv_report = PurgedCPCVReport(
+                    "UNVERIFIED_UPSTREAM_OPTIMIZATION",
+                    reason="Bayesian observations are not fold-train-only",
+                )
+            else:
+                cpcv_report = run_purged_cpcv(
+                    dataset=dataset,
+                    candidates=candidates,
+                    evaluate=lambda candidate, subset, first: (
+                        self._evaluate(candidate, subset, "cpcv", signal_start_at=first)[
+                            0
+                        ].total_return
+                    ),
+                    label_end_indices=cpcv_label_end_indices,
+                    embargo_bars=cpcv_embargo_bars,
+                )
         return GenerationPipelineResult(
             CANONICAL_STAGES,
             candidates,
@@ -284,6 +315,7 @@ class GenerationPipeline:
             selection,
             multiple_testing_trials,
             duplicate_skipped,
+            cpcv_report,
         )
 
     def _select_train_only(

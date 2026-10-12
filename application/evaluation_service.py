@@ -40,6 +40,8 @@ class EvaluationService:
         research_run_id: str | None = None,
         attempt_id: str | None = None,
         excluded_semantic_hashes: tuple[str, ...] = (),
+        cpcv_label_end_indices: tuple[int, ...] | None = None,
+        cpcv_embargo_bars: int = 0,
     ) -> dict[str, object]:
         return self.executor.run(
             run_local_evaluation,
@@ -61,4 +63,6 @@ class EvaluationService:
             research_run_id=research_run_id,
             attempt_id=attempt_id,
             excluded_semantic_hashes=excluded_semantic_hashes,
+            cpcv_label_end_indices=cpcv_label_end_indices,
+            cpcv_embargo_bars=cpcv_embargo_bars,
         )

@@ -67,6 +67,8 @@ def run_local_evaluation(
     attempt_id: str | None = None,
     execution_context: Mapping[str, object] | None = None,
     excluded_semantic_hashes: tuple[str, ...] = (),
+    cpcv_label_end_indices: tuple[int, ...] | None = None,
+    cpcv_embargo_bars: int = 0,
 ) -> dict[str, object]:
     source = resolve_project_input(project_root, source_path, ALLOWED_STRATEGY_SUFFIXES)
     data = resolve_project_input(project_root, data_path, frozenset({".parquet"}))
@@ -161,6 +163,8 @@ def run_local_evaluation(
         external_series=series,
         prior_trials=previous_trials,
         excluded_semantic_hashes=excluded_semantic_hashes,
+        cpcv_label_end_indices=cpcv_label_end_indices,
+        cpcv_embargo_bars=cpcv_embargo_bars,
     )
     selection_payload: dict[str, object] | None = (
         asdict(pipeline_result.train_only_selection)
@@ -208,6 +212,11 @@ def run_local_evaluation(
                 )
             ],
             "train_only_selection": selection_payload,
+            "purged_cpcv": (
+                asdict(pipeline_result.purged_cpcv)
+                if pipeline_result.purged_cpcv is not None
+                else None
+            ),
             "market_data_quality": data_quality,
         },
     )
@@ -248,6 +257,9 @@ def run_local_evaluation(
         "market_data_quality": data_quality,
         "multiple_testing_trials": pipeline_result.multiple_testing_trials,
         "train_only_selection": selection_payload,
+        "purged_cpcv": (
+            asdict(pipeline_result.purged_cpcv) if pipeline_result.purged_cpcv is not None else None
+        ),
         "search_mode": "baseline" if not domains and not typed_operations else method,
         "counts": {
             status: sum(item.status == status for item in pipeline_result.funnel)

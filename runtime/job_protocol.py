@@ -50,6 +50,8 @@ class EvaluationJobRequest(BaseModel):
     attempt_id: str | None = None
     managed_run_id: str | None = None
     excluded_semantic_hashes: tuple[str, ...] = ()
+    cpcv_label_end_indices: tuple[int, ...] | None = None
+    cpcv_embargo_bars: int = Field(default=0, ge=0)
 
     @classmethod
     def from_evaluation_kwargs(
@@ -92,9 +94,7 @@ class EvaluationJobRequest(BaseModel):
                 else None
             ),
             generation=_optional_int(kwargs.get("generation"), "generation"),
-            series_data_path=_optional_relative_input(
-                project_root, kwargs.get("series_data_path")
-            ),
+            series_data_path=_optional_relative_input(project_root, kwargs.get("series_data_path")),
             min_qqq_cagr_delta=_optional_float(kwargs.get("min_qqq_cagr_delta")),
             min_annual_trades=_optional_int(
                 kwargs.get("min_annual_trades", 30), "min_annual_trades"
@@ -103,6 +103,10 @@ class EvaluationJobRequest(BaseModel):
             attempt_id=_optional_text(kwargs.get("attempt_id")),
             managed_run_id=_optional_text(kwargs.get("managed_run_id")),
             excluded_semantic_hashes=tuple(kwargs.get("excluded_semantic_hashes", ())),
+            cpcv_label_end_indices=kwargs.get("cpcv_label_end_indices"),
+            cpcv_embargo_bars=_required_int(
+                kwargs.get("cpcv_embargo_bars", 0), "cpcv_embargo_bars"
+            ),
         )
 
     def evaluation_kwargs(
@@ -122,8 +126,7 @@ class EvaluationJobRequest(BaseModel):
             "seed": self.seed,
             "min_trades": self.min_trades,
             "parameter_domains": tuple(
-                ParameterDomain(item.name, item.values)
-                for item in self.parameter_domains
+                ParameterDomain(item.name, item.values) for item in self.parameter_domains
             ),
             "operations": tuple(
                 MutationOperation(
@@ -146,6 +149,8 @@ class EvaluationJobRequest(BaseModel):
             "research_run_id": self.research_run_id,
             "attempt_id": self.attempt_id,
             "excluded_semantic_hashes": self.excluded_semantic_hashes,
+            "cpcv_label_end_indices": self.cpcv_label_end_indices,
+            "cpcv_embargo_bars": self.cpcv_embargo_bars,
             "execution_context": dict(execution_context),
         }
 
@@ -209,8 +214,6 @@ def _jsonable(value: object) -> Any:
     raise TypeError(f"mutation value is not JSON-safe: {type(value).__name__}")
 
 
-
-
 def _method(value: object) -> Literal["grid", "random", "bayesian"]:
     if value not in {"grid", "random", "bayesian"}:
         raise ValueError("evaluation method is invalid")
@@ -219,6 +222,7 @@ def _method(value: object) -> Literal["grid", "random", "bayesian"]:
     if value == "random":
         return "random"
     return "bayesian"
+
 
 def _required_int(value: object, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool):
