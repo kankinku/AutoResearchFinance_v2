@@ -40,6 +40,8 @@ def test_external_llm_brief_is_read_only_and_has_bounded_provenance(tmp_path: Pa
     assert isinstance(brief, dict)
     assert brief["llm_controller"] == "external_mcp_client"
     assert brief["orders_enabled"] is False
+    assert brief["research_inputs"]["readiness_scope"] == "INPUTS_DISCOVERED_ONLY"
+    assert brief["research_inputs"]["requires_preflight"] is True
     assert brief["frontier"] == []
     assert "raw_market_rows" not in str(brief)
     assert not state.exists()

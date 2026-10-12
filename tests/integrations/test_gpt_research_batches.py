@@ -175,6 +175,12 @@ def test_gpt_batch_runs_two_generations_and_reuses_history_for_eta(tmp_path: Pat
         report["evaluated_candidate_instances"] - report["unique_candidate_count"]
     )
     assert report["candidate_uniqueness_basis"] == "immutable_evidence"
+    analysis = report["failure_analysis"]
+    assert analysis["source"] == "immutable_evidence"
+    assert analysis["evaluated_candidate_instances"] == report["evaluated_candidate_instances"]
+    assert analysis["data_quality"]["point_in_time_verified"] is False
+    assert analysis["sealed_oos"] == "NOT_MEASURED"
+    assert analysis["causal_status"] == "UNKNOWN"
     assert report["research_intent_mode"] == "fixed_intent"
     assert report["promoted_successor_generations"] >= 0
     assert len([x for x in EvidenceStore(state).events() if x["kind"] == "generation"]) == 2

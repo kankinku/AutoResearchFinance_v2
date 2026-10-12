@@ -20,6 +20,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 from application.evaluation_service import EvaluationService
+from application.research_batch_summary import explain_batch_attempts
 from core.data.contracts import DataZone
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
@@ -375,6 +376,8 @@ class ResearchBatchService:
             "sources": sources,
             "data_paths": datasets,
             "ready_for_batch": bool(sources and datasets),
+            "readiness_scope": "INPUTS_DISCOVERED_ONLY",
+            "requires_preflight": True,
             "note": (
                 "Choose an exact source_path and its strategy_id from sources. "
                 "Use an existing Parquet data_path; do not create or guess paths."
@@ -566,6 +569,7 @@ class ResearchBatchService:
         # Generation count is not necessarily the number of independent strategy
         # candidates. Count verified candidate hashes from immutable attempt Evidence.
         hashes: list[str] = []
+        attempts: list[dict[str, object]] = []
         if isinstance(status["research_run_id"], str):
             for event in EvidenceStore(self.state_dir).events():
                 payload = event["payload"]
@@ -573,6 +577,7 @@ class ResearchBatchService:
                     event["kind"] == "attempt"
                     and payload.get("research_run_id") == status["research_run_id"]
                 ):
+                    attempts.append(payload)
                     for candidate in payload.get("candidates", []):
                         candidate_hash = candidate.get("candidate_hash")
                         if isinstance(candidate_hash, str) and candidate_hash:
@@ -596,6 +601,7 @@ class ResearchBatchService:
             "research_intent_mode": "fixed_intent",
             "final_report_ready": status["status"] in _TERMINAL,
             "oos_approved": False,
+            "failure_analysis": explain_batch_attempts(attempts),
         }
 
     def execute(self, job_id: str) -> None:

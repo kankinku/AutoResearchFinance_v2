@@ -79,3 +79,12 @@ North Star 제안: **실제 개발 데이터에서 고유 후보를 평가하고
 - 인증/배포: scripts/quant_public_url.py, scripts/run_quant_moon_http.sh, deployment/moon.
 
 운영·수익성·실제 고객 효과 중 이번 조사로 검증하지 않은 항목은 이미 완료된 것으로 표현하지 않는다.
+
+## M0–M1 Implementation (2026-10-12)
+
+- M0: 기존 source/path/parent_id 식별은 get_research_brief를 사용하고, read-only preflight를 start 이전에 호출하는 **연결 플러그인 스킬 워크플로**로 안내. 새 MCP 도구/프레임워크 추가 없음.
+- 입력 카탈로그의 ready_for_batch는 이제 readiness_scope=INPUTS_DISCOVERED_ONLY 및 requires_preflight=true를 함께 반환한다. 이는 입력 검색 가능 여부이지 전략 품질 검증이 아니다.
+- M1: get_research_batch_report에 failure_analysis 필드 추가. 불변 Evidence 내 REJECT의 failed_gates, 실제 측정/임계값 예시, 발생 횟수, 원천 데이터 품질, 고유 후보 해시 수 및 대표 검토 제안을 읽기 전용으로 집계한다. 이유의 **인과관계는 UNKNOWN**, OOS는 NOT_MEASURED.
+- 보고서의 reviewed gate는 실행을 자동으로 시작하거나 성과 개선을 보장하지 않는다. 복수 원인 집계/후보 해시 중복을 분리해 설명한다.
+- 기존 batch DB schema, MCP 도구 이름·스키마, JWT/OAuth, 고정 URL, Evidence 기록, 평가자 규칙과 KIS 주문 권한은 변경하지 않는다.
+- M2(혼합 후보 부분 중복 제거), M3(초기 사용자 검증), Docker 호스트 acceptance는 미완료로 유지한다.
