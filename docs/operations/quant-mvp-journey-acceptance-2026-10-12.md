@@ -32,3 +32,15 @@
 - Moon 호스트에서 HTTPS git push 시: "could not read Username" 인증 실패.
 - 연결된 GitHub 앱에 쓰기 권한은 있으나, 대량 소스 파일 전송 방식은 안전 검사에서 차단됨.
 - 원격 GitHub 게시 및 PR/merge는 아직 **미완료**. 성공하기 전에는 원격 반영됐다고 기록하지 않는다. 인증 키를 챗에 재공개하거나 강제 push하지 않는다.
+
+
+## 구현·운영 검증 결과
+
+- 변경 HEAD: 2424c30 (Git 로컬 브랜치)
+- 격리 MCP 통합 테스트: 전략 계열·QQQ 입력 선택 → 사전검증 → 배치 실행 → 상태 → Evidence 리포트 모두 완료.
+- 전체 Pytest: 957 PASS. Ruff PASS, Mypy 184 source files PASS.
+- Quant MCP만 재시작, 활성 운영 배치 0개 확인. 기존 Moon 3000/health 200, Quant OAuth 메타데이터 200, 미인증 Quant /mcp/ 401, 공개 OAuth 200.
+- 연결된 Qaunt Autoresearch에서 get_research_brief 확인: sources 10, QQQ datasets 1, mean_reversion family reversal, indicators.disp_5.period 변경 후보; QQQ 데이터 봉 1508, 품질 UNVERIFIED.
+- 실제 연결에서 preflight_research_batch만 호출: preview 4 candidate instances, 고유 3, 개발 데이터 품질 미검증 및 중복 경고 정상, 주문 권한 false. 운영 배치는 새로 시작하지 않았다.
+- 서비스 및 OAuth 주소 https://project-moon.taild689f9.ts.net/quant/mcp 유지. 기존 플러그인/앱 식별자 및 도구 이름 18개 유지.
+- GitHub 원격 push는 별개이며 아직 수행되지 않았다: Moon 호스트 git HTTPS 자격증명 없고 대량 GitHub 도구 업로드가 안전 검사에서 차단됐다. 강제 push나 자격증명 노출은 하지 않는다.
