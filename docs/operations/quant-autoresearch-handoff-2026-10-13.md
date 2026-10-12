@@ -58,3 +58,11 @@
 - Authenticated connected `get_research_evidence`: status `OK` with existing legacy exhausted 11/12 recorded as `SEARCH_SPACE_EXHAUSTED`; no immutable event rewrites.
 - Operating MCP dispatcher `run_research_step` predecessor-linked research: `064a8f1301704f138e9005e0151dd551` linked to `9663645707ab48638b01404ce50872fc`; one candidate evaluated and REJECT, orders disabled. Authenticated ChatGPT `get_research_evidence(research_run_id=...)` confirmed persisted predecessor link.
 - Caveat: current connected ChatGPT client-side tool schema was cached without new optional `previous_research_run_id`, and rejected this new argument before sending it. Server schema and dispatcher are updated; refresh/reconnect plugin tool metadata in a new client session to expose the field directly. Do not claim the connected submission itself succeeded until refreshed.
+
+## Rescue release acceptance (2026-10-13 KST)
+
+- Commit `4a3dd368d12e92d7d1315dbbbd9e33d1f1ad748f` pushed to `docs/mcp-phase3-5-1-state-inventory`.
+- Full `pytest`: **1,114 passed**; Ruff all pass; Mypy **192** source files pass; Git worktree clean after commit.
+- Restarted only `integrations.chatgpt_mcp_http` with zero running/queued research batches. Both local and proxy MCP endpoints recovered from short startup 502 to expected unauthenticated **401**. Existing **2 OAuth clients** retained.
+- Authenticated connector: `get_workspace_status` reported `READY`, `get_research_evidence` reported `OK`, **10 runs**, `orders_enabled=false`. Historical research candidate statuses remain **87 REJECT and zero genuine NEAR_MISS**; no realized Rescue promotion claimed.
+- Rescue new operational implementation is deployed; only *synthetic isolated tests* verified the rescue mutation path. Next hard gate: evaluate a **real, evaluator-labeled** NEAR_MISS and verify its fully recorded subsequent rescue application without changing evaluator acceptance thresholds or touching sealed OOS.
