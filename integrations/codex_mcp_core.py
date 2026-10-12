@@ -8,6 +8,7 @@ from application.market_data_service import MarketDataService
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.research_batch_service import ResearchBatchService
 from application.services import ApplicationServices, create_application_services
+from memory.trial_inventory import research_trial_inventory
 from orchestration.evaluation_runner import parse_parameter_domains
 from research.llm.codex_schema import research_intent_schema
 from research.llm.director import ResearchIntent
@@ -156,6 +157,9 @@ class CodexMCPServer:
                 "research_inputs": ResearchBatchService(
                     project_root=self.project_root, state_dir=self.state_dir
                 ).describe_inputs(),
+                # Only the authorized server state is exposed through MCP.
+                # Multi-workspace aggregation requires explicit server-side paths.
+                "research_trial_inventory": research_trial_inventory((self.state_dir,)),
             }
         if name == "run_research_step":
             return self._run_research_step(arguments)

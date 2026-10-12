@@ -277,7 +277,10 @@ def _candidate_snapshot_evidence(candidate: object, result: object) -> dict[str,
 
     if not isinstance(candidate, Candidate) or not isinstance(result, FunnelResult):
         raise TypeError("candidate/result Evidence pair is invalid")
+    from experiments.identity import semantic_strategy_hash
+
     payload: dict[str, object] = candidate_evidence(result)
+    payload["semantic_strategy_hash"] = semantic_strategy_hash(candidate.strategy)
     if result.status in {"SURVIVOR", "FRONTIER", "CHAMPION_CANDIDATE", "CHAMPION"}:
         ir = candidate.strategy.model_dump(mode="json", by_alias=True)
         payload["strategy_ir"] = ir

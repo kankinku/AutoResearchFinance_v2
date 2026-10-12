@@ -43,6 +43,9 @@ def test_external_llm_brief_is_read_only_and_has_bounded_provenance(tmp_path: Pa
     assert brief["research_inputs"]["readiness_scope"] == "INPUTS_DISCOVERED_ONLY"
     assert brief["research_inputs"]["requires_preflight"] is True
     assert brief["frontier"] == []
+    assert brief["research_trial_inventory"]["status"] == "EMPTY"
+    assert brief["research_trial_inventory"]["history_complete"] is False
+    assert brief["research_trial_inventory"]["effective_independent_trials"] is None
     assert "raw_market_rows" not in str(brief)
     assert not state.exists()
 
@@ -84,6 +87,14 @@ def test_chatgpt_proposed_intent_runs_without_invoking_internal_codex(
     assert [event["kind"] for event in events].count("attempt") == 1
     assert [event["kind"] for event in events].count("end") == 1
     assert events[-1]["payload"]["status"] == "COMPLETED"
+    candidate = next(event for event in events if event["kind"] == "attempt")["payload"][
+        "candidates"
+    ][0]
+    assert len(candidate["semantic_strategy_hash"]) == 64
+    observed = server._dispatch("get_research_brief", {})["research_trial_inventory"]
+    assert observed["candidate_evaluation_instances"] == 1
+    assert observed["unique_semantic_strategy_hashes_global"] == 1
+    assert observed["effective_independent_trials"] is None
     assert (state / "llm" / "intents.jsonl").exists()
 
 
