@@ -500,7 +500,8 @@ class ResearchBatchService:
         request = json.loads(row["request_json"])
         with self._connect() as db:
             durations = db.execute(
-                "SELECT seconds FROM generation_history WHERE batch_id=? ORDER BY generation",
+                "SELECT seconds,result_status FROM generation_history "
+                "WHERE batch_id=? ORDER BY generation",
                 (row["id"],),
             ).fetchall()
             historical, samples = self._estimate(db, request["method"], request["count"])
@@ -512,12 +513,25 @@ class ResearchBatchService:
             if basis is not None and row["status"] not in _TERMINAL
             else None
         )
+        # Only deterministic, fixed search spaces may stop without sampling
+        # later seeds. No completed attempts are fabricated for skipped generations.
+        exhausted = (
+            row["status"] == "COMPLETED"
+            and row["completed"] < row["requested"]
+            and bool(durations)
+            and durations[-1]["result_status"] == "NO_NEW_CANDIDATES"
+        )
         # If no samples, do NOT invent an ETA.
         return {
             "job_id": row["id"],
             "status": row["status"],
             "requested_generations": row["requested"],
             "completed_generations": row["completed"],
+            "stopped_early": exhausted,
+            "stop_reason": "SEARCH_SPACE_EXHAUSTED" if exhausted else None,
+            "unexecuted_generations": (
+                row["requested"] - row["completed"] if exhausted else 0
+            ),
             "progress_percent": round(100 * row["completed"] / row["requested"], 1),
             "started_at_utc": _timestamp(row["started"]),
             "created_at_utc": _timestamp(row["created"]),
@@ -562,7 +576,14 @@ class ResearchBatchService:
                 "successor_id": r["successor_id"],
                 "status": r["result_status"],
                 "candidate_count": r["candidate_count"],
-                "counts": json.loads(r["result_counts"]),
+                "counts": {
+                    name: value
+                    for name, value in json.loads(r["result_counts"]).items()
+                    if name != "DUPLICATE_SKIPPED"
+                },
+                "duplicate_skipped": json.loads(r["result_counts"]).get(
+                    "DUPLICATE_SKIPPED", 0
+                ),
             }
             for r in rows
         ]
@@ -594,6 +615,9 @@ class ResearchBatchService:
             "duplicate_candidate_evaluations": duplicate if hashes else None,
             "repeated_candidate_warning": duplicate > 0,
             "promoted_successor_generations": promotions,
+            "total_skipped_duplicate_candidates": sum(
+                int(item["duplicate_skipped"]) for item in generations
+            ),
             "skipped_duplicate_generations": sum(
                 item["status"] == "NO_NEW_CANDIDATES" for item in generations
             ),
@@ -674,6 +698,7 @@ class ResearchBatchService:
                     semantic=True,
                 ).unique
                 semantics = {semantic_strategy_hash(item.strategy) for item in candidates}
+                skipped = len(semantics & seen_semantics)
                 if semantics and semantics <= seen_semantics:
                     # The same effective strategy on immutable data need not be
                     # evaluated again. This generation is recorded, not invented.
@@ -681,6 +706,7 @@ class ResearchBatchService:
                         "status": "NO_NEW_CANDIDATES",
                         "candidate_count": 0,
                         "counts": {},
+                        "duplicate_skipped": skipped,
                     }
                 else:
                     result = evidence.evaluate(
@@ -698,8 +724,11 @@ class ResearchBatchService:
                         operations=operations,
                         parameter_domains=domains,
                         strategy_override=strategy,
+                        excluded_semantic_hashes=tuple(sorted(seen_semantics)),
                     )
-                    seen_semantics.update(semantics)
+                    if result.get("duplicate_skipped") != skipped:
+                        raise EvidenceIntegrityError("evaluated candidate exclusion mismatch")
+                seen_semantics.update(semantics)
                 next_strategy = _strategy_from_evaluation(
                     result, self.state_dir, research_run_id=evidence.run_id
                 )
@@ -719,7 +748,10 @@ class ResearchBatchService:
                             parent_id,
                             strategy.strategy_id,
                             str(result.get("status", "UNKNOWN")),
-                            json.dumps(result.get("counts", {})),
+                            json.dumps({
+                                **cast(dict[str, int], result.get("counts", {})),
+                                "DUPLICATE_SKIPPED": result.get("duplicate_skipped", 0),
+                            }),
                             (
                                 result.get("candidate_count", 0)
                                 if isinstance(result.get("candidate_count", 0), int)
@@ -731,6 +763,12 @@ class ResearchBatchService:
                         "UPDATE batches SET completed=?,heartbeat=? WHERE id=?",
                         (number, time.time(), job_id),
                     )
+                if result.get("status") == "NO_NEW_CANDIDATES" and (
+                    request["method"] == "grid" or not domains
+                ):
+                    # Further seeds cannot introduce an unseen strategy with
+                    # grid search, or in the absence of parameter domains.
+                    break
             evidence.finish_run("COMPLETED")
             with self._connect() as db:
                 db.execute(

@@ -39,6 +39,7 @@ class EvaluationService:
         min_annual_trades: int | None = 30,
         research_run_id: str | None = None,
         attempt_id: str | None = None,
+        excluded_semantic_hashes: tuple[str, ...] = (),
     ) -> dict[str, object]:
         return self.executor.run(
             run_local_evaluation,
@@ -59,4 +60,5 @@ class EvaluationService:
             min_annual_trades=min_annual_trades,
             research_run_id=research_run_id,
             attempt_id=attempt_id,
+            excluded_semantic_hashes=excluded_semantic_hashes,
         )

@@ -49,6 +49,7 @@ class EvaluationJobRequest(BaseModel):
     research_run_id: str | None = None
     attempt_id: str | None = None
     managed_run_id: str | None = None
+    excluded_semantic_hashes: tuple[str, ...] = ()
 
     @classmethod
     def from_evaluation_kwargs(
@@ -101,6 +102,7 @@ class EvaluationJobRequest(BaseModel):
             research_run_id=_optional_text(kwargs.get("research_run_id")),
             attempt_id=_optional_text(kwargs.get("attempt_id")),
             managed_run_id=_optional_text(kwargs.get("managed_run_id")),
+            excluded_semantic_hashes=tuple(kwargs.get("excluded_semantic_hashes", ())),
         )
 
     def evaluation_kwargs(
@@ -143,6 +145,7 @@ class EvaluationJobRequest(BaseModel):
             "min_annual_trades": self.min_annual_trades,
             "research_run_id": self.research_run_id,
             "attempt_id": self.attempt_id,
+            "excluded_semantic_hashes": self.excluded_semantic_hashes,
             "execution_context": dict(execution_context),
         }
 

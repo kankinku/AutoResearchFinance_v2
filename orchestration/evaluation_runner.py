@@ -66,6 +66,7 @@ def run_local_evaluation(
     research_run_id: str | None = None,
     attempt_id: str | None = None,
     execution_context: Mapping[str, object] | None = None,
+    excluded_semantic_hashes: tuple[str, ...] = (),
 ) -> dict[str, object]:
     source = resolve_project_input(project_root, source_path, ALLOWED_STRATEGY_SUFFIXES)
     data = resolve_project_input(project_root, data_path, frozenset({".parquet"}))
@@ -82,6 +83,10 @@ def run_local_evaluation(
     domains = tuple(parameter_domains)
     if any(not isinstance(domain, ParameterDomain) for domain in domains):
         raise TypeError("parameter_domains must contain ParameterDomain values")
+    if not isinstance(excluded_semantic_hashes, tuple) or any(
+        not isinstance(item, str) or len(item) != 64 for item in excluded_semantic_hashes
+    ):
+        raise ValueError("excluded candidate identities must be SHA-256 hex strings")
     typed_operations = tuple(operations)
     if any(not isinstance(operation, MutationOperation) for operation in typed_operations):
         raise TypeError("operations must contain MutationOperation values")
@@ -155,6 +160,7 @@ def run_local_evaluation(
         feature_inputs=feature_inputs,
         external_series=series,
         prior_trials=previous_trials,
+        excluded_semantic_hashes=excluded_semantic_hashes,
     )
     selection_payload: dict[str, object] | None = (
         asdict(pipeline_result.train_only_selection)
@@ -183,6 +189,7 @@ def run_local_evaluation(
                 "parent_ir_hash": digest(strategy.model_dump(mode="json", by_alias=True)),
                 "method": method,
                 "count": count,
+                "duplicate_skipped": pipeline_result.duplicate_skipped,
                 "multiple_testing_trials": pipeline_result.multiple_testing_trials,
                 "parameter_domains": [asdict(domain) for domain in domains],
                 "worker": dict(
@@ -237,6 +244,7 @@ def run_local_evaluation(
         "attempt_id": attempt_id,
         "status": "COMPLETED",
         "candidate_count": len(pipeline_result.candidates),
+        "duplicate_skipped": pipeline_result.duplicate_skipped,
         "market_data_quality": data_quality,
         "multiple_testing_trials": pipeline_result.multiple_testing_trials,
         "train_only_selection": selection_payload,

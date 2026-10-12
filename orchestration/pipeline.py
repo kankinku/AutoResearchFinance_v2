@@ -23,6 +23,7 @@ from evaluation.selector import FunnelConfig, FunnelInput, FunnelResult, select_
 from evaluation.yearly import summarize_yearly_performance
 from experiments.candidate_generator import Candidate, generate_candidates
 from experiments.deduplicator import deduplicate_candidates
+from experiments.identity import semantic_strategy_hash
 from memory.knowledge import extract_knowledge
 from mutation.engine import MutationOperation
 from mutation.parameter import BayesianObservation, ParameterDomain
@@ -39,6 +40,7 @@ class GenerationPipelineResult:
     knowledge: dict[str, object]
     train_only_selection: TrainOnlySelectionReport | None = None
     multiple_testing_trials: int = 1
+    duplicate_skipped: int = 0
 
 
 @dataclass(frozen=True)
@@ -84,6 +86,7 @@ class GenerationPipeline:
         feature_inputs: Mapping[str, Sequence[float | None]] | None = None,
         external_series: SeriesDataSet | None = None,
         prior_trials: int = 0,
+        excluded_semantic_hashes: tuple[str, ...] = (),
     ) -> GenerationPipelineResult:
         if prior_trials < 0:
             raise ValueError("prior_trials must be nonnegative")
@@ -104,7 +107,13 @@ class GenerationPipeline:
             seed=seed,
             observations=observations,
         )
-        candidates = deduplicate_candidates(list(generated), semantic=True).unique
+        deduplicated = deduplicate_candidates(list(generated), semantic=True).unique
+        candidates = tuple(
+            candidate
+            for candidate in deduplicated
+            if semantic_strategy_hash(candidate.strategy) not in excluded_semantic_hashes
+        )
+        duplicate_skipped = len(deduplicated) - len(candidates)
         multiple_testing_trials = max(1, len(candidates) + prior_trials)
         fast_dataset = _fast_slice(dataset)
         fast_width = len(fast_dataset.bars)
@@ -263,6 +272,7 @@ class GenerationPipeline:
             external_series=external_series,
             method=method,
             prior_observations_supplied=bool(observations),
+            excluded_semantic_hashes=excluded_semantic_hashes,
         )
         return GenerationPipelineResult(
             CANONICAL_STAGES,
@@ -271,6 +281,7 @@ class GenerationPipeline:
             knowledge,
             selection,
             multiple_testing_trials,
+            duplicate_skipped,
         )
 
     def _select_train_only(
@@ -285,6 +296,7 @@ class GenerationPipeline:
         seed: int,
         method: str,
         prior_observations_supplied: bool,
+        excluded_semantic_hashes: tuple[str, ...],
         feature_values: Mapping[str, Sequence[float | None]] | None,
         feature_inputs: Mapping[str, Sequence[float | None]] | None,
         external_series: SeriesDataSet | None,
@@ -347,7 +359,11 @@ class GenerationPipeline:
                 seed=generation_seed,
                 observations=None,
             )
-            fold_candidates = deduplicate_candidates(list(fold_generated), semantic=True).unique
+            fold_candidates = tuple(
+                candidate
+                for candidate in deduplicate_candidates(list(fold_generated), semantic=True).unique
+                if semantic_strategy_hash(candidate.strategy) not in excluded_semantic_hashes
+            )
             if not fold_candidates:
                 return TrainOnlySelectionReport("INSUFFICIENT_CANDIDATES")
             scored = tuple(

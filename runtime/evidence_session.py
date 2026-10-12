@@ -85,6 +85,8 @@ class EvidenceSession:
                 "generation": generation,
                 "status": status,
                 "attempt_id": result.get("attempt_id") if result else None,
+                "candidate_count": result.get("candidate_count") if result else None,
+                "duplicate_skipped": result.get("duplicate_skipped", 0) if result else 0,
             },
         )
 

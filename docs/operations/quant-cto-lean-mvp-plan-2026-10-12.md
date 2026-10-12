@@ -88,3 +88,12 @@ North Star 제안: **실제 개발 데이터에서 고유 후보를 평가하고
 - 보고서의 reviewed gate는 실행을 자동으로 시작하거나 성과 개선을 보장하지 않는다. 복수 원인 집계/후보 해시 중복을 분리해 설명한다.
 - 기존 batch DB schema, MCP 도구 이름·스키마, JWT/OAuth, 고정 URL, Evidence 기록, 평가자 규칙과 KIS 주문 권한은 변경하지 않는다.
 - M2(혼합 후보 부분 중복 제거), M3(초기 사용자 검증), Docker 호스트 acceptance는 미완료로 유지한다.
+
+## M2 구현 (2026-10-12 이후 별도 변경)
+
+- 동일 배치·동일 데이터/비용/평가 설정 내 실행 의미(semantic Strategy IR) 기준으로 이전 세대와 겹치는 후보는 재평가하지 않는다. 새 후보가 섞여 있으면 해당 새 후보만 실제 평가한다.
+- 기존 평가 runner, GenerationPipeline, train-only fold selection, Docker EvaluationJobRequest JSON 경계에 excluded_semantic_hashes를 선택적 내부 필드로 전달한다. 독립 배치 간 캐시나 불변 Evidence 수정은 하지 않는다.
+- generation_history의 기존 JSON에 DUPLICATE_SKIPPED를 추가하되 리포트의 퍼널 상태 counts에서는 별도 duplicate_skipped와 total_skipped_duplicate_candidates로 표시한다. DB 마이그레이션 없음. Evidence attempt execution / generation 이벤트에도 실제 생략 횟수를 남긴다.
+- Grid 고정 탐색 또는 파라미터 도메인이 없는 고정 후보가 전부 이미 평가됐다면 조기 종료한다. Random 탐색의 일회성 중복은 전체 공간 소진의 증거가 아니므로 조기 종료하지 않는다.
+- 조기 종료 시 최종 상태는 COMPLETED이고, completed_generations가 requested_generations보다 적으며 stopped_early=true, stop_reason=SEARCH_SPACE_EXHAUSTED, unexecuted_generations가 공개된다. 미실행 세대를 완료로 계산하지 않는다.
+- 세대별 새 후보가 없는 경우 NO_NEW_CANDIDATES를 계속 남긴다. sealed OOS/실거래 주문 권한은 변화 없다.

@@ -209,17 +209,23 @@ def test_repeated_single_candidate_generation_is_skipped_with_evidence(tmp_path:
             break
     assert status["status"] == "COMPLETED", status
     report = service.report(jid)
-    assert report["completed_generations"] == 3
-    assert report["skipped_duplicate_generations"] == 2
+    assert report["completed_generations"] == 2
+    assert report["requested_generations"] == 3
+    assert report["stopped_early"] is True
+    assert report["stop_reason"] == "SEARCH_SPACE_EXHAUSTED"
+    assert report["unexecuted_generations"] == 1
+    assert report["skipped_duplicate_generations"] == 1
+    assert report["total_skipped_duplicate_candidates"] == 1
     assert [row["status"] for row in report["generations"]] == [
         "COMPLETED",
-        "NO_NEW_CANDIDATES",
         "NO_NEW_CANDIDATES",
     ]
     assert report["evaluated_candidate_instances"] == 1
     events = EvidenceStore(state).events()
     assert len([x for x in events if x["kind"] == "attempt"]) == 1
-    assert len([x for x in events if x["kind"] == "generation"]) == 3
+    generations = [x["payload"] for x in events if x["kind"] == "generation"]
+    assert len(generations) == 2
+    assert generations[-1]["duplicate_skipped"] == 1
 
 def test_batch_validation_rejects_invalid_intents_and_generation_bounds(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
@@ -276,3 +282,83 @@ def test_batch_rejects_invalid_parameter_domains_before_job_creation(
     with pytest.raises(ValueError):
         service.start({**_request(), "parameter_domains": [domain]})
     assert not service.database.exists()
+
+
+def test_mixed_duplicate_generations_evaluate_only_unseen_semantics(tmp_path: Path) -> None:
+    """Seed 8: periods 2,3; seed 9: periods 3,4. Evaluate three, not four."""
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    request = {
+        **_request(generations=2),
+        "count": 2,
+        "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3, 4]}],
+    }
+    started = service.start(request)
+    jid = str(started["job_id"])
+    for _ in range(150):
+        time.sleep(0.2)
+        current = service.status(jid)
+        if current["status"] not in {"QUEUED", "RUNNING"}:
+            break
+    assert current["status"] == "COMPLETED", current
+    report = service.report(jid)
+    assert report["evaluated_candidate_instances"] == 3
+    assert report["unique_candidate_count"] == 3
+    assert report["total_skipped_duplicate_candidates"] == 1
+    assert [item["candidate_count"] for item in report["generations"]] == [2, 1]
+    assert [item["duplicate_skipped"] for item in report["generations"]] == [0, 1]
+    events = [
+        item["payload"]
+        for item in EvidenceStore(tmp_path / "state").events()
+        if item["kind"] == "attempt"
+    ]
+    assert [len(item["candidates"]) for item in events] == [2, 1]
+    assert events[1]["execution"]["duplicate_skipped"] == 1
+
+
+def test_random_collision_does_not_prematurely_stop_unexhausted_search(tmp_path: Path) -> None:
+    """One duplicate random draw cannot prove that later draws are duplicates."""
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    started = service.start({
+        **_request(generations=4),
+        "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3, 4]}],
+    })
+    jid = str(started["job_id"])
+    for _ in range(160):
+        time.sleep(0.2)
+        current = service.status(jid)
+        if current["status"] not in {"QUEUED", "RUNNING"}:
+            break
+    assert current["status"] == "COMPLETED", current
+    report = service.report(jid)
+    assert report["requested_generations"] == 4
+    assert report["completed_generations"] == 4
+    assert report["stopped_early"] is False
+    assert report["stop_reason"] is None
+    assert report["skipped_duplicate_generations"] == 1
+    assert report["evaluated_candidate_instances"] == 3
+
+
+def test_fixed_grid_stops_when_all_candidates_were_already_evaluated(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    started = service.start({
+        **_request(generations=5),
+        "method": "grid",
+        "count": 2,
+        "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3]}],
+    })
+    jid = str(started["job_id"])
+    for _ in range(160):
+        time.sleep(0.2)
+        current = service.status(jid)
+        if current["status"] not in {"QUEUED", "RUNNING"}:
+            break
+    assert current["status"] == "COMPLETED", current
+    report = service.report(jid)
+    assert report["completed_generations"] == 2
+    assert report["unexecuted_generations"] == 3
+    assert report["stop_reason"] == "SEARCH_SPACE_EXHAUSTED"
+    assert report["evaluated_candidate_instances"] == 2
+    assert report["total_skipped_duplicate_candidates"] == 2
