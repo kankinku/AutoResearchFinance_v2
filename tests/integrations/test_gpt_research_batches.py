@@ -362,3 +362,24 @@ def test_fixed_grid_stops_when_all_candidates_were_already_evaluated(tmp_path: P
     assert report["stop_reason"] == "SEARCH_SPACE_EXHAUSTED"
     assert report["evaluated_candidate_instances"] == 2
     assert report["total_skipped_duplicate_candidates"] == 2
+
+
+def test_legacy_batches_do_not_invent_zero_skipped_duplicate_counts(tmp_path: Path) -> None:
+    import json
+
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    with service._connect() as db:
+        db.execute(
+            "INSERT INTO batches (id,status,request_json,requested,completed,created) "
+            "VALUES (?,?,?,?,?,?)",
+            ("legacy", "COMPLETED", json.dumps({"method": "random", "count": 1}), 1, 1, 1),
+        )
+        db.execute(
+            "INSERT INTO generation_history VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ("legacy", 1, 2.0, "random", 1, "parent", "parent", "COMPLETED",
+             json.dumps({"REJECT": 1}), 1),
+        )
+    report = service.report("legacy")
+    assert report["generations"][0]["duplicate_skipped"] is None
+    assert report["total_skipped_duplicate_candidates"] is None
+    assert report["evaluated_candidate_instances"] == 0

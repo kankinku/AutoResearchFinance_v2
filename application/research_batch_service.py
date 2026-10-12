@@ -568,25 +568,20 @@ class ResearchBatchService:
                 "SELECT * FROM generation_history WHERE batch_id=? ORDER BY generation",
                 (status["job_id"],),
             ).fetchall()
-        generations = [
-            {
-                "generation": r["generation"],
-                "duration_seconds": round(r["seconds"], 3),
-                "parent_id": r["parent_id"],
-                "successor_id": r["successor_id"],
-                "status": r["result_status"],
-                "candidate_count": r["candidate_count"],
-                "counts": {
-                    name: value
-                    for name, value in json.loads(r["result_counts"]).items()
-                    if name != "DUPLICATE_SKIPPED"
-                },
-                "duplicate_skipped": json.loads(r["result_counts"]).get(
-                    "DUPLICATE_SKIPPED", 0
-                ),
-            }
-            for r in rows
-        ]
+        generations: list[dict[str, object]] = []
+        for row in rows:
+            counts = json.loads(row["result_counts"])
+            skipped = counts.pop("DUPLICATE_SKIPPED", None)
+            generations.append({
+                "generation": row["generation"],
+                "duration_seconds": round(row["seconds"], 3),
+                "parent_id": row["parent_id"],
+                "successor_id": row["successor_id"],
+                "status": row["result_status"],
+                "candidate_count": row["candidate_count"],
+                "counts": counts,
+                "duplicate_skipped": skipped,
+            })
         # Generation count is not necessarily the number of independent strategy
         # candidates. Count verified candidate hashes from immutable attempt Evidence.
         hashes: list[str] = []
@@ -615,8 +610,12 @@ class ResearchBatchService:
             "duplicate_candidate_evaluations": duplicate if hashes else None,
             "repeated_candidate_warning": duplicate > 0,
             "promoted_successor_generations": promotions,
-            "total_skipped_duplicate_candidates": sum(
-                int(item["duplicate_skipped"]) for item in generations
+            "total_skipped_duplicate_candidates": (
+                sum(cast(int, item["duplicate_skipped"]) for item in generations)
+                if generations and all(
+                    isinstance(item["duplicate_skipped"], int) for item in generations
+                )
+                else None
             ),
             "skipped_duplicate_generations": sum(
                 item["status"] == "NO_NEW_CANDIDATES" for item in generations
