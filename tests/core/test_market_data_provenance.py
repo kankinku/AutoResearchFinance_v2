@@ -159,3 +159,20 @@ def test_missing_continuous_intraday_bar_is_reported_per_symbol() -> None:
         )
     )
     assert "missing_continuous_bars" in result.issues
+
+
+def test_us_equities_long_gap_is_reported_as_warning_without_fake_sessions() -> None:
+    """Long gaps are suspicious, but the quality checker does not invent exchange days."""
+    bars = (
+        Bar(datetime(2024, 1, 2, tzinfo=timezone.utc), "AAA", 100, 101, 99, 100, 10),
+        Bar(datetime(2024, 1, 15, tzinfo=timezone.utc), "AAA", 100, 101, 99, 100, 10),
+    )
+    report = market_data_quality(
+        MarketDataSet(
+            "sparse-equities", "development", bars,
+            provenance=provenance(universe_policy="single_symbol"),
+        )
+    )
+    assert report.status == "UNVERIFIED"
+    assert "unusually_long_exchange_gap" in report.issues
+    assert report.point_in_time_verified is False

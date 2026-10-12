@@ -30,6 +30,8 @@ def market_data_quality(dataset: MarketDataSet) -> MarketDataQuality:
         issues.append("empty_market_data")
     if dataset.calendar == "continuous" and _has_continuous_gaps(dataset):
         issues.append("missing_continuous_bars")
+    if dataset.calendar == "us_equities" and _has_unusually_long_exchange_gaps(dataset):
+        issues.append("unusually_long_exchange_gap")
     if provenance is None:
         issues.append("provenance_missing")
     else:
@@ -66,6 +68,24 @@ def _has_continuous_gaps(dataset: MarketDataSet) -> bool:
     for bar in dataset.bars:
         previous = previous_by_symbol.get(bar.symbol)
         if previous is not None and bar.timestamp - previous > expected * 1.5:
+            return True
+        previous_by_symbol[bar.symbol] = bar.timestamp
+    return False
+
+
+def _has_unusually_long_exchange_gaps(dataset: MarketDataSet) -> bool:
+    """Flag suspicious gaps; do not infer missing sessions without a calendar.
+
+    Weekends and exchange holidays are legitimate. Eight consecutive calendar
+    days between ordinary US-equity observations warrant a warning, not
+    invented bars or independent proof of missing sessions.
+    """
+    if dataset.timeframe != "1d":
+        return False
+    previous_by_symbol: dict[str, datetime] = {}
+    for bar in dataset.bars:
+        previous = previous_by_symbol.get(bar.symbol)
+        if previous is not None and bar.timestamp - previous > timedelta(days=8):
             return True
         previous_by_symbol[bar.symbol] = bar.timestamp
     return False

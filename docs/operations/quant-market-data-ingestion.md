@@ -87,3 +87,14 @@ repository, research request, or logs. Deployment operators should rotate
 keys that have been shared in chats.
 
 Reference: https://www.tiingo.com/documentation/end-of-day
+
+
+## Follow-up: audited ingestion integrity gates (2026-10-12)
+
+The existing QQQ 2020-01-02 through 2025-12-31 development dataset was inspected read-only: 1,508 OHLCV bars, zero zero-volume bars, maximum observed date gap 4 calendar days. Its content hash was unchanged. This is **not** an independent price, session-calendar, split, dividend or point-in-time verification.
+
+- Managed data validation now checks zone metadata **before** loading market rows. Sealed/validation zones are denied to the ChatGPT market-data listing and validator, including data accidentally placed in the managed directory.
+- The managed path's declared vendor, symbol, requested date bounds and raw-versus-adjusted price policy must agree with the stored dataset and source provenance. An existing file that fails this check returns a safe identity error instead of being accepted as ALREADY_EXISTS; original files are never silently overwritten.
+- Invalid vendor OHLC and duplicate timestamp bars return sanitized INVALID_VENDOR_DATA errors without creating a research dataset.
+- A US-equities daily observation gap longer than eight calendar days is a **warning** (unusually_long_exchange_gap), not proof of a missing exchange session. No trading dates are fabricated. Real exchange-session auditing needs an independently maintained exchange calendar.
+- These changes affect read-only ingestion/quality diagnostics only. Research remains development-only; orders remain disabled. The source's revision_policy=latest and raw corporate-action policy continue to produce UNVERIFIED status. An adjusted Tiingo dataset would also require independent verification of actions and historical as-of timestamps.

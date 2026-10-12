@@ -15,13 +15,27 @@ from typing import Protocol
 
 import httpx
 
-from core.data.contracts import Bar, DataZone, MarketDataSet, MarketSourceProvenance
+from core.data.contracts import (
+    Bar,
+    DataContractError,
+    DataZone,
+    MarketDataSet,
+    MarketSourceProvenance,
+)
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
 from integrations.kis.client import KISPaperClient
 from integrations.kis.config import PaperKISConfig, _read_dotenv
+from memory.evidence_store import EvidenceIntegrityError
+from orchestration.evidence import require_research_zone
 
 _SYMBOL_RE = re.compile(r"[A-Z][A-Z0-9.-]{0,14}\Z")
+_MARKET_FILENAME = re.compile(
+    r"(?P<symbol>[A-Z][A-Z0-9.-]{0,14})_"
+    r"(?P<start>\d{4}-\d{2}-\d{2})_"
+    r"(?P<end>\d{4}-\d{2}-\d{2})_"
+    r"(?P<policy>raw|total_return_adjusted)\.parquet\Z"
+)
 _SUPPORTED = ("tiingo", "kis")
 _ALLOWED_POLICIES = {"raw", "total_return_adjusted"}
 
@@ -111,7 +125,7 @@ class TiingoDailyProvider:
                     else [float(row[field]) for field in fields]
                 )
                 bars.append(Bar(stamp, symbol, *values))
-            except (KeyError, TypeError, ValueError) as exc:
+            except (KeyError, TypeError, ValueError, OverflowError, DataContractError) as exc:
                 raise MarketDataError(
                     "INVALID_VENDOR_DATA", "Tiingo returned missing or invalid OHLCV fields."
                 ) from exc
@@ -245,10 +259,22 @@ class MarketDataService:
 
     def validate_dataset(self, path: str) -> dict[str, object]:
         source = self._dataset_path(path)
+        # Deny protected market zones before loading any Parquet price rows.
+        try:
+            require_research_zone(source)
+        except EvidenceIntegrityError as exc:
+            raise MarketDataError(
+                "DATA_ZONE_DENIED", "Only development market data may be inspected."
+            ) from exc
+        except (OSError, ValueError) as exc:
+            raise MarketDataError("INVALID_DATASET", "Market data file is invalid.") from exc
         try:
             dataset = ParquetDataProvider.read(source)
+            self._check_dataset_identity(source, dataset)
             quality = market_data_quality(dataset)
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except MarketDataError:
+            raise
+        except (OSError, ValueError, KeyError, TypeError, DataContractError) as exc:
             raise MarketDataError("INVALID_DATASET", "Market data file is invalid.") from exc
         return {
             "data_path": source.relative_to(self.root).as_posix(),
@@ -266,6 +292,40 @@ class MarketDataService:
             "point_in_time_independently_verified": False,
             "orders_enabled": False,
         }
+
+    def _check_dataset_identity(self, source: Path, dataset: MarketDataSet) -> None:
+        """Require filename, declared vendor and stored OHLCV to agree."""
+        match = _MARKET_FILENAME.fullmatch(source.name)
+        provider = source.parent.name
+        if not match or provider not in _SUPPORTED:
+            raise MarketDataError(
+                "DATA_IDENTITY_MISMATCH", "Managed dataset filename or provider is invalid."
+            )
+        details = match.groupdict()
+        try:
+            start = date.fromisoformat(details["start"])
+            end = date.fromisoformat(details["end"])
+        except ValueError as exc:
+            raise MarketDataError(
+                "DATA_IDENTITY_MISMATCH", "Managed dataset date range is invalid."
+            ) from exc
+        provenance = dataset.provenance
+        if (
+            not dataset.bars
+            or dataset.zone is not DataZone.DEVELOPMENT
+            or dataset.timeframe != "1d"
+            or dataset.calendar != "us_equities"
+            or provenance is None
+            or provenance.source_id != provider
+            or provenance.corporate_action_policy != details["policy"]
+            or {bar.symbol for bar in dataset.bars} != {details["symbol"]}
+            or any(not start <= bar.timestamp.date() <= end for bar in dataset.bars)
+            or (dataset.bars[0].timestamp.date() - start).days > 8
+            or (end - dataset.bars[-1].timestamp.date()).days > 8
+        ):
+            raise MarketDataError(
+                "DATA_IDENTITY_MISMATCH", "Stored market data does not match its filename."
+            )
 
     def download(
         self,
@@ -341,20 +401,25 @@ class MarketDataService:
             if provider == "tiingo" and price_policy == "total_return_adjusted"
             else None
         )
-        dataset = MarketDataSet(
-            "vendor-eod-v1",
-            DataZone.DEVELOPMENT,
-            tuple(ordered),
-            provenance=MarketSourceProvenance(
-                source_id=provider,
-                retrieved_at=datetime.now(timezone.utc),
-                revision_policy="latest",
-                universe_policy="single_symbol",
-                corporate_action_policy=price_policy,
-                corporate_action_reference=policy_reference,
-                includes_delisted=False,
-            ),
-        )
+        try:
+            dataset = MarketDataSet(
+                "vendor-eod-v1",
+                DataZone.DEVELOPMENT,
+                tuple(ordered),
+                provenance=MarketSourceProvenance(
+                    source_id=provider,
+                    retrieved_at=datetime.now(timezone.utc),
+                    revision_policy="latest",
+                    universe_policy="single_symbol",
+                    corporate_action_policy=price_policy,
+                    corporate_action_reference=policy_reference,
+                    includes_delisted=False,
+                ),
+            )
+        except (DataContractError, ValueError, TypeError) as exc:
+            raise MarketDataError(
+                "INVALID_VENDOR_DATA", "Provider returned inconsistent market price rows."
+            ) from exc
         target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if target.parent.is_symlink():
             raise MarketDataError("DATA_PATH_UNSAFE", "The data directory is unsafe.")
