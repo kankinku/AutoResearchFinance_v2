@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from math import isfinite
 
 from strategy_ir.schema import RiskConfig
 
@@ -28,10 +29,20 @@ def evaluate_risk_policy(
     *,
     timestamps: Sequence[datetime] | None = None,
 ) -> RiskEvaluation:
-    if not equity_curve or any(value <= 0 for value in equity_curve):
+    if not equity_curve or any(not isfinite(value) for value in equity_curve):
+        raise ValueError("equity curve must contain finite positive values")
+    if any(value <= 0 for value in equity_curve):
         raise ValueError("equity curve must contain positive values")
-    if timestamps is not None and len(timestamps) != len(equity_curve):
-        raise ValueError("timestamps must match equity curve length")
+    if timestamps is not None:
+        if len(timestamps) != len(equity_curve):
+            raise ValueError("timestamps must match equity curve length")
+        if any(value.tzinfo is None or value.utcoffset() is None for value in timestamps):
+            raise ValueError("risk timestamps require timezone-aware values")
+        if any(
+            current <= previous
+            for previous, current in zip(timestamps, timestamps[1:], strict=False)
+        ):
+            raise ValueError("risk timestamps must be strictly chronological")
 
     daily_losses = (
         _calendar_daily_losses(equity_curve, timestamps)
@@ -40,7 +51,7 @@ def evaluate_risk_policy(
     )
     maximum = max(daily_losses, default=0.0)
     limit = risk.daily_loss_limit_pct
-    breaches = sum(loss > limit for loss in daily_losses) if limit is not None else 0
+    breaches = sum(loss >= limit - 1e-9 for loss in daily_losses) if limit is not None else 0
     return RiskEvaluation(
         risk.risk_appetite,
         risk.loss_tolerance_pct,

@@ -70,8 +70,12 @@ class _SymbolState:
 
 class BacktestEngine:
     def run(self, request: BacktestRequest) -> BacktestResult:
+        if not isfinite(request.initial_cash):
+            raise ValueError("initial cash must be finite")
         if not request.run_id or request.initial_cash <= 0:
             raise ValueError("run_id and positive initial cash are required")
+        if not isfinite(request.cost_stress_multiplier):
+            raise ValueError("cost stress multiplier must be finite")
         if request.cost_stress_multiplier < 0:
             raise ValueError("cost stress multiplier cannot be negative")
         if request.signal_start_at is not None and (
@@ -215,6 +219,8 @@ class BacktestEngine:
                     "sell",
                     request.cost_stress_multiplier,
                 )
+                if cost >= notional:
+                    raise ValueError("sell execution costs exceed available proceeds")
                 cash += notional - cost
                 trades.append(_trade(bar, "sell", state.units, cost, price=bar.open))
                 state.units = 0.0
@@ -251,11 +257,12 @@ class BacktestEngine:
                         "buy",
                         request.cost_stress_multiplier,
                     )
-                    state.units = max(0.0, (notional - cost) / bar.open)
-                    cash -= notional
-                    state.entry_price = bar.open
-                    state.peak_close = bar.open
-                    trades.append(_trade(bar, "buy", state.units, cost, price=bar.open))
+                    if 0 <= cost < notional:
+                        state.units = (notional - cost) / bar.open
+                        cash -= notional
+                        state.entry_price = bar.open
+                        state.peak_close = bar.open
+                        trades.append(_trade(bar, "buy", state.units, cost, price=bar.open))
                 state.pending = None
 
             for symbol in symbols:
@@ -356,6 +363,8 @@ class BacktestEngine:
                     "sell",
                     request.cost_stress_multiplier,
                 )
+                if cost >= notional:
+                    raise ValueError("sell execution costs exceed available proceeds")
                 cash += notional - cost
                 trades.append(_trade(bar, "sell", units, cost, price=bar.open))
                 units = 0.0
@@ -374,11 +383,12 @@ class BacktestEngine:
                         "buy",
                         request.cost_stress_multiplier,
                     )
-                    units = max(0.0, (notional - cost) / bar.open)
-                    cash -= notional
-                    entry_price = bar.open
-                    peak_close = bar.open
-                    trades.append(_trade(bar, "buy", units, cost, price=bar.open))
+                    if 0 <= cost < notional:
+                        units = (notional - cost) / bar.open
+                        cash -= notional
+                        entry_price = bar.open
+                        peak_close = bar.open
+                        trades.append(_trade(bar, "buy", units, cost, price=bar.open))
             pending = None
 
             if units > 0:
