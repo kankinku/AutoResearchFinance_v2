@@ -35,6 +35,9 @@ _CHATGPT_CANONICAL = frozenset(
 _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "get_research_brief": "EVIDENCE_STATUS",
     "run_research_step": "EXECUTION_LIFECYCLE",
+    "start_guided_research": "EXECUTION_LIFECYCLE",
+    "get_guided_research": "EVIDENCE_STATUS",
+    "submit_guided_generation": "EXECUTION_LIFECYCLE",
     "start_research_batch": "EXECUTION_LIFECYCLE",
     "preflight_research_batch": "CATALOG_VALIDATION",
     "get_research_batch_status": "EVIDENCE_STATUS",
@@ -65,6 +68,62 @@ def chatgpt_tools() -> list[dict[str, object]]:
         },
     ]
     step_schema = _chat_directed_step_schema()
+    step_properties = step_schema["properties"]
+    if not isinstance(step_properties, dict):
+        raise TypeError("research step tool properties are invalid")
+    guided_submit_schema = {
+        **step_schema,
+        "properties": {
+            "session_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+            "checkpoint_token": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+            "generation": {"type": "integer", "minimum": 1, "maximum": MAX_GENERATIONS},
+            "source_path": {"type": "string"},
+            "intent": step_properties["intent"],
+        },
+        "required": ["session_id", "checkpoint_token", "generation", "source_path", "intent"],
+    }
+    custom.extend(
+        [
+            {
+                "name": "start_guided_research",
+                "description": "Create externally GPT-directed session with pinned policy gates.",
+                "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "data_path": {"type": "string"},
+                        "generations": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": MAX_GENERATIONS,
+                        },
+                        "method": {"type": "string", "enum": ["grid", "random", "bayesian"]},
+                        "count": {"type": "integer", "minimum": 1, "maximum": MAX_CANDIDATES},
+                        "seed": {"type": "integer", "minimum": 0},
+                        "min_trades": {"type": "integer", "minimum": 30},
+                        "min_annual_trades": {"type": "integer", "minimum": 30},
+                        "min_qqq_cagr_delta": {"type": "number", "minimum": 0.1},
+                    },
+                    "required": ["data_path", "generations"],
+                },
+            },
+            {
+                "name": "get_guided_research",
+                "description": "Read immutable Evidence-based GPT checkpoint; never auto-advance.",
+                "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"session_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"}},
+                    "required": ["session_id"],
+                },
+            },
+            {
+                "name": "submit_guided_generation",
+                "description": "Execute one GPT-directed, uniquely authorized research generation.",
+                "inputSchema": guided_submit_schema,
+            },
+        ]
+    )
     step_properties = step_schema["properties"]
     if not isinstance(step_properties, dict):
         raise TypeError("research step tool properties are invalid")

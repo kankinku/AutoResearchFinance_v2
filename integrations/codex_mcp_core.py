@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from application.chat_directed_research_service import ChatDirectedResearchService
+from application.gpt_guided_research_service import GPTGuidedResearchService
 from application.market_data_service import MarketDataService
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.research_batch_service import ResearchBatchService
@@ -83,6 +84,17 @@ class CodexMCPServer:
         self.system = self.services.system.controller
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
+        if name in {"start_guided_research", "get_guided_research", "submit_guided_generation"}:
+            guided = GPTGuidedResearchService(
+                project_root=self.project_root, state_dir=self.state_dir
+            )
+            if name == "start_guided_research":
+                return guided.start(arguments)
+            if name == "get_guided_research":
+                if set(arguments) != {"session_id"}:
+                    raise ValueError("get_guided_research requires session_id")
+                return guided.get(arguments["session_id"])
+            return guided.submit(arguments)
         if name in {"list_market_data", "download_market_data", "validate_market_data"}:
             market = MarketDataService(self.project_root)
             if name == "list_market_data":
