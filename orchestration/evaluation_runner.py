@@ -19,6 +19,7 @@ from evaluation.selector import FunnelConfig
 from memory.evidence_frontier import frontier_summary
 from memory.evidence_knowledge import failure_context, sync_knowledge
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore, digest
+from memory.training_trace_store import TrainingTraceStore
 from mutation.engine import MutationOperation
 from mutation.parameter import ParameterDomain, ParameterValue
 from orchestration.evidence import candidate_evidence, freeze_manifest, require_research_zone
@@ -179,6 +180,11 @@ def run_local_evaluation(
             }
             for fold in pipeline_result.train_only_selection.folds
         ]
+    trace_ref = (
+        TrainingTraceStore(state_dir).write(pipeline_result.training_trial_trace)
+        if pipeline_result.training_trial_trace is not None
+        else None
+    )
     record_generation = strategy.generation + 1 if generation is None else generation
     evidence.append(
         "attempt",
@@ -212,6 +218,7 @@ def run_local_evaluation(
                 )
             ],
             "train_only_selection": selection_payload,
+            "training_trace_ref": trace_ref,
             "trial_dependence": (
                 asdict(pipeline_result.trial_dependence)
                 if pipeline_result.trial_dependence is not None
@@ -262,6 +269,7 @@ def run_local_evaluation(
         "market_data_quality": data_quality,
         "multiple_testing_trials": pipeline_result.multiple_testing_trials,
         "train_only_selection": selection_payload,
+        "training_trace_ref": trace_ref,
         "trial_dependence": (
             asdict(pipeline_result.trial_dependence)
             if pipeline_result.trial_dependence is not None

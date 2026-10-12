@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore, digest
+from memory.training_history_inventory import summarize_training_history
 from memory.trial_null_summary import null_calibration_projection
 
 
@@ -32,6 +33,7 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
         return float("nan")
 
     run_snapshots: dict[str, dict[str, tuple[str, str, dict[str, Any]]]] = {}
+    run_locations: dict[str, Path] = {}
     duplicate_copies = 0
     for state in resolved:
         events = EvidenceStore(state).events()  # validates all immutable checksums
@@ -54,6 +56,7 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
                 duplicate_copies += 1
             else:
                 run_snapshots[run_id] = snapshot
+                run_locations[run_id] = state
 
     seen_attempt_ids: set[str] = set()
     scope_rows: dict[str, dict[str, Any]] = {}
@@ -271,6 +274,7 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
         "trial_dependence_scope": "TRAIN_ONLY_COHORT_NOT_GLOBAL_DSR",
         "history_complete": False,
         "coverage": "EXPLICIT_WORKSPACE_EVIDENCE_ONLY",
+        **summarize_training_history(run_snapshots, run_locations),
         "note": (
             "Observed candidate rows are not independent hypothesis tests. "
             "Unregistered external workspaces and legacy attempts are not counted; "

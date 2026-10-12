@@ -26,6 +26,7 @@ from experiments.candidate_generator import Candidate, generate_candidates
 from experiments.deduplicator import deduplicate_candidates
 from experiments.identity import semantic_strategy_hash
 from memory.knowledge import extract_knowledge
+from memory.training_trace_store import CandidateTrainingReturns, TrainingTrace
 from mutation.engine import MutationOperation
 from mutation.parameter import BayesianObservation, ParameterDomain
 from orchestration.generation import CANONICAL_STAGES
@@ -45,6 +46,7 @@ class GenerationPipelineResult:
     duplicate_skipped: int = 0
     purged_cpcv: PurgedCPCVReport | None = None
     trial_dependence: CohortDependenceReport | None = None
+    training_trial_trace: TrainingTrace | None = None
 
 
 @dataclass(frozen=True)
@@ -286,6 +288,7 @@ class GenerationPipeline:
         # training prefix. Never borrow test returns or unverified external
         # features; absence of proof is recorded as NOT_MEASURED.
         dependence: CohortDependenceReport
+        training_trace: TrainingTrace | None = None
         if selection.status != "EVALUATED" or not selection.folds:
             dependence = CohortDependenceReport(
                 "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS",
@@ -293,7 +296,9 @@ class GenerationPipeline:
                 0,
                 reason="no verified chronological training cutoff",
             )
-        elif external_series is not None or feature_inputs is not None:
+        elif external_series is not None or any(
+            item.candidate.strategy.features for item in evaluated
+        ):
             dependence = CohortDependenceReport(
                 "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS",
                 len(evaluated),
@@ -307,10 +312,27 @@ class GenerationPipeline:
                 time <= cutoff
                 for time in equity_timestamps(dataset, len(evaluated[0].full_equity))
             )
-            dependence = estimate_cohort_dependence(
-                tuple(item.returns[: max(0, training_bars - 1)] for item in evaluated),
-                training_cutoff_at=train_end_at,
+            training_returns = tuple(
+                item.returns[: max(0, training_bars - 1)] for item in evaluated
             )
+            dependence = estimate_cohort_dependence(
+                training_returns, training_cutoff_at=train_end_at,
+            )
+            if training_bars >= 2 and evaluated:
+                times = equity_timestamps(dataset, len(evaluated[0].full_equity))
+                training_trace = TrainingTrace(
+                    dataset_hash=dataset.dataset_hash,
+                    timeframe=dataset.timeframe,
+                    calendar=dataset.calendar,
+                    timestamps=tuple(time.isoformat() for time in times[1:training_bars]),
+                    candidates=tuple(
+                        CandidateTrainingReturns(
+                            semantic_strategy_hash(item.candidate.strategy),
+                            row,
+                        )
+                        for item, row in zip(evaluated, training_returns, strict=True)
+                    ),
+                )
 
         cpcv_report: PurgedCPCVReport | None = None
         if cpcv_label_end_indices is not None:
@@ -349,6 +371,7 @@ class GenerationPipeline:
             duplicate_skipped,
             cpcv_report,
             dependence,
+            training_trace,
         )
 
     def _select_train_only(

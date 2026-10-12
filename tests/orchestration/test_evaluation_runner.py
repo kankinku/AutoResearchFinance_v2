@@ -417,6 +417,14 @@ def test_local_evaluation_exposes_train_only_evidence_for_price_strategies(
         if event["kind"] == "attempt"
     ]
     assert attempts[-1]["train_only_selection"] == selection
+    from memory.training_trace_store import TrainingTraceStore
+
+    trace_ref = attempts[-1]["training_trace_ref"]
+    assert isinstance(trace_ref, str) and len(trace_ref) == 64
+    trace = TrainingTraceStore(tmp_path / "state").read(trace_ref)
+    assert len(trace.candidates) == result["candidate_count"]
+    assert max(trace.timestamps) <= selection["folds"][-1]["train_end_at"]
+    assert "timestamps" not in str(attempts[-1])
 
 
 def test_multiple_testing_trials_include_prior_research_attempts(tmp_path: Path) -> None:
