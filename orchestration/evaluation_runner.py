@@ -274,17 +274,41 @@ def _candidate_snapshot_evidence(candidate: object, result: object) -> dict[str,
 
 
 def _best_strategy_payload(pipeline_result: object) -> dict[str, object]:
+    """Freeze the most recent training-only choice before checking test eligibility.
+
+    Test/holdout performance may veto a selected strategy; it must never
+    select a different successor by scoring competing full-period results.
+    Fold-specific candidates not present in the evaluated cohort fail closed.
+    """
+    from orchestration.train_only import TrainOnlySelectionReport
+
+    selection = getattr(pipeline_result, "train_only_selection", None)
+    if (
+        not isinstance(selection, TrainOnlySelectionReport)
+        or selection.status != "EVALUATED"
+        or not selection.folds
+    ):
+        return {}
+    fold = selection.folds[-1]
+    if not fold.selection_applied or not fold.train_end_at < fold.test_start_at:
+        return {}
+    if fold.selected_candidate_hash not in fold.generated_candidate_hashes:
+        return {}
+
     candidates = getattr(pipeline_result, "candidates", ())
     results = getattr(pipeline_result, "funnel", ())
-    eligible = [
-        (candidate, result)
-        for candidate, result in zip(candidates, results, strict=True)
-        if result.status in {"SURVIVOR", "FRONTIER", "CHAMPION_CANDIDATE", "CHAMPION"}
-    ]
-    if not eligible:
-        return {}
-    candidate, _result = max(eligible, key=lambda item: (item[1].score, item[0].candidate_hash))
-    return {"best_strategy": candidate.strategy.model_dump(mode="json", by_alias=True)}
+    for candidate, result in zip(candidates, results, strict=True):
+        if candidate.candidate_hash != fold.selected_candidate_hash:
+            continue
+        if result.status not in {"SURVIVOR", "FRONTIER", "CHAMPION_CANDIDATE", "CHAMPION"}:
+            return {}
+        return {
+            "best_strategy": candidate.strategy.model_dump(mode="json", by_alias=True),
+            "successor_selection_basis": "LATEST_TRAIN_ONLY_FOLD",
+            "successor_selection_train_end_at": fold.train_end_at,
+            "successor_selection_upstream_verified": selection.upstream_selection_verified,
+        }
+    return {}
 
 
 def parse_parameter_domains(raw: object) -> tuple[ParameterDomain, ...]:

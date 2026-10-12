@@ -244,20 +244,119 @@ def test_near_miss_candidates_cannot_become_next_best_strategy() -> None:
     assert _best_strategy_payload(replace(result, funnel=statuses)) == {}
 
 
-def test_only_eligible_survivors_can_become_best_strategy() -> None:
+def test_only_eligible_train_selected_survivor_can_become_best_strategy() -> None:
     from dataclasses import replace
 
     from orchestration.evaluation_runner import _best_strategy_payload
 
     result = evaluate(data())
+    selection = result.train_only_selection
+    assert selection is not None and selection.status == "EVALUATED"
     assert len(result.funnel) >= 2
+    selected_hash = selection.folds[-1].selected_candidate_hash
     statuses = tuple(
         replace(
-            item, status="SURVIVOR" if index == 0 else "NEAR_MISS", score=0.0 if index == 0 else 1.0
+            item,
+            status="SURVIVOR" if item.candidate_hash == selected_hash else "NEAR_MISS",
+            score=0.0 if item.candidate_hash == selected_hash else 1.0,
         )
-        for index, item in enumerate(result.funnel)
+        for item in result.funnel
     )
     chosen = _best_strategy_payload(replace(result, funnel=statuses))
-    assert chosen["best_strategy"] == result.candidates[0].strategy.model_dump(
-        mode="json", by_alias=True
+    assert chosen["best_strategy"] == next(
+        candidate.strategy.model_dump(mode="json", by_alias=True)
+        for candidate in result.candidates
+        if candidate.candidate_hash == selected_hash
     )
+
+
+def test_next_parent_is_locked_to_latest_train_fold_not_full_period_score() -> None:
+    from dataclasses import replace
+
+    from orchestration.evaluation_runner import _best_strategy_payload
+
+    result = evaluate(data())
+    selection = result.train_only_selection
+    assert selection is not None and selection.status == "EVALUATED"
+    chosen_hash = selection.folds[-1].selected_candidate_hash
+    assert chosen_hash in {item.candidate_hash for item in result.candidates}
+    inverted = tuple(
+        replace(
+            item,
+            status="SURVIVOR",
+            score=1000.0 if item.candidate_hash != chosen_hash else 0.0,
+        )
+        for item in result.funnel
+    )
+    payload = _best_strategy_payload(replace(result, funnel=inverted))
+    assert payload["best_strategy"] == next(
+        item.strategy.model_dump(mode="json", by_alias=True)
+        for item in result.candidates
+        if item.candidate_hash == chosen_hash
+    )
+    assert payload["successor_selection_basis"] == "LATEST_TRAIN_ONLY_FOLD"
+
+
+def test_next_parent_cannot_fallback_to_holdout_winner_when_train_pick_rejected() -> None:
+    from dataclasses import replace
+
+    from orchestration.evaluation_runner import _best_strategy_payload
+
+    result = evaluate(data())
+    selection = result.train_only_selection
+    assert selection is not None and selection.status == "EVALUATED"
+    chosen_hash = selection.folds[-1].selected_candidate_hash
+    manipulated = tuple(
+        replace(
+            item,
+            status="REJECT" if item.candidate_hash == chosen_hash else "SURVIVOR",
+            score=0.0 if item.candidate_hash == chosen_hash else 1000.0,
+        )
+        for item in result.funnel
+    )
+    assert any(item.status == "SURVIVOR" for item in manipulated)
+    assert _best_strategy_payload(replace(result, funnel=manipulated)) == {}
+
+
+def test_later_test_prices_cannot_change_train_only_successor() -> None:
+    from dataclasses import replace
+
+    from orchestration.evaluation_runner import _best_strategy_payload
+
+    first = evaluate(data())
+    # Indices 9-11 are after the *last* fold's training cutoff index 8.
+    changed = evaluate(data((90, 80, 70, 999, 998, 997)))
+    assert first.train_only_selection is not None
+    assert changed.train_only_selection is not None
+    assert (
+        first.train_only_selection.folds[-1].train_dataset_hash
+        == changed.train_only_selection.folds[-1].train_dataset_hash
+    )
+    def all_eligible(value):
+        return replace(
+            value,
+            funnel=tuple(replace(item, status="SURVIVOR") for item in value.funnel),
+        )
+    assert (
+        _best_strategy_payload(all_eligible(first))["best_strategy"]
+        == _best_strategy_payload(all_eligible(changed))["best_strategy"]
+    )
+
+
+def test_unverified_fold_selection_cannot_choose_next_parent() -> None:
+    from dataclasses import replace
+
+    from orchestration.evaluation_runner import _best_strategy_payload
+    from orchestration.train_only import TrainOnlySelectionReport
+
+    result = evaluate(data())
+    all_eligible = tuple(replace(item, status="SURVIVOR") for item in result.funnel)
+    unsafe = replace(
+        result,
+        funnel=all_eligible,
+        train_only_selection=TrainOnlySelectionReport(
+            "UNVERIFIED_UPSTREAM_OPTIMIZATION",
+            reason="unverified Bayesian score provenance",
+        ),
+    )
+    assert _best_strategy_payload(unsafe) == {}
