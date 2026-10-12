@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 from application.evaluation_service import EvaluationService
+from core.data.parquet import ParquetDataProvider
 from core.features.registry import research_feature_specs
 from core.integrity.hashes import content_hash
-from memory.evidence_store import EvidenceIntegrityError
+from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
+from memory.research_evidence import research_evidence
 from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
     resolve_project_input,
@@ -43,6 +46,7 @@ class ChatDirectedResearchService:
         min_annual_trades: int = 30,
         min_qqq_cagr_delta: float | None = None,
         series_data_path: str | None = None,
+        previous_research_run_id: str | None = None,
     ) -> dict[str, object]:
         if method not in {"grid", "random", "bayesian"}:
             raise ValueError("invalid experiment method")
@@ -65,6 +69,28 @@ class ChatDirectedResearchService:
         operations = intent_to_operations(intent, feature_specs)
         # Verifies selected parent, mutation paths and registered feature selection.
         apply_intent(parent, intent, feature_specs)
+        if previous_research_run_id is not None:
+            if not isinstance(previous_research_run_id, str) or not re.fullmatch(
+                r"[0-9a-f]{32}", previous_research_run_id
+            ):
+                raise ValueError("previous research run ID must be 32 lowercase hex characters")
+            preceding = research_evidence(self.state_dir, previous_research_run_id)["runs"]
+            if len(preceding) != 1 or preceding[0]["status"] != "COMPLETED":
+                raise ValueError("previous research run is missing or not completed")
+            previous_candidates = [
+                candidate
+                for event in EvidenceStore(self.state_dir).events()
+                if event["kind"] == "attempt"
+                and event["payload"]["research_run_id"] == previous_research_run_id
+                and event["payload"]["status"] == "COMPLETED"
+                for candidate in event["payload"].get("candidates", [])
+            ]
+            current_data_hash = ParquetDataProvider.read(data).dataset_hash
+            if not previous_candidates or any(
+                candidate.get("dataset_hash") != current_data_hash
+                for candidate in previous_candidates
+            ):
+                raise ValueError("previous research evidence and current dataset are incompatible")
         session = EvidenceSession(
             self.state_dir,
             requested_generations=1,
@@ -73,6 +99,7 @@ class ChatDirectedResearchService:
                 "controller": "external_mcp_client",
                 "intent_hash": content_hash(intent.model_dump(mode="json", exclude_none=True)),
                 "parent_id": parent.strategy_id,
+                "previous_research_run_id": previous_research_run_id,
                 "method": method,
                 "count": count,
             },
@@ -107,5 +134,6 @@ class ChatDirectedResearchService:
             **result,
             "parent_id": parent.strategy_id,
             "llm_controller": "external_mcp_client",
+            "previous_research_run_id": previous_research_run_id,
             "orders_enabled": False,
         }

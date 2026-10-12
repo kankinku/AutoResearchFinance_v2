@@ -71,7 +71,11 @@ def chatgpt_tools() -> list[dict[str, object]]:
     batch_schema = {
         **step_schema,
         "properties": {
-            **step_properties,
+            **{
+                key: value
+                for key, value in step_properties.items()
+                if key != "previous_research_run_id"
+            },
             "generations": {"type": "integer", "minimum": 1, "maximum": MAX_GENERATIONS},
             "count": {"type": "integer", "minimum": 1, "maximum": MAX_CANDIDATES},
             "parameter_domains": {

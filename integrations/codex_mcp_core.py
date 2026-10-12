@@ -275,6 +275,7 @@ class CodexMCPServer:
             "min_annual_trades",
             "min_qqq_cagr_delta",
             "series_data_path",
+            "previous_research_run_id",
         }
         if set(arguments) - allowed:
             raise ValueError("unexpected research step arguments")
@@ -312,6 +313,7 @@ class CodexMCPServer:
                 "min_qqq_cagr_delta",
             ),
             series_data_path=series_data_path,
+            previous_research_run_id=arguments.get("previous_research_run_id"),
         )
 
     def _run_evaluation(self, arguments: dict[str, Any]) -> dict[str, object]:
@@ -586,6 +588,11 @@ def _chat_directed_step_schema() -> dict[str, object]:
             "min_annual_trades": {"type": "integer", "minimum": 0},
             "min_qqq_cagr_delta": {"type": "number"},
             "series_data_path": {"type": "string"},
+            "previous_research_run_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$",
+                "description": "Verified predecessor run for GPT-directed lineage.",
+            },
         },
         "required": ["source_path", "data_path", "intent"],
         "additionalProperties": False,

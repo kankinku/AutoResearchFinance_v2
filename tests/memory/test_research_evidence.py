@@ -281,3 +281,52 @@ def test_validation_scope_comes_from_manifest_zone(tmp_path: Path) -> None:
     assert research_evidence(tmp_path)["runs"][0]["validation_survival"]["scope"] == (
         "validation_temporal_holdout"
     )
+
+
+def test_completed_run_accepts_audited_search_exhaustion(tmp_path: Path) -> None:
+    store = EvidenceStore(tmp_path)
+    seed_run(store, "exhausted")
+    store.append(
+        "generation",
+        "generation:exhausted:1",
+        {
+            "research_run_id": "exhausted",
+            "generation": 1,
+            "attempt_id": None,
+            "status": "NO_NEW_CANDIDATES",
+            "next_hypothesis": None,
+            "duplicate_skipped": 1,
+        },
+    )
+    # Older completed batch journals have no end.stop_reason, and are immutable.
+    store.append("end", "end:exhausted", {"research_run_id": "exhausted", "status": "COMPLETED"})
+    result = research_evidence(tmp_path)["runs"][0]
+    assert result["status"] == "COMPLETED"
+    assert result["completed_generations"] == 1
+    assert result["stopped_early"] is True
+    assert result["stop_reason"] == "SEARCH_SPACE_EXHAUSTED"
+    assert result["unexecuted_generations"] == 1
+
+
+def test_completed_run_rejects_forged_or_unfinished_exhaustion(tmp_path: Path) -> None:
+    for reason, status, next_hypothesis in (
+        ("ordinary", "COMPLETED", None),
+        ("pending", "NO_NEW_CANDIDATES", {"reason_code": "PENDING"}),
+    ):
+        target = tmp_path / reason
+        store = EvidenceStore(target)
+        seed_run(store, reason)
+        store.append(
+            "generation",
+            f"generation:{reason}:1",
+            {
+                "research_run_id": reason,
+                "generation": 1,
+                "attempt_id": None,
+                "status": status,
+                "next_hypothesis": next_hypothesis,
+            },
+        )
+        store.append("end", f"end:{reason}", {"research_run_id": reason, "status": "COMPLETED"})
+        with pytest.raises(EvidenceIntegrityError, match="completed run lacks"):
+            research_evidence(target)

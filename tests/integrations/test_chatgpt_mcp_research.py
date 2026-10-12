@@ -94,8 +94,9 @@ def test_chatgpt_proposed_intent_runs_without_invoking_internal_codex(
     attempt = next(e for e in events if e["kind"] == "attempt")["payload"]
     diagnostic = attempt["trial_dependence"]
     assert diagnostic["status"] in {
-        "INSUFFICIENT_CANDIDATES", "INSUFFICIENT_TRAINING_HISTORY",
-        "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS"
+        "INSUFFICIENT_CANDIDATES",
+        "INSUFFICIENT_TRAINING_HISTORY",
+        "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS",
     }
     assert diagnostic["effective_rank"] is None
     assert diagnostic["dsr_calibrated"] is False
@@ -142,3 +143,39 @@ def test_chatgpt_intent_fails_closed_on_unknown_parent_or_unverified_feature(
         )
     assert EvidenceStore(state).events() == []
     assert not (state / "llm" / "intents.jsonl").exists()
+
+
+def test_gpt_research_steps_link_verified_predecessor_without_local_llm(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    server = create_mcp_server(state_dir=state, project_root=tmp_path)
+    request = {
+        "source_path": "strategy.yaml",
+        "data_path": "bars.parquet",
+        "intent": _intent(),
+        "method": "grid",
+        "count": 1,
+        "seed": 41,
+        "min_trades": 0,
+        "min_annual_trades": 0,
+        "min_qqq_cagr_delta": 0.0,
+    }
+    first = server._dispatch("run_research_step", request)
+    second = server._dispatch(
+        "run_research_step",
+        {
+            **request,
+            "seed": 42,
+            "previous_research_run_id": first["research_run_id"],
+            "intent": {**_intent(), "rationale": "Prior evaluated rejection motivated follow-up"},
+        },
+    )
+    assert second["status"] == "COMPLETED"
+    assert second["previous_research_run_id"] == first["research_run_id"]
+    assert second["orders_enabled"] is False
+    runs = [x["payload"] for x in EvidenceStore(state).events() if x["kind"] == "run"]
+    assert len(runs) == 2
+    assert runs[-1]["settings"]["previous_research_run_id"] == first["research_run_id"]
+    with pytest.raises(ValueError, match="previous|predecessor"):
+        server._dispatch("run_research_step", {**request, "previous_research_run_id": "f" * 32})
+    assert len([x for x in EvidenceStore(state).events() if x["kind"] == "run"]) == 2

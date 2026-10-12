@@ -67,14 +67,34 @@ def _run_summary(run: dict[str, Any], events: list[dict[str, Any]]) -> dict[str,
     ends = [e["payload"] for e in events if e["kind"] == "end"]
     if len(manifests) > 1 or len(ends) > 1 or len(finals) > run["requested_generations"]:
         raise EvidenceIntegrityError("conflicting run evidence")
+    # Immutable historic batches may end before the requested generation count
+    # when a bounded search has exhausted all new candidates. The final
+    # NO_NEW_CANDIDATES event proves this normal terminal outcome; an omitted
+    # generation or a pending alternative hypothesis must still fail closed.
+    if ends and [row["generation"] for row in finals] != list(range(1, len(finals) + 1)):
+        raise EvidenceIntegrityError("non-contiguous final generations")
+    early_exhaustion = bool(
+        ends
+        and ends[0]["status"] == "COMPLETED"
+        and 0 < len(finals) < run["requested_generations"]
+        and finals[-1]["status"] == "NO_NEW_CANDIDATES"
+        and finals[-1].get("next_hypothesis") is None
+        and not finals[-1].get("attempt_id")
+    )
     if (
         ends
         and ends[0]["status"].startswith("COMPLETED")
-        and (len(finals) != run["requested_generations"])
+        and len(finals) != run["requested_generations"]
+        and not early_exhaustion
     ):
         raise EvidenceIntegrityError("completed run lacks final generations")
     return {
         **run,
+        "stopped_early": early_exhaustion,
+        "stop_reason": "SEARCH_SPACE_EXHAUSTED" if early_exhaustion else None,
+        "unexecuted_generations": (
+            run["requested_generations"] - len(finals) if early_exhaustion else 0
+        ),
         "status": ends[0]["status"] if ends else "INCOMPLETE",
         "comparison_key": manifests[0]["comparison_key"] if manifests else None,
         "manifest": manifests[0] if manifests else None,
