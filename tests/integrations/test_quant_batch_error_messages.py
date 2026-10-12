@@ -60,7 +60,9 @@ def test_research_inputs_lists_real_strategy_and_market_data_only(tmp_path: Path
     service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
     empty = service.describe_inputs()
     assert empty["ready_for_batch"] is False
-    assert empty["data_paths"] == ["bars.parquet", "series.parquet"]
+    # The market-data catalog offers OHLCV only, not an auxiliary series file.
+    assert empty["data_paths"] == ["bars.parquet"]
+    assert [item["symbols"] for item in empty["datasets"]] == [["QQQ"]]
     (tmp_path / "strategies" / "normalized").mkdir(parents=True)
     (tmp_path / "strategies" / "normalized" / "baseline.yaml").write_text(
         (tmp_path / "strategy.yaml").read_text()

@@ -299,8 +299,11 @@ class ResearchBatchService:
         preview_generations = min(request["generations"], 5)
         for number in range(preview_generations):
             candidates = generate_candidates(
-                result.strategy, operations, domains,
-                method=request["method"], count=request["count"],
+                result.strategy,
+                operations,
+                domains,
+                method=request["method"],
+                count=request["count"],
                 seed=request["seed"] + number,
             )
             generated += len(candidates)
@@ -338,49 +341,91 @@ class ResearchBatchService:
         }
 
     def describe_inputs(self) -> dict[str, object]:
-        """Bounded, project-local input discovery; never invent market data."""
-        sources: list[dict[str, str]] = []
+        """Small, read-only catalog for choosing usable GPT research inputs."""
+        sources: list[dict[str, object]] = []
         directory = self.project_root / "strategies" / "normalized"
         for path in sorted(directory.glob("*.json"))[:100]:
+            if path.is_symlink():
+                continue
             try:
                 validated = resolve_project_input(
                     self.project_root,
                     path.relative_to(self.project_root).as_posix(),
                     ALLOWED_STRATEGY_SUFFIXES,
                 )
-                result = normalize_source(validated)
-                if result.strategy is not None:
+                strategy = normalize_source(validated).strategy
+                if strategy is not None:
                     sources.append(
                         {
                             "source_path": validated.relative_to(self.project_root).as_posix(),
-                            "strategy_id": result.strategy.strategy_id,
+                            "strategy_id": strategy.strategy_id,
+                            "family": strategy.family,
+                            "indicators": [
+                                {"name": name, "type": spec.type}
+                                for name, spec in sorted(strategy.indicators.items())
+                            ],
+                            "numeric_parameter_paths": [
+                                f"indicators.{name}.period"
+                                for name, spec in sorted(strategy.indicators.items())
+                                if spec.period is not None
+                            ],
                         }
                     )
             except (OSError, ValueError, PermissionError):
                 continue
-        datasets: list[str] = []
+
+        datasets: list[dict[str, object]] = []
         candidates = list(self.project_root.glob("*.parquet"))
         for dirname in ("data", "datasets"):
             candidates.extend((self.project_root / dirname).rglob("*.parquet"))
         for path in sorted(set(candidates))[:200]:
+            if path.is_symlink():
+                continue
             try:
                 checked = resolve_project_input(
                     self.project_root,
                     path.relative_to(self.project_root).as_posix(),
                     frozenset({".parquet"}),
                 )
-                datasets.append(checked.relative_to(self.project_root).as_posix())
-            except (OSError, ValueError, PermissionError):
+                # Check only Parquet metadata before touching any data rows.
+                # Protected zones must never appear in the research catalog.
+                require_research_zone(checked)
+                data = ParquetDataProvider.read(checked)
+                if DataZone(data.zone) is not DataZone.DEVELOPMENT or not data.bars:
+                    continue
+                quality = market_data_quality(data)
+                datasets.append(
+                    {
+                        "data_path": checked.relative_to(self.project_root).as_posix(),
+                        "zone": "development",
+                        "symbols": sorted({bar.symbol for bar in data.bars}),
+                        "timeframe": data.timeframe,
+                        "bars": len(data.bars),
+                        "quality_status": quality.status,
+                        "point_in_time_verified": quality.point_in_time_verified,
+                    }
+                )
+            except (
+                OSError,
+                ValueError,
+                PermissionError,
+                EvidenceIntegrityError,
+                KeyError,
+                TypeError,
+            ):
                 continue
+
         return {
             "sources": sources,
-            "data_paths": datasets,
+            "data_paths": [item["data_path"] for item in datasets],
+            "datasets": datasets,
             "ready_for_batch": bool(sources and datasets),
             "readiness_scope": "INPUTS_DISCOVERED_ONLY",
             "requires_preflight": True,
             "note": (
-                "Choose an exact source_path and its strategy_id from sources. "
-                "Use an existing Parquet data_path; do not create or guess paths."
+                "Choose a registered strategy by family and a development dataset by symbol. "
+                "Check parameter paths against Strategy IR and run preflight before executing. "
+                "Catalog visibility is not performance validation."
             ),
         }
 
@@ -529,9 +574,7 @@ class ResearchBatchService:
             "completed_generations": row["completed"],
             "stopped_early": exhausted,
             "stop_reason": "SEARCH_SPACE_EXHAUSTED" if exhausted else None,
-            "unexecuted_generations": (
-                row["requested"] - row["completed"] if exhausted else 0
-            ),
+            "unexecuted_generations": (row["requested"] - row["completed"] if exhausted else 0),
             "progress_percent": round(100 * row["completed"] / row["requested"], 1),
             "started_at_utc": _timestamp(row["started"]),
             "created_at_utc": _timestamp(row["created"]),
@@ -572,16 +615,18 @@ class ResearchBatchService:
         for row in rows:
             counts = json.loads(row["result_counts"])
             skipped = counts.pop("DUPLICATE_SKIPPED", None)
-            generations.append({
-                "generation": row["generation"],
-                "duration_seconds": round(row["seconds"], 3),
-                "parent_id": row["parent_id"],
-                "successor_id": row["successor_id"],
-                "status": row["result_status"],
-                "candidate_count": row["candidate_count"],
-                "counts": counts,
-                "duplicate_skipped": skipped,
-            })
+            generations.append(
+                {
+                    "generation": row["generation"],
+                    "duration_seconds": round(row["seconds"], 3),
+                    "parent_id": row["parent_id"],
+                    "successor_id": row["successor_id"],
+                    "status": row["result_status"],
+                    "candidate_count": row["candidate_count"],
+                    "counts": counts,
+                    "duplicate_skipped": skipped,
+                }
+            )
         # Generation count is not necessarily the number of independent strategy
         # candidates. Count verified candidate hashes from immutable attempt Evidence.
         hashes: list[str] = []
@@ -612,9 +657,8 @@ class ResearchBatchService:
             "promoted_successor_generations": promotions,
             "total_skipped_duplicate_candidates": (
                 sum(cast(int, item["duplicate_skipped"]) for item in generations)
-                if generations and all(
-                    isinstance(item["duplicate_skipped"], int) for item in generations
-                )
+                if generations
+                and all(isinstance(item["duplicate_skipped"], int) for item in generations)
                 else None
             ),
             "skipped_duplicate_generations": sum(
@@ -747,10 +791,12 @@ class ResearchBatchService:
                             parent_id,
                             strategy.strategy_id,
                             str(result.get("status", "UNKNOWN")),
-                            json.dumps({
-                                **cast(dict[str, int], result.get("counts", {})),
-                                "DUPLICATE_SKIPPED": result.get("duplicate_skipped", 0),
-                            }),
+                            json.dumps(
+                                {
+                                    **cast(dict[str, int], result.get("counts", {})),
+                                    "DUPLICATE_SKIPPED": result.get("duplicate_skipped", 0),
+                                }
+                            ),
                             (
                                 result.get("candidate_count", 0)
                                 if isinstance(result.get("candidate_count", 0), int)
