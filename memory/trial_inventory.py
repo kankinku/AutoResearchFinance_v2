@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore, digest
+from memory.trial_null_summary import null_calibration_projection
 
 
 def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
@@ -64,6 +65,8 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
     unscoped = unverified = unfinished = 0
     estimated_cohorts = 0
     unmeasured_cohorts = 0
+    null_calibrated_cohorts = 0
+    null_unmeasured_cohorts = 0
     dependence_summaries: list[dict[str, Any]] = []
     for run_id, snapshot_events in sorted(run_snapshots.items()):
         by_kind: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -99,6 +102,7 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
             dependence = row.get("trial_dependence")
             if dependence is None:
                 unmeasured_cohorts += 1
+                null_unmeasured_cohorts += 1
             else:
                 if not isinstance(dependence, dict) or not isinstance(
                     dependence.get("status"), str
@@ -130,7 +134,13 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
                     ):
                         raise EvidenceIntegrityError("invalid empirical trial dependence")
                     estimated_cohorts += 1
+                    null_projection = null_calibration_projection(dependence)
+                    if null_projection is not None:
+                        null_calibrated_cohorts += 1
+                    else:
+                        null_unmeasured_cohorts += 1
                     dependence_summaries.append({
+                        **(null_projection or {}),
                         "research_run_id": run_id,
                         "generation": row["generation"],
                         "candidate_count": count,
@@ -145,6 +155,7 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
                     if dependence.get("effective_rank") is not None:
                         raise EvidenceIntegrityError("unmeasured dependence cannot report rank")
                     unmeasured_cohorts += 1
+                    null_unmeasured_cohorts += 1
             attempted += count
             if row.get("verification") == "UNVERIFIED_EVALUATOR":
                 unverified += count
@@ -252,6 +263,9 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
         "effective_independent_trials": None,
         "effective_trials_status": "NOT_MEASURED",
         "trial_dependence_estimated_cohorts": estimated_cohorts,
+        "trial_null_calibration_cohorts": null_calibrated_cohorts,
+        "trial_null_unmeasured_cohorts": null_unmeasured_cohorts,
+        "trial_null_calibration_scope": "GAUSSIAN_NULL_LOCAL_ONLY_NOT_GLOBAL_DSR",
         "trial_dependence_unmeasured_cohorts": unmeasured_cohorts,
         "trial_dependence_diagnostics_sample": dependence_summaries[-10:],
         "trial_dependence_scope": "TRAIN_ONLY_COHORT_NOT_GLOBAL_DSR",

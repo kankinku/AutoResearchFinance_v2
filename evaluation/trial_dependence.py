@@ -14,6 +14,8 @@ from importlib import import_module
 from math import isfinite
 from typing import Any
 
+from evaluation.trial_null_calibration import calibrate_cohort_gaussian_null
+
 np: Any = import_module("numpy")
 
 _MIN_OBSERVATIONS = 30
@@ -34,6 +36,12 @@ class CohortDependenceReport:
     dsr_calibrated: bool = False
     training_cutoff_at: str | None = None
     reason: str | None = None
+    null_max_sharpe_z_mean: float | None = None
+    null_max_sharpe_z_ci95: tuple[float, float] | None = None
+    iid_equivalent_trials_estimate: float | None = None
+    iid_equivalent_trials_ci95: tuple[float, float] | None = None
+    null_monte_carlo_draws: int | None = None
+    null_model: str | None = None
 
 
 def estimate_cohort_dependence(
@@ -102,6 +110,10 @@ def estimate_cohort_dependence(
     dispersion = float(np.std(sharpe, ddof=1))
     if not all(isfinite(item) for item in (rank, mean_correlation, dispersion)):
         return denied("INVALID_CORRELATION", "nonfinite derived diagnostics")
+    try:
+        null_mean, null_ci, iid_k, iid_ci = calibrate_cohort_gaussian_null(correlation)
+    except ValueError:
+        return denied("INVALID_NULL_REFERENCE", "cohort Gaussian null calibration failed")
     return CohortDependenceReport(
         "ESTIMATED_TRAIN_ONLY_COHORT",
         count,
@@ -110,5 +122,11 @@ def estimate_cohort_dependence(
         average_absolute_correlation=mean_correlation,
         observed_sharpe_dispersion=dispersion,
         training_cutoff_at=training_cutoff_at,
-        reason="descriptive cohort dimension; not calibrated independent DSR trials",
+        reason="cohort Gaussian null proxy; not globally calibrated DSR trials",
+        null_max_sharpe_z_mean=null_mean,
+        null_max_sharpe_z_ci95=null_ci,
+        iid_equivalent_trials_estimate=iid_k,
+        iid_equivalent_trials_ci95=iid_ci,
+        null_monte_carlo_draws=4096,
+        null_model="GAUSSIAN_SHARPE_Z_EMPIRICAL_TRAIN_CORRELATION",
     )

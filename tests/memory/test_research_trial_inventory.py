@@ -325,3 +325,65 @@ def test_legacy_cohorts_have_no_imputed_correlation(tmp_path: Path) -> None:
     assert report["trial_dependence_unmeasured_cohorts"] == 1
     assert report["trial_dependence_diagnostics_sample"] == []
     assert report["effective_independent_trials"] is None
+
+
+def _with_null_calibration() -> dict[str, object]:
+    return {
+        **_measured_dependence(),
+        "null_max_sharpe_z_mean": 0.55,
+        "null_max_sharpe_z_ci95": [0.52, 0.58],
+        "iid_equivalent_trials_estimate": 1.97,
+        "iid_equivalent_trials_ci95": [1.88, 2.07],
+        "null_monte_carlo_draws": 4096,
+        "null_model": "GAUSSIAN_SHARPE_Z_EMPIRICAL_TRAIN_CORRELATION",
+    }
+
+
+def test_calibrated_null_projection_reports_local_only_without_global_dsr(
+    tmp_path: Path,
+) -> None:
+    _run(tmp_path / "new", "calibrated", dependence=_with_null_calibration())
+    _run(tmp_path / "legacy", "uncalibrated", dependence=_measured_dependence())
+    report = research_trial_inventory((tmp_path / "new", tmp_path / "legacy"))
+    assert report["trial_null_calibration_cohorts"] == 1
+    assert report["trial_null_unmeasured_cohorts"] == 1
+    assert report["effective_independent_trials"] is None
+    assert report["effective_trials_status"] == "NOT_MEASURED"
+    assert report["trial_null_calibration_scope"] == (
+        "GAUSSIAN_NULL_LOCAL_ONLY_NOT_GLOBAL_DSR"
+    )
+    samples = report["trial_dependence_diagnostics_sample"]
+    calibrated = next(item for item in samples if item["research_run_id"] == "calibrated")
+    assert calibrated["iid_equivalent_trials_estimate"] == pytest.approx(1.97)
+    assert calibrated["iid_equivalent_trials_ci95"] == [1.88, 2.07]
+    assert calibrated["global_dsr_approved"] is False
+    assert not any("return_series" in item for item in samples)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"iid_equivalent_trials_ci95": None},
+        {"iid_equivalent_trials_estimate": 999.0},
+        {"null_max_sharpe_z_ci95": [0.6, 0.5]},
+        {"null_monte_carlo_draws": 10},
+        {"null_model": "UNVERIFIED"},
+        {"dsr_calibrated": True},
+    ],
+)
+def test_malformed_calibration_metadata_fails_closed(
+    tmp_path: Path, change: dict[str, object]
+) -> None:
+    bad = {**_with_null_calibration(), **change}
+    _run(tmp_path, "bad", dependence=bad)
+    with pytest.raises(EvidenceIntegrityError, match="cohort null|trial dependence"):
+        research_trial_inventory((tmp_path,))
+
+
+def test_invalid_nonfinite_null_estimate_denied_before_json_evidence(
+) -> None:
+    from memory.trial_null_summary import null_calibration_projection
+
+    invalid = {**_with_null_calibration(), "iid_equivalent_trials_estimate": float("nan")}
+    with pytest.raises(EvidenceIntegrityError, match="nonfinite"):
+        null_calibration_projection(invalid)

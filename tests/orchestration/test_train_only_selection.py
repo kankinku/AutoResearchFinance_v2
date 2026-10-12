@@ -401,6 +401,10 @@ def test_trial_dependence_uses_only_final_training_cutoff() -> None:
     assert before.effective_rank == after.effective_rank
     assert before.average_absolute_correlation == after.average_absolute_correlation
     assert before.observed_sharpe_dispersion == after.observed_sharpe_dispersion
+    assert before.null_max_sharpe_z_mean == after.null_max_sharpe_z_mean
+    assert before.iid_equivalent_trials_estimate == after.iid_equivalent_trials_estimate
+    assert before.iid_equivalent_trials_ci95 == after.iid_equivalent_trials_ci95
+    assert before.null_monte_carlo_draws == 4096
     assert before.dsr_calibrated is False
 
 

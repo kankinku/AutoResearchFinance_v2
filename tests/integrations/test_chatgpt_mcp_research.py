@@ -106,6 +106,9 @@ def test_chatgpt_proposed_intent_runs_without_invoking_internal_codex(
     assert observed["effective_independent_trials"] is None
     assert observed["trial_dependence_estimated_cohorts"] == 0
     assert observed["trial_dependence_unmeasured_cohorts"] == 1
+    assert observed["trial_null_calibration_cohorts"] == 0
+    assert observed["trial_null_unmeasured_cohorts"] == 1
+    assert observed["effective_independent_trials"] is None
     assert observed["trial_dependence_diagnostics_sample"] == []
     assert (state / "llm" / "intents.jsonl").exists()
 
