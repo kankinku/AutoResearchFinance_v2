@@ -81,6 +81,9 @@ class FunnelResult:
     feature_lineage: tuple[Mapping[str, object], ...] = ()
     robustness_dsr: float | None = None
     robustness_pbo: float | None = None
+    dsr_methodology: str = "NOT_MEASURED"
+    stability_methodology: str = "NOT_MEASURED"
+    pbo_methodology: str = "NOT_MEASURED"
 
 
 def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResult:
@@ -99,16 +102,10 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         or candidate.risk_evaluation.compliant
     )
     qqq_cagr_delta = (
-        candidate.full_benchmark.qqq_cagr_delta
-        if candidate.full_benchmark is not None
-        else None
+        candidate.full_benchmark.qqq_cagr_delta if candidate.full_benchmark is not None else None
     )
-    qqq_target_passed = (
-        config.min_qqq_cagr_delta is None
-        or (
-            qqq_cagr_delta is not None
-            and qqq_cagr_delta >= config.min_qqq_cagr_delta
-        )
+    qqq_target_passed = config.min_qqq_cagr_delta is None or (
+        qqq_cagr_delta is not None and qqq_cagr_delta >= config.min_qqq_cagr_delta
     )
     annual_counts = tuple(
         int(trade_count)
@@ -116,12 +113,8 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         if bool(item.get("complete", True))
         and isinstance((trade_count := item.get("trade_count")), (int, float, str))
     )
-    annual_trade_passed = (
-        config.min_annual_trades is None
-        or (
-            bool(annual_counts)
-            and all(count > config.min_annual_trades for count in annual_counts)
-        )
+    annual_trade_passed = config.min_annual_trades is None or (
+        bool(annual_counts) and all(count > config.min_annual_trades for count in annual_counts)
     )
     annual_trade_actual = min(annual_counts) if annual_counts else None
     score = candidate.robustness.robust_score
@@ -132,7 +125,9 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
             fast_passed and fast_return_passed,
             config.min_fast_trades,
             candidate.fast_metrics.trade_count,
-            None if fast_passed and fast_return_passed else _first_reason(
+            None
+            if fast_passed and fast_return_passed
+            else _first_reason(
                 not fast_passed, "trade_count", not fast_return_passed, "total_return"
             ),
         ),
@@ -141,7 +136,9 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
             full_passed and full_return_passed,
             config.min_full_trades,
             candidate.full_metrics.trade_count,
-            None if full_passed and full_return_passed else _first_reason(
+            None
+            if full_passed and full_return_passed
+            else _first_reason(
                 not full_passed, "trade_count", not full_return_passed, "total_return"
             ),
         ),
@@ -226,6 +223,13 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
         candidate.feature_lineage,
         candidate.robustness.dsr,
         candidate.robustness.pbo,
+        candidate.robustness.dsr_methodology,
+        candidate.robustness.stability_methodology,
+        (
+            candidate.robustness.pbo_methodology
+            if candidate.robustness.pbo is not None
+            else "NOT_MEASURED"
+        ),
     )
 
 

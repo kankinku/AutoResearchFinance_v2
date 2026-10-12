@@ -15,7 +15,7 @@ from evaluation.benchmark import BenchmarkComparison, BenchmarkData, compare_ben
 from evaluation.metrics import Metrics, calculate_metrics
 from evaluation.risk import RiskEvaluation, evaluate_risk_policy
 from evaluation.robustness import (
-    cpcv_return_scores,
+    group_holdout_return_scores,
     probability_backtest_overfitting,
     robust_statistics,
 )
@@ -212,7 +212,7 @@ class GenerationPipeline:
                 if isinstance((value := fold.get("strategy_total_return")), (int, float))
             )
             try:
-                resampling_scores = cpcv_return_scores(item.returns)
+                resampling_scores = group_holdout_return_scores(item.returns)
             except ValueError:
                 resampling_scores = validation_scores
             complexity = (
@@ -229,6 +229,8 @@ class GenerationPipeline:
                 observations=len(item.returns),
                 complexity=complexity,
                 pbo=pbo,
+                sample_returns=item.returns,
+                annualization_factor=periods_per_year(dataset),
             )
             validation_passed = bool(item.validation_folds) and all(
                 bool(fold["passed"]) for fold in item.validation_folds

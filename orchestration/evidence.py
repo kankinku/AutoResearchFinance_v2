@@ -149,6 +149,10 @@ def candidate_evidence(result: FunnelResult) -> dict[str, Any]:
         "score": _number(result.score),
         "dsr": _number(result.robustness_dsr),
         "pbo": _number(result.robustness_pbo),
+        "dsr_methodology": result.dsr_methodology,
+        "pbo_methodology": result.pbo_methodology,
+        "stability_methodology": result.stability_methodology,
+        "cpcv_full_paths": "NOT_MEASURED",
         "failed_gates": [gate.name for gate in result.gates if not gate.passed],
         "gates": [
             {
