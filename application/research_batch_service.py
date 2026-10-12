@@ -6,6 +6,7 @@ once; deterministic local evaluation chooses only audited eligible successors.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -48,6 +49,7 @@ from runtime.evidence_session import EvidenceSession
 from runtime.process_lifecycle import process_matches
 from runtime.research_loop import _strategy_from_evaluation
 from strategy_ir.normalizer import normalize_source
+from strategy_ir.schema import StrategyIR
 
 MAX_GENERATIONS = 100
 MAX_CANDIDATES = 64
@@ -121,6 +123,22 @@ class ResearchBatchService:
         """)
         return db
 
+    def _registered_partner(self, parent_id: str) -> tuple[Path, StrategyIR]:
+        """Resolve exactly one non-symlinked, normalized catalog parent."""
+        matches: list[tuple[Path, StrategyIR]] = []
+        for path in sorted((self.project_root / "strategies" / "normalized").glob("*.json")):
+            if path.is_symlink():
+                continue
+            imported = normalize_source(path)
+            if imported.strategy is not None and imported.strategy.strategy_id == parent_id:
+                matches.append((path, imported.strategy))
+        if len(matches) != 1:
+            raise BatchRequestError(
+                "UNREGISTERED_CROSSOVER_PARENT",
+                "Second mixed-mode parent must uniquely match a normalized registered strategy.",
+            )
+        return matches[0]
+
     def _validate_request(self, args: dict[str, Any]) -> dict[str, Any]:
         allowed = {
             "source_path",
@@ -172,12 +190,23 @@ class ResearchBatchService:
         if not isinstance(args.get("intent"), dict):
             raise ValueError("GPT must provide a structured ResearchIntent")
         intent = ResearchIntent.model_validate(args["intent"])
-        if len(intent.parent_ids) != 1 or intent.parent_ids[0] != imported.strategy.strategy_id:
+        if (
+            len(intent.parent_ids) not in (1, 2)
+            or intent.parent_ids[0] != imported.strategy.strategy_id
+            or (len(intent.parent_ids) == 2 and intent.mode != "mixed")
+        ):
             raise BatchRequestError(
                 "PARENT_ID_MISMATCH",
-                "intent.parent_ids must contain exactly one ID, matching the "
-                "strategy_id reported for source_path in get_research_brief.research_inputs.",
+                "The first parent must match source_path; an optional second registered "
+                "parent is accepted only in mixed research mode.",
             )
+        partner_path: Path | None = None
+        partner_hash: str | None = None
+        if len(intent.parent_ids) == 2:
+            if intent.parent_ids[1] == intent.parent_ids[0]:
+                raise BatchRequestError("DUPLICATE_CROSSOVER_PARENT", "Parents must be different.")
+            partner_path, _ = self._registered_partner(intent.parent_ids[1])
+            partner_hash = hashlib.sha256(partner_path.read_bytes()).hexdigest()
         if intent.primitive_request is not None:
             raise ValueError("unregistered primitive requests cannot be executed")
         feature_specs = research_feature_specs()
@@ -250,6 +279,10 @@ class ResearchBatchService:
                 series_abs.relative_to(self.project_root).as_posix() if series_abs else None
             ),
             "intent": intent.model_dump(mode="json", exclude_none=True),
+            "partner_source_path": (
+                partner_path.relative_to(self.project_root).as_posix() if partner_path else None
+            ),
+            "partner_source_hash": partner_hash,
             "parameter_domains": [
                 {"name": domain.name, "values": list(domain.values)} for domain in domains
             ],
@@ -742,6 +775,23 @@ class ResearchBatchService:
             if strategy is None:
                 raise ValueError("source strategy changed or is invalid")
             intent = ResearchIntent.model_validate(request["intent"])
+            partner: StrategyIR | None = None
+            if len(intent.parent_ids) == 2:
+                partner_path = resolve_project_input(
+                    self.project_root,
+                    request["partner_source_path"],
+                    frozenset({".json"}),
+                )
+                if (
+                    hashlib.sha256(partner_path.read_bytes()).hexdigest()
+                    != request["partner_source_hash"]
+                ):
+                    raise EvidenceIntegrityError(
+                        "registered crossover parent changed since preflight"
+                    )
+                partner = normalize_source(partner_path).strategy
+                if partner is None or partner.strategy_id != intent.parent_ids[1]:
+                    raise EvidenceIntegrityError("registered crossover parent identity mismatch")
             specs = research_feature_specs()
             operations = intent_to_operations(intent, specs)
             apply_intent(strategy, intent, specs)
@@ -861,6 +911,7 @@ class ResearchBatchService:
                             method=request["method"],
                             count=request["count"],
                             next_seed=request["seed"] + number,
+                            partner=partner,
                         )
                         if next_hypothesis is not None:
                             used_hypotheses.add(next_hypothesis.reason_code)

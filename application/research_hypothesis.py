@@ -95,6 +95,9 @@ class LocalHypothesis:
             "causal_status": "HYPOTHESIS_NOT_VERIFIED_CAUSE",
             "validation_scope": "REUSED_DEVELOPMENT_DATA_NOT_INDEPENDENT_OOS",
             "controller": "BOUNDED_LOCAL_REPLANNING_NO_LLM_CALL",
+            "crossover_parent_ids": [
+                op.other.strategy_id for op in self.operations if op.other is not None
+            ],
         }
 
 
@@ -110,6 +113,7 @@ def propose_next_hypothesis(
     method: str,
     count: int,
     next_seed: int,
+    partner: StrategyIR | None = None,
 ) -> LocalHypothesis | None:
     """Explore a tiny approved IR mutation menu; accept only unseen semantics."""
     if not gate_names:
@@ -244,6 +248,22 @@ def propose_next_hypothesis(
                     ),
                     MutationOperation("CHANGE_AND_OR", "entry.logic", "AND"),
                 ),
+                initial_domains,
+            )
+        )
+
+    # Crossover is only available with an explicitly registered second parent.
+    # Never infer eligible partners from unverified/rejected candidate hashes.
+    if (
+        partner is not None
+        and partner.strategy_id != parent.strategy_id
+        and partner.exit != parent.exit
+    ):
+        variants.append(
+            (
+                "CROSSOVER_REGISTERED_PARENT_EXIT",
+                preferred,
+                (*initial_operations, MutationOperation("CROSSOVER", other=partner)),
                 initial_domains,
             )
         )

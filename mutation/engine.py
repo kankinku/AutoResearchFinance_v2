@@ -92,6 +92,22 @@ def _combine_strategy(data: dict[str, Any], operation: MutationOperation) -> Non
         raise MutationError(f"{operation.op} requires other strategy")
     other = operation.other.model_dump(mode="python", by_alias=False)
     if operation.op == "CROSSOVER":
+        # Copy only dependencies needed by the adopted exit rule. Reusing an
+        # existing alias with conflicting semantics must fail closed.
+        referenced = {
+            ref
+            for condition in other["exit"]["conditions"]
+            for ref in (condition["left"], condition.get("right"))
+            if isinstance(ref, str)
+        }
+        for section in ("indicators", "features"):
+            for name in sorted(referenced):
+                if name not in other[section]:
+                    continue
+                spec = other[section][name]
+                if name in data[section] and data[section][name] != spec:
+                    raise MutationError(f"crossover alias collision: {name}")
+                data[section][name] = spec
         data["exit"] = other["exit"]
     else:
         for name, spec in other["indicators"].items():
@@ -126,9 +142,7 @@ def _container(data: Any, parts: list[str]) -> tuple[Any, str]:
     return current, parts[-1]
 
 
-def _set_path(
-    data: dict[str, Any], path: str, value: Any, *, allow_new: bool = False
-) -> None:
+def _set_path(data: dict[str, Any], path: str, value: Any, *, allow_new: bool = False) -> None:
     container, key = _container(data, _parts(path))
     try:
         if isinstance(container, list):
