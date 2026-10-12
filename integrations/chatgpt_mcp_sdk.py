@@ -36,6 +36,7 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "get_research_brief": "EVIDENCE_STATUS",
     "run_research_step": "EXECUTION_LIFECYCLE",
     "start_research_batch": "EXECUTION_LIFECYCLE",
+    "preflight_research_batch": "CATALOG_VALIDATION",
     "get_research_batch_status": "EVIDENCE_STATUS",
     "get_research_batch_report": "EVIDENCE_STATUS",
     "cancel_research_batch": "EXECUTION_LIFECYCLE",
@@ -112,6 +113,14 @@ def chatgpt_tools() -> list[dict[str, object]]:
     }
     custom.extend(
         [
+            {
+                "name": "preflight_research_batch",
+                "description": (
+                    "Read-only validation of strategy and Parquet data with a bounded "
+                    "preview of duplicate or unique candidate strategies. Never launches a worker."
+                ),
+                "inputSchema": batch_schema,
+            },
             {
                 "name": "start_research_batch",
                 "description": "Execute a bounded 1-100 generation GPT-planned research batch. "

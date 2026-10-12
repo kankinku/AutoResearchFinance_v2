@@ -38,3 +38,24 @@
 `tests/integrations/test_gpt_research_batches.py`: 실제 subprocess N세대 실행, 상태·Evidence 및 시간 기록 검증; 두 번째 실행에 과거 실행시간 사용; 잘못된 부모/권한 외 인수/허용 범위 바깥 N세대 거절.
 
 `tests/integrations/test_chatgpt_mcp_stdio.py`: 실제 공식 MCP 연결에서 도구 목록 및 연구 실행 검증.
+
+## 2026-10-12 A0–A2 incremental improvement
+
+- First call `preflight_research_batch` with exactly the same required arguments as
+  `start_research_batch`. It never creates jobs or runs an evaluator.
+- Preflight rejects unreadable, missing, invalid or non-development OHLCV/series
+  *before* spawning a worker. Returns data hash/version/zone/bar count and
+  explicitly unverified vendor provenance.
+- For up to the first five generations, preflight previews effective Strategy IR
+  uniqueness and repeated-candidate risk. Preview is conditional on a fixed
+  parent and is not a guarantee for adaptive successor generations.
+- When *all* candidates in a generation are already evaluated in the current
+  batch with the same semantic Strategy IR, that generation records
+  `NO_NEW_CANDIDATES` without another evaluation/attempt. If some candidates
+  are new, the generation still runs its full requested evaluator batch;
+  mixed duplicate/new candidates remain a future optimization.
+- `get_research_batch_report` exposes `skipped_duplicate_generations`.
+  The returned `preflight` section on `start_research_batch` is an upfront
+  estimate, **not** actual evaluation evidence.
+- The existing `/quant/mcp` URL, OAuth issuer/audience/client registration,
+  approval key and `orders_enabled=false` are unchanged.

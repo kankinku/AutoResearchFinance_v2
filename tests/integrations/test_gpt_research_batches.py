@@ -39,6 +39,7 @@ def test_gpt_batch_tools_are_visible_but_canonical_server_contract_is_unchanged(
     assert len(_tools()) == 13
     names = {item["name"] for item in chatgpt_tools()}
     assert {
+        "preflight_research_batch",
         "start_research_batch",
         "get_research_batch_status",
         "get_research_batch_report",
@@ -46,6 +47,105 @@ def test_gpt_batch_tools_are_visible_but_canonical_server_contract_is_unchanged(
     } <= names
     assert {"start_system", "stop_system", "run_evaluation"}.isdisjoint(names)
 
+
+
+def test_batch_preflight_is_read_only_and_warns_on_repeated_candidates(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    result = service.preflight(_request(generations=5))
+    assert result["status"] == "READY_WITH_WARNINGS"
+    assert result["orders_enabled"] is False
+    assert result["preview_generations"] == 5
+    assert result["preview_candidate_instances"] == 5
+    assert result["preview_unique_strategies"] == 1
+    assert result["preview_duplicate_candidates"] == 4
+    assert result["repetition_risk"] is True
+    assert result["dataset"]["bars"] > 0
+    assert result["dataset"]["zone"] == "development"
+    assert not service.database.exists()
+
+
+def test_batch_preflight_reports_unique_domain_preview(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    request = {
+        **_request(generations=1),
+        "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3, 4]}],
+        "count": 3,
+    }
+    result = service.preflight(request)
+    assert result["status"] in {"READY", "READY_WITH_WARNINGS"}
+    assert result["preview_candidate_instances"] == 3
+    assert result["preview_unique_strategies"] == 3
+    assert result["repetition_risk"] is False
+    assert not service.database.exists()
+
+
+def test_batch_preflight_fails_before_a_worker_on_invalid_parquet(tmp_path: Path) -> None:
+    from application.research_batch_service import BatchRequestError
+
+    _write_inputs(tmp_path)
+    (tmp_path / "bars.parquet").write_bytes(b"not a parquet file")
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    with pytest.raises(BatchRequestError) as exc:
+        service.start(_request())
+    assert exc.value.code == "INVALID_DATASET"
+    assert not service.database.exists()
+
+
+def test_preflight_mcp_dispatch_is_read_only(tmp_path: Path) -> None:
+    import asyncio
+    import json
+
+    from mcp.types import CallToolRequestParams
+
+    from integrations.chatgpt_mcp_sdk import create_chatgpt_sdk_adapter
+
+    _write_inputs(tmp_path)
+    adapter = create_chatgpt_sdk_adapter(
+        state_dir=tmp_path / "state", project_root=tmp_path
+    )
+
+    async def run() -> dict[str, object]:
+        response = await adapter.call_tool(
+            None, CallToolRequestParams(
+                name="preflight_research_batch", arguments=_request(generations=5)
+            ),
+        )
+        assert response.is_error is False
+        return json.loads(response.content[0].text)
+
+    report = asyncio.run(run())
+    assert report["preview_unique_strategies"] == 1
+    assert report["orders_enabled"] is False
+    assert report["_contract"]["orders_enabled"] is False
+    assert not (tmp_path / "state" / "system" / "gpt-research-batches.sqlite").exists()
+
+
+def test_preflight_rejects_sealed_data_without_loading_rows(tmp_path: Path) -> None:
+    from application.research_batch_service import BatchRequestError
+    from core.data.contracts import DataZone, MarketDataSet
+    from core.data.parquet import ParquetDataProvider
+
+    _write_inputs(tmp_path)
+    path = tmp_path / "bars.parquet"
+    original = ParquetDataProvider.read(path)
+    ParquetDataProvider.write(
+        path,
+        MarketDataSet(
+            original.version,
+            DataZone.SEALED_OOS,
+            original.bars,
+            original.timeframe,
+            original.calendar,
+            original.provenance,
+        ),
+    )
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    with pytest.raises(BatchRequestError) as exc:
+        service.preflight(_request())
+    assert exc.value.code == "DATA_ZONE_DENIED"
+    assert not service.database.exists()
 
 def test_gpt_batch_runs_two_generations_and_reuses_history_for_eta(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
@@ -88,6 +188,32 @@ def test_gpt_batch_runs_two_generations_and_reuses_history_for_eta(tmp_path: Pat
             break
     assert s["status"] == "COMPLETED", s
 
+
+
+def test_repeated_single_candidate_generation_is_skipped_with_evidence(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    service = ResearchBatchService(project_root=tmp_path, state_dir=state)
+    first = service.start(_request(generations=3))
+    jid = str(first["job_id"])
+    for _ in range(140):
+        time.sleep(0.2)
+        status = service.status(jid)
+        if status["status"] not in {"QUEUED", "RUNNING"}:
+            break
+    assert status["status"] == "COMPLETED", status
+    report = service.report(jid)
+    assert report["completed_generations"] == 3
+    assert report["skipped_duplicate_generations"] == 2
+    assert [row["status"] for row in report["generations"]] == [
+        "COMPLETED",
+        "NO_NEW_CANDIDATES",
+        "NO_NEW_CANDIDATES",
+    ]
+    assert report["evaluated_candidate_instances"] == 1
+    events = EvidenceStore(state).events()
+    assert len([x for x in events if x["kind"] == "attempt"]) == 1
+    assert len([x for x in events if x["kind"] == "generation"]) == 3
 
 def test_batch_validation_rejects_invalid_intents_and_generation_bounds(tmp_path: Path) -> None:
     _write_inputs(tmp_path)

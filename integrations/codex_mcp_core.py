@@ -160,12 +160,15 @@ class CodexMCPServer:
         if name == "run_research_step":
             return self._run_research_step(arguments)
         if name in {
+            "preflight_research_batch",
             "start_research_batch",
             "get_research_batch_status",
             "get_research_batch_report",
             "cancel_research_batch",
         }:
             batch = ResearchBatchService(project_root=self.project_root, state_dir=self.state_dir)
+            if name == "preflight_research_batch":
+                return batch.preflight(arguments)
             if name == "start_research_batch":
                 return batch.start(arguments)
             if set(arguments) - {"job_id"}:

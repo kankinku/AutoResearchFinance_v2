@@ -20,7 +20,13 @@ from typing import Any, cast
 from uuid import uuid4
 
 from application.evaluation_service import EvaluationService
+from core.data.contracts import DataZone
+from core.data.parquet import ParquetDataProvider
+from core.data.quality import market_data_quality
 from core.features.registry import research_feature_specs
+from experiments.candidate_generator import generate_candidates
+from experiments.deduplicator import deduplicate_candidates
+from experiments.identity import semantic_strategy_hash
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from mutation.engine import MutationOperation, apply_operations
 from orchestration.evaluation_runner import (
@@ -28,6 +34,7 @@ from orchestration.evaluation_runner import (
     parse_parameter_domains,
     resolve_project_input,
 )
+from orchestration.evidence import require_research_zone
 from research.llm.director import ResearchIntent
 from research.llm.intent_bridge import apply_intent, intent_to_operations
 from runtime.evidence_session import EvidenceSession
@@ -233,6 +240,102 @@ class ResearchBatchService:
             "min_qqq_cagr_delta": delta,
         }
 
+    def preflight(self, args: dict[str, Any]) -> dict[str, object]:
+        """Read-only validation and a bounded candidate-diversity preview.
+
+        A preview is not an evaluated strategy or a guarantee that later
+        generations will keep the same parent after an eligible successor.
+        """
+        request = self._validate_request(args)
+        data_path = self.project_root / request["data_path"]
+        try:
+            require_research_zone(data_path)
+            data = ParquetDataProvider.read(data_path)
+            if DataZone(data.zone) is not DataZone.DEVELOPMENT:
+                raise BatchRequestError(
+                    "DATA_ZONE_DENIED", "Batch research requires development-only market data."
+                )
+            if not data.bars:
+                raise BatchRequestError("INSUFFICIENT_HISTORY", "Dataset contains no price bars.")
+        except BatchRequestError:
+            raise
+        except EvidenceIntegrityError as exc:
+            raise BatchRequestError(
+                "DATA_ZONE_DENIED", "Research requires development-only market data."
+            ) from exc
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise BatchRequestError(
+                "INVALID_DATASET", "Research data is not a valid development OHLCV Parquet."
+            ) from exc
+        # Reject corrupted series data before queuing, without exposing its rows.
+        if request["series_data_path"] is not None:
+            try:
+                require_research_zone(self.project_root / request["series_data_path"])
+                series = ParquetDataProvider.read_series(
+                    self.project_root / request["series_data_path"]
+                )
+                if DataZone(series.zone) is not DataZone.DEVELOPMENT:
+                    raise BatchRequestError(
+                        "DATA_ZONE_DENIED", "Research series must be development-only."
+                    )
+            except BatchRequestError:
+                raise
+            except EvidenceIntegrityError as exc:
+                raise BatchRequestError(
+                    "DATA_ZONE_DENIED", "Research series must be development-only."
+                ) from exc
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                raise BatchRequestError("INVALID_DATASET", "Research series is invalid.") from exc
+        result = normalize_source(self.project_root / request["source_path"])
+        if result.strategy is None:
+            raise BatchRequestError("INVALID_SOURCE", "Research strategy cannot be normalized.")
+        intent = ResearchIntent.model_validate(request["intent"])
+        operations = tuple(intent_to_operations(intent, research_feature_specs()))
+        domains = parse_parameter_domains(request["parameter_domains"])
+        seen: set[str] = set()
+        generated = 0
+        # At most five generations * 64 candidates. No evaluation or DB mutation.
+        preview_generations = min(request["generations"], 5)
+        for number in range(preview_generations):
+            candidates = generate_candidates(
+                result.strategy, operations, domains,
+                method=request["method"], count=request["count"],
+                seed=request["seed"] + number,
+            )
+            generated += len(candidates)
+            seen.update(semantic_strategy_hash(candidate.strategy) for candidate in candidates)
+        duplicates = generated - len(seen)
+        warnings: list[str] = []
+        if duplicates:
+            warnings.append("PREVIEW_REPEATS_STRATEGIES")
+        if request["generations"] > preview_generations:
+            warnings.append("PREVIEW_ONLY_FIRST_FIVE_GENERATIONS")
+        quality = market_data_quality(data)
+        if quality.issues:
+            warnings.append("DATA_PROVENANCE_UNVERIFIED")
+        return {
+            "status": "READY_WITH_WARNINGS" if warnings or not seen else "READY",
+            "source_path": request["source_path"],
+            "strategy_id": result.strategy.strategy_id,
+            "data_path": request["data_path"],
+            "dataset": {
+                "dataset_hash": data.dataset_hash,
+                "dataset_version": data.version,
+                "zone": DataZone(data.zone).value,
+                "bars": len(data.bars),
+                "symbols": sorted({bar.symbol for bar in data.bars}),
+                "quality": quality.record(),
+            },
+            "preview_generations": preview_generations,
+            "preview_candidate_instances": generated,
+            "preview_unique_strategies": len(seen),
+            "preview_duplicate_candidates": duplicates,
+            "repetition_risk": duplicates > 0,
+            "warnings": warnings,
+            "preview_only": True,
+            "orders_enabled": False,
+        }
+
     def describe_inputs(self) -> dict[str, object]:
         """Bounded, project-local input discovery; never invent market data."""
         sources: list[dict[str, str]] = []
@@ -279,6 +382,7 @@ class ResearchBatchService:
         }
 
     def start(self, args: dict[str, Any]) -> dict[str, object]:
+        preview = self.preflight(args)
         request = self._validate_request(args)
         # Reconcile workers terminated by host restart before enforcing concurrency.
         with self._connect() as scan:
@@ -338,7 +442,7 @@ class ResearchBatchService:
             db.execute(
                 "UPDATE batches SET pid=? WHERE id=? AND status='QUEUED'", (worker.pid, job_id)
             )
-        return self.status(job_id)
+        return {**self.status(job_id), "preflight": preview}
 
     def _job(self, job_id: str | None) -> sqlite3.Row:
         with self._connect() as db:
@@ -485,6 +589,9 @@ class ResearchBatchService:
             "duplicate_candidate_evaluations": duplicate if hashes else None,
             "repeated_candidate_warning": duplicate > 0,
             "promoted_successor_generations": promotions,
+            "skipped_duplicate_generations": sum(
+                item["status"] == "NO_NEW_CANDIDATES" for item in generations
+            ),
             "candidate_uniqueness_basis": "immutable_evidence" if hashes else "not_measured",
             "research_intent_mode": "fixed_intent",
             "final_report_ready": status["status"] in _TERMINAL,
@@ -529,6 +636,8 @@ class ResearchBatchService:
                     "UPDATE batches SET research_run_id=? WHERE id=?", (evidence.run_id, job_id)
                 )
             evaluator = EvaluationService(project_root=self.project_root, state_dir=self.state_dir)
+            seen_semantics: set[str] = set()
+            domains = parse_parameter_domains(request.get("parameter_domains"))
             for number in range(1, request["generations"] + 1):
                 with self._connect() as db:
                     cancel = db.execute(
@@ -545,22 +654,46 @@ class ResearchBatchService:
                 began = time.monotonic()
                 parent_id = strategy.strategy_id
                 # Successor is adopted ONLY from auditable eligible immutable Evidence.
-                result = evidence.evaluate(
-                    evaluator.run,
-                    source_path=request["source_path"],
-                    data_path=request["data_path"],
-                    series_data_path=request["series_data_path"],
-                    method=request["method"],
-                    count=request["count"],
-                    seed=request["seed"] + number - 1,
-                    generation=number,
-                    min_trades=request["min_trades"],
-                    min_annual_trades=request["min_annual_trades"],
-                    min_qqq_cagr_delta=request["min_qqq_cagr_delta"],
-                    operations=operations,
-                    parameter_domains=parse_parameter_domains(request.get("parameter_domains")),
-                    strategy_override=strategy,
-                )
+                candidates = deduplicate_candidates(
+                    list(
+                        generate_candidates(
+                            strategy,
+                            tuple(operations),
+                            domains,
+                            method=request["method"],
+                            count=request["count"],
+                            seed=request["seed"] + number - 1,
+                        )
+                    ),
+                    semantic=True,
+                ).unique
+                semantics = {semantic_strategy_hash(item.strategy) for item in candidates}
+                if semantics and semantics <= seen_semantics:
+                    # The same effective strategy on immutable data need not be
+                    # evaluated again. This generation is recorded, not invented.
+                    result: dict[str, object] = {
+                        "status": "NO_NEW_CANDIDATES",
+                        "candidate_count": 0,
+                        "counts": {},
+                    }
+                else:
+                    result = evidence.evaluate(
+                        evaluator.run,
+                        source_path=request["source_path"],
+                        data_path=request["data_path"],
+                        series_data_path=request["series_data_path"],
+                        method=request["method"],
+                        count=request["count"],
+                        seed=request["seed"] + number - 1,
+                        generation=number,
+                        min_trades=request["min_trades"],
+                        min_annual_trades=request["min_annual_trades"],
+                        min_qqq_cagr_delta=request["min_qqq_cagr_delta"],
+                        operations=operations,
+                        parameter_domains=domains,
+                        strategy_override=strategy,
+                    )
+                    seen_semantics.update(semantics)
                 next_strategy = _strategy_from_evaluation(
                     result, self.state_dir, research_run_id=evidence.run_id
                 )
