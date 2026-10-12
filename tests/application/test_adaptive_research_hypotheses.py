@@ -78,3 +78,43 @@ def test_validation_failure_changes_entry_threshold() -> None:
         next_seed=9,
     )
     assert plan is not None and plan.operations[-1].op == "REPLACE_RULE"
+
+
+
+def test_pending_adaptive_hypothesis_prevents_premature_exhaustion() -> None:
+    from application.research_batch_service import _should_stop_exhausted_generation
+    from application.research_hypothesis import LocalHypothesis
+
+    pending = LocalHypothesis(
+        reason_code="RISK_STOP_LOSS_EXPERIMENT",
+        trigger_gate="robustness",
+        applied_after_attempt_id="attempt-before",
+        operations=(),
+        domains=(ParameterDomain("risk.stop_loss_pct", (1.0, 2.0)),),
+        preview_new_candidates=2,
+    )
+    for method, domains in (("grid", ()), ("random", ())):
+        assert not _should_stop_exhausted_generation(
+            result_status="NO_NEW_CANDIDATES",
+            method=method,
+            initial_domains=domains,
+            pending_hypothesis=pending,
+        )
+    assert _should_stop_exhausted_generation(
+        result_status="NO_NEW_CANDIDATES",
+        method="grid",
+        initial_domains=(),
+        pending_hypothesis=None,
+    )
+    assert _should_stop_exhausted_generation(
+        result_status="NO_NEW_CANDIDATES",
+        method="random",
+        initial_domains=(),
+        pending_hypothesis=None,
+    )
+    assert not _should_stop_exhausted_generation(
+        result_status="REJECT",
+        method="grid",
+        initial_domains=(),
+        pending_hypothesis=None,
+    )

@@ -35,6 +35,7 @@ from experiments.deduplicator import deduplicate_candidates
 from experiments.identity import semantic_strategy_hash
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from mutation.engine import MutationOperation, apply_operations
+from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
     parse_parameter_domains,
@@ -71,6 +72,21 @@ def _bounded_int(value: object, name: str, low: int, high: int) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
         raise ValueError(f"{name} must be an integer from {low} to {high}")
     return value
+
+
+def _should_stop_exhausted_generation(
+    *,
+    result_status: str,
+    method: str,
+    initial_domains: tuple[ParameterDomain, ...],
+    pending_hypothesis: LocalHypothesis | None,
+) -> bool:
+    """Do not discard a new evidence-guided hypothesis when a local grid exhausts."""
+    return (
+        result_status == "NO_NEW_CANDIDATES"
+        and pending_hypothesis is None
+        and (method == "grid" or not initial_domains)
+    )
 
 
 class ResearchBatchService:
@@ -884,8 +900,11 @@ class ResearchBatchService:
                         "UPDATE batches SET completed=?,heartbeat=? WHERE id=?",
                         (number, time.time(), job_id),
                     )
-                if result.get("status") == "NO_NEW_CANDIDATES" and (
-                    request["method"] == "grid" or not domains
+                if _should_stop_exhausted_generation(
+                    result_status=str(result.get("status")),
+                    method=request["method"],
+                    initial_domains=domains,
+                    pending_hypothesis=next_hypothesis,
                 ):
                     # Further seeds cannot introduce an unseen strategy with
                     # grid search, or in the absence of parameter domains.
