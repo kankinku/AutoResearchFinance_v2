@@ -68,11 +68,21 @@ def explain_batch_attempts(
                         ),
                         None,
                     ) if isinstance(gate_records, list) else None
-                    examples[gate] = {
-                        "example_actual": detail.get("actual") if detail is not None else None,
-                        "example_threshold": detail.get("threshold")
-                        if detail is not None else None,
-                    }
+                    if gate in {"fast", "full"}:
+                        # This gate also checks return, but its stored actual
+                        # reflects only trade count. Do not imply causality.
+                        examples[gate] = {
+                            "example_actual": None,
+                            "example_threshold": None,
+                            "measurement_note": "COMPOSITE_GATE_NOT_DISAMBIGUATED",
+                        }
+                    else:
+                        examples[gate] = {
+                            "example_actual": detail.get("actual")
+                            if detail is not None else None,
+                            "example_threshold": detail.get("threshold")
+                            if detail is not None else None,
+                        }
     leading = [
         {"gate": name, "count": count, **examples[name]}
         for name, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:3]

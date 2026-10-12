@@ -69,3 +69,14 @@ def test_explain_batch_attempts_never_claims_success_without_candidates() -> Non
     assert report["top_failed_gates"] == []
     assert report["next_experiment"] is None
     assert report["sealed_oos"] == "NOT_MEASURED"
+
+
+def test_composite_fast_gate_does_not_explain_a_return_failure_by_trade_count() -> None:
+    candidate = _candidate(status="REJECT", failed=["fast"], ident="x")
+    report = explain_batch_attempts([{"candidates": [candidate]}])
+    summary = report["top_failed_gates"][0]
+    assert summary["gate"] == "fast"
+    assert summary["count"] == 1
+    assert summary["example_actual"] is None
+    assert summary["example_threshold"] is None
+    assert summary["measurement_note"] == "COMPOSITE_GATE_NOT_DISAMBIGUATED"
