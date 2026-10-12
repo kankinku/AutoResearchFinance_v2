@@ -67,3 +67,34 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 - 재설치하거나 Windows Docker 환경이 바뀌었을 때에는 OAuth 등록 및 승인 플로를 다시 확인한다.
 
 Moon·Quant는 서로 다른 도구/토큰 자격을 사용한다. 기존 Moon의 GitHub/개발 환경 접근 권한을 Quant에게 부여하지 않는다.
+
+## 2026-10-12 persistent public URL pin (anti-reconfiguration guard)
+
+The Quant launcher now pins the Moon-provided OAuth issuer at
+`state/moon-http/oauth/public-base-url` (owner-only file, mode `0600`),
+which persists under `/shared`, outside source control. On *every* start it
+compares the pinned HTTPS `*.ts.net/quant` base with the canonical hostname in
+`/shared/AGENTS.md`; mismatches fail closed rather than silently changing the
+OAuth issuer/resource and forcing users to register a new ChatGPT URL.
+
+The first migration of an already-running server **must explicitly pin the
+currently active, previously verified URL before restart**. If the URL pin is
+missing while `quant-oauth.sqlite` already exists, boot fails instead of
+guessing/reissuing an identity. A missing approval key with an existing OAuth DB
+also fails closed; existing keys/tokens must be retained, not rotated.
+
+The launcher still runs only on loopback port `8787` and the public URL
+remains `https://project-moon.taild689f9.ts.net/quant/mcp`; it does not
+modify Tailscale identity, Moon's own `/mcp`, or Nginx ingress. `QUANT_MCP_PUBLIC_BASE`
+may be supplied only when it matches the durable pin exactly.
+
+Read-only check (must print only the public base, never a key):
+```bash
+.venv/bin/python -m scripts.quant_public_url   --pin state/moon-http/oauth/public-base-url   --oauth-db state/moon-http/research/oauth/quant-oauth.sqlite
+```
+
+User UI plugin updates are separate from endpoint deployment. MCP
+`tools/list` can advertise newly added tools at the same URL without any
+OAuth re-registration; a client with a cached tool schema may need to refresh
+its plugin/tool discovery, but **must not be told to create a new endpoint or
+change the URL** unless Tailscale's actual identity is lost.

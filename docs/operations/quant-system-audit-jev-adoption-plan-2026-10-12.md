@@ -103,3 +103,18 @@
 - 외부 원천/기업행위/미상장 종목 포함 PIT 검증 및 수익성: 미확인.
 - 실제 KIS paper order, 실거래, Docker 재시작/타임아웃, 윈도우 호스트 acceptance: 미실행.
 - 이번 조사는 **연구·실행 시스템 개선 계획**만 확정한다. 거래 활성화 및 기존 정본 구조 변경은 포함하지 않는다.
+
+## 8. 구현 1차 완료 기록 (2026-10-12)
+
+| 항목 | 상태 | 근거 |
+| --- | --- | --- |
+| A0 서비스 진단 | PARTIAL | Moon 프로세스/데이터/연구 SQLite와 API 정적 점검; 별도 인증된 ChatGPT UI 도구 재검색은 클라이언트 상태에 의존 |
+| A1 입력 검증 | DONE (범위 한정) | `preflight_research_batch`가 개발용 Parquet와 series zone을 검사, 데이터 해시·품질 공개, 워커 이전 오류 차단; 독립 PIT/법인행위 검증은 미완료 |
+| A2 중복 회피 | PARTIAL | 동일 배치에서 세대 전체가 기존 전략과 중복일 때 평가 생략/증거 기록; 혼합된 신규+중복 후보의 부분 필터링 및 전역 캐시는 후속 과제 |
+| MCP public URL 안정성 | DONE (코드/로컬) | `scripts/quant_public_url.py`의 영구 핀 검증, drift/missing-pin/missing-key fail closed, 기존 OAuth 상태 유지 |
+| Jev Trader C1~C3 | PENDING | 초저지연 데이터 스트림/주문 엔진은 아직 도입하지 않음; 연구 주문 권한 비활성 유지 |
+
+인증과 공개 endpoint 검증은 배포 후 결과를 별도로 기록한다.
+기존 13-tool canonical stdio ABI는 그대로 유지하며 ChatGPT MCP 도구만
+`preflight_research_batch`를 추가한다. 신규 도구 계약 갱신은 공개 URL의
+변경이나 사용자 OAuth 클라이언트 재등록을 요구하지 않도록 한다.
