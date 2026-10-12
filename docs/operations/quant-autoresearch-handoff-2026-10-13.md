@@ -40,7 +40,7 @@
 
 ## Safe next actions (in priority order)
 
-1. Finish tests, commit+push and restart Quant-only MCP. Confirm `get_research_evidence` and predecessor-linked `run_research_step` via ChatGPT connector.
+1. Refresh the ChatGPT connector's cached tool metadata so `run_research_step.previous_research_run_id` is exposed, then verify linked submission over authenticated MCP rather than only via the local dispatcher; GET of linked Evidence already works.
 2. Add a durable Strategy IR snapshot / checksum registry for eligible NEAR_MISS entries, then connect Rescue read path; reject non-reconstructable or non-verified candidates.
 3. Introduce externally directed GPT checkpoint protocol (one proposal per verified generation, linked predecessor, typed intent, explicit fail-closed resume token). The existing detached `start_research_batch` is deterministic only; do not claim it already makes GPT calls.
 4. Resolve PIT corporate-action data provenance and independent historical releases. No sealed OOS until that gate.
@@ -52,4 +52,7 @@
 - Focused Evidence/GPT integration tests: 21 passed.
 - Static checks: Ruff pass; Mypy 192 source files pass.
 - Full suite: **1,103 passed in 265.27s**, no failures (2026-10-13 KST).
-- Authenticated post-deployment MCP and predecessor-linked step: pending at time of writing; update with actual results.
+- Post-deploy Quant-only restart: success; protected MCP local and gateway return HTTP 401 without authorization; 2 OAuth client records retained; zero live orders.
+- Authenticated connected `get_research_evidence`: status `OK` with existing legacy exhausted 11/12 recorded as `SEARCH_SPACE_EXHAUSTED`; no immutable event rewrites.
+- Operating MCP dispatcher `run_research_step` predecessor-linked research: `064a8f1301704f138e9005e0151dd551` linked to `9663645707ab48638b01404ce50872fc`; one candidate evaluated and REJECT, orders disabled. Authenticated ChatGPT `get_research_evidence(research_run_id=...)` confirmed persisted predecessor link.
+- Caveat: current connected ChatGPT client-side tool schema was cached without new optional `previous_research_run_id`, and rejected this new argument before sending it. Server schema and dispatcher are updated; refresh/reconnect plugin tool metadata in a new client session to expose the field directly. Do not claim the connected submission itself succeeded until refreshed.
