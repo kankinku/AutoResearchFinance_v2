@@ -13,6 +13,7 @@ from math import isfinite
 
 from experiments.candidate_generator import generate_candidates
 from experiments.identity import semantic_strategy_hash
+from memory.rescue_pool import VerifiedRescue
 from mutation.engine import MutationOperation
 from mutation.parameter import ParameterDomain
 from strategy_ir.schema import StrategyIR
@@ -81,6 +82,7 @@ class LocalHypothesis:
     operations: tuple[MutationOperation, ...]
     domains: tuple[ParameterDomain, ...]
     preview_new_candidates: int
+    rescue_candidate_hash: str | None = None
 
     def summary(self) -> dict[str, object]:
         return {
@@ -98,6 +100,7 @@ class LocalHypothesis:
             "crossover_parent_ids": [
                 op.other.strategy_id for op in self.operations if op.other is not None
             ],
+            "rescue_source_candidate_hash": self.rescue_candidate_hash,
         }
 
 
@@ -114,6 +117,7 @@ def propose_next_hypothesis(
     count: int,
     next_seed: int,
     partner: StrategyIR | None = None,
+    rescue: VerifiedRescue | None = None,
 ) -> LocalHypothesis | None:
     """Explore a tiny approved IR mutation menu; accept only unseen semantics."""
     if not gate_names:
@@ -268,6 +272,17 @@ def propose_next_hypothesis(
             )
         )
 
+    # Rescue is a structural experiment with an independently verified IR.
+    if rescue is not None and rescue.strategy.exit != parent.exit:
+        variants.append(
+            (
+                "RESCUE_VERIFIED_NEAR_MISS_EXIT",
+                preferred,
+                (*initial_operations, MutationOperation("CROSSOVER", other=rescue.strategy)),
+                initial_domains,
+            )
+        )
+
     for label, trigger, operations, domains in variants:
         if label in used_hypotheses:
             continue
@@ -293,5 +308,8 @@ def propose_next_hypothesis(
                 operations,
                 domains,
                 len(novel),
+                rescue.candidate_hash
+                if rescue is not None and label.startswith("RESCUE_")
+                else None,
             )
     return None

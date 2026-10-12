@@ -288,7 +288,7 @@ def run_local_evaluation(
 
 
 def _candidate_snapshot_evidence(candidate: object, result: object) -> dict[str, object]:
-    """Persist replayable IR for eligible candidates, not unapproved near misses."""
+    """Persist replayable IR for survivors and gate-verified NEAR_MISS candidates."""
     from core.integrity.hashes import content_hash
     from evaluation.selector import FunnelResult
     from experiments.candidate_generator import Candidate
@@ -296,10 +296,16 @@ def _candidate_snapshot_evidence(candidate: object, result: object) -> dict[str,
     if not isinstance(candidate, Candidate) or not isinstance(result, FunnelResult):
         raise TypeError("candidate/result Evidence pair is invalid")
     from experiments.identity import semantic_strategy_hash
+    from memory.rescue_pool import near_miss_qualifies
 
     payload: dict[str, object] = candidate_evidence(result)
     payload["semantic_strategy_hash"] = semantic_strategy_hash(candidate.strategy)
-    if result.status in {"SURVIVOR", "FRONTIER", "CHAMPION_CANDIDATE", "CHAMPION"}:
+    if result.status in {
+        "SURVIVOR",
+        "FRONTIER",
+        "CHAMPION_CANDIDATE",
+        "CHAMPION",
+    } or near_miss_qualifies(payload):
         ir = candidate.strategy.model_dump(mode="json", by_alias=True)
         payload["strategy_ir"] = ir
         payload["strategy_ir_hash"] = content_hash(ir)

@@ -16,7 +16,7 @@
 | P0-2 | Immutable Evidence trace | Validated generation-to-attempt reference, rejected gate trace, novelty, deduplication, no orders | Complete for exercised batches |
 | P0-3 | 20-generation study | Completed 20/20; 41 unique evaluated candidates; 19 duplicate candidates skipped; 4 replanned/applied hypotheses; all REJECT | Interruption and *actual resume* acceptance still unverified (current worker has cancel/restart but no same-batch resume guarantee) |
 | P1-4 | Structure evolution | Exit-threshold change and RSI combined entry tested; 10-generation smoke applied both | Broaden operator/indicator menu while preventing overfitting |
-| P1-5 | Crossover / Rescue | Registered second-parent crossover tested 10th generation; run ended normally 11/12 on search exhaustion; RescuePool empty | Preserve reconstructable approved NEAR_MISS Strategy IR/provenance and test real Rescue candidate. Never relabel REJECT as NEAR_MISS |
+| P1-5 | Crossover / Rescue | Crossover live QQQ proof complete. Rescue implementation now stores strictly gate-qualified NEAR_MISS IR snapshots in immutable Evidence, rebuilds replayable candidates by matching complete run / evaluation attempt / comparison key / dataset / IR and semantic hashes, and offers last-resort EXIT crossover in adaptive mixed runs. Focused tests passed; operating Evidence currently has 87 REJECT and **zero real NEAR_MISS** | Run genuine NEAR_MISS operational acceptance before declaring complete; keep REJECT excluded |
 | P1-6 | GPT per-generation research director | External GPT selected different IBS `strong_close` and SMA `golden_cross` hypotheses; both were actually evaluated and rejected. New optional predecessor run ID validation records GPT step lineage against immutable same-dataset Evidence | A fully automatic LLM-at-each-generation controller remains **not built**; design durable GPT checkpoint/intent handoff without local worker invoking LLM |
 | P1-7 | Market data lineage & PIT | QQQ Tiingo raw 2020-01-02..2025-12-31, 1,508 bars; no duplicate/non-monotone timestamps, OHLC or negative volume anomalies; source is `revision_policy=latest`, raw/no verified corporate action reference | Acquire/reconcile independently PIT-valid source and verifiable split/dividend adjustments before OOS/performance certification |
 | P2-8 | Integration UX & operations | OAuth MCP responds; preflight, batch status/report, per-generation Evidence connected. Fixed projection bug: legitimate completed 11/12 `SEARCH_SPACE_EXHAUSTED` was previously incorrectly flagged `INTEGRITY_ERROR`. Read-only projection now recognizes only final `NO_NEW_CANDIDATES` with no pending hypothesis | Post-deploy authenticated `get_research_evidence` returns OK; test interruption/recovery, Windows Docker host gate, 5-user workflow |
@@ -41,7 +41,7 @@
 ## Safe next actions (in priority order)
 
 1. Refresh the ChatGPT connector's cached tool metadata so `run_research_step.previous_research_run_id` is exposed, then verify linked submission over authenticated MCP rather than only via the local dispatcher; GET of linked Evidence already works.
-2. Add a durable Strategy IR snapshot / checksum registry for eligible NEAR_MISS entries, then connect Rescue read path; reject non-reconstructable or non-verified candidates.
+2. Rescue Evidence implementation exists and is test-verified; obtain a *genuine* NEAR_MISS under unchanged evaluator criteria, then accept the full run from evidence snapshot to reconstructed EXIT-combination and its recorded causal hypothesis. Synthetic tests must never be reported as a live near-miss result.
 3. Introduce externally directed GPT checkpoint protocol (one proposal per verified generation, linked predecessor, typed intent, explicit fail-closed resume token). The existing detached `start_research_batch` is deterministic only; do not claim it already makes GPT calls.
 4. Resolve PIT corporate-action data provenance and independent historical releases. No sealed OOS until that gate.
 5. Complete resilience/host deployment/UX acceptance (restart, cancellation, interruption vs true resume, 5-users), preserving all state.
@@ -51,7 +51,9 @@
 
 - Focused Evidence/GPT integration tests: 21 passed.
 - Static checks: Ruff pass; Mypy 192 source files pass.
-- Full suite: **1,103 passed in 265.27s**, no failures (2026-10-13 KST).
+- Initial full suite (before Rescue): 1,103 passed in 265.27s.
+- **Rescue implementation full suite: 1,114 passed in 276.65s**, no failures (2026-10-13 KST); Ruff all PASS and Mypy 192 source files PASS.
+- Rescue new tests prove qualified IR storage, immutable completed-run-only restoration, same dataset + comparison key, tampered hash/semantic reject, rejected/survivor/unvalidated exclusions, and a real executable structural crossover via a synthetic near-miss fixture. Operating Evidence status counts were **REJECT: 87, NEAR_MISS: 0**; no live Rescue hypothesis or profitability verified.
 - Post-deploy Quant-only restart: success; protected MCP local and gateway return HTTP 401 without authorization; 2 OAuth client records retained; zero live orders.
 - Authenticated connected `get_research_evidence`: status `OK` with existing legacy exhausted 11/12 recorded as `SEARCH_SPACE_EXHAUSTED`; no immutable event rewrites.
 - Operating MCP dispatcher `run_research_step` predecessor-linked research: `064a8f1301704f138e9005e0151dd551` linked to `9663645707ab48638b01404ce50872fc`; one candidate evaluated and REJECT, orders disabled. Authenticated ChatGPT `get_research_evidence(research_run_id=...)` confirmed persisted predecessor link.

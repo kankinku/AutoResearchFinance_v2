@@ -35,6 +35,7 @@ from experiments.candidate_generator import generate_candidates
 from experiments.deduplicator import deduplicate_candidates
 from experiments.identity import semantic_strategy_hash
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
+from memory.rescue_pool import verified_rescue_candidates
 from mutation.engine import MutationOperation, apply_operations
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import (
@@ -900,6 +901,42 @@ class ResearchBatchService:
                         else None
                     )
                     if feedback and isinstance(attempt_id, str):
+                        audited_events = evidence.store.events()
+                        manifest = next(
+                            (
+                                item["payload"]
+                                for item in audited_events
+                                if item["kind"] == "manifest"
+                                and item["payload"]["research_run_id"] == evidence.run_id
+                            ),
+                            None,
+                        )
+                        attempt = next(
+                            (
+                                item["payload"]
+                                for item in audited_events
+                                if item["kind"] == "attempt"
+                                and item["payload"]["attempt_id"] == attempt_id
+                            ),
+                            None,
+                        )
+                        audited_candidates = (
+                            attempt.get("candidates", []) if isinstance(attempt, dict) else []
+                        )
+                        dataset_hash = (
+                            audited_candidates[0].get("dataset_hash")
+                            if audited_candidates
+                            else None
+                        )
+                        matching_rescues = (
+                            verified_rescue_candidates(
+                                self.state_dir,
+                                dataset_hash=dataset_hash,
+                                comparison_key=manifest["comparison_key"],
+                            )
+                            if isinstance(dataset_hash, str) and isinstance(manifest, dict)
+                            else ()
+                        )
                         next_hypothesis = propose_next_hypothesis(
                             parent=strategy,
                             initial_operations=tuple(operations),
@@ -912,6 +949,7 @@ class ResearchBatchService:
                             count=request["count"],
                             next_seed=request["seed"] + number,
                             partner=partner,
+                            rescue=matching_rescues[0] if matching_rescues else None,
                         )
                         if next_hypothesis is not None:
                             used_hypotheses.add(next_hypothesis.reason_code)
