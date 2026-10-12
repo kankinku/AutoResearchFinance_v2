@@ -117,6 +117,9 @@ def test_train_only_selection_fails_closed_when_features_are_supplied() -> None:
     assert result.train_only_selection is not None
     assert result.train_only_selection.status == "UNSUPPORTED_UNVERIFIED_FEATURES"
     assert result.train_only_selection.folds == ()
+    assert result.trial_dependence is not None
+    assert result.trial_dependence.status == "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS"
+    assert result.trial_dependence.effective_rank is None
 
 
 def test_pipeline_deduplicates_equivalent_generated_parameter_points() -> None:
@@ -360,3 +363,49 @@ def test_unverified_fold_selection_cannot_choose_next_parent() -> None:
         ),
     )
     assert _best_strategy_payload(unsafe) == {}
+
+
+def test_trial_dependence_uses_only_final_training_cutoff() -> None:
+    """Editing prices after the last fold's training cutoff cannot alter covariance."""
+    from math import sin
+
+    def prices(terminal_shift: float) -> MarketDataSet:
+        closes = tuple(
+            100 + 8 * sin(i / 3.0) + 0.03 * i + (terminal_shift if i >= 60 else 0)
+            for i in range(80)
+        )
+        bars = tuple(
+            Bar(
+                datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=i),
+                "AAA", price, price, price, price, 1000,
+            )
+            for i, price in enumerate(closes)
+        )
+        return MarketDataSet("trial-dependence-v1", "development", bars)
+
+    baseline = evaluate(prices(0))
+    altered = evaluate(prices(75))
+    assert baseline.train_only_selection is not None
+    assert altered.train_only_selection is not None
+    assert (
+        baseline.train_only_selection.folds[-1].train_dataset_hash
+        == altered.train_only_selection.folds[-1].train_dataset_hash
+    )
+    before = baseline.trial_dependence
+    after = altered.trial_dependence
+    assert before is not None and after is not None
+    assert before.status == "ESTIMATED_TRAIN_ONLY_COHORT"
+    assert after.status == before.status
+    assert before.return_observations == 59
+    assert before.training_cutoff_at == altered.train_only_selection.folds[-1].train_end_at
+    assert before.effective_rank == after.effective_rank
+    assert before.average_absolute_correlation == after.average_absolute_correlation
+    assert before.observed_sharpe_dispersion == after.observed_sharpe_dispersion
+    assert before.dsr_calibrated is False
+
+
+def test_short_history_and_unverified_feature_fail_closed_dependence() -> None:
+    short = evaluate(data()).trial_dependence
+    assert short is not None
+    assert short.status == "INSUFFICIENT_TRAINING_HISTORY"
+    assert short.effective_rank is None

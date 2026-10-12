@@ -91,10 +91,22 @@ def test_chatgpt_proposed_intent_runs_without_invoking_internal_codex(
         "candidates"
     ][0]
     assert len(candidate["semantic_strategy_hash"]) == 64
+    attempt = next(e for e in events if e["kind"] == "attempt")["payload"]
+    diagnostic = attempt["trial_dependence"]
+    assert diagnostic["status"] in {
+        "INSUFFICIENT_CANDIDATES", "INSUFFICIENT_TRAINING_HISTORY",
+        "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS"
+    }
+    assert diagnostic["effective_rank"] is None
+    assert diagnostic["dsr_calibrated"] is False
+    assert "aligned_returns" not in str(attempt)
     observed = server._dispatch("get_research_brief", {})["research_trial_inventory"]
     assert observed["candidate_evaluation_instances"] == 1
     assert observed["unique_semantic_strategy_hashes_global"] == 1
     assert observed["effective_independent_trials"] is None
+    assert observed["trial_dependence_estimated_cohorts"] == 0
+    assert observed["trial_dependence_unmeasured_cohorts"] == 1
+    assert observed["trial_dependence_diagnostics_sample"] == []
     assert (state / "llm" / "intents.jsonl").exists()
 
 

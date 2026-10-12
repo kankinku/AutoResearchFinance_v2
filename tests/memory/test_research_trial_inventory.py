@@ -22,6 +22,7 @@ def _run(
     finalized: bool = True,
     attempts: int = 1,
     skipped: int | None = 0,
+    dependence: dict[str, object] | None = None,
 ) -> None:
     store = EvidenceStore(state)
     store.append(
@@ -48,6 +49,7 @@ def _run(
             "attempt",
             "attempt:" + ident,
             {
+                **({"trial_dependence": dependence} if dependence is not None else {}),
                 "research_run_id": name,
                 "attempt_id": ident,
                 "generation": generation,
@@ -270,3 +272,56 @@ def test_legacy_candidates_do_not_generate_inferred_semantics(tmp_path: Path) ->
     report = research_trial_inventory((tmp_path,))
     assert report["unique_semantic_strategy_hashes_global"] is None
     assert report["missing_semantic_hash_instances"] == 2
+
+
+def _measured_dependence(*, count: int = 2, rank: float = 1.5) -> dict[str, object]:
+    return {
+        "status": "ESTIMATED_TRAIN_ONLY_COHORT",
+        "candidate_count": count,
+        "return_observations": 42,
+        "effective_rank": rank,
+        "average_absolute_correlation": 0.42,
+        "observed_sharpe_dispersion": 0.015,
+        "method": "CORRELATION_ENTROPY_EFFECTIVE_RANK",
+        "dsr_calibrated": False,
+        "training_cutoff_at": "2025-06-30T00:00:00+00:00",
+        "reason": "descriptive cohort dimension, not DSR calibrated",
+    }
+
+
+def test_inventory_shows_cohort_proxy_without_promoting_to_global_dsr(
+    tmp_path: Path,
+) -> None:
+    _run(tmp_path / "first", "one", dependence=_measured_dependence())
+    _run(tmp_path / "second", "two", dependence=_measured_dependence(rank=1.2))
+    overview = research_trial_inventory((tmp_path / "first", tmp_path / "second"))
+    assert overview["trial_dependence_estimated_cohorts"] == 2
+    assert overview["trial_dependence_unmeasured_cohorts"] == 0
+    assert overview["trial_dependence_scope"] == "TRAIN_ONLY_COHORT_NOT_GLOBAL_DSR"
+    ranks = [
+        detail["effective_rank_estimate"]
+        for detail in overview["trial_dependence_diagnostics_sample"]
+    ]
+    assert ranks == [1.5, 1.2]
+    assert all(
+        entry["dsr_calibrated"] is False
+        for entry in overview["trial_dependence_diagnostics_sample"]
+    )
+    assert overview["effective_independent_trials"] is None
+    assert overview["history_complete"] is False
+    assert "return_series" not in str(overview)
+
+
+def test_invalid_empirical_cohort_evidence_fails_closed(tmp_path: Path) -> None:
+    _run(tmp_path, "bad", dependence=_measured_dependence(rank=22))
+    with pytest.raises(EvidenceIntegrityError, match="invalid empirical trial dependence"):
+        research_trial_inventory((tmp_path,))
+
+
+def test_legacy_cohorts_have_no_imputed_correlation(tmp_path: Path) -> None:
+    _run(tmp_path, "legacy")
+    report = research_trial_inventory((tmp_path,))
+    assert report["trial_dependence_estimated_cohorts"] == 0
+    assert report["trial_dependence_unmeasured_cohorts"] == 1
+    assert report["trial_dependence_diagnostics_sample"] == []
+    assert report["effective_independent_trials"] is None

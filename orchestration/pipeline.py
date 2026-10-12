@@ -20,6 +20,7 @@ from evaluation.robustness import (
     robust_statistics,
 )
 from evaluation.selector import FunnelConfig, FunnelInput, FunnelResult, select_candidate
+from evaluation.trial_dependence import CohortDependenceReport, estimate_cohort_dependence
 from evaluation.yearly import summarize_yearly_performance
 from experiments.candidate_generator import Candidate, generate_candidates
 from experiments.deduplicator import deduplicate_candidates
@@ -43,6 +44,7 @@ class GenerationPipelineResult:
     multiple_testing_trials: int = 1
     duplicate_skipped: int = 0
     purged_cpcv: PurgedCPCVReport | None = None
+    trial_dependence: CohortDependenceReport | None = None
 
 
 @dataclass(frozen=True)
@@ -280,6 +282,36 @@ class GenerationPipeline:
             prior_observations_supplied=bool(observations),
             excluded_semantic_hashes=excluded_semantic_hashes,
         )
+        # Correlation diagnostics use only the final chronological fold's
+        # training prefix. Never borrow test returns or unverified external
+        # features; absence of proof is recorded as NOT_MEASURED.
+        dependence: CohortDependenceReport
+        if selection.status != "EVALUATED" or not selection.folds:
+            dependence = CohortDependenceReport(
+                "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS",
+                len(evaluated),
+                0,
+                reason="no verified chronological training cutoff",
+            )
+        elif external_series is not None or feature_inputs is not None:
+            dependence = CohortDependenceReport(
+                "NOT_MEASURED_UNVERIFIED_TRAINING_INPUTS",
+                len(evaluated),
+                0,
+                reason="external series or feature release times are unverified",
+            )
+        else:
+            train_end_at = selection.folds[-1].train_end_at
+            cutoff = datetime.fromisoformat(train_end_at)
+            training_bars = sum(
+                time <= cutoff
+                for time in equity_timestamps(dataset, len(evaluated[0].full_equity))
+            )
+            dependence = estimate_cohort_dependence(
+                tuple(item.returns[: max(0, training_bars - 1)] for item in evaluated),
+                training_cutoff_at=train_end_at,
+            )
+
         cpcv_report: PurgedCPCVReport | None = None
         if cpcv_label_end_indices is not None:
             if (
@@ -316,6 +348,7 @@ class GenerationPipeline:
             multiple_testing_trials,
             duplicate_skipped,
             cpcv_report,
+            dependence,
         )
 
     def _select_train_only(

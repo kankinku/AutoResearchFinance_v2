@@ -212,6 +212,11 @@ def run_local_evaluation(
                 )
             ],
             "train_only_selection": selection_payload,
+            "trial_dependence": (
+                asdict(pipeline_result.trial_dependence)
+                if pipeline_result.trial_dependence is not None
+                else None
+            ),
             "purged_cpcv": (
                 asdict(pipeline_result.purged_cpcv)
                 if pipeline_result.purged_cpcv is not None
@@ -257,6 +262,11 @@ def run_local_evaluation(
         "market_data_quality": data_quality,
         "multiple_testing_trials": pipeline_result.multiple_testing_trials,
         "train_only_selection": selection_payload,
+        "trial_dependence": (
+            asdict(pipeline_result.trial_dependence)
+            if pipeline_result.trial_dependence is not None
+            else None
+        ),
         "purged_cpcv": (
             asdict(pipeline_result.purged_cpcv) if pipeline_result.purged_cpcv is not None else None
         ),

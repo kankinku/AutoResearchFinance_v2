@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,11 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
     if not state_dirs or len(state_dirs) > 32:
         raise ValueError("explicitly provide between 1 and 32 workspace state directories")
     resolved = sorted({Path(path).resolve() for path in state_dirs})
+    def numeric_or_nan(value: object) -> float:
+        if isinstance(value, (float, int)) and not isinstance(value, bool):
+            return float(value)
+        return float("nan")
+
     run_snapshots: dict[str, dict[str, tuple[str, str, dict[str, Any]]]] = {}
     duplicate_copies = 0
     for state in resolved:
@@ -56,6 +62,9 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
     attempted = final = attempts = failed = skipped = 0
     no_skip_measurements = False
     unscoped = unverified = unfinished = 0
+    estimated_cohorts = 0
+    unmeasured_cohorts = 0
+    dependence_summaries: list[dict[str, Any]] = []
     for run_id, snapshot_events in sorted(run_snapshots.items()):
         by_kind: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for kind, _checksum, payload in snapshot_events.values():
@@ -87,6 +96,55 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
             failed += int(row["status"] == "FAILED")
             candidates = row["candidates"]
             count = len(candidates)
+            dependence = row.get("trial_dependence")
+            if dependence is None:
+                unmeasured_cohorts += 1
+            else:
+                if not isinstance(dependence, dict) or not isinstance(
+                    dependence.get("status"), str
+                ):
+                    raise EvidenceIntegrityError("invalid trial dependence summary")
+                status = dependence["status"]
+                if status == "ESTIMATED_TRAIN_ONLY_COHORT":
+                    rank = dependence.get("effective_rank")
+                    avg = dependence.get("average_absolute_correlation")
+                    dispersion = dependence.get("observed_sharpe_dispersion")
+                    rank_num = numeric_or_nan(rank)
+                    avg_num = numeric_or_nan(avg)
+                    dispersion_num = numeric_or_nan(dispersion)
+                    bars = dependence.get("return_observations")
+                    cutoff = dependence.get("training_cutoff_at")
+                    if (
+                        dependence.get("dsr_calibrated") is not False
+                        or dependence.get("method")
+                        != "CORRELATION_ENTROPY_EFFECTIVE_RANK"
+                        or type(bars) is not int or bars < 30
+                        or type(dependence.get("candidate_count")) is not int
+                        or dependence["candidate_count"] != count
+                        or not isinstance(cutoff, str)
+                        or not cutoff
+                        or not all(isfinite(v) for v in (rank_num, avg_num, dispersion_num))
+                        or not 1.0 <= rank_num <= count
+                        or not 0.0 <= avg_num <= 1.0
+                        or dispersion_num < 0.0
+                    ):
+                        raise EvidenceIntegrityError("invalid empirical trial dependence")
+                    estimated_cohorts += 1
+                    dependence_summaries.append({
+                        "research_run_id": run_id,
+                        "generation": row["generation"],
+                        "candidate_count": count,
+                        "return_observations": bars,
+                        "effective_rank_estimate": rank_num,
+                        "average_absolute_correlation": avg_num,
+                        "observed_sharpe_dispersion": dispersion_num,
+                        "training_cutoff_at": cutoff,
+                        "dsr_calibrated": False,
+                    })
+                else:
+                    if dependence.get("effective_rank") is not None:
+                        raise EvidenceIntegrityError("unmeasured dependence cannot report rank")
+                    unmeasured_cohorts += 1
             attempted += count
             if row.get("verification") == "UNVERIFIED_EVALUATOR":
                 unverified += count
@@ -193,6 +251,10 @@ def research_trial_inventory(state_dirs: Sequence[Path]) -> dict[str, Any]:
         "comparability": "MANIFEST_SCOPED_ONLY",
         "effective_independent_trials": None,
         "effective_trials_status": "NOT_MEASURED",
+        "trial_dependence_estimated_cohorts": estimated_cohorts,
+        "trial_dependence_unmeasured_cohorts": unmeasured_cohorts,
+        "trial_dependence_diagnostics_sample": dependence_summaries[-10:],
+        "trial_dependence_scope": "TRAIN_ONLY_COHORT_NOT_GLOBAL_DSR",
         "history_complete": False,
         "coverage": "EXPLICIT_WORKSPACE_EVIDENCE_ONLY",
         "note": (
