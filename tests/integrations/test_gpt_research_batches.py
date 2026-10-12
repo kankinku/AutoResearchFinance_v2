@@ -48,7 +48,6 @@ def test_gpt_batch_tools_are_visible_but_canonical_server_contract_is_unchanged(
     assert {"start_system", "stop_system", "run_evaluation"}.isdisjoint(names)
 
 
-
 def test_batch_preflight_is_read_only_and_warns_on_repeated_candidates(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
     service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
@@ -102,13 +101,12 @@ def test_preflight_mcp_dispatch_is_read_only(tmp_path: Path) -> None:
     from integrations.chatgpt_mcp_sdk import create_chatgpt_sdk_adapter
 
     _write_inputs(tmp_path)
-    adapter = create_chatgpt_sdk_adapter(
-        state_dir=tmp_path / "state", project_root=tmp_path
-    )
+    adapter = create_chatgpt_sdk_adapter(state_dir=tmp_path / "state", project_root=tmp_path)
 
     async def run() -> dict[str, object]:
         response = await adapter.call_tool(
-            None, CallToolRequestParams(
+            None,
+            CallToolRequestParams(
                 name="preflight_research_batch", arguments=_request(generations=5)
             ),
         )
@@ -146,6 +144,7 @@ def test_preflight_rejects_sealed_data_without_loading_rows(tmp_path: Path) -> N
         service.preflight(_request())
     assert exc.value.code == "DATA_ZONE_DENIED"
     assert not service.database.exists()
+
 
 def test_gpt_batch_runs_two_generations_and_reuses_history_for_eta(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
@@ -195,7 +194,6 @@ def test_gpt_batch_runs_two_generations_and_reuses_history_for_eta(tmp_path: Pat
     assert s["status"] == "COMPLETED", s
 
 
-
 def test_repeated_single_candidate_generation_is_skipped_with_evidence(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
     state = tmp_path / "state"
@@ -226,6 +224,7 @@ def test_repeated_single_candidate_generation_is_skipped_with_evidence(tmp_path:
     generations = [x["payload"] for x in events if x["kind"] == "generation"]
     assert len(generations) == 2
     assert generations[-1]["duplicate_skipped"] == 1
+
 
 def test_batch_validation_rejects_invalid_intents_and_generation_bounds(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
@@ -320,10 +319,12 @@ def test_random_collision_does_not_prematurely_stop_unexhausted_search(tmp_path:
     """One duplicate random draw cannot prove that later draws are duplicates."""
     _write_inputs(tmp_path)
     service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
-    started = service.start({
-        **_request(generations=4),
-        "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3, 4]}],
-    })
+    started = service.start(
+        {
+            **_request(generations=4),
+            "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3, 4]}],
+        }
+    )
     jid = str(started["job_id"])
     for _ in range(160):
         time.sleep(0.2)
@@ -343,12 +344,14 @@ def test_random_collision_does_not_prematurely_stop_unexhausted_search(tmp_path:
 def test_fixed_grid_stops_when_all_candidates_were_already_evaluated(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
     service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
-    started = service.start({
-        **_request(generations=5),
-        "method": "grid",
-        "count": 2,
-        "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3]}],
-    })
+    started = service.start(
+        {
+            **_request(generations=5),
+            "method": "grid",
+            "count": 2,
+            "parameter_domains": [{"name": "indicators.fast.period", "values": [2, 3]}],
+        }
+    )
     jid = str(started["job_id"])
     for _ in range(160):
         time.sleep(0.2)
@@ -376,10 +379,69 @@ def test_legacy_batches_do_not_invent_zero_skipped_duplicate_counts(tmp_path: Pa
         )
         db.execute(
             "INSERT INTO generation_history VALUES (?,?,?,?,?,?,?,?,?,?)",
-            ("legacy", 1, 2.0, "random", 1, "parent", "parent", "COMPLETED",
-             json.dumps({"REJECT": 1}), 1),
+            (
+                "legacy",
+                1,
+                2.0,
+                "random",
+                1,
+                "parent",
+                "parent",
+                "COMPLETED",
+                json.dumps({"REJECT": 1}),
+                1,
+            ),
         )
     report = service.report("legacy")
     assert report["generations"][0]["duplicate_skipped"] is None
     assert report["total_skipped_duplicate_candidates"] is None
     assert report["evaluated_candidate_instances"] == 0
+
+
+def test_mixed_mode_replans_from_failed_evidence_and_evaluates_new_hypothesis(
+    tmp_path: Path,
+) -> None:
+    """Fixed-intent modes are unaffected; mixed mode actually evaluates new IR."""
+    _write_inputs(tmp_path)
+    service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    request = {
+        **_request(generations=3),
+        "intent": {
+            **_request()["intent"],
+            "mode": "mixed",
+        },
+    }
+    started = service.start(request)
+    for _ in range(160):
+        time.sleep(0.2)
+        status = service.status(str(started["job_id"]))
+        if status["status"] not in {"QUEUED", "RUNNING"}:
+            break
+    assert status["status"] == "COMPLETED", status
+    report = service.report(str(started["job_id"]))
+    assert report["research_intent_mode"] == "mixed_evidence_guided_local"
+    events = EvidenceStore(tmp_path / "state").events()
+    generation_events = [event["payload"] for event in events if event["kind"] == "generation"]
+    attempts = [event["payload"] for event in events if event["kind"] == "attempt"]
+    assert attempts and all(
+        attempt.get("verification") != "UNVERIFIED_EVALUATOR" for attempt in attempts
+    )
+    assert len(generation_events) >= 2
+    assert generation_events[0].get("next_hypothesis") is not None
+    plan = generation_events[0]["next_hypothesis"]
+    assert plan["based_on_attempt_id"] == attempts[0]["attempt_id"]
+    assert plan["causal_status"] == "HYPOTHESIS_NOT_VERIFIED_CAUSE"
+    assert generation_events[1]["applied_hypothesis"] == plan
+    first_ids = {c["semantic_strategy_hash"] for c in attempts[0]["candidates"]}
+    second_ids = {c["semantic_strategy_hash"] for c in attempts[1]["candidates"]}
+    assert second_ids - first_ids
+    assert (
+        attempts[1]["execution"]["parameter_domains"]
+        != attempts[0]["execution"]["parameter_domains"]
+        or attempts[1]["execution"]["parent_ir_hash"] != attempts[0]["execution"]["parent_ir_hash"]
+        or plan["reason_code"].startswith("ENTRY_THRESHOLD_EXPERIMENT")
+    )
+    assert report["adaptive_replanned_generations"] >= 1
+    assert report["evaluated_candidate_instances"] >= 2
+    assert report["orders_enabled"] is False
+    assert report["oos_approved"] is False

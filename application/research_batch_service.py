@@ -21,6 +21,11 @@ from uuid import uuid4
 
 from application.evaluation_service import EvaluationService
 from application.research_batch_summary import explain_batch_attempts
+from application.research_hypothesis import (
+    LocalHypothesis,
+    propose_next_hypothesis,
+    verified_failed_gates,
+)
 from core.data.contracts import DataZone
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
@@ -317,6 +322,8 @@ class ResearchBatchService:
         quality = market_data_quality(data)
         if quality.issues:
             warnings.append("DATA_PROVENANCE_UNVERIFIED")
+        if request["intent"]["mode"] == "mixed":
+            warnings.append("ADAPTIVE_PREVIEW_ONLY_INITIAL_FIXED_PLAN")
         return {
             "status": "READY_WITH_WARNINGS" if warnings or not seen else "READY",
             "source_path": request["source_path"],
@@ -337,6 +344,7 @@ class ResearchBatchService:
             "repetition_risk": duplicates > 0,
             "warnings": warnings,
             "preview_only": True,
+            "adaptive_replanning_enabled": request["intent"]["mode"] == "mixed",
             "orders_enabled": False,
         }
 
@@ -425,6 +433,8 @@ class ResearchBatchService:
             "note": (
                 "Choose a registered strategy by family and a development dataset by symbol. "
                 "Check parameter paths against Strategy IR and run preflight before executing. "
+                "For failure-led local hypotheses select ResearchIntent mode=mixed. "
+                "Mixed mode reuses development data and is not independent OOS. "
                 "Catalog visibility is not performance validation."
             ),
         }
@@ -631,9 +641,20 @@ class ResearchBatchService:
         # candidates. Count verified candidate hashes from immutable attempt Evidence.
         hashes: list[str] = []
         attempts: list[dict[str, object]] = []
+        generation_hypotheses: dict[int, dict[str, object]] = {}
         if isinstance(status["research_run_id"], str):
             for event in EvidenceStore(self.state_dir).events():
                 payload = event["payload"]
+                if (
+                    event["kind"] == "generation"
+                    and payload.get("research_run_id") == status["research_run_id"]
+                    and isinstance(payload.get("generation"), int)
+                ):
+                    generation_hypotheses[payload["generation"]] = {
+                        "next_hypothesis": payload.get("next_hypothesis"),
+                        "applied_hypothesis": payload.get("applied_hypothesis"),
+                        "replanning_status": payload.get("replanning_status"),
+                    }
                 if (
                     event["kind"] == "attempt"
                     and payload.get("research_run_id") == status["research_run_id"]
@@ -643,6 +664,13 @@ class ResearchBatchService:
                         candidate_hash = candidate.get("candidate_hash")
                         if isinstance(candidate_hash, str) and candidate_hash:
                             hashes.append(candidate_hash)
+        for row in generations:
+            row.update(generation_hypotheses.get(cast(int, row["generation"]), {}))
+        configured = json.loads(self._job(str(status["job_id"]))["request_json"])
+        is_adaptive = (
+            isinstance(configured.get("intent"), dict)
+            and configured["intent"].get("mode") == "mixed"
+        )
         distinct = len(set(hashes))
         duplicate = len(hashes) - distinct
         promotions = sum(item["parent_id"] != item["successor_id"] for item in generations)
@@ -665,7 +693,15 @@ class ResearchBatchService:
                 item["status"] == "NO_NEW_CANDIDATES" for item in generations
             ),
             "candidate_uniqueness_basis": "immutable_evidence" if hashes else "not_measured",
-            "research_intent_mode": "fixed_intent",
+            "research_intent_mode": (
+                "mixed_evidence_guided_local" if is_adaptive else "fixed_intent"
+            ),
+            "adaptive_replanned_generations": sum(
+                row.get("next_hypothesis") is not None for row in generations
+            ),
+            "adaptive_applied_generations": sum(
+                row.get("applied_hypothesis") is not None for row in generations
+            ),
             "final_report_ready": status["status"] in _TERMINAL,
             "oos_approved": False,
             "failure_analysis": explain_batch_attempts(attempts),
@@ -711,6 +747,9 @@ class ResearchBatchService:
             evaluator = EvaluationService(project_root=self.project_root, state_dir=self.state_dir)
             seen_semantics: set[str] = set()
             domains = parse_parameter_domains(request.get("parameter_domains"))
+            adaptive = intent.mode == "mixed"
+            next_hypothesis: LocalHypothesis | None = None
+            used_hypotheses: set[str] = set()
             for number in range(1, request["generations"] + 1):
                 with self._connect() as db:
                     cancel = db.execute(
@@ -726,13 +765,17 @@ class ResearchBatchService:
                     return
                 began = time.monotonic()
                 parent_id = strategy.strategy_id
+                applied = next_hypothesis
+                evaluation_operations = applied.operations if applied is not None else operations
+                evaluation_domains = applied.domains if applied is not None else domains
+                next_hypothesis = None
                 # Successor is adopted ONLY from auditable eligible immutable Evidence.
                 candidates = deduplicate_candidates(
                     list(
                         generate_candidates(
                             strategy,
-                            tuple(operations),
-                            domains,
+                            tuple(evaluation_operations),
+                            evaluation_domains,
                             method=request["method"],
                             count=request["count"],
                             seed=request["seed"] + number - 1,
@@ -764,8 +807,8 @@ class ResearchBatchService:
                         min_trades=request["min_trades"],
                         min_annual_trades=request["min_annual_trades"],
                         min_qqq_cagr_delta=request["min_qqq_cagr_delta"],
-                        operations=operations,
-                        parameter_domains=domains,
+                        operations=evaluation_operations,
+                        parameter_domains=evaluation_domains,
                         strategy_override=strategy,
                         excluded_semantic_hashes=tuple(sorted(seen_semantics)),
                     )
@@ -775,8 +818,41 @@ class ResearchBatchService:
                 next_strategy = _strategy_from_evaluation(
                     result, self.state_dir, research_run_id=evidence.run_id
                 )
+                if applied is not None:
+                    result["applied_hypothesis"] = applied.summary()
                 if next_strategy is not None:
                     strategy = next_strategy
+                if adaptive and next_strategy is None and number < request["generations"]:
+                    attempt_id = result.get("attempt_id")
+                    feedback = (
+                        verified_failed_gates(
+                            evidence.store.events(),
+                            run_id=evidence.run_id,
+                            attempt_id=attempt_id,
+                        )
+                        if isinstance(attempt_id, str)
+                        else None
+                    )
+                    if feedback and isinstance(attempt_id, str):
+                        next_hypothesis = propose_next_hypothesis(
+                            parent=strategy,
+                            initial_operations=tuple(operations),
+                            initial_domains=domains,
+                            gate_names=feedback,
+                            prior_attempt_id=attempt_id,
+                            used_hypotheses=frozenset(used_hypotheses),
+                            already_evaluated=frozenset(seen_semantics),
+                            method=request["method"],
+                            count=request["count"],
+                            next_seed=request["seed"] + number,
+                        )
+                        if next_hypothesis is not None:
+                            used_hypotheses.add(next_hypothesis.reason_code)
+                            result["next_hypothesis"] = next_hypothesis.summary()
+                        else:
+                            result["replanning_status"] = "NO_SAFE_NOVEL_HYPOTHESIS"
+                    else:
+                        result["replanning_status"] = "NO_VERIFIED_REJECTION_FEEDBACK"
                 evidence.finish_generation(number, str(result.get("status", "UNKNOWN")), result)
                 elapsed = max(time.monotonic() - began, 0.000001)
                 with self._connect() as db:
