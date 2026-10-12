@@ -280,8 +280,10 @@ def test_validate_market_data_denies_sealed_before_reading_rows(
     path = tmp_path / created["data_path"]
     current = ParquetDataProvider.read(path)
     ParquetDataProvider.write(
-        path, MarketDataSet(current.version, DataZone.SEALED_OOS, current.bars,
-                            provenance=current.provenance)
+        path,
+        MarketDataSet(
+            current.version, DataZone.SEALED_OOS, current.bars, provenance=current.provenance
+        ),
     )
 
     def forbidden(*args: object, **kwargs: object) -> None:
@@ -304,17 +306,15 @@ def test_existing_market_file_rejects_wrong_source_or_price_policy(tmp_path: Pat
     path = tmp_path / created["data_path"]
     original = ParquetDataProvider.read(path)
     assert original.provenance is not None
-    wrong_source = MarketSourceProvenance(
-        **{**original.provenance.__dict__, "source_id": "kis"}
-    )
+    wrong_source = MarketSourceProvenance(**{**original.provenance.__dict__, "source_id": "kis"})
     ParquetDataProvider.write(
-        path, MarketDataSet(original.version, DataZone.DEVELOPMENT, original.bars,
-                            provenance=wrong_source)
+        path,
+        MarketDataSet(
+            original.version, DataZone.DEVELOPMENT, original.bars, provenance=wrong_source
+        ),
     )
     with pytest.raises(MarketDataError) as error:
-        service.download(
-            provider="tiingo", symbol="QQQ", start="2024-01-02", end="2024-01-05"
-        )
+        service.download(provider="tiingo", symbol="QQQ", start="2024-01-02", end="2024-01-05")
     assert error.value.code == "DATA_IDENTITY_MISMATCH"
     assert service.list_datasets()["count"] == 0
 
@@ -329,12 +329,11 @@ def test_existing_market_file_rejects_wrong_symbol(tmp_path: Path) -> None:
     path = tmp_path / created["data_path"]
     original = ParquetDataProvider.read(path)
     rows = tuple(
-        Bar(b.timestamp, "SPY", b.open, b.high, b.low, b.close, b.volume)
-        for b in original.bars
+        Bar(b.timestamp, "SPY", b.open, b.high, b.low, b.close, b.volume) for b in original.bars
     )
     ParquetDataProvider.write(
-        path, MarketDataSet(original.version, DataZone.DEVELOPMENT, rows,
-                            provenance=original.provenance)
+        path,
+        MarketDataSet(original.version, DataZone.DEVELOPMENT, rows, provenance=original.provenance),
     )
     with pytest.raises(MarketDataError) as error:
         service.validate_dataset(str(created["data_path"]))
@@ -350,24 +349,28 @@ def test_provider_duplicate_bars_are_safely_rejected_without_file(tmp_path: Path
 
     service = MarketDataService(tmp_path, providers={"tiingo": DuplicateProvider()})
     with pytest.raises(MarketDataError) as error:
-        service.download(
-            provider="tiingo", symbol="QQQ", start="2024-01-02", end="2024-01-05"
-        )
+        service.download(provider="tiingo", symbol="QQQ", start="2024-01-02", end="2024-01-05")
     assert error.value.code == "INVALID_VENDOR_DATA"
     assert service.list_datasets()["count"] == 0
 
 
 def test_tiingo_invalid_ohlc_returns_sanitized_vendor_error() -> None:
     def response(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=[{
-            "date": "2024-01-02T00:00:00Z",
-            "open": 100, "high": 90, "low": 95,
-            "close": 101, "volume": 1000,
-        }])
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "date": "2024-01-02T00:00:00Z",
+                    "open": 100,
+                    "high": 90,
+                    "low": 95,
+                    "close": 101,
+                    "volume": 1000,
+                }
+            ],
+        )
 
-    provider = TiingoDailyProvider(
-        "do-not-expose", transport=httpx.MockTransport(response)
-    )
+    provider = TiingoDailyProvider("do-not-expose", transport=httpx.MockTransport(response))
     with pytest.raises(MarketDataError) as error:
         provider.daily_bars("QQQ", date(2024, 1, 2), date(2024, 1, 2), adjusted=False)
     assert error.value.code == "INVALID_VENDOR_DATA"
@@ -406,10 +409,39 @@ def test_existing_market_file_rejects_policy_mismatch(tmp_path: Path) -> None:
     ParquetDataProvider.write(
         path,
         MarketDataSet(
-            original.version, DataZone.DEVELOPMENT, original.bars,
+            original.version,
+            DataZone.DEVELOPMENT,
+            original.bars,
             provenance=wrong_policy,
         ),
     )
     with pytest.raises(MarketDataError) as error:
         service.validate_dataset(str(created["data_path"]))
     assert error.value.code == "DATA_IDENTITY_MISMATCH"
+
+
+def test_market_audit_mcp_can_pin_and_compare_without_pit_overclaim(tmp_path: Path) -> None:
+    from integrations.codex_mcp_core import create_mcp_server
+
+    source = MarketDataService(tmp_path, providers={"tiingo": FakePriceProvider()})
+    first = source.download(
+        provider="tiingo",
+        symbol="QQQ",
+        start="2024-01-02",
+        end="2024-01-05",
+    )
+    path = first["data_path"]
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+    names = {entry["name"] for entry in chatgpt_tools()}
+    assert "audit_market_data" in names
+    report = server._dispatch("audit_market_data", {"data_path": path})
+    assert report["status"] == "RESEARCH_ONLY_NOT_PIT_VERIFIED"
+    assert report["pin_status"] == "NOT_PINNED"
+    assert report["point_in_time_independently_verified"] is False
+    pinned = server._dispatch("audit_market_data", {"data_path": path, "pin_snapshot": True})
+    assert pinned["pin_status"] == "MATCHED"
+    assert pinned["orders_enabled"] is False
+    with pytest.raises(ValueError, match="unexpected|unknown|pin_snapshot"):
+        server._dispatch("audit_market_data", {"data_path": path, "extra": "unsafe"})
+    with pytest.raises(ValueError, match="pin_snapshot"):
+        server._dispatch("audit_market_data", {"data_path": path, "pin_snapshot": "yes"})

@@ -5,6 +5,7 @@ from typing import Any
 
 from application.chat_directed_research_service import ChatDirectedResearchService
 from application.gpt_guided_research_service import GPTGuidedResearchService
+from application.market_data_audit import MarketDataAuditService
 from application.market_data_service import MarketDataService
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.research_batch_service import ResearchBatchService
@@ -84,6 +85,22 @@ class CodexMCPServer:
         self.system = self.services.system.controller
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
+        if name == "audit_market_data":
+            if set(arguments) - {"data_path", "comparison_path", "adjusted_path", "pin_snapshot"}:
+                raise ValueError("unexpected market audit arguments")
+            if not isinstance(arguments.get("data_path"), str):
+                raise ValueError("audit_market_data requires data_path")
+            pin = arguments.get("pin_snapshot", False)
+            if type(pin) is not bool:
+                raise ValueError("pin_snapshot must be a boolean")
+            service = MarketDataAuditService(self.project_root, state_dir=self.state_dir)
+            if pin:
+                service.pin(arguments["data_path"])
+            return service.audit(
+                arguments["data_path"],
+                comparison_path=arguments.get("comparison_path"),
+                adjusted_path=arguments.get("adjusted_path"),
+            )
         if name in {"start_guided_research", "get_guided_research", "submit_guided_generation"}:
             guided = GPTGuidedResearchService(
                 project_root=self.project_root, state_dir=self.state_dir

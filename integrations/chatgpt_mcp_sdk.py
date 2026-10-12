@@ -45,6 +45,7 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "cancel_research_batch": "EXECUTION_LIFECYCLE",
     "list_market_data": "EVIDENCE_STATUS",
     "validate_market_data": "CATALOG_VALIDATION",
+    "audit_market_data": "EXECUTION_LIFECYCLE",
     "download_market_data": "EXECUTION_LIFECYCLE",
 }
 
@@ -217,6 +218,26 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "Tiingo/KIS sources are configured. No credentials or rows exposed."
                 ),
                 "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+            },
+            {
+                "name": "audit_market_data",
+                "description": (
+                    "Audit development-only market snapshot hashes, PIT limitations, "
+                    "optional independent vendor raw prices and adjusted/raw factors. "
+                    "pin_snapshot registers an immutable local reproducibility fingerprint "
+                    "but never independently certifies historical PIT."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "data_path": {"type": "string"},
+                        "comparison_path": {"type": "string"},
+                        "adjusted_path": {"type": "string"},
+                        "pin_snapshot": {"type": "boolean", "default": False},
+                    },
+                    "required": ["data_path"],
+                },
             },
             {
                 "name": "validate_market_data",
