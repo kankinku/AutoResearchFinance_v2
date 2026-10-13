@@ -53,7 +53,24 @@ def test_guided_two_generations_with_explicit_gpt_checkpoints(tmp_path: Path) ->
             "session_id": first["session_id"],
             "checkpoint_token": point["checkpoint_token"],
             "generation": point["generation"],
-            **proposal(),
+            **(
+                proposal()
+                if point["generation"] == 1
+                else {
+                    "source_path": "strategy.yaml",
+                    "intent": {
+                        **proposal()["intent"],
+                        "rationale": "Change entry threshold after first failed Evidence",
+                        "operations": [
+                            {
+                                "op": "REPLACE_RULE",
+                                "path": "entry.conditions.0",
+                                "condition": {"op": "greater_than", "left": "close", "value": 102},
+                            }
+                        ],
+                    },
+                }
+            ),
         }
 
     after = server._dispatch("submit_guided_generation", args(first))
@@ -163,3 +180,137 @@ def test_evaluation_failure_fails_closed_without_replay(
     assert service.get(point["session_id"])["status"] == "INTERRUPTED"
     with pytest.raises(ValueError, match="checkpoint"):
         service.submit(kwargs)
+
+
+def test_duplicate_strategy_is_rejected_without_spending_checkpoint_or_creating_evidence(
+    tmp_path: Path,
+) -> None:
+    """Changing generation/seed/rationale must not re-evaluate an identical IR."""
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    service = GPTGuidedResearchService(project_root=tmp_path, state_dir=state)
+    first = service.start({"data_path": "bars.parquet", "generations": 2})
+    initial = service.submit(
+        {
+            "session_id": first["session_id"],
+            "checkpoint_token": first["checkpoint_token"],
+            "generation": 1,
+            **proposal(),
+        }
+    )
+    assert initial["completed_generations"] == 1
+    before = EvidenceStore(state).events()
+    attempt = next(e["payload"] for e in before if e["kind"] == "attempt")
+    original_hash = attempt["candidates"][0]["semantic_strategy_hash"]
+    with pytest.raises(ValueError, match="DUPLICATE_STRATEGY"):
+        service.submit(
+            {
+                "session_id": first["session_id"],
+                "checkpoint_token": initial["checkpoint_token"],
+                "generation": 2,
+                "source_path": "strategy.yaml",
+                "intent": {
+                    **proposal()["intent"],
+                    "rationale": "Updated rationale but unchanged executable IR",
+                },
+            }
+        )
+    current = service.get(first["session_id"])
+    assert current["checkpoint_token"] == initial["checkpoint_token"]
+    assert current["completed_generations"] == 1
+    assert current["previous_evaluated_strategies"] == 1
+    assert EvidenceStore(state).events() == before
+
+    # A real change to the executable rule is novel; keep the same checkpoint.
+    changed = {
+        "mode": "structure",
+        "parent_ids": ["runner-test"],
+        "rationale": "Use different entry threshold after the earlier strategy failed gates",
+        "operations": [
+            {
+                "op": "REPLACE_RULE",
+                "path": "entry.conditions.0",
+                "condition": {"op": "greater_than", "left": "close", "value": 102},
+            }
+        ],
+    }
+    done = service.submit(
+        {
+            "session_id": first["session_id"],
+            "checkpoint_token": current["checkpoint_token"],
+            "generation": 2,
+            "source_path": "strategy.yaml",
+            "intent": changed,
+        }
+    )
+    assert done["status"] == "COMPLETED"
+    candidate_attempts = [
+        e["payload"] for e in EvidenceStore(state).events() if e["kind"] == "attempt"
+    ]
+    assert len(candidate_attempts) == 2
+    assert candidate_attempts[1]["candidates"][0]["semantic_strategy_hash"] != original_hash
+
+
+def test_reopened_guided_session_still_blocks_duplicate(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    path = tmp_path / "state"
+    session = GPTGuidedResearchService(project_root=tmp_path, state_dir=path)
+    first = session.start({"data_path": "bars.parquet", "generations": 2})
+    second = session.submit(
+        {
+            "session_id": first["session_id"],
+            "checkpoint_token": first["checkpoint_token"],
+            "generation": 1,
+            **proposal(),
+        }
+    )
+    reopened = GPTGuidedResearchService(project_root=tmp_path, state_dir=path)
+    with pytest.raises(ValueError, match="DUPLICATE_STRATEGY"):
+        reopened.submit(
+            {
+                "session_id": first["session_id"],
+                "checkpoint_token": second["checkpoint_token"],
+                "generation": 2,
+                **proposal(),
+            }
+        )
+    assert reopened.get(first["session_id"])["status"] == "AWAITING_GPT"
+
+
+def test_strategy_renamed_to_different_family_still_counts_as_duplicate(tmp_path: Path) -> None:
+    """Source ID/family and ancestry cannot bypass executable semantic identity."""
+    _write_inputs(tmp_path)
+    original = (tmp_path / "strategy.yaml").read_text(encoding="utf-8")
+    (tmp_path / "renamed.yaml").write_text(
+        original.replace("id: runner-test", "id: renamed").replace(
+            "family: trend", "family: synthetic-alias"
+        ),
+        encoding="utf-8",
+    )
+    service = GPTGuidedResearchService(project_root=tmp_path, state_dir=tmp_path / "state")
+    created = service.start({"data_path": "bars.parquet", "generations": 2})
+    first = service.submit(
+        {
+            "session_id": created["session_id"],
+            "checkpoint_token": created["checkpoint_token"],
+            "generation": 1,
+            **proposal(),
+        }
+    )
+    before = EvidenceStore(tmp_path / "state").events()
+    with pytest.raises(ValueError, match="DUPLICATE_STRATEGY"):
+        service.submit(
+            {
+                "session_id": created["session_id"],
+                "checkpoint_token": first["checkpoint_token"],
+                "generation": 2,
+                "source_path": "renamed.yaml",
+                "intent": {
+                    "mode": "structure",
+                    "parent_ids": ["renamed"],
+                    "operations": [],
+                    "rationale": "new label only",
+                },
+            }
+        )
+    assert EvidenceStore(tmp_path / "state").events() == before

@@ -20,13 +20,15 @@ from application.evaluation_service import EvaluationService
 from core.data.contracts import DataZone
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import research_feature_specs
-from memory.evidence_store import EvidenceStore
+from experiments.candidate_generator import generate_candidates
+from experiments.identity import semantic_strategy_hash
+from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
     resolve_project_input,
 )
 from research.llm.director import ResearchIntent
-from research.llm.intent_bridge import apply_intent
+from research.llm.intent_bridge import apply_intent, intent_to_operations
 from research.policy import default_evaluation_thresholds, load_policy
 from strategy_ir.normalizer import normalize_source
 
@@ -144,6 +146,48 @@ class GPTGuidedResearchService:
             raise ValueError("guided session not found")
         return row, json.loads(row["request_json"])
 
+    def _evaluated_semantic_hashes(self, session_id: str, dataset_hash: str) -> frozenset[str]:
+        """Reconstruct previously evaluated executable IR identities from immutable Evidence.
+
+        Only steps committed to this GPT session count as its prior generations.
+        Missing/corrupt Evidence must stop research, not allow a duplicate retry.
+        """
+        with self._connect() as db:
+            steps = db.execute(
+                "SELECT generation, run_id, attempt_id FROM steps "
+                "WHERE session_id=? ORDER BY generation",
+                (session_id,),
+            ).fetchall()
+        if not steps:
+            return frozenset()
+        events = EvidenceStore(self.state_dir).events()
+        lookup = {
+            (event["payload"]["research_run_id"], event["payload"]["attempt_id"]): event["payload"]
+            for event in events
+            if event["kind"] == "attempt"
+        }
+        hashes: set[str] = set()
+        for step in steps:
+            attempt = lookup.get((step["run_id"], step["attempt_id"]))
+            if attempt is None or attempt.get("status") != "COMPLETED":
+                raise EvidenceIntegrityError(
+                    "guided previous generation has missing attempt evidence"
+                )
+            candidates = attempt.get("candidates", [])
+            if not candidates or attempt.get("verification") is not None:
+                raise EvidenceIntegrityError("guided previous generation has unverified candidates")
+            for candidate in candidates:
+                digest = candidate.get("semantic_strategy_hash")
+                if (
+                    candidate.get("dataset_hash") != dataset_hash
+                    or not isinstance(digest, str)
+                    or len(digest) != 64
+                    or any(ch not in "0123456789abcdef" for ch in digest)
+                ):
+                    raise EvidenceIntegrityError("guided previous strategy evidence is invalid")
+                hashes.add(digest)
+        return frozenset(hashes)
+
     def get(self, session_id: str) -> dict[str, object]:
         row, request = self._read(session_id)
         with self._connect() as db:
@@ -161,6 +205,7 @@ class GPTGuidedResearchService:
             for s in steps
         ]
         waiting = row["status"] == "AWAITING_GPT"
+        previously_evaluated = self._evaluated_semantic_hashes(session_id, row["dataset_hash"])
         return {
             "session_id": session_id,
             "status": row["status"],
@@ -170,6 +215,8 @@ class GPTGuidedResearchService:
             "checkpoint_token": row["token"] if waiting else None,
             "last_run_id": row["previous_run_id"],
             "previous_failed_gates": history[-1]["failed_gates"] if history else [],
+            "previous_evaluated_strategies": len(previously_evaluated),
+            "previous_semantic_strategy_hashes": sorted(previously_evaluated),
             "research_inputs": {
                 "data_path": request["data_path"],
                 "method": request["method"],
@@ -223,7 +270,26 @@ class GPTGuidedResearchService:
             raise ValueError("source parent must match typed GPT intent")
         if intent.primitive_request is not None:
             raise ValueError("unregistered primitive research is forbidden")
-        apply_intent(imported.strategy, intent, research_feature_specs())
+        features = research_feature_specs()
+        apply_intent(imported.strategy, intent, features)
+        # Match the actual evaluator's candidate generator, seed and no-domain
+        # contract exactly. Varying generation, ancestry or rationale must not
+        # make an already evaluated executable strategy appear novel.
+        operations = intent_to_operations(intent, features)
+        proposals = generate_candidates(
+            imported.strategy,
+            operations,
+            (),
+            method=request["method"],
+            count=request["count"],
+            seed=request["seed"] + generation - 1,
+        )
+        candidate_hashes = [semantic_strategy_hash(item.strategy) for item in proposals]
+        previous_hashes = self._evaluated_semantic_hashes(session_id, row["dataset_hash"])
+        if not candidate_hashes or len(candidate_hashes) != len(set(candidate_hashes)):
+            raise ValueError("DUPLICATE_STRATEGY: proposal repeats an executable strategy")
+        if previous_hashes.intersection(candidate_hashes):
+            raise ValueError("DUPLICATE_STRATEGY: strategy already evaluated in this session")
         # This single compare-and-swap authorizes one evaluator invocation.
         # A crashed/ambiguous invocation is INTERRUPTED, never automatically replayed.
         with self._connect() as db:
