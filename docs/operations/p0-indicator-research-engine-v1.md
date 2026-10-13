@@ -322,3 +322,70 @@ observed pass/fail counts rather than claim success before it finishes.
 - No StrategyIR production evaluator execution, benchmark performance
   comparison, PIT certification, sealed OOS evaluation, branch merge
   or order placement occurred.
+
+
+## P0-4 local StrategyIR academic evaluation adapter (feature branch only)
+
+Implemented `research.indicator_engine.strategy_adapter` after writing
+failure-first research compiler acceptance tests. The module emits actual
+canonical `StrategyIR` structures from *whitelisted, math-VERIFIED*
+academic hypotheses. It passes precomputed academic feature vectors
+under exact feature aliases to the existing local `BacktestEngine`.
+It does **not** touch the protected `core/backtest`, `core/data`
+or evaluator source code. No MCP/tool-plane change or order API exists.
+
+**Current compatibility limits are deliberate and fail-closed:**
+
+- Admits precisely one binary entry calculator
+  (`time_series_momentum` or `previous_range_breakout`)
+  and the validated `sma_direction` regime filter.
+- Rejects all six academic risk-overlay combinations because the
+  continuous volatility measure or dynamic exposure curve has no
+  reviewed StrategyIR risk translation yet. In particular, it must not
+  silently turn `volatility_managed_exposure` into static position sizing
+  or mistake a variance estimate for a boolean trade signal.
+- Uses a mandatory but **unreferenced** native 2-period SMA placeholder
+  due to the existing StrategyIR minimum-indicator schema. The active
+  conditions refer exclusively to reviewed academic feature vectors.
+- Explicitly declared exploratory exit rule: close-confirmed exit when
+  the academic entry signal drops to zero; not a reproduction of
+  the original papers' complete trading rules.
+- Cash-only baseline 100% position sizing without stop/profit targets;
+  trading fee model: commission 1 bps, spread 2 bps,
+  slippage 5 bps, matching local research defaults.
+- Uses the existing `BacktestEngine` next-bar open execution
+  (signal known at completed close on bar `t`, order-filled in
+  the local simulation at bar `t+1` open).
+- Recomputes dataset hash, StrategyIR hash, academic replay hash,
+  replay timestamp mapping and feature arrays at the adapter boundary.
+  Rejects tampering, sealed/validation inputs and unverified hypotheses.
+- The compiled StrategyIR is confined to the local
+  `evaluate_compiled_development` function. It is not exported through
+  a broker interface, mutation engine, promotion path, batch worker
+  or production StrategyIR registry. Reports mark
+  `NON_PIT_DEVELOPMENT_RESULT`, `candidate_promotable=false`,
+  `broker_executable=false`, `qqq_cagr_delta=None`,
+  `pbo=None`, `dsr=None`, `out_of_sample_approved=false`.
+
+**Measured development-only QQQ smoke test** with the previously loaded
+2020-01-02–2025-12-31 raw 1,508-bar latest-revision dataset,
+10,000 USD initial hypothetical equity:
+
+| Research hypothesis | Buy/sell execution events | Total charged costs | Final marked equity |
+|---|---:|---:|---:|
+| Time-series momentum + SMA-direction regime | 11 | $93.27 | $17,150.13 |
+| Prior trading-range breakout + SMA-direction regime | 232 | $1,588.99 | $8,340.52 |
+
+These figures are *not* independently reproduced research alpha. They
+are model-dependent in-sample/development observations, with no confirmed
+PIT vendor vintages, transaction-market realism beyond the chosen fee
+model, tested QQQ buy-and-hold excess return, certified independent
+benchmark, or sealed OOS. The first result has 11 **execution events**,
+not 11 completed round-trip transactions.
+
+Required steps before further integration: independently reviewed
+risk overlay semantics, no-lookahead multi-asset data, immutable
+time-of-release metadata for external features, independent benchmark
+verification, fold-train-only optimization, multiple-testing adjustment,
+and a complete acceptance comparison against the preserved
+`4a74233` baseline. None of these is claimed completed here.
