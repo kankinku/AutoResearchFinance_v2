@@ -207,6 +207,7 @@ class CodexMCPServer:
             "get_research_batch_status",
             "get_research_batch_report",
             "cancel_research_batch",
+            "resume_research_batch",
         }:
             batch = ResearchBatchService(project_root=self.project_root, state_dir=self.state_dir)
             if name == "preflight_research_batch":
@@ -220,6 +221,8 @@ class CodexMCPServer:
                 raise ValueError("job_id must be a string")
             if name == "get_research_batch_status":
                 return batch.status(job_id)
+            if name == "resume_research_batch":
+                return batch.resume(job_id)
             if name == "get_research_batch_report":
                 return batch.report(job_id)
             return batch.cancel(job_id)

@@ -44,6 +44,7 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "get_research_batch_status": "EVIDENCE_STATUS",
     "get_research_batch_report": "EVIDENCE_STATUS",
     "cancel_research_batch": "EXECUTION_LIFECYCLE",
+    "resume_research_batch": "EXECUTION_LIFECYCLE",
     "list_market_data": "EVIDENCE_STATUS",
     "validate_market_data": "CATALOG_VALIDATION",
     "audit_market_data": "EXECUTION_LIFECYCLE",
@@ -211,6 +212,11 @@ def chatgpt_tools() -> list[dict[str, object]]:
                 "name": "get_research_batch_report",
                 "description": "Report generation times, verified successor IDs and funnel counts. "
                 "Final report only after completion; no OOS approval implied.",
+                "inputSchema": status_schema,
+            },
+            {
+                "name": "resume_research_batch",
+                "description": "Resume matching interrupted batch checkpoints only.",
                 "inputSchema": status_schema,
             },
             {

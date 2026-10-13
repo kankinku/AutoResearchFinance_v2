@@ -44,6 +44,7 @@ def test_gpt_batch_tools_are_visible_but_canonical_server_contract_is_unchanged(
         "get_research_batch_status",
         "get_research_batch_report",
         "cancel_research_batch",
+        "resume_research_batch",
     } <= names
     assert {"start_system", "stop_system", "run_evaluation"}.isdisjoint(names)
 

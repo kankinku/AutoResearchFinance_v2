@@ -20,6 +20,11 @@ from statistics import median
 from typing import Any, cast
 from uuid import uuid4
 
+from application.batch_resume_snapshot import (
+    BatchContinuation,
+    decode_checkpoint,
+    encode_checkpoint,
+)
 from application.evaluation_service import EvaluationService
 from application.research_batch_summary import explain_batch_attempts
 from application.research_hypothesis import (
@@ -34,7 +39,7 @@ from core.features.registry import research_feature_specs
 from experiments.candidate_generator import generate_candidates
 from experiments.deduplicator import deduplicate_candidates
 from experiments.identity import semantic_strategy_hash
-from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
+from memory.evidence_store import EvidenceIntegrityError, EvidenceStore, digest, encode
 from memory.rescue_pool import verified_rescue_candidates
 from mutation.engine import MutationOperation, apply_operations
 from mutation.parameter import ParameterDomain
@@ -119,6 +124,11 @@ class ResearchBatchService:
                 method TEXT NOT NULL, count INTEGER NOT NULL, parent_id TEXT NOT NULL,
                 successor_id TEXT NOT NULL, result_status TEXT NOT NULL,
                 result_counts TEXT NOT NULL, candidate_count INTEGER NOT NULL,
+                PRIMARY KEY(batch_id, generation)
+            );
+            CREATE TABLE IF NOT EXISTS generation_checkpoints (
+                batch_id TEXT NOT NULL, generation INTEGER NOT NULL,
+                payload_json TEXT NOT NULL, checksum TEXT NOT NULL,
                 PRIMARY KEY(batch_id, generation)
             );
         """)
@@ -492,6 +502,7 @@ class ResearchBatchService:
     def start(self, args: dict[str, Any]) -> dict[str, object]:
         preview = self.preflight(args)
         request = self._validate_request(args)
+        request["input_sha256"] = self._input_fingerprints(request)
         # Reconcile workers terminated by host restart before enforcing concurrency.
         with self._connect() as scan:
             active_ids = [
@@ -516,6 +527,23 @@ class ResearchBatchService:
                 "INSERT INTO batches(id,status,request_json,requested,created) VALUES(?,?,?,?,?)",
                 (job_id, "QUEUED", json.dumps(request), request["generations"], now),
             )
+        self._spawn_worker(job_id)
+        return {**self.status(job_id), "preflight": preview}
+
+    def _input_fingerprints(self, request: dict[str, Any]) -> dict[str, str]:
+        paths = {
+            "source": request["source_path"],
+            "data": request["data_path"],
+        }
+        for key in ("series_data_path", "partner_source_path"):
+            if request.get(key):
+                paths[key] = request[key]
+        return {
+            key: hashlib.sha256((self.project_root / path).read_bytes()).hexdigest()
+            for key, path in paths.items()
+        }
+
+    def _spawn_worker(self, job_id: str) -> None:
         try:
             worker = subprocess.Popen(
                 [
@@ -539,18 +567,16 @@ class ResearchBatchService:
         except OSError:
             with self._connect() as db:
                 db.execute(
-                    (
-                        "UPDATE batches SET status='FAILED',finished=?,"
-                        "error_code='WORKER_START_FAILED' WHERE id=?"
-                    ),
+                    "UPDATE batches SET status='FAILED',finished=?,"
+                    "error_code='WORKER_START_FAILED' WHERE id=?",
                     (time.time(), job_id),
                 )
             raise
         with self._connect() as db:
             db.execute(
-                "UPDATE batches SET pid=? WHERE id=? AND status='QUEUED'", (worker.pid, job_id)
+                "UPDATE batches SET pid=? WHERE id=? AND status='QUEUED'",
+                (worker.pid, job_id),
             )
-        return {**self.status(job_id), "preflight": preview}
 
     def _job(self, job_id: str | None) -> sqlite3.Row:
         with self._connect() as db:
@@ -583,6 +609,162 @@ class ResearchBatchService:
                     )
                     row = db.execute("SELECT * FROM batches WHERE id=?", (row["id"],)).fetchone()
         return cast(sqlite3.Row, row)
+
+    def _load_resume_checkpoint(
+        self,
+        row: sqlite3.Row,
+    ) -> tuple[BatchContinuation, EvidenceSession]:
+        """Fail closed unless SQLite history and immutable Evidence exactly agree."""
+        job_id = str(row["id"])
+        completed = int(row["completed"])
+        run_id = row["research_run_id"]
+        request = json.loads(row["request_json"])
+        expected_inputs = request.get("input_sha256")
+        if (
+            completed < 1
+            or completed >= row["requested"]
+            or not isinstance(run_id, str)
+            or len(run_id) != 32
+            or not isinstance(expected_inputs, dict)
+            or not expected_inputs
+        ):
+            raise BatchRequestError(
+                "CHECKPOINT_MISSING",
+                "CHECKPOINT_MISSING: batch has no replayable completed checkpoint.",
+            )
+        if expected_inputs != self._input_fingerprints(request):
+            raise BatchRequestError(
+                "CHECKPOINT_INPUT_CHANGED", "Source or research input bytes changed."
+            )
+        with self._connect() as db:
+            progress = db.execute(
+                "SELECT * FROM generation_history WHERE batch_id=? ORDER BY generation",
+                (job_id,),
+            ).fetchall()
+            anchors = db.execute(
+                "SELECT * FROM generation_checkpoints WHERE batch_id=? ORDER BY generation",
+                (job_id,),
+            ).fetchall()
+        if (
+            len(progress) != completed
+            or len(anchors) != completed
+            or [int(x["generation"]) for x in progress] != list(range(1, completed + 1))
+            or [int(x["generation"]) for x in anchors] != list(range(1, completed + 1))
+        ):
+            raise BatchRequestError(
+                "CHECKPOINT_MISMATCH",
+                "CHECKPOINT_MISMATCH: committed generations are not contiguous.",
+            )
+        try:
+            snapshots = [
+                decode_checkpoint(json.loads(anchor["payload_json"]), anchor["checksum"])
+                for anchor in anchors
+            ]
+            events = [
+                e
+                for e in EvidenceStore(self.state_dir).events()
+                if e["payload"]["research_run_id"] == run_id
+            ]
+        except (EvidenceIntegrityError, ValueError, TypeError) as exc:
+            raise BatchRequestError(
+                "CHECKPOINT_INTEGRITY", "Continuation Evidence is invalid."
+            ) from exc
+        runs = [e for e in events if e["kind"] == "run"]
+        generations = [e for e in events if e["kind"] == "generation"]
+        attempts = [e for e in events if e["kind"] == "attempt"]
+        ends = [e for e in events if e["kind"] == "end"]
+        if (
+            len(runs) != 1
+            or ends
+            or len(generations) != completed
+            or runs[0]["payload"].get("settings", {}).get("job_id") != job_id
+            or runs[0]["payload"].get("requested_generations") != row["requested"]
+            or runs[0]["payload"].get("seed") != request["seed"]
+        ):
+            raise BatchRequestError(
+                "CHECKPOINT_EVIDENCE_MISMATCH", "Run Evidence is not resumable."
+            )
+        attempt_ids = {str(e["payload"]["attempt_id"]) for e in attempts}
+        referenced: set[str] = set()
+        for index, (generation, progress_row, snapshot) in enumerate(
+            zip(generations, progress, snapshots, strict=True), start=1
+        ):
+            record = generation["payload"]
+            attempt_id = record.get("attempt_id")
+            current_plan = snapshot.next_hypothesis
+            prior_plan = snapshots[index - 2].next_hypothesis if index > 1 else None
+            if (
+                record.get("generation") != index
+                or record.get("status") != progress_row["result_status"]
+                or digest(record) != snapshot.generation_event_checksum
+                or snapshot.input_sha256 != expected_inputs
+                or snapshot.strategy.strategy_id != progress_row["successor_id"]
+                or (current_plan.summary() if current_plan is not None else None)
+                != record.get("next_hypothesis")
+                or (prior_plan.summary() if prior_plan is not None else None)
+                != record.get("applied_hypothesis")
+            ):
+                raise BatchRequestError(
+                    "CHECKPOINT_EVIDENCE_MISMATCH", "History and Evidence disagree."
+                )
+            if attempt_id is not None:
+                if not isinstance(attempt_id, str) or attempt_id not in attempt_ids:
+                    raise BatchRequestError(
+                        "CHECKPOINT_EVIDENCE_MISMATCH", "Attempt Evidence is absent."
+                    )
+                referenced.add(attempt_id)
+        if referenced != attempt_ids:
+            raise BatchRequestError(
+                "CHECKPOINT_UNCOMMITTED_ATTEMPT", "Uncommitted evaluator attempt exists."
+            )
+        if progress[-1][
+            "result_status"
+        ] == "NO_NEW_CANDIDATES" and _should_stop_exhausted_generation(
+            result_status="NO_NEW_CANDIDATES",
+            method=request["method"],
+            initial_domains=parse_parameter_domains(request.get("parameter_domains")),
+            pending_hypothesis=snapshots[-1].next_hypothesis,
+        ):
+            raise BatchRequestError(
+                "CHECKPOINT_TERMINALIZATION_AMBIGUOUS", "Terminal batch end was interrupted."
+            )
+        if len(snapshots[-1].seen_semantics) != len(set(snapshots[-1].seen_semantics)) or not all(
+            snapshots[i].seen_semantics <= snapshots[i + 1].seen_semantics
+            for i in range(len(snapshots) - 1)
+        ):
+            raise BatchRequestError("CHECKPOINT_MISMATCH", "Candidate history regressed.")
+        return snapshots[-1], EvidenceSession.reopen_completed_generations(self.state_dir, run_id)
+
+    def resume(self, job_id: str | None = None) -> dict[str, object]:
+        """Restart only unambiguously checkpointed generations in the SAME batch."""
+        row = self._job(job_id)
+        if row["status"] != "INTERRUPTED":
+            raise BatchRequestError("BATCH_NOT_INTERRUPTED", "Batch is not interrupted.")
+        # Safe concurrency: no active worker of this batch and no competing batch.
+        pid = row["pid"]
+        if pid is not None and process_matches(
+            int(pid),
+            ("application.research_batch_worker", str(row["id"])),
+            startup_retries=0,
+        ):
+            raise BatchRequestError("WORKER_STILL_ALIVE", "Original worker is still running.")
+        self._load_resume_checkpoint(row)
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            other = db.execute(
+                "SELECT id FROM batches WHERE status IN ('QUEUED','RUNNING') LIMIT 1"
+            ).fetchone()
+            if other:
+                raise BatchRequestError("OTHER_BATCH_ACTIVE", "Another batch is running.")
+            cur = db.execute(
+                "UPDATE batches SET status='QUEUED',pid=NULL,finished=NULL,"
+                " error_code=NULL,cancel=0 WHERE id=? AND status='INTERRUPTED'",
+                (row["id"],),
+            )
+            if cur.rowcount != 1:
+                raise BatchRequestError("RESUME_RACE", "Batch status changed during resume.")
+        self._spawn_worker(str(row["id"]))
+        return {**self.status(str(row["id"])), "resumed_from_generation": row["completed"]}
 
     def _estimate(
         self, db: sqlite3.Connection, method: str, count: int
@@ -796,28 +978,40 @@ class ResearchBatchService:
             specs = research_feature_specs()
             operations = intent_to_operations(intent, specs)
             apply_intent(strategy, intent, specs)
-            evidence = EvidenceSession(
-                self.state_dir,
-                requested_generations=request["generations"],
-                seed=request["seed"],
-                settings={
-                    "controller": "external_gpt_batch",
-                    "job_id": job_id,
-                    "fixed_research_intent": True,
-                    "orders_enabled": False,
-                },
-            )
-            with self._connect() as db:
-                db.execute(
-                    "UPDATE batches SET research_run_id=? WHERE id=?", (evidence.run_id, job_id)
+            resumed = int(row["completed"]) > 0
+            checkpoint: BatchContinuation | None = None
+            if resumed:
+                checkpoint, evidence = self._load_resume_checkpoint(row)
+            else:
+                if request.get("input_sha256") != self._input_fingerprints(request):
+                    raise EvidenceIntegrityError("batch input bytes changed after preflight")
+                evidence = EvidenceSession(
+                    self.state_dir,
+                    requested_generations=request["generations"],
+                    seed=request["seed"],
+                    settings={
+                        "controller": "external_gpt_batch",
+                        "job_id": job_id,
+                        "fixed_research_intent": True,
+                        "orders_enabled": False,
+                    },
                 )
+                with self._connect() as db:
+                    db.execute(
+                        "UPDATE batches SET research_run_id=? WHERE id=?",
+                        (evidence.run_id, job_id),
+                    )
             evaluator = EvaluationService(project_root=self.project_root, state_dir=self.state_dir)
-            seen_semantics: set[str] = set()
+            seen_semantics: set[str] = set(checkpoint.seen_semantics) if checkpoint else set()
             domains = parse_parameter_domains(request.get("parameter_domains"))
             adaptive = intent.mode == "mixed"
-            next_hypothesis: LocalHypothesis | None = None
-            used_hypotheses: set[str] = set()
-            for number in range(1, request["generations"] + 1):
+            next_hypothesis: LocalHypothesis | None = (
+                checkpoint.next_hypothesis if checkpoint else None
+            )
+            used_hypotheses: set[str] = set(checkpoint.used_hypotheses) if checkpoint else set()
+            if checkpoint is not None:
+                strategy = checkpoint.strategy
+            for number in range(int(row["completed"]) + 1, request["generations"] + 1):
                 with self._connect() as db:
                     cancel = db.execute(
                         "SELECT cancel FROM batches WHERE id=?", (job_id,)
@@ -959,6 +1153,23 @@ class ResearchBatchService:
                     else:
                         result["replanning_status"] = "NO_VERIFIED_REJECTION_FEEDBACK"
                 evidence.finish_generation(number, str(result.get("status", "UNKNOWN")), result)
+                generation_event = next(
+                    event["payload"]
+                    for event in evidence.store.events()
+                    if event["kind"] == "generation"
+                    and event["payload"]["research_run_id"] == evidence.run_id
+                    and event["payload"]["generation"] == number
+                )
+                checkpoint_payload = encode_checkpoint(
+                    BatchContinuation(
+                        strategy,
+                        frozenset(seen_semantics),
+                        frozenset(used_hypotheses),
+                        next_hypothesis,
+                        request["input_sha256"],
+                        digest(generation_event),
+                    )
+                )
                 elapsed = max(time.monotonic() - began, 0.000001)
                 with self._connect() as db:
                     db.execute(
@@ -986,6 +1197,10 @@ class ResearchBatchService:
                         ),
                     )
                     db.execute(
+                        "INSERT INTO generation_checkpoints VALUES (?,?,?,?)",
+                        (job_id, number, encode(checkpoint_payload), digest(checkpoint_payload)),
+                    )
+                    db.execute(
                         "UPDATE batches SET completed=?,heartbeat=? WHERE id=?",
                         (number, time.time(), job_id),
                     )
@@ -1005,6 +1220,16 @@ class ResearchBatchService:
                     (time.time(), time.time(), job_id),
                 )
         except (Exception, KeyboardInterrupt) as exc:
+            if int(row["completed"]) > 0 and isinstance(
+                exc, (BatchRequestError, EvidenceIntegrityError)
+            ):
+                with self._connect() as db:
+                    db.execute(
+                        "UPDATE batches SET status='INTERRUPTED',error_code=?,finished=? "
+                        "WHERE id=?",
+                        ("CHECKPOINT_VALIDATION_FAILED", time.time(), job_id),
+                    )
+                raise
             if evidence is not None:
                 try:
                     evidence.finish_run("FAILED")

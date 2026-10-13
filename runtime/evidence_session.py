@@ -42,6 +42,17 @@ class EvidenceSession:
             },
         )
 
+    @classmethod
+    def reopen_completed_generations(cls, state_dir: Path, run_id: str) -> EvidenceSession:
+        """Reattach to an existing run; verification is the caller's responsibility."""
+        if not isinstance(run_id, str) or len(run_id) != 32:
+            raise EvidenceIntegrityError("cannot reopen invalid research run identity")
+        obj = cls.__new__(cls)
+        obj.run_id = run_id
+        obj.store = EvidenceStore(state_dir)
+        obj.reserved_attempt_id = None
+        return obj
+
     def evaluate(
         self, runner: Callable[..., dict[str, object]], **kwargs: Any
     ) -> dict[str, object]:
