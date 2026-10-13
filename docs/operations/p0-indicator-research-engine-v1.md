@@ -198,3 +198,19 @@ Next P0 task: audited citation metadata ingest plus feature-to-StrategyIR
 *paper-evaluation-only* translation, PIT-compliant historical signal
 alignment and explicit independent benchmark; retain **no merge** until
 separate research acceptance.
+
+### P0-2 regression acceptance
+
+- `ruff check .`: PASS.
+- `mypy .`: PASS, 204 source files.
+- Complete captured regression execution:
+  `pytest -q -p no:cacheprovider`: **1,175 passed, 0 failed,
+  368.61 seconds**.
+- One additional eight-hypothesis composer regression test was added
+  while the full run was in progress; all **17 indicator-specific tests**
+  were subsequently run independently and PASS. The two executions
+  together cover the final code revision, although the single full
+  process collected its tests before that last test was appended.
+- No changes to `docs/mcp-phase3-5-1-state-inventory` baseline;
+  **research feature branch ONLY**. No sealed OOS, broker orders, or
+  production deployment were performed.
