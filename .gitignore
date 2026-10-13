@@ -59,3 +59,6 @@ state/tools/
 
 # Private Moon-hosted Quant OAuth approval key, tokens and runtime evidence
 state/moon-http/
+
+# Private P0 academic indicator SQLite registry, never commit research state
+/state/indicator-engine/
