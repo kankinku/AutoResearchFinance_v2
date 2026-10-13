@@ -62,6 +62,24 @@ ACADEMIC_PAPERS: tuple[Paper, ...] = (
         "OHLC volatility estimator",
         "Range estimator of variance, not a standalone profitable trading rule.",
     ),
+    _paper(
+        "10.1086/296071",
+        "The Extreme Value Method for Estimating the Variance of the Rate of Return",
+        ("Michael Parkinson",),
+        1980,
+        "The Journal of Business",
+        "High-low range variance estimator",
+        "Conditional estimator assumptions; QQQ use requires independent research validation.",
+    ),
+    _paper(
+        "10.1111/jofi.12513",
+        "Volatility-Managed Portfolios",
+        ("Alan Moreira", "Tyler Muir"),
+        2017,
+        "The Journal of Finance",
+        "US risk factors and variance-scaled portfolios",
+        "Unleveraged daily risk sizing is an adaptation, not paper replication.",
+    ),
 )
 
 
@@ -74,6 +92,9 @@ def _signal(
     fields: tuple[str, ...],
     lookback: int,
     scope: str = "single_asset",
+    *,
+    target_daily_variance: float | None = None,
+    max_exposure: float | None = None,
 ) -> IndicatorCandidate:
     return IndicatorCandidate.model_validate(
         {
@@ -87,6 +108,8 @@ def _signal(
             "formula": CANONICAL_FORMULAS[calculator],
             "scope": scope,
             "status": "PROPOSED",
+            "target_daily_variance": target_daily_variance,
+            "max_exposure": max_exposure,
         }
     )
 
@@ -137,6 +160,26 @@ ACADEMIC_SIGNALS: tuple[IndicatorCandidate, ...] = (
         "risk",
         ("open", "high", "low", "close"),
         20,
+    ),
+    _signal(
+        "parkinson_variance",
+        ACADEMIC_PAPERS[4].doi,
+        "parkinson_variance",
+        "volatility",
+        "risk",
+        ("high", "low"),
+        20,
+    ),
+    _signal(
+        "volatility_managed_exposure",
+        ACADEMIC_PAPERS[5].doi,
+        "volatility_managed_exposure",
+        "volatility",
+        "risk",
+        ("close",),
+        20,
+        target_daily_variance=0.0001,
+        max_exposure=1.0,
     ),
 )
 

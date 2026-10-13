@@ -200,8 +200,8 @@ def test_seed_registry_is_idempotent_and_math_only_verification_leaves_other_unv
     store = ResearchCatalog(tmp_path / "seed.sqlite")
     seed_approved_references(store)
     seed_approved_references(store)
-    assert len(store.list_papers()) == len(ACADEMIC_PAPERS) == 4
-    assert len(store.list_indicators()) == len(ACADEMIC_SIGNALS) == 5
+    assert len(store.list_papers()) == len(ACADEMIC_PAPERS) == 6
+    assert len(store.list_indicators()) == len(ACADEMIC_SIGNALS) == 7
     assert all(paper.citation_snapshot is None for paper in store.list_papers())
     selected = store.get_indicator("time_series_momentum")
     proof = verify_signal_on_synthetic_prices(selected)

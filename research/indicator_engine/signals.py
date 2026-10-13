@@ -79,6 +79,39 @@ def calculate_signal(candidate: IndicatorCandidate, inputs: Numbers) -> tuple[fl
             components.append(max(0.0, day_var))
             if i >= n - 1:
                 output[i] = fmean(components[i - n + 1 : i + 1])
+    elif kind == "parkinson_variance":
+        highs, lows = values["high"], values["low"]
+        rolling = 0.0
+        daily: list[float] = []
+        divisor = 4 * math.log(2)
+        for i in range(size):
+            component = (math.log(highs[i]) - math.log(lows[i])) ** 2 / divisor
+            daily.append(component)
+            rolling += component
+            if i >= n:
+                rolling -= daily[i - n]
+            if i >= n - 1:
+                output[i] = max(0.0, rolling / n)
+    elif kind == "volatility_managed_exposure":
+        close = values["close"]
+        if candidate.target_daily_variance is None or candidate.max_exposure is None:
+            raise ValueError("ex-ante risk sizing parameters required")
+        squared_returns = [0.0]
+        rolling = 0.0
+        for i in range(1, size):
+            squared = (math.log(close[i]) - math.log(close[i - 1])) ** 2
+            squared_returns.append(squared)
+            rolling += squared
+            if i > n:
+                rolling -= squared_returns[i - n]
+            if i >= n:
+                variance = max(0.0, rolling / n)
+                # Cap exposure at <=1; a flat history never permits infinite leverage.
+                output[i] = (
+                    candidate.max_exposure
+                    if variance <= 1e-14
+                    else min(candidate.max_exposure, candidate.target_daily_variance / variance)
+                )
     else:
         raise ValueError("unsupported research signal")
     return tuple(output)
@@ -129,6 +162,36 @@ def _reference_check(
         expected = tuple(
             None if t < n - 1 else sum(components[t - n + 1 : t + 1]) / n for t in range(len(close))
         )
+    elif kind == "parkinson_variance":
+        high, low = obs["high"], obs["low"]
+        denominator = 4 * math.log(2)
+        expected = tuple(
+            None
+            if t < n - 1
+            else sum(
+                (math.log(high[k]) - math.log(low[k])) ** 2 / denominator
+                for k in range(t - n + 1, t + 1)
+            )
+            / n
+            for t in range(len(close))
+        )
+    elif kind == "volatility_managed_exposure":
+        if signal.target_daily_variance is None or signal.max_exposure is None:
+            return False
+        expected_items: list[float | None] = []
+        for t in range(len(close)):
+            if t < n:
+                expected_items.append(None)
+                continue
+            historical_variance = (
+                sum((math.log(close[k] / close[k - 1])) ** 2 for k in range(t - n + 1, t + 1)) / n
+            )
+            expected_items.append(
+                signal.max_exposure
+                if historical_variance <= 1e-14
+                else min(signal.max_exposure, signal.target_daily_variance / historical_variance)
+            )
+        expected = tuple(expected_items)
     else:
         return False
     return all(

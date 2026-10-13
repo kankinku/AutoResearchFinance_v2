@@ -17,6 +17,8 @@ Calculator = Literal[
     "garman_klass_variance",
     "previous_range_breakout",
     "cross_sectional_momentum",
+    "parkinson_variance",
+    "volatility_managed_exposure",
 ]
 
 DOI_PATTERN = re.compile(r"^10\.[0-9]{4,9}/[-._;()/:A-Za-z0-9]+$")
@@ -27,6 +29,11 @@ CANONICAL_FORMULAS: dict[str, str] = {
     "previous_range_breakout": "close[t] > max(high[t-n:t]); next-bar signal",
     "cross_sectional_momentum": (
         "rank each asset's lagged momentum within point-in-time tradable universe"
+    ),
+    "parkinson_variance": "mean(ln(high/low)^2 / (4*ln(2)), n)",
+    "volatility_managed_exposure": (
+        "min(max_exposure, target_daily_variance / mean(ln(close[t-k]/close[t-k-1])^2,k=0:n-1)); "
+        "known after close[t], apply at next bar; cash-only, no leverage"
     ),
 }
 
@@ -91,6 +98,8 @@ class IndicatorCandidate(BaseModel):
     status: SignalStatus = "PROPOSED"
     sample_frequency: Literal["1d"] = "1d"
     execution_delay_bars: Literal[1] = 1
+    target_daily_variance: float | None = Field(default=None, ge=1e-8, le=0.05, allow_inf_nan=False)
+    max_exposure: float | None = Field(default=None, ge=0.05, le=1.0, allow_inf_nan=False)
 
     @field_validator("paper_doi")
     @classmethod
@@ -107,11 +116,22 @@ class IndicatorCandidate(BaseModel):
             "garman_klass_variance": {"open", "high", "low", "close"},
             "previous_range_breakout": {"high", "close"},
             "cross_sectional_momentum": {"close"},
+            "parkinson_variance": {"high", "low"},
+            "volatility_managed_exposure": {"close"},
         }[self.calculator]
         if set(self.required_fields) != requires or len(self.required_fields) != len(requires):
             raise ValueError("calculator input contract does not match required fields")
-        if self.calculator == "garman_klass_variance" and self.role != "risk":
-            raise ValueError("variance estimator must be a risk filter")
+        if (
+            self.calculator
+            in {"garman_klass_variance", "parkinson_variance", "volatility_managed_exposure"}
+            and self.role != "risk"
+        ):
+            raise ValueError("variance estimators and exposure controls must be risk features")
+        if self.calculator == "volatility_managed_exposure":
+            if self.target_daily_variance is None or self.max_exposure is None:
+                raise ValueError("ex-ante daily variance target and exposure cap required")
+        elif self.target_daily_variance is not None or self.max_exposure is not None:
+            raise ValueError("exposure-control parameters cannot alter other calculators")
         if self.calculator == "cross_sectional_momentum":
             if self.scope != "cross_section":
                 raise ValueError("cross-sectional returns require a multi-asset dataset")

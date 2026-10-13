@@ -21,7 +21,7 @@ def main() -> int:
         help="Persistent development SQLite path; never an order database",
     )
     subs = parser.add_subparsers(dest="command", required=True)
-    subs.add_parser("seed", help="Idempotent four-paper, five-signal proposal seed")
+    subs.add_parser("seed", help="Idempotent reviewed-paper and research-signal seed")
     subs.add_parser("status", help="Inspect research provenance and verification states")
     verify = subs.add_parser("verify", help="Verify one whitelisted causal calculator")
     verify.add_argument("signal_id")

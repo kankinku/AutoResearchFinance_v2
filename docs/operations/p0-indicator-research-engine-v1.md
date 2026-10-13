@@ -137,3 +137,64 @@ It is not deployable to the live MCP, and **no merge is authorized** until
 the runtime adapter, PIT/benchmark verification, independent review and
 an appropriate full regression acceptance have passed. The operational
 baseline remains at its original fixed SHA.
+
+## P0-2 incremental expansion — 2026-10-13 (feature branch only)
+
+Two additional academic sources were verified against public paper records
+and added to the curated research source set:
+
+- **Parkinson (1980)**, *The Extreme Value Method for Estimating the
+  Variance of the Rate of Return*, DOI `10.1086/296071`.
+  Research calculator `parkinson_variance` uses the rolling completed-bar
+  estimator `mean((ln(H)-ln(L))²/(4 ln(2)), n)`, requiring positive, finite,
+  internally consistent OHLC inputs. It is a variance estimator, **not**
+  an investment timing strategy.
+- **Moreira & Muir (2017)**, *Volatility-Managed Portfolios*,
+  DOI `10.1111/jofi.12513`. Research calculator
+  `volatility_managed_exposure` applies an **adapted, cash-only,
+  nonleveraged** dynamic exposure rule after the current close:
+  `min(ex_ante_exposure_cap, ex_ante_target_daily_variance /
+  mean(past_n_log_returns²))`, assigned to **the next bar only**.
+  When historical variance is effectively zero, the exposure stays at the
+  pre-declared cap instead of dividing by zero. This differs from the
+  paper's scaled cross-sectional factor portfolios and is **not**
+  a replication or evidence of alpha. Both the variance target and cap
+  must be chosen before evaluation; they are included in the candidate
+  identity. The cap may not exceed 100% and no leverage is authorized.
+
+These were introduced as PROPOSED with their formulas and input/role
+contracts sealed. Independent arithmetic reference, prefix causality,
+nonfinite/malformed OHLC, immutability/reproducibility and bounded
+lookback tests must pass before a math-only VERIFIED status is granted.
+
+**Recorded repeatable smoke test (isolated development-only state):**
+
+- 6 DOI references, 7 indicator candidates.
+- 6 single-asset mathematical calculations VERIFIED; 1 cross-sectional
+  momentum signal remains PROPOSED until a historical point-in-time
+  investable universe exists.
+- Existing raw QQQ 2020–2025 data: 1,508 daily OHLC observations,
+  `parkinson_variance` returned 1,489 finite non-warmup values;
+  `volatility_managed_exposure` returned 1,488 finite non-warmup
+  exposures, each between 0 and 1.
+- Composer now generates **8 distinct, non-executable RESEARCH_ONLY**
+  hypotheses from 2 entry, 1 regime and 3 risk-feature choices
+  (including no-risk-overlay variants). No actual strategy evaluation,
+  economic outperformance or OOS performance was measured.
+- New P0-2 unit tests: six additional tests for DOI seed upgrade,
+  direct hand-calculated Parkinson math, scale invariance, invalid
+  OHLC/parameters/roles, one-bar execution, bounded exposure and
+  verified-only eligibility.
+- Source verification:
+  `https://doi.org/10.1086/296071` and
+  `https://doi.org/10.1111/jofi.12513`.
+  Academic citation counts and their snapshot dates remain unfilled
+  until captured from a named provider; no counts are inferred from
+  research performance.
+
+This step does not change protected evaluator code, order-execution
+gateways, production MCP schema, or the operational baseline branch.
+Next P0 task: audited citation metadata ingest plus feature-to-StrategyIR
+*paper-evaluation-only* translation, PIT-compliant historical signal
+alignment and explicit independent benchmark; retain **no merge** until
+separate research acceptance.
