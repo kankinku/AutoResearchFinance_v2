@@ -59,3 +59,24 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify_quant_windo
 - 재시작 중 `INTERRUPTED`로 남은 배치는 명시적 `resume_research_batch` 호출 전에 체크포인트/불변 Evidence를 완전 검증한다. `CANCELLED`와 `FAILED`를 자동 복구하지 않는다.
 - 재시작 직후 인증되지 않은 HTTP 401, 서버 PID 변화, SQLite 지문 일치만으로 ChatGPT에서 **새 도구 메타데이터 갱신** 또는 **인증된 도구 호출**이 검증된 것은 아니다. 기존 ChatGPT connector에는 도구 캐시 갱신이 여전히 필요할 수 있다.
 - 별도 초기 Phase 3-7 Docker worker image/build/host acceptance는 기존 `docs/operations/mcp-phase3-7-8-final-host-acceptance.md`에 따른다. 이 문서는 Quant **서비스 재시작** 검증이며 worker image 성능·주문·sealed OOS는 다루지 않는다.
+
+## Windows Docker Desktop 실제 실행 결과 — 2026-10-13 KST
+
+사용자가 **Windows PowerShell에서** `scripts/verify_quant_windows_container_restart.ps1 -RestartContainer`를 실제로 실행했고, 다음 결과를 제출했다. 이는 사전 작성한 스크립트나 Moon 내부의 모의 실행이 아닌 Windows 호스트 측 증거다.
+
+- `CONTAINER=project-moon-local`
+- `LINUX_ENGINE=PASS`
+- `DOCKER_RESTART_POLICY=unless-stopped`
+- `PRE_RESTART_STATE=PASS`
+- `OAUTH_CLIENTS=2`, 재시작 이후 `OAUTH_CLIENTS_AFTER=2`
+- `EVIDENCE_EVENTS=163`, 재시작 이후 `EVIDENCE_EVENTS_AFTER=163`
+- `LOCAL_MCP_UNAUTHORIZED=401`, `GATEWAY_MCP_UNAUTHORIZED=401`
+- `PERSISTED_STATE_CHECKS=10`
+- **`WINDOWS_DOCKER_RESTART=PASS`**
+- `HOST_REBOOT_ACCEPTANCE=NOT_TESTED`
+
+Moon 서버와 Quant 연결도 재접속해 확인했다: `get_workspace_status=READY` (Paper, orders disabled), `get_research_evidence=OK` (14 research runs), 로컬/게이트웨이 미인증 HTTP 401/401. 새 Quant MCP 프로세스 PID는 22이며 기존 사업 상태 7 batch records, 2 guided sessions, 163 immutable Evidence events preserved.
+
+**시간에 따른 OAuth 변동 주의:** Windows 호스트 검증에서 PASS를 받은 이후 별도로 오래된 Supervisor/Windows baseline으로 다시 검사했을 때 `oauth_grants` 행 수가 33에서 34로 증가하여 fingerprint 비교가 BLOCKED 됐다. 최신 직접 확인에서 **바뀐 스냅샷 필드는 `oauth_grants` 하나뿐**이고, OAuth client 2개, approval key, URL pin, batches, generations, checkpoints, guided sessions/steps, checksum-validated immutable Evidence의 지문은 모두 그대로였다. 이는 재시작 이후 추가 OAuth 인증 활동 가능성과 일치하며, 해당 시점에 실행한 '동일 시점의 before/after' Windows 재시작 스크립트에서의 PASS를 무효화하지 않는다. 다만 기존 스크립트의 사후 지문 재확인은 OAuth 토큰 발급이 계속되는 환경에서 시간이 지나면 통과하지 않을 수 있다. 인증 발급 기록이 변경됐다는 사실만으로 토큰 손실이나 연구 데이터 손상을 주장하지 않는다.
+
+수용 판정: **실제 Windows Docker 컨테이너 restart PASS (사용자 제공 Windows 호스트 출력 + 별도 Moon 재접속 확인)**. **Windows 운영체제 자체의 재부팅 / Docker Desktop 자동 시작 수용 테스트는 별도로 NOT_TESTED**. 최종 수용 여부는 정전이나 로그온 후 자동 시작을 검증하는 독립 시험을 필요로 한다.
