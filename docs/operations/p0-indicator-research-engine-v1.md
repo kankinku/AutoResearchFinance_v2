@@ -214,3 +214,93 @@ separate research acceptance.
 - No changes to `docs/mcp-phase3-5-1-state-inventory` baseline;
   **research feature branch ONLY**. No sealed OOS, broker orders, or
   production deployment were performed.
+
+
+## P0-3: DOI citation capture and sealed research feature replay (2026-10-13 UTC)
+
+**Crossref ingest:** `research.indicator_engine.citations` implements strictly
+bounded read-only DOI lookup against `https://api.crossref.org/works/{doi}`.
+Only previously curated DOI IDs are eligible. Redirects are disabled,
+responses are size-capped at 256 KiB, and the source must provide matching
+DOI, title overlap, publication year and a nonnegative integer
+`is-referenced-by-count`. No paper abstracts, licensed PDF copies or remote
+Python code are fetched or executed. HTTP errors/mismatches result in no
+database insertion.
+
+The independent `citation_snapshots` SQL table records
+`(doi, provider, UTC date, count, verified-record hash)` and the normalized
+title/year used for acceptance. Equal same-day replay is idempotent; changed
+same-day values fail rather than replacing earlier evidence. Stored snapshots
+are rechecked against their verification hashes when read. The original
+`Paper` and indicator VERIFIED status are not changed by citation lookup.
+These internal hashes detect accidental tampering; they are not signed
+proofs of publisher authenticity. Crossref citation coverage is incomplete
+and cannot establish investment return.
+
+**Live adapter acceptance:** The development-only, manual command
+
+```bash
+.venv/bin/python -m research.indicator_engine.cli \
+  --database state/indicator-engine/research.sqlite refresh-citations --limit 6
+```
+
+actually retrieved all **six curated papers**. The 2026-10-13 UTC snapshot
+saved 6 and reported 0 failures; re-running it returned 0 inserted and
+6 unchanged. Provider-observed counts at that UTC capture:
+
+| Source | Crossref is-referenced-by-count |
+|---|---:|
+| Jegadeesh & Titman (1993) | 9,835 |
+| Brock, Lakonishok & LeBaron (1992) | 1,623 |
+| Parkinson (1980) | 1,483 |
+| Moskowitz, Ooi & Pedersen (2012) | 1,279 |
+| Garman & Klass (1980) | 1,214 |
+| Moreira & Muir (2017) | 558 |
+
+These are dated registry observations, not live financial signals and
+not interchangeable with Google Scholar or OpenAlex citation totals.
+Any later capture on the same UTC day with revised provider values
+is intentionally rejected until the next date; manually reconcile
+the evidence instead of overwriting.
+
+**Development feature replay:** `research.indicator_engine.bridge` consumes
+existing `MarketDataSet` instances from the canonical Parquet reader and
+only structurally VERIFIED `ResearchHypothesis` instances. It calculates
+typed feature vectors against completed, sorted, single-symbol,
+`DataZone.DEVELOPMENT` daily bars. Every observation at bar `t`
+records **earliest potential evaluation at `t+1`**; the final bar
+has no next-bar execution timestamp. Stale/forged hypothesis hashes,
+cross-asset input and SEALED_OOS/VALIDATION datasets are rejected.
+This is **not a trading simulation** and has no portfolio P&L,
+transaction costs or action interface.
+
+The exact exploratory QQQ raw daily dataset from 2020-2025 was read
+through `ParquetDataProvider.read`: 1,508 bars, latest-revision provenance,
+8 prepared non-executable academic hypotheses, signal-vector length
+1,508 each, and unique research hashes. Two underlying entry/regime
+combinations showed 684 and 210 positive bar-level intersections respectively.
+These are **indicator conjunctions, not executed trades, profits or
+independent results**. The replay expressly returns:
+`NON_PIT_DEVELOPMENT_ONLY`, `executable=false`,
+`strategy_ir_compatible=false`,
+`benchmark_independently_verified=false`,
+`sealed_oos_approved=false`.
+
+**Non-negotiable next integration conditions:** the current production
+`StrategyIR.IndicatorType` does not guarantee identical output semantics
+for the new academic calculators. Do NOT alias a boolean signal to an
+unrelated moving-average output or pass these feature vectors through
+`series_data_path`, which is currently used for benchmark input.
+A reviewed compiler/feature adapter, feature-level frozen version hashes,
+independent benchmark series with publication `available_at` times,
+corporate-action lineage and PIT vendor vintages are required before
+the research candidate may enter the existing evaluator. The
+`MarketSourceProvenance.revision_policy=latest` QQQ fixture **cannot**
+meet PIT or independent OOS acceptance.
+
+**Verification:** deterministic mocked HTTP replay, invalid and forged
+DOI/title/year/count/hash, redirect, oversized responses, on-disk hash
+tamper, verified-only composition, causal prefix replay, safe next-bar
+alignment, future-bar perturbation and OOS blocking are covered.
+The full repository regression is run separately; preserve exact
+observed pass/fail counts rather than claim success before it finishes.

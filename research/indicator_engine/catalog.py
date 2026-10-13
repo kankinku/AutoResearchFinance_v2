@@ -12,6 +12,11 @@ import sqlite3
 from pathlib import Path
 
 from core.integrity.hashes import content_hash
+from research.indicator_engine.citations import (
+    CitationEvidence,
+    CitationFetchError,
+    validate_citation_evidence,
+)
 from research.indicator_engine.models import IndicatorCandidate, Paper, VerificationResult
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 
@@ -41,6 +46,16 @@ class ResearchCatalog:
                     quarantine_reason TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_indicator_status ON indicators(status);
+                CREATE TABLE IF NOT EXISTS citation_snapshots (
+                    doi TEXT NOT NULL REFERENCES papers(doi),
+                    provider TEXT NOT NULL,
+                    observed_on TEXT NOT NULL,
+                    count INTEGER NOT NULL CHECK(count>=0),
+                    source_record_hash TEXT NOT NULL,
+                    canonical_title TEXT NOT NULL,
+                    publication_year INTEGER NOT NULL,
+                    PRIMARY KEY(doi, provider, observed_on)
+                );
                 """
             )
 
@@ -167,3 +182,72 @@ class ResearchCatalog:
         if cursor.rowcount != 1:
             raise ResearchCatalogError("concurrent update")
         return updated
+
+    def capture_citation(self, evidence: CitationEvidence) -> bool:
+        """Append-only evidence; same-day replay is idempotent, conflicts fail."""
+        paper = self.get_paper(evidence.doi)
+        try:
+            validate_citation_evidence(paper, evidence)
+        except CitationFetchError as exc:
+            raise ResearchCatalogError("invalid citation evidence") from exc
+        key = (evidence.doi, evidence.provider, evidence.observed_on.isoformat())
+        fields = (
+            evidence.count,
+            evidence.source_record_hash,
+            evidence.canonical_title,
+            evidence.publication_year,
+        )
+        with self._connect() as db:
+            previous = db.execute(
+                "SELECT count, source_record_hash, canonical_title, publication_year "
+                "FROM citation_snapshots WHERE doi=? AND provider=? AND observed_on=?",
+                key,
+            ).fetchone()
+            if previous is not None:
+                prior = (
+                    previous["count"],
+                    previous["source_record_hash"],
+                    previous["canonical_title"],
+                    previous["publication_year"],
+                )
+                if prior != fields:
+                    raise ResearchCatalogError("conflicting same-day citation snapshot")
+                return False
+            db.execute(
+                "INSERT INTO citation_snapshots"
+                "(doi,provider,observed_on,count,source_record_hash,"
+                "canonical_title,publication_year) "
+                "VALUES(?,?,?,?,?,?,?)",
+                (*key, *fields),
+            )
+        return True
+
+    def list_citations(self, doi: str) -> tuple[CitationEvidence, ...]:
+        self.get_paper(doi)
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT doi,provider,observed_on,count,source_record_hash,canonical_title,"
+                "publication_year FROM citation_snapshots WHERE doi=? "
+                "ORDER BY observed_on,provider",
+                (doi.lower(),),
+            ).fetchall()
+        from datetime import date
+
+        results = tuple(
+            CitationEvidence(
+                doi=str(r["doi"]),
+                provider=str(r["provider"]),
+                observed_on=date.fromisoformat(str(r["observed_on"])),
+                count=int(r["count"]),
+                source_record_hash=str(r["source_record_hash"]),
+                canonical_title=str(r["canonical_title"]),
+                publication_year=int(r["publication_year"]),
+            )
+            for r in rows
+        )
+        for evidence in results:
+            try:
+                validate_citation_evidence(self.get_paper(doi), evidence)
+            except CitationFetchError as exc:
+                raise ResearchCatalogError("stored citation integrity mismatch") from exc
+        return results
