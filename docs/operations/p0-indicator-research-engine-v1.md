@@ -304,3 +304,21 @@ tamper, verified-only composition, causal prefix replay, safe next-bar
 alignment, future-bar perturbation and OOS blocking are covered.
 The full repository regression is run separately; preserve exact
 observed pass/fail counts rather than claim success before it finishes.
+
+
+### P0-3 final test acceptance
+
+- Full repository `pytest -q -p no:cacheprovider`:
+  **1,196 passed, 0 failed in 375.89 seconds**.
+- `mypy .`: **206 source files passed**.
+- `ruff check .`: **PASS**.
+- All P0 indicator research tests targeted: **37 passed, 0 failed**.
+- Existing connected Quant research service separately queried:
+  `READY`, `orders_enabled=false`.
+- All changes remain on
+  `feat/p0-indicator-research-engine-v1`. Operational baseline
+  `docs/mcp-phase3-5-1-state-inventory` is unchanged at
+  `4a7423327dfec940fd497f970c6db69ef42e95bc`.
+- No StrategyIR production evaluator execution, benchmark performance
+  comparison, PIT certification, sealed OOS evaluation, branch merge
+  or order placement occurred.
