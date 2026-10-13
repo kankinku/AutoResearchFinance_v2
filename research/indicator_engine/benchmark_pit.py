@@ -190,6 +190,24 @@ def compare_independent_qqq(
     if len(strategy.equity_curve) != len(strategy_data.bars):
         raise ResearchCatalogError("strategy equity timestamps missing or misaligned")
     if (
+        strategy.status != "NON_PIT_DEVELOPMENT_ONLY"
+        or strategy.broker_executable
+        or strategy.candidate_promotable
+        or strategy.benchmark_verified
+        or strategy.out_of_sample_approved
+    ):
+        raise ResearchCatalogError("not a confined development risk replay")
+    if strategy.trades_count != len(strategy.trades):
+        raise ResearchCatalogError("strategy execution count does not match records")
+    if (
+        not isfinite(strategy.total_paid_costs)
+        or strategy.total_paid_costs < 0
+        or abs(strategy.total_paid_costs - sum(t.cost for t in strategy.trades)) > 1e-6
+    ):
+        raise ResearchCatalogError("strategy transaction cost evidence is inconsistent")
+    if content_hash(tuple(strategy.equity_curve)) != strategy.equity_hash:
+        raise ResearchCatalogError("strategy equity evidence hash does not match")
+    if (
         not isfinite(strategy.initial_cash)
         or strategy.initial_cash <= 0
         or not isfinite(strategy.final_equity)
