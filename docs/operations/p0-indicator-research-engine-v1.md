@@ -404,3 +404,80 @@ and a complete acceptance comparison against the preserved
   their execution/risk roles are not proven equivalent to existing native
   StrategyIR conditions; Champion promotion and production deploy remain
   disabled. No actual independent alpha or OOS performance claim.
+
+
+## P0-5 isolated dynamic risk overlay research (2026-10-14 KST)
+
+A **separate** `research.indicator_engine.risk_replay` module now models
+causal, cash-only *dynamic exposure* on the existing research feature
+replays. The protected `core/backtest`, StrategyIR runtime schema,
+order tools, current MCP endpoint, sealed OOS and Champion frontier
+have **not** been modified. These evaluations do not enter the ordinary
+StrategyIR admission or production promotion path.
+
+**Source semantics:**
+
+- `garman_klass_variance` and `parkinson_variance` yield a measured
+  **daily variance**, not a buy/sell signal or direct position fraction.
+  Ex-ante exposure is `min(max_exposure, target_daily_variance / variance)`,
+  zero risk history capped at the predetermined ceiling.
+- `volatility_managed_exposure` **already** yields a 0..1 exposure
+  using an internal `target_daily_variance` and
+  `max_exposure`. Research policy may impose a smaller maximum
+  but must **agree on the embedded variance target**; conflicting
+  targets cause a hard failure rather than silently ignoring one.
+- Entry and regime decisions must be from independently verified
+  binary academic calculators. A positive regime condition permits
+  a new entry. For an existing position, a negative regime condition
+  alone does not force liquidation; a negative entry signal or
+  missing/invalid risk estimate does. This preserves the reviewed
+  entry/exit meaning of the earlier developer-only compiler.
+- Features at close `t-1` may change holdings only at `t` open.
+  Holdings are marked at `t` close. Transaction costs use 1 bp
+  commission, 2 bps spread, 5 bps slippage per transaction.
+  All purchases are funded from existing cash including expenses;
+  short sales and margin are excluded.
+- `rebalance_band` is an **absolute portfolio weight discrepancy**,
+  3 percentage points in the recorded smoke test, not 3% of the
+  previous weight. Closing an invalid/negative-signal position
+  always takes priority over the deadband.
+- Separate fields record the *desired fraction at each open* and the
+  *actual marked fraction at each close*. The latter can drift
+  above the requested target intraday without leverage; it is
+  guaranteed within 0..1 as long as cash and shares stay nonnegative.
+- The policy is immutable and bounded. Input fingerprints, signal
+  replay and policy are hashed; final equity curve and trade details
+  carry stable research-only evidence identifiers. No broker methods
+  are called or permitted.
+
+### Measured historical research smoke test
+
+QQQ Tiingo raw daily 2020-01-02 to 2025-12-31 (1,508 bars),
+**latest-revision data, NOT independently PIT certified**.
+Initial notional 10,000 USD; variance target `0.0001` per day;
+cash-only maximum invested `0.7` of equity; opening rebalance
+deadband `0.03`. All prices and returns are illustrative
+**development-only backtests**.
+
+| Entry + SMA regime + risk overlay | Buy/sell events | Total model costs USD | Final marked equity USD |
+|---|---:|---:|---:|
+| TSMOM + Garman–Klass | 68 | 83.27 | 14,147.53 |
+| TSMOM + Parkinson | 70 | 82.56 | 14,231.12 |
+| TSMOM + vol-managed exposure | 127 | 116.12 | 14,613.49 |
+| Range breakout + Garman–Klass | 241 | 1,108.34 | 9,103.59 |
+| Range breakout + Parkinson | 236 | 1,102.18 | 9,146.34 |
+| Range breakout + vol-managed exposure | 238 | 1,014.58 | 9,335.48 |
+
+**Not a formal StrategyIR strategy run, not live fill quality and not
+a sealed-OOS evaluation.** No realistic realized capital gains taxation,
+funding, bid/ask depth, action availability vintages, corporate action
+as-of certification or independent benchmark were established.
+No statistical superiority or excess alpha is claimed. `events`
+means individual buy/sell execution records, not completed
+round-trip transactions.
+
+The new tests validate the three risk indicator families, price
+causality under future-bar perturbations, warm-up without trades,
+reject-on-invalid parameters or OOS, no leverage, next-open fills,
+deterministic replay, and refusal of an inconsistent pre-filtered
+variance target. No new live order or promotion entrypoint exists.
