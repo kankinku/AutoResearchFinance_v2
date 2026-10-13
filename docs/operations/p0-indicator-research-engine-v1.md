@@ -481,3 +481,24 @@ causality under future-bar perturbations, warm-up without trades,
 reject-on-invalid parameters or OOS, no leverage, next-open fills,
 deterministic replay, and refusal of an inconsistent pre-filtered
 variance target. No new live order or promotion entrypoint exists.
+
+
+### P0-5 verification and release boundary
+
+- Broad repository regression process (collected before the last targeted
+  policy mismatch test was appended): **1,207 passed / 0 failed**,
+  **378.85 seconds**.
+- Final-check `tests/research` run on the final feature-branch tree:
+  **95 passed / 0 failed** including all 8 academic risk-overlay tests.
+- Post-change `ruff check .`: **PASS**;
+  `mypy .`: **208 files PASS**.
+- Confirmed `docs/mcp-phase3-5-1-state-inventory` remote HEAD remains the
+  unchanged rollback commit `4a7423327dfec940fd497f970c6db69ef42e95bc`.
+- Production promotion, independent out-of-sample approval, broker orders,
+  benchmark-alpha measurement, core risk-engine code modifications and
+  protected-branch merge: **NOT PERFORMED**.
+- Known limitation: risk overlays currently have a **research-only local
+  simulator**, not canonical `StrategyIR` runtime risk translation.
+  The mathematical estimator semantics, position rebalancing and return
+  accounting must undergo additional independent review before any such
+  compiler admission.
