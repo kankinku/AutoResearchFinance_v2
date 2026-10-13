@@ -101,3 +101,39 @@ only**, not a rating or objective investment recommendation. All four papers
 were confirmed through DOI/publisher pages; no live citation count was
 inserted because source-specific dates and provider counts need explicit
 freshly fetched snapshots.
+
+## Actual verification evidence (2026-10-13)
+
+- New research unit tests: **10/10 PASS**. Reference calculations,
+  prefix extension, invalid OHLC, forged evidence, SQLite re-open,
+  deduplicated source seeding, and bounded research-only composition covered.
+- `ruff check .`: **PASS**.
+- `mypy .`: **PASS**, 204 source files.
+- Initial full `pytest -q -p no:cacheprovider`: **1,166 PASS, 3 FAIL**.
+  These three were isolated-worktree environment assumptions, not diffs to
+  existing production modules:
+  1. Baseline real QQQ Parquet was ignored by Git and absent under the
+     new worktree `data/`.
+  2. Local MCP stdio launcher expected `./.venv/bin/python`, which was
+     absent in the clean worktree.
+  3. Offline tunnel preflight also expected the local `./.venv` path.
+- **All three affected tests re-run PASS (3/3)** after adding an ignored
+  *local development-only* `.venv` symlink to the existing environment and
+  copying the historical test Parquet into the new worktree's ignored
+  `data/` directory. The full suite was **not** re-run end-to-end after
+  that local fixture restoration. Do not claim a single full-suite green run.
+- Real isolated-worktree SQLite run: 4 papers and 5 PROPOSED signals seeded;
+  mathematical verification of four single-asset calculators completed,
+  leaving cross-sectional momentum PROPOSED. Two `RESEARCH_ONLY`
+  entry+regime(+risk) hypotheses emitted; no orders.
+- All paper source metadata are in Git so future users can rebuild the
+  research catalog; the example SQLite database and test market data are
+  ignored by Git and were **not pushed**.
+
+## Merge policy
+
+The pushed feature branch is an **independently reviewable P0 foundation**.
+It is not deployable to the live MCP, and **no merge is authorized** until
+the runtime adapter, PIT/benchmark verification, independent review and
+an appropriate full regression acceptance have passed. The operational
+baseline remains at its original fixed SHA.

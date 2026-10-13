@@ -62,3 +62,5 @@ state/moon-http/
 
 # Private P0 academic indicator SQLite registry, never commit research state
 /state/indicator-engine/
+# Optional symlink to the shared test virtualenv in an isolated Git Worktree
+/.venv
