@@ -86,10 +86,12 @@ class SDKMCPServerAdapter:
                     is_error=True,
                 )
             if params.name in {
+                "preflight_research_batch",
                 "start_research_batch",
                 "get_research_batch_status",
                 "get_research_batch_report",
                 "cancel_research_batch",
+                "resume_research_batch",
             }:
                 code = getattr(exc, "code", None)
                 if not isinstance(code, str):
@@ -106,12 +108,58 @@ class SDKMCPServerAdapter:
                     "PARENT_ID_MISMATCH": "intent.parent_ids does not match source "
                     "strategy_id; check get_research_brief.",
                     "NO_BATCH_FOUND": "No accepted research batch exists yet.",
+                    "BATCH_NOT_INTERRUPTED": (
+                        "Batch is not interrupted; it may already be completed or still running. "
+                        "Read get_research_batch_status before requesting resume."
+                    ),
+                    "CHECKPOINT_MISSING": (
+                        "No safely verified completed checkpoint exists. Do not rerun "
+                        "the interrupted generation; investigate its Evidence."
+                    ),
+                    "CHECKPOINT_MISMATCH": (
+                        "Committed generation history or checkpoint is inconsistent. "
+                        "Review immutable Evidence before any continuation."
+                    ),
+                    "CHECKPOINT_INPUT_CHANGED": (
+                        "Research inputs changed after the original run. "
+                        "The interrupted batch cannot be safely resumed."
+                    ),
+                    "WORKER_STILL_ALIVE": (
+                        "The original worker is still alive; do not launch a second worker."
+                    ),
+                    "OTHER_BATCH_ACTIVE": (
+                        "Another batch is active. Do not start concurrent research."
+                    ),
                 }.get(code, "Check source_path, data_path, ResearchIntent and input permissions.")
                 return _sdk_tool_result(
                     {
                         "status": "ERROR",
                         "error_code": code,
                         "message": message,
+                        "orders_enabled": False,
+                    },
+                    is_error=True,
+                )
+            if params.name in {
+                "start_guided_research",
+                "get_guided_research",
+                "submit_guided_generation",
+                "reconcile_guided_research",
+            }:
+                duplicate = isinstance(exc, ValueError) and "DUPLICATE_STRATEGY" in str(exc)
+                return _sdk_tool_result(
+                    {
+                        "status": "ERROR",
+                        "error_code": (
+                            "DUPLICATE_STRATEGY" if duplicate else "GUIDED_RESEARCH_REJECTED"
+                        ),
+                        "message": (
+                            "Strategy already evaluated in this session; submit a genuinely "
+                            "different executable hypothesis using the same checkpoint."
+                            if duplicate
+                            else "Guided research request rejected; inspect the active checkpoint "
+                            "and registered strategy source. No automatic replay."
+                        ),
                         "orders_enabled": False,
                     },
                     is_error=True,

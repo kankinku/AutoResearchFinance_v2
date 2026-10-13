@@ -808,8 +808,22 @@ class ResearchBatchService:
             and bool(durations)
             and durations[-1]["result_status"] == "NO_NEW_CANDIDATES"
         )
+        # Never claim resumability without checkpoint and Evidence verification.
+        next_action = {
+            "QUEUED": "POLL_STATUS",
+            "RUNNING": "POLL_STATUS",
+            "INTERRUPTED": "REVIEW_AND_RESUME",
+            "COMPLETED": "READ_FINAL_REPORT",
+            "FAILED": "REVIEW_FAILURE",
+            "CANCELLED": "READ_FINAL_REPORT",
+        }.get(str(row["status"]), "CHECK_STATUS")
+        if row["cancel"] and row["status"] in {"QUEUED", "RUNNING"}:
+            next_action = "WAIT_FOR_CANCELLATION"
         # If no samples, do NOT invent an ETA.
         return {
+            "cancel_requested": bool(row["cancel"]),
+            "next_action": next_action,
+            "resume_requires_verified_checkpoint": row["status"] == "INTERRUPTED",
             "job_id": row["id"],
             "status": row["status"],
             "requested_generations": row["requested"],
@@ -840,11 +854,15 @@ class ResearchBatchService:
     def cancel(self, job_id: str | None = None) -> dict[str, object]:
         row = self._job(job_id)
         with self._connect() as db:
-            db.execute(
-                "UPDATE batches SET cancel=1 WHERE id=? AND status IN ('QUEUED','RUNNING')",
+            updated = db.execute(
+                "UPDATE batches SET cancel=1 WHERE id=? AND status IN ('QUEUED','RUNNING') "
+                "AND cancel=0",
                 (row["id"],),
-            )
-        return {**self.status(row["id"]), "cancel_requested": True}
+            ).rowcount
+        return {
+            **self.status(row["id"]),
+            "cancellation_request_accepted": updated == 1,
+        }
 
     def report(self, job_id: str | None = None) -> dict[str, object]:
         status = self.status(job_id)

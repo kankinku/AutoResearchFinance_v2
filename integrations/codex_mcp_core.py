@@ -190,7 +190,27 @@ class CodexMCPServer:
         if name == "get_research_brief":
             if arguments:
                 raise ValueError("research brief does not take arguments")
+            from integrations.chatgpt_mcp_sdk import chatgpt_tools
+            from memory.evidence_store import digest
+
+            schema = chatgpt_tools()
             return {
+                "mcp_capabilities": {
+                    "server_tool_count": len(schema),
+                    "schema_sha256": digest(schema),
+                    "required_client_tools": [
+                        "audit_market_data",
+                        "start_guided_research",
+                        "submit_guided_generation",
+                        "reconcile_guided_research",
+                        "resume_research_batch",
+                    ],
+                    "stale_client_hint": (
+                        "If the ChatGPT tool list is missing these names, reconnect "
+                        "the Quant Autoresearch plugin or open a new session. "
+                        "Server tool discovery cannot refresh a cached client schema."
+                    ),
+                },
                 **self.services.research.brief(),
                 "research_inputs": ResearchBatchService(
                     project_root=self.project_root, state_dir=self.state_dir

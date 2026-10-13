@@ -147,10 +147,34 @@ def test_moon_oauth_registration_approval_pkce_and_scope(tmp_path: Path) -> None
                     },
                 )
                 assert listed.status_code == 200, listed.text
+                visible_tools = {tool["name"] for tool in listed.json()["result"]["tools"]}
+                assert len(visible_tools) == 24
+                assert {
+                    "resume_research_batch",
+                    "audit_market_data",
+                    "reconcile_guided_research",
+                    "submit_guided_generation",
+                } <= visible_tools
                 assert all(
                     tool["securitySchemes"] == [{"type": "oauth2", "scopes": ["mcp:tools"]}]
                     for tool in listed.json()["result"]["tools"]
                 )
+                brief = await client.post(
+                    "/mcp",
+                    follow_redirects=True,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 21,
+                        "method": "tools/call",
+                        "params": {"name": "get_research_brief", "arguments": {}},
+                    },
+                    headers={**headers, "authorization": f"Bearer {access}"},
+                )
+                assert brief.status_code == 200
+                assert brief.json()["result"]["isError"] is False
+                detail = json.loads(brief.json()["result"]["content"][0]["text"])
+                assert detail["mcp_capabilities"]["server_tool_count"] == len(visible_tools)
+                assert detail["mcp_capabilities"]["schema_sha256"]
                 called = await client.post(
                     "/mcp",
                     follow_redirects=True,
