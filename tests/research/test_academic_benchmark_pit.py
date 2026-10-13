@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from core.data.contracts import Bar, DataZone, MarketDataSet, MarketSourceProvenance
+from core.integrity.hashes import content_hash
 from research.indicator_engine.benchmark_pit import (
     BarReleaseEvidence,
     audit_pit_metadata,
@@ -57,7 +58,7 @@ def _replay(data: MarketDataSet) -> AcademicRiskReplayResult:
         hypothesis_hash="hypothesis",
         replay_hash="replay",
         model_hash="model",
-        equity_hash="equity",
+        equity_hash=content_hash((10000.0, 10000.0, 10000.0)),
         initial_cash=10000.0,
         final_equity=10000.0,
         equity_curve=(10000.0, 10000.0, 10000.0),
@@ -130,6 +131,18 @@ def test_rejects_self_benchmark_forged_replay_and_misaligned_data() -> None:
     with pytest.raises(ResearchCatalogError, match="equity"):
         compare_independent_qqq(
             replace(report, final_equity=float("nan")), primary, alternative,
+        )
+    with pytest.raises(ResearchCatalogError, match="hash"):
+        compare_independent_qqq(
+            replace(report, equity_hash="forged"), primary, alternative,
+        )
+    with pytest.raises(ResearchCatalogError, match="development risk replay"):
+        compare_independent_qqq(
+            replace(report, broker_executable=True), primary, alternative,
+        )
+    with pytest.raises(ResearchCatalogError, match="transaction cost"):
+        compare_independent_qqq(
+            replace(report, total_paid_costs=100), primary, alternative,
         )
 
 
