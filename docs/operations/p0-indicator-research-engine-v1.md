@@ -389,3 +389,18 @@ time-of-release metadata for external features, independent benchmark
 verification, fold-train-only optimization, multiple-testing adjustment,
 and a complete acceptance comparison against the preserved
 `4a74233` baseline. None of these is claimed completed here.
+
+
+### P0-4 verified final regression and Git boundary
+
+- The complete repository regression run after the adapter and replay-integrity
+  tests: **1,200 passed, 0 failed, 372.70 seconds**.
+- Mypy: **207 source files PASS**; Ruff check: **PASS**.
+- No upstream core/backtest, sealed OOS or order-gateway files changed.
+- Feature revision commit `7e068f17e31e549b9d8e56d79ef57608714aef86`
+  was pushed to `feat/p0-indicator-research-engine-v1`.
+- Operating baseline remains `4a7423327dfec940fd497f970c6db69ef42e95bc`.
+- All 6 academic risk-overlay combinations remain *uncompiled* because
+  their execution/risk roles are not proven equivalent to existing native
+  StrategyIR conditions; Champion promotion and production deploy remain
+  disabled. No actual independent alpha or OOS performance claim.
