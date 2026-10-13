@@ -122,7 +122,9 @@ def test_rejects_self_benchmark_forged_replay_and_misaligned_data() -> None:
             report, primary, replace(alternative, bars=shifted),
         )
     with pytest.raises(ResearchCatalogError, match="adjustment"):
-        compare_independent_qqq(report, primary, _dataset("provider-B", adjustment="split_adjusted"))
+        compare_independent_qqq(
+            report, primary, _dataset("provider-B", adjustment="split_adjusted"),
+        )
     with pytest.raises(ResearchCatalogError, match="development-only"):
         compare_independent_qqq(report, primary, replace(alternative, zone=DataZone.SEALED_OOS))
     with pytest.raises(ResearchCatalogError, match="equity"):
