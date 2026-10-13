@@ -314,3 +314,219 @@ def test_strategy_renamed_to_different_family_still_counts_as_duplicate(tmp_path
             }
         )
     assert EvidenceStore(tmp_path / "state").events() == before
+
+
+def test_recover_completed_evaluation_after_checkpoint_commit_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Completed immutable evidence must be adopted, never evaluated twice."""
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    guided = GPTGuidedResearchService(project_root=tmp_path, state_dir=state)
+    first = guided.start({"data_path": "bars.parquet", "generations": 2})
+    request = {
+        "session_id": first["session_id"],
+        "checkpoint_token": first["checkpoint_token"],
+        "generation": 1,
+        **proposal(),
+    }
+    original = GPTGuidedResearchService._finalize_inflight
+
+    def fail_commit(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("simulated crash after evaluator Evidence completion")
+
+    monkeypatch.setattr(GPTGuidedResearchService, "_finalize_inflight", fail_commit)
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        guided.submit(request)
+    failed = guided.get(first["session_id"])
+    assert failed["status"] == "INTERRUPTED"
+    assert failed["inflight_run_id"]
+    assert failed["inflight_attempt_id"]
+    assert failed["checkpoint_token"] is None
+    before = EvidenceStore(state).events()
+    assert (
+        len([e for e in before if e["kind"] == "end" and e["payload"]["status"] == "COMPLETED"])
+        == 1
+    )
+    monkeypatch.setattr(GPTGuidedResearchService, "_finalize_inflight", original)
+    resumed = GPTGuidedResearchService(project_root=tmp_path, state_dir=state)
+    report = resumed.reconcile(first["session_id"])
+    assert report["status"] == "AWAITING_GPT"
+    assert report["completed_generations"] == 1
+    assert report["reconciliation"] == "VERIFIED_COMPLETED_EVIDENCE"
+    assert report["inflight_run_id"] is None
+    assert report["history"][0]["run_id"] == failed["inflight_run_id"]
+    assert EvidenceStore(state).events() == before
+    repeat = resumed.reconcile(first["session_id"])
+    assert repeat["status"] == "AWAITING_GPT"
+    assert repeat["completed_generations"] == 1
+    assert EvidenceStore(state).events() == before
+    with pytest.raises(ValueError, match="checkpoint"):
+        resumed.submit(request)
+
+
+def test_recovery_refuses_unknown_or_incomplete_evidence_and_never_replays(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from application.chat_directed_research_service import ChatDirectedResearchService
+
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    guided = GPTGuidedResearchService(project_root=tmp_path, state_dir=state)
+    first = guided.start({"data_path": "bars.parquet", "generations": 2})
+
+    def crashed(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("injected crash before Evidence run")
+
+    monkeypatch.setattr(ChatDirectedResearchService, "run", crashed)
+    request = {
+        "session_id": first["session_id"],
+        "checkpoint_token": first["checkpoint_token"],
+        "generation": 1,
+        **proposal(),
+    }
+    with pytest.raises(RuntimeError, match="injected crash"):
+        guided.submit(request)
+    interrupted = guided.get(first["session_id"])
+    assert interrupted["status"] == "INTERRUPTED"
+    assert interrupted["next_action"] == "OPERATOR_REVIEW_OR_RECONCILE"
+    assert interrupted["inflight_run_id"]
+    assert EvidenceStore(state).events() == []
+    report = GPTGuidedResearchService(project_root=tmp_path, state_dir=state).reconcile(
+        first["session_id"]
+    )
+    assert report["status"] == "INTERRUPTED"
+    assert report["reconciliation"] == "INCOMPLETE_OR_MISSING_EVIDENCE"
+    assert report["completed_generations"] == 0
+    assert EvidenceStore(state).events() == []
+    with pytest.raises(ValueError, match="checkpoint"):
+        guided.submit(request)
+
+
+def test_reconciler_refuses_forged_run_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from application.chat_directed_research_service import ChatDirectedResearchService
+
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    guided = GPTGuidedResearchService(project_root=tmp_path, state_dir=state)
+    first = guided.start({"data_path": "bars.parquet", "generations": 2})
+
+    def stopped(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("simulate interrupted call")
+
+    monkeypatch.setattr(ChatDirectedResearchService, "run", stopped)
+    with pytest.raises(RuntimeError):
+        guided.submit(
+            {
+                "session_id": first["session_id"],
+                "checkpoint_token": first["checkpoint_token"],
+                "generation": 1,
+                **proposal(),
+            }
+        )
+    interrupted = guided.get(first["session_id"])
+    run_id = interrupted["inflight_run_id"]
+    # This checksum-valid but incorrect origin may not be adopted by recovery.
+    store = EvidenceStore(state)
+    store.append(
+        "run",
+        f"run:{run_id}",
+        {
+            "research_run_id": run_id,
+            "requested_generations": 1,
+            "seed": 0,
+            "settings": {"guided_session_id": "attacker", "guided_generation": 1},
+        },
+    )
+    report = guided.reconcile(first["session_id"])
+    assert report["status"] == "INTERRUPTED"
+    assert report["reconciliation"] == "EVIDENCE_IDENTITY_MISMATCH"
+    assert report["completed_generations"] == 0
+
+
+def test_mcp_reconcile_is_exposed_and_idempotent(tmp_path: Path) -> None:
+    _write_inputs(tmp_path)
+    server = create_mcp_server(state_dir=tmp_path / "state", project_root=tmp_path)
+    point = start(server)
+    tools = {item["name"]: item for item in chatgpt_tools()}
+    assert "reconcile_guided_research" in tools
+    assert tools["reconcile_guided_research"]["inputSchema"]["required"] == ["session_id"]
+    first = server._dispatch("reconcile_guided_research", {"session_id": point["session_id"]})
+    assert first["reconciliation"] == "ALREADY_SETTLED"
+    assert first["status"] == "AWAITING_GPT"
+    assert first["checkpoint_token"] == point["checkpoint_token"]
+    assert EvidenceStore(tmp_path / "state").events() == []
+    with pytest.raises(ValueError, match="session_id"):
+        server._dispatch(
+            "reconcile_guided_research", {"session_id": point["session_id"], "run": "extra"}
+        )
+
+
+def test_reconcile_stale_executing_after_uncaught_process_exit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Hard exit skips except Exception, leaving EXECUTING; explicit reconcile adopts proof."""
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    server = create_mcp_server(state_dir=state, project_root=tmp_path)
+    point = start(server)
+    original = GPTGuidedResearchService._finalize_inflight
+
+    def hard_exit(*args: object, **kwargs: object) -> None:
+        raise SystemExit("test sudden process death after committed Evidence")
+
+    monkeypatch.setattr(GPTGuidedResearchService, "_finalize_inflight", hard_exit)
+    with pytest.raises(SystemExit, match="sudden process"):
+        server._dispatch(
+            "submit_guided_generation",
+            {
+                "session_id": point["session_id"],
+                "checkpoint_token": point["checkpoint_token"],
+                "generation": 1,
+                **proposal(),
+            },
+        )
+    assert (
+        GPTGuidedResearchService(project_root=tmp_path, state_dir=state).get(point["session_id"])[
+            "status"
+        ]
+        == "EXECUTING"
+    )
+    recorded = EvidenceStore(state).events()
+    monkeypatch.setattr(GPTGuidedResearchService, "_finalize_inflight", original)
+    reopened = create_mcp_server(state_dir=state, project_root=tmp_path)
+    recovered = reopened._dispatch("reconcile_guided_research", {"session_id": point["session_id"]})
+    assert recovered["reconciliation"] == "VERIFIED_COMPLETED_EVIDENCE"
+    assert recovered["status"] == "AWAITING_GPT"
+    assert recovered["completed_generations"] == 1
+    assert EvidenceStore(state).events() == recorded
+
+
+def test_legacy_guided_session_schema_migrates_without_losing_checkpoints(tmp_path: Path) -> None:
+    import sqlite3
+
+    _write_inputs(tmp_path)
+    state = tmp_path / "state"
+    older = GPTGuidedResearchService(project_root=tmp_path, state_dir=state)
+    db_path = older.db_path
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as db:
+        db.execute(
+            "CREATE TABLE sessions("
+            "id TEXT PRIMARY KEY, status TEXT NOT NULL, request_json TEXT NOT NULL,"
+            " dataset_hash TEXT NOT NULL, file_sha256 TEXT NOT NULL,"
+            " requested INTEGER NOT NULL, completed INTEGER NOT NULL DEFAULT 0,"
+            " token TEXT, previous_run_id TEXT)"
+        )
+    created = older.start({"data_path": "bars.parquet", "generations": 2})
+    assert created["status"] == "AWAITING_GPT"
+    assert created["inflight_run_id"] is None
+    assert created["checkpoint_token"]
+    with sqlite3.connect(db_path) as db:
+        names = {col[1] for col in db.execute("PRAGMA table_info(sessions)")}
+    assert {"inflight_run_id", "inflight_attempt_id", "inflight_source_sha256"} <= names

@@ -20,6 +20,7 @@ from application.evaluation_service import EvaluationService
 from core.data.contracts import DataZone
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import research_feature_specs
+from core.integrity.hashes import content_hash
 from experiments.candidate_generator import generate_candidates
 from experiments.identity import semantic_strategy_hash
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
@@ -61,6 +62,21 @@ class GPTGuidedResearchService:
             PRIMARY KEY(session_id, generation)
           );
         """)
+        existing = {row[1] for row in db.execute("PRAGMA table_info(sessions)")}
+        for name in (
+            "inflight_run_id",
+            "inflight_attempt_id",
+            "inflight_intent_hash",
+            "inflight_semantic_hashes_json",
+            "inflight_source_sha256",
+        ):
+            if name not in existing:
+                try:
+                    db.execute(f"ALTER TABLE sessions ADD COLUMN {name} TEXT")
+                except sqlite3.OperationalError as exc:
+                    # Concurrent first access may have applied the same migration.
+                    if "duplicate column name" not in str(exc).lower():
+                        raise
         return db
 
     @staticmethod
@@ -124,7 +140,10 @@ class GPTGuidedResearchService:
         session_id = uuid4().hex
         with self._connect() as db:
             db.execute(
-                "INSERT INTO sessions VALUES (?,?,?,?,?,?,0,?,NULL)",
+                "INSERT INTO sessions "
+                "(id,status,request_json,dataset_hash,file_sha256,requested,"
+                "completed,token,previous_run_id) "
+                "VALUES (?,?,?,?,?,?,0,?,NULL)",
                 (
                     session_id,
                     "AWAITING_GPT",
@@ -214,6 +233,8 @@ class GPTGuidedResearchService:
             "generation": row["completed"] + 1 if waiting else None,
             "checkpoint_token": row["token"] if waiting else None,
             "last_run_id": row["previous_run_id"],
+            "inflight_run_id": row["inflight_run_id"],
+            "inflight_attempt_id": row["inflight_attempt_id"],
             "previous_failed_gates": history[-1]["failed_gates"] if history else [],
             "previous_evaluated_strategies": len(previously_evaluated),
             "previous_semantic_strategy_hashes": sorted(previously_evaluated),
@@ -222,13 +243,146 @@ class GPTGuidedResearchService:
                 "method": request["method"],
                 "count": request["count"],
             },
-            "next_action": "GPT_SUBMIT_TYPED_INTENT" if waiting else "NONE",
+            "next_action": (
+                "GPT_SUBMIT_TYPED_INTENT"
+                if waiting
+                else "RECONCILE_AFTER_WORKER_STOPPED"
+                if row["status"] == "EXECUTING"
+                else "OPERATOR_REVIEW_OR_RECONCILE"
+                if row["status"] == "INTERRUPTED"
+                else "NONE"
+            ),
             "history": history,
             "orders_enabled": False,
             "sealed_oos_evaluated": False,
             "validation_scope": "REUSED_DEVELOPMENT_DATA_NOT_INDEPENDENT_OOS",
             "llm_controller": "external_mcp_client_each_generation",
         }
+
+    def _inspect_inflight(self, row: sqlite3.Row) -> tuple[str, list[str]]:
+        """Accept only the exact terminal evaluator run reserved before CAS."""
+        run_id = row["inflight_run_id"]
+        attempt_id = row["inflight_attempt_id"]
+        if not run_id or not attempt_id:
+            return "LEGACY_INFLIGHT_UNTRACKED", []
+        events = [
+            e
+            for e in EvidenceStore(self.state_dir).events()
+            if e["payload"]["research_run_id"] == run_id
+        ]
+        if not events:
+            return "INCOMPLETE_OR_MISSING_EVIDENCE", []
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for event in events:
+            groups.setdefault(event["kind"], []).append(event["payload"])
+        if len(groups.get("run", [])) != 1:
+            return "EVIDENCE_IDENTITY_MISMATCH", []
+        manifest = groups.get("manifest", [])
+        attempts = groups.get("attempt", [])
+        generations = groups.get("generation", [])
+        ends = groups.get("end", [])
+        request = json.loads(row["request_json"])
+        run = groups["run"][0]
+        expected_hashes = json.loads(row["inflight_semantic_hashes_json"] or "[]")
+        expected_settings = {
+            "guided_session_id": row["id"],
+            "guided_generation": row["completed"] + 1,
+            "intent_hash": row["inflight_intent_hash"],
+            "previous_research_run_id": row["previous_run_id"],
+            "expected_semantic_hashes": expected_hashes,
+        }
+        settings = run.get("settings")
+        if (
+            not isinstance(settings, dict)
+            or any(settings.get(k) != v for k, v in expected_settings.items())
+            or run.get("requested_generations") != 1
+            or run.get("seed") != request["seed"] + row["completed"]
+            or settings.get("source_sha256") != row["inflight_source_sha256"]
+        ):
+            return "EVIDENCE_IDENTITY_MISMATCH", []
+        if not ends or not generations or not attempts or not manifest:
+            return "INCOMPLETE_OR_MISSING_EVIDENCE", []
+        if len(manifest) != 1 or len(attempts) != 1 or len(generations) != 1 or len(ends) != 1:
+            return "EVIDENCE_IDENTITY_MISMATCH", []
+        attempt = attempts[0]
+        if (
+            attempt.get("attempt_id") != attempt_id
+            or attempt.get("generation") != 1
+            or generations[0].get("generation") != 1
+            or generations[0].get("attempt_id") != attempt_id
+        ):
+            return "EVIDENCE_IDENTITY_MISMATCH", []
+        if (
+            ends[0].get("status") != "COMPLETED"
+            or generations[0].get("status") != "COMPLETED"
+            or attempt.get("status") != "COMPLETED"
+            or attempt.get("verification") is not None
+        ):
+            return "INCOMPLETE_OR_MISSING_EVIDENCE", []
+        candidates = attempt.get("candidates", [])
+        if (
+            not candidates
+            or len(candidates) != len(expected_hashes)
+            or {c.get("semantic_strategy_hash") for c in candidates} != set(expected_hashes)
+            or any(c.get("dataset_hash") != row["dataset_hash"] for c in candidates)
+        ):
+            return "EVIDENCE_IDENTITY_MISMATCH", []
+        return "VERIFIED_COMPLETED_EVIDENCE", sorted(
+            {gate for candidate in candidates for gate in candidate.get("failed_gates", [])}
+        )
+
+    def _finalize_inflight(self, session_id: str) -> dict[str, object]:
+        """Atomically adopt immutable, fully complete Evidence without reevaluation."""
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT * FROM sessions WHERE id=?", (session_id,)).fetchone()
+            if row is None or row["status"] not in {"EXECUTING", "INTERRUPTED"}:
+                raise ValueError("inflight guided session no longer awaiting reconciliation")
+            verdict, failed_gates = self._inspect_inflight(row)
+            if verdict != "VERIFIED_COMPLETED_EVIDENCE":
+                raise ValueError(f"unverifiable guided Evidence: {verdict}")
+            generation = row["completed"] + 1
+            final = generation == row["requested"]
+            db.execute(
+                "INSERT INTO steps VALUES(?,?,?,?,?,?)",
+                (
+                    session_id,
+                    generation,
+                    row["inflight_run_id"],
+                    row["inflight_attempt_id"],
+                    row["previous_run_id"],
+                    json.dumps(failed_gates, sort_keys=True),
+                ),
+            )
+            db.execute(
+                "UPDATE sessions SET completed=?, status=?, token=?, previous_run_id=?,"
+                " inflight_run_id=NULL, inflight_attempt_id=NULL,"
+                " inflight_intent_hash=NULL, inflight_semantic_hashes_json=NULL,"
+                " inflight_source_sha256=NULL WHERE id=?",
+                (
+                    generation,
+                    "COMPLETED" if final else "AWAITING_GPT",
+                    None if final else secrets.token_hex(16),
+                    row["inflight_run_id"],
+                    session_id,
+                ),
+            )
+        return self.get(session_id)
+
+    def reconcile(self, session_id: str) -> dict[str, object]:
+        """Explicit, idempotent crash reconciliation. Never launch an evaluator."""
+        row, _request = self._read(session_id)
+        if row["status"] not in {"EXECUTING", "INTERRUPTED"}:
+            return {**self.get(session_id), "reconciliation": "ALREADY_SETTLED"}
+        verdict, _failed = self._inspect_inflight(row)
+        if verdict == "VERIFIED_COMPLETED_EVIDENCE":
+            return {**self._finalize_inflight(session_id), "reconciliation": verdict}
+        with self._connect() as db:
+            db.execute(
+                "UPDATE sessions SET status='INTERRUPTED' WHERE id=? AND status='EXECUTING'",
+                (session_id,),
+            )
+        return {**self.get(session_id), "reconciliation": verdict}
 
     def submit(self, args: dict[str, Any]) -> dict[str, object]:
         allowed = {"session_id", "checkpoint_token", "generation", "source_path", "intent"}
@@ -290,13 +444,28 @@ class GPTGuidedResearchService:
             raise ValueError("DUPLICATE_STRATEGY: proposal repeats an executable strategy")
         if previous_hashes.intersection(candidate_hashes):
             raise ValueError("DUPLICATE_STRATEGY: strategy already evaluated in this session")
-        # This single compare-and-swap authorizes one evaluator invocation.
-        # A crashed/ambiguous invocation is INTERRUPTED, never automatically replayed.
+        # Journal exact immutable execution identity BEFORE starting the worker.
+        # Any interrupted or ambiguous evaluator is never automatically replayed.
+        reserved_run_id = uuid4().hex
+        reserved_attempt_id = uuid4().hex
+        intent_hash = content_hash(intent.model_dump(mode="json", exclude_none=True))
+        source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
         with self._connect() as db:
             cur = db.execute(
-                "UPDATE sessions SET status='EXECUTING',token=NULL "
+                "UPDATE sessions SET status='EXECUTING',token=NULL,"
+                "inflight_run_id=?, inflight_attempt_id=?, inflight_intent_hash=?,"
+                "inflight_semantic_hashes_json=?, inflight_source_sha256=? "
                 "WHERE id=? AND status='AWAITING_GPT' AND completed=? AND token=?",
-                (session_id, generation - 1, token),
+                (
+                    reserved_run_id,
+                    reserved_attempt_id,
+                    intent_hash,
+                    json.dumps(sorted(candidate_hashes)),
+                    source_hash,
+                    session_id,
+                    generation - 1,
+                    token,
+                ),
             )
             if cur.rowcount != 1:
                 raise ValueError("stale checkpoint concurrently claimed")
@@ -317,62 +486,19 @@ class GPTGuidedResearchService:
                 min_annual_trades=request["min_annual_trades"],
                 min_qqq_cagr_delta=request["min_qqq_cagr_delta"],
                 previous_research_run_id=row["previous_run_id"],
+                guided_session_id=session_id,
+                guided_generation=generation,
+                reserved_run_id=reserved_run_id,
+                reserved_attempt_id=reserved_attempt_id,
+                expected_semantic_hashes=tuple(sorted(candidate_hashes)),
+                source_sha256=source_hash,
             )
-            run_id = result.get("research_run_id")
-            attempt_id = result.get("attempt_id")
-            if not isinstance(run_id, str) or not isinstance(attempt_id, str):
-                raise ValueError("evaluator did not return auditable research identity")
-            evidence = EvidenceStore(self.state_dir).events()
-            matches = [
-                event["payload"]
-                for event in evidence
-                if event["kind"] == "attempt"
-                and event["payload"].get("research_run_id") == run_id
-                and event["payload"].get("attempt_id") == attempt_id
-            ]
             if (
-                len(matches) != 1
-                or matches[0]["status"] != "COMPLETED"
-                or matches[0].get("verification") is not None
+                result.get("research_run_id") != reserved_run_id
+                or result.get("attempt_id") != reserved_attempt_id
             ):
-                raise ValueError("guided evaluation lacks verified immutable attempt evidence")
-            candidate_rows = matches[0]["candidates"]
-            if not candidate_rows or any(
-                c.get("dataset_hash") != row["dataset_hash"] for c in candidate_rows
-            ):
-                raise ValueError("guided evaluation is missing comparable candidate evidence")
-            failed_gates = sorted(
-                {gate for c in candidate_rows for gate in c.get("failed_gates", [])}
-            )
-            final = generation == row["requested"]
-            with self._connect() as db:
-                db.execute("BEGIN IMMEDIATE")
-                db.execute(
-                    "INSERT INTO steps VALUES(?,?,?,?,?,?)",
-                    (
-                        session_id,
-                        generation,
-                        run_id,
-                        attempt_id,
-                        row["previous_run_id"],
-                        json.dumps(failed_gates, sort_keys=True),
-                    ),
-                )
-                updated = db.execute(
-                    "UPDATE sessions SET completed=?, status=?, token=?, previous_run_id=? "
-                    "WHERE id=? AND status='EXECUTING' AND completed=?",
-                    (
-                        generation,
-                        "COMPLETED" if final else "AWAITING_GPT",
-                        None if final else secrets.token_hex(16),
-                        run_id,
-                        session_id,
-                        generation - 1,
-                    ),
-                )
-                if updated.rowcount != 1:
-                    raise ValueError("guided session checkpoint journal conflict")
-            return self.get(session_id)
+                raise ValueError("evaluator returned unexpected reserved Evidence identity")
+            return self._finalize_inflight(session_id)
         except Exception:
             # Do not silently rerun an evaluator that might have committed Evidence.
             with self._connect() as db:

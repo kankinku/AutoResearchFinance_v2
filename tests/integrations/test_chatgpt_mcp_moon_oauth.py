@@ -183,7 +183,7 @@ def test_moon_oauth_registration_approval_pkce_and_scope(tmp_path: Path) -> None
                 audit_file = tmp_path / "research" / "logs" / "mcp-events.jsonl"
                 audit_data = audit_file.read_text(encoding="utf-8")
                 records = [json.loads(line) for line in audit_data.splitlines()]
-                assert any(r["event"] == "tools_list" and r["count"] == 22 for r in records)
+                assert any(r["event"] == "tools_list" and r["count"] == 23 for r in records)
                 assert any(
                     r["event"] == "tool_call"
                     and r["tool"] == "get_workspace_status"

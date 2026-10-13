@@ -37,6 +37,7 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "run_research_step": "EXECUTION_LIFECYCLE",
     "start_guided_research": "EXECUTION_LIFECYCLE",
     "get_guided_research": "EVIDENCE_STATUS",
+    "reconcile_guided_research": "EXECUTION_LIFECYCLE",
     "submit_guided_generation": "EXECUTION_LIFECYCLE",
     "start_research_batch": "EXECUTION_LIFECYCLE",
     "preflight_research_batch": "CATALOG_VALIDATION",
@@ -111,6 +112,16 @@ def chatgpt_tools() -> list[dict[str, object]]:
             {
                 "name": "get_guided_research",
                 "description": "Read immutable Evidence-based GPT checkpoint; never auto-advance.",
+                "inputSchema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"session_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"}},
+                    "required": ["session_id"],
+                },
+            },
+            {
+                "name": "reconcile_guided_research",
+                "description": "Reconcile guided Evidence without re-evaluating.",
                 "inputSchema": {
                     "type": "object",
                     "additionalProperties": False,

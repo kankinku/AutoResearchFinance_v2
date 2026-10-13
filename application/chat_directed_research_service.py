@@ -47,6 +47,12 @@ class ChatDirectedResearchService:
         min_qqq_cagr_delta: float | None = None,
         series_data_path: str | None = None,
         previous_research_run_id: str | None = None,
+        guided_session_id: str | None = None,
+        guided_generation: int | None = None,
+        reserved_run_id: str | None = None,
+        reserved_attempt_id: str | None = None,
+        expected_semantic_hashes: tuple[str, ...] = (),
+        source_sha256: str | None = None,
     ) -> dict[str, object]:
         if method not in {"grid", "random", "bayesian"}:
             raise ValueError("invalid experiment method")
@@ -102,7 +108,13 @@ class ChatDirectedResearchService:
                 "previous_research_run_id": previous_research_run_id,
                 "method": method,
                 "count": count,
+                "guided_session_id": guided_session_id,
+                "guided_generation": guided_generation,
+                "expected_semantic_hashes": list(expected_semantic_hashes),
+                "source_sha256": source_sha256,
             },
+            reserved_run_id=reserved_run_id,
+            reserved_attempt_id=reserved_attempt_id,
         )
         record_intent(self.state_dir / "llm" / "intents.jsonl", intent)
         try:

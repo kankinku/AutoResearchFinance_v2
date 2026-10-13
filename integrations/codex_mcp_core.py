@@ -101,7 +101,12 @@ class CodexMCPServer:
                 comparison_path=arguments.get("comparison_path"),
                 adjusted_path=arguments.get("adjusted_path"),
             )
-        if name in {"start_guided_research", "get_guided_research", "submit_guided_generation"}:
+        if name in {
+            "start_guided_research",
+            "get_guided_research",
+            "submit_guided_generation",
+            "reconcile_guided_research",
+        }:
             guided = GPTGuidedResearchService(
                 project_root=self.project_root, state_dir=self.state_dir
             )
@@ -111,6 +116,10 @@ class CodexMCPServer:
                 if set(arguments) != {"session_id"}:
                     raise ValueError("get_guided_research requires session_id")
                 return guided.get(arguments["session_id"])
+            if name == "reconcile_guided_research":
+                if set(arguments) != {"session_id"}:
+                    raise ValueError("reconcile_guided_research requires session_id")
+                return guided.reconcile(arguments["session_id"])
             return guided.submit(arguments)
         if name in {"list_market_data", "download_market_data", "validate_market_data"}:
             market = MarketDataService(self.project_root)

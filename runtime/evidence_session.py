@@ -18,8 +18,18 @@ class EvidenceSession:
         requested_generations: int,
         seed: int,
         settings: dict[str, Any] | None = None,
+        reserved_run_id: str | None = None,
+        reserved_attempt_id: str | None = None,
     ) -> None:
-        self.run_id = uuid4().hex
+        for identity in (reserved_run_id, reserved_attempt_id):
+            if identity is not None and (
+                not isinstance(identity, str)
+                or len(identity) != 32
+                or any(char not in "0123456789abcdef" for char in identity)
+            ):
+                raise ValueError("invalid reserved Evidence ID")
+        self.run_id = reserved_run_id or uuid4().hex
+        self.reserved_attempt_id = reserved_attempt_id
         self.store = EvidenceStore(state_dir)
         self.store.append(
             "run",
@@ -35,7 +45,7 @@ class EvidenceSession:
     def evaluate(
         self, runner: Callable[..., dict[str, object]], **kwargs: Any
     ) -> dict[str, object]:
-        attempt_id = uuid4().hex
+        attempt_id = self.reserved_attempt_id or uuid4().hex
         identity = {
             "research_run_id": self.run_id,
             "attempt_id": attempt_id,
