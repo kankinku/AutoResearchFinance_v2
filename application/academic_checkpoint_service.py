@@ -36,6 +36,7 @@ from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
 from research.llm.diagnostic_research import build_diagnostic_context
+from research.llm.execution_policy import research_execution_policy
 
 
 class _SubmittedProvider:
@@ -246,6 +247,7 @@ class AcademicMCPCheckpointService:
             result: dict[str, Any] = {**current, 'checkpoint_phase': row['phase'],
                                       'catalog_version': row['catalog_version'],
                                       'llm_controller': 'authenticated_chatgpt_mcp_client',
+                                      'research_execution_policy': research_execution_policy(),
                                       'mcp_url_unchanged': True}
             if row['phase'] == 'AWAITING_PLAN':
                 if current['status'] != 'AWAITING_PROVIDER':

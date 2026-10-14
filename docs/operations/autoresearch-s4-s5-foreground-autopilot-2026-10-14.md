@@ -1,5 +1,7 @@
 # Quant Autoresearch — S4/S5 다세대 실제 연구 연결기 1차
 
+> **2026-10-15 정책 변경:** 기본 연구 경로는 기존 ChatGPT MCP입니다. 아래의 별도 API 사용은 선택 사항이며, 반드시 `--execution-mode openai-api`를 명시해야 합니다. [기본 MCP 정책](autoresearch-default-mcp-controller-2026-10-15.md).
+
 기준일: 2026-10-14. 기준 브랜치 `feat/p0-indicator-research-engine-v1`. [20문답](../decisions/2026-10-14-autoresearch-interview-20q.md)에서 확정한 **세대 = 설계 + 백테스트 + 원인 진단 + 다음 방향 결정**을 외부 LLM provider로 반복할 수 있게 만드는 작업이다. 기존 MCP URL/OAuth/브로커 경로는 변경하지 않는다.
 
 ## 구현 내용
@@ -22,7 +24,7 @@ PYTHONPATH="$PWD" /shared/moon-workspace/AutoResearchFinance_v2-phase3-5-1-inven
   scripts/run_academic_autopilot.py \
   --project-root /shared/moon-workspace/AutoResearchFinance_v2-phase3-5-1-inventory \
   --state-dir /shared/moon-workspace/AutoResearchFinance_v2-phase3-5-1-inventory/state/moon-http/research \
-  --model '운영자-선택-모델' \
+  --execution-mode openai-api --model '운영자-선택-모델' \
   --data-path data/market/tiingo/QQQ_2020-01-02_2025-12-31_raw.parquet \
   --generations 10 --max-generations-this-call 10
 

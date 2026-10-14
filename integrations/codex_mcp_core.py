@@ -217,6 +217,7 @@ class CodexMCPServer:
                 raise ValueError("research brief does not take arguments")
             from integrations.chatgpt_mcp_sdk import chatgpt_tools
             from memory.evidence_store import digest
+            from research.llm.execution_policy import research_execution_policy
 
             schema = chatgpt_tools()
             return {
@@ -237,6 +238,7 @@ class CodexMCPServer:
                     ),
                 },
                 **self.services.research.brief(),
+                "research_execution_policy": research_execution_policy(),
                 "research_inputs": ResearchBatchService(
                     project_root=self.project_root, state_dir=self.state_dir
                 ).describe_inputs(),

@@ -111,3 +111,8 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### S4/S5 전경 Autopilot 운영 배포 확인 — 기존 MCP 등록 유지 (2026-10-14)
 
 코드 `bec361a`, 고정 런타임, 배포 `b8aa514`. 기존 URL/OAuth 등록·32개 도구·`READY`·주문 비활성 확인. **1,387 전체 테스트 통과**, 실제 QQQ DEVELOPMENT 데이터로 **mock 모델 10세대** 연속 실행과 중단·재개/실험 연결 검증. 실제 GPT API 키 부재로 **실제 LLM 자율성 검증/장기 무인 연구/S8 랜덤 기준 효율 비교/S10 독립 수익성 검증은 미완료**. [상세 보고](autoresearch-s4-s5-foreground-autopilot-2026-10-14.md).
+
+
+### 기본 연구 실행 경로 확정 — 2026-10-15
+
+[ChatGPT MCP 기본 실행 정책](autoresearch-default-mcp-controller-2026-10-15.md): 사용자 결정에 따라 **기존 ChatGPT ↔ Quant MCP 연결을 기본 모드**로 고정했다. 추가 OpenAI API 실행기는 삭제하지 않되 `--execution-mode openai-api`와 모델 ID·별도 키가 필요하고, 키 존재만으로 자동 사용하지 않는다. MCP URL·OAuth 등록·원장·실거래 권한·MCP 도구 목록은 변경하지 않는다. 실제 ChatGPT 10세대 연구의 미완료 수락 기준은 유지한다.
