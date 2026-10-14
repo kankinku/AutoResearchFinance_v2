@@ -84,6 +84,50 @@ def _signal_value(x: float | None) -> bool | None:
     return None if x is None else x > 0.5
 
 
+def calculate_audit_hash(
+    evaluation: AcademicDevelopmentResult,
+    decisions: tuple[DecisionObservation, ...],
+    fills: tuple[FillObservation, ...],
+    round_trips: tuple[ClosedResearchTrade, ...],
+    packet: dict[str, object],
+) -> str:
+    """Bind *all* causal inputs, actual fills, computed metrics and LLM packet.
+
+    Excludes only the self-referential `audit_hash` entry. The result is a
+    research checksum, not a cryptographic signature of an external vendor.
+    """
+    return content_hash({
+        "schema": "research-decision-audit-evidence-v2",
+        "evaluation": {
+            "strategy": evaluation.strategy_hash,
+            "dataset": evaluation.dataset_hash,
+            "replay": evaluation.replay_hash,
+            "equity_hash": evaluation.equity_hash,
+            "equity_curve": evaluation.equity_curve,
+            "trades": [asdict(t) for t in evaluation.trades],
+            "initial_cash": evaluation.initial_cash,
+            "final_equity": evaluation.final_equity,
+            "paid_costs": evaluation.total_paid_costs,
+        },
+        "decisions": [
+            {**asdict(d), "signal_time": d.signal_time.isoformat(),
+             "earliest_execution": (
+                 d.earliest_execution.isoformat() if d.earliest_execution else None
+             )}
+            for d in decisions
+        ],
+        "fills": [
+            {**asdict(f), "execution_time": f.execution_time.isoformat()}
+            for f in fills
+        ],
+        "round_trips": [
+            (t.trade_id, t.entry_fill.fill_id, t.exit_fill.fill_id, t.net_pnl)
+            for t in round_trips
+        ],
+        "analysis_packet": {k: v for k, v in packet.items() if k != "audit_hash"},
+    })
+
+
 def audit_compiled_academic_decisions(
     compiled: CompiledAcademicStrategy,
     market: MarketDataSet,
@@ -293,21 +337,9 @@ def audit_compiled_academic_decisions(
         "independent_oos": False,
         "point_in_time_verified": False,
     }
-    audit_hash = content_hash({
-        "version": "reviewed-academic-decision-audit-v1",
-        "strategy": compiled.strategy_hash,
-        "dataset": market.dataset_hash,
-        "replay": compiled.replay.replay_hash,
-        "equity": evaluated.equity_hash,
-        "decisions": [
-            (x.decision_id, x.signal_time.isoformat(), x.action,
-             x.entry_signal, x.regime_signal, x.fill_id)
-            for x in decisions
-        ],
-        "fills": [(x.fill_id, x.trade_id, x.decision_id, x.price, x.trade.cost)
-                  for x in fills],
-        "closed": [(x.trade_id, x.net_pnl) for x in closed],
-    })
+    audit_hash = calculate_audit_hash(
+        evaluated, tuple(decisions), tuple(fills), tuple(closed), packet,
+    )
     packet["audit_hash"] = audit_hash
     return AcademicDecisionAudit(
         evaluation=evaluated, decisions=tuple(decisions), fills=tuple(fills),

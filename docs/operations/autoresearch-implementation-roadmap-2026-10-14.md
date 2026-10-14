@@ -36,3 +36,11 @@
 - `core/data`, `core/backtest`, `core/evaluator`, `core/validation`, `core/costs`, `core/integrity`, Sealed OOS, KIS 주문 권한은 이번 브랜치에서 보호한다.
 - 각 기능은 테스트 먼저→코드→대조 실험→전체 pytest/ruff/mypy→GitHub 개발 브랜치 푸시. 과거 v1 아키텍처 문서·복구 브랜치는 변경하지 않는다.
 - 테스트·코드가 없고 문서만 있는 항목은 `PROPOSED`로 표시한다. 앞으로 QQQ 전용 모멘텀 재튜닝 자체를 새로운 핵심 개발 단계로 간주하지 않는다.
+
+
+## 개발 진행 갱신 (2026-10-14)
+
+- **S0:** 인터뷰·아키텍처·로드맵 문서화 및 개발 브랜치 푸시 완료.
+- **S1:** 2개 검증 지표 조합에 대한 매매 결정-체결 추적 1차 구현 완료. 모든 일반 StrategyIR 지원은 미완료.
+- **S2:** 검증된 감사 패킷을 LLM용 구조화 입력으로 만들고, 출력 가설을 실제 원장 ID·타입드 ResearchIntent·변경된 StrategyIR의 사전검증에 연결하는 1차 기능 구현. 실제 모델 호출·원인 반증 실험·영속 저장은 미완료. [세부 보고](autoresearch-diagnostic-contract-2026-10-14.md).
+- **S3~S10:** 추진계획. 작업 완료로 간주하지 않음.
