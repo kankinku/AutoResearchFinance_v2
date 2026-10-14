@@ -1,7 +1,7 @@
 # Quant Autoresearch Harness
 
 
-> **2026-10-14 사용자 20문답 기반 개발 방향:** [20문답 결정 기록](docs/decisions/2026-10-14-autoresearch-interview-20q.md) · [자율 연구 v2 아키텍처 추진안](docs/architecture/quant-autoresearch-autonomous-research-v2-proposal.md) · [개발 로드맵](docs/operations/autoresearch-implementation-roadmap-2026-10-14.md) · [첫 거래 판단 근거 추적 구현](docs/operations/autoresearch-decision-audit-slice-2026-10-14.md) · [S2 LLM 진단·실험 제안 계약](docs/operations/autoresearch-diagnostic-contract-2026-10-14.md) · [S3 알고리즘 계획/분기/가중치](docs/operations/autoresearch-algorithm-plan-s3-2026-10-14.md) · [S4 세대별 실행/검증 체크포인트](docs/operations/autoresearch-s4-cycle-2026-10-14.md). 기존 승인된 v1 설계 및 실거래 차단 경계는 그대로 유지합니다.
+> **2026-10-14 사용자 20문답 기반 개발 방향:** [20문답 결정 기록](docs/decisions/2026-10-14-autoresearch-interview-20q.md) · [자율 연구 v2 아키텍처 추진안](docs/architecture/quant-autoresearch-autonomous-research-v2-proposal.md) · [개발 로드맵](docs/operations/autoresearch-implementation-roadmap-2026-10-14.md) · [첫 거래 판단 근거 추적 구현](docs/operations/autoresearch-decision-audit-slice-2026-10-14.md) · [S2 LLM 진단·실험 제안 계약](docs/operations/autoresearch-diagnostic-contract-2026-10-14.md) · [S3 알고리즘 계획/분기/가중치](docs/operations/autoresearch-algorithm-plan-s3-2026-10-14.md) · [S4 세대별 실행/검증 체크포인트](docs/operations/autoresearch-s4-cycle-2026-10-14.md) · [S7 대조실험/연구 기억](docs/operations/autoresearch-s7-controlled-experiments-2026-10-14.md). 기존 승인된 v1 설계 및 실거래 차단 경계는 그대로 유지합니다.
 
 시스템 전반의 용어·경로·연산자·상태 라벨·지시문 기준은
 [`docs/operations/notation-contract.md`](docs/operations/notation-contract.md)에 통합되어 있습니다.
