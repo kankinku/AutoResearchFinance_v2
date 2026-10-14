@@ -34,3 +34,13 @@
 - `ruff check .`: 통과; `mypy .`: **224 source files** 통과.
 - 기존 S7 1차 1,351개에서 새 정밀 분석 관련 테스트 5개 추가. 거래 시점 유지/수량 변경 구분, 추가/제거 이벤트, 네 구간의 길이·측정, 복수 가설 대조, SHA 변조 감지를 검증했다.
 - S7 1차 운영 SQLite의 v1 기록/서명해시를 **수정하지 않고**, 기존 QQQ 원본 Plan과 Diagnostic JSON을 동일 검증된 데이터에서 읽기 전용으로 재실행해 v2 집계의 논리를 검증했다. 기존 연구를 재작성하거나 이 변경만으로 자율 LLM 호출 성공을 주장하지 않는다.
+
+## 최종 운영 배포 검증
+
+- 개발 커밋: `e07381050f17aeafeaae38dfa305847c3b79f4b2`. 개발 브랜치 `feat/p0-indicator-research-engine-v1` GitHub push 완료.
+- 고정 배포 runtime: `/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-e073810`, 앞선 안정 runtime `cfafa45`는 변경하지 않고 보존.
+- 운영 런처 배포 브랜치: `deploy/quant-mcp-s7v2-stable-url` 커밋 `30fd920`, GitHub push 완료. nginx/OAuth/Tailscale URL 또는 기존 복구 브랜치 변경 없음.
+- 같은 `https://project-moon.taild689f9.ts.net/quant/mcp`의 인증 없는 요청 `401` (정상 접근제어), OAuth protected resource metadata의 `resource` 역시 위 기존 URL.
+- **이미 연결된 Quant Autoresearch 플러그인**에서 `get_research_brief`, `get_workspace_status` 직접 호출 후 `tools/list=32`, `READY`, 주문 비활성 확인. 등록 삭제/재등록·키 발급·OAuth 토큰 변경 작업 없음.
+- 실제 QQQ의 기존 v1 영속 저장 보고서가 새 v2로 자동 덮어써지지는 않는다. 이전 2세대 원본으로 수동 read-only v2 재계산을 검증했으며 기존 evidence/hash는 건드리지 않았다. 사용자 승인 없는 과거 연구 데이터 일괄 마이그레이션 수행하지 않음.
+- 외부 연결 채팅 클라이언트의 `evaluate_algorithm_experiments` 신규 도구 **직접 호출**은 이전과 마찬가지로 아직 수행되지 않았으므로, `tools/list` 응답을 곧바로 그 기능의 실제 end-to-end GPT 호출 성공으로 오인하지 않는다.
