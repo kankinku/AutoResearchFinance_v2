@@ -423,3 +423,82 @@ def test_s6_v2_backend_upgrade_blocks_new_sessions_but_reads_existing(tmp_path: 
         server._dispatch('start_algorithm_research', {
             'data_path': 'data/study.parquet', 'generations': 1,
         })
+
+
+def test_s8_research_direction_consumes_measured_experiments_without_claiming_alpha(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    from tests.research.test_autonomous_academic_cycle import ScriptedResearcher
+    provider = ScriptedResearcher()
+    assert started['model_context']['research_direction']['recommended_mode'] == 'EXPLORE'
+    sid = started['session_id']
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+        'plan': provider.propose(started['model_context']),
+    })
+    finished = server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+        'diagnosis': provider.propose(staged['model_context']),
+    })
+    before = finished['model_context']['research_direction']
+    assert before['completed_generations'] == 1
+    assert before['recommended_mode'] == 'TEST_HYPOTHESIS'
+    assert before['experiment_outcome_count'] == 0
+    tested = server._dispatch('evaluate_algorithm_experiments', {
+        'session_id': sid, 'generation': 1,
+    })
+    after = server._dispatch('get_algorithm_research', {'session_id': sid})
+    budget = after['model_context']['research_direction']
+    assert budget['completed_generations'] == 1
+    assert budget['experiment_outcome_count'] == len(tested['report']['experiments'])
+    assert budget['causal_status'] == 'NOT_ESTABLISHED'
+    assert budget['llm_may_override'] is True
+    assert budget['independent_oos_approved'] is False
+    assert after['history'] == finished['history']
+    assert server._dispatch('get_algorithm_research', {'session_id': sid})[
+        'model_context']['research_direction'] == budget
+
+
+def test_s8_legacy_experiment_without_execution_diff_remains_readable(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    provider = ScriptedResearcher()
+    sid = started['session_id']
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+        'plan': provider.propose(started['model_context']),
+    })
+    completed = server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+        'diagnosis': provider.propose(staged['model_context']),
+    })
+    import json
+
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    from core.integrity.hashes import content_hash
+    service = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    legacy = {
+        'session_id': sid, 'generation': 1,
+        'original_generation_evidence_hash': completed['history'][0]['evidence_hash'],
+        'report': {
+            'status': 'CONTROLLED_DEVELOPMENT_COMPARISON',
+            'causal_status': 'NOT_ESTABLISHED',
+            'experiments': [{
+                'hypothesis_id': 'legacy',
+                'status': 'NO_OBSERVED_EFFECT',
+                'causal_status': 'NOT_ESTABLISHED',
+            }],
+        },
+    }
+    with service._connect() as db:
+        db.execute(
+            'INSERT INTO experiment_reports(session_id,generation,report_json,report_hash) '
+            'VALUES(?,?,?,?)', (sid, 1, json.dumps(legacy), content_hash(legacy)),
+        )
+    state = server._dispatch('get_algorithm_research', {'session_id': sid})
+    assert state['model_context']['research_direction']['experiment_outcome_count'] == 0
+    assert (
+        state['model_context']['prior_research']['controlled_experiments']['report']
+        == legacy['report']
+    )
+    assert state['model_context']['research_direction']['causal_status'] == 'NOT_ESTABLISHED'

@@ -33,6 +33,7 @@ from research.indicator_engine.external_reference import (
 from research.indicator_engine.s6_seed import S6_SIGNALS, seed_s6_references
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
+from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
 from research.llm.diagnostic_research import build_diagnostic_context
 
@@ -190,6 +191,21 @@ class AcademicMCPCheckpointService:
     ) -> dict[str, Any]:
         context = build_algorithm_plan_context(catalog, data)
         context['generation'] = status['completed_generations'] + 1
+        # Validate stored experiment checksum before it influences future LLM
+        # direction. S7-v1 reports lack execution attribution and remain
+        # readable, but cannot support the newer direction allocator.
+        scored_reports: dict[int, dict[str, Any]] = {}
+        with self._connect() as db:
+            for item in status['history']:
+                observed = self._stored_experiment(db, status['session_id'], item['generation'])
+                if observed is not None and all(
+                    'execution_delta' in experiment
+                    for experiment in observed['report'].get('experiments', [])
+                ):
+                    scored_reports[item['generation']] = observed
+        context['research_direction'] = build_research_direction(
+            status['history'], scored_reports,
+        )
         if status['history']:
             previous = status['history'][-1]
             context['prior_research'] = {
