@@ -116,3 +116,7 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### 기본 연구 실행 경로 확정 — 2026-10-15
 
 [ChatGPT MCP 기본 실행 정책](autoresearch-default-mcp-controller-2026-10-15.md): 사용자 결정에 따라 **기존 ChatGPT ↔ Quant MCP 연결을 기본 모드**로 고정했다. 추가 OpenAI API 실행기는 삭제하지 않되 `--execution-mode openai-api`와 모델 ID·별도 키가 필요하고, 키 존재만으로 자동 사용하지 않는다. MCP URL·OAuth 등록·원장·실거래 권한·MCP 도구 목록은 변경하지 않는다. 실제 ChatGPT 10세대 연구의 미완료 수락 기준은 유지한다.
+
+### 2026-10-15 — 기본 MCP 정책 운영 검증 완료
+
+검증 완료 코드 `615dead`, 배포 `9e53840`, [상세 검증 로그](autoresearch-default-mcp-controller-2026-10-15.md). 전체 **1,392 tests PASS**. 기존 연결 ChatGPT 앱에서 새 정책 응답을 직접 조회해 기본 `mcp`, OpenAI API 자동 호출 `false`, 32개 도구, `READY`, 주문 비활성 확인. 이전 API Autopilot은 명시적 `--execution-mode openai-api` 선택 전에는 실행하지 않는다.

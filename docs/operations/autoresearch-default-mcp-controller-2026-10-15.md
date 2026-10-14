@@ -42,3 +42,12 @@
 
 - Full suite: 1,392 passed, 0 failed, 482.44 seconds.
 - Ruff and mypy: 231 Python files passed.
+
+## 운영 배포 검증 확정
+
+- 개발 브랜치 `feat/p0-indicator-research-engine-v1` 코드 커밋 **`615dead`**, GitHub push 완료.
+- 별도 고정 운영 Worktree `/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-615dead`. 이전 운영 Worktree `bec361a`와 기존 운영/복구 브랜치는 보존.
+- 별도 배포 브랜치 `deploy/quant-mcp-default-controller-20261015` 커밋 **`9e53840`** push. 런처 고정 소스 디렉터리 및 예상 SHA만 교체했으며 원래 URL·OAuth 발급기/승인 SQLite·승인 키·기존 저장 원장에 대한 변경은 없음.
+- 실제 MCP 프로세스 재시작 후 현재 프로세스 CWD가 `.../AutoResearchFinance_v2-quant-mcp-runtime-615dead`임을 검증. 동일 `https://project-moon.taild689f9.ts.net/quant/mcp` 미인증 HTTP **401** (인증 게이트 정상), OAuth protected-resource의 `resource`도 기존 URL 유지.
+- **기존 연결된 Quant Autoresearch ChatGPT 앱**에서 `get_research_brief` 및 `get_workspace_status` 인증 호출 완료. 응답 `research_execution_policy.default_mode='mcp'`, `default_controller='authenticated_chatgpt_mcp_client'`, `model_api_auto_enabled=false`, `model_api_explicit_opt_in_required=true`; MCP 도구 **32개**, 연구 환경 **READY**, 브로커 주문 **비활성**.
+- 새 인증 앱 등록, 키 발급, 별도 OpenAI API 사용, 실거래 주문 실행을 하지 않았음. 이 변경은 **기본 LLM 실행 경로**만 확정하며, 단일 ChatGPT 클라이언트의 실제 10~100세대 자율 모델 호출까지 자동으로 구현했다는 뜻은 아니다.
