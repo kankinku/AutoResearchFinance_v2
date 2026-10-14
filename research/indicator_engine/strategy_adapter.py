@@ -39,6 +39,7 @@ class AcademicDevelopmentResult:
     strategy_hash: str
     replay_hash: str
     equity_hash: str
+    equity_curve: tuple[float, ...]
     initial_cash: float
     final_equity: float
     trades_count: int
@@ -196,6 +197,7 @@ def evaluate_compiled_development(
         strategy_hash=compiled.strategy_hash,
         replay_hash=compiled.replay.replay_hash,
         equity_hash=result.equity_curve_hash,
+        equity_curve=result.equity_curve,
         initial_cash=initial_cash,
         final_equity=result.equity_curve[-1],
         trades_count=len(result.trades),
