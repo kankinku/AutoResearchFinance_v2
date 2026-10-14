@@ -25,6 +25,11 @@ from research.indicator_engine.algorithm_plan import (
 )
 from research.indicator_engine.catalog import ResearchCatalog
 from research.indicator_engine.controlled_experiments import compare_controlled_experiments
+from research.indicator_engine.external_reference import (
+    audit_s6_external_reference,
+    capture_s6_external_reference,
+    get_s6_external_reference,
+)
 from research.indicator_engine.s6_seed import S6_SIGNALS, seed_s6_references
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
@@ -86,20 +91,39 @@ class AcademicMCPCheckpointService:
         return db
 
     def _catalog(self, version: str = 's3-v1') -> ResearchCatalog:
-        if version not in ('s3-v1', 's6-v1'):
+        if version not in ('s3-v1', 's6-v1', 's6-v2'):
             raise CycleStateError('unknown pinned research indicator catalog version')
-        catalog = ResearchCatalog(self.state / (
-            'catalog.sqlite' if version == 's3-v1' else 'catalog-s6-v1.sqlite'
-        ))
+        catalog_files = {
+            's3-v1': 'catalog.sqlite',
+            's6-v1': 'catalog-s6-v1.sqlite',
+            's6-v2': 'catalog-s6-v2.sqlite',
+        }
+        catalog = ResearchCatalog(self.state / catalog_files[version])
         seed_approved_references(catalog)
         names: tuple[str, ...] = ('time_series_momentum', 'previous_range_breakout',
                  'parkinson_variance', 'sma_direction')
-        if version == 's6-v1':
+        if version in ('s6-v1', 's6-v2'):
             seed_s6_references(catalog)
             names += tuple(candidate.signal_id for candidate in S6_SIGNALS)
+        s6_names = {candidate.signal_id for candidate in S6_SIGNALS}
         for name in names:
             indicator = catalog.get_indicator(name)
-            if indicator.status == 'PROPOSED':
+            if version == 's6-v2' and name in s6_names:
+                evidence = get_s6_external_reference(catalog, name)
+                if evidence is None:
+                    # For a newly PROPOSED signal, require both reviewed
+                    # math and pandas reference BEFORE promotion. A crash
+                    # after promotion can backfill provenance without
+                    # modifying the pinned indicator definition.
+                    evidence = audit_s6_external_reference(indicator)
+                    if indicator.status == 'PROPOSED':
+                        catalog.verify_and_register(
+                            name, verify_signal_on_synthetic_prices(indicator)
+                        )
+                    capture_s6_external_reference(catalog, evidence)
+                if catalog.get_indicator(name).status != 'VERIFIED':
+                    raise CycleStateError('S6 external reference not promoted')
+            elif indicator.status == 'PROPOSED':
                 catalog.verify_and_register(name, verify_signal_on_synthetic_prices(indicator))
         return catalog
 
@@ -123,8 +147,16 @@ class AcademicMCPCheckpointService:
             raise ValueError('data_path must be a string')
         path = resolve_project_input(self.root, args['data_path'], frozenset({'.parquet'}))
         data = ParquetDataProvider.read(path)
-        catalog_version = 's6-v1'
+        catalog_version = 's6-v2'
         catalog = self._catalog(catalog_version)
+        # Preserve existing replay, but reject newly started sessions after
+        # the external provider has changed without a versioned review.
+        from research.indicator_engine.external_reference import _backend_version
+        current_version = _backend_version()
+        for source in S6_SIGNALS:
+            proof = get_s6_external_reference(catalog, source.signal_id)
+            if proof is None or proof.version != current_version:
+                raise CycleStateError('S6 reference backend version changed; new catalog required')
         started = self.cycle.start(catalog, data, generations=args['generations'])
         token = uuid4().hex
         sid = str(started['session_id'])

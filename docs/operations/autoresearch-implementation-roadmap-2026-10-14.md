@@ -91,3 +91,7 @@ S4 2차 코드 커밋 `17fddd5`를 detached 고정 실행 Worktree로 배포하�
 ### S6 1차 운영 적용 — 기존 URL/세대 불변 (2026-10-14)
 
 고정 코드 커밋 `cdad02a`, 별도 운영 브랜치 `deploy/quant-mcp-s6-stable-url` 커밋 `3cedb58`, 전체 **1,363 테스트 통과**. 기존 MCP URL/OAuth 연결/32개 도구/`READY`/주문 비활성 확인. 실제 운영의 과거 QQQ 2세대 S3 카탈로그 해시 불변; 신규 S6 별도 DB에 **8개 VERIFIED(진입6, 레짐·위험2)** 등록. [상세 S6 보고](autoresearch-s6-verified-primitives-2026-10-14.md). 외부 오픈소스 대규모 지표 통합, 실모델 다세대 자체 선택, OOS 수익성 검증은 아직 미완료.
+
+### S6 2차 — 외부 계산 참조와 증거·라이선스·버전 고정 (2026-10-14)
+
+[S6 pandas 오픈소스 참조 검증](autoresearch-s6-pandas-provenance-v2-2026-10-14.md): 이미 설치된 BSD-3-Clause pandas에 대한 **공식 API/원소스 계산 비교**를 도입하여 첫 4개 추가 신호에 independent numerical reference를 붙인다. 검증에 사용한 패키지 버전·정의 해시·경계 부동소수점 차이·시나리오별 출력 해시를 영속 보존하며, 이전 `s3-v1`/`s6-v1` 연구와 분리된 신규 `s6-v2` 카탈로그에서만 적용한다. 이 단계는 수익성 증명이 아니라 계산 검증의 강화이며, 대규모 오픈소스 지표 임포트와 완전 자율 연구는 남은 과제이다.

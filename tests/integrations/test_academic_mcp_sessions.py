@@ -307,7 +307,7 @@ def test_s7_v2_stored_diff_is_hash_checked(tmp_path: Path):
 def test_s6_new_starts_use_pinned_catalog_and_old_sessions_remain_readable(tmp_path: Path):
     server, original = _setup(tmp_path)
     previous = server._dispatch('get_algorithm_research', {'session_id': original['session_id']})
-    assert previous['model_context']['catalog_version'] == 's6-v1'
+    assert previous['model_context']['catalog_version'] == 's6-v2'
     assert {'ema_direction_20', 'range_low_reclaim_20'} <= {
         x['indicator_id'] for x in previous['model_context']['verified_indicators']
     }
@@ -336,7 +336,7 @@ def test_s6_new_starts_use_pinned_catalog_and_old_sessions_remain_readable(tmp_p
     }
     assert server._dispatch('get_algorithm_research', {
         'session_id': original['session_id'],
-    })['model_context']['catalog_version'] == 's6-v1'
+    })['model_context']['catalog_version'] == 's6-v2'
 
 
 def test_s6_catalog_version_tampering_rejected_before_model_call(tmp_path: Path):
@@ -345,7 +345,7 @@ def test_s6_catalog_version_tampering_rejected_before_model_call(tmp_path: Path)
     service = AcademicMCPCheckpointService(
         project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
     )
-    assert session['model_context']['catalog_version'] == 's6-v1'
+    assert session['model_context']['catalog_version'] == 's6-v2'
     with service._connect() as db:
         db.execute('UPDATE stages SET catalog_version=? WHERE session_id=?',
                    ('s3-v1', session['session_id']))
@@ -356,3 +356,70 @@ def test_s6_catalog_version_tampering_rejected_before_model_call(tmp_path: Path)
                    ('not-a-version', session['session_id']))
     with pytest.raises(ValueError, match='unknown pinned'):
         server._dispatch('get_algorithm_research', {'session_id':session['session_id']})
+
+
+def test_s6_v2_external_provenance_pinned_and_v1_can_replay(tmp_path: Path):
+    server, current = _setup(tmp_path)
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    from research.indicator_engine.external_reference import get_s6_external_reference
+    from research.indicator_engine.s6_seed import S6_SIGNALS
+    service = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    assert current['catalog_version'] == 's6-v2'
+    assert len(current['model_context']['verified_indicators']) == 8
+    newest = service._catalog('s6-v2')
+    for signal in S6_SIGNALS:
+        report = get_s6_external_reference(newest, signal.signal_id)
+        assert report is not None and report.passed
+        assert report.backend == 'pandas' and report.version
+    old_catalog = service._catalog('s6-v1')
+    market = _market()
+    old = service.cycle.start(old_catalog, market, generations=2)
+    from uuid import uuid4
+    with service._connect() as db:
+        db.execute(
+            'INSERT INTO stages(session_id,data_path,phase,token,catalog_version) '
+            'VALUES(?,?,?,?,?)',
+            (old['session_id'], 'data/study.parquet', 'AWAITING_PLAN',
+             uuid4().hex, 's6-v1'),
+        )
+    recovered = server._dispatch('get_algorithm_research', {
+        'session_id': old['session_id'],
+    })
+    assert recovered['catalog_version'] == 's6-v1'
+    assert recovered['completed_generations'] == 0
+    assert service._catalog('s6-v1').database != newest.database
+
+
+def test_s6_v2_provenance_tampering_fails_closed(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    svc = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    verified = svc._catalog('s6-v2')
+    with verified._connect() as db:
+        db.execute(
+            'UPDATE s6_external_provenance SET report_hash=? WHERE signal_id=?',
+            ('0' * 64, 'ema_direction_20'),
+        )
+    with pytest.raises(ValueError, match='integrity'):
+        server._dispatch('get_algorithm_research', {
+            'session_id': started['session_id'],
+        })
+
+
+def test_s6_v2_backend_upgrade_blocks_new_sessions_but_reads_existing(tmp_path: Path, monkeypatch):
+    server, created = _setup(tmp_path)
+    from research.indicator_engine import external_reference
+    monkeypatch.setattr(external_reference, '_backend_version', lambda: '3.999.99')
+    still_readable = server._dispatch('get_algorithm_research', {
+        'session_id': created['session_id'],
+    })
+    assert still_readable['catalog_version'] == 's6-v2'
+    assert still_readable['session_id'] == created['session_id']
+    with pytest.raises(ValueError, match='backend version changed'):
+        server._dispatch('start_algorithm_research', {
+            'data_path': 'data/study.parquet', 'generations': 1,
+        })
