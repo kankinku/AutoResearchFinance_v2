@@ -148,7 +148,7 @@ def test_moon_oauth_registration_approval_pkce_and_scope(tmp_path: Path) -> None
                 )
                 assert listed.status_code == 200, listed.text
                 visible_tools = {tool["name"] for tool in listed.json()["result"]["tools"]}
-                assert len(visible_tools) == 31
+                assert len(visible_tools) == 32
                 assert {
                     "resume_research_batch",
                     "audit_market_data",
@@ -207,7 +207,7 @@ def test_moon_oauth_registration_approval_pkce_and_scope(tmp_path: Path) -> None
                 audit_file = tmp_path / "research" / "logs" / "mcp-events.jsonl"
                 audit_data = audit_file.read_text(encoding="utf-8")
                 records = [json.loads(line) for line in audit_data.splitlines()]
-                assert any(r["event"] == "tools_list" and r["count"] == 31 for r in records)
+                assert any(r["event"] == "tools_list" and r["count"] == 32 for r in records)
                 assert any(
                     r["event"] == "tool_call"
                     and r["tool"] == "get_workspace_status"

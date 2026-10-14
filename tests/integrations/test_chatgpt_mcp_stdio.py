@@ -36,7 +36,7 @@ def test_chatgpt_stdio_official_sdk_handshake_and_read_only_tool(tmp_path: Path)
                 assert init.server_info.name == "quant-autoresearch"
                 tools = await session.list_tools()
                 names = {tool.name for tool in tools.tools}
-                assert len(names) == 31
+                assert len(names) == 32
                 assert "run_research_step" in names
                 assert "start_system" not in names
                 response = await session.call_tool("get_research_brief", {})

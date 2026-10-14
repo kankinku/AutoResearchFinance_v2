@@ -41,6 +41,7 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "resume_algorithm_research": "EXECUTION_LIFECYCLE",
     "cancel_algorithm_research": "EXECUTION_LIFECYCLE",
     "reconcile_algorithm_research": "EXECUTION_LIFECYCLE",
+    "evaluate_algorithm_experiments": "EXECUTION_LIFECYCLE",
     "run_research_step": "EXECUTION_LIFECYCLE",
     "start_guided_research": "EXECUTION_LIFECYCLE",
     "get_guided_research": "EVIDENCE_STATUS",
@@ -358,6 +359,14 @@ def chatgpt_tools() -> list[dict[str, object]]:
             "reconcile_algorithm_research",
             "Operator-only reconciliation of a stalled checkpoint after server restart.",
             {"session_id": session_field}, ["session_id"],
+        ),
+        _academic_tool(
+            "evaluate_algorithm_experiments",
+            "Evaluate saved GPT hypotheses with the same DEVELOPMENT data, "
+            "fees and unchanged control; return recorded evidence, not causal proof.",
+            {"session_id": session_field,
+             "generation": {"type": "integer", "minimum": 1, "maximum": 100}},
+            ["session_id", "generation"],
         ),
     ])
     return canonical + custom

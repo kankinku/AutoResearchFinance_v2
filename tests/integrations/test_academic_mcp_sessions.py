@@ -220,3 +220,53 @@ def test_resume_gateway_interrupted_before_cycle_claim(tmp_path: Path):
     assert result['checkpoint_phase'] == 'AWAITING_PLAN'
     assert result['completed_generations'] == 0
     assert result['checkpoint_token'] != started['checkpoint_token']
+
+
+def test_s7_controls_persist_and_inform_next_generation_without_replaying(tmp_path: Path):
+    server, initial = _setup(tmp_path)
+    model = ScriptedResearcher()
+    sid = initial['session_id']
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': initial['checkpoint_token'],
+        'plan': model.propose(initial['model_context']),
+    })
+    finished = server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+        'diagnosis': model.propose(staged['model_context']),
+    })
+    assert finished['completed_generations'] == 1
+    report = server._dispatch('evaluate_algorithm_experiments', {
+        'session_id': sid, 'generation': 1,
+    })
+    assert report['report']['status'] == 'CONTROLLED_DEVELOPMENT_COMPARISON'
+    assert report['report']['experiments'][0]['causal_status'] == 'NOT_ESTABLISHED'
+    assert report['original_generation_evidence_hash'] == finished['history'][0]['evidence_hash']
+    assert report['report']['audit_hash'] == finished['history'][0]['audit_hash']
+    assert (
+        report['report']['diagnostic_proposal_hash']
+        == finished['history'][0]['diagnostic_proposal_hash']
+    )
+    assert report['record_hash']
+    assert server._dispatch('evaluate_algorithm_experiments', {
+        'session_id': sid, 'generation': 1,
+    }) == report
+    next_step = server._dispatch('get_algorithm_research', {'session_id': sid})
+    assert next_step['completed_generations'] == 1
+    assert (
+        next_step['model_context']['prior_research']['controlled_experiments']['record_hash']
+        == report['record_hash']
+    )
+    assert next_step['final_report'] is None
+
+
+def test_s7_reject_invalid_generations_before_write(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    for gen in (0, 1, 2, True):
+        with pytest.raises(ValueError):
+            server._dispatch('evaluate_algorithm_experiments', {
+                'session_id': started['session_id'], 'generation': gen,
+            })
+    with pytest.raises(ValueError):
+        server._dispatch('evaluate_algorithm_experiments', {
+            'session_id': started['session_id'], 'generation': 1, 'sealed': True,
+        })

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from copy import deepcopy
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -23,6 +24,7 @@ from research.indicator_engine.algorithm_plan import (
     compile_algorithm_plan,
 )
 from research.indicator_engine.catalog import ResearchCatalog
+from research.indicator_engine.controlled_experiments import compare_controlled_experiments
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
@@ -67,6 +69,11 @@ class AcademicMCPCheckpointService:
           phase TEXT NOT NULL, token TEXT NOT NULL,
           plan_json TEXT, plan_digest TEXT, context_digest TEXT
         )''')
+        db.execute('''CREATE TABLE IF NOT EXISTS experiment_reports (
+            session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+            report_json TEXT NOT NULL, report_hash TEXT NOT NULL,
+            PRIMARY KEY(session_id, generation)
+        )''')
         return db
 
     def _catalog(self) -> ResearchCatalog:
@@ -109,6 +116,23 @@ class AcademicMCPCheckpointService:
                                           'AWAITING_PLAN', token))
         return self.get({'session_id': sid})
 
+    def _stored_experiment(
+        self, db: sqlite3.Connection, sid: str, generation: int,
+    ) -> dict[str, Any] | None:
+        row = db.execute(
+            'SELECT report_json,report_hash FROM experiment_reports '
+            'WHERE session_id=? AND generation=?', (sid, generation),
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            body = json.loads(row['report_json'])
+        except ValueError as exc:
+            raise CycleStateError('controlled experiment record integrity mismatch') from exc
+        if not isinstance(body, dict) or content_hash(body) != row['report_hash']:
+            raise CycleStateError('controlled experiment record integrity mismatch')
+        return {**body, 'record_hash': row['report_hash']}
+
     def _context(
         self, catalog: ResearchCatalog, data: MarketDataSet, status: dict[str, Any],
     ) -> dict[str, Any]:
@@ -127,6 +151,12 @@ class AcademicMCPCheckpointService:
                 'metrics': previous['metrics'],
                 'prior_algorithm_semantic_hash': previous['algorithm_semantic_hash'],
             }
+            with self._connect() as db:
+                measured = self._stored_experiment(
+                    db, status['session_id'], previous['generation'],
+                )
+            if measured is not None:
+                context['prior_research']['controlled_experiments'] = measured
         return context
 
     def _state(
@@ -293,6 +323,78 @@ class AcademicMCPCheckpointService:
             if changed.rowcount != 1:
                 raise CycleStateError('concurrent gateway checkpoint change')
         return self.get({'session_id': sid})
+
+    def evaluate_experiments(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Evaluate a completed diagnosis against its frozen original strategy."""
+        self._one(args, {'session_id', 'generation'}, {'session_id', 'generation'})
+        sid, generation = args['session_id'], args['generation']
+        if type(generation) is not int or not 1 <= generation <= 100:
+            raise ValueError('generation must be integer 1-100')
+        with self._connect() as db:
+            _, catalog, data, state = self._state(db, sid)
+            if generation > state['completed_generations']:
+                raise ValueError('generation is not complete')
+            stored = self._stored_experiment(db, sid, generation)
+            if stored is not None:
+                if stored['original_generation_evidence_hash'] != state['history'][
+                    generation - 1
+                ]['evidence_hash']:
+                    raise CycleStateError('controlled experiment parent evidence mismatch')
+                return stored
+        original = state['history'][generation - 1]
+        plan = AlgorithmPlan.model_validate(original['algorithm_plan'])
+        compiled = compile_algorithm_plan(catalog, plan, data)
+        if compiled.compiled.strategy_hash != original['strategy_hash']:
+            raise CycleStateError('original strategy hash mismatch')
+        hypotheses = [
+            {
+                'hypothesis_id': item['hypothesis_id'],
+                'observed_ids': item['observed_ids'],
+                'mechanism': item['mechanism'],
+                'alternative': item['alternative'],
+                'expected_metric': item['expected_metric'],
+                'predicted_direction': item['predicted_direction'],
+                'test_design': item['test_design'],
+                'control': item['control'],
+                'next_intent': item['proposed_intent'],
+            }
+            for item in original['experiments']
+        ]
+        diagnostic = {
+            'context_hash': original['diagnostic_context_hash'],
+            'audit_hash': original['audit_hash'],
+            'strategy_hash': original['strategy_hash'],
+            'dataset_hash': original['dataset_hash'],
+            'summary': original['analysis_summary'],
+            'hypotheses': hypotheses,
+        }
+        report = compare_controlled_experiments(catalog, compiled, data, diagnostic)
+        if (
+            report.diagnostic_proposal_hash != original['diagnostic_proposal_hash']
+            or report.audit_hash != original['audit_hash']
+            or report.plan_hash != original['plan_hash']
+        ):
+            raise CycleStateError('controlled experiment does not match original evidence')
+        body = {
+            'session_id': sid,
+            'generation': generation,
+            'original_generation_evidence_hash': original['evidence_hash'],
+            'report': asdict(report),
+            'study_scope': 'REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF',
+        }
+        digest = content_hash(body)
+        with self._connect() as db:
+            db.execute(
+                'INSERT OR IGNORE INTO experiment_reports '
+                '(session_id,generation,report_json,report_hash) VALUES(?,?,?,?)',
+                (sid, generation, json.dumps(body, sort_keys=True), digest),
+            )
+            verified = self._stored_experiment(db, sid, generation)
+            if verified is None:
+                raise CycleStateError('controlled experiment persistence failed')
+            if verified['original_generation_evidence_hash'] != original['evidence_hash']:
+                raise CycleStateError('controlled experiment concurrent identity mismatch')
+            return verified
 
     def resume(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(args, {'session_id'}, {'session_id'})

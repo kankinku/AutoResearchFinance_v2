@@ -90,7 +90,7 @@ class CodexMCPServer:
             "start_algorithm_research", "get_algorithm_research",
             "submit_algorithm_plan", "submit_algorithm_diagnosis",
             "resume_algorithm_research", "cancel_algorithm_research",
-            "reconcile_algorithm_research",
+            "reconcile_algorithm_research", "evaluate_algorithm_experiments",
         }:
             academic = AcademicMCPCheckpointService(
                 project_root=self.project_root, state_dir=self.state_dir
@@ -103,6 +103,8 @@ class CodexMCPServer:
                 return academic.submit_plan(arguments)
             if name == "submit_algorithm_diagnosis":
                 return academic.submit_diagnosis(arguments)
+            if name == "evaluate_algorithm_experiments":
+                return academic.evaluate_experiments(arguments)
             if name == "cancel_algorithm_research":
                 return academic.cancel(arguments)
             if name == "reconcile_algorithm_research":
