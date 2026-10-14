@@ -177,8 +177,10 @@ def audit_compiled_academic_decisions(
     if entry_key != exit_key or entry_key == regime_key:
         raise ResearchCatalogError("academic entry/exit/regime mismatch")
     names = tuple(name for name, _ in compiled.replay.signals)
-    if len(names) != 2 or set(names) != {entry_key, regime_key}:
+    if len(names) < 2 or not {entry_key, regime_key}.issubset(names):
         raise ResearchCatalogError("academic replay roles mismatch")
+    if len(set(names)) != len(names) or set(names) != set(strategy.features):
+        raise ResearchCatalogError("replay indicators do not match strategy feature contract")
     # This validation invokes the actual canonical engine once, including all
     # previously approved SHA checks and the immutable real fill/cost result.
     evaluated = evaluate_compiled_development(compiled, market, initial_cash=initial_cash)
