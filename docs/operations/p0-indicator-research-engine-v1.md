@@ -713,3 +713,13 @@ not independent historical PIT certification**.
   is never reset, force-pushed or merged. Raw Nasdaq and derived market snapshots
   are ignored, local-only, and must not enter GitHub. Future OOS/PIT release gates
   remain blocked pending historical vintages and certified corporate actions.
+
+### P0-8 final acceptance
+
+- Full regression `pytest -q -p no:cacheprovider`: **1,262 passed, 0 failed,
+  383.88 seconds**; focused Nasdaq/audit tests: **44 PASS**.
+- Repository-wide Ruff: **PASS**; strict mypy: **PASS, 214 source files**.
+- Real archived Nasdaq QQQ capture integrity: **1,508 rows PASS**;
+  cross-source date comparison 1,508/1,508 and raw close-price difference 0.
+- Development-only; historical PIT, independent vendor-lineage certification,
+  total-return adjustment, sealed OOS, Champion and broker routes not approved.
