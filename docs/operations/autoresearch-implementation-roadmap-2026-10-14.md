@@ -103,3 +103,7 @@ S4 2차 코드 커밋 `17fddd5`를 detached 고정 실행 Worktree로 배포하�
 ### S8 1차 운영 반영 — 기존 Quant MCP 리소스 유지 (2026-10-14)
 
 S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체 **1,380건 회귀 테스트 PASS**, Ruff/Mypy 통과. 기존 `https://project-moon.taild689f9.ts.net/quant/mcp`·기존 OAuth 연결 상태·32개 도구·`READY`·실거래 비활성 확인. 현재 권고 로직의 실제 무작위 베이스라인 대비 자율 연구 효율 향상, 10~100세대 외부 GPT 실통합, 독립 OOS 검증은 아직 미완료. [S8 구현·배포 증거](autoresearch-s8-feedback-guidance-2026-10-14.md).
+
+### S4/S5 2차 — 외부 LLM 연속 실행 가능 전경 Autopilot (2026-10-14)
+
+[S4/S5 연속 연구·안전한 재개](autoresearch-s4-s5-foreground-autopilot-2026-10-14.md): 기존 MCP의 Plan→Audit→Diagnosis→S7 실험→S8 방향 안내를 하나의 범위 지정된 **전경 실행기**로 연결했다. QQQ DEVELOPMENT 실데이터를 이용한 10세대/20회 **결정론적 mock model** 산출물+S7 실험 10개를 단일 호출에서 검증했으며, 오류 전후 지시 재개·멱등 상태를 테스트했다. 선택형 OpenAI Responses transport는 검증된 모델 키가 제공될 때만 호출되며 **운영 서버에 LLM API 키가 없어 진짜 모델 자율 10세대 실험은 아직 하지 않았다**. 기존 MCP URL, 도구 32개, OAuth 등록, 브로커 제한, 이전 연구 결과를 변경하지 않는다.
