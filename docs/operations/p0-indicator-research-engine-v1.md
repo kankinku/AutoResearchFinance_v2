@@ -810,3 +810,78 @@ been authorized or executed. The remaining hard blockers are audited PIT
 historical bars with available-at metadata, independently verified corporate
 split/revision evidence, separate never-inspected OOS, PBO/DSR and independent
 risk+strategy evaluation. No production merge or broker order.
+
+## P0-10 causal underperformance attribution and passive benchmark hurdle (2026-10-14 KST)
+
+**Question:** Why did the originally selected academic entry + SMA regime earn
+less than QQQ raw-price passive holding in three rolling development folds?
+An independent read-only research fill replay partitions each forward fold
+into invested versus flat sessions and sums descriptive daily market moves.
+It enforces market date and execution-price integrity, no sell beyond held
+shares, and never accesses sealed OOS, broker routes or protected engine code.
+
+| Forward fold | Invested bars | Flat/cash bars | Fees paid | Trades | Observed flat-day market log return |
+|---|---:|---:|---:|---:|---:|
+| 2023-01-03 onward | 168 / 252 | 84 | USD 40.00 | 5 | +0.202859 |
+| 2024-01-04 onward | 249 / 252 | 3 | USD 8.00 | 1 | +0.021643 |
+| 2025-01-06 onward | 235 / 248 | 13 | USD 20.43 | 3 | +0.072738 |
+
+**Diagnosis:** A 252-day time-series momentum entry and long-only market
+regime cannot readily participate during early trend transitions. In the
+2023 fold, the first long position occurred only 2023-04-28; 2025's QQQ
+position exited 2025-04-07 and did not re-enter until 2025-04-24. Missed
+participation, delayed re-entry, and cash drag were important alongside the
+measured transaction costs. *Flat-day market log return is diagnostic and
+cannot be converted into achievable missed profit*, because overnight gaps
+and the next-open execution boundary differ.
+
+**Causal research improvement (opt-in):**
+`run_development_walkforward(..., include_passive_challenger=True)` allows
+an unconditional, cash-funded raw-price buy-and-hold candidate to compete
+against the two VERIFIED academic entry hypotheses. The choice is determined
+**only by historical training-prefix net results**, with stable tie-breaking
+and no test-window access. A passive decision is executed at the first test
+open; it is a comparator path, not a broker-executable StrategyIR. Existing
+research behavior remains the default (`False`). A different falling-market
+fixture confirms the guard does *not* always force passive exposure.
+
+| Retrospective development test | 3-fold compounded final value (USD 10,000 start) |
+|---|---:|
+| Existing active-only signal selection | USD 16,545.36 |
+| Training-only passive challenger, three folds each choose passive | USD 22,682.57 |
+| Passive raw-price comparator in the same three folds | USD 22,682.57 |
+
+**Interpretation:** This is an improvement in rejecting uncompetitive active
+signals, **not new alpha or proof of risk-adjusted superiority**. The gated
+result exactly equals simple passive investment and still excludes dividends.
+The independently captured *Nasdaq* dataset gives the same displayed results
+and selected fold choices as *Tiingo*. The 2020–25 data were already studied;
+this experiment cannot claim to be a never-inspected holdout. Future research
+must beat a matched passive opportunity-cost baseline *after* costs, verify
+risk and loss protection, and pass sealed PIT OOS before any strategy promotion.
+No run here initiates a live order or alters canonical backtesting, trading,
+source data or risk-engine permissions.
+
+**Risk nuance (research-only, no risk-adjusted promotion):** On the same
+three test intervals, direct equity-series maximum drawdown and annualized
+close-to-close realized volatility were:
+
+| Development fold | Active max DD / vol | Passive max DD / vol |
+|---|---|---|
+| 2023 | −10.91% / 13.18% | −10.91% / 17.88% |
+| 2024 | −13.56% / 17.87% | −13.56% / 17.96% |
+| 2025 | −24.32% / 19.31% | −22.88% / 23.39% |
+
+The guard chooses solely on *training* terminal dollars and does not certify
+better risk-adjusted returns or crash resilience; therefore it is explicitly
+**opt-in** and not a live risk engine replacement. These diagnostics use
+mark-to-market holdings from the canonical execution model and exclude
+unverified dividends. The 2025 active portfolio experienced a deeper marked
+peak-to-trough decline despite somewhat lower realized volatility.
+
+**P0-10 acceptance:** `pytest -q -p no:cacheprovider`: **1,279 passed,
+0 failed**, 384.57 seconds; focused guarded-forward and diagnostic tests
+**10 passed**; repository-wide Ruff **PASS**, mypy **PASS on 217 source
+files**. Both vendor series produce identical displayed benchmark-hurdle
+results. This update is on a feature branch only, does not merge production
+code, and does not approve any novel alpha strategy or deploy a broker order.
