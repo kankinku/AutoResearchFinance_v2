@@ -34,3 +34,12 @@
 - `ruff check .` 통과, `mypy .` **227개 소스 파일** 검사 통과.
 - 순수 방향 결정 기능 7개 테스트 + S8 MCP 통합·S7 레거시 보고서 호환성 2개 테스트 추가.
 - Moon 운영 서버에서 직접 과거 QQQ 원장을 수정하지 않고 SQLite **임시 복제본**에서 복구 세대 2개/모든 hash 보존 확인. 추천 `TEST_HYPOTHESIS`는 저장된 원인 가설이 아직 검증되지 않았다는 뜻이지 성공한 실험이라는 뜻이 아니다.
+
+## 실제 운영 반영 결과 — 기존 URL/인증 보존
+
+- 개발 브랜치 `feat/p0-indicator-research-engine-v1` 코드 커밋 **`de344dc`**. GitHub push 완료.
+- 실제 실행코드 고정 Worktree `/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-de344dc`, 이전 운영 코드 `/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-091d066` 보존.
+- 기존 Supervisor 실행기 **코드 참조만** `deploy/quant-mcp-s8-stable-url` 커밋 **`916b128`**로 변경해 push 후 프로세스 재시작. OAuth approval key, 승인 SQLite DB, nginx, Tailscale/서버 hostname, URL pin 파일에는 변경 없음.
+- `https://project-moon.taild689f9.ts.net/quant/mcp` 미인증 HTTP **401** (보호 정상); OAuth protected-resource metadata `resource` 같은 기존 URL. 재시작 후 신규 PID의 cwd는 새 고정 Worktree로 검증.
+- 이미 연결된 **기존 Quant Autoresearch 앱**으로 `get_research_brief`, `get_workspace_status` 호출 → 인증 성공, MCP 도구 **32개 유지**, 연구 환경 **READY**, 주문 기능 **비활성**. 앱 삭제/재등록/키 회전 없음.
+- 현재 ChatGPT 대화에서 새 `start_algorithm_research` 등을 통한 **실제 인증 모델 10~100세대 연구 수행을 입증한 것은 아님**. 본 기능은 GPT에 제공될 `model_context.research_direction`을 테스트하고 운영 배포한 단계다.
