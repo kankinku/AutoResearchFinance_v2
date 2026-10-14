@@ -584,3 +584,55 @@ execution friction, fold-trained parameters and true OOS remain untested.
 - Scope guard remains active: no operating-baseline update, native dynamic
   StrategyIR activation, broker orders, independent PIT/OOS clearance or
   Champion promotion.
+
+## P0-7 cross-vendor benchmark intake and fail-closed PIT audit (2026-10-14 KST)
+
+**Added:** `research.indicator_engine.benchmark_reconciliation` plus an offline
+`audit-benchmark` research CLI command. A source marked `as_of` by its own
+vendor is **not** independently proven historical point-in-time evidence.
+The audit strictly refuses a same-vendor comparison, identical historical
+OHLCV payload, mismatched corporate-action conventions, incomplete NY
+exchange-session coverage, duplicate sessions, cross-symbol substitution,
+sealed OOS and missing source metadata. It never joins absent bars by
+forward-fill and never upgrades to an approved independent benchmark.
+
+Accepted different-provider input computes only *development* first-open
+cash-funded, same-session price-only references and close-price disagreement,
+all tied to an immutable hash of the two dataset snapshots and costs.
+`point_in_time_verified`, `independent_benchmark_verified`,
+`candidate_promotable` and `sealed_oos_approved` remain hard `false`
+even for seemingly aligned vendor declarations. Additional independent
+source authentication, bar-level publication/availability times, actual
+corporate-action vintages and verified total-return treatment remain required.
+
+**Manual offline command (no research database or network needed):**
+
+```bash
+.venv/bin/python -m research.indicator_engine.cli audit-benchmark \
+  data/market/tiingo/QQQ_2020-01-02_2025-12-31_raw.parquet \
+  path/to/a-separately-acquired-vendor-QQQ.parquet
+```
+
+Real local QQQ negative test with the same 1,508-bar Tiingo file passed twice:
+`RECONCILIATION_BLOCKED`, exit code 2, `same_vendor_identity` and
+`identical_ohlcv_payload`. No benchmark equity is emitted in blocked state.
+A *separate authenticated QQQ source has not been installed*. Public endpoint
+attempts on 2026-10-14 returned an anti-automation verification page for
+Stooq and HTTP 429 for Yahoo Chart, so no CSV was misrepresented as sourced
+market data. The unrelated previous same-source QQQ comparator is unchanged.
+
+Priorities after this stage: provision independently licensed and verifiable
+same-security historical data with versioned acquisition evidence; obtain
+bar-level available-at and corporate-action revisions; reconcile market
+prices on a real second source; only then evaluate fold-trained OOS/PBO/DSR.
+No operational StrategyIR schema update, protected core modification,
+production deploy, or order routing.
+
+### P0-7 final acceptance
+
+- Complete final-tree regression: `pytest -q -p no:cacheprovider`,
+  **1,227 passed, 0 failed, 412.96 seconds**.
+- Focused benchmark and earlier audit tests: **12 passed**.
+- Repository-wide Ruff **PASS**, strict mypy **PASS on 211 source files**.
+- Native broker, production MCP, protected evaluator, independent PIT/OOS
+  datasets and operating baseline remain unchanged.

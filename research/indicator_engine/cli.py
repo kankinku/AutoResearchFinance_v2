@@ -5,10 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from dataclasses import asdict
 from pathlib import Path
 
 import httpx
 
+from core.data.parquet import ParquetDataProvider
+from research.indicator_engine.benchmark_reconciliation import reconcile_development_benchmark
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
 from research.indicator_engine.citations import CitationFetchError, fetch_crossref
 from research.indicator_engine.composer import compose_hypotheses
@@ -21,8 +24,8 @@ def main() -> int:
     parser.add_argument(
         "--database",
         type=Path,
-        required=True,
-        help="Persistent development SQLite path; never an order database",
+        required=False,
+        help="Development SQLite path required for catalog commands; not for audit-benchmark",
     )
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("seed", help="Idempotent reviewed-paper and research-signal seed")
@@ -38,8 +41,36 @@ def main() -> int:
     )
     citations.add_argument("--limit", type=int, default=6)
     citations.add_argument("--doi", default=None, help="Exact DOI registered in paper database")
+    audit = subs.add_parser(
+        "audit-benchmark",
+        help="Offline, two-source price-only reconciliation; never PIT certification",
+    )
+    audit.add_argument("primary_path", type=Path)
+    audit.add_argument("reference_path", type=Path)
+    audit.add_argument("--initial-cash", type=float, default=10_000.0)
     args = parser.parse_args()
 
+    if args.command == "audit-benchmark":
+        try:
+            primary = ParquetDataProvider.read(args.primary_path)
+            reference = ParquetDataProvider.read(args.reference_path)
+            audit_result = reconcile_development_benchmark(
+                primary, reference, initial_cash=args.initial_cash
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "RECONCILIATION_ERROR",
+                "type": type(exc).__name__,
+                "independent_benchmark_verified": False,
+                "point_in_time_verified": False,
+                "candidate_promotable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(asdict(audit_result), sort_keys=True, allow_nan=False))
+        return 0 if audit_result.status == "CROSS_SOURCE_DEVELOPMENT_ONLY" else 2
+
+    if args.database is None:
+        parser.error("--database is required for catalog commands")
     db = ResearchCatalog(args.database)
     if args.command == "seed":
         seed_approved_references(db)
