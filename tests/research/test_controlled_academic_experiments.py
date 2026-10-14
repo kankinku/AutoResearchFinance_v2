@@ -116,3 +116,78 @@ def test_unsupported_metric_is_not_pretended_tested(tmp_path: Path):
     payload["hypotheses"][0]["expected_metric"] = "win_rate"
     with pytest.raises(ControlledExperimentError, match="unsupported"):
         compare_controlled_experiments(catalog, compiled, market, payload)
+
+
+def test_event_attribution_identifies_size_only_without_fake_new_trades(tmp_path: Path):
+    catalog, compiled, market, payload = _inputs(tmp_path, op="CHANGE_POSITION_SIZE")
+    record = compare_controlled_experiments(catalog, compiled, market, payload)
+    e = record.experiments[0]
+    assert e.same_fill_trace is False  # quantity/costs changed
+    assert e.execution_delta.matched_event_count > 0
+    assert e.execution_delta.resized_event_count > 0
+    assert e.execution_delta.added_event_count == 0
+    assert e.execution_delta.removed_event_count == 0
+    assert e.execution_delta.parent_costs > 0
+    assert e.execution_delta.child_costs > 0
+    assert e.execution_delta.execution_timing_changed is False
+    assert e.execution_delta.event_samples
+    assert all(x["event_kind"] == "RESIZED" for x in e.execution_delta.event_samples)
+    assert len(e.development_windows) == 4
+    assert sum(w.end_index - w.start_index for w in e.development_windows) == (
+        len(market.bars) - 1
+    )
+    assert all(w.validation_scope == "REUSED_DEVELOPMENT" for w in e.development_windows)
+
+
+def test_no_effect_has_zero_event_attribution(tmp_path: Path):
+    catalog, compiled, market, payload = _inputs(tmp_path)
+    e = compare_controlled_experiments(catalog, compiled, market, payload).experiments[0]
+    assert e.execution_delta.added_event_count == 0
+    assert e.execution_delta.removed_event_count == 0
+    assert e.execution_delta.resized_event_count == 0
+    assert e.execution_delta.execution_timing_changed is False
+    assert not e.execution_delta.event_samples
+    assert all(w.total_return_delta == 0 for w in e.development_windows)
+
+
+def test_multi_hypothesis_still_uses_same_unchanged_control(tmp_path: Path):
+    catalog, compiled, market, payload = _inputs(tmp_path)
+    second = deepcopy(payload['hypotheses'][0])
+    second['hypothesis_id'] = 'risk_budget_second_02'
+    second['test_design'] = 'PARAMETER'
+    second['next_intent']['mode'] = 'parameter'
+    second['next_intent']['operations'] = [
+        {'op': 'CHANGE_POSITION_SIZE', 'path': 'risk.position_size_pct', 'value': 70.0}
+    ]
+    second['expected_metric'] = 'max_drawdown'
+    second['predicted_direction'] = 'DECREASE'
+    payload['hypotheses'].append(second)
+    report = compare_controlled_experiments(catalog, compiled, market, payload)
+    assert len(report.experiments) == 2
+    assert report.experiments[0].same_fill_trace
+    assert report.experiments[1].execution_delta.resized_event_count > 0
+    assert report.experiments[1].parent_final_equity == report.experiments[0].parent_final_equity
+    assert report.multiple_comparison_notice is True
+
+
+def test_fill_comparison_detects_added_and_removed_not_only_sizing(tmp_path: Path):
+    from research.indicator_engine.controlled_experiments import _execution_delta
+
+    catalog, compiled, market, payload = _inputs(tmp_path)
+    original = audit_algorithm_plan(catalog, compiled, market).evaluation
+    assert len(original.trades) >= 2
+    entry = original.trades[0]
+    first = replace(entry, timestamp="2000-01-01T00:00:00+00:00")
+    second = replace(original.trades[1], timestamp="2000-01-02T00:00:00+00:00")
+    modified = replace(
+        original,
+        trades=(first, second, *original.trades[2:]),
+        trades_count=len(original.trades),
+    )
+    delta = _execution_delta(original, modified)
+    assert delta.added_event_count == 2
+    assert delta.removed_event_count == 2
+    assert delta.execution_timing_changed
+    assert {x['event_kind'] for x in delta.event_samples} == {'ADDED', 'REMOVED'}
+    assert delta.matched_event_count == len(original.trades) - 2
+    assert not delta.resized_event_count

@@ -270,3 +270,35 @@ def test_s7_reject_invalid_generations_before_write(tmp_path: Path):
         server._dispatch('evaluate_algorithm_experiments', {
             'session_id': started['session_id'], 'generation': 1, 'sealed': True,
         })
+
+
+def test_s7_v2_stored_diff_is_hash_checked(tmp_path: Path):
+    server, initial = _setup(tmp_path)
+    scripted = ScriptedResearcher()
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': initial['session_id'],
+        'checkpoint_token': initial['checkpoint_token'],
+        'plan': scripted.propose(initial['model_context']),
+    })
+    server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': initial['session_id'],
+        'checkpoint_token': staged['checkpoint_token'],
+        'diagnosis': scripted.propose(staged['model_context']),
+    })
+    report = server._dispatch('evaluate_algorithm_experiments', {
+        'session_id': initial['session_id'], 'generation': 1,
+    })
+    outcome = report['report']['experiments'][0]
+    assert 'execution_delta' in outcome
+    assert len(outcome['development_windows']) == 4
+    assert report['report']['evidence_hash']
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    svc = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    with svc._connect() as db:
+        db.execute('UPDATE experiment_reports SET report_hash=?', ('0' * 64,))
+    with pytest.raises(ValueError, match='integrity'):
+        server._dispatch('evaluate_algorithm_experiments', {
+            'session_id': initial['session_id'], 'generation': 1,
+        })
