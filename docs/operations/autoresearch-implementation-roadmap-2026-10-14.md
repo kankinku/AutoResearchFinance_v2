@@ -59,3 +59,7 @@
 ### S4 2차 — 기존 MCP URL을 유지하는 실제 GPT 체크포인트 계약
 
 [기존 Quant MCP URL 유지형 ChatGPT 연구 워크플로](autoresearch-s4-mcp-bridge-stable-url-2026-10-14.md)를 추가한다. 인증된 ChatGPT가 같은 MCP URL에 새 도구로 AlgorithmPlan을 보내고 서버의 계측 결과를 받은 뒤 DiagnosticResponse를 제출해 세대가 완료된다. 이는 서버 내 LLM 프로바이더 도입을 금지하는 기존 정책과 양립한다. 운영 전환이 성공했더라도 ChatGPT 앱 도구 캐시가 갱신되었다는 것은 별도로 실제 호출 확인해야 하며, 완전 무인 지속 연구/LLM 학습 효과·독립 수익은 아직 미검증.
+
+### 운영 반영 — 기존 Quant MCP URL/등록 상태 유지 (2026-10-14)
+
+S4 2차 코드 커밋 `17fddd5`를 detached 고정 실행 Worktree로 배포하고 별도 브랜치 `deploy/quant-mcp-stable-url-s4` (`c2586f0`)로 기존 Moon Supervisor 런처의 **소스 코드 경로만** 버전 관리했다. 기존 `/quant/mcp` URL/OAuth 리소스/인증 저장소·복구 브랜치는 유지했다. 기존 설치 앱 호출로 `READY`, tools=29가 확인되었고, 서버 직접 디스패처를 통한 GPT 작성 Plan/진단 **2세대** 저장과 악화된 성과를 정직하게 확인했다. [검증 증거 및 아직 남은 앱 캐시 문제](autoresearch-s4-mcp-bridge-stable-url-2026-10-14.md). 최종 외부 LLM 앱 **신규 도구 직접 호출 검증 및 지속형 자율 연구 운영**은 아직 미완료.

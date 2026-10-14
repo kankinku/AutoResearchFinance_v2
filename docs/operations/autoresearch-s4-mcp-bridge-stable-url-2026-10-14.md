@@ -44,3 +44,27 @@
 - `ruff check .` PASS; `mypy .` PASS (223 source files).
 - OAuth·nginx route·public URL pin 구현 파일과 저장된 OAuth 데이터 형식을 변경하지 않았음. 인증 리소스 URL과 기존 도구 24개를 그대로 유지하고 MCP tools/list에 5개만 추가.
 - 위 결과는 외부 GPT 도구 호출을 수용하는 서버 계약 및 mock-directed 2세대 백테스트 평가의 테스트. 실제 앱의 신규 도구 캐시 노출과 실제 GPT 대화의 후속 연구 능력은 운영 점검에서 별도 확인해야 함.
+
+## 2026-10-14 실제 운영 URL 유지형 배포·검증 결과
+
+- 원래 서버의 공개 URL pin: **`https://project-moon.taild689f9.ts.net/quant`**. OAuth 보호 리소스: **`https://project-moon.taild689f9.ts.net/quant/mcp`**. `/quant/mcp` nginx 경로, 로컬 listen `127.0.0.1:8787`, OAuth 키·승인 SQLite의 **절대 경로와 기존 파일**을 보존했다. 앱 삭제·재등록·URL 변경·토큰 재발급 작업 없음.
+- 실제 실행 코드: 정식 Git 커밋 `17fddd5392bb210c06f4d6d3a0f0388efac0029d`를 **별도의 detached 고정 Worktree** `/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-17fddd5`에서 읽는다. 개발 브랜치 HEAD 변경이 실수로 운영 재시작에 섞이지 않도록 런처가 commit과 clean worktree를 검사한다.
+- 기존 운영 작업 디렉터리의 런처 변경은 새로운 **배포 브랜치** `deploy/quant-mcp-stable-url-s4`, 커밋 `c2586f0`으로 기록하고 GitHub에 push했다. 최초 복구 브랜치 `docs/mcp-phase3-5-1-state-inventory`는 커밋 `4a74233` 그대로 보존되며 작업 디렉터리도 clean 상태이다. 원래 실행 스크립트 원본은 기존 ignored state 내부 `state/moon-http/deployment-backup/run_quant_moon_http_before_17fddd5.sh`에 권한을 유지해 백업했다.
+- 기존 인증 없는 요청 `GET /quant/mcp`: **401** (OAuth 인증 적용 정상). 기존 공개 OAuth resource metadata `resource`: **동일한 `/quant/mcp` URL**. 운영 재시작 후 실제 연결 중이던 `Qaunt Autoresearch` plugin의 **기존 `get_research_brief` 및 `get_workspace_status`를 재등록 없이 호출**, 도구수 **29**, 연구상태 **READY**, 실거래 주문 **비활성** 확인.
+
+### 실제 GPT 작성 입력 2세대 개발 백테스트 시연
+
+새 MCP 응용 디스패처를 Moon 도구에서 직접 호출해, **GPT가 거래별 지표·손실 사례를 읽고 작성한 Plan과 DiagnosticResponse**를 실제 기존 개발용 QQQ 1,508봉에 제출했다. 2세대는 1세대에서 관측된 Parkinson variance `0.0001` 경계 교차 시의 손실/전환 현상을 검증하려고 경계를 `0.00015`로 변경했다. 그 결과 2세대 개발 구간 성과가 악화됐으며, 개선 성공으로 오인하지 않는다.
+
+| 세대 | 누적 개발구간 수익률 | 최대 낙폭 | 체결수 | 연구가설 |
+|---:|---:|---:|---:|---|
+| 1 | +56.55% | 12.98% | 69 | 변동성 문턱값 전환이 손실과 잦은 청산에 영향을 줬는가 |
+| 2 | +40.20% | 29.43% | 53 | 문턱값 수정만으로 위험이 줄지 않았으므로 자본 노출 축소를 통제실험하자 |
+
+- SQLite 세대 원장이 `COMPLETED/2`로 끝났고 이전 세대 해시·가설 ID와 다음 세대 체크포인트가 연결됐다. 실거래 주문/OOS 검증/PIT/수익성이 검증됐다는 주장이 아니다. 두 개의 외부 모델 응답의 경제적 질을 독립 평가한 연구도 아니다.
+- **중요한 구별:** 기존 OAuth를 이용한 연결 도구 호출로는 `get_research_brief`, `get_workspace_status`와 29개 `tools/list` **광고 상태**를 실제로 확인했다. 이번 GPT의 신규 Plan/Diagnosis **제출은 Moon의 서버 디스패처를 직접 이용**했으며, 현재 ChatGPT 대화가 캐시한 신규 MCP 5개 도구를 직접 호출한 것으로 기록하지 않는다. 서버의 `real_model_connection_verified=false` 플래그는 이 때문에 그대로 둔다.
+- 이 대화의 툴 목록에는 일부 기존 도구만 보일 수 있다. **기존 연결을 지우거나 재등록하지 말고**, 새 채팅에서 현재 연결된 Quant Autoresearch를 사용해 신규 도구가 제공되는지 먼저 확인한다. 이것이 S4 외부 MCP 클라이언트 실제 2세대 호출의 남은 최종 수락 기준이다.
+
+### 되돌리는 방법 (운영 지침)
+
+기존 복구 스크립트를 백업 위치에서 `scripts/run_quant_moon_http.sh`로 권한 유지 복구하고 Quant 서비스 프로세스만 Supervisor로 재시작하면 원래 소스 코드로 돌아간다. 공개 URL pin, approval key, oauth SQLite DB 및 nginx 경로는 이동/수정하지 않는다. 별도의 Git 복구 브랜치 `docs/mcp-phase3-5-1-state-inventory`는 변경하지 않았으므로 동작 확인 후 그 브랜치로 복귀할 수도 있다. 다만 실제 장애가 없다면 자동 재설치·재인증·URL 변경은 하지 않는다.
