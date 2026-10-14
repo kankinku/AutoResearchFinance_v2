@@ -87,3 +87,7 @@ S4 2차 코드 커밋 `17fddd5`를 detached 고정 실행 Worktree로 배포하�
 ### S6 1차 — 버전 고정 지표 카탈로그 및 새 4종 이진 진입 후보
 
 [신규 지표·카탈로그 버전 고정](autoresearch-s6-verified-primitives-2026-10-14.md): 기존 시드 7개를 유지하면서 EMA 추세, SMA 이중 추세, SMA 저가 풀백, 과거 저가 재탈환 등 4개의 원본 수학 구현을 추가했다. 변경된 카탈로그 때문에 과거 연구가 실행 불가능해지지 않도록 **기존 세션은 기존 DB(s3-v1), 새로운 세션만 별도 DB(s6-v1)**를 사용한다. 기존 MCP URL/도구수/OAuth 보존; 확장된 `AlgorithmPlan`으로 QQQ 개발 자료의 체결/감사 리플레이 확인. **외부 오픈소스 indicator-pack의 실제 버전·라이선스 관리형 대규모 임포트는 미완료.**
+
+### S6 1차 운영 적용 — 기존 URL/세대 불변 (2026-10-14)
+
+고정 코드 커밋 `cdad02a`, 별도 운영 브랜치 `deploy/quant-mcp-s6-stable-url` 커밋 `3cedb58`, 전체 **1,363 테스트 통과**. 기존 MCP URL/OAuth 연결/32개 도구/`READY`/주문 비활성 확인. 실제 운영의 과거 QQQ 2세대 S3 카탈로그 해시 불변; 신규 S6 별도 DB에 **8개 VERIFIED(진입6, 레짐·위험2)** 등록. [상세 S6 보고](autoresearch-s6-verified-primitives-2026-10-14.md). 외부 오픈소스 대규모 지표 통합, 실모델 다세대 자체 선택, OOS 수익성 검증은 아직 미완료.

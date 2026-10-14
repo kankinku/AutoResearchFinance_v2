@@ -45,3 +45,11 @@
 - S6 계산/보안 및 기존 MCP 통합 기능 회귀 검사 63개 통과. 전체 기존 자동 연구 및 원장 테스트와 충돌 없음.
 - 프로덕션 SQLite를 수정하지 않고 별도 임시 DB로 백업 복제한 기존 QQQ 2세대 `COMPLETED` 세션을 재조회하여 `s3-v1`, 완료 세대=2, 기존 증거 해시 유지 확인. 같은 복제본 내에서 새 `s6-v1` 세션을 시작하고 VERIFIED 8개, 새 4개 모두 포함, 기존 세션 증거 불변 확인.
 - 위 상태의 새 신호는 계산/구현 검증에 합격한 것이지, 기존 논문 전략을 실전에서 재현했다는 의미가 아니다. 기존 MCP URL은 유지할 계획이며 배포·인증 실제 재검사는 별도.
+
+## 운영 배포 및 기존 OAuth·세대 해시 보존 검증
+
+- 개발 커밋 `cdad02a3bfc3538c8b7a6747d0c4e36f42058de2` GitHub push. 고정 실행 Worktree: `/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-cdad02a`, 이전 `e073810` 코드 디렉터리는 보존.
+- 운영 런처 별도 브랜치 `deploy/quant-mcp-s6-stable-url` 커밋 `3cedb58`, GitHub push. 기존 복구 기준 브랜치, nginx route, 공개 OAuth issuer, 키·승인 DB·기존 세션 원장 데이터 경로는 변경하지 않음.
+- 기존 MCP URL **`https://project-moon.taild689f9.ts.net/quant/mcp`**: 인증 없는 요청 **401**, resource metadata의 URL 동일. 인증된 기존 Quant Autoresearch 앱의 `get_research_brief` 및 `get_workspace_status` 실제 호출 결과 **도구 32개, `READY`, 주문 비활성** 확인. 사용자 재등록 및 OAuth 재승인 요구하지 않음.
+- 실제 운영 state의 기존 S4 QQQ 2세대 완료 세션을 `s3-v1`으로 재조회. 기존 두 세대의 `evidence_hash` 및 결과 동일. 새 `catalog-s6-v1.sqlite`로 8개 검증 지표(진입6·레짐/위험2) 등록 후 같은 과거 세션의 조회·증거 해시가 계속 동일함을 확인했다.
+- 개발 검사 **1,363 passed**, Ruff/Mypy 통과. 단, **새로운 GPT가 S6 4종을 실제로 선택하고 여러 세대에 걸쳐 개선하는 실모델 호출 테스트는 수행하지 않았으며 수익성 우위를 주장하지 않는다.**
