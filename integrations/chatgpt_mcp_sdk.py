@@ -34,6 +34,11 @@ _CHATGPT_CANONICAL = frozenset(
 )
 _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "get_research_brief": "EVIDENCE_STATUS",
+    "start_algorithm_research": "EXECUTION_LIFECYCLE",
+    "get_algorithm_research": "EVIDENCE_STATUS",
+    "submit_algorithm_plan": "EXECUTION_LIFECYCLE",
+    "submit_algorithm_diagnosis": "EXECUTION_LIFECYCLE",
+    "resume_algorithm_research": "EXECUTION_LIFECYCLE",
     "run_research_step": "EXECUTION_LIFECYCLE",
     "start_guided_research": "EXECUTION_LIFECYCLE",
     "get_guided_research": "EVIDENCE_STATUS",
@@ -294,6 +299,54 @@ def chatgpt_tools() -> list[dict[str, object]]:
             },
         ]
     )
+    session_field = {"type": "string", "pattern": "^[0-9a-f]{32}$"}
+    token_field = {"type": "string", "pattern": "^[0-9a-f]{32}$"}
+    def _academic_tool(
+        name: str, description: str,
+        properties: dict[str, object], required: list[str],
+    ) -> dict[str, object]:
+        return {
+            "name": name, "description": description,
+            "inputSchema": {
+                "type": "object", "properties": properties,
+                "required": required, "additionalProperties": False,
+            },
+        }
+
+    custom.extend([
+        _academic_tool(
+            "start_algorithm_research",
+            "Start a bounded development-only algorithm research session. "
+            "Returns a typed AlgorithmPlan prompt via the existing MCP URL.",
+            {"data_path": {"type": "string"},
+             "generations": {"type": "integer", "minimum": 1, "maximum": 100}},
+            ["data_path", "generations"],
+        ),
+        _academic_tool(
+            "get_algorithm_research",
+            "Read verified research history and current GPT planning or diagnostic checkpoint.",
+            {"session_id": session_field}, ["session_id"],
+        ),
+        _academic_tool(
+            "submit_algorithm_plan",
+            "Validate GPT AlgorithmPlan and return measured backtest context.",
+            {"session_id": session_field, "checkpoint_token": token_field,
+             "plan": {"type": "object"}},
+            ["session_id", "checkpoint_token", "plan"],
+        ),
+        _academic_tool(
+            "submit_algorithm_diagnosis",
+            "Validate GPT diagnosis and commit one researched generation.",
+            {"session_id": session_field, "checkpoint_token": token_field,
+             "diagnosis": {"type": "object"}},
+            ["session_id", "checkpoint_token", "diagnosis"],
+        ),
+        _academic_tool(
+            "resume_algorithm_research",
+            "Explicitly resume a failed checkpoint; preserves all completed generations.",
+            {"session_id": session_field}, ["session_id"],
+        ),
+    ])
     return canonical + custom
 
 

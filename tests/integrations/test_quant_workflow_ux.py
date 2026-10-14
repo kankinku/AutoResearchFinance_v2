@@ -46,7 +46,7 @@ def test_journey_1_discover_readiness_and_detect_cached_schema(tmp_path: Path) -
     brief, error = _call(adapter, "get_research_brief")
     assert not error
     catalog = brief["mcp_capabilities"]
-    assert catalog["server_tool_count"] == len(chatgpt_tools()) == 24
+    assert catalog["server_tool_count"] == len(chatgpt_tools()) == 29
     assert catalog["schema_sha256"] and len(catalog["schema_sha256"]) == 64
     assert {"resume_research_batch", "reconcile_guided_research", "audit_market_data"} <= set(
         catalog["required_client_tools"]

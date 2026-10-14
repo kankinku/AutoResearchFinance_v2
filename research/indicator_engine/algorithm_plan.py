@@ -349,16 +349,10 @@ class AlgorithmPlanProvider(Protocol):
     def propose(self, context: dict[str, Any]) -> dict[str, Any]: ...
 
 
-def compile_provider_algorithm_plan(
-    catalog: ResearchCatalog,
-    provider: AlgorithmPlanProvider,
-    market: MarketDataSet,
-) -> CompiledAlgorithmPlan:
-    """S3 bridge: validated LLM output → registered indicators → canonical IR.
-
-    This single research checkpoint is not a multi-generation autonomous loop.
-    The market is checked *before* any prompt; never send sealed OOS to LLM.
-    """
+def build_algorithm_plan_context(
+    catalog: ResearchCatalog, market: MarketDataSet,
+) -> dict[str, Any]:
+    """Expose only VERIFIED indicators to an external GPT director, no raw prices."""
     if market.zone != DataZone.DEVELOPMENT:
         raise ResearchCatalogError("only development data may reach algorithm plan provider")
     if market.calendar != "us_equities" or market.timeframe != "1d":
@@ -389,6 +383,16 @@ def compile_provider_algorithm_plan(
         "position_sizing": "FIXED_100_PCT_CASH_ONLY",
         "future_data_access": False,
     }
+    return context
+
+
+def compile_provider_algorithm_plan(
+    catalog: ResearchCatalog,
+    provider: AlgorithmPlanProvider,
+    market: MarketDataSet,
+) -> CompiledAlgorithmPlan:
+    """S3: schema-validated external GPT response to canonical StrategyIR."""
+    context = build_algorithm_plan_context(catalog, market)
     try:
         response = provider.propose(deepcopy(context))
         plan = AlgorithmPlan.model_validate(response)

@@ -55,3 +55,7 @@
 기존 S1·S2·S3의 실제 코드를 재사용해 `AcademicCycleService`를 구현했다. 외부 `propose(context)` 제공자가 한 세대에 **AlgorithmPlan 1회 + DiagnosticResponse 1회**의 구조화 응답을 준다면, 실행·진단·체인형 증거 저장을 완료하고 이전 세대 성과·가설을 다음 알고리즘 설계 요청에 전달한다. 동일 논리와 동일 매매 신호의 중복 세대는 거부하며 중간 오류는 인터럽트 상태로 보존한다. [자세한 구현 보고](autoresearch-s4-cycle-2026-10-14.md).
 
 **현 단계 판정:** 실제 QQQ 자료에 대한 **mock provider 3세대 수직 통합 확인**. 실제 인증 GPT 모델 호출, 모델 비용·실패 검증 및 지속형 실행(S5), 특정 가설에 결박된 대조 실험 자동 실행(S7)은 미완료다. 따라서 20문답 20번 기준의 1단계 제품 엔진 전체 완료로 판정하지 않는다.
+
+### S4 2차 — 기존 MCP URL을 유지하는 실제 GPT 체크포인트 계약
+
+[기존 Quant MCP URL 유지형 ChatGPT 연구 워크플로](autoresearch-s4-mcp-bridge-stable-url-2026-10-14.md)를 추가한다. 인증된 ChatGPT가 같은 MCP URL에 새 도구로 AlgorithmPlan을 보내고 서버의 계측 결과를 받은 뒤 DiagnosticResponse를 제출해 세대가 완료된다. 이는 서버 내 LLM 프로바이더 도입을 금지하는 기존 정책과 양립한다. 운영 전환이 성공했더라도 ChatGPT 앱 도구 캐시가 갱신되었다는 것은 별도로 실제 호출 확인해야 하며, 완전 무인 지속 연구/LLM 학습 효과·독립 수익은 아직 미검증.

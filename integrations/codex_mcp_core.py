@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from application.academic_checkpoint_service import AcademicMCPCheckpointService
 from application.chat_directed_research_service import ChatDirectedResearchService
 from application.gpt_guided_research_service import GPTGuidedResearchService
 from application.market_data_audit import MarketDataAuditService
@@ -85,6 +86,23 @@ class CodexMCPServer:
         self.system = self.services.system.controller
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
+        if name in {
+            "start_algorithm_research", "get_algorithm_research",
+            "submit_algorithm_plan", "submit_algorithm_diagnosis",
+            "resume_algorithm_research",
+        }:
+            academic = AcademicMCPCheckpointService(
+                project_root=self.project_root, state_dir=self.state_dir
+            )
+            if name == "start_algorithm_research":
+                return academic.start(arguments)
+            if name == "get_algorithm_research":
+                return academic.get(arguments)
+            if name == "submit_algorithm_plan":
+                return academic.submit_plan(arguments)
+            if name == "submit_algorithm_diagnosis":
+                return academic.submit_diagnosis(arguments)
+            return academic.resume(arguments)
         if name == "audit_market_data":
             if set(arguments) - {"data_path", "comparison_path", "adjusted_path", "pin_snapshot"}:
                 raise ValueError("unexpected market audit arguments")
