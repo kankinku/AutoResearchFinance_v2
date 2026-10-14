@@ -723,3 +723,90 @@ not independent historical PIT certification**.
   cross-source date comparison 1,508/1,508 and raw close-price difference 0.
 - Development-only; historical PIT, independent vendor-lineage certification,
   total-return adjustment, sealed OOS, Champion and broker routes not approved.
+
+## P0-9 dividend/payment audit and rolling forward research (2026-10-14 KST)
+
+**Cash actions:** Nasdaq's publicly reachable `api/quote/QQQ/dividends?assetclass=etf`
+returned a 9,736-byte, current-revision dividend table. Its captured response
+is preserved as ignored local-only JSON + an append-only hash manifest under
+`state/indicator-engine/source-captures/`; the two-file manifest replay detects
+bytes/metadata tampering. Requested ex-dates 2020-01-02–2025-12-31 yielded
+**25 USD cash distribution events**, of which **24 have no declaration date**
+in the Nasdaq response. The original raw response SHA-256 begins
+`c7bca224b189d499` and the local evidence identity starts `15d736d6d98b93c9`.
+
+The research-only cash distribution comparator buys QQQ at the first observed
+open, credits cash only for shares held **strictly before the ex-date**, and
+counts it only once the **payment date** has occurred within the sample.
+It does not retroactively treat an unpaid distribution as cash, silently
+reinvest income, assume a corporate split has not occurred, or include taxes.
+With initial USD 10,000, that produces the following development-only
+retrospective illustrative marked values on the Tiingo daily raw file:
+
+| Baseline interpretation | Ending marked value |
+|---|---:|
+| Raw-price buy and hold (costed purchase, no distributions) | USD 28,629.61 |
+| Raw-price buy and hold plus 25 paid cash distributions, no reinvestment | USD 29,270.22 |
+| Incremental distribution cash | USD 640.60 |
+
+**No trade-time PIT certificate**: original dividend declaration dates are
+mostly absent; historical publication availability is not proven, and the
+Nasdaq historical snapshot is latest-revision. The Nasdaq split route
+`api/quote/QQQ/splits` returned HTTP 404; this does **not** prove there were
+no splits. Split/corporate-action coverage, adjusted total return, actual
+available-at vintage and complete exchange evidence remain unverified.
+`DividendEvidence.is_available_for_decision` uses the observed 2026 snapshot
+time, never a backfilled ex-date; retrospective payout reconstruction does
+not authorize use of the downloaded table in past trading decisions.
+
+**Chronological forward diagnostic:** Training-only canonical StrategyIR
+selection was added in `research.indicator_engine.walkforward` using the
+existing (protected, unchanged) costed BacktestEngine with
+`signal_start_at=test_start`. Each expanding training prefix selects the
+higher-scoring one of two previously VERIFIED entry signals:
+`time_series_momentum` or `previous_range_breakout`, with a fixed
+`sma_direction` regime filter. The runner prevents any pretest positions,
+regenerates causal feature vectors using only each fold's prefix, resets
+capital at fold boundaries, enforces non-overlapping test periods, and
+stitches returns by multiplying independent fold multipliers.
+
+Real QQQ 2020–2025 input, fixed 756 training bars and 252 test bars (last
+partial window 248 bars), initial cash USD 10,000 and the prior cost model:
+
+| Forward development fold | Selected entry | Strategy net ending value | Raw-price-only fold reference |
+|---|---|---:|---:|
+| 2023-01-03–2024-01-03 | Time-series momentum | USD 12,294.15 | USD 14,815.25 |
+| 2024-01-04–2025-01-03 | Time-series momentum | USD 12,892.57 | USD 13,070.46 |
+| 2025-01-06–2025-12-31 | Time-series momentum | USD 10,438.50 | USD 11,713.65 |
+| **Chained three research folds** | — | **USD 16,545.36** | **USD 22,682.57** |
+
+This explicitly **fails the price-only comparator**. The fold benchmark buys
+at the first test open; the selected strategy first becomes eligible for
+entry at the first test close with next-open execution. Comparative numbers
+are consequently illustrative diagnostics, not identical fill timing.
+This uses already-inspected latest-revision 2020–25 data rather than held-back
+historically authenticated PIT; it is **not** independently sealed OOS.
+PBO/DSR and fully separate independently audited test vintages are pending.
+No Champion promotion, broker permission, live orders, protected core edit,
+production merge or deploy is authorized by this experiment.
+
+**Cross-vendor forward replay:** The same fixed three chronological research
+folds were independently evaluated using the separately archived Nasdaq QQQ
+Parquet snapshot. The two latest-revision sources produced the *same*
+selected entry signals (time-series momentum in all three folds), the same
+trade counts (5/1/3), and the same final compounded USD 16,545.36 strategy
+and USD 22,682.57 price-only comparison at displayed cents precision.
+This is a useful source-sensitivity sanity check, **not** proof of feed
+independence, correctness of corporate actions or historical PIT compliance.
+
+**P0-9 final acceptance (2026-10-14 KST):** the full repository
+`pytest -q -p no:cacheprovider` reports **1,272 passed / 0 failed**
+(384.13 seconds). New cash-action and walk-forward focused tests report
+**10 passed**; Ruff passes and strict mypy passes on **216 source files**.
+Both price vendors give the same rounded three-fold forward diagnostics.
+The cash event raw payload and source manifest remain locally archived and
+Git-ignored, not part of the source branch. No sealed OOS evaluation has
+been authorized or executed. The remaining hard blockers are audited PIT
+historical bars with available-at metadata, independently verified corporate
+split/revision evidence, separate never-inspected OOS, PBO/DSR and independent
+risk+strategy evaluation. No production merge or broker order.
