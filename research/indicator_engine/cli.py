@@ -6,15 +6,18 @@ import argparse
 import json
 import os
 from dataclasses import asdict
+from datetime import date
 from pathlib import Path
 
 import httpx
 
 from core.data.parquet import ParquetDataProvider
 from research.indicator_engine.benchmark_reconciliation import reconcile_development_benchmark
+from research.indicator_engine.capture_integrity import verify_nasdaq_capture
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
 from research.indicator_engine.citations import CitationFetchError, fetch_crossref
 from research.indicator_engine.composer import compose_hypotheses
+from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 
@@ -48,7 +51,49 @@ def main() -> int:
     audit.add_argument("primary_path", type=Path)
     audit.add_argument("reference_path", type=Path)
     audit.add_argument("--initial-cash", type=float, default=10_000.0)
+    capture = subs.add_parser(
+        "capture-nasdaq-qqq", help="Manual latest-revision public Nasdaq quote capture (NON-PIT)"
+    )
+    capture.add_argument("--from-date", type=date.fromisoformat, required=True)
+    capture.add_argument("--to-date", type=date.fromisoformat, required=True)
+    capture.add_argument("--output", type=Path, required=True)
+    capture.add_argument("--raw", type=Path, required=True)
+    capture.add_argument("--manifest", type=Path, required=True)
+    integrity = subs.add_parser(
+        "verify-nasdaq-capture",
+        help="Offline SHA and parquet replay for a saved Nasdaq snapshot (NON-PIT)",
+    )
+    integrity.add_argument("--output", type=Path, required=True)
+    integrity.add_argument("--raw", type=Path, required=True)
+    integrity.add_argument("--manifest", type=Path, required=True)
     args = parser.parse_args()
+
+    if args.command == "verify-nasdaq-capture":
+        try:
+            checked = verify_nasdaq_capture(args.output, args.raw, args.manifest)
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "CAPTURE_INTEGRITY_FAILED", "type": type(exc).__name__,
+                "point_in_time_verified": False,
+                "independent_benchmark_verified": False,
+                "candidate_promotable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(asdict(checked), sort_keys=True))
+        return 0
+
+    if args.command == "capture-nasdaq-qqq":
+        try:
+            report = capture_nasdaq_qqq(
+                args.from_date, args.to_date, args.output, args.raw, args.manifest
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({"status": "CAPTURE_FAILED", "type": type(exc).__name__,
+                              "point_in_time_verified": False,
+                              "independent_benchmark_verified": False}))
+            return 2
+        print(json.dumps(asdict(report), sort_keys=True))
+        return 0
 
     if args.command == "audit-benchmark":
         try:

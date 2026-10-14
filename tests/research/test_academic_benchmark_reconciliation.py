@@ -65,6 +65,8 @@ def test_two_vendor_aligned_prices_are_only_cross_source_diagnostic():
     )
     assert report.max_absolute_close_difference == pytest.approx(0.4)
     assert report.max_relative_close_difference is not None
+    assert dict(report.field_mismatch_counts)["close"] == 25
+    assert dict(report.field_mismatch_counts)["volume"] == 0
 
 
 def test_same_vendor_is_not_independent_even_with_different_price_bytes():
@@ -179,3 +181,45 @@ def test_catalog_cli_still_requires_database(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as error:
         main()
     assert error.value.code == 2
+
+
+def test_provider_session_date_label_and_exchange_close_align_without_one_day_shift():
+    """Legacy Tiingo timestamps encode YYYY-MM-DD midnight UTC as date labels."""
+    from datetime import time
+    from zoneinfo import ZoneInfo
+
+    ny = ZoneInfo("America/New_York")
+    a = _market("first_vendor")
+    close_bars = tuple(
+        replace(bar, timestamp=datetime.combine(bar.timestamp.date(), time(16), tzinfo=ny))
+        for bar in _market("second_vendor", gain=0.2).bars
+    )
+    b = MarketDataSet("fixture", DataZone.DEVELOPMENT, close_bars,
+                      provenance=_market("second_vendor").provenance)
+    result = reconcile_development_benchmark(a, b)
+    assert result.overlap_sessions == 25
+    assert result.primary_only_sessions == result.reference_only_sessions == 0
+    assert result.status == "CROSS_SOURCE_DEVELOPMENT_ONLY"
+
+
+def test_midnight_utc_daily_date_labels_align_with_ny_close_timestamps():
+    from zoneinfo import ZoneInfo
+
+    source = _market()
+    midnight_bars = tuple(replace(bar, timestamp=datetime(
+        bar.timestamp.year, bar.timestamp.month, bar.timestamp.day,
+        tzinfo=timezone.utc
+    )) for bar in source.bars)
+    primary = MarketDataSet(source.version, source.zone, midnight_bars,
+                            provenance=source.provenance)
+    other = _market("another-provider", gain=0.2)
+    bars = tuple(replace(bar, timestamp=datetime(
+        bar.timestamp.year, bar.timestamp.month, bar.timestamp.day, 16,
+        tzinfo=ZoneInfo("America/New_York")
+    )) for bar in other.bars)
+    exchange_closes = MarketDataSet(other.version, other.zone, bars,
+                                    provenance=other.provenance)
+    result = reconcile_development_benchmark(primary, exchange_closes)
+    assert result.primary_only_sessions == 0
+    assert result.reference_only_sessions == 0
+    assert result.overlap_sessions == len(primary.bars)

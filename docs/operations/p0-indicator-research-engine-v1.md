@@ -636,3 +636,80 @@ production deploy, or order routing.
 - Repository-wide Ruff **PASS**, strict mypy **PASS on 211 source files**.
 - Native broker, production MCP, protected evaluator, independent PIT/OOS
   datasets and operating baseline remain unchanged.
+
+## P0-8 external Nasdaq QQQ capture and reproducible two-source replay (2026-10-14 KST)
+
+**Actual external acquisition:** A bounded manual request to Nasdaq's public
+`/api/quote/QQQ/historical?assetclass=etf&fromdate=2020-01-02&todate=2025-12-31&limit=4000`
+returned **1,508 rows** (same sessions as the existing Tiingo file). The Nasdaq
+response was retrieved at `2026-10-14T04:26:10.007887+00:00` and preserved as an
+ignored raw JSON capture, a versioned development-only Parquet snapshot and an
+append-only capture manifest. Original JSON SHA256:
+`6ede5c3b5b9926b9d820268aa607b41c3c0cfe60141a0ace13302a42f7193f40`.
+Parsed dataset SHA256:
+`2a423bebcdcc5f5ad29178de353fd7a12eb7a415227a2e3fb1eb98823003f5be`.
+Source IDs are `tiingo` and `nasdaq-public`, not a synthetic re-labelled file.
+Captured bytes, Parquet and manifest reside under ignored `data/market/nasdaq/`
+and `state/indicator-engine/source-captures/`; **not GitHub market-data files**.
+
+**Engineering:** `nasdaq_source` enforces strict schema and complete records;
+`nasdaq_capture` replays that parser against the exact preserved response bytes.
+The offline `capture_integrity` verifier rehashes raw data, reconstructs the
+historical rows and compares against immutable manifest references and Parquet.
+Integrity replay on the real capture: `LOCAL_CAPTURE_BYTES_VERIFIED`, all
+**1,508 rows**. The reconciliation also corrects the historical daily-bar
+session convention: `00:00 UTC` is the exchange session **date label**, not an
+actual midnight exchange timestamp. This prevents an accidental prior-day
+New York timezone shift; separately supplied New York close-time bars are
+normalized to the equivalent exchange-local date.
+
+**Actual cross-source development observations (Tiingo vs Nasdaq):**
+
+| Field | Sessions with numeric difference | Maximum absolute difference |
+|---|---:|---:|
+| Open | 103 | USD 0.35 |
+| High | 15 | USD 0.005 |
+| Low | 18 | USD 0.005 |
+| Close | 0 | USD 0.00 |
+| Volume | 1,385 | 5,107,354 shares |
+
+Both datasets contain exactly 1,508 matching trading dates; 0 missing sessions.
+The two data-series' first-open raw-price-only buy-and-hold references both
+end at **USD 28,629.61**, starting with USD 10,000 under the previously
+specified development cost assumptions. The data discrepancy metrics were
+added to the audit's hashed report. This does **not** reconcile historical
+volume, dividend returns or independently validate execution prices.
+
+**Research safeguards:** Nasdaq currently exposes a *latest-revision* historical
+series without the vendor release-time vintages or independently certified
+corporate-action history required for PIT. `point_in_time_verified=false`,
+`independent_benchmark_verified=false`, `candidate_promotable=false` and
+`sealed_oos_approved=false` still hold. Separate fetching does not prove
+vendor supply-chain independence, accurate past availability or total returns.
+No OOS sealing, Champion promotion, protected engine change, production deploy,
+branch merge or live order is permitted from these research-only captures.
+
+
+**Offline verification command** (no HTTP or research DB):
+
+```bash
+.venv/bin/python -m research.indicator_engine.cli verify-nasdaq-capture \
+  --output data/market/nasdaq/<capture>.parquet \
+  --raw state/indicator-engine/source-captures/<capture>.raw.json \
+  --manifest state/indicator-engine/source-captures/<capture>.manifest.json
+```
+
+The capture verifier rejects modified raw bytes, mutated Parquet, false PIT
+approval flags and substituted source paths; **local integrity validation is
+not independent historical PIT certification**.
+
+### P0-8 final validation and preservation boundary
+
+- Full repository `pytest -q -p no:cacheprovider`: **1,262 passed, 0 failed,
+  386.57 seconds** on the final implementation tree.
+- Targeted Nasdaq source, capture, integrity, and cross-vendor tests: **43 PASS**.
+- Repository-wide Ruff **PASS**, strict mypy **PASS on 214 source files**.
+- The research branch is the only intended Git destination. Baseline `4a74233`
+  is never reset, force-pushed or merged. Raw Nasdaq and derived market snapshots
+  are ignored, local-only, and must not enter GitHub. Future OOS/PIT release gates
+  remain blocked pending historical vintages and certified corporate actions.

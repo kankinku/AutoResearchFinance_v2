@@ -7,7 +7,7 @@ Never use these diagnostics to promote a candidate, validate OOS, or order.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timezone
 from math import isfinite
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -38,6 +38,8 @@ class CrossSourceBenchmarkAudit:
     reference_first_open: float | None
     max_absolute_close_difference: float | None
     max_relative_close_difference: float | None
+    field_mismatch_counts: tuple[tuple[str, int], ...]
+    field_max_absolute_difference: tuple[tuple[str, float], ...]
     primary_price_only_final_equity: float | None
     reference_price_only_final_equity: float | None
     blockers: tuple[str, ...]
@@ -51,7 +53,14 @@ class CrossSourceBenchmarkAudit:
 def _sessions(dataset: MarketDataSet) -> dict[date, Bar]:
     sessions: dict[date, Bar] = {}
     for bar in dataset.bars:
-        key = bar.timestamp.astimezone(_NY).date()
+        utc = bar.timestamp.astimezone(timezone.utc)
+        # Legacy Tiingo and captured Nasdaq daily bars use UTC midnight as an
+        # exchange DATE LABEL, not a midnight price observation. Converting
+        # that instant into New York time would shift the session one day.
+        key = (
+            utc.date() if (utc.hour, utc.minute, utc.second, utc.microsecond)
+            == (0, 0, 0, 0) else bar.timestamp.astimezone(_NY).date()
+        )
         if key in sessions:
             raise ResearchCatalogError("duplicate exchange session; no intraday aliasing")
         sessions[key] = bar
@@ -148,6 +157,13 @@ def reconcile_development_benchmark(
         first_open = right[first_day].open
         absolute = max(abs(left[d].close - right[d].close) for d in overlap)
         relative = max(abs(left[d].close - right[d].close) / left[d].close for d in overlap)
+    mismatches: list[tuple[str, int]] = []
+    maxima: list[tuple[str, float]] = []
+    for field in ("open", "high", "low", "close", "volume"):
+        differences = [abs(getattr(left[d], field) - getattr(right[d], field))
+                       for d in overlap]
+        mismatches.append((field, sum(delta > 1e-8 for delta in differences)))
+        maxima.append((field, max(differences, default=0.0)))
     fingerprint = content_hash({
         "version": "cross-source-reconciliation-v1",
         "primary": primary.dataset_hash,
@@ -164,6 +180,8 @@ def reconcile_development_benchmark(
         "reference_final": right_result,
         "max_abs_close": absolute,
         "max_relative_close": relative,
+        "field_mismatch_counts": mismatches,
+        "field_max_absolute_difference": maxima,
     })
     return CrossSourceBenchmarkAudit(
         primary_hash=primary.dataset_hash,
@@ -180,6 +198,8 @@ def reconcile_development_benchmark(
         reference_first_open=first_open,
         max_absolute_close_difference=absolute,
         max_relative_close_difference=relative,
+        field_mismatch_counts=tuple(mismatches),
+        field_max_absolute_difference=tuple(maxima),
         primary_price_only_final_equity=left_result,
         reference_price_only_final_equity=right_result,
         blockers=tuple(blockers),
