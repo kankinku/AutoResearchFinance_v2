@@ -238,9 +238,10 @@ class CodexMCPServer:
                     ],
                     "stale_client_hint": (
                         "If this ChatGPT conversation does not expose one of the "
-                        "required_client_tools, refresh tool discovery in the existing "
-                        "Quant Autoresearch connection or open a new conversation with "
-                        "the already connected app. Keep the SAME existing MCP URL and "
+                        "required_client_tools, refresh or reconnect the existing "
+                        "Quant Autoresearch app connection (without re-registration), "
+                        "or open a new conversation with the already connected app. "
+                        "Keep the SAME existing MCP URL and "
                         "OAuth registration. The server cannot force a cached client "
                         "tool schema to reload. Do not recreate the MCP integration."
                     ),
