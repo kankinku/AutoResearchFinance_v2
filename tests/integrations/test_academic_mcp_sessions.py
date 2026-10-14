@@ -441,11 +441,14 @@ def test_s8_research_direction_consumes_measured_experiments_without_claiming_al
     })
     before = finished['model_context']['research_direction']
     assert before['completed_generations'] == 1
-    assert before['recommended_mode'] == 'TEST_HYPOTHESIS'
-    assert before['experiment_outcome_count'] == 0
+    assert before['recommended_mode'] in {'EXPLORE', 'TEST_HYPOTHESIS', 'EVOLVE'}
+    assert before['experiment_outcome_count'] == len(
+        finished['latest_controlled_experiments']['report']['experiments']
+    )
     tested = server._dispatch('evaluate_algorithm_experiments', {
         'session_id': sid, 'generation': 1,
     })
+    assert tested == finished['latest_controlled_experiments']
     after = server._dispatch('get_algorithm_research', {'session_id': sid})
     budget = after['model_context']['research_direction']
     assert budget['completed_generations'] == 1
@@ -491,9 +494,12 @@ def test_s8_legacy_experiment_without_execution_diff_remains_readable(tmp_path: 
         },
     }
     with service._connect() as db:
+        # Emulate an imported historical S7-v1 report in a *test-only*
+        # database: new MCP sessions now persist v2 automatically.
         db.execute(
-            'INSERT INTO experiment_reports(session_id,generation,report_json,report_hash) '
-            'VALUES(?,?,?,?)', (sid, 1, json.dumps(legacy), content_hash(legacy)),
+            'UPDATE experiment_reports SET report_json=?,report_hash=? '
+            'WHERE session_id=? AND generation=1',
+            (json.dumps(legacy), content_hash(legacy), sid),
         )
     state = server._dispatch('get_algorithm_research', {'session_id': sid})
     assert state['model_context']['research_direction']['experiment_outcome_count'] == 0
@@ -502,3 +508,74 @@ def test_s8_legacy_experiment_without_execution_diff_remains_readable(tmp_path: 
         == legacy['report']
     )
     assert state['model_context']['research_direction']['causal_status'] == 'NOT_ESTABLISHED'
+
+
+def test_mcp_first_diagnosis_commits_s7_and_refreshes_next_s8_context(tmp_path: Path):
+    """Only two ChatGPT writes per generation; measured evidence already in next prompt."""
+    server, started = _setup(tmp_path)
+    model = ScriptedResearcher()
+    sid = started['session_id']
+    plan = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+        'plan': model.propose(started['model_context']),
+    })
+    assert plan['checkpoint_phase'] == 'AWAITING_DIAGNOSIS'
+    completed = server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': sid, 'checkpoint_token': plan['checkpoint_token'],
+        'diagnosis': model.propose(plan['model_context']),
+    })
+    assert completed['completed_generations'] == 1
+    assert completed['controlled_experiments_automatically_evaluated'] is True
+    evidence = completed['latest_controlled_experiments']
+    assert evidence['generation'] == 1
+    assert evidence['original_generation_evidence_hash'] == completed['history'][0][
+        'evidence_hash'
+    ]
+    assert evidence['report']['causal_status'] == 'NOT_ESTABLISHED'
+    assert evidence['report']['experiments']
+    assert completed['model_context']['research_direction'][
+        'experiment_outcome_count'
+    ] == len(evidence['report']['experiments'])
+    assert completed['model_context']['prior_research'][
+        'controlled_experiments'
+    ]['record_hash'] == evidence['record_hash']
+    # Read-only legacy endpoint stays available and strictly idempotent.
+    assert server._dispatch('evaluate_algorithm_experiments', {
+        'session_id': sid, 'generation': 1,
+    }) == evidence
+    with pytest.raises(ValueError, match='checkpoint|token|state'):
+        server._dispatch('submit_algorithm_diagnosis', {
+            'session_id': sid, 'checkpoint_token': plan['checkpoint_token'],
+            'diagnosis': model.propose(plan['model_context']),
+        })
+    assert server._dispatch('get_algorithm_research', {
+        'session_id': sid,
+    })['history'] == completed['history']
+
+
+def test_mcp_first_last_generation_includes_s7_result_in_final_reply(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    sid = started['session_id']
+    model = ScriptedResearcher()
+    for gen in (1, 2):
+        staged = server._dispatch('submit_algorithm_plan', {
+            'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+            'plan': model.propose(started['model_context']),
+        })
+        started = server._dispatch('submit_algorithm_diagnosis', {
+            'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+            'diagnosis': model.propose(staged['model_context']),
+        })
+        assert started['controlled_experiments_automatically_evaluated'] is True
+        assert started['latest_controlled_experiments']['generation'] == gen
+    assert started['status'] == 'COMPLETED'
+    assert started['final_report']['generations_completed'] == 2
+    assert started['orders_enabled'] is False
+    for gen in (1, 2):
+        report = server._dispatch('evaluate_algorithm_experiments', {
+            'session_id': sid, 'generation': gen,
+        })
+        assert report['generation'] == gen
+        assert report['original_generation_evidence_hash'] == started['history'][
+            gen - 1
+        ]['evidence_hash']

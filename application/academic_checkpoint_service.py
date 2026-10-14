@@ -340,7 +340,26 @@ class AcademicMCPCheckpointService:
             db.execute('''UPDATE stages SET phase=?,token=?,plan_json=NULL,
             plan_digest=NULL,context_digest=NULL WHERE session_id=? AND phase='RUNNING' ''',
             ('COMPLETED' if completed['status']=='COMPLETED' else 'AWAITING_PLAN',uuid4().hex,sid))
-        return self.get({'session_id': sid})
+        # MCP-first shortcut: a complete research generation must carry its
+        # measured experiment evidence into the NEXT LLM planning prompt.
+        # Previously ChatGPT had to make an extra evaluate_* call and could
+        # accidentally start the next generation from unmeasured hypotheses.
+        # All comparison results use the existing immutable, idempotent S7
+        # storage and the *same* development dataset as the original plan.
+        measured_generation = completed['completed_generations']
+        experiment_report = self.evaluate_experiments({
+            'session_id': sid, 'generation': measured_generation,
+        })
+        refreshed = self.get({'session_id': sid})
+        if (
+            refreshed['completed_generations'] != measured_generation
+            or experiment_report['original_generation_evidence_hash']
+            != refreshed['history'][-1]['evidence_hash']
+        ):
+            raise CycleStateError('post-diagnosis experiment evidence mismatch')
+        refreshed['latest_controlled_experiments'] = experiment_report
+        refreshed['controlled_experiments_automatically_evaluated'] = True
+        return refreshed
 
     def cancel(self, args: dict[str, Any]) -> dict[str, Any]:
         """Stop between generation checkpoints without losing prior Evidence."""

@@ -179,3 +179,22 @@ def test_gpt_research_steps_link_verified_predecessor_without_local_llm(tmp_path
     with pytest.raises(ValueError, match="previous|predecessor"):
         server._dispatch("run_research_step", {**request, "previous_research_run_id": "f" * 32})
     assert len([x for x in EvidenceStore(state).events() if x["kind"] == "run"]) == 2
+
+
+def test_mcp_first_brief_advertises_missing_academic_tools_without_registration_change(
+    tmp_path: Path,
+) -> None:
+    server = create_mcp_server(project_root=tmp_path, state_dir=tmp_path / 'state')
+    brief = server._dispatch('get_research_brief', {})
+    schema = {x['name'] for x in chatgpt_tools()}
+    required = set(brief['mcp_capabilities']['required_client_tools'])
+    assert required <= schema
+    assert {
+        'start_algorithm_research', 'get_algorithm_research',
+        'submit_algorithm_plan', 'submit_algorithm_diagnosis',
+        'evaluate_algorithm_experiments',
+    } <= required
+    assert len(schema) == brief['mcp_capabilities']['server_tool_count'] == 32
+    hint = brief['mcp_capabilities']['stale_client_hint']
+    assert 'SAME existing MCP URL' in hint
+    assert 'Do not recreate the MCP integration' in hint

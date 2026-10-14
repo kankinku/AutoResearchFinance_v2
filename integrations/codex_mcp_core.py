@@ -230,11 +230,19 @@ class CodexMCPServer:
                         "submit_guided_generation",
                         "reconcile_guided_research",
                         "resume_research_batch",
+                        "start_algorithm_research",
+                        "get_algorithm_research",
+                        "submit_algorithm_plan",
+                        "submit_algorithm_diagnosis",
+                        "evaluate_algorithm_experiments",
                     ],
                     "stale_client_hint": (
-                        "If the ChatGPT tool list is missing these names, reconnect "
-                        "the Quant Autoresearch plugin or open a new session. "
-                        "Server tool discovery cannot refresh a cached client schema."
+                        "If this ChatGPT conversation does not expose one of the "
+                        "required_client_tools, refresh tool discovery in the existing "
+                        "Quant Autoresearch connection or open a new conversation with "
+                        "the already connected app. Keep the SAME existing MCP URL and "
+                        "OAuth registration. The server cannot force a cached client "
+                        "tool schema to reload. Do not recreate the MCP integration."
                     ),
                 },
                 **self.services.research.brief(),

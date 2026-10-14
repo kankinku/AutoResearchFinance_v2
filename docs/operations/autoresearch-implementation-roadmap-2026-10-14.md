@@ -120,3 +120,7 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### 2026-10-15 — 기본 MCP 정책 운영 검증 완료
 
 검증 완료 코드 `615dead`, 배포 `9e53840`, [상세 검증 로그](autoresearch-default-mcp-controller-2026-10-15.md). 전체 **1,392 tests PASS**. 기존 연결 ChatGPT 앱에서 새 정책 응답을 직접 조회해 기본 `mcp`, OpenAI API 자동 호출 `false`, 32개 도구, `READY`, 주문 비활성 확인. 이전 API Autopilot은 명시적 `--execution-mode openai-api` 선택 전에는 실행하지 않는다.
+
+### 2026-10-15 MCP 우선 실행 개선: 두 번 제출 + 자동 실험 저장
+
+[연구 세대 MCP 후처리·도구 목록 점검](autoresearch-mcp-first-generation-feedback-2026-10-15.md): 기존 MCP의 `submit_algorithm_diagnosis`가 해당 세대 S7 통제 실험을 **서버에서 자동·멱등 평가**하고 다음 S8 연구 컨텍스트를 재조회한 뒤 결과를 반환한다. 클라이언트 Plan과 Diagnosis 각각 한 번의 제출만 필수이며 별도 실험 평가 호출은 재조회·복구용으로 남는다. 운영 MCP 서버는 32개 도구를 제공하지만 **이 대화에서 노출된 것은 18개**이므로, 앱을 재등록하지 않고 클라이언트 도구 목록이 새로 반영되어야 실제 ChatGPT 주도 반복 연구를 수행할 수 있다. 실제 ChatGPT 모델로 10세대 자율성을 검증했다는 주장은 아직 하지 않는다.
