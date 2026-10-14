@@ -885,3 +885,90 @@ peak-to-trough decline despite somewhat lower realized volatility.
 files**. Both vendor series produce identical displayed benchmark-hurdle
 results. This update is on a feature branch only, does not merge production
 code, and does not approve any novel alpha strategy or deploy a broker order.
+
+## P0-11 shorter-lookback re-entry candidates and sensitivity (2026-10-14 KST)
+
+**Ex-ante fixed research extensions:** Added an *opt-in*, separately seeded
+`research.indicator_engine.reentry_challengers` catalogue (no changes to the
+original seven reference indicators). It registers `time_series_momentum_63`,
+`time_series_momentum_126` and `sma_direction_10` as **PROPOSED**; explicit
+reference-math verification is independently required to advance any of these
+to `VERIFIED`. All definitions use the already reviewed canonical calculator
+and execution delay: compare closes at bar t and execute no sooner than bar
+t+1. Fixed pairings, never discovered by scoring test outcomes:
+
+- Long entry: 252-bar time-series momentum + 20-bar SMA direction (prior seed)
+- Short entry: 63-bar time-series momentum + 10-bar SMA direction (new)
+- Medium entry: 126-bar time-series momentum + 20-bar SMA direction (new)
+- Prior 20-bar highest-range breakout + 20-bar SMA direction retained
+
+The research paper *Time Series Momentum*, Moskowitz, Ooi & Pedersen (2012),
+DOI `10.1016/j.jfineco.2011.11.003`, studies 1–12-month persistence in
+**multi-market futures**; these shorter horizons are **QQQ transport
+hypotheses, not a reproduction of reported academic alpha**. Brock,
+Lakonishok & LeBaron (1992), DOI
+`10.1111/j.1540-6261.1992.tb04681.x`, studies historical stock-index moving
+averages and range breaks. The user-facing strategy comparison is restricted
+to a single non-PIT ETF and cannot establish cross-market transfer validity.
+
+The existing protected `core/backtest` and StrategyIR execution logic remain
+unchanged. Optional `run_development_walkforward(...,
+include_fast_reentry_challengers=True)` makes the short/medium proposals
+eligible for training-only selection **after explicit catalogue verification**.
+The default is `False`, and ordinary 252-day and prior passive guard tests
+remain byte-for-byte deterministic. The runner includes variant choice in the
+hashed fold/report provenance; test-period data never selects parameters.
+
+**Actual latest-revision QQQ 2020–2025 development replay** (3 years of
+756-bar expanding training and 252-bar contiguous later testing, initial
+USD 10,000, canonical 1bp commission/2bp spread/5bp slippage):
+
+| Training-only chooser | Three-fold chained marked value |
+|---|---:|
+| Original two entries (252-day / 20-day breakout) | USD 16,545.36 |
+| Two existing + optional 63-day and 126-day momentum | USD 18,078.25 |
+| Original entries + train-only passive benchmark hurdle | USD 22,682.57 |
+| Faster entries + train-only passive hurdle | USD 19,923.26 |
+| Passive raw-price QQQ reference, test-window open purchase | USD 22,682.57 |
+
+The unguarded fast selection picked **126-day momentum** in each 252-bar
+forward fold (same for Tiingo and Nasdaq). By forward fold, net endings
+were USD 13,012.99 / 12,892.57 / 10,775.57, still below the same-fold
+passive USD 14,815.25 / 13,070.46 / 11,713.65. In the first fold,
+first position advanced from **2023-04-28** to **2023-03-07**, raising time
+invested from 168 to 205 of 252 trading days. In 2025, the faster rule
+reduced the observed marked max drawdown from **−24.32%** to **−14.37%**;
+however it increased transactions from **3** to **9** and paid simulated
+costs from about **USD 20.43** to **USD 66.46**. Better drawdown in this
+window does not imply the variant is production-safe or statistically superior.
+
+**Why faster + passive guard can underperform passive-only:** On the first
+training prefix, 126-day momentum scored around **USD 12,465**, versus
+passive **USD 12,410** (less than half a percent in-sample advantage). The
+fast chooser selected momentum for the subsequent 2023 window, where
+passive decisively beat it. This demonstrates candidate multiplicity and
+training-choice noise, rather than validated additional profitability.
+
+**Predefined alternative fold-window sensitivity** (all from the same,
+previously inspected development dataset, not separate independent OOS):
+
+| Training bars / test bars | Fold count | Original active | Fast-challenger active | Passive comparison |
+|---|---:|---:|---:|---:|
+| 504 / 126 | 8 | USD 13,297.90 | USD 12,450.93 | USD 15,386.70 |
+| 756 / 189 | 4 | USD 16,485.03 | USD 16,362.56 | USD 21,971.74 |
+| 756 / 252 | 3 | USD 16,545.36 | USD 18,078.25 | USD 22,682.57 |
+
+**P0-11 decision:** shorter entry lookbacks can sometimes reduce entry delays,
+but outperformance relative to both the prior strategy and passive reference
+is **not robust to fold schedule**. Keep fast challengers optional,
+non-promotable and disabled by default; do not claim a winning QQQ strategy.
+No sealed PIT, market-vintage authentication, independently held-back OOS,
+PBO/DSR statistical approval, Broker API integration or deployment occurred.
+
+**P0-11 acceptance and branch preservation:** Full repository regression
+`pytest -q -p no:cacheprovider` **1,285 / 1,285 pass** (384.75 seconds).
+Focused indicator-registration/causality/forward regression tests **16 pass**.
+Repository-wide Ruff **PASS**, mypy **PASS** across **218 source files**.
+Baseline operational branch `docs/mcp-phase3-5-1-state-inventory` remains
+frozen; the new candidates' development branch must not be merged or
+promoted solely because one 3-fold setting improved in-sample test returns.

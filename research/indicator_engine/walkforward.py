@@ -20,6 +20,7 @@ from core.integrity.hashes import content_hash
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
 from research.indicator_engine.composer import compose_hypotheses
 from research.indicator_engine.market_audit import inspect_development_market_reference
+from research.indicator_engine.reentry_challengers import REENTRY_CANDIDATES
 from research.indicator_engine.strategy_adapter import (
     compile_research_hypothesis,
     evaluate_compiled_development,
@@ -80,12 +81,14 @@ def run_development_walkforward(
     min_final_test_bars: int = 100,
     initial_cash: float = 10_000.0,
     include_passive_challenger: bool = False,
+    include_fast_reentry_challengers: bool = False,
 ) -> ResearchWalkForward:
     """Fit binary signal *choice* on prior prefix; trade only later windows.
 
     Entries are selected from a fixed pre-reviewed two-candidate set using
     previous window's canonical net-of-cost final equity. No optimization
-    on any later test window. Optional passive buy-and-hold can compete on
+    on any later test window. Optional faster re-entry candidates are separately
+    preregistered and verified before the selection. Passive buy-and-hold can compete on
     past training returns only, as a no-alpha passive benchmark hurdle.
     The testing capital resets each fold, with multiplication of returns.
     """
@@ -104,7 +107,10 @@ def run_development_walkforward(
         or len(market.bars) < train_bars + min_final_test_bars
     ):
         raise ResearchCatalogError("insufficient data or invalid walkforward fold sizes")
-    for name in (*_ENTRIES, _REGIME):
+    candidates = tuple((name, _REGIME) for name in _ENTRIES)
+    if include_fast_reentry_challengers:
+        candidates += REENTRY_CANDIDATES
+    for name in {signal for entry, regime in candidates for signal in (entry, regime)}:
         if catalog.get_indicator(name).status != "VERIFIED":
             raise ResearchCatalogError("VERIFIED reviewed signals required")
     if tuple(bar.timestamp for bar in market.bars) != tuple(sorted(
@@ -123,8 +129,8 @@ def run_development_walkforward(
         train_data = _prefix(market, train_end)
         training_scores: list[tuple[str, float]] = []
         choices = {}
-        for name in _ENTRIES:
-            possible = compose_hypotheses(catalog, signal_ids=(name, _REGIME))
+        for name, regime_name in candidates:
+            possible = compose_hypotheses(catalog, signal_ids=(name, regime_name))
             if len(possible) != 1:
                 raise ResearchCatalogError("ambiguous research training composition")
             choices[name] = possible[0]
@@ -221,6 +227,7 @@ def run_development_walkforward(
         "train_bars": train_bars, "test_bars": test_bars,
         "minimum_test": min_final_test_bars, "initial_cash": initial_cash,
         "passive_train_only_hurdle": include_passive_challenger,
+        "fast_reentry_challengers": include_fast_reentry_challengers,
         "folds": [
             {"selection": fold.training_choice_hash, "test": fold.test_equity_hash,
              "start": fold.test_start.isoformat(), "end": fold.test_end.isoformat(),
