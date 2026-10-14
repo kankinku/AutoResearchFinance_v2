@@ -566,3 +566,21 @@ None outperformed the same-source price-only USD 28,629.61 reference.
 The observed sensitivity is descriptive only: **do not pick the best
 in-sample policy as a validated strategy**. Volatility regimes, historical
 execution friction, fold-trained parameters and true OOS remain untested.
+
+### P0-6 final repository acceptance (2026-10-14 KST)
+
+- Full `pytest -q -p no:cacheprovider` on the pushed feature tree:
+  **1,218 passed / 0 failed in 442.79 seconds** (second full run).
+- Earlier full run: **1,217 passed / 1 failed** in 452.35 seconds;
+  the unrelated preexisting `tests/runtime/test_process_lifecycle.py::
+  test_managed_process_identity_and_tree_termination` transiently failed its
+  newly spawned child identity assertion; independent isolated rerun **PASS**.
+  The final clean full run is the accepted evidence. No protected runtime
+  source or test was modified in order to hide this transient observation.
+- Repository-wide Ruff **PASS** and strict mypy **PASS, 210 files**;
+  four targeted academic compiler/risk tests **22 PASS**.
+- Commit containing the research adapter, market audit, tests and P0-6
+  report: `5c62e6230fa6d6a4bb70c3a75c7e91b848be180a`.
+- Scope guard remains active: no operating-baseline update, native dynamic
+  StrategyIR activation, broker orders, independent PIT/OOS clearance or
+  Champion promotion.
