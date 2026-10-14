@@ -208,6 +208,7 @@ class AcademicCycleService:
             ):
                 raise CycleStateError("evidence integrity: session counter mismatch")
             return {
+                "final_report": self._final_report(row, history),
                 "session_id": session_id,
                 "status": row["status"],
                 "requested_generations": row["requested"],
@@ -220,6 +221,71 @@ class AcademicCycleService:
                 "real_model_connection_verified": False,
                 "scope": "NON_PIT_DEVELOPMENT_EXTERNAL_GPT_CHECKPOINTS",
             }
+
+    @staticmethod
+    def _final_report(
+        row: sqlite3.Row, history: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        """Summarize measured development evidence without causal claims."""
+        if row["status"] not in ("COMPLETED", "CANCELLED"):
+            return None
+        first = history[0] if history else None
+        last = history[-1] if history else None
+        return {
+            "completion_reason": (
+                "REQUESTED_GENERATIONS_COMPLETED" if row["status"] == "COMPLETED"
+                else "CANCELLED_AT_CHECKPOINT"
+            ),
+            "generations_requested": row["requested"],
+            "generations_completed": row["completed"],
+            "first_total_return": first["metrics"]["total_return"] if first else None,
+            "last_total_return": last["metrics"]["total_return"] if last else None,
+            "best_development_return": max(
+                (x["metrics"]["total_return"] for x in history), default=None
+            ),
+            "last_max_drawdown": last["metrics"]["max_drawdown"] if last else None,
+            "total_observed_fills": sum(x["observed_trades"] for x in history),
+            "proposed_hypotheses": sum(len(x["hypothesis_ids"]) for x in history),
+            "tested_hypotheses": 0,
+            "causal_status": "NOT_ESTABLISHED",
+            "independent_profitability_verified": False,
+            "model_autonomy_verified": False,
+        }
+
+    def cancel(
+        self, session_id: str, catalog: ResearchCatalog, market: MarketDataSet,
+    ) -> dict[str, Any]:
+        state = self.get(session_id, catalog, market)
+        if state["status"] not in ("AWAITING_PROVIDER", "INTERRUPTED"):
+            raise CycleStateError("session cancelled, complete or executing")
+        with self._connect() as db:
+            changed = db.execute(
+                "UPDATE sessions SET status='CANCELLED',running_token=NULL "
+                "WHERE id=? AND status IN ('AWAITING_PROVIDER','INTERRUPTED') "
+                "AND completed=?",
+                (session_id, state["completed_generations"]),
+            )
+            if changed.rowcount != 1:
+                raise CycleStateError("checkpoint cancellation conflict")
+        return self.get(session_id, catalog, market)
+
+    def interrupt_stale(
+        self, session_id: str, catalog: ResearchCatalog, market: MarketDataSet,
+    ) -> dict[str, Any]:
+        """Explicit reconciliation only after the former process has stopped."""
+        state = self.get(session_id, catalog, market)
+        if state["status"] != "EXECUTING":
+            raise CycleStateError("only executing claims can be reconciled")
+        with self._connect() as db:
+            changed = db.execute(
+                "UPDATE sessions SET status='INTERRUPTED',running_token=NULL,"
+                "error_type='EXPLICIT_RECONCILIATION' "
+                "WHERE id=? AND status='EXECUTING' AND completed=?",
+                (session_id, state["completed_generations"]),
+            )
+            if changed.rowcount != 1:
+                raise CycleStateError("checkpoint reconciliation conflict")
+        return self.get(session_id, catalog, market)
 
     def resume(
         self, session_id: str, catalog: ResearchCatalog, market: MarketDataSet,
@@ -239,8 +305,8 @@ class AcademicCycleService:
         market: MarketDataSet, provider: CycleResearcher | None,
     ) -> dict[str, Any]:
         state = self.get(session_id, catalog, market)
-        if state["status"] == "COMPLETED":
-            raise CycleStateError("research session already complete")
+        if state["status"] in ("COMPLETED", "CANCELLED"):
+            raise CycleStateError("research session already complete or cancelled")
         if state["status"] != "AWAITING_PROVIDER":
             raise CycleStateError("research interrupted or executing; explicitly resume")
         if provider is None:

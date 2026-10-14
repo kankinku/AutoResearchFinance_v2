@@ -168,7 +168,7 @@ class AcademicMCPCheckpointService:
                 result['checkpoint_token'] = row['token']
                 result['model_context'] = context
                 result['status'] = 'AWAITING_DIAGNOSIS'
-            elif row['phase'] not in ('COMPLETED', 'INTERRUPTED', 'RUNNING'):
+            elif row['phase'] not in ('COMPLETED', 'INTERRUPTED', 'RUNNING', 'CANCELLED'):
                 raise CycleStateError('invalid checkpoint state')
             return result
 
@@ -240,14 +240,71 @@ class AcademicMCPCheckpointService:
             ('COMPLETED' if completed['status']=='COMPLETED' else 'AWAITING_PLAN',uuid4().hex,sid))
         return self.get({'session_id': sid})
 
+    def cancel(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Stop between generation checkpoints without losing prior Evidence."""
+        self._one(args, {'session_id', 'checkpoint_token'},
+                  {'session_id', 'checkpoint_token'})
+        sid, token = args['session_id'], args['checkpoint_token']
+        with self._connect() as db:
+            row, catalog, data, current = self._state(db, sid)
+            if row['token'] != token:
+                raise CycleStateError('invalid checkpoint token')
+            if row['phase'] not in ('AWAITING_PLAN', 'AWAITING_DIAGNOSIS', 'INTERRUPTED'):
+                raise CycleStateError('cancel only at a safe checkpoint')
+            if current['status'] not in ('AWAITING_PROVIDER', 'INTERRUPTED'):
+                raise CycleStateError('cancel requires a stable checkpoint')
+            self.cycle.cancel(sid, catalog, data)
+            changed = db.execute(
+                "UPDATE stages SET phase='CANCELLED',plan_json=NULL,"
+                "plan_digest=NULL,context_digest=NULL,token=? "
+                "WHERE session_id=? AND token=?",
+                (uuid4().hex, sid, token),
+            )
+            if changed.rowcount != 1:
+                raise CycleStateError('cancel checkpoint conflict')
+        return self.get({'session_id': sid})
+
+    def reconcile(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Operator-triggered reconciliation after an interrupted server process."""
+        self._one(args, {'session_id'}, {'session_id'})
+        sid = args['session_id']
+        with self._connect() as db:
+            row, catalog, data, current = self._state(db, sid)
+            if row['phase'] != 'RUNNING':
+                raise CycleStateError('reconcile only stalled running gateway checkpoint')
+            cycle_status = current['status']
+            if cycle_status == 'EXECUTING':
+                self.cycle.interrupt_stale(sid, catalog, data)
+                phase = 'INTERRUPTED'
+            elif cycle_status == 'INTERRUPTED':
+                phase = 'INTERRUPTED'
+            elif cycle_status == 'COMPLETED':
+                phase = 'COMPLETED'
+            elif cycle_status == 'AWAITING_PROVIDER':
+                phase = 'AWAITING_PLAN'
+            else:
+                raise CycleStateError('inconsistent checkpoint cannot be reconciled')
+            changed = db.execute(
+                'UPDATE stages SET phase=?,token=?,plan_json=NULL,'
+                'plan_digest=NULL,context_digest=NULL '
+                "WHERE session_id=? AND phase='RUNNING'",
+                (phase, uuid4().hex, sid),
+            )
+            if changed.rowcount != 1:
+                raise CycleStateError('concurrent gateway checkpoint change')
+        return self.get({'session_id': sid})
+
     def resume(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(args, {'session_id'}, {'session_id'})
         sid = args['session_id']
         with self._connect() as db:
             row,catalog,data,current = self._state(db,sid)
-            if row['phase'] != 'INTERRUPTED' or current['status'] != 'INTERRUPTED':
+            if row['phase'] != 'INTERRUPTED' or current['status'] not in (
+                'INTERRUPTED', 'AWAITING_PROVIDER',
+            ):
                 raise CycleStateError('only interrupted academic MCP sessions can resume')
-            self.cycle.resume(sid,catalog,data)
+            if current['status'] == 'INTERRUPTED':
+                self.cycle.resume(sid,catalog,data)
             db.execute('''UPDATE stages SET phase='AWAITING_PLAN',token=?,plan_json=NULL,
             plan_digest=NULL,context_digest=NULL WHERE session_id=? AND phase='INTERRUPTED' ''',
                        (uuid4().hex,sid))

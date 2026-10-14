@@ -89,7 +89,8 @@ class CodexMCPServer:
         if name in {
             "start_algorithm_research", "get_algorithm_research",
             "submit_algorithm_plan", "submit_algorithm_diagnosis",
-            "resume_algorithm_research",
+            "resume_algorithm_research", "cancel_algorithm_research",
+            "reconcile_algorithm_research",
         }:
             academic = AcademicMCPCheckpointService(
                 project_root=self.project_root, state_dir=self.state_dir
@@ -102,6 +103,10 @@ class CodexMCPServer:
                 return academic.submit_plan(arguments)
             if name == "submit_algorithm_diagnosis":
                 return academic.submit_diagnosis(arguments)
+            if name == "cancel_algorithm_research":
+                return academic.cancel(arguments)
+            if name == "reconcile_algorithm_research":
+                return academic.reconcile(arguments)
             return academic.resume(arguments)
         if name == "audit_market_data":
             if set(arguments) - {"data_path", "comparison_path", "adjusted_path", "pin_snapshot"}:

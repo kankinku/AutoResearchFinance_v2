@@ -109,3 +109,114 @@ def test_reject_unauthorized_path_and_oos_before_prompt(tmp_path: Path):
                     {'data_path':'data/no.parquet','generations':True}):
         with pytest.raises(ValueError):
             server._dispatch('start_algorithm_research', illegal)
+
+
+def test_cancel_staged_diagnosis_preserves_audit_generation_count(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': started['session_id'],
+        'checkpoint_token': started['checkpoint_token'],
+        'plan': _plan().model_dump(mode='json'),
+    })
+    cancelled = server._dispatch('cancel_algorithm_research', {
+        'session_id': started['session_id'],
+        'checkpoint_token': staged['checkpoint_token'],
+    })
+    assert cancelled['status'] == 'CANCELLED'
+    assert cancelled['completed_generations'] == 0
+    assert cancelled['final_report']['completion_reason'] == 'CANCELLED_AT_CHECKPOINT'
+    assert 'model_context' not in cancelled
+    with pytest.raises(ValueError, match='state|token|checkpoint'):
+        server._dispatch('submit_algorithm_diagnosis', {
+            'session_id': started['session_id'],
+            'checkpoint_token': staged['checkpoint_token'],
+            'diagnosis': {},
+        })
+    assert server._dispatch('get_algorithm_research', {
+        'session_id': started['session_id'],
+    })['status'] == 'CANCELLED'
+
+
+def test_cancel_requires_current_checkpoint_token(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    with pytest.raises(ValueError, match='token'):
+        server._dispatch('cancel_algorithm_research', {
+            'session_id': started['session_id'],
+            'checkpoint_token': '0' * 32,
+        })
+    assert server._dispatch('get_algorithm_research', {
+        'session_id': started['session_id'],
+    })['status'] == 'AWAITING_PROVIDER'
+
+
+def test_explicit_reconcile_after_crash_preserves_completed_generation(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    sid = started['session_id']
+    scripted = ScriptedResearcher()
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+        'plan': scripted.propose(started['model_context']),
+    })
+    # Crash between stage claim and submitting diagnosis: no valid generation
+    # has been committed; recovery must never silently invent one.
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    svc = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    with svc._connect() as db:
+        db.execute("UPDATE stages SET phase='RUNNING' WHERE session_id=?", (sid,))
+    recovery = server._dispatch('reconcile_algorithm_research', {'session_id': sid})
+    assert recovery['status'] == 'AWAITING_PROVIDER'
+    assert recovery['completed_generations'] == 0
+    assert recovery['checkpoint_phase'] == 'AWAITING_PLAN'
+    assert recovery['checkpoint_token'] != staged['checkpoint_token']
+    with pytest.raises(ValueError, match='interrupted'):
+        server._dispatch('resume_algorithm_research', {'session_id': sid})
+
+
+def test_reconcile_finished_cycle_after_gateway_crash_does_not_repeat_work(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    scripted = ScriptedResearcher()
+    sid = started['session_id']
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+        'plan': scripted.propose(started['model_context']),
+    })
+    from application.academic_checkpoint_service import (
+        AcademicMCPCheckpointService,
+        _SubmittedProvider,
+    )
+    svc = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    with svc._connect() as db:
+        db.execute("UPDATE stages SET phase='RUNNING' WHERE session_id=?", (sid,))
+    diagnosis = scripted.propose(staged['model_context'])
+    with svc._connect() as db:
+        row = db.execute('SELECT * FROM stages WHERE session_id=?', (sid,)).fetchone()
+        assert row is not None
+        import json
+        plan = json.loads(row['plan_json'])
+        catalog, market = svc._catalog(), svc._data(row['data_path'])
+    svc.cycle.advance(sid, catalog, market, _SubmittedProvider(plan, diagnosis))
+    recovered = server._dispatch('reconcile_algorithm_research', {'session_id': sid})
+    assert recovered['status'] == 'AWAITING_PROVIDER'
+    assert recovered['checkpoint_phase'] == 'AWAITING_PLAN'
+    assert recovered['completed_generations'] == 1
+    assert len(recovered['history']) == 1
+    assert recovered['checkpoint_token'] != staged['checkpoint_token']
+
+def test_resume_gateway_interrupted_before_cycle_claim(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    sid = started['session_id']
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    svc = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    with svc._connect() as db:
+        db.execute("UPDATE stages SET phase='INTERRUPTED' WHERE session_id=?", (sid,))
+    result = server._dispatch('resume_algorithm_research', {'session_id': sid})
+    assert result['status'] == 'AWAITING_PROVIDER'
+    assert result['checkpoint_phase'] == 'AWAITING_PLAN'
+    assert result['completed_generations'] == 0
+    assert result['checkpoint_token'] != started['checkpoint_token']

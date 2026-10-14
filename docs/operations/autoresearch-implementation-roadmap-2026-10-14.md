@@ -63,3 +63,7 @@
 ### 운영 반영 — 기존 Quant MCP URL/등록 상태 유지 (2026-10-14)
 
 S4 2차 코드 커밋 `17fddd5`를 detached 고정 실행 Worktree로 배포하고 별도 브랜치 `deploy/quant-mcp-stable-url-s4` (`c2586f0`)로 기존 Moon Supervisor 런처의 **소스 코드 경로만** 버전 관리했다. 기존 `/quant/mcp` URL/OAuth 리소스/인증 저장소·복구 브랜치는 유지했다. 기존 설치 앱 호출로 `READY`, tools=29가 확인되었고, 서버 직접 디스패처를 통한 GPT 작성 Plan/진단 **2세대** 저장과 악화된 성과를 정직하게 확인했다. [검증 증거 및 아직 남은 앱 캐시 문제](autoresearch-s4-mcp-bridge-stable-url-2026-10-14.md). 최종 외부 LLM 앱 **신규 도구 직접 호출 검증 및 지속형 자율 연구 운영**은 아직 미완료.
+
+### S5 1차 중단·보고·복구 — 2026-10-14
+
+[체크포인트 운영 개선](autoresearch-s5-checkpoint-operations-2026-10-14.md): 안전한 취소, 완료된 Evidence 보존, 최종 수치 요약, gateway/core 상태 불일치에 대한 명시적 복구와 새 MCP 도구 2개를 개발 브랜치에 추가했다. 아직 실제 지속형/백그라운드 연구나 10~100세대 실모델 재현성 검증은 완료하지 않았다. 기존 URL 및 OAuth 등록은 그대로 유지한다.

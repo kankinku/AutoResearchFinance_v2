@@ -194,3 +194,61 @@ def test_changed_threshold_same_actual_signals_rejected(tmp_path: Path):
     with pytest.raises(CycleStateError, match="effective signals"):
         service.advance(sid, catalog, market, provider)
     assert service.get(sid, catalog, market)["completed_generations"] == 1
+
+
+def test_cancel_checkpoint_preserves_completed_evidence_and_blocks_further_llm(tmp_path: Path):
+    service, catalog, market, sid = _start(tmp_path, generations=3)
+    model = ScriptedResearcher()
+    first = service.advance(sid, catalog, market, model)
+    stopped = service.cancel(sid, catalog, market)
+    assert stopped["status"] == "CANCELLED"
+    assert stopped["completed_generations"] == 1
+    assert stopped["history"] == first["history"]
+    assert stopped["final_report"]["completion_reason"] == "CANCELLED_AT_CHECKPOINT"
+    assert stopped["final_report"]["tested_hypotheses"] == 0
+    assert not stopped["final_report"]["independent_profitability_verified"]
+    with pytest.raises(CycleStateError, match="cancel|complete"):
+        service.advance(sid, catalog, market, model)
+    with pytest.raises(CycleStateError, match="interrupted"):
+        service.resume(sid, catalog, market)
+    with pytest.raises(CycleStateError, match="cancel"):
+        service.cancel(sid, catalog, market)
+    assert service.get(sid, catalog, market) == stopped
+
+
+def test_report_complete_preserves_original_generation_metrics(tmp_path: Path):
+    service, catalog, market, sid = _start(tmp_path, generations=2)
+    result = service.run_bounded(sid, catalog, market, ScriptedResearcher(), max_steps=2)
+    report = result["final_report"]
+    assert report["completion_reason"] == "REQUESTED_GENERATIONS_COMPLETED"
+    assert report["generations_completed"] == 2
+    assert report["generations_requested"] == 2
+    assert report["first_total_return"] == result["history"][0]["metrics"]["total_return"]
+    assert report["last_total_return"] == result["history"][-1]["metrics"]["total_return"]
+    assert report["best_development_return"] == max(
+        h["metrics"]["total_return"] for h in result["history"]
+    )
+    assert report["tested_hypotheses"] == 0
+    assert report["causal_status"] == "NOT_ESTABLISHED"
+    assert not report["independent_profitability_verified"]
+
+
+def test_reconcile_stale_claim_requires_explicit_action_without_losing_history(tmp_path: Path):
+    service, catalog, market, sid = _start(tmp_path)
+    initial = service.advance(sid, catalog, market, ScriptedResearcher())
+    with service._connect() as db:
+        db.execute(
+            "UPDATE sessions SET status='EXECUTING',running_token=? WHERE id=?",
+            ("failed-process-token", sid),
+        )
+    assert service.get(sid, catalog, market)["status"] == "EXECUTING"
+    with pytest.raises(CycleStateError, match="resume"):
+        service.advance(sid, catalog, market, ScriptedResearcher())
+    fixed = service.interrupt_stale(sid, catalog, market)
+    assert fixed["status"] == "INTERRUPTED"
+    assert fixed["completed_generations"] == initial["completed_generations"]
+    assert fixed["history"] == initial["history"]
+    assert service.resume(sid, catalog, market)["status"] == "AWAITING_PROVIDER"
+    assert service.advance(sid, catalog, market, ScriptedResearcher())[
+        "completed_generations"
+    ] == 2

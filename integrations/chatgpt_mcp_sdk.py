@@ -39,6 +39,8 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "submit_algorithm_plan": "EXECUTION_LIFECYCLE",
     "submit_algorithm_diagnosis": "EXECUTION_LIFECYCLE",
     "resume_algorithm_research": "EXECUTION_LIFECYCLE",
+    "cancel_algorithm_research": "EXECUTION_LIFECYCLE",
+    "reconcile_algorithm_research": "EXECUTION_LIFECYCLE",
     "run_research_step": "EXECUTION_LIFECYCLE",
     "start_guided_research": "EXECUTION_LIFECYCLE",
     "get_guided_research": "EVIDENCE_STATUS",
@@ -344,6 +346,17 @@ def chatgpt_tools() -> list[dict[str, object]]:
         _academic_tool(
             "resume_algorithm_research",
             "Explicitly resume a failed checkpoint; preserves all completed generations.",
+            {"session_id": session_field}, ["session_id"],
+        ),
+        _academic_tool(
+            "cancel_algorithm_research",
+            "Cancel academic research at its current checkpoint, keeping completed Evidence.",
+            {"session_id": session_field, "checkpoint_token": token_field},
+            ["session_id", "checkpoint_token"],
+        ),
+        _academic_tool(
+            "reconcile_algorithm_research",
+            "Operator-only reconciliation of a stalled checkpoint after server restart.",
             {"session_id": session_field}, ["session_id"],
         ),
     ])

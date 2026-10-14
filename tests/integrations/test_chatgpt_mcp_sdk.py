@@ -23,7 +23,7 @@ def test_chatgpt_plane_does_not_mutate_legacy_public_surface(tmp_path: Path) -> 
         names = {tool.name for tool in published.tools}
         legacy = {str(item["name"]) for item in _tools()}
         assert len(legacy) == 13
-        assert len(names) == 29
+        assert len(names) == 31
         assert {"get_research_brief", "run_research_step"} <= names
         assert {"start_system", "stop_system", "check_system", "run_evaluation"}.isdisjoint(names)
         assert len(names & legacy) == 8
