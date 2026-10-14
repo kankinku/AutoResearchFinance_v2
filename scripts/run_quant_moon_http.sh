@@ -29,6 +29,15 @@ if [[ -n "${QUANT_MCP_PUBLIC_BASE:-}" && "$QUANT_MCP_PUBLIC_BASE" != "$PINNED_BA
     exit 1
 fi
 export QUANT_MCP_PUBLIC_BASE="$PINNED_BASE"
+# Upgrade imported application code only; keep ROOT / pinned URL / OAuth state untouched.
+SOURCE_ROOT="/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-17fddd5"
+[[ -d "$SOURCE_ROOT/integrations" && -f "$SOURCE_ROOT/application/academic_checkpoint_service.py" ]] || exit 1
+# Refuse a moved or edited code worktree: production is commit-pinned.
+EXPECTED_SOURCE_SHA="17fddd5392bb210c06f4d6d3a0f0388efac0029d"
+[[ "$(git -C "$SOURCE_ROOT" rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA" ]] || exit 1
+[[ -z "$(git -C "$SOURCE_ROOT" status --porcelain)" ]] || exit 1
+export PYTHONPATH="$SOURCE_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+cd -- "$SOURCE_ROOT"
 exec "$ROOT/.venv/bin/python" -m integrations.chatgpt_mcp_http \
  --project-root "$ROOT" --state-dir "$STATE/research" \
  --host 127.0.0.1 --port 8787 \
