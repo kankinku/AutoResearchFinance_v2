@@ -197,7 +197,7 @@ def test_reconcile_finished_cycle_after_gateway_crash_does_not_repeat_work(tmp_p
         assert row is not None
         import json
         plan = json.loads(row['plan_json'])
-        catalog, market = svc._catalog(), svc._data(row['data_path'])
+        catalog, market = svc._catalog(row['catalog_version']), svc._data(row['data_path'])
     svc.cycle.advance(sid, catalog, market, _SubmittedProvider(plan, diagnosis))
     recovered = server._dispatch('reconcile_algorithm_research', {'session_id': sid})
     assert recovered['status'] == 'AWAITING_PROVIDER'
@@ -302,3 +302,57 @@ def test_s7_v2_stored_diff_is_hash_checked(tmp_path: Path):
         server._dispatch('evaluate_algorithm_experiments', {
             'session_id': initial['session_id'], 'generation': 1,
         })
+
+
+def test_s6_new_starts_use_pinned_catalog_and_old_sessions_remain_readable(tmp_path: Path):
+    server, original = _setup(tmp_path)
+    previous = server._dispatch('get_algorithm_research', {'session_id': original['session_id']})
+    assert previous['model_context']['catalog_version'] == 's6-v1'
+    assert {'ema_direction_20', 'range_low_reclaim_20'} <= {
+        x['indicator_id'] for x in previous['model_context']['verified_indicators']
+    }
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    svc = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    # Simulate an older session created before the S6 deployment via
+    # its previously pinned catalog, without altering any newer session.
+    old_market = _market()
+    from core.data.parquet import ParquetDataProvider
+    ParquetDataProvider.write(tmp_path / 'project' / 'data' / 'legacy.parquet', old_market)
+    old_catalog = svc._catalog('s3-v1')
+    started = svc.cycle.start(old_catalog, old_market, generations=2)
+    import uuid
+    with svc._connect() as db:
+        db.execute(
+            'INSERT INTO stages(session_id,data_path,phase,token,catalog_version) '
+            "VALUES(?,?,'AWAITING_PLAN',?,'s3-v1')",
+            (started['session_id'], 'data/legacy.parquet', uuid.uuid4().hex),
+        )
+    legacy = server._dispatch('get_algorithm_research', {'session_id': started['session_id']})
+    assert legacy['model_context']['catalog_version'] == 's3-v1'
+    assert 'ema_direction_20' not in {
+        x['indicator_id'] for x in legacy['model_context']['verified_indicators']
+    }
+    assert server._dispatch('get_algorithm_research', {
+        'session_id': original['session_id'],
+    })['model_context']['catalog_version'] == 's6-v1'
+
+
+def test_s6_catalog_version_tampering_rejected_before_model_call(tmp_path: Path):
+    server, session = _setup(tmp_path)
+    from application.academic_checkpoint_service import AcademicMCPCheckpointService
+    service = AcademicMCPCheckpointService(
+        project_root=tmp_path / 'project', state_dir=tmp_path / 'state',
+    )
+    assert session['model_context']['catalog_version'] == 's6-v1'
+    with service._connect() as db:
+        db.execute('UPDATE stages SET catalog_version=? WHERE session_id=?',
+                   ('s3-v1', session['session_id']))
+    with pytest.raises(ValueError, match='catalog identity'):
+        server._dispatch('get_algorithm_research', {'session_id':session['session_id']})
+    with service._connect() as db:
+        db.execute('UPDATE stages SET catalog_version=? WHERE session_id=?',
+                   ('not-a-version', session['session_id']))
+    with pytest.raises(ValueError, match='unknown pinned'):
+        server._dispatch('get_algorithm_research', {'session_id':session['session_id']})

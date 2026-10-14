@@ -23,6 +23,7 @@ from research.indicator_engine.decision_audit import (
     AcademicDecisionAudit,
     audit_compiled_academic_decisions,
 )
+from research.indicator_engine.models import BINARY_ENTRY_CALCULATORS
 from research.indicator_engine.signals import calculate_signal
 from research.indicator_engine.strategy_adapter import (
     AcademicDevelopmentResult,
@@ -214,9 +215,7 @@ def compile_algorithm_plan(
         if candidate.scope != "single_asset" or candidate.execution_delay_bars != 1:
             raise ResearchCatalogError("unsupported PIT or execution lag for academic indicator")
         if name in vote_names and (
-            candidate.role != "entry" or candidate.calculator not in (
-                "time_series_momentum", "previous_range_breakout"
-            )
+            candidate.role != "entry" or candidate.calculator not in BINARY_ENTRY_CALCULATORS
         ):
             raise ResearchCatalogError("votes require reviewed binary entry indicators")
         if name in gate_names and candidate.role not in ("regime", "risk"):
@@ -363,9 +362,7 @@ def build_algorithm_plan_context(
     eligible = tuple(x for x in verified if (
         x.scope == "single_asset" and x.execution_delay_bars == 1
         and (x.role in {"risk", "regime"} or (
-            x.role == "entry" and x.calculator in (
-                "time_series_momentum", "previous_range_breakout"
-            )
+            x.role == "entry" and x.calculator in BINARY_ENTRY_CALCULATORS
         ))
     ))
     context: dict[str, Any] = {

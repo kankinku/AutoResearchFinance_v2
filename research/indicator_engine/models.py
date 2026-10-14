@@ -19,6 +19,10 @@ Calculator = Literal[
     "cross_sectional_momentum",
     "parkinson_variance",
     "volatility_managed_exposure",
+    "sma_pullback",
+    "dual_sma_trend",
+    "ema_direction",
+    "range_low_reclaim",
 ]
 
 DOI_PATTERN = re.compile(r"^10\.[0-9]{4,9}/[-._;()/:A-Za-z0-9]+$")
@@ -35,7 +39,22 @@ CANONICAL_FORMULAS: dict[str, str] = {
         "min(max_exposure, target_daily_variance / mean(ln(close[t-k]/close[t-k-1])^2,k=0:n-1)); "
         "known after close[t], apply at next bar; cash-only, no leverage"
     ),
+    "sma_pullback": "close[t] < mean(close[t-n+1:t+1]); next open only",
+    "dual_sma_trend": "mean(close[t-floor(n/4)+1:t+1]) > mean(close[t-n+1:t+1]); next open",
+    "ema_direction": (
+        "close[t] > EMA_n[t]; EMA seeded mean(close[0:n]), "
+        "alpha=2/(n+1), emit from t=n-1; next open"
+    ),
+    "range_low_reclaim": (
+        "low[t] < min(low[t-n:t]) and close[t] > min(low[t-n:t]); next open"
+    ),
 }
+
+# These rules emit a binary long-entry vote, not an execution instruction.
+BINARY_ENTRY_CALCULATORS = frozenset({
+    "time_series_momentum", "previous_range_breakout",
+    "sma_pullback", "dual_sma_trend", "ema_direction", "range_low_reclaim",
+})
 
 
 class CitationSnapshot(BaseModel):
@@ -118,6 +137,10 @@ class IndicatorCandidate(BaseModel):
             "cross_sectional_momentum": {"close"},
             "parkinson_variance": {"high", "low"},
             "volatility_managed_exposure": {"close"},
+            "sma_pullback": {"close"},
+            "dual_sma_trend": {"close"},
+            "ema_direction": {"close"},
+            "range_low_reclaim": {"low", "close"},
         }[self.calculator]
         if set(self.required_fields) != requires or len(self.required_fields) != len(requires):
             raise ValueError("calculator input contract does not match required fields")

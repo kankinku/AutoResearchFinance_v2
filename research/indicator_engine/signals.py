@@ -68,6 +68,31 @@ def calculate_signal(candidate: IndicatorCandidate, inputs: Numbers) -> tuple[fl
         close, high = values["close"], values["high"]
         for i in range(n, size):
             output[i] = float(close[i] > max(high[i - n : i]))
+    elif kind == "sma_pullback":
+        close = values["close"]
+        for i in range(n - 1, size):
+            output[i] = float(close[i] < fmean(close[i - n + 1:i + 1]))
+    elif kind == "dual_sma_trend":
+        close = values["close"]
+        fast = max(2, n // 4)
+        for i in range(n - 1, size):
+            output[i] = float(
+                fmean(close[i - fast + 1:i + 1]) > fmean(close[i - n + 1:i + 1])
+            )
+    elif kind == "ema_direction":
+        close = values["close"]
+        if size >= n:
+            ema = fmean(close[:n])
+            output[n - 1] = float(close[n - 1] > ema)
+            alpha = 2.0 / (n + 1.0)
+            for i in range(n, size):
+                ema += alpha * (close[i] - ema)
+                output[i] = float(close[i] > ema)
+    elif kind == "range_low_reclaim":
+        low, close = values["low"], values["close"]
+        for i in range(n, size):
+            prior_low = min(low[i - n:i])
+            output[i] = float(low[i] < prior_low and close[i] > prior_low)
     elif kind == "garman_klass_variance":
         opened, high, low, close = (values["open"], values["high"], values["low"], values["close"])
         coefficient = 2 * math.log(2) - 1
@@ -148,6 +173,38 @@ def _reference_check(
         expected = tuple(
             None if t < n else float(all(close[t] > high[k] for k in range(t - n, t)))
             for t in range(len(close))
+        )
+    elif kind == "sma_pullback":
+        expected = tuple(
+            None if t < n - 1 else float(n * close[t] < sum(close[t - n + 1:t + 1]))
+            for t in range(len(close))
+        )
+    elif kind == "dual_sma_trend":
+        fast = max(2, n // 4)
+        expected = tuple(
+            None if t < n - 1 else float(
+                sum(close[t - fast + 1:t + 1]) * n
+                > sum(close[t - n + 1:t + 1]) * fast
+            ) for t in range(len(close))
+        )
+    elif kind == "ema_direction":
+        alpha = 2.0 / (n + 1.0)
+        initial = sum(close[:n]) / n
+        expected = tuple(
+            None if t < n - 1 else float(
+                close[t] > (
+                    initial * ((1 - alpha) ** (t - n + 1))
+                    + sum(alpha * ((1 - alpha) ** (t - k)) * close[k]
+                          for k in range(n, t + 1))
+                )
+            ) for t in range(len(close))
+        )
+    elif kind == "range_low_reclaim":
+        low = obs["low"]
+        expected = tuple(
+            None if t < n else float(
+                low[t] < min(low[t - n:t]) and close[t] > min(low[t - n:t])
+            ) for t in range(len(close))
         )
     elif kind == "garman_klass_variance":
         highs, lows, opens = obs["high"], obs["low"], obs["open"]

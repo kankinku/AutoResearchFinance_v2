@@ -25,6 +25,7 @@ from research.indicator_engine.algorithm_plan import (
 )
 from research.indicator_engine.catalog import ResearchCatalog
 from research.indicator_engine.controlled_experiments import compare_controlled_experiments
+from research.indicator_engine.s6_seed import S6_SIGNALS, seed_s6_references
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
@@ -74,13 +75,29 @@ class AcademicMCPCheckpointService:
             report_json TEXT NOT NULL, report_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, generation)
         )''')
+        # Old sessions were created with the original catalog. Keep their
+        # identity even after new S6 candidates become available.
+        if 'catalog_version' not in {
+            column['name'] for column in db.execute('PRAGMA table_info(stages)')
+        }:
+            db.execute(
+                "ALTER TABLE stages ADD COLUMN catalog_version TEXT NOT NULL DEFAULT 's3-v1'"
+            )
         return db
 
-    def _catalog(self) -> ResearchCatalog:
-        catalog = ResearchCatalog(self.state / 'catalog.sqlite')
+    def _catalog(self, version: str = 's3-v1') -> ResearchCatalog:
+        if version not in ('s3-v1', 's6-v1'):
+            raise CycleStateError('unknown pinned research indicator catalog version')
+        catalog = ResearchCatalog(self.state / (
+            'catalog.sqlite' if version == 's3-v1' else 'catalog-s6-v1.sqlite'
+        ))
         seed_approved_references(catalog)
-        for name in ('time_series_momentum', 'previous_range_breakout',
-                     'parkinson_variance', 'sma_direction'):
+        names: tuple[str, ...] = ('time_series_momentum', 'previous_range_breakout',
+                 'parkinson_variance', 'sma_direction')
+        if version == 's6-v1':
+            seed_s6_references(catalog)
+            names += tuple(candidate.signal_id for candidate in S6_SIGNALS)
+        for name in names:
             indicator = catalog.get_indicator(name)
             if indicator.status == 'PROPOSED':
                 catalog.verify_and_register(name, verify_signal_on_synthetic_prices(indicator))
@@ -106,14 +123,17 @@ class AcademicMCPCheckpointService:
             raise ValueError('data_path must be a string')
         path = resolve_project_input(self.root, args['data_path'], frozenset({'.parquet'}))
         data = ParquetDataProvider.read(path)
-        catalog = self._catalog()
+        catalog_version = 's6-v1'
+        catalog = self._catalog(catalog_version)
         started = self.cycle.start(catalog, data, generations=args['generations'])
         token = uuid4().hex
         sid = str(started['session_id'])
         with self._connect() as db:
-            db.execute('INSERT INTO stages(session_id,data_path,phase,token) '
-                       'VALUES(?,?,?,?)', (sid, path.relative_to(self.root).as_posix(),
-                                          'AWAITING_PLAN', token))
+            db.execute(
+                'INSERT INTO stages(session_id,data_path,phase,token,catalog_version) '
+                'VALUES(?,?,?,?,?)', (sid, path.relative_to(self.root).as_posix(),
+                                     'AWAITING_PLAN', token, catalog_version),
+            )
         return self.get({'session_id': sid})
 
     def _stored_experiment(
@@ -165,7 +185,7 @@ class AcademicMCPCheckpointService:
         row = db.execute('SELECT * FROM stages WHERE session_id=?', (sid,)).fetchone()
         if row is None:
             raise CycleStateError('unknown academic MCP session')
-        catalog, data = self._catalog(), self._data(row['data_path'])
+        catalog, data = self._catalog(row['catalog_version']), self._data(row['data_path'])
         return row, catalog, data, self.cycle.get(sid, catalog, data)
 
     def get(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -176,6 +196,7 @@ class AcademicMCPCheckpointService:
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
             result: dict[str, Any] = {**current, 'checkpoint_phase': row['phase'],
+                                      'catalog_version': row['catalog_version'],
                                       'llm_controller': 'authenticated_chatgpt_mcp_client',
                                       'mcp_url_unchanged': True}
             if row['phase'] == 'AWAITING_PLAN':
@@ -183,6 +204,7 @@ class AcademicMCPCheckpointService:
                     raise CycleStateError('checkpoint phase mismatch')
                 result['checkpoint_token'] = row['token']
                 result['model_context'] = self._context(catalog, data, current)
+                result['model_context']['catalog_version'] = row['catalog_version']
             elif row['phase'] == 'AWAITING_DIAGNOSIS':
                 if current['status'] != 'AWAITING_PROVIDER':
                     raise CycleStateError('checkpoint phase mismatch')
@@ -252,7 +274,7 @@ class AcademicMCPCheckpointService:
             )
             if updated.rowcount != 1:
                 raise CycleStateError('concurrent diagnosis checkpoint was claimed')
-            catalog, data = self._catalog(), self._data(row['data_path'])
+            catalog, data = self._catalog(row['catalog_version']), self._data(row['data_path'])
             plan_json = json.loads(row['plan_json'])
         try:
             completed = self.cycle.advance(sid, catalog, data,
