@@ -502,3 +502,67 @@ variance target. No new live order or promotion entrypoint exists.
   The mathematical estimator semantics, position rebalancing and return
   accounting must undergo additional independent review before any such
   compiler admission.
+
+## P0-6 research risk contract and same-source market audit (2026-10-14 KST)
+
+**Scope:** P0-1 risk accounting bridge and preliminary P0-2 integrity screening,
+restricted to development-only, cash-funded single-asset observations.
+No protected runtime module, broker adapter, promotion API, or sealed OOS is changed.
+
+- `research.indicator_engine.risk_adapter` binds the reviewed binary
+  entry/regime StrategyIR to a separately hashed, **non-native** dynamic risk
+  sidecar. The ordinary StrategyIR schema is static-position-only, so this
+  does **not** grant full native StrategyIR execution of a variable-weight
+  strategy. It revalidates strategy, risk definition, model policy, replay,
+  hashes and dataset before each research evaluation. Invalid/mutated plans
+  are rejected. An independent ledger reconstructs open fills, fee model,
+  funding, position fractions and marked equity. Its fee computation uses
+  the shared reviewed `CostModel`; it is **not** an independently priced live
+  execution benchmark or proof of exchange fill quality.
+- `research.indicator_engine.market_audit` computes only an opening-price,
+  first-day-funded, no-dividend **same-source raw-price reference**. It never
+  identifies that reference as an authenticated benchmark or returns a
+  promotion/point-in-time certificate, even when source metadata says `as_of`.
+  A future independently verified and historically available data source is
+  required to remove the certification blockers.
+- Targeted acceptance (`tests/research/test_academic_risk_adapter.py`,
+  `test_academic_market_audit.py` and earlier compiler/risk-replay tests):
+  22 PASS, followed by Ruff and targeted mypy PASS. Tests reject forged
+  cost/curve/target, mutated plans, conflicting volatility targets and
+  sealed-zone inputs. Exact risk-ledger recomputation succeeds for all three
+  academic risk estimators on the synthetic acceptance dataset.
+
+**Observed Tiingo QQQ same-source smoke check:** 1,508 completed daily bars,
+2020-01-02 through 2025-12-31; dataset fingerprint starts `328f1cbd8ac5`.
+Market provenance is latest revision, raw OHLC (no independently verified
+corporate actions or historical vintages). Starting with USD 10,000, the
+price-only first-open buy-and-hold reference ends at **USD 28,629.61**.
+All previously recorded two-signal canonical StrategyIR development runs
+end at USD 17,150.13 and USD 8,340.52; six risk-overlay development runs
+end between USD 9,103.59 and USD 14,613.49. The standalone risk-ledger
+recalculation found **zero numerical disagreement in the marked equity**
+for each of those six same-dataset runs. These are explicitly non-PIT,
+non-independent, price-only, in-sample comparisons; the reference does not
+include dividends and is **not** a return series matched for risk or a
+claim about achievable excess alpha.
+
+**Still blocked:** independently authenticated PIT market vintages and
+corporate-action available-at lineage; a separate benchmark provider;
+fold-trained walk-forward and sealed OOS; DSR/PBO/multiple-testing and
+multi-market scenario sensitivity; independent native runtime risk semantics
+review. Until all required gates pass, no branch merge, Champion promotion,
+production release or live trading is authorized.
+
+### Initial risk-policy sensitivity diagnostic (still in-sample)
+
+For the QQQ time-series momentum + SMA regime + Parkinson estimator,
+executed a predeclared 3×3 grid of daily variance targets
+`0.00005 / 0.0001 / 0.0002` and absolute rebalance deadbands
+`0.01 / 0.03 / 0.10`, with maximum exposure fixed at `0.70`.
+Across the nine research runs, final marked equity ranged from
+**USD 13,795.32 to USD 14,491.61**, execution events from **17 to 300**,
+and charged model costs from **USD 66.67 to USD 137.31**.
+None outperformed the same-source price-only USD 28,629.61 reference.
+The observed sensitivity is descriptive only: **do not pick the best
+in-sample policy as a validated strategy**. Volatility regimes, historical
+execution friction, fold-trained parameters and true OOS remain untested.
