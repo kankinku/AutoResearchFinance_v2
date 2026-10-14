@@ -49,3 +49,12 @@ PYTHONPATH="$PWD" /shared/moon-workspace/AutoResearchFinance_v2-phase3-5-1-inven
 - `ruff check .`: 통과. `mypy .`: **230개 소스 파일** 통과.
 - 새 시나리오: 10세대 연속 동작, 중간 오류 후 이미 제출된 알고리즘 재사용, 한 번에 1세대 실행 후 재개, 이미 완료된 연구 재호출 시 새 진단 미발생, 응답 JSON/HTTP 오류 차단, 키 미제공시 네트워크 모델 호출 및 세션 생성 모두 거부.
 - 임시 디렉터리에서 QQQ 2020~2025 DEVELOPMENT 데이터를 이용한 결정론적 테스트 모델 10세대 연속 실행 결과: **COMPLETED, 10 generations, 20 proposals, 10 S7 controlled experiment reports**, 실거래 주문 없음. 실제 LLM 결과가 아님을 명시한다.
+
+## 실제 고정 버전 배포·기존 MCP 호출 검증
+
+- 기능 소스는 개발 브랜치 `feat/p0-indicator-research-engine-v1`의 코드 커밋 **`bec361a`**로 GitHub에 푸시했다.
+- 배포 런처 브랜치 **`deploy/quant-mcp-s4s5-autopilot-stable-url`**, 커밋 **`b8aa514`**. 런처의 source path/expected SHA만 새 검증 커밋으로 교체했으며 이전 안정 Worktree `de344dc`와 해당 GitHub 배포 브랜치는 보존했다.
+- 운영 프로세스 재시작 후 신규 PID의 작업 디렉터리 `.../AutoResearchFinance_v2-quant-mcp-runtime-bec361a`, 실제 `git rev-parse --short HEAD = bec361a` 일치 확인.
+- **변경 없는 공개 URL** `https://project-moon.taild689f9.ts.net/quant/mcp`: 미인증 요청 401 정상, OAuth protected-resource metadata 동일 리소스. 승인 파일/키/SQLite DB/서버 도메인/로컬 포트/연결 앱 설치 상태 변경 없음.
+- **기존에 연결한 Quant Autoresearch 앱에서 인증 호출**: `get_research_brief` 및 `get_workspace_status` 정상, 도구 **32개 유지**, 연구 상태 `READY`, 실거래 주문 `orders_enabled=false`. 플러그인 삭제·재등록 없음.
+- 운영 서버의 OpenAI API 키는 별도로 발급·주입하지 않았으며, 이번 배포 자체가 실제 모델 10세대 연구를 실행시키지 않았다. 새 전경 CLI를 운영자가 명시적으로 실행하기 전에는 비활성이다.

@@ -107,3 +107,7 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### S4/S5 2차 — 외부 LLM 연속 실행 가능 전경 Autopilot (2026-10-14)
 
 [S4/S5 연속 연구·안전한 재개](autoresearch-s4-s5-foreground-autopilot-2026-10-14.md): 기존 MCP의 Plan→Audit→Diagnosis→S7 실험→S8 방향 안내를 하나의 범위 지정된 **전경 실행기**로 연결했다. QQQ DEVELOPMENT 실데이터를 이용한 10세대/20회 **결정론적 mock model** 산출물+S7 실험 10개를 단일 호출에서 검증했으며, 오류 전후 지시 재개·멱등 상태를 테스트했다. 선택형 OpenAI Responses transport는 검증된 모델 키가 제공될 때만 호출되며 **운영 서버에 LLM API 키가 없어 진짜 모델 자율 10세대 실험은 아직 하지 않았다**. 기존 MCP URL, 도구 32개, OAuth 등록, 브로커 제한, 이전 연구 결과를 변경하지 않는다.
+
+### S4/S5 전경 Autopilot 운영 배포 확인 — 기존 MCP 등록 유지 (2026-10-14)
+
+코드 `bec361a`, 고정 런타임, 배포 `b8aa514`. 기존 URL/OAuth 등록·32개 도구·`READY`·주문 비활성 확인. **1,387 전체 테스트 통과**, 실제 QQQ DEVELOPMENT 데이터로 **mock 모델 10세대** 연속 실행과 중단·재개/실험 연결 검증. 실제 GPT API 키 부재로 **실제 LLM 자율성 검증/장기 무인 연구/S8 랜덤 기준 효율 비교/S10 독립 수익성 검증은 미완료**. [상세 보고](autoresearch-s4-s5-foreground-autopilot-2026-10-14.md).
