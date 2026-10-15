@@ -43,6 +43,7 @@ from research.indicator_engine.paper_methodology import (
     PaperMethodologyError,
     PaperMethodologyStore,
 )
+from research.indicator_engine.publication_evidence_matrix import audit_publication_coverage
 from research.indicator_engine.publisher_evidence_intake import audit_publisher_evidence
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
@@ -172,6 +173,14 @@ def main() -> int:
     daily.add_argument("--from-date", type=date.fromisoformat, required=True)
     daily.add_argument("--to-date", type=date.fromisoformat, required=True)
     daily.add_argument("--archive-root", type=Path, default=Path("state/vintages"))
+    publication = subs.add_parser(
+        "audit-qqq-publication-coverage",
+        help="Replay all captures and publisher evidence; historical PIT always unapproved",
+    )
+    publication.add_argument("--from-date", type=date.fromisoformat, required=True)
+    publication.add_argument("--to-date", type=date.fromisoformat, required=True)
+    publication.add_argument("--archive-root", type=Path, default=Path("state/vintages"))
+    publication.add_argument("--decision-at", type=datetime.fromisoformat)
     inventory = subs.add_parser(
         "audit-nasdaq-archive",
         help="Replay every QQQ capture and report multi-date cadence/revisions (NON-PIT)",
@@ -241,6 +250,23 @@ def main() -> int:
             }, sort_keys=True))
             return 2
         print(json.dumps(evidence_result.record(), sort_keys=True))
+        return 0
+
+    if args.command == "audit-qqq-publication-coverage":
+        try:
+            publisher_matrix = audit_publication_coverage(
+                args.archive_root, args.from_date, args.to_date,
+                decision_at=args.decision_at,
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "PUBLICATION_COVERAGE_INTEGRITY_FAILED",
+                "type": type(exc).__name__,
+                "point_in_time_verified": False,
+                "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(publisher_matrix, sort_keys=True))
         return 0
 
     if args.command == "audit-nasdaq-archive":
