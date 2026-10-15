@@ -66,6 +66,27 @@ def test_pin_reader_and_closed_git_worktree(tmp_path: Path) -> None:
     assert parse_pinned_launcher(launcher) == (old, sha)
 
 
+def test_preexisting_tracked_bootstrap_fixtures_are_allowed(tmp_path: Path) -> None:
+    empty = {
+        "state/champion.json": "{}",
+        "state/frontier.json": "{}",
+        "state/knowledge.json": "{}",
+        "state/rescue_pool.json": "{}",
+    }
+    old = _repo(tmp_path / "old", {"integrations/quant_oauth.py": "same"})
+    new = _repo(tmp_path / "candidate", {
+        "integrations/quant_oauth.py": "same", **empty,
+    })
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=old, text=True).strip()
+    launcher = _launcher(tmp_path / "rt", old, sha)
+    assert analyze_release(launcher, new)["status"] == "RELEASE_PRECHECK_PASSED_NOT_DEPLOYED"
+    # Never allow OAuth keys, DBs, untracked hidden state or symlinks.
+    (new / "state" / "oauth").mkdir()
+    (new / "state" / "oauth" / "approval-key").write_text("SECRET")
+    with pytest.raises(ReleaseGateError, match="unexpected|dirty|modified"):
+        analyze_release(launcher, new)
+
+
 def test_changed_authentication_or_core_is_no_go(tmp_path: Path) -> None:
     old = _repo(tmp_path / "old", {
         "integrations/chatgpt_mcp_http.py": "same",

@@ -76,9 +76,30 @@ def analyze_release(launcher: Path, candidate: Path) -> dict[str, Any]:
     rollback_ref = _require_clean(rollback_path)
     if rollback_ref != expected_sha:
         raise ReleaseGateError("runtime pin SHA disagrees with rollback HEAD")
-    if candidate.is_symlink() or (candidate / "state").exists():
-        raise ReleaseGateError("candidate contains unexpected state or symlink")
+    if candidate.is_symlink():
+        raise ReleaseGateError("candidate contains unexpected symlink")
     candidate_ref = _require_clean(candidate)
+    state_dir = candidate / "state"
+    if state_dir.exists():
+        # Four harmless, Git-tracked EMPTY research-catalog bootstrap fixtures
+        # predate D08; they must not be confused with live OAuth/database state.
+        expected = {
+            "state/champion.json", "state/frontier.json",
+            "state/knowledge.json", "state/rescue_pool.json",
+        }
+        tracked = set(_git(candidate, "ls-files", "--", "state").splitlines())
+        present = {
+            f.relative_to(candidate).as_posix()
+            for f in state_dir.rglob("*") if f.is_file() or f.is_symlink()
+        }
+        if (
+            not tracked
+            or tracked != expected
+            or present != tracked
+            or any((candidate / key).is_symlink()
+                   or (candidate / key).stat().st_size > 4096 for key in present)
+        ):
+            raise ReleaseGateError("candidate contains unexpected state or symlink")
     if candidate.resolve() == rollback_path.resolve():
         raise ReleaseGateError("candidate must differ from active rollback runtime")
     for name in _PROTECTED_EXACT:
