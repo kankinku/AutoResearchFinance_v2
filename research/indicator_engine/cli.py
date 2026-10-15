@@ -19,6 +19,7 @@ from research.indicator_engine.citations import CitationFetchError, fetch_crossr
 from research.indicator_engine.composer import compose_hypotheses
 from research.indicator_engine.databento_cutover_audit import compare_condition_vintages
 from research.indicator_engine.databento_metadata_preflight import probe_qqq_xnas_metadata
+from research.indicator_engine.formula_calculator import FormulaCalculatorError, FormulaPreviewStore
 from research.indicator_engine.literature_discovery import (
     DEFAULT_LITERATURE_TOPICS,
     LiteratureDiscoveryError,
@@ -118,6 +119,18 @@ def main() -> int:
         "list-paper-formulas", help="Inspect non-executable formula versions"
     )
     formula_list.add_argument("--doi", required=True)
+    formula_preview = subs.add_parser(
+        "preview-paper-calculation",
+        help="Numerically cross-check a versioned research formula; NEVER enable execution",
+    )
+    formula_preview.add_argument("--doi", required=True)
+    formula_preview.add_argument("--formula-id", required=True)
+    formula_preview.add_argument("--revision", type=int, required=True)
+    formula_preview.add_argument("--input-json-file", type=Path, required=True)
+    formula_proofs = subs.add_parser(
+        "list-paper-calculation-proofs", help="Inspect offline non-executable numeric evidence"
+    )
+    formula_proofs.add_argument("--doi", required=True)
     audit = subs.add_parser(
         "audit-benchmark",
         help="Offline, two-source price-only reconciliation; never PIT certification",
@@ -333,6 +346,36 @@ def main() -> int:
     if args.database is None:
         parser.error("--database is required for catalog commands")
     db = ResearchCatalog(args.database)
+    if args.command in {"preview-paper-calculation", "list-paper-calculation-proofs"}:
+        try:
+            methods = PaperMethodologyStore(args.database)
+            previews = FormulaPreviewStore(methods)
+            calculation_output: object
+            if args.command == "list-paper-calculation-proofs":
+                calculation_output = previews.list_reports(args.doi)
+            else:
+                source = args.input_json_file
+                if source.is_symlink() or source.stat().st_size > 256 * 1024:
+                    raise FormulaCalculatorError("input market JSON file is symlinked or oversized")
+                market_payload = json.loads(source.read_text(encoding="utf-8"))
+                if not isinstance(market_payload, dict):
+                    raise FormulaCalculatorError("input OHLCV must be a JSON object")
+                calculation_output = previews.evaluate(
+                    args.doi, args.formula_id, args.revision, market_payload,
+                )
+            print(json.dumps({
+                "result": calculation_output, "status": "RESEARCH_NUMERIC_CROSSCHECK_ONLY",
+                "calculator_approved": False, "independent_oos_approved": False,
+                "orders_enabled": False,
+            }, sort_keys=True))
+            return 0
+        except (OSError, ValueError) as exc:
+            print(json.dumps({
+                "status": "FORMULA_PREVIEW_REJECTED", "reason": type(exc).__name__,
+                "calculator_approved": False, "independent_oos_approved": False,
+                "orders_enabled": False,
+            }, sort_keys=True))
+            return 2
     if args.command in {
         "list-paper-review-queue", "record-paper-method-review",
         "propose-paper-formula", "list-paper-formulas",
