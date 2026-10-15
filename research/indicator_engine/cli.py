@@ -22,6 +22,7 @@ from research.indicator_engine.databento_metadata_preflight import probe_qqq_xna
 from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_qqq_snapshot
 from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
 from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
+from research.indicator_engine.nasdaq_daily_collector import collect_nasdaq_qqq_daily
 from research.indicator_engine.publisher_evidence_intake import audit_publisher_evidence
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
@@ -85,6 +86,13 @@ def main() -> int:
     archival.add_argument("--from-date", type=date.fromisoformat, required=True)
     archival.add_argument("--to-date", type=date.fromisoformat, required=True)
     archival.add_argument("--archive-root", type=Path, default=Path("state/vintages"))
+    daily = subs.add_parser(
+        "collect-nasdaq-qqq-daily",
+        help="Audit, then collect QQQ at most once per UTC date (NON-PIT, opt-in)",
+    )
+    daily.add_argument("--from-date", type=date.fromisoformat, required=True)
+    daily.add_argument("--to-date", type=date.fromisoformat, required=True)
+    daily.add_argument("--archive-root", type=Path, default=Path("state/vintages"))
     inventory = subs.add_parser(
         "audit-nasdaq-archive",
         help="Replay every QQQ capture and report multi-date cadence/revisions (NON-PIT)",
@@ -170,6 +178,20 @@ def main() -> int:
             }, sort_keys=True))
             return 2
         print(json.dumps(audited_inventory.record(), sort_keys=True))
+        return 0
+
+    if args.command == "collect-nasdaq-qqq-daily":
+        try:
+            daily_report = collect_nasdaq_qqq_daily(
+                args.archive_root, args.from_date, args.to_date,
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "DAILY_CAPTURE_FAILED", "type": type(exc).__name__,
+                "point_in_time_verified": False, "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(daily_report, sort_keys=True))
         return 0
 
     if args.command == "archive-nasdaq-qqq":
