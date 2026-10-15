@@ -47,6 +47,10 @@ from research.indicator_engine.paper_methodology import (
 )
 from research.indicator_engine.publication_evidence_matrix import audit_publication_coverage
 from research.indicator_engine.publisher_evidence_intake import audit_publisher_evidence
+from research.indicator_engine.sealed_oos_precommit import (
+    record_development_precommit,
+    verify_development_precommit,
+)
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.indicator_engine.verified_capture_vintages import (
@@ -140,6 +144,15 @@ def main() -> int:
         "list-paper-calculation-proofs", help="Inspect offline non-executable numeric evidence"
     )
     formula_proofs.add_argument("--doi", required=True)
+    for command, description in (
+        ("freeze-development-selection", "One-shot candidate precommit from DEVELOPMENT only"),
+        ("verify-development-freeze", "Replay frozen candidate hash without opening OOS"),
+    ):
+        freezing = subs.add_parser(command, help=description)
+        freezing.add_argument("--market-parquet", type=Path, required=True)
+        freezing.add_argument("--plan-json-file", type=Path, required=True)
+        freezing.add_argument("--study-id", required=True)
+        freezing.add_argument("--receipt", type=Path, required=True)
     parallel = subs.add_parser(
         "preview-parallel-algorithm",
         help="Offline bounded multi-ETF typed StrategyIR comparison; no portfolio orders",
@@ -424,6 +437,40 @@ def main() -> int:
     if args.database is None:
         parser.error("--database is required for catalog commands")
     db = ResearchCatalog(args.database)
+    if args.command in {"freeze-development-selection", "verify-development-freeze"}:
+        try:
+            for source in (args.market_parquet, args.plan_json_file):
+                if (source.is_symlink() or not source.is_file()
+                        or source.stat().st_size > 64 * 1024 * 1024):
+                    raise ResearchCatalogError("invalid development precommit source")
+            if args.plan_json_file.stat().st_size > 32768:
+                raise ResearchCatalogError("oversized frozen plan")
+            frozen_market = ParquetDataProvider.read(args.market_parquet)
+            frozen_plan = AlgorithmPlan.model_validate_json(
+                args.plan_json_file.read_text(encoding="utf-8")
+            )
+            if args.command == "freeze-development-selection":
+                freeze_result = record_development_precommit(
+                    db, frozen_plan, frozen_market, study_id=args.study_id,
+                    evidence_path=args.receipt,
+                )
+            else:
+                freeze_result = verify_development_precommit(
+                    db, frozen_plan, frozen_market, study_id=args.study_id,
+                    evidence_path=args.receipt,
+                )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "DEVELOPMENT_FREEZE_REJECTED",
+                "type": type(exc).__name__,
+                "oos_access_performed": False,
+                "sealed_oos_approved": False,
+                "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(freeze_result, sort_keys=True, allow_nan=False))
+        return 0
+
     if args.command == "preview-parallel-algorithm":
         try:
             if (args.market_parquet.is_symlink()
