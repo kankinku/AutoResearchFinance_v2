@@ -1,0 +1,137 @@
+{
+  "gpt_return_g10": {
+    "cases": [
+      {
+        "case_id": "calm",
+        "min_score": 0.65,
+        "votes": [
+          {
+            "indicator_id": "time_series_momentum",
+            "weight": 0.65
+          },
+          {
+            "indicator_id": "sma_pullback_20",
+            "weight": 0.35
+          }
+        ],
+        "when": {
+          "indicator_id": "parkinson_variance",
+          "op": "less_equal",
+          "threshold": 0.00013
+        }
+      },
+      {
+        "case_id": "volatile",
+        "min_score": 0.8,
+        "votes": [
+          {
+            "indicator_id": "dual_sma_trend_50",
+            "weight": 0.55
+          },
+          {
+            "indicator_id": "range_low_reclaim_20",
+            "weight": 0.45
+          }
+        ],
+        "when": {
+          "indicator_id": "parkinson_variance",
+          "op": "greater_than",
+          "threshold": 0.00013
+        }
+      }
+    ],
+    "plan_id": "gpt_confirmed_regime_threshold_10",
+    "position_size_pct": 100,
+    "unmatched": "FLAT"
+  },
+  "gpt_sharpe_g7": {
+    "cases": [
+      {
+        "case_id": "calm",
+        "min_score": 0.6,
+        "votes": [
+          {
+            "indicator_id": "time_series_momentum",
+            "weight": 0.6
+          },
+          {
+            "indicator_id": "sma_pullback_20",
+            "weight": 0.4
+          }
+        ],
+        "when": {
+          "indicator_id": "parkinson_variance",
+          "op": "less_equal",
+          "threshold": 0.0001
+        }
+      },
+      {
+        "case_id": "volatile",
+        "min_score": 0.8,
+        "votes": [
+          {
+            "indicator_id": "dual_sma_trend_50",
+            "weight": 0.55
+          },
+          {
+            "indicator_id": "range_low_reclaim_20",
+            "weight": 0.45
+          }
+        ],
+        "when": {
+          "indicator_id": "parkinson_variance",
+          "op": "greater_than",
+          "threshold": 0.0001
+        }
+      }
+    ],
+    "plan_id": "gpt_pullback_risk_gated_07",
+    "position_size_pct": 100,
+    "unmatched": "FLAT"
+  },
+  "random_best_g10": {
+    "cases": [
+      {
+        "case_id": "calm",
+        "min_score": 0.4,
+        "votes": [
+          {
+            "indicator_id": "dual_sma_trend_50",
+            "weight": 0.55
+          },
+          {
+            "indicator_id": "time_series_momentum",
+            "weight": 0.45
+          }
+        ],
+        "when": {
+          "indicator_id": "parkinson_variance",
+          "op": "less_equal",
+          "threshold": 0.0001
+        }
+      },
+      {
+        "case_id": "volatile",
+        "min_score": 0.55,
+        "votes": [
+          {
+            "indicator_id": "range_low_reclaim_20",
+            "weight": 0.85
+          },
+          {
+            "indicator_id": "sma_pullback_20",
+            "weight": 0.15
+          }
+        ],
+        "when": {
+          "indicator_id": "parkinson_variance",
+          "op": "greater_than",
+          "threshold": 0.0001
+        }
+      }
+    ],
+    "plan_id": "random_baseline_gen_10",
+    "position_size_pct": 100,
+    "unmatched": "FLAT"
+  }
+}

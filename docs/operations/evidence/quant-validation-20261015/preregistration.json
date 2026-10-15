@@ -1,0 +1,58 @@
+{
+  "baseline_model": "same raw-period buy-and-hold excluding dividend cashflows, descriptive only",
+  "future_validation_predeclared": [
+    {
+      "end": "2026-09-30",
+      "kind": "later-time-same-symbol",
+      "policy": "raw",
+      "provider": "tiingo",
+      "start": "2026-01-02",
+      "symbol": "QQQ"
+    },
+    {
+      "end": "2025-12-31",
+      "kind": "different-asset-overlapping-history",
+      "policy": "raw",
+      "provider": "tiingo",
+      "start": "2020-01-02",
+      "symbol": "SPY"
+    }
+  ],
+  "never_claim": [
+    "independently_PIT",
+    "sealed_OOS",
+    "independent_verified_profitability",
+    "proven_LLM_advantage",
+    "real_orders"
+  ],
+  "original_gpt_session_id": "8cbd16ad9cb8473197ac4b51c00f56e0",
+  "pass_gate": {
+    "closed_trades_ge": 10,
+    "max_drawdown_le": 0.2,
+    "sharpe_gt": 0.5,
+    "total_return_gt": 0
+  },
+  "random_candidates_per_seed": 10,
+  "random_cohort_seeds": [
+    20261015,
+    20261016,
+    20261017,
+    20261018,
+    20261019,
+    20261020,
+    20261021,
+    20261022,
+    20261023,
+    20261024
+  ],
+  "random_plan_generation": "exact replay of /shared/moon-state/quant-gpt-vs-random-20261015/runner.py prepare_random_plans; no tuning after validation",
+  "registered_at": "2026-10-15",
+  "selected_plans": [
+    "gpt_sharpe_g7",
+    "gpt_return_g10",
+    "random_best_g10"
+  ],
+  "status": "NON_PIT_RESEARCH_VALIDATION_ONLY",
+  "training_data": "data/market/tiingo/QQQ_2020-01-02_2025-12-31_raw.parquet",
+  "version": "holdout-replicability-v1"
+}

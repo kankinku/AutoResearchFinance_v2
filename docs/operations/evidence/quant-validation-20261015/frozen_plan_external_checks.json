@@ -1,0 +1,122 @@
+{
+  "plan_sha": "b404dfb9d82237fabd2b07564f045ee49a661291f95d99f1bdcabf97af933385",
+  "prereg_sha": "22cca8ba47863417c88242dd59f8df07a77fccee369286fba651f6c61b4183b8",
+  "results": {
+    "qqq_2026": {
+      "bar_count": 187,
+      "data_path": "data/market/tiingo/QQQ_2026-01-02_2026-09-30_raw.parquet",
+      "dataset_hash": "0c1a69fe0501c065dd5cd437e91176326bb4d31566c221f5d55585d09f63e392",
+      "evaluation": {
+        "gpt_return_g10": {
+          "closed_trades": 1,
+          "data_hash": "0c1a69fe0501c065dd5cd437e91176326bb4d31566c221f5d55585d09f63e392",
+          "fills": 2,
+          "independent_oos_approved": false,
+          "max_drawdown": 0.01214969073340344,
+          "orders_enabled": false,
+          "plan_hash": "14004cf598d4c6659a7bea5be2e23d1e4f8264ac1af02038b4b8119cd459e8c4",
+          "plan_id": "gpt_confirmed_regime_threshold_10",
+          "sharpe": -0.4016417367669,
+          "strategy_hash": "00c2943e680fc02a4b280a6e2fe5943838bc56f5d6a26f3ff3e67151acd196bd",
+          "total_return": -0.004971662136077248,
+          "trade_count": 1,
+          "win_rate": 0.0
+        },
+        "gpt_sharpe_g7": {
+          "closed_trades": 1,
+          "data_hash": "0c1a69fe0501c065dd5cd437e91176326bb4d31566c221f5d55585d09f63e392",
+          "fills": 2,
+          "independent_oos_approved": false,
+          "max_drawdown": 0.01214969073340344,
+          "orders_enabled": false,
+          "plan_hash": "c1ce25576bdfd07052d7719244d02579c9c952023d01f75842ad6618387d497d",
+          "plan_id": "gpt_pullback_risk_gated_07",
+          "sharpe": -0.4016417367669,
+          "strategy_hash": "c97e6e0726eda378ec634645863ef0639882bf8757899df775ad5af1c47e6ea6",
+          "total_return": -0.004971662136077248,
+          "trade_count": 1,
+          "win_rate": 0.0
+        },
+        "random_best_g10": {
+          "closed_trades": 4,
+          "data_hash": "0c1a69fe0501c065dd5cd437e91176326bb4d31566c221f5d55585d09f63e392",
+          "fills": 8,
+          "independent_oos_approved": false,
+          "max_drawdown": 0.018037375004489334,
+          "orders_enabled": false,
+          "plan_hash": "27ab1360de7dd8f20d134fed3e6ae5329142c160f3ff493692365216cca20f0f",
+          "plan_id": "random_baseline_gen_10",
+          "sharpe": -0.06653524835036936,
+          "strategy_hash": "e50259205dbe34d3e811eb0f50c5a8206885177eb9e0c2aa8e62bfee015f27cb",
+          "total_return": -0.0013514886609187204,
+          "trade_count": 4,
+          "win_rate": 0.5
+        }
+      },
+      "name": "qqq_2026",
+      "observed_end": "2026-09-30T00:00:00+00:00",
+      "observed_start": "2026-01-02T00:00:00+00:00",
+      "raw_buy_hold_price_only": 0.20656641440501033,
+      "zone": "DataZone.DEVELOPMENT"
+    },
+    "spy_2020_2025": {
+      "bar_count": 1508,
+      "data_path": "data/market/tiingo/SPY_2020-01-02_2025-12-31_raw.parquet",
+      "dataset_hash": "e495f29b69654ae8dd26e6b1b1ba9584f6ef436f424b55ddde8dd18b26d951eb",
+      "evaluation": {
+        "gpt_return_g10": {
+          "closed_trades": 4,
+          "data_hash": "e495f29b69654ae8dd26e6b1b1ba9584f6ef436f424b55ddde8dd18b26d951eb",
+          "fills": 9,
+          "independent_oos_approved": false,
+          "max_drawdown": 0.20639335741307185,
+          "orders_enabled": false,
+          "plan_hash": "14004cf598d4c6659a7bea5be2e23d1e4f8264ac1af02038b4b8119cd459e8c4",
+          "plan_id": "gpt_confirmed_regime_threshold_10",
+          "sharpe": 0.6309936531885239,
+          "strategy_hash": "11669f529dc4db601da28ca75a9e3e278e409e4cf2e41042d1507b4cb4680160",
+          "total_return": 0.4496656884732344,
+          "trade_count": 4,
+          "win_rate": 0.5
+        },
+        "gpt_sharpe_g7": {
+          "closed_trades": 8,
+          "data_hash": "e495f29b69654ae8dd26e6b1b1ba9584f6ef436f424b55ddde8dd18b26d951eb",
+          "fills": 17,
+          "independent_oos_approved": false,
+          "max_drawdown": 0.17285095764817493,
+          "orders_enabled": false,
+          "plan_hash": "c1ce25576bdfd07052d7719244d02579c9c952023d01f75842ad6618387d497d",
+          "plan_id": "gpt_pullback_risk_gated_07",
+          "sharpe": 0.8884202556324956,
+          "strategy_hash": "42c481e53060dc8892e53485ea083a4f3ef2bb00fd51dfd4bffc1a6d11d3082a",
+          "total_return": 0.6407662013367756,
+          "trade_count": 8,
+          "win_rate": 0.75
+        },
+        "random_best_g10": {
+          "closed_trades": 28,
+          "data_hash": "e495f29b69654ae8dd26e6b1b1ba9584f6ef436f424b55ddde8dd18b26d951eb",
+          "fills": 57,
+          "independent_oos_approved": false,
+          "max_drawdown": 0.31663269934978844,
+          "orders_enabled": false,
+          "plan_hash": "27ab1360de7dd8f20d134fed3e6ae5329142c160f3ff493692365216cca20f0f",
+          "plan_id": "random_baseline_gen_10",
+          "sharpe": 0.6306171311259718,
+          "strategy_hash": "75af551f9575cc6178c3876cb5643a6520d0783a053b6367b8789a5a0366e776",
+          "total_return": 0.48617545266281237,
+          "trade_count": 28,
+          "win_rate": 0.4642857142857143
+        }
+      },
+      "name": "spy_2020_2025",
+      "observed_end": "2025-12-31T00:00:00+00:00",
+      "observed_start": "2020-01-02T00:00:00+00:00",
+      "raw_buy_hold_price_only": 1.0990550066180318,
+      "zone": "DataZone.DEVELOPMENT"
+    }
+  },
+  "schema": "cross-asset-and-chronological-observation-v1",
+  "status": "NON_PIT_DEVELOPMENT_REPLICATION_ONLY"
+}
