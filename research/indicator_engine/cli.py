@@ -18,6 +18,7 @@ from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogEr
 from research.indicator_engine.citations import CitationFetchError, fetch_crossref
 from research.indicator_engine.composer import compose_hypotheses
 from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_qqq_snapshot
+from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
 from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
@@ -71,6 +72,13 @@ def main() -> int:
     archival.add_argument("--from-date", type=date.fromisoformat, required=True)
     archival.add_argument("--to-date", type=date.fromisoformat, required=True)
     archival.add_argument("--archive-root", type=Path, default=Path("state/vintages"))
+    inventory = subs.add_parser(
+        "audit-nasdaq-archive",
+        help="Replay every QQQ capture and report multi-date cadence/revisions (NON-PIT)",
+    )
+    inventory.add_argument("--from-date", type=date.fromisoformat, required=True)
+    inventory.add_argument("--to-date", type=date.fromisoformat, required=True)
+    inventory.add_argument("--archive-root", type=Path, default=Path("state/vintages"))
     integrity = subs.add_parser(
         "verify-nasdaq-capture",
         help="Offline SHA and parquet replay for a saved Nasdaq snapshot (NON-PIT)",
@@ -87,6 +95,22 @@ def main() -> int:
         pair.add_argument(f"--{label}-raw", type=Path, required=True)
         pair.add_argument(f"--{label}-manifest", type=Path, required=True)
     args = parser.parse_args()
+
+    if args.command == "audit-nasdaq-archive":
+        try:
+            audited_inventory = audit_nasdaq_qqq_archive(
+                args.archive_root, args.from_date, args.to_date
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "ARCHIVE_INTEGRITY_FAILED",
+                "type": type(exc).__name__,
+                "point_in_time_verified": False,
+                "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(audited_inventory.record(), sort_keys=True))
+        return 0
 
     if args.command == "archive-nasdaq-qqq":
         try:
