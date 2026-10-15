@@ -34,7 +34,9 @@ class ControlledExperimentError(ValueError):
     """Unmeasurable or unverified controlled development experiment."""
 
 
-_SUPPORTED = frozenset({"total_return", "cagr", "max_drawdown", "sharpe", "sortino"})
+SUPPORTED_CONTROLLED_METRICS = frozenset(
+    {"total_return", "cagr", "max_drawdown", "sharpe", "sortino", "trade_count"}
+)
 
 
 @dataclass(frozen=True)
@@ -193,6 +195,19 @@ class ControlledExperimentReport:
 
 
 def _measured_metric(result: AcademicDevelopmentResult, key: str) -> float | None:
+    if key == "trade_count":
+        # This reviewed long-only adapter reports fills separately. Only a
+        # completed entry/exit round trip counts as a closed trade, even if a
+        # final buy is still open at the end of the development series.
+        sides = tuple(trade.side for trade in result.trades)
+        if any(side not in ("buy", "sell") for side in sides):
+            raise ControlledExperimentError("unsupported trade side for trade_count")
+        if sides and (
+            sides[0] != "buy"
+            or any(a == b for a, b in zip(sides, sides[1:], strict=False))
+        ):
+            raise ControlledExperimentError("unpaired fills for trade_count")
+        return float(sum(side == "sell" for side in sides))
     measured = calculate_metrics(result.equity_curve, (), periods_per_year=252.0)
     val = getattr(measured, key)
     return None if val is None else float(val)
@@ -232,7 +247,7 @@ def compare_controlled_experiments(
             "diagnostic identity or audit mismatch: " + str(exc)
         ) from exc
     for hypothesis in validated.experiments:
-        if hypothesis.expected_metric not in _SUPPORTED:
+        if hypothesis.expected_metric not in SUPPORTED_CONTROLLED_METRICS:
             raise ControlledExperimentError(
                 "unsupported metric for controlled comparison: " + hypothesis.expected_metric
             )

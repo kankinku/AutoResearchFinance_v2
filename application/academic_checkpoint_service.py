@@ -24,7 +24,10 @@ from research.indicator_engine.algorithm_plan import (
     compile_algorithm_plan,
 )
 from research.indicator_engine.catalog import ResearchCatalog
-from research.indicator_engine.controlled_experiments import compare_controlled_experiments
+from research.indicator_engine.controlled_experiments import (
+    SUPPORTED_CONTROLLED_METRICS,
+    compare_controlled_experiments,
+)
 from research.indicator_engine.external_reference import (
     audit_s6_external_reference,
     capture_s6_external_reference,
@@ -35,7 +38,7 @@ from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
-from research.llm.diagnostic_research import build_diagnostic_context
+from research.llm.diagnostic_research import DiagnosticResponse, build_diagnostic_context
 from research.llm.execution_policy import research_execution_policy
 
 
@@ -314,6 +317,14 @@ class AcademicMCPCheckpointService:
             raise CycleStateError('invalid diagnosis checkpoint token or state')
         if diagnosis.get('context_hash') != pending['model_context']['context_hash']:
             raise CycleStateError('invalid diagnosis context hash')
+        # S7 is automatically evaluated after the generation is committed.
+        # Reject unsupported response metrics while the checkpoint is still
+        # unclaimed, so the model can correct its diagnosis without creating
+        # a committed generation lacking an experiment report.
+        typed_diagnosis = DiagnosticResponse.model_validate(diagnosis)
+        for hypothesis in typed_diagnosis.hypotheses:
+            if hypothesis.expected_metric not in SUPPORTED_CONTROLLED_METRICS:
+                raise ValueError(f'unsupported S7 metric: {hypothesis.expected_metric}')
         with self._connect() as db:
             row = db.execute('SELECT * FROM stages WHERE session_id=?', (sid,)).fetchone()
             assert row is not None

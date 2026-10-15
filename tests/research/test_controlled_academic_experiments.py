@@ -90,6 +90,20 @@ def test_risk_ablation_can_have_measured_difference_not_causal_proof(tmp_path: P
     assert experiment.causal_status == "NOT_ESTABLISHED"
 
 
+def test_trade_count_comparison_counts_closed_round_trips_not_fills(tmp_path: Path):
+    catalog, compiled, market, payload = _inputs(tmp_path)
+    payload["hypotheses"][0]["expected_metric"] = "trade_count"
+    payload["hypotheses"][0]["predicted_direction"] = "INCREASE"
+    report = compare_controlled_experiments(catalog, compiled, market, payload)
+    experiment = report.experiments[0]
+    observed = audit_algorithm_plan(catalog, compiled, market)
+    assert experiment.metric == "trade_count"
+    assert experiment.parent_metric == len(observed.round_trips)
+    assert experiment.parent_metric != experiment.parent_fill_count
+    assert experiment.child_metric == experiment.parent_metric
+    assert experiment.status == "NO_OBSERVED_EFFECT"
+
+
 def test_controlled_experiments_fail_closed_on_forged_evidence_or_market(tmp_path: Path):
     catalog, compiled, market, payload = _inputs(tmp_path)
     changed = deepcopy(payload)

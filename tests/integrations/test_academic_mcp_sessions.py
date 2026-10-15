@@ -553,6 +553,38 @@ def test_mcp_first_diagnosis_commits_s7_and_refreshes_next_s8_context(tmp_path: 
     })['history'] == completed['history']
 
 
+def test_unsupported_s7_metric_is_rejected_before_generation_commit(tmp_path: Path):
+    server, started = _setup(tmp_path)
+    sid = started['session_id']
+    model = ScriptedResearcher()
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+        'plan': model.propose(started['model_context']),
+    })
+    diagnosis = model.propose(staged['model_context'])
+    diagnosis['hypotheses'][0]['expected_metric'] = 'win_rate'
+    with pytest.raises(ValueError, match='unsupported.*metric'):
+        server._dispatch('submit_algorithm_diagnosis', {
+            'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+            'diagnosis': diagnosis,
+        })
+    unchanged = server._dispatch('get_algorithm_research', {'session_id': sid})
+    assert unchanged['completed_generations'] == 0
+    assert unchanged['checkpoint_phase'] == 'AWAITING_DIAGNOSIS'
+    assert unchanged['checkpoint_token'] == staged['checkpoint_token']
+
+    diagnosis['hypotheses'][0]['expected_metric'] = 'trade_count'
+    completed = server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+        'diagnosis': diagnosis,
+    })
+    assert completed['completed_generations'] == 1
+    assert completed['controlled_experiments_automatically_evaluated'] is True
+    experiment = completed['latest_controlled_experiments']['report']['experiments'][0]
+    assert experiment['metric'] == 'trade_count'
+    assert experiment['status'] == 'NO_OBSERVED_EFFECT'
+
+
 def test_mcp_first_last_generation_includes_s7_result_in_final_reply(tmp_path: Path):
     server, started = _setup(tmp_path)
     sid = started['session_id']
