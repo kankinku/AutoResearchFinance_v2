@@ -1,6 +1,6 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
-갱신일: 2026-10-16 KST (2026-10-15 UTC). 개발 기준: `feat/d05-evidence-learning-20261016` (`5a903e1`; GitHub 코드 Push 완료, 운영 미배포).
+갱신일: 2026-10-16 KST (2026-10-15 UTC). 개발 기준: `feat/d06-multi-asset-session-alignment-20261016` (`6fdf881`; 기능 Push 완료, 운영 미배포).
 관련 문서: [기능 우선순위](autoresearch-feature-first-priority-2026-10-15.md), [개발 연대기](autoresearch-implementation-roadmap-2026-10-14.md).
 
 **운영 원칙:** 기능 개발 우선, 최종 데이터·성과 검증은 마지막. 다만 코드 변경 때 기본 테스트·무결성 검사는 즉시 수행. 이 문서는 **매 작업 완료 시 직접 갱신·Git Push하는 고정 기준 문서**이다. 미검증을 완료로 표현하지 않는다.
@@ -18,7 +18,7 @@
 | 3-1 | 학술 지표 확장 | **부분 구현:** 내부 승인된 지표 수치 참조 + D04 비실행 연구용 FormulaNode 계산, 직접 계산/별도 스칼라 참고 결과 대조, 유한값·causal prefix 검증 및 버전별 SQLite 수치 증거 기록(`3723904`) | 실제 논문 원문·라이선스 검토, 확장된 학술 공식의 검증된 지표 라이브러리 등록 및 멀티마켓 제품 사용 미완료 |
 | 3-2 | 논문 자동 수집·계산식 구현 | **부분 구현:** Crossref 탐색→D03 수식 제안→D04 수치 sandbox 검증(`52c5bfb`/`3723904`). 계산식이 테스트를 통과해도 `RESEARCH_NUMERIC_CROSSCHECK_ONLY` | 실제 원문·권리 독립 검토 및 운영 전략/브로커 실행 승인 불가; 연구 프로세스와 결합은 향후 과제 |
 | 3-3 | LLM 가설·대조실험·무작위 비교 | **부분 기능 구현:** 기존 S7/S8 대조실험·방향 선택에 D05 실패 유형 분류·반증 우선순위·경쟁 설명·중복 자식 해시·세대별 S7 증거 연결을 GPT 다음 Plan 컨텍스트로 자동 재구성(`5a903e1`) | 진짜 무작위 대조군·독립 검증 및 GPT 장시간 자율 진화/실제로 더 높은 수익 성과 검증은 미완료 |
-| 4-1 | 다자산·다시장 연구 | 부분 구현: QQQ/SPY 개발 데이터 존재 | 다자산 StrategyIR 실행·세션 정렬 |
+| 4-1 | 다자산·다시장 연구 | **부분 기능 구현:** D06 2~8개 지정 미국 ETF의 뉴욕 거래일 정합성·마감 관측 시각·다음 공동 09:30 오픈 계산·중복/결측/미완료 봉 거부, 동일 typed AlgorithmPlan의 종목별 StrategyIR 독립 비용 백테스트와 결과 해시 비교(`6fdf881`) | 실제 서로 다른 거래소·자산군 세션 정렬, 공통 계좌 자금배분 포트폴리오, PIT·기업행동 독립 확인, 운영 MCP 배포·실증 미완료 |
 | 4-2 | 독립 OOS 검증 | 대기: 기존 walk-forward 구성은 있음 | 선택 과정 동결·봉인 OOS 검증 |
 | 4-3 | 비용·유동성·우연 반영 순수익 | 대기: 백테스트/비용 기반은 있음 | 슬리피지·용량·다중검정 포함 |
 | 5-1 | 브랜치 통합·MCP 배포 안정화 | 부분 구현: 개발 브랜치 Push, 운영 서버는 구버전 | 검증 통과 브랜치 통합·운영 점검 |
@@ -34,8 +34,8 @@
 | D03 | 3-2 | **기능 개발 완료(실제 원문 검토 미진행):** DOI 검토 큐, 권리/방법론 기록, 비실행 수식 AST 제안 및 무결성 검사(`52c5bfb`) |
 | D04 | 3-1 | **개발 기능 완료:** research-only AST evaluator, 별도 scalar numeric cross-check, 인과 prefix·입력 경계·버전별 증거 SQLite(`3723904`). 실제 전략 지표 승인/상용 운용 검증은 미진행 |
 | D05 | 3-3 | **개발 기능 완료:** S7 evidence-bound 실패 지식·무효 가설 재사용 방지 힌트·다음 반증 설계 제안이 자동으로 GPT Plan 컨텍스트에 전달(`5a903e1`); 실제 모델 10~100세대 진화 실증 T4 보류 |
-| **D06 (다음)** | 4-1 | 복수 자산의 시점 정렬과 연구 엔진 연동 |
-| D07 | 2-1 | 기존 MCP 전체 연구 도구 계약 통합 점검 |
+| D06 | 4-1 | **제한적 기능 개발 완료:** QQQ/SPY 포함 2~8 US ETF 동일 거래일·마감 시각 검증, 종목별 AlgorithmPlan→StrategyIR costed backtest 분리 실행, CLI preview·입력 해시 검증(`6fdf881`); 타 거래소/공동 포트폴리오/경제성은 미완료 |
+| **D07 (다음)** | 2-1 | 기존 MCP 도구 32개 엔드투엔드 계약·권한·상태/서버 프로세스 통합 점검 및 개발 기능 누락 확인 |
 | D08 | 5-1 | 배포/복구를 포함한 개발 브랜치 통합 |
 | V01 | 1-1 | 다른 UTC 날짜 수집본 비교 |
 | V02 | 1-2 | 독립 역사적 발표 시각 증빙 |
@@ -65,6 +65,7 @@
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-15 UTC | 4-1/D06 | 두 미국 ETF 이상의 뉴욕 현지 거래일·마감 타임스탬프 정렬. 마감 전·거래일 누락·중복·주말·불일치·입력 변경 시 fail closed; 모든 종목이 마감 완료된 뒤에만 신호 생성, 다음 공동 개장 시각 표시. 동일 typed AlgorithmPlan에서 종목마다 기존 StrategyIR/비용 엔진 독립 실행 및 CLI 추가. 공동 포트폴리오 PnL 생성하지 않음 | 신규 D06 **10 PASS** + 기존 AlgorithmPlan **17 PASS** = **27 PASS**; Ruff·Mypy 변경 경로 통과. T3 전체 회귀·T4 실제 GPT 장기·T5 PIT/OOS/수익성·T6 paper 거래 미실행 | `feat/d06-multi-asset-session-alignment-20261016`, 기능 `6fdf881` GitHub Push 완료, 운영 미배포. 상세 `autoresearch-stage-4-1-multi-asset-alignment-2026-10-16.md` |
 | 2026-10-15 UTC | 3-3/D05 | 커밋된 S7 결과와 original 세대 해시를 재검증해 실패 유형·원래 설명/대안·추가/제거/리사이즈 집계·중복 자식 해시·다음 대조 설계 우선순위 생성. Gateway의 매 GPT Plan 생성 시 읽기 전용 `experiment_learning`에 자동 포함. 인과 관계, OOS, 수익성 승인 없음 | T0/T1 신규 테스트 **17 PASS**, 기존 S8/MCP 포함 선별 회귀 **51 PASS**, Ruff/Mypy 2개 소스 PASS. T3 전체 저장소·T4 실제 GPT 장시간·T5 PIT/OOS·T6 모의거래 미실행 | `feat/d05-evidence-learning-20261016`, 기능 `5a903e1` Push 완료, 운영 미배포. 상세 `autoresearch-stage-3-3-evidence-learning-2026-10-16.md` |
 | 2026-10-15 | 3-1/D04 | typed FormulaNode 단일자산 완료 봉 입력 sandbox 평가, 독립 scalar reference·prefix 확인, 1봉 후 적용 계약, 버전·수식/입력/출력 해시 묶인 SQLite RESEARCH_NUMERIC_CROSSCHECK_ONLY 증거와 CLI 2개 구현. 실거래·검증 지표 레지스트리와 격리 | 관련 Pytest **29 PASS**(D04 15·D03 8·S9 6), Ruff PASS, Mypy 변경 소스 2건 PASS; T3 전체 회귀, T4 실제 10~100세대, T5 PIT/OOS/수익성 및 T6 paper는 미실행 | `feat/d04-safe-research-formula-calculators-20261015`, `3723904` Push 완료; 운영 미배포; 상세 `autoresearch-stage-3-1-formula-calculators-2026-10-15.md` |
 | 2026-10-15 | 3-2/D03 | 실제 Crossref DB에서 후보 상위 5개 `METHOD_REVIEW_REQUIRED` 확인. DOI·원본 해시 묶인 검토 이력, 초록/원문 접근·라이선스 상태, 버전별 비실행 수식 AST 및 CLI 구현. 실제 원문·라이선스 확인은 실시하지 않음 | Pytest **14 PASS**(D03 신규 8+기존 문헌 6), Ruff/Mypy 통과; T3 전체 회귀, T4 GPT 장시간, T5/T6 경제성 최종 검증 미실행 | `feat/d03-paper-review-spec-20261015`, 코드 `52c5bfb` Push 완료, 운영 미배포; 상세 `autoresearch-stage-3-2-methodology-spec-2026-10-15.md` |
