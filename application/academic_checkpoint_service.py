@@ -44,6 +44,7 @@ from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
 from research.llm.diagnostic_research import DiagnosticResponse, build_diagnostic_context
 from research.llm.execution_policy import research_execution_policy
+from research.llm.experiment_learning import build_experiment_learning
 
 
 class _SubmittedProvider:
@@ -349,6 +350,11 @@ class AcademicMCPCheckpointService:
                 ):
                     scored_reports[item['generation']] = observed
         context['research_direction'] = build_research_direction(
+            status['history'], scored_reports,
+        )
+        # Regenerate evidence-linked failure memory from immutable S7 results.
+        # Never mutate any prior cycle evidence or permit automatic execution.
+        context['experiment_learning'] = build_experiment_learning(
             status['history'], scored_reports,
         )
         if status['history']:
