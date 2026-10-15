@@ -12,6 +12,7 @@ from pathlib import Path
 import httpx
 
 from core.data.parquet import ParquetDataProvider
+from research.indicator_engine.algorithm_plan import AlgorithmPlan
 from research.indicator_engine.benchmark_reconciliation import reconcile_development_benchmark
 from research.indicator_engine.capture_integrity import verify_nasdaq_capture
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
@@ -26,6 +27,11 @@ from research.indicator_engine.literature_discovery import (
     LiteratureStore,
     discover_crossref_literature,
     sweep_crossref_literature,
+)
+from research.indicator_engine.multi_asset_development import (
+    MultiAssetResearchError,
+    compile_parallel_plan,
+    evaluate_parallel_plan,
 )
 from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_qqq_snapshot
 from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
@@ -131,6 +137,12 @@ def main() -> int:
         "list-paper-calculation-proofs", help="Inspect offline non-executable numeric evidence"
     )
     formula_proofs.add_argument("--doi", required=True)
+    parallel = subs.add_parser(
+        "preview-parallel-algorithm",
+        help="Offline bounded multi-ETF typed StrategyIR comparison; no portfolio orders",
+    )
+    parallel.add_argument("--market-parquet", type=Path, required=True)
+    parallel.add_argument("--plan-json-file", type=Path, required=True)
     audit = subs.add_parser(
         "audit-benchmark",
         help="Offline, two-source price-only reconciliation; never PIT certification",
@@ -346,6 +358,34 @@ def main() -> int:
     if args.database is None:
         parser.error("--database is required for catalog commands")
     db = ResearchCatalog(args.database)
+    if args.command == "preview-parallel-algorithm":
+        try:
+            if (args.market_parquet.is_symlink()
+                    or args.market_parquet.stat().st_size > 64 * 1024 * 1024
+                    or args.plan_json_file.is_symlink()
+                    or args.plan_json_file.stat().st_size > 32768):
+                raise MultiAssetResearchError("untrusted or oversized research file")
+            market = ParquetDataProvider.read(args.market_parquet)
+            model = AlgorithmPlan.model_validate_json(
+                args.plan_json_file.read_text(encoding="utf-8")
+            )
+            compiled = compile_parallel_plan(db, model, market)
+            parallel_result = evaluate_parallel_plan(db, compiled, market)
+            print(json.dumps({
+                "status": parallel_result.status, "result": asdict(parallel_result),
+                "portfolio_pnl_approved": False,
+                "independent_oos_approved": False,
+                "broker_executable": False,
+                "orders_enabled": False,
+            }, sort_keys=True, allow_nan=False))
+            return 0
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "PARALLEL_RESEARCH_REJECTED", "type": type(exc).__name__,
+                "portfolio_pnl_approved": False,
+                "broker_executable": False, "orders_enabled": False,
+            }, sort_keys=True))
+            return 2
     if args.command in {"preview-paper-calculation", "list-paper-calculation-proofs"}:
         try:
             methods = PaperMethodologyStore(args.database)
