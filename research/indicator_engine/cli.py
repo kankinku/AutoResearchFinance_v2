@@ -17,6 +17,7 @@ from research.indicator_engine.capture_integrity import verify_nasdaq_capture
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
 from research.indicator_engine.citations import CitationFetchError, fetch_crossref
 from research.indicator_engine.composer import compose_hypotheses
+from research.indicator_engine.databento_metadata_preflight import probe_qqq_xnas_metadata
 from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_qqq_snapshot
 from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
 from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
@@ -40,6 +41,10 @@ def main() -> int:
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("seed", help="Idempotent reviewed-paper and research-signal seed")
     subs.add_parser("status", help="Inspect research provenance and verification states")
+    subs.add_parser(
+        "probe-databento-qqq-metadata",
+        help="Read-only historical entitlement, schema range, estimate and revision metadata",
+    )
     verify = subs.add_parser("verify", help="Verify one whitelisted causal calculator")
     verify.add_argument("signal_id")
     compose = subs.add_parser("compose", help="Generate non-executable, bounded hypotheses")
@@ -106,6 +111,11 @@ def main() -> int:
         pair.add_argument(f"--{label}-raw", type=Path, required=True)
         pair.add_argument(f"--{label}-manifest", type=Path, required=True)
     args = parser.parse_args()
+
+    if args.command == "probe-databento-qqq-metadata":
+        inspected = probe_qqq_xnas_metadata(api_key=os.environ.get("DATABENTO_API_KEY"))
+        print(json.dumps(inspected.record(), sort_keys=True, allow_nan=False))
+        return 0 if inspected.status != "METADATA_UNAVAILABLE" else 2
 
     if args.command == "audit-publisher-evidence":
         try:

@@ -200,3 +200,8 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### [1-2단계 / 전체 5단계] 과거 데이터 공급자 서명·발표시각 증빙 수락 기준 — 2026-10-15
 
 [실제 원본 검증 및 공급자 조사](autoresearch-stage-1-2-publisher-release-evidence-2026-10-15.md): Nasdaq QQQ 실수집본(1,508 일봉)은 로컬 무결성 검증 PASS지만 과거 원본 공개시각을 인증하는 독립 공급자 서명·시각 토큰이 없어 PUBLISHER_PROOF_MISSING. Ed25519 서명·해시·범위 검증 intake를 추가하고 실제 공급자 검증 공개키 Registry는 비워둠. 단순 서명/과거 날짜 선언/2026년 새 timestamp로 2020년 PIT를 주장하지 않음. 후보 LSEG/Databento 상품·권리·비용은 추가 확인 필요. 1-2 PARTIAL, 1-1 추가 수집 일정 유지, 기존 MCP/OAuth/원장/주문 제한 불변.
+
+
+### [1-2단계 / 전체 5단계] 공급처 비용·기간·과거 수정 시각 메타데이터 검증 — 2026-10-15
+
+[공식 자료·확정 검사 범위·Moon 실행 상태](autoresearch-stage-1-2-databento-metadata-feasibility-2026-10-15.md): QQQ XNAS.ITCH 2018-05-01부터 공개 카탈로그 기록, ts_event/ts_recv 분리와 계정별 metadata.get_dataset_range/get_cost/get_dataset_condition API 확인. 2026-10-31 XNAS.ITCH 2023년 이전 ID/겨울 시간외 거래/자정 snapshot 소급 변경 예고 주의. fixed-request read-only 계정 메타데이터 사전검사를 구현했으나 Moon 실제 status AUTH_REQUIRED로 견적과 API 권한 불확실. LSEG 기관 대조 후보, QQQ PIT·브로커 승인 불가; Stage 1-2 미완료·1-1 내일 재수집 유지.
