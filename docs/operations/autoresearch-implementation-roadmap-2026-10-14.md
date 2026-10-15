@@ -195,3 +195,8 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### [1-1단계 / 전체 5단계] Nasdaq 원본 다중 날짜 감사 — 2026-10-15
 
 [실행 결과·테스트·명령](autoresearch-stage-1-1-archive-inventory-2026-10-15.md): 최초 flat 수집본과 UTC 폴더 수집본을 함께 읽으며, 모든 QQQ 원본을 재파싱/해시 재검증하고 시간순 수정 거래일·수집 날짜 누락 검사 도입. 2026-10-15 UTC 현재 2개 보존본·1개 서로 다른 수집 날짜·공통 1,508거래일·변경 0건이므로 INSUFFICIENT_COLLECTION_DAYS. 기존 2026-10-16 저녁 일회성 수집 계획 유지. PIT 인증·거래 승인 불가, 원 MCP URL/OAuth 불변.
+
+
+### [1-2단계 / 전체 5단계] 과거 데이터 공급자 서명·발표시각 증빙 수락 기준 — 2026-10-15
+
+[실제 원본 검증 및 공급자 조사](autoresearch-stage-1-2-publisher-release-evidence-2026-10-15.md): Nasdaq QQQ 실수집본(1,508 일봉)은 로컬 무결성 검증 PASS지만 과거 원본 공개시각을 인증하는 독립 공급자 서명·시각 토큰이 없어 PUBLISHER_PROOF_MISSING. Ed25519 서명·해시·범위 검증 intake를 추가하고 실제 공급자 검증 공개키 Registry는 비워둠. 단순 서명/과거 날짜 선언/2026년 새 timestamp로 2020년 PIT를 주장하지 않음. 후보 LSEG/Databento 상품·권리·비용은 추가 확인 필요. 1-2 PARTIAL, 1-1 추가 수집 일정 유지, 기존 MCP/OAuth/원장/주문 제한 불변.

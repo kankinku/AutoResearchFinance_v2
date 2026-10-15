@@ -6,7 +6,7 @@ import argparse
 import json
 import os
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import httpx
@@ -20,6 +20,7 @@ from research.indicator_engine.composer import compose_hypotheses
 from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_qqq_snapshot
 from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
 from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
+from research.indicator_engine.publisher_evidence_intake import audit_publisher_evidence
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.indicator_engine.verified_capture_vintages import (
@@ -86,6 +87,16 @@ def main() -> int:
     integrity.add_argument("--output", type=Path, required=True)
     integrity.add_argument("--raw", type=Path, required=True)
     integrity.add_argument("--manifest", type=Path, required=True)
+    publisher = subs.add_parser(
+        "audit-publisher-evidence",
+        help="Verify detached publisher claim against pinned key; NEVER historical PIT approval",
+    )
+    publisher.add_argument("--output", type=Path, required=True)
+    publisher.add_argument("--raw", type=Path, required=True)
+    publisher.add_argument("--manifest", type=Path, required=True)
+    publisher.add_argument("--publisher-proof", type=Path)
+    publisher.add_argument("--publisher-signature", type=Path)
+    publisher.add_argument("--decision-at", type=datetime.fromisoformat)
     pair = subs.add_parser(
         "compare-nasdaq-vintages",
         help="Offline replay of two archived Nasdaq source vintages, revisions only (NON-PIT)",
@@ -95,6 +106,25 @@ def main() -> int:
         pair.add_argument(f"--{label}-raw", type=Path, required=True)
         pair.add_argument(f"--{label}-manifest", type=Path, required=True)
     args = parser.parse_args()
+
+    if args.command == "audit-publisher-evidence":
+        try:
+            evidence_result = audit_publisher_evidence(
+                CapturedPriceVintage(args.output, args.raw, args.manifest),
+                args.publisher_proof,
+                args.publisher_signature,
+                decision_at=args.decision_at,
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "PUBLISHER_EVIDENCE_INTAKE_FAILED", "type": type(exc).__name__,
+                "publisher_available_at_proven": False,
+                "independent_historical_pit_verified": False,
+                "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(evidence_result.record(), sort_keys=True))
+        return 0
 
     if args.command == "audit-nasdaq-archive":
         try:
