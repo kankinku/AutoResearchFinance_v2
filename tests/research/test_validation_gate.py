@@ -65,7 +65,7 @@ def test_metrics_above_threshold_never_upgrade_self_declared_as_of_to_pit():
         closed_trades=300,
     )
     assert "independent_historical_publication_proof_missing" in reasons
-    assert "independent_exchange_session_calendar_missing" in reasons
+    assert "historical_official_nyse_session_mismatch_or_unavailable" in reasons
     assert "sealed_out_of_sample_approval_missing" in reasons
     assert "insufficient_closed_trades" not in reasons
     assert "forward_revisions_not_as_of" not in reasons
@@ -84,7 +84,7 @@ def test_unverified_and_unprofitable_forward_independently_surface_reasons(tmp_p
     assert "forward_market_provenance_missing" in reasons
     assert "short_forward_evaluation_window" in reasons
     assert "independent_historical_publication_proof_missing" in reasons
-    assert "independent_exchange_session_calendar_missing" in reasons
+    assert "historical_official_nyse_session_mismatch_or_unavailable" in reasons
     assert "sealed_out_of_sample_approval_missing" in reasons
     assert result.validation_decision == "NOT_VALIDATED"
     assert result.independent_oos_approved is False

@@ -5,6 +5,9 @@ from datetime import date
 from math import isfinite
 
 from core.data.contracts import MarketDataSet
+from research.indicator_engine.nyse_public_calendar import (
+    verify_published_nyse_regular_sessions,
+)
 
 
 @dataclass(frozen=True)
@@ -73,8 +76,9 @@ def forward_research_blockers(
 ) -> tuple[str, ...]:
     """Fail closed for research success claims even when headline metrics pass.
 
-    No external historical release proof or independent exchange calendar is
-    present in the current managed datasets. This module never promotes them.
+    A pinned public exchange schedule can confirm dated-session coverage for
+    supported years. It cannot prove when OHLCV history was published, so
+    historical PIT evidence and sealed OOS approval remain absent.
     """
     checks = (
         ("nonpositive_forward_return", cumulative_return <= 0),
@@ -92,6 +96,9 @@ def forward_research_blockers(
             reasons.append(f"{role}_repeated_session_date")
         if session.max_adjacent_calendar_gap_days > 8:
             reasons.append(f"{role}_unusually_long_session_gap")
+        public = verify_published_nyse_regular_sessions(data)
+        if not public.regular_session_schedule_matched:
+            reasons.append(f"{role}_official_nyse_session_mismatch_or_unavailable")
         p = data.provenance
         if p is None:
             reasons.append(f"{role}_market_provenance_missing")
@@ -102,7 +109,6 @@ def forward_research_blockers(
                 reasons.append(f"{role}_corporate_actions_unverified")
     reasons += [
         "independent_historical_publication_proof_missing",
-        "independent_exchange_session_calendar_missing",
         "sealed_out_of_sample_approval_missing",
     ]
     return tuple(sorted(set(reasons)))

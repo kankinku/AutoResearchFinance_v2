@@ -1,0 +1,183 @@
+{
+  "corporate_actions_verified": false,
+  "data": {
+    "QQQ 2020-2025 adjusted": {
+      "blocking_reasons": [
+        "independent_historical_as_of_snapshots_missing",
+        "revisions_not_as_of"
+      ],
+      "dataset_path": "data/market/tiingo/QQQ_2020-01-02_2025-12-31_total_return_adjusted.parquet",
+      "hash": "6960cea5a66e8cdef129f5f226fa3b8563ac36903534a9f6a7c99616c0caedab",
+      "price_quality": {
+        "issues": [
+          "revisions_not_as_of"
+        ],
+        "point_in_time_verified": false,
+        "status": "UNVERIFIED"
+      },
+      "published_nyse_calendar": {
+        "broker_executable": false,
+        "calendar_reference_is_exchange_public_notice": true,
+        "calendar_source_sha256": "1a43f51dd026d0ca46ec48c3752d8fe58996d1e8972ae542f28007ae8d2a8f9a",
+        "comparison_end": "2025-12-31",
+        "comparison_scope": "requested_file_bounds",
+        "comparison_start": "2020-01-02",
+        "corporate_actions_verified": false,
+        "expected_sessions": 1508,
+        "independent_historical_price_pit_verified": false,
+        "missing_count": 0,
+        "missing_session_examples": [],
+        "observed_sessions": 1508,
+        "reference_years": [
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "regular_session_schedule_matched": true,
+        "status": "MATCHED_PINNED_NYSE_PUBLIC_SCHEDULE",
+        "unexpected_count": 0,
+        "unexpected_session_examples": []
+      }
+    },
+    "QQQ 2020-2025 raw": {
+      "blocking_reasons": [
+        "corporate_action_adjustment_unverified",
+        "independent_historical_as_of_snapshots_missing",
+        "revisions_not_as_of"
+      ],
+      "dataset_path": "data/market/tiingo/QQQ_2020-01-02_2025-12-31_raw.parquet",
+      "hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "price_quality": {
+        "issues": [
+          "revisions_not_as_of",
+          "corporate_action_adjustment_unverified"
+        ],
+        "point_in_time_verified": false,
+        "status": "UNVERIFIED"
+      },
+      "published_nyse_calendar": {
+        "broker_executable": false,
+        "calendar_reference_is_exchange_public_notice": true,
+        "calendar_source_sha256": "1a43f51dd026d0ca46ec48c3752d8fe58996d1e8972ae542f28007ae8d2a8f9a",
+        "comparison_end": "2025-12-31",
+        "comparison_scope": "requested_file_bounds",
+        "comparison_start": "2020-01-02",
+        "corporate_actions_verified": false,
+        "expected_sessions": 1508,
+        "independent_historical_price_pit_verified": false,
+        "missing_count": 0,
+        "missing_session_examples": [],
+        "observed_sessions": 1508,
+        "reference_years": [
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "regular_session_schedule_matched": true,
+        "status": "MATCHED_PINNED_NYSE_PUBLIC_SCHEDULE",
+        "unexpected_count": 0,
+        "unexpected_session_examples": []
+      }
+    },
+    "QQQ 2026 raw": {
+      "blocking_reasons": [
+        "corporate_action_adjustment_unverified",
+        "independent_historical_as_of_snapshots_missing",
+        "revisions_not_as_of"
+      ],
+      "dataset_path": "data/market/tiingo/QQQ_2026-01-02_2026-09-30_raw.parquet",
+      "hash": "0c1a69fe0501c065dd5cd437e91176326bb4d31566c221f5d55585d09f63e392",
+      "price_quality": {
+        "issues": [
+          "revisions_not_as_of",
+          "corporate_action_adjustment_unverified"
+        ],
+        "point_in_time_verified": false,
+        "status": "UNVERIFIED"
+      },
+      "published_nyse_calendar": {
+        "broker_executable": false,
+        "calendar_reference_is_exchange_public_notice": true,
+        "calendar_source_sha256": "1a43f51dd026d0ca46ec48c3752d8fe58996d1e8972ae542f28007ae8d2a8f9a",
+        "comparison_end": "2026-09-30",
+        "comparison_scope": "requested_file_bounds",
+        "comparison_start": "2026-01-02",
+        "corporate_actions_verified": false,
+        "expected_sessions": 187,
+        "independent_historical_price_pit_verified": false,
+        "missing_count": 0,
+        "missing_session_examples": [],
+        "observed_sessions": 187,
+        "reference_years": [
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "regular_session_schedule_matched": true,
+        "status": "MATCHED_PINNED_NYSE_PUBLIC_SCHEDULE",
+        "unexpected_count": 0,
+        "unexpected_session_examples": []
+      }
+    },
+    "SPY 2020-2025 raw": {
+      "blocking_reasons": [
+        "corporate_action_adjustment_unverified",
+        "independent_historical_as_of_snapshots_missing",
+        "revisions_not_as_of"
+      ],
+      "dataset_path": "data/market/tiingo/SPY_2020-01-02_2025-12-31_raw.parquet",
+      "hash": "e495f29b69654ae8dd26e6b1b1ba9584f6ef436f424b55ddde8dd18b26d951eb",
+      "price_quality": {
+        "issues": [
+          "revisions_not_as_of",
+          "corporate_action_adjustment_unverified"
+        ],
+        "point_in_time_verified": false,
+        "status": "UNVERIFIED"
+      },
+      "published_nyse_calendar": {
+        "broker_executable": false,
+        "calendar_reference_is_exchange_public_notice": true,
+        "calendar_source_sha256": "1a43f51dd026d0ca46ec48c3752d8fe58996d1e8972ae542f28007ae8d2a8f9a",
+        "comparison_end": "2025-12-31",
+        "comparison_scope": "requested_file_bounds",
+        "comparison_start": "2020-01-02",
+        "corporate_actions_verified": false,
+        "expected_sessions": 1508,
+        "independent_historical_price_pit_verified": false,
+        "missing_count": 0,
+        "missing_session_examples": [],
+        "observed_sessions": 1508,
+        "reference_years": [
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "regular_session_schedule_matched": true,
+        "status": "MATCHED_PINNED_NYSE_PUBLIC_SCHEDULE",
+        "unexpected_count": 0,
+        "unexpected_session_examples": []
+      }
+    }
+  },
+  "orders_enabled": false,
+  "pit_price_verified": false,
+  "schema": "official-nys-announcement-session-comparison-v1",
+  "source_reference": "nyse_public_closures_2020_2026_v1.json"
+}

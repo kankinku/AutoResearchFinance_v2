@@ -190,3 +190,42 @@ def test_audit_flags_weekend_and_same_day_repetition_without_calendar_certificat
     assert "repeated_exchange_session_date" in report["blocking_reasons"]
     assert "independent_exchange_session_calendar_missing" in report["blocking_reasons"]
     assert report["point_in_time_independently_verified"] is False
+
+
+
+def test_official_nyse_calendar_catches_missing_regular_day_with_short_gap(
+    tmp_path: Path,
+) -> None:
+    original_path = _write_dataset(tmp_path)
+    original = ParquetDataProvider.read(tmp_path / original_path)
+    # The filename still requests Jan 2-4. Omit just Wednesday Jan 3.
+    shortened = MarketDataSet(
+        original.version, original.zone,
+        (original.bars[0], original.bars[2]),
+        provenance=original.provenance,
+    )
+    ParquetDataProvider.write(tmp_path / original_path, shortened)
+    report = _audit(tmp_path).audit(original_path)
+    nyse = report["official_nyse_regular_sessions"]
+    assert nyse["status"] == "MISMATCH_PINNED_NYSE_PUBLIC_SCHEDULE"
+    assert nyse["missing_session_examples"] == ["2024-01-03"]
+    assert nyse["missing_count"] == 1
+    assert nyse["unexpected_count"] == 0
+    assert "pinned_official_exchange_session_mismatch_or_unavailable" in report["blocking_reasons"]
+    assert "independent_exchange_session_calendar_missing" in report["blocking_reasons"]
+    assert report["point_in_time_independently_verified"] is False
+
+
+def test_official_nyse_calendar_matches_synthetic_requested_full_period(
+    tmp_path: Path,
+) -> None:
+    raw = _write_dataset(tmp_path)
+    report = _audit(tmp_path).audit(raw)
+    status = report["official_nyse_regular_sessions"]
+    assert status["status"] == "MATCHED_PINNED_NYSE_PUBLIC_SCHEDULE"
+    assert status["expected_sessions"] == status["observed_sessions"] == 3
+    assert status["missing_count"] == 0
+    assert status["comparison_scope"] == "requested_file_bounds"
+    assert "independent_exchange_session_calendar_missing" not in report["blocking_reasons"]
+    assert "independent_historical_as_of_snapshots_missing" in report["blocking_reasons"]
+    assert report["point_in_time_independently_verified"] is False

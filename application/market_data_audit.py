@@ -9,15 +9,20 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import cast
 
-from application.market_data_service import MarketDataError, MarketDataService
+from application.market_data_service import (
+    _MARKET_FILENAME,
+    MarketDataError,
+    MarketDataService,
+)
 from core.data.contracts import DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
 from orchestration.evidence import require_research_zone
+from research.indicator_engine.nyse_public_calendar import verify_published_nyse_regular_sessions
 from research.indicator_engine.validation_gate import inspect_us_equity_daily_observations
 
 _PRICE_TOLERANCE = 0.005  # 0.5% relative discrepancy; comparison, not certification
@@ -201,13 +206,27 @@ class MarketDataAuditService:
         provenance = dataset.provenance
         quality = market_data_quality(dataset)
         exchange = inspect_us_equity_daily_observations(dataset)
+        filename = _MARKET_FILENAME.fullmatch(source.name)
+        if filename is None:
+            raise MarketDataError("INVALID_DATASET", "Managed dataset filename is invalid.")
+        try:
+            calendar = verify_published_nyse_regular_sessions(
+                dataset,
+                requested_start=date.fromisoformat(filename.group("start")),
+                requested_end=date.fromisoformat(filename.group("end")),
+            )
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise MarketDataError(
+                "CALENDAR_REFERENCE_INVALID", "Pinned exchange calendar cannot be verified."
+            ) from exc
         reasons = list(quality.issues)
         if exchange.weekend_bars:
             reasons.append("weekend_exchange_session_bar")
         if exchange.repeated_session_dates:
             reasons.append("repeated_exchange_session_date")
-        # A weekday-only scan cannot establish holiday/special-closure coverage.
-        reasons.append("independent_exchange_session_calendar_missing")
+        if not calendar.regular_session_schedule_matched:
+            reasons.append("pinned_official_exchange_session_mismatch_or_unavailable")
+            reasons.append("independent_exchange_session_calendar_missing")
         reasons.append("independent_historical_as_of_snapshots_missing")
         independent = None
         if comparison_path is not None:
@@ -240,6 +259,7 @@ class MarketDataAuditService:
             else None,
             "quality": quality.record(),
             "exchange_session_observations": exchange.record(),
+            "official_nyse_regular_sessions": calendar.record(),
             "pin_status": pin_status,
             "independent_vendor_comparison": independent,
             "corporate_action_consistency": adjusted,
