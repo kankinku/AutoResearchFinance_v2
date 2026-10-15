@@ -18,6 +18,8 @@ from research.indicator_engine.capture_integrity import verify_nasdaq_capture
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
 from research.indicator_engine.citations import CitationFetchError, fetch_crossref
 from research.indicator_engine.composer import compose_hypotheses
+from research.indicator_engine.corporate_actions import verify_dividend_snapshot
+from research.indicator_engine.corporate_asof_gate import audit_qqq_corporate_asof
 from research.indicator_engine.databento_cutover_audit import compare_condition_vintages
 from research.indicator_engine.databento_metadata_preflight import probe_qqq_xnas_metadata
 from research.indicator_engine.formula_calculator import FormulaCalculatorError, FormulaPreviewStore
@@ -159,6 +161,15 @@ def main() -> int:
     capture.add_argument("--output", type=Path, required=True)
     capture.add_argument("--raw", type=Path, required=True)
     capture.add_argument("--manifest", type=Path, required=True)
+    action_gate = subs.add_parser(
+        "audit-qqq-corporate-asof",
+        help="Retrospective QQQ dividends/splits/as-of input gate; no PIT promotion",
+    )
+    action_gate.add_argument("--raw-parquet", type=Path, required=True)
+    action_gate.add_argument("--adjusted-parquet", type=Path)
+    action_gate.add_argument("--dividend-raw", type=Path, required=True)
+    action_gate.add_argument("--dividend-manifest", type=Path, required=True)
+    action_gate.add_argument("--decision-at", type=datetime.fromisoformat, required=True)
     archival = subs.add_parser(
         "archive-nasdaq-qqq",
         help="Capture and replay a NEW private Nasdaq QQQ snapshot (NON-PIT, append-only)",
@@ -267,6 +278,35 @@ def main() -> int:
             }, sort_keys=True))
             return 2
         print(json.dumps(publisher_matrix, sort_keys=True))
+        return 0
+
+    if args.command == "audit-qqq-corporate-asof":
+        try:
+            for path in (args.raw_parquet, args.adjusted_parquet,
+                         args.dividend_raw, args.dividend_manifest):
+                if path is not None and (path.is_symlink() or not path.is_file()):
+                    raise ResearchCatalogError("invalid corporate action source path")
+            market_raw = ParquetDataProvider.read(args.raw_parquet)
+            market_adj = (
+                ParquetDataProvider.read(args.adjusted_parquet)
+                if args.adjusted_parquet else None
+            )
+            dividend_events = verify_dividend_snapshot(
+                args.dividend_raw, args.dividend_manifest,
+            )
+            action_report = audit_qqq_corporate_asof(
+                market_raw, dividend_events,
+                decision_at=args.decision_at, adjusted=market_adj,
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "CORPORATE_ASOF_AUDIT_REJECTED",
+                "type": type(exc).__name__,
+                "historical_point_in_time_verified": False,
+                "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(action_report, sort_keys=True, allow_nan=False))
         return 0
 
     if args.command == "audit-nasdaq-archive":
