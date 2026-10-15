@@ -1,6 +1,6 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
-갱신일: 2026-10-16 KST (2026-10-15 UTC). 개발 기준: `feat/d07-mcp-public-contract-gates-20261016` (`18c1bbb`; 개발 코드 Push 완료, 운영 미배포).
+갱신일: 2026-10-16 KST (2026-10-15 UTC). 운영 소스 `da2331d`, 배포 런처 `9c4749d`, 개발 `feat/d08-integrated-release-gates-20261016`.
 관련 문서: [기능 우선순위](autoresearch-feature-first-priority-2026-10-15.md), [개발 연대기](autoresearch-implementation-roadmap-2026-10-14.md).
 
 **운영 원칙:** 기능 개발 우선, 최종 데이터·성과 검증은 마지막. 다만 코드 변경 때 기본 테스트·무결성 검사는 즉시 수행. 이 문서는 **매 작업 완료 시 직접 갱신·Git Push하는 고정 기준 문서**이다. 미검증을 완료로 표현하지 않는다.
@@ -12,7 +12,7 @@
 | 1-1 | Nasdaq 날짜별 실제 원본 | 부분 구현: QQQ 1,508봉씩 3회, 모두 동일 UTC 날짜. 일별 건너뛰기 `2fcde28` | 다른 UTC 날짜 원본 수집·비교 |
 | 1-2 | 독립 공급자 발표 시각 | 부분 구현: 서명·조건 감사 사전검사 | 진짜 역사적 공개 시각과 제공 권한 |
 | 1-3 | 배당·분할·가격 수정 게이트 | 부분 구현: QQQ 배당 25건 대조·분할 잔차 | 각 과거 의사결정 시점의 이용 가능성 |
-| 2-1 | ChatGPT MCP 연구 도구 E2E | **부분 구현:** 현재 연결 32개·운영 보고 32개·워크스페이스 READY, 미인증 URL 401·실주문 비활성 확인. D07 개발판 모든 32도구 공개 스키마 사전 검증, 관련 69 PASS(`18c1bbb`) | 개발 코드 운영 미배포. 라이브 운영 32개 도구의 모든 mutation 호출은 안전을 위해 미실행. D03/D04/D06 CLI 기능의 MCP 도구 접근 경로 없음 |
+| 2-1 | ChatGPT MCP 연구 도구 E2E | **운영 반영:** D07 32도구 사전 입력 검증 적용. 기존 URL/OAuth 및 32개 tool, Workspace READY, 기본 ChatGPT MCP, 주문 비활성(`da2331d`), 익명 401·앱 읽기전용 3종 확인 | 실제 모든 상태변경 도구 32개 호출 및 GPT 장시간 10~100세대 T4는 미실행. D03/D04/D06 Lab CLI는 MCP 도구로 미노출 |
 | 2-2 | 실제 GPT 10~100세대 | **부분 구현:** GPT 2세대 실제·mock 10세대, 무거래 관측 ID 대응 및 최근 동일 Plan/Diagnosis 안전 재제출(`d9255d9`) | 실제 GPT 10/100세대·RUNNING 중단 복구·지속 실행 실증(T4 후순위) |
 | 2-3 | 자율 장시간 실행·복구 | **부분 구현:** checkpoint·취소·재개·전경 실행기 + D02 `reconcile/resume` 멱등 복구 및 커밋 세대의 누락 S7 증거 복원(`86c2ccd`) | 실제 장시간 중단·중복 호출 내성 및 10~100세대 외부 GPT 실증(T4), 서버 배포·운영 리허설(T3) |
 | 3-1 | 학술 지표 확장 | **부분 구현:** 내부 승인된 지표 수치 참조 + D04 비실행 연구용 FormulaNode 계산, 직접 계산/별도 스칼라 참고 결과 대조, 유한값·causal prefix 검증 및 버전별 SQLite 수치 증거 기록(`3723904`) | 실제 논문 원문·라이선스 검토, 확장된 학술 공식의 검증된 지표 라이브러리 등록 및 멀티마켓 제품 사용 미완료 |
@@ -21,7 +21,7 @@
 | 4-1 | 다자산·다시장 연구 | **부분 기능 구현:** D06 2~8개 지정 미국 ETF의 뉴욕 거래일 정합성·마감 관측 시각·다음 공동 09:30 오픈 계산·중복/결측/미완료 봉 거부, 동일 typed AlgorithmPlan의 종목별 StrategyIR 독립 비용 백테스트와 결과 해시 비교(`6fdf881`) | 실제 서로 다른 거래소·자산군 세션 정렬, 공통 계좌 자금배분 포트폴리오, PIT·기업행동 독립 확인, 운영 MCP 배포·실증 미완료 |
 | 4-2 | 독립 OOS 검증 | 대기: 기존 walk-forward 구성은 있음 | 선택 과정 동결·봉인 OOS 검증 |
 | 4-3 | 비용·유동성·우연 반영 순수익 | 대기: 백테스트/비용 기반은 있음 | 슬리피지·용량·다중검정 포함 |
-| 5-1 | 브랜치 통합·MCP 배포 안정화 | **대기:** D01~D07 각각 개발 브랜치에 Push. 운영은 기존 phase3-5-1-inventory 프로세스의 구버전. D07 JSON Schema 사전 검증 미배포 | D08 브랜치 통합·의존성/DB·OAuth/URL·롤백 리허설 및 누락 기능 MCP 연결 정책 |
+| 5-1 | 브랜치 통합·MCP 배포 안정화 | **운영 배포 완료:** 통합 SHA `da2331d` 고정 Worktree, 배포 런처 `9c4749d`, 전체 Pytest 1605 PASS·Ruff·Mypy 252소스 PASS, 운영 venv HTTP/OAuth 13 PASS. 원 URL/OAuth와 이전 고정 소스·런처 백업 보존 | 실제 롤백 실패경로 리허설 미실행, 긴 GPT 10~100세대·T5 PIT/OOS·T6 paper 검증 잔여; D03/D04/D06은 별도 MCP 미노출 |
 | 5-2 | 실주문 없는 페이퍼트레이딩 | 대기 | 실제 시점 추적·비주문 모의 체결 |
 | 5-3 | 최종 목표 대비 승인 평가 | 대기 | 기능·안정성·독립 성과 GO/NO-GO |
 
@@ -36,8 +36,8 @@
 | D05 | 3-3 | **개발 기능 완료:** S7 evidence-bound 실패 지식·무효 가설 재사용 방지 힌트·다음 반증 설계 제안이 자동으로 GPT Plan 컨텍스트에 전달(`5a903e1`); 실제 모델 10~100세대 진화 실증 T4 보류 |
 | D06 | 4-1 | **제한적 기능 개발 완료:** QQQ/SPY 포함 2~8 US ETF 동일 거래일·마감 시각 검증, 종목별 AlgorithmPlan→StrategyIR costed backtest 분리 실행, CLI preview·입력 해시 검증(`6fdf881`); 타 거래소/공동 포트폴리오/경제성은 미완료 |
 | D07 | 2-1 | **개발판 계약/권한 테스트 완료:** 32개 정합성·정상/오류 입력 사전 검증, HTTP/OAuth·연구 세대 포함 69 PASS(`18c1bbb`); 실서버 부작용 포함 32개 전체 호출과 배포는 미실행 |
-| **D08 (다음)** | 5-1 | D01~D07 브랜치 통합·의존성/DB/증거 점검, 고정 URL·OAuth 유지한 운영 배포/롤백, D03/D04/D06 MCP 접근 누락 검토 |
-| V01 | 1-1 | 다른 UTC 날짜 수집본 비교 |
+| D08 | 5-1 | **운영 적용 완료:** D01~D07 상속 코드와 새 릴리스 게이트를 `da2331d`로 배포. 기존 고정 소스 `cfc66cf`·런처 백업 유지. 운영 32도구·READY·기본 mcp·주문 off / 미인증 401 확인. T3 1605 PASS, 운영 venv 13 PASS, 추가 5 PASS |
+| **V01 (다음)** | 1-1 | 다른 UTC 날짜 Nasdaq 원본 빈티지 재수집·다른 시점 원본의 수정 내역 검증 |
 | V02 | 1-2 | 독립 역사적 발표 시각 증빙 |
 | V03 | 1-3 | 배당·분할·시점 게이트 최종 검증 |
 | V04 | 4-2 | 봉인 OOS 순차 검증 |
@@ -65,6 +65,7 @@
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-15 UTC | 5-1/D08 | D01~D07 선형 개발 변경을 통합해 릴리스 게이트(고정 SHA·인증/핵심 데이터 모듈 불변·롤백 고정 source 검사) 구현. 고정 후보 `da2331d` 개발 GitHub Push, 별도 배포 checkout 런처의 SOURCE_ROOT/EXPECTED_SOURCE_SHA만 갱신(`9c4749d`)하여 실제 운영 MCP 교체. OAuth DB/URL pin/approval key 및 연구 원장 보존. PID cwd 새 고정 runtime 확인, 익명 401·OAuth metadata resource 유지, 앱 read-only 32/READY/기본 MCP/주문 off 확인 | 전체 Pytest **1605 PASS**, Ruff 전체 PASS·Mypy 252소스 PASS, D08 게이트 5 PASS, 실제 운영 Python venv HTTP/OAuth/MCP 13 PASS. T4 GPT 10/100세대·T5 PIT/OOS/수익성·T6 paper 및 실제 오류 시 롤백 리허설은 미실행 | 개발 `feat/d08-integrated-release-gates-20261016` 기능 `da2331d` Push 완료, 배포 `deploy/quant-mcp-d08-integrated-20261016` 런처 `9c4749d` Push 완료, **운영 DEPLOYED**. 상세 `autoresearch-stage-5-1-integrated-deployment-2026-10-16.md` |
 | 2026-10-15 UTC | 2-1/D07 | 연결된 Quant MCP 도구 정의 32개와 운영서버 brief 32개 확인, Workspace READY·주문 false·기본 GPT MCP 방식. 실제 미인증 URL HTTP 401. 개발판 32개 JSON Schema 선행 검증과 민감 정보 없는 INVALID_TOOL_ARGUMENTS 차단(내부 dispatch 전), 32개 ABI 보존 | 신규 D07 5 PASS, HTTP/OAuth·학술 체크포인트·D01/D02/D05/D06 관련 **69 PASS**, Ruff/Mypy PASS. T3 전체·T4 GPT 장시간·T5 PIT/OOS·T6 paper 미실행. 실운영 상태 변경 32도구 호출 미실행 | `feat/d07-mcp-public-contract-gates-20261016`, `18c1bbb` Push 완료·운영 미배포, 상세 `autoresearch-stage-2-1-mcp-integration-2026-10-16.md` |
 | 2026-10-15 UTC | 4-1/D06 | 두 미국 ETF 이상의 뉴욕 현지 거래일·마감 타임스탬프 정렬. 마감 전·거래일 누락·중복·주말·불일치·입력 변경 시 fail closed; 모든 종목이 마감 완료된 뒤에만 신호 생성, 다음 공동 개장 시각 표시. 동일 typed AlgorithmPlan에서 종목마다 기존 StrategyIR/비용 엔진 독립 실행 및 CLI 추가. 공동 포트폴리오 PnL 생성하지 않음 | 신규 D06 **10 PASS** + 기존 AlgorithmPlan **17 PASS** = **27 PASS**; Ruff·Mypy 변경 경로 통과. T3 전체 회귀·T4 실제 GPT 장기·T5 PIT/OOS/수익성·T6 paper 거래 미실행 | `feat/d06-multi-asset-session-alignment-20261016`, 기능 `6fdf881` GitHub Push 완료, 운영 미배포. 상세 `autoresearch-stage-4-1-multi-asset-alignment-2026-10-16.md` |
 | 2026-10-15 UTC | 3-3/D05 | 커밋된 S7 결과와 original 세대 해시를 재검증해 실패 유형·원래 설명/대안·추가/제거/리사이즈 집계·중복 자식 해시·다음 대조 설계 우선순위 생성. Gateway의 매 GPT Plan 생성 시 읽기 전용 `experiment_learning`에 자동 포함. 인과 관계, OOS, 수익성 승인 없음 | T0/T1 신규 테스트 **17 PASS**, 기존 S8/MCP 포함 선별 회귀 **51 PASS**, Ruff/Mypy 2개 소스 PASS. T3 전체 저장소·T4 실제 GPT 장시간·T5 PIT/OOS·T6 모의거래 미실행 | `feat/d05-evidence-learning-20261016`, 기능 `5a903e1` Push 완료, 운영 미배포. 상세 `autoresearch-stage-3-3-evidence-learning-2026-10-16.md` |
