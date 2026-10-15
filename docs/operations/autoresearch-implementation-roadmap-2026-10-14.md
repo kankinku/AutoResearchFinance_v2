@@ -205,3 +205,8 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### [1-2단계 / 전체 5단계] 공급처 비용·기간·과거 수정 시각 메타데이터 검증 — 2026-10-15
 
 [공식 자료·확정 검사 범위·Moon 실행 상태](autoresearch-stage-1-2-databento-metadata-feasibility-2026-10-15.md): QQQ XNAS.ITCH 2018-05-01부터 공개 카탈로그 기록, ts_event/ts_recv 분리와 계정별 metadata.get_dataset_range/get_cost/get_dataset_condition API 확인. 2026-10-31 XNAS.ITCH 2023년 이전 ID/겨울 시간외 거래/자정 snapshot 소급 변경 예고 주의. fixed-request read-only 계정 메타데이터 사전검사를 구현했으나 Moon 실제 status AUTH_REQUIRED로 견적과 API 권한 불확실. LSEG 기관 대조 후보, QQQ PIT·브로커 승인 불가; Stage 1-2 미완료·1-1 내일 재수집 유지.
+
+
+### [1-2단계 / 전체 5단계] Databento 날짜별 dataset condition 누락 검출 — 2026-10-15
+
+[일자별 메타데이터 범위 검증](autoresearch-stage-1-2-databento-condition-completeness-2026-10-15.md): historical metadata.get_dataset_condition 결과가 2일 available뿐이어도 2020~2025 전체가 통과된 것처럼 취급될 수 있던 false green 수정. pinned NYSE 공개 정규 거래일 1,508개에 대조해 날짜 누락/중복, degraded, 범위 밖을 차단. dataset quality 메타데이터를 QQQ 종목/스키마 또는 PIT 인증으로 오인하지 않도록 분리. 공급자 실제 계정/독립 시각 증거는 미확보; Stage 1-2 진행 중. 원 MCP/OAuth/실거래 비활성 상태 유지.

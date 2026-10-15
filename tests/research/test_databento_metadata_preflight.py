@@ -61,11 +61,15 @@ def test_no_key_no_requests_and_no_false_cost():
 def test_authed_metadata_yields_quote_not_pit_and_revisions_warning():
     with _client(_metadata) as client:
         result = probe_qqq_xnas_metadata(api_key="top-secret", client=client)
-    assert result.status == "METADATA_QUOTED_NOT_PIT"
+    assert result.status == "DATASET_CONDITION_INCOMPLETE"
     assert result.quoted_cost_usd == 28.75
     assert result.schema_coverage_verified is True
     assert result.condition_records_inspected == 2
     assert result.condition_recently_modified == 2
+    assert result.expected_regular_sessions == 1508
+    assert result.covered_regular_sessions == 2
+    assert result.missing_regular_session_count == 1506
+    assert result.condition_full_regular_session_coverage is False
     assert result.historical_pit_verified is False
     assert result.publisher_release_authentication_verified is False
     assert result.licensing_verified is False
@@ -129,3 +133,93 @@ def test_cli_without_key_is_dry_and_reports_access_required(monkeypatch, capsys)
     assert report["status"] == "AUTH_REQUIRED"
     assert report["historical_pit_verified"] is False
     assert report["quoted_cost_usd"] is None
+
+
+
+def _full_dataset_conditions() -> list[dict[str, str]]:
+    from datetime import date, timedelta
+
+    from research.indicator_engine.nyse_public_calendar import _closed_dates
+
+    closures = _closed_dates()
+    cursor = date(2020, 1, 2)
+    end = date(2025, 12, 31)
+    rows = []
+    while cursor <= end:
+        if cursor.weekday() < 5 and cursor not in closures:
+            rows.append({
+                "date": cursor.isoformat(),
+                "condition": "available",
+                "last_modified_date": "2026-09-30",
+            })
+        cursor += timedelta(days=1)
+    return rows
+
+
+def test_complete_vendor_session_conditions_are_not_historical_pit():
+    expected = _full_dataset_conditions()
+    assert len(expected) == 1508
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("get_dataset_condition"):
+            return httpx.Response(200, json=expected)
+        return _metadata(request)
+
+    with _client(handler) as client:
+        result = probe_qqq_xnas_metadata(api_key="top-secret", client=client)
+    assert result.status == "METADATA_QUOTED_NOT_PIT"
+    assert result.condition_full_regular_session_coverage is True
+    assert result.expected_regular_sessions == 1508
+    assert result.covered_regular_sessions == 1508
+    assert result.missing_regular_session_count == 0
+    assert result.condition_recently_modified == 1508
+    assert result.historical_pit_verified is False
+    assert result.broker_executable is False
+
+
+@pytest.mark.parametrize("variant", [
+    "missing_one",
+    "duplicate",
+    "degraded",
+    "outside_scope",
+    "weekend_missing",
+])
+def test_dataset_condition_date_integrity_and_regular_session_completeness(
+    variant: str,
+):
+    rows = _full_dataset_conditions()
+    if variant == "missing_one":
+        del rows[300]
+    elif variant == "duplicate":
+        rows.append(dict(rows[300]))
+    elif variant == "degraded":
+        rows[200]["condition"] = "degraded"
+    elif variant == "outside_scope":
+        rows.append({
+            "date": "2026-01-02",
+            "condition": "available",
+            "last_modified_date": "2026-09-30",
+        })
+    elif variant == "weekend_missing":
+        rows.append({
+            "date": "2020-01-04",
+            "condition": "missing",
+            "last_modified_date": None,
+        })
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("get_dataset_condition"):
+            return httpx.Response(200, json=rows)
+        return _metadata(request)
+
+    with _client(handler) as client:
+        result = probe_qqq_xnas_metadata(api_key="top-secret", client=client)
+    if variant == "missing_one":
+        assert result.status == "DATASET_CONDITION_INCOMPLETE"
+        assert result.missing_regular_session_count == 1
+    elif variant == "weekend_missing":
+        assert result.status == "METADATA_QUOTED_NOT_PIT"
+        assert result.condition_full_regular_session_coverage is True
+    else:
+        assert result.status == "DATASET_CONDITION_CONFLICT"
+    assert result.historical_pit_verified is False

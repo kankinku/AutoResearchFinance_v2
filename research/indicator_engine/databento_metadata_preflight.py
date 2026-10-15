@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 import httpx
+
+from research.indicator_engine.nyse_public_calendar import _closed_dates
 
 DATASET = "XNAS.ITCH"
 SCHEMA = "trades"
@@ -29,7 +31,7 @@ _ENDPOINTS = (
 ProbeStatus = Literal[
     "AUTH_REQUIRED", "METADATA_UNAVAILABLE", "ENTITLEMENT_OR_AUTH_DENIED",
     "COVERAGE_MISSING", "QUOTED_COST_INVALID", "DATASET_CONDITION_CONFLICT",
-    "METADATA_QUOTED_NOT_PIT",
+    "DATASET_CONDITION_INCOMPLETE", "METADATA_QUOTED_NOT_PIT",
 ]
 
 
@@ -45,6 +47,10 @@ class DatabentoMetadataProbe:
     quoted_cost_usd: float | None = None
     condition_records_inspected: int = 0
     condition_recently_modified: int = 0
+    expected_regular_sessions: int = 0
+    covered_regular_sessions: int = 0
+    missing_regular_session_count: int = 0
+    condition_full_regular_session_coverage: bool = False
     # CRITICAL: these are NEVER established by metadata or a cost quote.
     publisher_release_authentication_verified: Literal[False] = False
     licensing_verified: Literal[False] = False
@@ -60,6 +66,13 @@ class DatabentoMetadataProbe:
             "quoted_cost_usd": self.quoted_cost_usd,
             "condition_records_inspected": self.condition_records_inspected,
             "condition_recently_modified": self.condition_recently_modified,
+            "condition_scope": "dataset_level_not_symbol_or_schema_specific",
+            "expected_regular_sessions": self.expected_regular_sessions,
+            "covered_regular_sessions": self.covered_regular_sessions,
+            "missing_regular_session_count": self.missing_regular_session_count,
+            "condition_full_regular_session_coverage": (
+                self.condition_full_regular_session_coverage
+            ),
             "retroactive_revision_alert": (
                 "Databento announced XNAS.ITCH historical dataset corrections "
                 "effective 2026-10-31, including pre-2023 instrument IDs and "
@@ -148,26 +161,84 @@ def probe_qqq_xnas_metadata(
                 return DatabentoMetadataProbe(status="QUOTED_COST_INVALID")
             if not isinstance(conditions, list) or not conditions or len(conditions) > 2500:
                 return DatabentoMetadataProbe(status="DATASET_CONDITION_CONFLICT")
+            # A partial vendor condition array is NOT evidence that all six
+            # years were available. Use our independently pinned public NYSE
+            # closure calendar to enumerate expected regular session dates.
+            # Data quality is dataset-wide; the QQQ symbol still needs separate
+            # market records and provider-specific historical PIT validation.
+            closure_dates = _closed_dates()
+            first_day, last_day = date(2020, 1, 2), date(2025, 12, 31)
+            regular = {
+                first_day + timedelta(days=n)
+                for n in range((last_day - first_day).days + 1)
+                if (first_day + timedelta(days=n)).weekday() < 5
+                and (first_day + timedelta(days=n)) not in closure_dates
+            }
             recently_modified = 0
+            seen: set[date] = set()
+            available: set[date] = set()
+            conflict = False
             for item in conditions:
-                if not isinstance(item, dict) or item.get("condition") != "available":
-                    return DatabentoMetadataProbe(status="DATASET_CONDITION_CONFLICT")
-                when = item.get("last_modified_date")
-                if not isinstance(when, str):
-                    return DatabentoMetadataProbe(status="DATASET_CONDITION_CONFLICT")
-                # No historical version provenance is inferred from this field.
-                modified = datetime.fromisoformat(when).date()
-                if modified.year >= 2026:
-                    recently_modified += 1
+                if not isinstance(item, dict):
+                    conflict = True
+                    break
+                item_date = item.get("date")
+                state = item.get("condition")
+                if not isinstance(item_date, str) or state not in (
+                    "available", "degraded", "pending", "missing"
+                ):
+                    conflict = True
+                    break
+                day = date.fromisoformat(item_date)
+                if day < first_day or day > last_day or day in seen:
+                    conflict = True
+                    break
+                seen.add(day)
+                modified_at = item.get("last_modified_date")
+                if state == "missing":
+                    if modified_at is not None:
+                        conflict = True
+                        break
+                elif not isinstance(modified_at, str):
+                    conflict = True
+                    break
+                else:
+                    modified = date.fromisoformat(modified_at)
+                    if modified.year >= 2026:
+                        recently_modified += 1
+                if day in regular:
+                    if state != "available":
+                        conflict = True
+                        break
+                    available.add(day)
+            missing = regular - available
+            if conflict:
+                return DatabentoMetadataProbe(
+                    status="DATASET_CONDITION_CONFLICT",
+                    schema_coverage_verified=True,
+                    quoted_cost_usd=float(usd_quote),
+                    condition_records_inspected=len(conditions),
+                    condition_recently_modified=recently_modified,
+                    expected_regular_sessions=len(regular),
+                    covered_regular_sessions=len(available),
+                    missing_regular_session_count=len(missing),
+                )
+            return DatabentoMetadataProbe(
+                status=(
+                    "DATASET_CONDITION_INCOMPLETE" if missing
+                    else "METADATA_QUOTED_NOT_PIT"
+                ),
+                schema_coverage_verified=True,
+                quoted_cost_usd=float(usd_quote),
+                condition_records_inspected=len(conditions),
+                condition_recently_modified=recently_modified,
+                expected_regular_sessions=len(regular),
+                covered_regular_sessions=len(available),
+                missing_regular_session_count=len(missing),
+                condition_full_regular_session_coverage=not missing,
+            )
         except (TypeError, ValueError, KeyError, OverflowError):
             return DatabentoMetadataProbe(status="METADATA_UNAVAILABLE")
-        return DatabentoMetadataProbe(
-            status="METADATA_QUOTED_NOT_PIT",
-            schema_coverage_verified=True,
-            quoted_cost_usd=float(usd_quote),
-            condition_records_inspected=len(conditions),
-            condition_recently_modified=recently_modified,
-        )
     finally:
         if owned:
             client.close()
