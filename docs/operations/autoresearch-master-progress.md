@@ -1,6 +1,7 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
 갱신일: 2026-10-16 KST / 2026-10-15 UTC. 운영 런타임 `da2331d` 유지. V01~V03 외부 PIT 증빙 부족, V04 동결 게이트 `25dc483` 개발 완료/OOS 미개봉. 다음 V05.
+**상위 목표/변경 통제(필수):** [초기 사용자 20문답](../decisions/2026-10-14-autoresearch-interview-20q.md) → [2026-10-16 확정 범위 잠금 v1](../decisions/2026-10-16-autoresearch-20q-scope-lock-v1.md). 완료/미완료 상태는 이 현황표에서만 갱신하며, 목표나 승인된 순서는 사용자 명시 동의 없이는 수정하지 않는다. 특히 **V05 제한 검증 뒤 T4 진짜 GPT 10/100세대**를 더 많은 검증 도구 추가로 무기한 미루지 않는다.
 관련 문서: [기능 우선순위](autoresearch-feature-first-priority-2026-10-15.md), [개발 연대기](autoresearch-implementation-roadmap-2026-10-14.md).
 
 **운영 원칙:** 기능 개발 우선, 최종 데이터·성과 검증은 마지막. 다만 코드 변경 때 기본 테스트·무결성 검사는 즉시 수행. 이 문서는 **매 작업 완료 시 직접 갱신·Git Push하는 고정 기준 문서**이다. 미검증을 완료로 표현하지 않는다.
@@ -65,6 +66,7 @@
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-15 UTC | GOV/20Q-SCOPE-LOCK | 2026-10-14 최초 사용자 20문답 20개 답변의 의미와 2026-10-16 사용자가 확정한 잔여 실행 순서 `V05 → T4 실제 GPT 10/100 → V01~V04 외부 PIT/OOS → V06 → V07`을 최상위 정책으로 고정. 모든 Q01~Q20과 S0~S10 지속 추적, `AGENTS.md`에 개발/범위 변경 사전 확인 및 명시적 사용자 동의 없는 변경 금지. `docs/decisions/2026-10-16-autoresearch-20q-scope-lock-v1.md`에 사용자 가치·필수 종속성·비목표·승인받아야 하는 변경 명시. 인터뷰/확정 기준서 SHA-256 고정 테스트 신설. OOS/주문/운영 OAuth·URL/엔진 기능 변경 없음 | 신규 거버넌스 **4 PASS**, Ruff·Mypy 1소스 PASS, `git diff --check` PASS. 문서/테스트 한정: 실제 GPT T4·PIT·OOS·경제성 검증은 **미실행** | `docs/lock-autoresearch-20q-scope-20261016`, 최초 확정 `1b93fcc`, 해시 잠금 보강 `2d30b96` GitHub Push. 다음 `V05` (제한), 이어 실제 `T4` |
 | 2026-10-15 UTC | 4-2/V04 | 기존 walkforward는 개발 데이터 전용이나 선택 후보를 남기는 독립 freeze receipt가 부족해 개발-only `AlgorithmPlan`과 학술 지표 definitions, source data, StrategyIR, causal replay 증거를 `sealed_oos_precommit.py`에서 한 번만 생성하고 재검증. SHA 포함 JSON을 exclusive 신규 파일로 작성, 재선정·가격수정·해시 변조·위조 승인 플래그·경로 symlink·SEALED_OOS/VALIDATION 입력을 차단. 로컬 CLI `freeze-development-selection`/`verify-development-freeze` 추가. OOS data read/evaluation 0, 진짜 우승 후보 freeze 아직 없음; V01 1일 수집·V02 미인증 공개시각·V03 과거 corporate as-of 불완전으로 실제 OOS 접근 금지. | 신규 V04 9 PASS, 학술/MCP/forward/다자산 관련 **91 PASS**, Ruff/Mypy PASS, 전체 T3 프로젝트 미실행. 영구 외부 시간인증·독립 custodian·세계적 access control 불가; local hash 일치만 검증 | `feat/v04-sealed-oos-selection-precommit-20261016` 코드 `25dc483` origin Push; `autoresearch-stage-4-2-v04-sealed-oos-precommit-2026-10-16.md`; 증거 `docs/operations/evidence/quant-validation-20261016/v04-sealed-oos-access-not-performed.json`, V04 BLOCKED_INDEPENDENT_PIT_OOS, 다음 V05 |
 | 2026-10-15 UTC | 1-3/V03 | Nasdaq QQQ 보존 배당 raw/manifest 2026-10-14와 Tiingo raw 2026-10-10의 결정시각 `2025-03-24T20:00Z` 기준 실제 재생. 발행사 핀 25종 금액 25/25 일치, 거래시각 증빙 아닌 선언일만 1건·없음 24건, 배당락 전/후 지급 시점 구분. 최종 실측 `HISTORICAL_DECISION_PRECEDES_SOURCE_CAPTURE`·배당 지식 0 입증, 1차 분할 미검증, 조정가격 원본 파일 누락(금번 가격조정 재계산 X). 보고 SHA `fd205916c0bd4dd5afbadabff64d3e2bb78dd8b4382fa6284ecd511dbbfb902b`, 거래 승인 false | V03 신규 **8 PASS**, issuer/dividend/split/revisions/history 관련 **40 PASS**, Ruff/Mypy PASS, 운영 MCP 미배포·데이터 불변. T4 GPT 장기간·T5 독립 PIT/OOS·T6 paper 미실행 | `feat/v03-qqq-corporate-asof-gates-20261016` 기능 `be563c4` Push, 실제 증거 `docs/operations/evidence/quant-validation-20261016/v03-qqq-corporate-asof-real.json`, 상세 `autoresearch-stage-1-3-v03-corporate-asof-2026-10-16.md`. V03 BLOCKED_EXTERNAL_ASOF, 다음 V04 경계 설계 |
 | 2026-10-15 UTC | 1-2/V02 | 기존 발행자 서명 intake와 Nasdaq QQQ 아카이브 일괄 감사를 연결. 로컬 CLI `audit-qqq-publication-coverage` 신규. 실제 기존 3본 raw/Parquet/manifest 재검증, `PUBLISHER_PROOF_MISSING` 3건, 역사 독립 공개시각 0건. 보고 해시 `3d633431d8b5ab36105333807102caa8df695324730aa9fa2a1c94221ccff9a2`, Databento metadata `AUTH_REQUIRED`, PIT/주문 금지 유지 | 신규 V02 7개 포함 관련 **51 PASS**, Ruff/Mypy PASS. 운영 MCP 및 기존 원본/권한 변경 없음; 외부 시각/서명/계약 미확보 | `feat/v02-publisher-availability-matrix-20261016` 코드 `4c62d0d` Push, 상세 `autoresearch-stage-1-2-v02-publisher-availability-2026-10-16.md`, 증거 `docs/operations/evidence/quant-validation-20261016/v02-publication-coverage-audit.json`. V02 BLOCKED_EXTERNAL_EVIDENCE, 다음 V03 |
@@ -81,6 +83,8 @@
 | 2026-10-15 | 1-1 | 실제 가격 원본 3회, 일별 멱등 보관 CLI | 관련 20개 통과·정적 검사 통과. 전체 Pytest 617건 PASS 후 중단 | `feat/p1-nasdaq-daily-archive-20261015`, `2fcde28`, Push 완료·운영 미배포 |
 
 ## 5. 매 작업 완료 시 필수 문서 갱신
+
+**인터뷰 이탈 검사:** 어떤 작업이든 Q01~Q20 원본과 범위 잠금 문서의 대응 질문 ID를 먼저 읽고, 제안 변경이 필수 종속 작업인지 확인한다. 단계 순서·완료 정의·기본 ChatGPT MCP·거래/OOS 권한 변경은 사용자 명시 승인 + 별도 ADR 이전에 실행하지 않는다. `tests/governance/test_autoresearch_scope_lock.py`로 원본 SHA/전체 20문답/현재 순서·AGENTS 링크 검사. 이 검사 통과는 인간 승인이나 실제 자율 연구 성능을 대신하지 않는다.
 
 1. 시작 시 이 문서의 ID/상태/다음 순서를 읽고 실제 코드·운영 상태를 재확인한다.
 2. 기능 구현과 T0/T1을 수행한 뒤, 1번 표 상태·남은 조건, 2번 표 실행 순서, 4번 표 신규 작업 로그를 **모두 갱신**한다.
