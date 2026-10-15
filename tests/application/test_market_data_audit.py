@@ -323,3 +323,26 @@ def test_audit_discloses_issuer_coverage_gap_without_pit_upgrade(tmp_path: Path)
     assert "unreferenced_corporate_action_adjustment_candidates" in report["blocking_reasons"]
     assert report["status"] == "RESEARCH_ONLY_NOT_PIT_VERIFIED"
     assert report["orders_enabled"] is False
+
+
+
+def test_market_audit_exposes_conservative_historical_vintage_cutoff(tmp_path: Path) -> None:
+    path = _write_dataset(tmp_path, latest=False)
+    service = _audit(tmp_path)
+    # Jan 3 at 14:00 New York: Jan 3 daily close and Jan 4 are not usable.
+    report = service.audit(
+        path, as_of_decision_at=datetime(2024, 1, 3, 19, tzinfo=timezone.utc)
+    )
+    preflight = report["historical_vintage_preflight"]
+    assert preflight["status"] == "CUTOFF_CONFLICT"
+    assert preflight["sessions_past_assumed_close"] == 1
+    assert preflight["unfinished_or_future_sessions"] == 2
+    assert preflight["retrieved_after_decision"] is True
+    assert "captured_after_historical_decision" in report["blocking_reasons"]
+    assert "independent_publication_attestation_missing" in report["blocking_reasons"]
+    assert report["status"] == "RESEARCH_ONLY_NOT_PIT_VERIFIED"
+    assert report["orders_enabled"] is False
+
+    unanchored = service.audit(path)["historical_vintage_preflight"]
+    assert unanchored["status"] == "DECISION_TIME_REQUIRED"
+    assert unanchored["point_in_time_verified"] is False

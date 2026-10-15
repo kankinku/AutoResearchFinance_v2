@@ -22,6 +22,9 @@ from core.data.contracts import DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
 from orchestration.evidence import require_research_zone
+from research.indicator_engine.historical_vintage_preflight import (
+    assess_historical_vintage,
+)
 from research.indicator_engine.issuer_distribution_reference_v2 import (
     verify_qqq_issuer_distribution_reference_v2,
 )
@@ -183,6 +186,7 @@ class MarketDataAuditService:
         comparison_path: str | None = None,
         adjusted_path: str | None = None,
         revision_comparison_path: str | None = None,
+        as_of_decision_at: datetime | None = None,
     ) -> dict[str, object]:
         # Resolve paths and zone before inspecting contents, then check previous pin
         # even when a subsequent file corruption makes Parquet unreadable.
@@ -214,6 +218,9 @@ class MarketDataAuditService:
         _relative, _source, dataset = self._load(relative)
         provenance = dataset.provenance
         quality = market_data_quality(dataset)
+        historical_vintage = assess_historical_vintage(
+            dataset, decision_at=as_of_decision_at
+        )
         exchange = inspect_us_equity_daily_observations(dataset)
         filename = _MARKET_FILENAME.fullmatch(source.name)
         if filename is None:
@@ -237,6 +244,7 @@ class MarketDataAuditService:
             reasons.append("pinned_official_exchange_session_mismatch_or_unavailable")
             reasons.append("independent_exchange_session_calendar_missing")
         reasons.append("independent_historical_as_of_snapshots_missing")
+        reasons.extend(historical_vintage.blocking_reasons)
         independent = None
         if comparison_path is not None:
             _name, _file, other = self._load(comparison_path)
@@ -325,6 +333,7 @@ class MarketDataAuditService:
             if provenance
             else None,
             "quality": quality.record(),
+            "historical_vintage_preflight": historical_vintage.record(),
             "exchange_session_observations": exchange.record(),
             "official_nyse_regular_sessions": calendar.record(),
             "pin_status": pin_status,
