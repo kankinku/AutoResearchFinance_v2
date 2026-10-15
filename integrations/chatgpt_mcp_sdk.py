@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator, FormatChecker  # type: ignore[import-untyped]
+from jsonschema.exceptions import (  # type: ignore[import-untyped]
+    ValidationError as JSONSchemaValidationError,
+)
 from mcp import types
 from mcp.server import ServerRequestContext
 from pydantic import Field, field_serializer
@@ -407,6 +411,19 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
         super().__init__(state_dir=state_dir, project_root=project_root)
         self.require_oauth = require_oauth
         self.audit = audit
+        # Validate at the external ChatGPT boundary, before any tool-specific
+        # dispatcher can create state, start research or fetch market data.
+        self._input_validators: dict[str, Draft202012Validator] = {}
+        for item in chatgpt_tools():
+            schema = item["inputSchema"]
+            if not isinstance(schema, dict) or not isinstance(item["name"], str):
+                raise TypeError("invalid advertised MCP tool contract")
+            Draft202012Validator.check_schema(schema)
+            self._input_validators[item["name"]] = Draft202012Validator(
+                schema, format_checker=FormatChecker(),
+            )
+        if len(self._input_validators) != 32:
+            raise TypeError("unexpected ChatGPT tool contract count")
 
     async def list_tools(
         self,
@@ -442,6 +459,31 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
                 )
             return _sdk_tool_result(
                 {"status": "ERROR", "message": "tool request failed"}, is_error=True
+            )
+        arguments = params.arguments
+        try:
+            if not isinstance(arguments, dict):
+                raise ValueError("MCP arguments must be an object")
+            # Defensive bounded JSON parsing; do not echo potentially sensitive
+            # or adversarial content back into error results or audit logs.
+            serialized = json.dumps(arguments, ensure_ascii=False, allow_nan=False)
+            if len(serialized.encode("utf-8")) > 256 * 1024:
+                raise ValueError("MCP input exceeds bounded limit")
+            self._input_validators[params.name].validate(arguments)
+        except (ValueError, TypeError, JSONSchemaValidationError):
+            if self.audit is not None:
+                self.audit.emit(
+                    "tool_call", tool=params.name, result="ERROR",
+                    error_code="INVALID_TOOL_ARGUMENTS",
+                )
+            return _sdk_tool_result(
+                {
+                    "status": "ERROR",
+                    "error_code": "INVALID_TOOL_ARGUMENTS",
+                    "message": "tool input does not match the published contract",
+                    "orders_enabled": False,
+                },
+                is_error=True,
             )
         result = await super().call_tool(_context, params)
         if self.audit is not None:
