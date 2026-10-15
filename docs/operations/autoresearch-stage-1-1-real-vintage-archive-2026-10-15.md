@@ -19,7 +19,7 @@ Nasdaq 공개 QQQ OHLCV endpoint에서 동일 요청 구간 2020-01-02~2025-12-3
 
 ## 구현 내용
 
-- 새 research/indicator_engine/nasdaq_append_only_archive.py: 실행할 때마다 실제 UTC 수집 시작 시각(마이크로초)으로 새 디렉터리를 배타적으로 예약하고, 원본 JSON·Parquet·매니페스트 작성 및 로컬 리플레이 무결성 검증 후 결과를 반환한다. 이름 충돌 시 기존 저장물을 건드리지 않고 실패한다. 수집 실패 시 해당 새 디렉터리만 정리한다. 0700 디렉터리와 0600 파일 권한.
+- 새 research/indicator_engine/nasdaq_append_only_archive.py: 실행할 때마다 실제 UTC 수집 시작 시각(마이크로초)으로 새 디렉터리를 배타적으로 예약하고, 원본 JSON·Parquet·매니페스트 작성 및 로컬 리플레이 무결성 검증 후 결과를 반환한다. 이름 충돌 시 기존 저장물을 건드리지 않고 실패한다. 수집 실패 시 해당 새 디렉터리만 정리한다. 0700 디렉터리와 0600 파일 권한. 기존 상위 저장 루트가 공개 권한이면 임의 chmod 대신 안전하게 실패한다.
 - research/indicator_engine/cli.py 새 서브커맨드 archive-nasdaq-qqq로 재수집할 수 있다. 이전 수집본이나 MCP 운영 state에 덮어쓰지 않는다.
 - .gitignore에 /state/vintages/를 추가하여 공급자 원본 시세·매니페스트·Parquet의 Git 추적을 방지했다. 첫 실제 수집본도 로컬에서 권한을 강화했다.
 - 범위·중복·결함·개발 데이터 조건의 단위 및 CLI 통합 테스트. 이전 compare-nasdaq-vintages로 두 실제 수집본의 시점·가격 이력을 읽기 전용 대조했다.

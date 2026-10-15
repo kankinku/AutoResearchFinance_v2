@@ -129,3 +129,18 @@ def test_archival_cli_writes_new_replayable_snapshot(tmp_path: Path, monkeypatch
     failure = json.loads(capsys.readouterr().out)
     assert failure["status"] == "ARCHIVE_CAPTURE_FAILED"
     assert failure["broker_executable"] is False
+
+
+
+def test_existing_nonprivate_archive_root_refused_without_chmod(tmp_path: Path):
+    if os.name == "nt":
+        pytest.skip("POSIX permissions only")
+    insecure = tmp_path / "existing"
+    insecure.mkdir(mode=0o755)
+    insecure.chmod(0o755)
+    with pytest.raises(ResearchCatalogError, match="private"):
+        archive_nasdaq_qqq_snapshot(
+            insecure, START, END, at=T0, fetch_bytes=lambda _: _payload()
+        )
+    assert insecure.stat().st_mode & 0o777 == 0o755
+    assert list(insecure.iterdir()) == []

@@ -68,7 +68,10 @@ def archive_nasdaq_qqq_snapshot(
     key = utc.strftime("%Y%m%dT%H%M%S%fZ")
     root = root.resolve()
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
-    root.chmod(0o700)
+    # Never chmod an existing caller-selected directory (especially / or home).
+    # Reject unsafe permissions rather than silently changing the host.
+    if root.stat().st_mode & 0o077:
+        raise ResearchCatalogError("capture archive root must be private (0700)")
     archive = root / f"qqq_{start.isoformat()}_{end.isoformat()}_{key}"
     try:
         archive.mkdir(mode=0o700, exist_ok=False)
