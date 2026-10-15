@@ -33,7 +33,7 @@ export QUANT_MCP_PUBLIC_BASE="$PINNED_BASE"
 SOURCE_ROOT="/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-ab6e96b"
 [[ -d "$SOURCE_ROOT/integrations" && -f "$SOURCE_ROOT/application/academic_checkpoint_service.py" ]] || exit 1
 # Refuse a moved or edited code worktree: production is commit-pinned.
-EXPECTED_SOURCE_SHA="ab6e96bdc3a03a9575cf9a4c19b8446f685e54f8"
+EXPECTED_SOURCE_SHA="cfc66cf3f21980b7ca9cd329fb6ce0d51bd20bdd"
 [[ "$(git -C "$SOURCE_ROOT" rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA" ]] || exit 1
 [[ -z "$(git -C "$SOURCE_ROOT" status --porcelain)" ]] || exit 1
 export PYTHONPATH="$SOURCE_ROOT${PYTHONPATH:+:$PYTHONPATH}"

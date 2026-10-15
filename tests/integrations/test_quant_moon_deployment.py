@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -38,3 +41,22 @@ def test_quant_runtime_secrets_are_git_ignored() -> None:
     assert "[program:quant-mcp]" in supervisor
     assert "autorestart=true" in supervisor
     assert "scripts/run_quant_moon_http.sh" in supervisor
+
+
+def test_quant_launcher_runtime_pin_matches_checked_out_code() -> None:
+    """Fail closed if installed runtime branch advances beyond launcher pin."""
+    script = (ROOT / "scripts/run_quant_moon_http.sh").read_text()
+    source_root_value = script.split('SOURCE_ROOT="', 1)[1].split('"', 1)[0]
+    expected_sha = script.split('EXPECTED_SOURCE_SHA="', 1)[1].split('"', 1)[0]
+    assert len(expected_sha) == 40
+    assert '[[ "$(git -C "$SOURCE_ROOT" rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA" ]]' in script
+    source_root = Path(source_root_value)
+    if not source_root.is_dir():
+        pytest.skip("Pinned Moon runtime checkout is absent in this environment")
+    actual_sha = subprocess.run(
+        ["git", "-C", str(source_root), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert actual_sha == expected_sha
