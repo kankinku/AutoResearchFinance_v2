@@ -1,0 +1,30 @@
+{
+  "schema": "qqq_split_history_secondary_v1",
+  "symbol": "QQQ",
+  "evidence_class": "SECONDARY_AGGREGATOR_ONLY",
+  "recorded_at": "2026-10-15",
+  "window_start": "2020-01-02",
+  "window_end": "2025-12-31",
+  "known_limit": "Catalogs list only one historical split, 2000-03-20 (outside audited window); absence within window is not authoritative split completeness.",
+  "sources": [
+    {
+      "id": "twelvedata",
+      "url": "https://twelvedata.com/markets/958673/etf/nasdaq/qqq/historical-data/splits",
+      "declared_history": "2000-03-20, 2-for-1"
+    },
+    {
+      "id": "swingtradebot",
+      "url": "https://swingtradebot.com/equities/QQQ/splits",
+      "declared_history": "2000-03-20, 2-for-1"
+    }
+  ],
+  "split_events": [
+    {
+      "date": "2000-03-20",
+      "numerator": 2,
+      "denominator": 1
+    }
+  ],
+  "primary_exchange_or_issuer_history_verified": false,
+  "historical_as_of_price_verified": false
+}

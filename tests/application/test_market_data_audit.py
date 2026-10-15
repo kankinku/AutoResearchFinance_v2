@@ -314,6 +314,12 @@ def test_audit_discloses_issuer_coverage_gap_without_pit_upgrade(tmp_path: Path)
     assert verified_v2["matched_events"] == 1
     assert verified_v2["unreferenced_candidate_events"] == 1
     assert verified_v2["point_in_time_price_verified"] is False
+    split = report["qqq_split_adjustment_residuals"]
+    assert split["potential_split_or_revision_events"] == 1
+    assert split["potential_event_dates"] == ["2025-03-25"]
+    assert split["primary_split_history_verified"] is False
+    assert "unexplained_split_or_adjustment_candidates" in report["blocking_reasons"]
+    assert "independent_primary_split_history_missing" in report["blocking_reasons"]
     assert "unreferenced_corporate_action_adjustment_candidates" in report["blocking_reasons"]
     assert report["status"] == "RESEARCH_ONLY_NOT_PIT_VERIFIED"
     assert report["orders_enabled"] is False

@@ -29,6 +29,7 @@ from research.indicator_engine.issuer_distributions import (
     compare_issuer_qqq_cash_to_price_adjustments,
 )
 from research.indicator_engine.nyse_public_calendar import verify_published_nyse_regular_sessions
+from research.indicator_engine.qqq_split_residual_audit import audit_qqq_split_residuals
 from research.indicator_engine.snapshot_revisions import compare_collected_market_snapshots
 from research.indicator_engine.validation_gate import inspect_us_equity_daily_observations
 
@@ -245,6 +246,7 @@ class MarketDataAuditService:
         adjusted = None
         issuer_distribution = None
         issuer_reference_v2 = None
+        split_residuals = None
         if adjusted_path is not None:
             _name, _file, adj = self._load(adjusted_path)
             adjusted = self._compare_adjusted(dataset, adj)
@@ -282,6 +284,21 @@ class MarketDataAuditService:
                     "MATCHED_REFERENCE_CASH_EVENTS", "NOT_COMPARABLE"
                 ):
                     reasons.append("issuer_distribution_v2_mismatch_or_unknown")
+                try:
+                    split_residuals = audit_qqq_split_residuals(dataset, adj).record()
+                except (OSError, ValueError, KeyError, TypeError) as exc:
+                    raise MarketDataError(
+                        "SPLIT_REFERENCE_INVALID", "Pinned QQQ split history is invalid."
+                    ) from exc
+                # Secondary aggregator records cannot certify split completeness,
+                # even with zero unexplained corporate-action factor residuals.
+                reasons.append("independent_primary_split_history_missing")
+                if split_residuals["potential_split_or_revision_events"]:
+                    reasons.append("unexplained_split_or_adjustment_candidates")
+                if split_residuals["status"] not in (
+                    "NO_UNEXPLAINED_FACTOR_EVENTS", "NOT_COMPARABLE"
+                ):
+                    reasons.append("split_residual_reconciliation_incomplete")
         revision_comparison = None
         if revision_comparison_path is not None:
             _name, _file, later = self._load(revision_comparison_path)
@@ -315,6 +332,7 @@ class MarketDataAuditService:
             "corporate_action_consistency": adjusted,
             "issuer_distribution_checkpoints": issuer_distribution,
             "issuer_distribution_reference_v2": issuer_reference_v2,
+            "qqq_split_adjustment_residuals": split_residuals,
             "vendor_revision_observation": revision_comparison,
             "blocking_reasons": sorted(set(reasons)),
             "point_in_time_independently_verified": False,
