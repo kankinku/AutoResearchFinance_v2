@@ -19,6 +19,13 @@ from research.indicator_engine.citations import CitationFetchError, fetch_crossr
 from research.indicator_engine.composer import compose_hypotheses
 from research.indicator_engine.databento_cutover_audit import compare_condition_vintages
 from research.indicator_engine.databento_metadata_preflight import probe_qqq_xnas_metadata
+from research.indicator_engine.literature_discovery import (
+    DEFAULT_LITERATURE_TOPICS,
+    LiteratureDiscoveryError,
+    LiteratureStore,
+    discover_crossref_literature,
+    sweep_crossref_literature,
+)
 from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_qqq_snapshot
 from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
 from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
@@ -64,6 +71,28 @@ def main() -> int:
     )
     citations.add_argument("--limit", type=int, default=6)
     citations.add_argument("--doi", default=None, help="Exact DOI registered in paper database")
+    literature = subs.add_parser(
+        "discover-academic-papers",
+        help="Find bounded Crossref DOI metadata and queue review candidates (NON-EXECUTABLE)",
+    )
+    literature.add_argument("--query", required=True)
+    literature.add_argument("--limit", type=int, default=10)
+    literature_sweep = subs.add_parser(
+        "sweep-academic-papers", help="Discover multiple fixed academic topics (review queue only)"
+    )
+    literature_sweep.add_argument("--limit-per-topic", type=int, default=8)
+    literature_sweep.add_argument(
+        "--topic", action="append", default=None,
+        help="Run only explicitly named topics; repeat for a bounded subset",
+    )
+    literature_list = subs.add_parser("list-discovered-papers", help="Read DOI review queue")
+    literature_list.add_argument("--limit", type=int, default=30)
+    literature_stage = subs.add_parser(
+        "stage-discovered-paper", help="Manually accept a reviewed DOI as a paper only"
+    )
+    literature_stage.add_argument("--doi", required=True)
+    literature_stage.add_argument("--source-scope", required=True)
+    literature_stage.add_argument("--replication-note", required=True)
     audit = subs.add_parser(
         "audit-benchmark",
         help="Offline, two-source price-only reconciliation; never PIT certification",
@@ -279,6 +308,60 @@ def main() -> int:
     if args.database is None:
         parser.error("--database is required for catalog commands")
     db = ResearchCatalog(args.database)
+    if args.command in {
+        "discover-academic-papers", "list-discovered-papers", "stage-discovered-paper",
+        "sweep-academic-papers",
+    }:
+        literature_store = LiteratureStore(args.database)
+        try:
+            if args.command == "list-discovered-papers":
+                found = literature_store.list_candidates(limit=args.limit)
+                print(json.dumps({
+                    "candidates": [item.record() for item in found],
+                    "count": len(found), "status": "REVIEW_REQUIRED",
+                    "orders_enabled": False,
+                }, sort_keys=True))
+                return 0
+            if args.command == "stage-discovered-paper":
+                staged = literature_store.stage_paper(
+                    args.doi, catalog=db, source_scope=args.source_scope,
+                    replication_note=args.replication_note,
+                )
+                print(json.dumps({
+                    "paper": staged.model_dump(mode="json"),
+                    "status": "PAPER_ONLY_NO_CALCULATOR_APPROVAL",
+                    "orders_enabled": False,
+                }, sort_keys=True))
+                return 0
+            headers = {
+                "User-Agent": "Quant-Autoresearch-Literature/0.1 (metadata-only)",
+            }
+            with httpx.Client(
+                timeout=httpx.Timeout(10.0, connect=3.0),
+                follow_redirects=False, trust_env=False, headers=headers,
+            ) as client:
+                if args.command == "sweep-academic-papers":
+                    summary = sweep_crossref_literature(
+                        literature_store, client=client,
+                        topics=tuple(args.topic) if args.topic else DEFAULT_LITERATURE_TOPICS,
+                        limit_per_topic=args.limit_per_topic,
+                    )
+                    print(json.dumps(summary, sort_keys=True))
+                    return 0 if summary["status"] == "SWEEP_COMPLETE" else 2
+                discovered = discover_crossref_literature(
+                    args.query, limit=args.limit, client=client,
+                )
+            inserted = literature_store.capture_batch(discovered)
+            print(json.dumps({
+                **discovered.record(), "new_observations": inserted,
+            }, sort_keys=True))
+            return 0
+        except (LiteratureDiscoveryError, ResearchCatalogError, OSError, ValueError) as exc:
+            print(json.dumps({
+                "status": "LITERATURE_RESEARCH_FAILED", "type": type(exc).__name__,
+                "orders_enabled": False, "calculator_approved": False,
+            }, sort_keys=True))
+            return 2
     if args.command == "seed":
         seed_approved_references(db)
     elif args.command == "verify":
