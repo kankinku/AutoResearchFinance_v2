@@ -64,3 +64,6 @@ state/moon-http/
 /state/indicator-engine/
 # Optional symlink to the shared test virtualenv in an isolated Git Worktree
 /.venv
+
+# Immutable externally collected Nasdaq source bytes (private local archival state)
+/state/vintages/
