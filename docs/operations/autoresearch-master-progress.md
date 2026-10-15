@@ -1,6 +1,6 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
-갱신일: 2026-10-16 KST / 2026-10-15 UTC. 운영 런타임 `da2331d` 불변. V01 날짜 조건·V02 외부 공급자 증빙·V03 기업행동 as-of 외부 증거 모두 차단; V03 코드 `be563c4`, 다음 V04.
+갱신일: 2026-10-16 KST / 2026-10-15 UTC. 운영 런타임 `da2331d` 유지. V01~V03 외부 PIT 증빙 부족, V04 동결 게이트 `25dc483` 개발 완료/OOS 미개봉. 다음 V05.
 관련 문서: [기능 우선순위](autoresearch-feature-first-priority-2026-10-15.md), [개발 연대기](autoresearch-implementation-roadmap-2026-10-14.md).
 
 **운영 원칙:** 기능 개발 우선, 최종 데이터·성과 검증은 마지막. 다만 코드 변경 때 기본 테스트·무결성 검사는 즉시 수행. 이 문서는 **매 작업 완료 시 직접 갱신·Git Push하는 고정 기준 문서**이다. 미검증을 완료로 표현하지 않는다.
@@ -19,7 +19,7 @@
 | 3-2 | 논문 자동 수집·계산식 구현 | **부분 구현:** Crossref 탐색→D03 수식 제안→D04 수치 sandbox 검증(`52c5bfb`/`3723904`). 계산식이 테스트를 통과해도 `RESEARCH_NUMERIC_CROSSCHECK_ONLY` | 실제 원문·권리 독립 검토 및 운영 전략/브로커 실행 승인 불가; 연구 프로세스와 결합은 향후 과제 |
 | 3-3 | LLM 가설·대조실험·무작위 비교 | **부분 기능 구현:** 기존 S7/S8 대조실험·방향 선택에 D05 실패 유형 분류·반증 우선순위·경쟁 설명·중복 자식 해시·세대별 S7 증거 연결을 GPT 다음 Plan 컨텍스트로 자동 재구성(`5a903e1`) | 진짜 무작위 대조군·독립 검증 및 GPT 장시간 자율 진화/실제로 더 높은 수익 성과 검증은 미완료 |
 | 4-1 | 다자산·다시장 연구 | **부분 기능 구현:** D06 2~8개 지정 미국 ETF의 뉴욕 거래일 정합성·마감 관측 시각·다음 공동 09:30 오픈 계산·중복/결측/미완료 봉 거부, 동일 typed AlgorithmPlan의 종목별 StrategyIR 독립 비용 백테스트와 결과 해시 비교(`6fdf881`) | 실제 서로 다른 거래소·자산군 세션 정렬, 공통 계좌 자금배분 포트폴리오, PIT·기업행동 독립 확인, 운영 MCP 배포·실증 미완료 |
-| 4-2 | 독립 OOS 검증 | 대기: 기존 walk-forward 구성은 있음 | 선택 과정 동결·봉인 OOS 검증 |
+| 4-2 | 독립 OOS 검증 | **사전 동결 기능 구현:** V04 개발-only typed AlgorithmPlan/지표 정의/훈련 데이터/StrategyIR 해시 exclusive 한 번 고정, 재검증 시 drift·변조·SEALED_OOS/VALIDATION 거부(`25dc483`), 통합 91 PASS | 실제 독립 보관자 서명·외부 timestamp·봉인 권한 분리·선택 후보 확정 미완료. V01~V03 PIT 부족으로 진짜 봉인 OOS 개봉·수익률·GO는 금지 |
 | 4-3 | 비용·유동성·우연 반영 순수익 | 대기: 백테스트/비용 기반은 있음 | 슬리피지·용량·다중검정 포함 |
 | 5-1 | 브랜치 통합·MCP 배포 안정화 | **운영 배포 완료:** 통합 SHA `da2331d` 고정 Worktree, 배포 런처 `9c4749d`, 전체 Pytest 1605 PASS·Ruff·Mypy 252소스 PASS, 운영 venv HTTP/OAuth 13 PASS. 원 URL/OAuth와 이전 고정 소스·런처 백업 보존 | 실제 롤백 실패경로 리허설 미실행, 긴 GPT 10~100세대·T5 PIT/OOS·T6 paper 검증 잔여; D03/D04/D06은 별도 MCP 미노출 |
 | 5-2 | 실주문 없는 페이퍼트레이딩 | 대기 | 실제 시점 추적·비주문 모의 체결 |
@@ -40,8 +40,8 @@
 | V01 (BLOCKED_UTC_DATE) | 1-1 | 기존 실제 3본·동일 날짜 2쌍 무결성 29 테스트 통과. 신규 다른 UTC 날짜 수집은 2026-10-16 00:00 UTC 이후에만 가능; 지금 원본 보존·강제 재다운로드 없음 |
 | V02 (BLOCKED_EXTERNAL_EVIDENCE) | 1-2 | 실제 QQQ 원본 3개 중 공급자 서명 0/3, 과거 공개시각 0. Databento metadata AUTH_REQUIRED. 연구 전용 검사기·관련 51 PASS(`4c62d0d`); 실공급자 증거 전에는 PIT 불가 |
 | V03 (BLOCKED_EXTERNAL_ASOF) | 1-3 | 개발 완료: 나스닥 보존배당 25/25 대조, 선언일 24/25 누락, 조정가격 Parquet 없어 당회 가격조정 재계산 미실행. UTC decision 2025-03-24 대비 2026 원본 조회시각으로 미래정보 차단. 관련 40 PASS (`be563c4`) |
-| **V04 (다음)** | 4-2 | 봉인 OOS 데이터/선택·전략 동결·권한 경계 점검(코드·프로토콜 검증 가능). V01~V03 과거 PIT 부족으로 실수익 검증 또는 봉인 기간 개봉 금지 |
-| V05 | 4-3 | 수수료·유동성·통계적 우연 반영 |
+| V04 (BLOCKED_INDEPENDENT_PIT_OOS) | 4-2 | **동결/접근 경계 연구 기능 완료:** synthetic DEVELOPMENT candidate의 immutable-ish exclusive local receipt·전략/데이터 해시 일치 재검증(신규 9, 연관 총 91 PASS). 실제 OOS 데이터 미개봉·실후보/독립 custodian 미확정(`25dc483`) |
+| **V05 (다음)** | 4-3 | 개발 데이터 기반 비용·유동성/체결 용량·다중 가설 탐색 편향 및 신뢰구간 검증기. PIT 미충족인 상태에서 실제 OOS 수익성 승인 불가 |
 | V06 | 5-2 | 페이퍼트레이딩 |
 | V07 | 5-3 | 최종 운영 승인 여부 결정 |
 
@@ -65,6 +65,7 @@
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-15 UTC | 4-2/V04 | 기존 walkforward는 개발 데이터 전용이나 선택 후보를 남기는 독립 freeze receipt가 부족해 개발-only `AlgorithmPlan`과 학술 지표 definitions, source data, StrategyIR, causal replay 증거를 `sealed_oos_precommit.py`에서 한 번만 생성하고 재검증. SHA 포함 JSON을 exclusive 신규 파일로 작성, 재선정·가격수정·해시 변조·위조 승인 플래그·경로 symlink·SEALED_OOS/VALIDATION 입력을 차단. 로컬 CLI `freeze-development-selection`/`verify-development-freeze` 추가. OOS data read/evaluation 0, 진짜 우승 후보 freeze 아직 없음; V01 1일 수집·V02 미인증 공개시각·V03 과거 corporate as-of 불완전으로 실제 OOS 접근 금지. | 신규 V04 9 PASS, 학술/MCP/forward/다자산 관련 **91 PASS**, Ruff/Mypy PASS, 전체 T3 프로젝트 미실행. 영구 외부 시간인증·독립 custodian·세계적 access control 불가; local hash 일치만 검증 | `feat/v04-sealed-oos-selection-precommit-20261016` 코드 `25dc483` origin Push; `autoresearch-stage-4-2-v04-sealed-oos-precommit-2026-10-16.md`; 증거 `docs/operations/evidence/quant-validation-20261016/v04-sealed-oos-access-not-performed.json`, V04 BLOCKED_INDEPENDENT_PIT_OOS, 다음 V05 |
 | 2026-10-15 UTC | 1-3/V03 | Nasdaq QQQ 보존 배당 raw/manifest 2026-10-14와 Tiingo raw 2026-10-10의 결정시각 `2025-03-24T20:00Z` 기준 실제 재생. 발행사 핀 25종 금액 25/25 일치, 거래시각 증빙 아닌 선언일만 1건·없음 24건, 배당락 전/후 지급 시점 구분. 최종 실측 `HISTORICAL_DECISION_PRECEDES_SOURCE_CAPTURE`·배당 지식 0 입증, 1차 분할 미검증, 조정가격 원본 파일 누락(금번 가격조정 재계산 X). 보고 SHA `fd205916c0bd4dd5afbadabff64d3e2bb78dd8b4382fa6284ecd511dbbfb902b`, 거래 승인 false | V03 신규 **8 PASS**, issuer/dividend/split/revisions/history 관련 **40 PASS**, Ruff/Mypy PASS, 운영 MCP 미배포·데이터 불변. T4 GPT 장기간·T5 독립 PIT/OOS·T6 paper 미실행 | `feat/v03-qqq-corporate-asof-gates-20261016` 기능 `be563c4` Push, 실제 증거 `docs/operations/evidence/quant-validation-20261016/v03-qqq-corporate-asof-real.json`, 상세 `autoresearch-stage-1-3-v03-corporate-asof-2026-10-16.md`. V03 BLOCKED_EXTERNAL_ASOF, 다음 V04 경계 설계 |
 | 2026-10-15 UTC | 1-2/V02 | 기존 발행자 서명 intake와 Nasdaq QQQ 아카이브 일괄 감사를 연결. 로컬 CLI `audit-qqq-publication-coverage` 신규. 실제 기존 3본 raw/Parquet/manifest 재검증, `PUBLISHER_PROOF_MISSING` 3건, 역사 독립 공개시각 0건. 보고 해시 `3d633431d8b5ab36105333807102caa8df695324730aa9fa2a1c94221ccff9a2`, Databento metadata `AUTH_REQUIRED`, PIT/주문 금지 유지 | 신규 V02 7개 포함 관련 **51 PASS**, Ruff/Mypy PASS. 운영 MCP 및 기존 원본/권한 변경 없음; 외부 시각/서명/계약 미확보 | `feat/v02-publisher-availability-matrix-20261016` 코드 `4c62d0d` Push, 상세 `autoresearch-stage-1-2-v02-publisher-availability-2026-10-16.md`, 증거 `docs/operations/evidence/quant-validation-20261016/v02-publication-coverage-audit.json`. V02 BLOCKED_EXTERNAL_EVIDENCE, 다음 V03 |
 | 2026-10-15 UTC | 1-1/V01 | 기존 Nasdaq QQQ 2020-01-02~2025-12-31 실제 원본 3본을 모두 raw JSON/Parquet/manifest로 다시 감사: 3/3 검증, UTC 수집일 1일(10/15), 연속 비교쌍 2개·총 3,016 공통봉·관측 수정 0. Inventory 해시 `5297994a0c8fcff855437c84d12aa6c5e7bd530f5bd30dc1709dabf92752362c`. 같은 날 재수집 명령은 `ALREADY_COLLECTED_TODAY`로 fetch 생략. **실제 2일째 원본 수집은 아직 물리적 시점 미도래**(다음 2026-10-16T00:00Z). 증거 JSON 보존, 소스 수정/실주문/운영 재배포 없음 | 관련 기존 Pytest **29 PASS**(archive/daily/inventory/pair), Ruff/Mypy 대상 파일 PASS, 실제 2개 UTC 날짜 미충족; 역사 PIT·OOS·수익성 T5 미승인 | `feat/v01-qqq-utc-vintage-evidence-20261016`, 증거 `docs/operations/evidence/quant-validation-20261016/v01-qqq-collection-day-gate.json`, 상세 `autoresearch-stage-1-1-v01-utc-boundary-2026-10-16.md`, V01 날짜 의존 `BLOCKED`, V02 진행 가능 |

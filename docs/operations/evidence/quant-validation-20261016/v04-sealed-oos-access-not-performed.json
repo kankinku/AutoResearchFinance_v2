@@ -1,0 +1,36 @@
+{
+  "actual_real_market_strategy_freeze_receipt_created": false,
+  "branch_code_commit": "25dc483",
+  "broker_executable": false,
+  "external_nonrepudiable_timestamp": false,
+  "independent_custodian_receipt": false,
+  "next_stage": "V05_COST_LIQUIDITY_MULTIPLE_TESTING_RESEARCH_GATES",
+  "oos_data_opened": false,
+  "oos_market_returns_measured": false,
+  "real_candidate_promotable": false,
+  "real_study_selected_and_frozen": false,
+  "restriction": "Local receipt checks consistency only. It cannot prevent other research code from reading files or prove ex-ante selection without independent access controls/attestation.",
+  "schema": "quant-v04-real-readiness-check-v1",
+  "sealed_oos_approved": false,
+  "source_documents": {
+    "V01": {
+      "document_sha256": "eb37aafc211860810574874d832ad8be78e513dd205ad708ded88bcc3fb9f692",
+      "path": "docs/operations/evidence/quant-validation-20261016/v01-qqq-collection-day-gate.json"
+    },
+    "V02": {
+      "document_sha256": "78844d274185253514f44a83e7f138af2e113454c4287f7c1d28378088f4eb83",
+      "path": "docs/operations/evidence/quant-validation-20261016/v02-publication-coverage-audit.json"
+    },
+    "V03": {
+      "document_sha256": "5b52a5779d8d13fcae1f7b291a2afe9d0091042a222f43b7efbebfa547b68411",
+      "path": "docs/operations/evidence/quant-validation-20261016/v03-qqq-corporate-asof-real.json"
+    }
+  },
+  "stage": "V04",
+  "status": "SEALED_OOS_EVALUATION_BLOCKED_PRECONDITIONS_UNMET",
+  "training_strategy_invariant_unit_tested": true,
+  "unit_and_scoped_integration_test_count": 91,
+  "v01_distinct_collection_days": 1,
+  "v02_independent_historical_publisher_attestations": 0,
+  "v03_historical_corporate_action_pit_verified": false
+}
