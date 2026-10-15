@@ -1,6 +1,6 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
-갱신일: 2026-10-16 KST (2026-10-15 UTC). 운영 소스 `da2331d`, 배포 런처 `9c4749d`, 개발 `feat/d08-integrated-release-gates-20261016`.
+갱신일: 2026-10-16 KST / 2026-10-15 UTC. 운영 런타임 `da2331d` 유지. V01 실제 3본 감사: 단일 UTC 수집일, 날짜 의존 조건 BLOCKED. 기준 증거 `v01-qqq-collection-day-gate.json`.
 관련 문서: [기능 우선순위](autoresearch-feature-first-priority-2026-10-15.md), [개발 연대기](autoresearch-implementation-roadmap-2026-10-14.md).
 
 **운영 원칙:** 기능 개발 우선, 최종 데이터·성과 검증은 마지막. 다만 코드 변경 때 기본 테스트·무결성 검사는 즉시 수행. 이 문서는 **매 작업 완료 시 직접 갱신·Git Push하는 고정 기준 문서**이다. 미검증을 완료로 표현하지 않는다.
@@ -9,7 +9,7 @@
 
 | ID | 작업 | 현황 (2026-10-15) | 남은 기능 / 검증 |
 |---|---|---|---|
-| 1-1 | Nasdaq 날짜별 실제 원본 | 부분 구현: QQQ 1,508봉씩 3회, 모두 동일 UTC 날짜. 일별 건너뛰기 `2fcde28` | 다른 UTC 날짜 원본 수집·비교 |
+| 1-1 | Nasdaq 날짜별 실제 원본 | **검증 진행·날짜 조건 BLOCKED:** 실제 보존 QQQ 원본 3본 무결성 통과, 1,508봉/본, 비교 3,016건·수정 관측 0건. 수집일 모두 2026-10-15 UTC, 상태 `INSUFFICIENT_COLLECTION_DAYS`. 동일 일 재수집 생략 검증, 증거 `5297994a…` | 최소 다른 UTC 날짜인 2026-10-16 00:00 UTC(한국 09:00) 이후 실제 독립 신규 수집·재감사. 당일 수집본 복제·날짜 조작 금지. 그 전에는 V02를 병행 |
 | 1-2 | 독립 공급자 발표 시각 | 부분 구현: 서명·조건 감사 사전검사 | 진짜 역사적 공개 시각과 제공 권한 |
 | 1-3 | 배당·분할·가격 수정 게이트 | 부분 구현: QQQ 배당 25건 대조·분할 잔차 | 각 과거 의사결정 시점의 이용 가능성 |
 | 2-1 | ChatGPT MCP 연구 도구 E2E | **운영 반영:** D07 32도구 사전 입력 검증 적용. 기존 URL/OAuth 및 32개 tool, Workspace READY, 기본 ChatGPT MCP, 주문 비활성(`da2331d`), 익명 401·앱 읽기전용 3종 확인 | 실제 모든 상태변경 도구 32개 호출 및 GPT 장시간 10~100세대 T4는 미실행. D03/D04/D06 Lab CLI는 MCP 도구로 미노출 |
@@ -37,8 +37,8 @@
 | D06 | 4-1 | **제한적 기능 개발 완료:** QQQ/SPY 포함 2~8 US ETF 동일 거래일·마감 시각 검증, 종목별 AlgorithmPlan→StrategyIR costed backtest 분리 실행, CLI preview·입력 해시 검증(`6fdf881`); 타 거래소/공동 포트폴리오/경제성은 미완료 |
 | D07 | 2-1 | **개발판 계약/권한 테스트 완료:** 32개 정합성·정상/오류 입력 사전 검증, HTTP/OAuth·연구 세대 포함 69 PASS(`18c1bbb`); 실서버 부작용 포함 32개 전체 호출과 배포는 미실행 |
 | D08 | 5-1 | **운영 적용 완료:** D01~D07 상속 코드와 새 릴리스 게이트를 `da2331d`로 배포. 기존 고정 소스 `cfc66cf`·런처 백업 유지. 운영 32도구·READY·기본 mcp·주문 off / 미인증 401 확인. T3 1605 PASS, 운영 venv 13 PASS, 추가 5 PASS |
-| **V01 (다음)** | 1-1 | 다른 UTC 날짜 Nasdaq 원본 빈티지 재수집·다른 시점 원본의 수정 내역 검증 |
-| V02 | 1-2 | 독립 역사적 발표 시각 증빙 |
+| V01 (BLOCKED_UTC_DATE) | 1-1 | 기존 실제 3본·동일 날짜 2쌍 무결성 29 테스트 통과. 신규 다른 UTC 날짜 수집은 2026-10-16 00:00 UTC 이후에만 가능; 지금 원본 보존·강제 재다운로드 없음 |
+| **V02 (다음)** | 1-2 | 공급자·발행자의 역사적 거래 데이터/기업 행동 발표 시각과 서명·독립 출처 증빙 검토. V01 시간 조건 해소 시 추가 원본 재수집 |
 | V03 | 1-3 | 배당·분할·시점 게이트 최종 검증 |
 | V04 | 4-2 | 봉인 OOS 순차 검증 |
 | V05 | 4-3 | 수수료·유동성·통계적 우연 반영 |
@@ -65,6 +65,7 @@
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-15 UTC | 1-1/V01 | 기존 Nasdaq QQQ 2020-01-02~2025-12-31 실제 원본 3본을 모두 raw JSON/Parquet/manifest로 다시 감사: 3/3 검증, UTC 수집일 1일(10/15), 연속 비교쌍 2개·총 3,016 공통봉·관측 수정 0. Inventory 해시 `5297994a0c8fcff855437c84d12aa6c5e7bd530f5bd30dc1709dabf92752362c`. 같은 날 재수집 명령은 `ALREADY_COLLECTED_TODAY`로 fetch 생략. **실제 2일째 원본 수집은 아직 물리적 시점 미도래**(다음 2026-10-16T00:00Z). 증거 JSON 보존, 소스 수정/실주문/운영 재배포 없음 | 관련 기존 Pytest **29 PASS**(archive/daily/inventory/pair), Ruff/Mypy 대상 파일 PASS, 실제 2개 UTC 날짜 미충족; 역사 PIT·OOS·수익성 T5 미승인 | `feat/v01-qqq-utc-vintage-evidence-20261016`, 증거 `docs/operations/evidence/quant-validation-20261016/v01-qqq-collection-day-gate.json`, 상세 `autoresearch-stage-1-1-v01-utc-boundary-2026-10-16.md`, V01 날짜 의존 `BLOCKED`, V02 진행 가능 |
 | 2026-10-15 UTC | 5-1/D08 | D01~D07 선형 개발 변경을 통합해 릴리스 게이트(고정 SHA·인증/핵심 데이터 모듈 불변·롤백 고정 source 검사) 구현. 고정 후보 `da2331d` 개발 GitHub Push, 별도 배포 checkout 런처의 SOURCE_ROOT/EXPECTED_SOURCE_SHA만 갱신(`9c4749d`)하여 실제 운영 MCP 교체. OAuth DB/URL pin/approval key 및 연구 원장 보존. PID cwd 새 고정 runtime 확인, 익명 401·OAuth metadata resource 유지, 앱 read-only 32/READY/기본 MCP/주문 off 확인 | 전체 Pytest **1605 PASS**, Ruff 전체 PASS·Mypy 252소스 PASS, D08 게이트 5 PASS, 실제 운영 Python venv HTTP/OAuth/MCP 13 PASS. T4 GPT 10/100세대·T5 PIT/OOS/수익성·T6 paper 및 실제 오류 시 롤백 리허설은 미실행 | 개발 `feat/d08-integrated-release-gates-20261016` 기능 `da2331d` Push 완료, 배포 `deploy/quant-mcp-d08-integrated-20261016` 런처 `9c4749d` Push 완료, **운영 DEPLOYED**. 상세 `autoresearch-stage-5-1-integrated-deployment-2026-10-16.md` |
 | 2026-10-15 UTC | 2-1/D07 | 연결된 Quant MCP 도구 정의 32개와 운영서버 brief 32개 확인, Workspace READY·주문 false·기본 GPT MCP 방식. 실제 미인증 URL HTTP 401. 개발판 32개 JSON Schema 선행 검증과 민감 정보 없는 INVALID_TOOL_ARGUMENTS 차단(내부 dispatch 전), 32개 ABI 보존 | 신규 D07 5 PASS, HTTP/OAuth·학술 체크포인트·D01/D02/D05/D06 관련 **69 PASS**, Ruff/Mypy PASS. T3 전체·T4 GPT 장시간·T5 PIT/OOS·T6 paper 미실행. 실운영 상태 변경 32도구 호출 미실행 | `feat/d07-mcp-public-contract-gates-20261016`, `18c1bbb` Push 완료·운영 미배포, 상세 `autoresearch-stage-2-1-mcp-integration-2026-10-16.md` |
 | 2026-10-15 UTC | 4-1/D06 | 두 미국 ETF 이상의 뉴욕 현지 거래일·마감 타임스탬프 정렬. 마감 전·거래일 누락·중복·주말·불일치·입력 변경 시 fail closed; 모든 종목이 마감 완료된 뒤에만 신호 생성, 다음 공동 개장 시각 표시. 동일 typed AlgorithmPlan에서 종목마다 기존 StrategyIR/비용 엔진 독립 실행 및 CLI 추가. 공동 포트폴리오 PnL 생성하지 않음 | 신규 D06 **10 PASS** + 기존 AlgorithmPlan **17 PASS** = **27 PASS**; Ruff·Mypy 변경 경로 통과. T3 전체 회귀·T4 실제 GPT 장기·T5 PIT/OOS/수익성·T6 paper 거래 미실행 | `feat/d06-multi-asset-session-alignment-20261016`, 기능 `6fdf881` GitHub Push 완료, 운영 미배포. 상세 `autoresearch-stage-4-1-multi-asset-alignment-2026-10-16.md` |

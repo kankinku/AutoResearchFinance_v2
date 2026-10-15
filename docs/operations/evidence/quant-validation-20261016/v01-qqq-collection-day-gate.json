@@ -1,0 +1,60 @@
+{
+  "broker_executable": false,
+  "duplicate_same_day_capture_skipped": true,
+  "external_timestamp_attested": false,
+  "future_capture_performed": false,
+  "historical_point_in_time_verified": false,
+  "independent_vendor_evidence": false,
+  "inventory": {
+    "broker_executable": false,
+    "capture_count": 3,
+    "captured_raw_bytes_exported": false,
+    "collection_cadence": "one UTC calendar date; illustrative, not exchange sessions",
+    "compared_consecutive_pairs": 2,
+    "distinct_collection_days": 1,
+    "first_captured_at": "2026-10-15T11:09:47.343891+00:00",
+    "independence": "SAME_PROVIDER_LOCAL_CAPTURE_TIMES",
+    "independent_historical_publication_verified": false,
+    "inventory_hash": "5297994a0c8fcff855437c84d12aa6c5e7bd530f5bd30dc1709dabf92752362c",
+    "last_captured_at": "2026-10-15T13:55:09.030650+00:00",
+    "missing_collection_dates": [],
+    "missing_collection_days": 0,
+    "point_in_time_verified": false,
+    "revised_date_examples": [],
+    "status": "INSUFFICIENT_COLLECTION_DAYS",
+    "total_compared_bars": 3016,
+    "total_revised_bars": 0,
+    "verified_capture_count": 3
+  },
+  "manifest_receipts": [
+    {
+      "collected_at": "2026-10-15T11:09:47.343891+00:00",
+      "collection_folder": "vintages",
+      "manifest_name": "qqq_archive_20261015.manifest.json",
+      "raw_sha256": "6ede5c3b5b9926b9d820268aa607b41c3c0cfe60141a0ace13302a42f7193f40"
+    },
+    {
+      "collected_at": "2026-10-15T11:15:44.630719+00:00",
+      "collection_folder": "qqq_2020-01-02_2025-12-31_20261015T111544630719Z",
+      "manifest_name": "qqq.manifest.json",
+      "raw_sha256": "6ede5c3b5b9926b9d820268aa607b41c3c0cfe60141a0ace13302a42f7193f40"
+    },
+    {
+      "collected_at": "2026-10-15T13:55:09.030650+00:00",
+      "collection_folder": "qqq_2020-01-02_2025-12-31_20261015T135509030650Z",
+      "manifest_name": "qqq.manifest.json",
+      "raw_sha256": "6ede5c3b5b9926b9d820268aa607b41c3c0cfe60141a0ace13302a42f7193f40"
+    }
+  ],
+  "next_eligible_new_utc_day": "2026-10-16T00:00:00+00:00",
+  "note": "Only original collected bytes from Oct 15 UTC exist; no fabricated Oct 16 evidence.",
+  "observed_at_utc": "2026-10-15T16:54:31.535641+00:00",
+  "scope": {
+    "end": "2025-12-31",
+    "source": "public_Nasdaq_latest_revised_snapshot",
+    "start": "2020-01-02",
+    "symbol": "QQQ"
+  },
+  "stage": "V01",
+  "status": "WAIT_FOR_NEXT_UTC_COLLECTION_DATE"
+}
