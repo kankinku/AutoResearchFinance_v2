@@ -28,6 +28,10 @@ from research.indicator_engine.controlled_experiments import (
     SUPPORTED_CONTROLLED_METRICS,
     compare_controlled_experiments,
 )
+from research.indicator_engine.experiment_preflight import (
+    academic_diagnostic_quality_hint,
+    static_noop_hypotheses,
+)
 from research.indicator_engine.external_reference import (
     audit_s6_external_reference,
     capture_s6_external_reference,
@@ -271,7 +275,11 @@ class AcademicMCPCheckpointService:
                 if context['context_hash'] != row['context_digest']:
                     raise CycleStateError('pending analysis integrity mismatch')
                 result['checkpoint_token'] = row['token']
-                result['model_context'] = context
+                # UX advice is added after verifying the sealed diagnostic hash;
+                # legacy stages and the model's signed observation context stay identical.
+                result['model_context'] = {
+                    **context, 'experiment_quality_guidance': academic_diagnostic_quality_hint(),
+                }
                 result['status'] = 'AWAITING_DIAGNOSIS'
             elif row['phase'] not in ('COMPLETED', 'INTERRUPTED', 'RUNNING', 'CANCELLED'):
                 raise CycleStateError('invalid checkpoint state')
@@ -305,8 +313,12 @@ class AcademicMCPCheckpointService:
         return self.get({'session_id': sid})
 
     def submit_diagnosis(self, args: dict[str, Any]) -> dict[str, Any]:
-        self._one(args, {'session_id','checkpoint_token','diagnosis'},
+        self._one(args, {'session_id','checkpoint_token','diagnosis',
+                         'require_signal_change'},
                   {'session_id','checkpoint_token','diagnosis'})
+        strict_signal = args.get('require_signal_change', False)
+        if type(strict_signal) is not bool:
+            raise ValueError('require_signal_change must be a boolean')
         sid, token, diagnosis = args['session_id'], args['checkpoint_token'], args['diagnosis']
         if not isinstance(diagnosis, dict):
             raise ValueError('diagnosis must be a structured object')
@@ -325,6 +337,20 @@ class AcademicMCPCheckpointService:
         for hypothesis in typed_diagnosis.hypotheses:
             if hypothesis.expected_metric not in SUPPORTED_CONTROLLED_METRICS:
                 raise ValueError(f'unsupported S7 metric: {hypothesis.expected_metric}')
+        if strict_signal:
+            # The plan is recomputed from its pinned catalog before evaluating
+            # the structural proof; this rejects only a certain no-op, not a
+            # data-mined candidate whose performance happens to be unchanged.
+            with self._connect() as db:
+                row, catalog, data, _ = self._state(db, sid)
+                parent_plan = AlgorithmPlan.model_validate(json.loads(row['plan_json']))
+                parent = compile_algorithm_plan(catalog, parent_plan, data).compiled.strategy
+            uninformative = static_noop_hypotheses(parent, typed_diagnosis)
+            if uninformative:
+                raise ValueError(
+                    'known static no-op experiment: ' + ', '.join(uninformative)
+                    + '; edit diagnosis and resubmit using the same checkpoint token'
+                )
         with self._connect() as db:
             row = db.execute('SELECT * FROM stages WHERE session_id=?', (sid,)).fetchone()
             assert row is not None

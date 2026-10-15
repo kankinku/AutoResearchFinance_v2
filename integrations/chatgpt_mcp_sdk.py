@@ -339,9 +339,12 @@ def chatgpt_tools() -> list[dict[str, object]]:
         ),
         _academic_tool(
             "submit_algorithm_diagnosis",
-            "Validate GPT diagnosis and commit one researched generation.",
+            "Validate GPT diagnosis and commit one researched generation. Optional "
+            "require_signal_change rejects proven redundant regime-filter ablations "
+            "before consuming a checkpoint; existing callers remain compatible.",
             {"session_id": session_field, "checkpoint_token": token_field,
-             "diagnosis": {"type": "object"}},
+             "diagnosis": {"type": "object"},
+             "require_signal_change": {"type": "boolean", "default": False}},
             ["session_id", "checkpoint_token", "diagnosis"],
         ),
         _academic_tool(

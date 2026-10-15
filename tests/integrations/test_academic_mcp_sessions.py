@@ -585,6 +585,83 @@ def test_unsupported_s7_metric_is_rejected_before_generation_commit(tmp_path: Pa
     assert experiment['status'] == 'NO_OBSERVED_EFFECT'
 
 
+
+def test_opt_in_quality_preflight_blocks_certain_noop_then_accepts_signal_change(
+    tmp_path: Path,
+) -> None:
+    """Reject static redundancy before token consumption, not an untested strategy."""
+    server, started = _setup(tmp_path)
+    model = ScriptedResearcher()
+    sid = started['session_id']
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': sid, 'checkpoint_token': started['checkpoint_token'],
+        'plan': model.propose(started['model_context']),
+    })
+    guidance = staged['model_context']['experiment_quality_guidance']
+    assert guidance['strict_mcp_option'] == {'require_signal_change': True}
+    assert guidance['known_static_noop']
+    assert guidance['informative_reviewed_example']['next_intent']['operations']
+    diagnosis = model.propose(staged['model_context'])
+    with pytest.raises(ValueError, match='known static no-op experiment'):
+        server._dispatch('submit_algorithm_diagnosis', {
+            'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+            'diagnosis': diagnosis, 'require_signal_change': True,
+        })
+    state = server._dispatch('get_algorithm_research', {'session_id': sid})
+    assert state['completed_generations'] == 0
+    assert state['checkpoint_phase'] == 'AWAITING_DIAGNOSIS'
+    assert state['checkpoint_token'] == staged['checkpoint_token']
+
+    # A coherent, symmetric entry/exit vote-score threshold really alters fills.
+    hypothesis = diagnosis['hypotheses'][0]
+    hypothesis['expected_metric'] = 'trade_count'
+    hypothesis['predicted_direction'] = 'DECREASE'
+    hypothesis['test_design'] = 'RULE_STRUCTURE'
+    hypothesis['next_intent']['operations'] = [
+        {'op': 'REPLACE_RULE', 'path': 'entry.conditions.0',
+         'condition': {'op': 'greater_than', 'left': 'plan_vote_score', 'value': 0.8}},
+        {'op': 'REPLACE_RULE', 'path': 'exit.conditions.0',
+         'condition': {'op': 'less_equal', 'left': 'plan_vote_score', 'value': 0.8}},
+    ]
+    completed = server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': sid, 'checkpoint_token': staged['checkpoint_token'],
+        'diagnosis': diagnosis, 'require_signal_change': True,
+    })
+    assert completed['completed_generations'] == 1
+    assert completed['controlled_experiments_automatically_evaluated'] is True
+    observed = completed['latest_controlled_experiments']['report']['experiments'][0]
+    assert observed['metric'] == 'trade_count'
+    assert observed['parent_metric'] == 2.0
+    assert observed['child_metric'] == 1.0
+    assert observed['execution_delta']['removed_event_count'] > 0
+    assert observed['execution_delta']['execution_timing_changed'] is True
+    assert completed['orders_enabled'] is False
+    assert server._dispatch('evaluate_algorithm_experiments', {
+        'session_id': sid, 'generation': 1,
+    }) == completed['latest_controlled_experiments']
+
+
+def test_opt_in_quality_preflight_rejects_nonboolean_without_claiming_checkpoint(
+    tmp_path: Path,
+) -> None:
+    server, started = _setup(tmp_path)
+    model = ScriptedResearcher()
+    staged = server._dispatch('submit_algorithm_plan', {
+        'session_id': started['session_id'], 'checkpoint_token': started['checkpoint_token'],
+        'plan': model.propose(started['model_context']),
+    })
+    with pytest.raises(ValueError, match='boolean'):
+        server._dispatch('submit_algorithm_diagnosis', {
+            'session_id': started['session_id'],
+            'checkpoint_token': staged['checkpoint_token'],
+            'diagnosis': model.propose(staged['model_context']),
+            'require_signal_change': 'yes',
+        })
+    assert server._dispatch('get_algorithm_research', {
+        'session_id': started['session_id'],
+    })['completed_generations'] == 0
+
+
 def test_mcp_first_last_generation_includes_s7_result_in_final_reply(tmp_path: Path):
     server, started = _setup(tmp_path)
     sid = started['session_id']
