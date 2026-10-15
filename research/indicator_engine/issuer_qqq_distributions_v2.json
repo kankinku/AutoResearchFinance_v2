@@ -1,0 +1,179 @@
+{
+  "schema": "issuer_qqq_distributions_v2",
+  "issuer": "Invesco QQQ Trust, Series 1",
+  "symbol": "QQQ",
+  "scope_start": "2020-01-02",
+  "scope_end": "2025-12-31",
+  "documented_scope": "25 observed QQQ cash distribution dates and amounts; historical/latest reference, NOT historical PIT proof or certified split inventory",
+  "sources": [
+    {
+      "id": "invesco_2020_2024_archive",
+      "url": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investors&productId=QQQ&ticker=QQQ",
+      "context": "Issuer product distribution table, dates and 5 decimal share amounts; indexed archival content through 2025, redirected live page is not an as-of snapshot"
+    },
+    {
+      "id": "occ_special_53849",
+      "url": "https://infomemo.theocc.com/infomemos?number=53849",
+      "context": "OCC December 26 2023 memorandum confirms special $0.21584 distribution ex date 2023-12-27"
+    },
+    {
+      "id": "invesco_2025_official_composition",
+      "url": "https://www.invesco.com/content/dam/invesco/hk/zh/pdf/INV-Composition-of-dividend-payments-Invesco-QQQ-ETF.pdf",
+      "context": "Issuer June 2026 official composition: Q1-Q4 2025 precise cash amounts; dates corroborated by market dividend listings, no as-of proof"
+    }
+  ],
+  "rows": [
+    {
+      "ex_date": "2020-03-23",
+      "cash_usd_per_share": 0.36269,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2020-06-22",
+      "cash_usd_per_share": 0.42426,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2020-09-21",
+      "cash_usd_per_share": 0.38824,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2020-12-21",
+      "cash_usd_per_share": 0.56133,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2021-03-22",
+      "cash_usd_per_share": 0.39468,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2021-06-21",
+      "cash_usd_per_share": 0.39679,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2021-09-20",
+      "cash_usd_per_share": 0.41391,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2021-12-20",
+      "cash_usd_per_share": 0.49141,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2022-03-21",
+      "cash_usd_per_share": 0.43369,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2022-06-21",
+      "cash_usd_per_share": 0.5274,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2022-09-19",
+      "cash_usd_per_share": 0.51856,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2022-12-19",
+      "cash_usd_per_share": 0.65541,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2023-03-20",
+      "cash_usd_per_share": 0.47223,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2023-06-20",
+      "cash_usd_per_share": 0.50395,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2023-09-18",
+      "cash_usd_per_share": 0.53555,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2023-12-18",
+      "cash_usd_per_share": 0.80826,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2023-12-27",
+      "cash_usd_per_share": 0.21584,
+      "kind": "SPECIAL_CASH",
+      "source_id": "occ_special_53849"
+    },
+    {
+      "ex_date": "2024-03-18",
+      "cash_usd_per_share": 0.57345,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2024-06-24",
+      "cash_usd_per_share": 0.7615,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2024-09-23",
+      "cash_usd_per_share": 0.67686,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2024-12-23",
+      "cash_usd_per_share": 0.83466,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2020_2024_archive"
+    },
+    {
+      "ex_date": "2025-03-24",
+      "cash_usd_per_share": 0.71571,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2025_official_composition"
+    },
+    {
+      "ex_date": "2025-06-23",
+      "cash_usd_per_share": 0.59111,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2025_official_composition"
+    },
+    {
+      "ex_date": "2025-09-22",
+      "cash_usd_per_share": 0.69395,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2025_official_composition"
+    },
+    {
+      "ex_date": "2025-12-22",
+      "cash_usd_per_share": 0.79408,
+      "kind": "REGULAR_CASH",
+      "source_id": "invesco_2025_official_composition"
+    }
+  ],
+  "pit_independently_verified": false,
+  "split_history_independently_verified": false
+}

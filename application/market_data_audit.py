@@ -22,6 +22,9 @@ from core.data.contracts import DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
 from orchestration.evidence import require_research_zone
+from research.indicator_engine.issuer_distribution_reference_v2 import (
+    verify_qqq_issuer_distribution_reference_v2,
+)
 from research.indicator_engine.issuer_distributions import (
     compare_issuer_qqq_cash_to_price_adjustments,
 )
@@ -241,6 +244,7 @@ class MarketDataAuditService:
                 reasons.append("independent_vendor_price_match_unavailable")
         adjusted = None
         issuer_distribution = None
+        issuer_reference_v2 = None
         if adjusted_path is not None:
             _name, _file, adj = self._load(adjusted_path)
             adjusted = self._compare_adjusted(dataset, adj)
@@ -257,8 +261,27 @@ class MarketDataAuditService:
                     ) from exc
                 if issuer_distribution["status"] != "PARTIAL_ISSUER_DISTRIBUTIONS_MATCH":
                     reasons.append("issuer_distribution_checkpoints_mismatch_or_unavailable")
-                if issuer_distribution["unreferenced_adjustment_events"]:
+                try:
+                    issuer_reference_v2 = verify_qqq_issuer_distribution_reference_v2(
+                        dataset, adj
+                    ).record()
+                except (OSError, ValueError, KeyError, TypeError) as exc:
+                    raise MarketDataError(
+                        "ISSUER_REFERENCE_INVALID", "Pinned issuer v2 cash evidence is invalid."
+                    ) from exc
+                # Legacy v1 checkpoints intentionally remain unchanged: its 18
+                # 'unreferenced' dates are no longer audit blockers once the
+                # full issuer v2 schedule corroborates all material candidates.
+                complete_v2 = (
+                    issuer_reference_v2["status"] == "MATCHED_REFERENCE_CASH_EVENTS"
+                    and issuer_reference_v2["distribution_cash_schedule_reconciled"]
+                )
+                if issuer_distribution["unreferenced_adjustment_events"] and not complete_v2:
                     reasons.append("unreferenced_corporate_action_adjustment_candidates")
+                if issuer_reference_v2["status"] not in (
+                    "MATCHED_REFERENCE_CASH_EVENTS", "NOT_COMPARABLE"
+                ):
+                    reasons.append("issuer_distribution_v2_mismatch_or_unknown")
         revision_comparison = None
         if revision_comparison_path is not None:
             _name, _file, later = self._load(revision_comparison_path)
@@ -291,6 +314,7 @@ class MarketDataAuditService:
             "independent_vendor_comparison": independent,
             "corporate_action_consistency": adjusted,
             "issuer_distribution_checkpoints": issuer_distribution,
+            "issuer_distribution_reference_v2": issuer_reference_v2,
             "vendor_revision_observation": revision_comparison,
             "blocking_reasons": sorted(set(reasons)),
             "point_in_time_independently_verified": False,

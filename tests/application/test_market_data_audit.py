@@ -310,6 +310,10 @@ def test_audit_discloses_issuer_coverage_gap_without_pit_upgrade(tmp_path: Path)
     assert result["matched_events"] == 1
     assert result["unreferenced_adjustment_events"] == 1
     assert result["unreferenced_adjustment_dates"] == ["2025-03-25"]
+    verified_v2 = report["issuer_distribution_reference_v2"]
+    assert verified_v2["matched_events"] == 1
+    assert verified_v2["unreferenced_candidate_events"] == 1
+    assert verified_v2["point_in_time_price_verified"] is False
     assert "unreferenced_corporate_action_adjustment_candidates" in report["blocking_reasons"]
     assert report["status"] == "RESEARCH_ONLY_NOT_PIT_VERIFIED"
     assert report["orders_enabled"] is False
