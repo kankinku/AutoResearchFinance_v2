@@ -30,6 +30,12 @@ from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_
 from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
 from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
 from research.indicator_engine.nasdaq_daily_collector import collect_nasdaq_qqq_daily
+from research.indicator_engine.paper_methodology import (
+    FormulaDraft,
+    MethodReview,
+    PaperMethodologyError,
+    PaperMethodologyStore,
+)
 from research.indicator_engine.publisher_evidence_intake import audit_publisher_evidence
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
@@ -93,6 +99,25 @@ def main() -> int:
     literature_stage.add_argument("--doi", required=True)
     literature_stage.add_argument("--source-scope", required=True)
     literature_stage.add_argument("--replication-note", required=True)
+    review_queue = subs.add_parser(
+        "list-paper-review-queue",
+        help="Show DOI method/rights review queue (nothing is verified or executable)",
+    )
+    review_queue.add_argument("--limit", type=int, default=30)
+    method_review = subs.add_parser(
+        "record-paper-method-review",
+        help="Record manually reviewed method/rights note from bounded JSON; not approval",
+    )
+    method_review.add_argument("--json-file", type=Path, required=True)
+    formula_draft = subs.add_parser(
+        "propose-paper-formula",
+        help="Store a typed non-executable formula AST from bounded JSON",
+    )
+    formula_draft.add_argument("--json-file", type=Path, required=True)
+    formula_list = subs.add_parser(
+        "list-paper-formulas", help="Inspect non-executable formula versions"
+    )
+    formula_list.add_argument("--doi", required=True)
     audit = subs.add_parser(
         "audit-benchmark",
         help="Offline, two-source price-only reconciliation; never PIT certification",
@@ -308,6 +333,40 @@ def main() -> int:
     if args.database is None:
         parser.error("--database is required for catalog commands")
     db = ResearchCatalog(args.database)
+    if args.command in {
+        "list-paper-review-queue", "record-paper-method-review",
+        "propose-paper-formula", "list-paper-formulas",
+    }:
+        try:
+            methods = PaperMethodologyStore(args.database)
+            review_output: object
+            if args.command == "list-paper-review-queue":
+                review_output = methods.review_queue(limit=args.limit)
+            elif args.command == "list-paper-formulas":
+                review_output = methods.formulas(args.doi)
+            else:
+                payload_path = args.json_file
+                if payload_path.is_symlink() or payload_path.stat().st_size > 16384:
+                    raise PaperMethodologyError("review input is symlinked or oversized")
+                payload = json.loads(payload_path.read_text(encoding="utf-8"))
+                if not isinstance(payload, dict):
+                    raise PaperMethodologyError("review input must be a JSON object")
+                if args.command == "record-paper-method-review":
+                    review_output = methods.record_review(MethodReview.model_validate(payload))
+                else:
+                    review_output = methods.propose_formula(FormulaDraft.model_validate(payload))
+            print(json.dumps({
+                "result": review_output, "status": "RESEARCH_NOT_EXECUTABLE",
+                "calculator_approved": False, "license_independently_verified": False,
+                "orders_enabled": False,
+            }, sort_keys=True))
+            return 0
+        except (OSError, ValueError) as exc:
+            print(json.dumps({
+                "status": "PAPER_METHOD_INTAKE_REJECTED", "reason": type(exc).__name__,
+                "calculator_approved": False, "orders_enabled": False,
+            }, sort_keys=True))
+            return 2
     if args.command in {
         "discover-academic-papers", "list-discovered-papers", "stage-discovered-paper",
         "sweep-academic-papers",
