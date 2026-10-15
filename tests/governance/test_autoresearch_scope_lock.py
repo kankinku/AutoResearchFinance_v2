@@ -18,6 +18,10 @@ AGENT_CONTRACT = ROOT / "AGENTS.md"
 ORIGINAL_INTERVIEW_SHA256 = (
     "ab41bbb68bf410ae9914c628d38915678472d5a906ee75e2cf2dae9ad8bfb801"
 )
+LOCKED_CHARTER_SHA256 = (
+    "e9907555806ad5259c31f0b61737e0ec79a8fffda15aea5e21d7900b63164d20"
+)
+
 
 
 def test_original_20_user_answers_stay_byte_for_byte_unchanged() -> None:
@@ -29,7 +33,11 @@ def test_original_20_user_answers_stay_byte_for_byte_unchanged() -> None:
 
 
 def test_scope_charter_tracks_all_original_answers_and_three_phases() -> None:
-    text = CHARTER.read_text(encoding="utf-8")
+    # A new user-approved ADR may replace the active contract with a *new*
+    # version. Never silently rewrite the already-confirmed v1.
+    raw = CHARTER.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == LOCKED_CHARTER_SHA256
+    text = raw.decode("utf-8")
     matches = re.findall(r"^\|\s*(Q\d{2})\s*\|", text, re.MULTILINE)
     assert matches == [f"Q{i:02d}" for i in range(1, 21)]
     assert "USER_CONFIRMED_SCOPE_LOCK" in text
