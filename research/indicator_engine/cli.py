@@ -20,6 +20,10 @@ from research.indicator_engine.composer import compose_hypotheses
 from research.indicator_engine.nasdaq_capture import capture_nasdaq_qqq
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
+from research.indicator_engine.verified_capture_vintages import (
+    CapturedPriceVintage,
+    compare_verified_nasdaq_vintages,
+)
 
 
 def main() -> int:
@@ -66,7 +70,36 @@ def main() -> int:
     integrity.add_argument("--output", type=Path, required=True)
     integrity.add_argument("--raw", type=Path, required=True)
     integrity.add_argument("--manifest", type=Path, required=True)
+    pair = subs.add_parser(
+        "compare-nasdaq-vintages",
+        help="Offline replay of two archived Nasdaq source vintages, revisions only (NON-PIT)",
+    )
+    for label in ("earlier", "later"):
+        pair.add_argument(f"--{label}-output", type=Path, required=True)
+        pair.add_argument(f"--{label}-raw", type=Path, required=True)
+        pair.add_argument(f"--{label}-manifest", type=Path, required=True)
     args = parser.parse_args()
+
+    if args.command == "compare-nasdaq-vintages":
+        try:
+            pair_result = compare_verified_nasdaq_vintages(
+                CapturedPriceVintage(
+                    args.earlier_output, args.earlier_raw, args.earlier_manifest
+                ),
+                CapturedPriceVintage(
+                    args.later_output, args.later_raw, args.later_manifest
+                ),
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "CAPTURE_VINTAGE_PAIR_INVALID", "type": type(exc).__name__,
+                "point_in_time_price_verified": False,
+                "independent_historical_publication_verified": False,
+                "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(pair_result.record(), sort_keys=True, allow_nan=False))
+        return 0
 
     if args.command == "verify-nasdaq-capture":
         try:
