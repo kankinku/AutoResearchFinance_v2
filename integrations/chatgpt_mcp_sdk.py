@@ -363,7 +363,9 @@ def chatgpt_tools() -> list[dict[str, object]]:
         ),
         _academic_tool(
             "reconcile_algorithm_research",
-            "Operator-only reconciliation of a stalled checkpoint after server restart.",
+            "Operator-only recovery after the previous worker has fully stopped. "
+            "Restores missing S7 evidence before planning continues; repeated "
+            "recovery is read-only while the checkpoint remains unchanged.",
             {"session_id": session_field}, ["session_id"],
         ),
         _academic_tool(
