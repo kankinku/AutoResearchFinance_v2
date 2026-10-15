@@ -1,6 +1,6 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
-갱신일: 2026-10-16 KST / 2026-10-15 UTC. 운영 런타임 `da2331d` 불변. V01 BLOCKED_UTC_DATE, V02 BLOCKED_EXTERNAL_EVIDENCE(`4c62d0d`); 다음 V03.
+갱신일: 2026-10-16 KST / 2026-10-15 UTC. 운영 런타임 `da2331d` 불변. V01 날짜 조건·V02 외부 공급자 증빙·V03 기업행동 as-of 외부 증거 모두 차단; V03 코드 `be563c4`, 다음 V04.
 관련 문서: [기능 우선순위](autoresearch-feature-first-priority-2026-10-15.md), [개발 연대기](autoresearch-implementation-roadmap-2026-10-14.md).
 
 **운영 원칙:** 기능 개발 우선, 최종 데이터·성과 검증은 마지막. 다만 코드 변경 때 기본 테스트·무결성 검사는 즉시 수행. 이 문서는 **매 작업 완료 시 직접 갱신·Git Push하는 고정 기준 문서**이다. 미검증을 완료로 표현하지 않는다.
@@ -11,7 +11,7 @@
 |---|---|---|---|
 | 1-1 | Nasdaq 날짜별 실제 원본 | **검증 진행·날짜 조건 BLOCKED:** 실제 보존 QQQ 원본 3본 무결성 통과, 1,508봉/본, 비교 3,016건·수정 관측 0건. 수집일 모두 2026-10-15 UTC, 상태 `INSUFFICIENT_COLLECTION_DAYS`. 동일 일 재수집 생략 검증, 증거 `5297994a…` | 최소 다른 UTC 날짜인 2026-10-16 00:00 UTC(한국 09:00) 이후 실제 독립 신규 수집·재감사. 당일 수집본 복제·날짜 조작 금지. 그 전에는 V02를 병행 |
 | 1-2 | 독립 공급자 발표 시각 | **연구용 일괄 검증 개발 완료·외부 증빙 BLOCKED:** QQQ 3본 원본 재검증 3/3, 공급자 서명 0/3, 독립 공개시각 0, Databento AUTH_REQUIRED; 새 V02 CLI/변조/시각 차단 51 PASS(`4c62d0d`) | 실제 공급자 승인 키·발행/수신시각·이용권 계약·과거 시점 as-of 확인 필요. V03 진행 가능 |
-| 1-3 | 배당·분할·가격 수정 게이트 | 부분 구현: QQQ 배당 25건 대조·분할 잔차 | 각 과거 의사결정 시점의 이용 가능성 |
+| 1-3 | 배당·분할·가격 수정 게이트 | **V03 연구용 as-of 차단 구현:** 실제 QQQ Nasdaq 배당 25본(총 25건)과 보존 Invesco 액수 25/25 일치·선언일 누락 24. 2025-03-24 당시 원본은 2026-10-10/14 획득으로 미래정보 차단. 주 연구 디렉터리 조정가격 원본 부재, 2차 분할 카탈로그만 보유. 40 PASS (`be563c4`) | 역사 거래시점의 공식 배당 공지/보유·지급 시각, 1차 분할·수정 원본, 조정가격 소스 복구와 독립 PIT 증빙 필요; 실거래 불가 |
 | 2-1 | ChatGPT MCP 연구 도구 E2E | **운영 반영:** D07 32도구 사전 입력 검증 적용. 기존 URL/OAuth 및 32개 tool, Workspace READY, 기본 ChatGPT MCP, 주문 비활성(`da2331d`), 익명 401·앱 읽기전용 3종 확인 | 실제 모든 상태변경 도구 32개 호출 및 GPT 장시간 10~100세대 T4는 미실행. D03/D04/D06 Lab CLI는 MCP 도구로 미노출 |
 | 2-2 | 실제 GPT 10~100세대 | **부분 구현:** GPT 2세대 실제·mock 10세대, 무거래 관측 ID 대응 및 최근 동일 Plan/Diagnosis 안전 재제출(`d9255d9`) | 실제 GPT 10/100세대·RUNNING 중단 복구·지속 실행 실증(T4 후순위) |
 | 2-3 | 자율 장시간 실행·복구 | **부분 구현:** checkpoint·취소·재개·전경 실행기 + D02 `reconcile/resume` 멱등 복구 및 커밋 세대의 누락 S7 증거 복원(`86c2ccd`) | 실제 장시간 중단·중복 호출 내성 및 10~100세대 외부 GPT 실증(T4), 서버 배포·운영 리허설(T3) |
@@ -39,8 +39,8 @@
 | D08 | 5-1 | **운영 적용 완료:** D01~D07 상속 코드와 새 릴리스 게이트를 `da2331d`로 배포. 기존 고정 소스 `cfc66cf`·런처 백업 유지. 운영 32도구·READY·기본 mcp·주문 off / 미인증 401 확인. T3 1605 PASS, 운영 venv 13 PASS, 추가 5 PASS |
 | V01 (BLOCKED_UTC_DATE) | 1-1 | 기존 실제 3본·동일 날짜 2쌍 무결성 29 테스트 통과. 신규 다른 UTC 날짜 수집은 2026-10-16 00:00 UTC 이후에만 가능; 지금 원본 보존·강제 재다운로드 없음 |
 | V02 (BLOCKED_EXTERNAL_EVIDENCE) | 1-2 | 실제 QQQ 원본 3개 중 공급자 서명 0/3, 과거 공개시각 0. Databento metadata AUTH_REQUIRED. 연구 전용 검사기·관련 51 PASS(`4c62d0d`); 실공급자 증거 전에는 PIT 불가 |
-| **V03 (다음)** | 1-3 | 배당·분할·가격 정정의 의사결정 당시 as-of 이용 가능성/수정본 검증. V01 신규 수집은 2026-10-16T00:00Z 이후 |
-| V04 | 4-2 | 봉인 OOS 순차 검증 |
+| V03 (BLOCKED_EXTERNAL_ASOF) | 1-3 | 개발 완료: 나스닥 보존배당 25/25 대조, 선언일 24/25 누락, 조정가격 Parquet 없어 당회 가격조정 재계산 미실행. UTC decision 2025-03-24 대비 2026 원본 조회시각으로 미래정보 차단. 관련 40 PASS (`be563c4`) |
+| **V04 (다음)** | 4-2 | 봉인 OOS 데이터/선택·전략 동결·권한 경계 점검(코드·프로토콜 검증 가능). V01~V03 과거 PIT 부족으로 실수익 검증 또는 봉인 기간 개봉 금지 |
 | V05 | 4-3 | 수수료·유동성·통계적 우연 반영 |
 | V06 | 5-2 | 페이퍼트레이딩 |
 | V07 | 5-3 | 최종 운영 승인 여부 결정 |
@@ -65,6 +65,7 @@
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-15 UTC | 1-3/V03 | Nasdaq QQQ 보존 배당 raw/manifest 2026-10-14와 Tiingo raw 2026-10-10의 결정시각 `2025-03-24T20:00Z` 기준 실제 재생. 발행사 핀 25종 금액 25/25 일치, 거래시각 증빙 아닌 선언일만 1건·없음 24건, 배당락 전/후 지급 시점 구분. 최종 실측 `HISTORICAL_DECISION_PRECEDES_SOURCE_CAPTURE`·배당 지식 0 입증, 1차 분할 미검증, 조정가격 원본 파일 누락(금번 가격조정 재계산 X). 보고 SHA `fd205916c0bd4dd5afbadabff64d3e2bb78dd8b4382fa6284ecd511dbbfb902b`, 거래 승인 false | V03 신규 **8 PASS**, issuer/dividend/split/revisions/history 관련 **40 PASS**, Ruff/Mypy PASS, 운영 MCP 미배포·데이터 불변. T4 GPT 장기간·T5 독립 PIT/OOS·T6 paper 미실행 | `feat/v03-qqq-corporate-asof-gates-20261016` 기능 `be563c4` Push, 실제 증거 `docs/operations/evidence/quant-validation-20261016/v03-qqq-corporate-asof-real.json`, 상세 `autoresearch-stage-1-3-v03-corporate-asof-2026-10-16.md`. V03 BLOCKED_EXTERNAL_ASOF, 다음 V04 경계 설계 |
 | 2026-10-15 UTC | 1-2/V02 | 기존 발행자 서명 intake와 Nasdaq QQQ 아카이브 일괄 감사를 연결. 로컬 CLI `audit-qqq-publication-coverage` 신규. 실제 기존 3본 raw/Parquet/manifest 재검증, `PUBLISHER_PROOF_MISSING` 3건, 역사 독립 공개시각 0건. 보고 해시 `3d633431d8b5ab36105333807102caa8df695324730aa9fa2a1c94221ccff9a2`, Databento metadata `AUTH_REQUIRED`, PIT/주문 금지 유지 | 신규 V02 7개 포함 관련 **51 PASS**, Ruff/Mypy PASS. 운영 MCP 및 기존 원본/권한 변경 없음; 외부 시각/서명/계약 미확보 | `feat/v02-publisher-availability-matrix-20261016` 코드 `4c62d0d` Push, 상세 `autoresearch-stage-1-2-v02-publisher-availability-2026-10-16.md`, 증거 `docs/operations/evidence/quant-validation-20261016/v02-publication-coverage-audit.json`. V02 BLOCKED_EXTERNAL_EVIDENCE, 다음 V03 |
 | 2026-10-15 UTC | 1-1/V01 | 기존 Nasdaq QQQ 2020-01-02~2025-12-31 실제 원본 3본을 모두 raw JSON/Parquet/manifest로 다시 감사: 3/3 검증, UTC 수집일 1일(10/15), 연속 비교쌍 2개·총 3,016 공통봉·관측 수정 0. Inventory 해시 `5297994a0c8fcff855437c84d12aa6c5e7bd530f5bd30dc1709dabf92752362c`. 같은 날 재수집 명령은 `ALREADY_COLLECTED_TODAY`로 fetch 생략. **실제 2일째 원본 수집은 아직 물리적 시점 미도래**(다음 2026-10-16T00:00Z). 증거 JSON 보존, 소스 수정/실주문/운영 재배포 없음 | 관련 기존 Pytest **29 PASS**(archive/daily/inventory/pair), Ruff/Mypy 대상 파일 PASS, 실제 2개 UTC 날짜 미충족; 역사 PIT·OOS·수익성 T5 미승인 | `feat/v01-qqq-utc-vintage-evidence-20261016`, 증거 `docs/operations/evidence/quant-validation-20261016/v01-qqq-collection-day-gate.json`, 상세 `autoresearch-stage-1-1-v01-utc-boundary-2026-10-16.md`, V01 날짜 의존 `BLOCKED`, V02 진행 가능 |
 | 2026-10-15 UTC | 5-1/D08 | D01~D07 선형 개발 변경을 통합해 릴리스 게이트(고정 SHA·인증/핵심 데이터 모듈 불변·롤백 고정 source 검사) 구현. 고정 후보 `da2331d` 개발 GitHub Push, 별도 배포 checkout 런처의 SOURCE_ROOT/EXPECTED_SOURCE_SHA만 갱신(`9c4749d`)하여 실제 운영 MCP 교체. OAuth DB/URL pin/approval key 및 연구 원장 보존. PID cwd 새 고정 runtime 확인, 익명 401·OAuth metadata resource 유지, 앱 read-only 32/READY/기본 MCP/주문 off 확인 | 전체 Pytest **1605 PASS**, Ruff 전체 PASS·Mypy 252소스 PASS, D08 게이트 5 PASS, 실제 운영 Python venv HTTP/OAuth/MCP 13 PASS. T4 GPT 10/100세대·T5 PIT/OOS/수익성·T6 paper 및 실제 오류 시 롤백 리허설은 미실행 | 개발 `feat/d08-integrated-release-gates-20261016` 기능 `da2331d` Push 완료, 배포 `deploy/quant-mcp-d08-integrated-20261016` 런처 `9c4749d` Push 완료, **운영 DEPLOYED**. 상세 `autoresearch-stage-5-1-integrated-deployment-2026-10-16.md` |
