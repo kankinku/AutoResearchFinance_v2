@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from math import isfinite
 from typing import Literal
 
@@ -145,8 +146,13 @@ def evaluate_compiled_development(
     dataset: MarketDataSet,
     *,
     initial_cash: float = 10_000.0,
+    signal_start_at: datetime | None = None,
 ) -> AcademicDevelopmentResult:
-    """Costed local run, explicitly ineligible for promotion or live deployment."""
+    """Costed local run; optional first signal is for forward-window warmups only.
+
+    All previous bars may calculate indicators but cannot open positions.
+    The caller must slice the equity curve at the forward start for metrics.
+    """
     if DataZone(dataset.zone) is not DataZone.DEVELOPMENT:
         raise ResearchCatalogError("non-development market data is forbidden")
     if (
@@ -187,6 +193,7 @@ def evaluate_compiled_development(
             strategy=compiled.strategy,
             cost_model=_COST,
             feature_values=compiled.feature_values,
+            signal_start_at=signal_start_at,
         )
     )
     if result.exit_status != "SUCCEEDED" or result.data_hash != compiled.dataset_hash:
