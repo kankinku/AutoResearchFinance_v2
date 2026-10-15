@@ -17,6 +17,7 @@ from integrations.codex_mcp_core import (
     _with_public_contract,
 )
 from integrations.codex_mcp_payload import text_content_payload
+from research.llm.autonomous_cycle import CycleStateError
 from research.llm.gpt_context import write_provider_status
 
 SDK_ADAPTER_STATUS = "CANONICAL_SDK"
@@ -160,6 +161,20 @@ class SDKMCPServerAdapter:
                             else "Guided research request rejected; inspect the active checkpoint "
                             "and registered strategy source. No automatic replay."
                         ),
+                        "orders_enabled": False,
+                    },
+                    is_error=True,
+                )
+            if (
+                params.name == "get_algorithm_research"
+                and isinstance(exc, CycleStateError)
+                and str(exc) == "unknown academic MCP session"
+            ):
+                return _sdk_tool_result(
+                    {
+                        "status": "ERROR",
+                        "error_code": "RESEARCH_SESSION_NOT_FOUND",
+                        "message": "Research session not found; verify the saved session_id.",
                         "orders_enabled": False,
                     },
                     is_error=True,

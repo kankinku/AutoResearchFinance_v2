@@ -55,6 +55,31 @@ def test_batch_status_without_job_returns_actionable_error(tmp_path: Path) -> No
     assert response["orders_enabled"] is False
 
 
+def test_unknown_algorithm_session_reports_safe_lookup_error(tmp_path: Path) -> None:
+    adapter = create_chatgpt_sdk_adapter(project_root=tmp_path, state_dir=tmp_path / "state")
+    response = _error(adapter, "get_algorithm_research", {"session_id": "0" * 32})
+    assert response == {
+        "status": "ERROR",
+        "error_code": "RESEARCH_SESSION_NOT_FOUND",
+        "message": "Research session not found; verify the saved session_id.",
+        "orders_enabled": False,
+    }
+    assert "0" * 32 not in json.dumps(response)
+
+
+def test_unexpected_algorithm_lookup_error_remains_masked(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    adapter = create_chatgpt_sdk_adapter(project_root=tmp_path, state_dir=tmp_path / "state")
+
+    def fail_lookup(_name: str, _arguments: dict[str, object]) -> object:
+        raise ValueError("internal file path must not be exposed")
+
+    monkeypatch.setattr(adapter.dispatcher, "_dispatch", fail_lookup)
+    response = _error(adapter, "get_algorithm_research", {"session_id": "0" * 32})
+    assert response == {"status": "ERROR", "message": "tool request failed"}
+
+
 def test_research_inputs_lists_real_strategy_and_market_data_only(tmp_path: Path) -> None:
     _write_inputs(tmp_path)
     service = ResearchBatchService(project_root=tmp_path, state_dir=tmp_path / "state")
