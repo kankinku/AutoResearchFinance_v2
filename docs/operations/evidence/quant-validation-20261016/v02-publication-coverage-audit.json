@@ -1,0 +1,93 @@
+{
+  "databento_metadata_check": {
+    "broker_executable": false,
+    "historical_pit_verified": false,
+    "licensing_verified": false,
+    "publisher_release_authentication_verified": false,
+    "status": "AUTH_REQUIRED"
+  },
+  "evidence_type": "local_source_replay_without_external_publisher_availability_attestation",
+  "production_mcp_mutated": false,
+  "real_nasdaq_source_publication_matrix": {
+    "broker_executable": false,
+    "capture_after_decision_count": 0,
+    "captures": [
+      {
+        "blocking_reasons": [
+          "decision_time_market_data_availability_unverified",
+          "independent_historical_publisher_timestamp_missing",
+          "independent_publisher_proof_missing"
+        ],
+        "broker_executable": false,
+        "captured_at": "2026-10-15T11:09:47.343891+00:00",
+        "historical_pit_verified": false,
+        "independent_timestamp_verified": false,
+        "local_capture_after_decision": null,
+        "publisher_available_at_proven": false,
+        "publisher_evidence_status": "PUBLISHER_PROOF_MISSING",
+        "publisher_signature_verified": false,
+        "raw_sha256": "6ede5c3b5b9926b9d820268aa607b41c3c0cfe60141a0ace13302a42f7193f40"
+      },
+      {
+        "blocking_reasons": [
+          "decision_time_market_data_availability_unverified",
+          "independent_historical_publisher_timestamp_missing",
+          "independent_publisher_proof_missing"
+        ],
+        "broker_executable": false,
+        "captured_at": "2026-10-15T11:15:44.630719+00:00",
+        "historical_pit_verified": false,
+        "independent_timestamp_verified": false,
+        "local_capture_after_decision": null,
+        "publisher_available_at_proven": false,
+        "publisher_evidence_status": "PUBLISHER_PROOF_MISSING",
+        "publisher_signature_verified": false,
+        "raw_sha256": "6ede5c3b5b9926b9d820268aa607b41c3c0cfe60141a0ace13302a42f7193f40"
+      },
+      {
+        "blocking_reasons": [
+          "decision_time_market_data_availability_unverified",
+          "independent_historical_publisher_timestamp_missing",
+          "independent_publisher_proof_missing"
+        ],
+        "broker_executable": false,
+        "captured_at": "2026-10-15T13:55:09.030650+00:00",
+        "historical_pit_verified": false,
+        "independent_timestamp_verified": false,
+        "local_capture_after_decision": null,
+        "publisher_available_at_proven": false,
+        "publisher_evidence_status": "PUBLISHER_PROOF_MISSING",
+        "publisher_signature_verified": false,
+        "raw_sha256": "6ede5c3b5b9926b9d820268aa607b41c3c0cfe60141a0ace13302a42f7193f40"
+      }
+    ],
+    "dataset_condition_is_per_day_not_per_instrument": true,
+    "decision_at": null,
+    "historical_publication_attested_captures": 0,
+    "independent_oos_approved": false,
+    "inventory_hash": "5297994a0c8fcff855437c84d12aa6c5e7bd530f5bd30dc1709dabf92752362c",
+    "local_retrieval_is_not_historical_availability": true,
+    "point_in_time_verified": false,
+    "publisher_proof_status_counts": {
+      "PUBLISHER_PROOF_MISSING": 3
+    },
+    "report_hash": "3d633431d8b5ab36105333807102caa8df695324730aa9fa2a1c94221ccff9a2",
+    "required_external_evidence": [
+      "provider-authorized historical publication/availability timestamps",
+      "independent authentic vintage and publisher signing authority",
+      "source and instrument identifiers bound to decision-time availability",
+      "data retention/use permissions for QQQ historical source"
+    ],
+    "schema": "v02-nasdaq-publication-evidence-matrix-v1",
+    "scope": {
+      "from": "2020-01-02",
+      "symbol": "QQQ",
+      "to": "2025-12-31"
+    },
+    "source_capture_count": 3,
+    "status": "INDEPENDENT_HISTORICAL_PUBLICATION_PROOF_MISSING",
+    "verified_local_source_count": 3
+  },
+  "research_data_mutated": false,
+  "user_credentials_stored": false
+}
