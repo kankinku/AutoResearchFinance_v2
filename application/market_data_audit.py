@@ -22,7 +22,11 @@ from core.data.contracts import DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
 from orchestration.evidence import require_research_zone
+from research.indicator_engine.issuer_distributions import (
+    compare_issuer_qqq_cash_to_price_adjustments,
+)
 from research.indicator_engine.nyse_public_calendar import verify_published_nyse_regular_sessions
+from research.indicator_engine.snapshot_revisions import compare_collected_market_snapshots
 from research.indicator_engine.validation_gate import inspect_us_equity_daily_observations
 
 _PRICE_TOLERANCE = 0.005  # 0.5% relative discrepancy; comparison, not certification
@@ -174,6 +178,7 @@ class MarketDataAuditService:
         *,
         comparison_path: str | None = None,
         adjusted_path: str | None = None,
+        revision_comparison_path: str | None = None,
     ) -> dict[str, object]:
         # Resolve paths and zone before inspecting contents, then check previous pin
         # even when a subsequent file corruption makes Parquet unreadable.
@@ -235,11 +240,31 @@ class MarketDataAuditService:
             if independent["status"] != "MATCH":
                 reasons.append("independent_vendor_price_match_unavailable")
         adjusted = None
+        issuer_distribution = None
         if adjusted_path is not None:
             _name, _file, adj = self._load(adjusted_path)
             adjusted = self._compare_adjusted(dataset, adj)
             if adjusted["status"] != "PRICE_FACTORS_CONSISTENT":
                 reasons.append("adjusted_price_factors_unverified")
+            if {bar.symbol for bar in dataset.bars} == {"QQQ"}:
+                try:
+                    issuer_distribution = compare_issuer_qqq_cash_to_price_adjustments(
+                        dataset, adj
+                    ).record()
+                except (OSError, ValueError, KeyError, TypeError) as exc:
+                    raise MarketDataError(
+                        "ISSUER_REFERENCE_INVALID", "Pinned issuer cash evidence is invalid."
+                    ) from exc
+                if issuer_distribution["status"] != "PARTIAL_ISSUER_DISTRIBUTIONS_MATCH":
+                    reasons.append("issuer_distribution_checkpoints_mismatch_or_unavailable")
+        revision_comparison = None
+        if revision_comparison_path is not None:
+            _name, _file, later = self._load(revision_comparison_path)
+            revision_comparison = compare_collected_market_snapshots(
+                dataset, later
+            ).record()
+            if revision_comparison["status"] != "OVERLAPPING_ROWS_UNCHANGED":
+                reasons.append("revision_comparison_changed_or_unavailable")
         return {
             "data_path": relative,
             "status": "RESEARCH_ONLY_NOT_PIT_VERIFIED",
@@ -263,6 +288,8 @@ class MarketDataAuditService:
             "pin_status": pin_status,
             "independent_vendor_comparison": independent,
             "corporate_action_consistency": adjusted,
+            "issuer_distribution_checkpoints": issuer_distribution,
+            "vendor_revision_observation": revision_comparison,
             "blocking_reasons": sorted(set(reasons)),
             "point_in_time_independently_verified": False,
             "orders_enabled": False,

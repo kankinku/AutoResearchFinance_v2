@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -229,3 +230,36 @@ def test_official_nyse_calendar_matches_synthetic_requested_full_period(
     assert "independent_exchange_session_calendar_missing" not in report["blocking_reasons"]
     assert "independent_historical_as_of_snapshots_missing" in report["blocking_reasons"]
     assert report["point_in_time_independently_verified"] is False
+
+
+
+def test_managed_revision_observation_detects_later_same_vendor_correction(
+    tmp_path: Path,
+) -> None:
+    earlier_path = _write_dataset(tmp_path)
+    earlier = ParquetDataProvider.read(tmp_path / earlier_path)
+    bars = list(earlier.bars)
+    bars[1] = replace(bars[1], close=bars[1].close + 0.25)
+    bars.append(Bar(datetime(2024, 1, 5, tzinfo=timezone.utc),
+                    "QQQ", 104, 106, 102, 105, 1000))
+    later = replace(
+        earlier,
+        bars=tuple(bars),
+        provenance=replace(earlier.provenance,
+                           retrieved_at=datetime(2024, 3, 1, tzinfo=timezone.utc)),
+    )
+    revised_path = "data/market/tiingo/QQQ_2024-01-02_2024-01-05_raw.parquet"
+    destination = tmp_path / revised_path
+    ParquetDataProvider.write(destination, later)
+    result = _audit(tmp_path).audit(
+        earlier_path, revision_comparison_path=revised_path
+    )
+    revision = result["vendor_revision_observation"]
+    assert revision["status"] == "HISTORICAL_ROWS_REVISED"
+    assert revision["comparable_bars"] == 3
+    assert revision["changed_bars"] == 1
+    assert revision["changed_date_examples"] == ["2024-01-03"]
+    assert "revision_comparison_changed_or_unavailable" in result["blocking_reasons"]
+    assert revision["historical_point_in_time_price_verified"] is False
+    assert result["point_in_time_independently_verified"] is False
+    assert result["orders_enabled"] is False

@@ -1,0 +1,58 @@
+{
+  "adjusted_path": "data/market/tiingo/QQQ_2020-01-02_2025-12-31_total_return_adjusted.parquet",
+  "blocking_reasons": [
+    "corporate_action_adjustment_unverified",
+    "independent_historical_as_of_snapshots_missing",
+    "revisions_not_as_of"
+  ],
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "issuer_check": {
+    "adjusted_dataset_hash": "6960cea5a66e8cdef129f5f226fa3b8563ac36903534a9f6a7c99616c0caedab",
+    "all_corporate_actions_verified": false,
+    "amount_mismatches": [],
+    "broker_executable": false,
+    "checked_events": 7,
+    "distribution_coverage": "SELECTED_CHECKPOINTS_ONLY",
+    "implied_cash_events": [
+      {
+        "ex_date": "2020-03-23",
+        "implied_usd_per_share": 0.36269000001694895
+      },
+      {
+        "ex_date": "2021-09-20",
+        "implied_usd_per_share": 0.4139099999903255
+      },
+      {
+        "ex_date": "2022-03-21",
+        "implied_usd_per_share": 0.4336900000506436
+      },
+      {
+        "ex_date": "2024-09-23",
+        "implied_usd_per_share": 0.6768599999813323
+      },
+      {
+        "ex_date": "2024-12-23",
+        "implied_usd_per_share": 0.8346600000625573
+      },
+      {
+        "ex_date": "2025-03-24",
+        "implied_usd_per_share": 0.7157100000243188
+      },
+      {
+        "ex_date": "2025-06-23",
+        "implied_usd_per_share": 0.5911100000644698
+      }
+    ],
+    "issuer": "Invesco QQQ",
+    "matched_events": 7,
+    "missing_events": [],
+    "point_in_time_price_verified": false,
+    "raw_dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+    "reference_sha256": "a8c08715ea0fe6b9e80c6e0cea99c12fba8bbed7d2fd54fffccf817a1bfdd6c4",
+    "status": "PARTIAL_ISSUER_DISTRIBUTIONS_MATCH"
+  },
+  "orders_enabled": false,
+  "point_in_time_independently_verified": false,
+  "raw_path": "data/market/tiingo/QQQ_2020-01-02_2025-12-31_raw.parquet",
+  "schema": "issuer-qqq-dividend-spotcheck-v1"
+}

@@ -1,0 +1,47 @@
+{
+  "schema": "issuer_qqq_distributions_v1",
+  "issuer": "Invesco",
+  "symbol": "QQQ",
+  "source_scope": "issuer distribution tables; ex-date and per-share USD amounts; not point-in-time historical price proof",
+  "sources": [
+    {
+      "url": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investors&productId=QQQ&ticker=QQQ",
+      "description": "Invesco QQQ product details, dividend distribution ex-dates"
+    },
+    {
+      "url": "https://www.invesco.com/us/financial-products/etfs/product-detail?productId=QQQ&ticker=QQQ",
+      "description": "Invesco QQQ distribution history"
+    }
+  ],
+  "rows": [
+    {
+      "ex_date": "2020-03-23",
+      "cash_usd_per_share": 0.36269
+    },
+    {
+      "ex_date": "2021-09-20",
+      "cash_usd_per_share": 0.41391
+    },
+    {
+      "ex_date": "2022-03-21",
+      "cash_usd_per_share": 0.43369
+    },
+    {
+      "ex_date": "2024-09-23",
+      "cash_usd_per_share": 0.67686
+    },
+    {
+      "ex_date": "2024-12-23",
+      "cash_usd_per_share": 0.83466
+    },
+    {
+      "ex_date": "2025-03-24",
+      "cash_usd_per_share": 0.71571
+    },
+    {
+      "ex_date": "2025-06-23",
+      "cash_usd_per_share": 0.59111
+    }
+  ],
+  "completeness": "selected issuer checkpoints only; not complete distributions or corporate actions; still NON_PIT"
+}
