@@ -210,3 +210,14 @@ S8 방향 권고 모듈 코드 `de344dc`, 배포 런처 커밋 `916b128`; 전체
 ### [1-2단계 / 전체 5단계] Databento 날짜별 dataset condition 누락 검출 — 2026-10-15
 
 [일자별 메타데이터 범위 검증](autoresearch-stage-1-2-databento-condition-completeness-2026-10-15.md): historical metadata.get_dataset_condition 결과가 2일 available뿐이어도 2020~2025 전체가 통과된 것처럼 취급될 수 있던 false green 수정. pinned NYSE 공개 정규 거래일 1,508개에 대조해 날짜 누락/중복, degraded, 범위 밖을 차단. dataset quality 메타데이터를 QQQ 종목/스키마 또는 PIT 인증으로 오인하지 않도록 분리. 공급자 실제 계정/독립 시각 증거는 미확보; Stage 1-2 진행 중. 원 MCP/OAuth/실거래 비활성 상태 유지.
+
+
+### [1-2단계 / 전체 5단계] Databento 2026-10-31 소급 수정 증빙 비교 사전구축 — 2026-10-15
+
+[실행·검증/자료 부족 내역](autoresearch-stage-1-2-databento-cutover-audit-2026-10-15.md):
+Databento XNAS.ITCH의 2026-10-31 예정 소급 변경을 앞두고 production/preview 조건 메타데이터를
+수집별 SHA-256·UTC 시각·기간으로 보존·재검증하는 append-only read-only 비교기를 구현.
+합성 입력으로 실제 메타데이터 수정/무변경/변조·범위·시각 오류를 검출한다. 실제 Moon XNAS.ITCH
+조건 증빙 파일 0건 확인, 공급자 계정 AUTH_REQUIRED라 **실데이터 변경 0건이라고 주장하지 않음**.
+preview는 유료 요청이며 본 단계에서 호출/구매하지 않았다. PIT/실거래 인증 불가;
+1-2 외부 계약·실제 기록 미확보라 진행 중. 외부 대기 중 [2-1] MCP 전체 E2E 점검 병행 권장.

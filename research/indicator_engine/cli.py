@@ -17,6 +17,7 @@ from research.indicator_engine.capture_integrity import verify_nasdaq_capture
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
 from research.indicator_engine.citations import CitationFetchError, fetch_crossref
 from research.indicator_engine.composer import compose_hypotheses
+from research.indicator_engine.databento_cutover_audit import compare_condition_vintages
 from research.indicator_engine.databento_metadata_preflight import probe_qqq_xnas_metadata
 from research.indicator_engine.nasdaq_append_only_archive import archive_nasdaq_qqq_snapshot
 from research.indicator_engine.nasdaq_archive_inventory import audit_nasdaq_qqq_archive
@@ -45,6 +46,12 @@ def main() -> int:
         "probe-databento-qqq-metadata",
         help="Read-only historical entitlement, schema range, estimate and revision metadata",
     )
+    condition_compare = subs.add_parser(
+        "compare-databento-condition-vintages",
+        help="Offline reverify two retained dataset-condition snapshots, never PIT",
+    )
+    condition_compare.add_argument("--earlier", type=Path, required=True)
+    condition_compare.add_argument("--later", type=Path, required=True)
     verify = subs.add_parser("verify", help="Verify one whitelisted causal calculator")
     verify.add_argument("signal_id")
     compose = subs.add_parser("compose", help="Generate non-executable, bounded hypotheses")
@@ -111,6 +118,19 @@ def main() -> int:
         pair.add_argument(f"--{label}-raw", type=Path, required=True)
         pair.add_argument(f"--{label}-manifest", type=Path, required=True)
     args = parser.parse_args()
+
+    if args.command == "compare-databento-condition-vintages":
+        try:
+            compared = compare_condition_vintages(args.earlier, args.later)
+        except (OSError, ValueError, ResearchCatalogError):
+            print(json.dumps({
+                "status": "CONDITION_VINTAGE_UNVERIFIABLE",
+                "historical_pit_verified": False,
+                "broker_executable": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(compared.record(), sort_keys=True))
+        return 0
 
     if args.command == "probe-databento-qqq-metadata":
         inspected = probe_qqq_xnas_metadata(api_key=os.environ.get("DATABENTO_API_KEY"))
