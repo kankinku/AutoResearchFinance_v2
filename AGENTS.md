@@ -4,6 +4,38 @@ This repository implements the approved Quant Autoresearch Harness architecture.
 
 ## Source of truth
 
+## Product scope lock — MANDATORY before all Quant Autoresearch work
+
+**Top-level user-approved product contract**:
+- Original, unchanged 20-question interview: `docs/decisions/2026-10-14-autoresearch-interview-20q.md`
+- Current user-confirmed interpretation and frozen remaining-work order:
+  `docs/decisions/2026-10-16-autoresearch-20q-scope-lock-v1.md`
+- Live implementation/status ledger: `docs/operations/autoresearch-master-progress.md`
+
+Read **all three** before writing a roadmap, code, or a scope-changing proposal.
+User's original goal is **autonomous algorithm research**, not hand-tuning an individual
+QQQ trading strategy. A true generation includes candidate creation, canonical
+backtest/trace, real LLM diagnosis, a justified next plan, and immutable evidence.
+Do not claim model autonomy from mocks or prove profitability from non-PIT data.
+The original three acceptance phases (engine → LLM evolution → independently
+validated realizable net profit) and all Q01–Q20 stay in scope.
+
+**Frozen current delivery order:** V05 bounded cost/statistics → T4 real
+10/100-generation ChatGPT MCP loop → V01–V04 external PIT/OOS dependencies
+(as they become available) → V06 non-order paper trading → V07 separate GO/NO-GO.
+Code for necessary original-interview dependencies may be added only when
+connected to these gates. This is not a license to indefinitely expand validation
+tools while T4 remains unverified.
+
+Before each task state/verify: stage ID, Q IDs, user value, boundaries, concrete
+acceptance test, next frozen task, and non-goals. Record that mapping and honest
+status in the ledger. **Any change to an original objective, planned stage order,
+model/MCP default, permission/OOS boundary, success condition or material new
+scope requires explicit user approval documented by a new ADR BEFORE work.**
+Proposal, generated recommendation, or a passing unit test is not approval.
+Do not edit the original 20-question file. Run the scope-governance tests as
+part of T0/T1 whenever changing the roadmap, policies, or target workflows.
+
 - Strategy IR is the canonical strategy representation.
 - Generated Python/Lean is an execution artifact, never the strategy source.
 - `docs/architecture/quant-autoresearch-architecture-v1.0.md` is the approved architecture source and is preserved byte-for-byte.
