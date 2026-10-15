@@ -18,7 +18,8 @@ from core.data.contracts import DataZone, MarketDataSet
 
 _REFERENCE = Path(__file__).with_name("issuer_qqq_dividends_v1.json")
 _PINNED_SHA256 = "a8c08715ea0fe6b9e80c6e0cea99c12fba8bbed7d2fd54fffccf817a1bfdd6c4"
-_TOLERANCE_USD = 0.0001  # raw and adjusted close precision well within 1 cent
+_TOLERANCE_USD = 0.0001  # issuer amount comparison, not event discovery
+_MATERIAL_FACTOR_CHANGE_USD = 0.01  # indicative cash-equivalent change per share
 _MAX_DETAIL = 24
 
 
@@ -38,6 +39,9 @@ class IssuerDistributionSpotCheck:
     missing_events: tuple[str, ...]
     amount_mismatches: tuple[str, ...]
     implied_cash_events: tuple[tuple[str, float], ...]
+    detected_adjustment_events: int
+    unreferenced_adjustment_events: int
+    unreferenced_adjustment_dates: tuple[str, ...]
     distribution_coverage: Literal["SELECTED_CHECKPOINTS_ONLY"] = "SELECTED_CHECKPOINTS_ONLY"
     all_corporate_actions_verified: Literal[False] = False
     point_in_time_price_verified: Literal[False] = False
@@ -58,6 +62,14 @@ class IssuerDistributionSpotCheck:
                 {"ex_date": day, "implied_usd_per_share": amount}
                 for day, amount in self.implied_cash_events
             ],
+            "detected_adjustment_events": self.detected_adjustment_events,
+            "unreferenced_adjustment_events": self.unreferenced_adjustment_events,
+            "unreferenced_adjustment_dates": list(self.unreferenced_adjustment_dates),
+            "candidate_event_min_cash_equivalent_usd": _MATERIAL_FACTOR_CHANGE_USD,
+            "candidate_event_note": (
+                "Raw/adjusted close-factor jumps are unclassified candidates, "
+                "not independently verified dividends, splits or historical revisions."
+            ),
             "distribution_coverage": self.distribution_coverage,
             "all_corporate_actions_verified": False,
             "point_in_time_price_verified": False,
@@ -121,6 +133,8 @@ def compare_issuer_qqq_cash_to_price_adjustments(
         total: int, matching: int,
         missing: tuple[str, ...] = (), mismatched: tuple[str, ...] = (),
         implied: tuple[tuple[str, float], ...] = (),
+        detected: int = 0,
+        unreferenced: tuple[str, ...] = (),
     ) -> IssuerDistributionSpotCheck:
         return IssuerDistributionSpotCheck(
             status=status, issuer="Invesco QQQ",
@@ -132,6 +146,9 @@ def compare_issuer_qqq_cash_to_price_adjustments(
             missing_events=missing[:_MAX_DETAIL],
             amount_mismatches=mismatched[:_MAX_DETAIL],
             implied_cash_events=implied[:_MAX_DETAIL],
+            detected_adjustment_events=detected,
+            unreferenced_adjustment_events=len(unreferenced),
+            unreferenced_adjustment_dates=unreferenced[:_MAX_DETAIL],
         )
     if not comparable or len(raw.bars) < 2:
         return _report("NOT_COMPARABLE", 0, 0)
@@ -144,9 +161,26 @@ def compare_issuer_qqq_cash_to_price_adjustments(
         when: cash for when, cash in source.items()
         if ordered[0] <= when <= ordered[-1]
     }
-    if not in_range:
-        return _report("NOT_COMPARABLE", 0, 0)
     previous_dates = {day: ordered[i - 1] for i, day in enumerate(ordered) if i}
+    # Inventory all *material* close-factor changes, rather than only the
+    # seven chosen issuer dates. Split events, rounding artefacts and vendor
+    # revisions cannot be identified reliably from these two series alone.
+    detected = 0
+    unreferenced: list[str] = []
+    for day, prior_day in previous_dates.items():
+        close = raw_by_day[day].close
+        factor = adj_by_day[day].close / close
+        prior_factor = adj_by_day[prior_day].close / raw_by_day[prior_day].close
+        cash_equivalent = close * (factor / prior_factor - 1)
+        if abs(cash_equivalent) >= _MATERIAL_FACTOR_CHANGE_USD:
+            detected += 1
+            if day not in in_range:
+                unreferenced.append(day.isoformat())
+    if not in_range:
+        return _report(
+            "NOT_COMPARABLE", 0, 0, detected=detected,
+            unreferenced=tuple(unreferenced),
+        )
     matched = 0
     missing: list[str] = []
     mismatched: list[str] = []
@@ -169,8 +203,10 @@ def compare_issuer_qqq_cash_to_price_adjustments(
         return _report(
             "ISSUER_DISTRIBUTION_MISMATCH", len(in_range), matched,
             tuple(missing), tuple(mismatched), tuple(computed),
+            detected=detected, unreferenced=tuple(unreferenced),
         )
     return _report(
         "PARTIAL_ISSUER_DISTRIBUTIONS_MATCH", len(in_range),
         matched, implied=tuple(computed),
+        detected=detected, unreferenced=tuple(unreferenced),
     )

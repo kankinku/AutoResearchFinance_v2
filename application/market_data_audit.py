@@ -257,6 +257,8 @@ class MarketDataAuditService:
                     ) from exc
                 if issuer_distribution["status"] != "PARTIAL_ISSUER_DISTRIBUTIONS_MATCH":
                     reasons.append("issuer_distribution_checkpoints_mismatch_or_unavailable")
+                if issuer_distribution["unreferenced_adjustment_events"]:
+                    reasons.append("unreferenced_corporate_action_adjustment_candidates")
         revision_comparison = None
         if revision_comparison_path is not None:
             _name, _file, later = self._load(revision_comparison_path)

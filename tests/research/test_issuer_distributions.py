@@ -1,6 +1,6 @@
 """Issuer-sourced dividends are spot checks, not historical PIT certificates."""
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -55,6 +55,9 @@ def test_selected_issuer_cash_events_exact_and_non_pit():
     assert [day for day, _ in r.implied_cash_events] == ["2025-03-24", "2025-06-23"]
     assert [amount for _, amount in r.implied_cash_events] == pytest.approx([.71571, .59111])
     assert r.distribution_coverage == "SELECTED_CHECKPOINTS_ONLY"
+    assert r.detected_adjustment_events == 2
+    assert r.unreferenced_adjustment_events == 0
+    assert r.unreferenced_adjustment_dates == ()
     assert not r.point_in_time_price_verified
     assert not r.all_corporate_actions_verified
     assert not r.broker_executable
@@ -104,3 +107,53 @@ def test_issuer_source_tamper_fails_closed(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(issuer, "_REFERENCE", bogus)
     with pytest.raises(ValueError, match="integrity mismatch"):
         compare_issuer_qqq_cash_to_price_adjustments(raw, adj)
+
+
+
+def test_unreferenced_material_factor_change_is_not_claimed_as_issuer_verified():
+    raw, adj = _pair()
+    factor = adj.bars[-1].close / raw.bars[-1].close
+    day = datetime(2025, 6, 24, tzinfo=timezone.utc)
+    new_raw = Bar(day, "QQQ", 100., 101., 99., 100., 1000.)
+    new_adj = Bar(day, "QQQ", 100*factor*1.02, 101*factor*1.02,
+                  99*factor*1.02, 100*factor*1.02, 1000.)
+    result = compare_issuer_qqq_cash_to_price_adjustments(
+        replace(raw, bars=(*raw.bars, new_raw)),
+        replace(adj, bars=(*adj.bars, new_adj)),
+    )
+    assert result.status == "PARTIAL_ISSUER_DISTRIBUTIONS_MATCH"
+    assert result.checked_events == result.matched_events == 2
+    assert result.detected_adjustment_events == 3
+    assert result.unreferenced_adjustment_events == 1
+    assert result.unreferenced_adjustment_dates == ("2025-06-24",)
+    assert result.record()["unreferenced_adjustment_events"] == 1
+    assert not result.all_corporate_actions_verified
+
+
+def test_factor_rounding_noise_ignored_but_large_candidate_count_retained():
+    raw, adj = _pair()
+    factor = adj.bars[-1].close / raw.bars[-1].close
+    day = datetime(2025, 6, 24, tzinfo=timezone.utc)
+    raw_new = Bar(day, "QQQ", 100., 101., 99., 100., 1000.)
+    adj_new = Bar(day, "QQQ", 100*factor*(1+1e-8), 101*factor*(1+1e-8),
+                  99*factor*(1+1e-8), 100*factor*(1+1e-8), 1000.)
+    quiet = compare_issuer_qqq_cash_to_price_adjustments(
+        replace(raw, bars=(*raw.bars, raw_new)),
+        replace(adj, bars=(*adj.bars, adj_new)),
+    )
+    assert quiet.unreferenced_adjustment_events == 0
+    assert quiet.detected_adjustment_events == 2
+    raw_bars = [*raw.bars, raw_new]
+    adj_bars = [*adj.bars, adj_new]
+    factor = adj_new.close / raw_new.close
+    for index in range(30):
+        stamp = datetime(2025, 7, 1, tzinfo=timezone.utc) + timedelta(days=index)
+        raw_bars.append(Bar(stamp, "QQQ", 100., 101., 99., 100., 1000.))
+        factor *= 1.01
+        adj_bars.append(Bar(stamp, "QQQ", 100*factor, 101*factor, 99*factor, 100*factor, 1000.))
+    result = compare_issuer_qqq_cash_to_price_adjustments(
+        replace(raw, bars=tuple(raw_bars)), replace(adj, bars=tuple(adj_bars))
+    )
+    assert result.unreferenced_adjustment_events == 30
+    assert len(result.unreferenced_adjustment_dates) == 24
+    assert result.detected_adjustment_events == 32

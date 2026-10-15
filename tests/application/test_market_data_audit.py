@@ -263,3 +263,53 @@ def test_managed_revision_observation_detects_later_same_vendor_correction(
     assert revision["historical_point_in_time_price_verified"] is False
     assert result["point_in_time_independently_verified"] is False
     assert result["orders_enabled"] is False
+
+
+
+def test_audit_discloses_issuer_coverage_gap_without_pit_upgrade(tmp_path: Path) -> None:
+    # One issuer cash checkpoint plus one later unidentified adjustment-factor
+    # change; a factor jump alone does not prove the event's economic cause.
+    start = date(2025, 3, 21)
+    days = [datetime(2025, 3, day, tzinfo=timezone.utc) for day in (21, 24, 25)]
+    raw_bars = tuple(Bar(d, "QQQ", 100., 101., 99., 100., 1000.) for d in days)
+    factors = [1.0, 1.0 + .71571 / 100., (1.0 + .71571 / 100.) * 1.02]
+    adjusted_bars = tuple(
+        Bar(d, "QQQ", 100*f, 101*f, 99*f, 100*f, 1000.)
+        for d, f in zip(days, factors, strict=True)
+    )
+    provenance = MarketSourceProvenance(
+        source_id="tiingo",
+        retrieved_at=datetime(2025, 4, 1, tzinfo=timezone.utc),
+        revision_policy="latest",
+        universe_policy="single_symbol",
+        corporate_action_policy="raw",
+        corporate_action_reference=None,
+        includes_delisted=False,
+    )
+    folder = tmp_path / "data/market/tiingo"
+    folder.mkdir(parents=True)
+    raw_path = f"data/market/tiingo/QQQ_{start.isoformat()}_2025-03-25_raw.parquet"
+    adj_path = (
+        f"data/market/tiingo/QQQ_{start.isoformat()}_2025-03-25_"
+        "total_return_adjusted.parquet"
+    )
+    ParquetDataProvider.write(
+        tmp_path / raw_path,
+        MarketDataSet("unit", DataZone.DEVELOPMENT, raw_bars, provenance=provenance),
+    )
+    ParquetDataProvider.write(
+        tmp_path / adj_path,
+        MarketDataSet(
+            "unit", DataZone.DEVELOPMENT, adjusted_bars,
+            provenance=replace(provenance, corporate_action_policy="total_return_adjusted"),
+        ),
+    )
+    report = _audit(tmp_path).audit(raw_path, adjusted_path=adj_path)
+    result = report["issuer_distribution_checkpoints"]
+    assert result["status"] == "PARTIAL_ISSUER_DISTRIBUTIONS_MATCH"
+    assert result["matched_events"] == 1
+    assert result["unreferenced_adjustment_events"] == 1
+    assert result["unreferenced_adjustment_dates"] == ["2025-03-25"]
+    assert "unreferenced_corporate_action_adjustment_candidates" in report["blocking_reasons"]
+    assert report["status"] == "RESEARCH_ONLY_NOT_PIT_VERIFIED"
+    assert report["orders_enabled"] is False
