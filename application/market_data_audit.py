@@ -18,6 +18,7 @@ from core.data.contracts import DataZone, MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.data.quality import market_data_quality
 from orchestration.evidence import require_research_zone
+from research.indicator_engine.validation_gate import inspect_us_equity_daily_observations
 
 _PRICE_TOLERANCE = 0.005  # 0.5% relative discrepancy; comparison, not certification
 _ADJUSTMENT_TOLERANCE = 0.003  # 0.3% factor tolerance for rounded price feeds
@@ -199,7 +200,14 @@ class MarketDataAuditService:
         _relative, _source, dataset = self._load(relative)
         provenance = dataset.provenance
         quality = market_data_quality(dataset)
+        exchange = inspect_us_equity_daily_observations(dataset)
         reasons = list(quality.issues)
+        if exchange.weekend_bars:
+            reasons.append("weekend_exchange_session_bar")
+        if exchange.repeated_session_dates:
+            reasons.append("repeated_exchange_session_date")
+        # A weekday-only scan cannot establish holiday/special-closure coverage.
+        reasons.append("independent_exchange_session_calendar_missing")
         reasons.append("independent_historical_as_of_snapshots_missing")
         independent = None
         if comparison_path is not None:
@@ -231,6 +239,7 @@ class MarketDataAuditService:
             if provenance
             else None,
             "quality": quality.record(),
+            "exchange_session_observations": exchange.record(),
             "pin_status": pin_status,
             "independent_vendor_comparison": independent,
             "corporate_action_consistency": adjusted,

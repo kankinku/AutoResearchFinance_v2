@@ -154,3 +154,39 @@ def test_managed_dev_only_path_and_no_untrusted_certificate(tmp_path: Path) -> N
         audit.audit("../../../../etc/passwd")
     with pytest.raises(MarketDataError):
         audit.pin("../../../../etc/passwd")
+
+
+
+def test_audit_flags_weekend_and_same_day_repetition_without_calendar_certification(
+    tmp_path: Path,
+) -> None:
+    source = _write_dataset(tmp_path)
+    path = tmp_path / source
+    original = ParquetDataProvider.read(path)
+    rows = list(original.bars)
+    # A second OHLC observation on a separately timestamped same exchange
+    # date is not the same as a legitimate additional daily NYSE session.
+    rows[1] = Bar(
+        rows[0].timestamp + timedelta(hours=6),
+        "QQQ", 101, 103, 99, 102, 1000,
+    )
+    # Third record reports a Saturday regular-session date.
+    rows[2] = Bar(
+        datetime(2024, 1, 6, tzinfo=timezone.utc),
+        "QQQ", 102, 104, 100, 103, 1000,
+    )
+    # Match source filename to the expanded test interval.
+    target = path.with_name("QQQ_2024-01-02_2024-01-06_raw.parquet")
+    ParquetDataProvider.write(
+        target, MarketDataSet(original.version, original.zone, tuple(rows),
+                              provenance=original.provenance)
+    )
+    report = _audit(tmp_path).audit(target.relative_to(tmp_path).as_posix())
+    observed = report["exchange_session_observations"]
+    assert observed["weekend_bars"] == ["QQQ:2024-01-06"]
+    assert observed["repeated_session_dates"] == ["QQQ:2024-01-02"]
+    assert observed["calendar_independently_verified"] is False
+    assert "weekend_exchange_session_bar" in report["blocking_reasons"]
+    assert "repeated_exchange_session_date" in report["blocking_reasons"]
+    assert "independent_exchange_session_calendar_missing" in report["blocking_reasons"]
+    assert report["point_in_time_independently_verified"] is False

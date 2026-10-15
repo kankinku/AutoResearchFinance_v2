@@ -17,6 +17,7 @@ from evaluation.metrics import calculate_metrics
 from research.indicator_engine.algorithm_plan import AlgorithmPlan, compile_algorithm_plan
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
 from research.indicator_engine.strategy_adapter import evaluate_compiled_development
+from research.indicator_engine.validation_gate import forward_research_blockers
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,7 @@ class ForwardWindowReport:
     first_execution_time: str | None
     raw_close_to_close_buy_hold: float
     descriptive_gate_met: bool
+    validation_blocking_reasons: tuple[str, ...]
     validation_decision: Literal["NOT_VALIDATED"] = "NOT_VALIDATED"
     status: Literal["NON_PIT_CHRONOLOGICAL_RESEARCH_ONLY"] = (
         "NON_PIT_CHRONOLOGICAL_RESEARCH_ONLY"
@@ -145,8 +147,13 @@ def evaluate_chronological_window(
     if any(fill.side not in {"buy", "sell"} for fill in result.trades):
         raise ResearchCatalogError("unsupported fill side")
     first_execution = result.trades[0].timestamp if result.trades else None
+    blocking_reasons = forward_research_blockers(
+        historical, forward, cumulative_return=metrics.total_return,
+        sharpe=metrics.sharpe, max_drawdown=metrics.max_drawdown,
+        closed_trades=closed,
+    )
     proof = {
-        "schema": "academic-forward-window-v1",
+        "schema": "academic-forward-window-v2",
         "plan_hash": compiled.plan_hash,
         "training_hash": historical.dataset_hash,
         "holdout_hash": forward.dataset_hash,
@@ -158,6 +165,7 @@ def evaluate_chronological_window(
         "forward_equity": curve,
         "fills": [t.__dict__ for t in result.trades],
         "data_status": "NON_PIT_DEVELOPMENT",
+        "validation_blocking_reasons": blocking_reasons,
     }
     return ForwardWindowReport(
         plan_hash=compiled.plan_hash,
@@ -189,4 +197,5 @@ def evaluate_chronological_window(
             and closed >= 10 and metrics.sharpe is not None
             and metrics.sharpe > 0.50
         ),
+        validation_blocking_reasons=blocking_reasons,
     )
