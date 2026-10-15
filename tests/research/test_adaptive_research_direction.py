@@ -106,3 +106,30 @@ def test_forged_evidence_rejected_not_promoted_to_guidance():
         build_research_direction(h, {2: _report(h)})
     with pytest.raises(ResearchBudgetError, match='order'):
         build_research_direction(list(reversed(_history(2))), {})
+
+
+
+def test_prior_persisted_matched_zero_fill_result_cannot_direct_evolve():
+    h = _history()
+    # Historical v2 evidence must remain immutable. Normalize for advisory
+    # only when both parent and child fill counts are present.
+    stored = _report(h, state="DIRECTION_MATCHED_DEVELOPMENT_ONLY", added=5)
+    result_row = stored["report"]["experiments"][0]
+    result_row["parent_fill_count"] = 75
+    result_row["child_fill_count"] = 0
+    outcome = build_research_direction(h, {1: stored})
+    assert outcome["recommended_mode"] == "EXPLORE"
+    assert outcome["reason_code"] == "LAST_CONTROL_INACTIVE_CHILD"
+    assert outcome["experiment_status_counts"]["DEGENERATE_INACTIVE_CHILD"] == 1
+    assert outcome["last_generation_observations"][0]["observed_result"] == (
+        "DEGENERATE_INACTIVE_CHILD"
+    )
+    assert not outcome["real_trading_enabled"]
+
+
+def test_new_inactive_child_status_routes_to_explore():
+    h = _history()
+    report = _report(h, state="DEGENERATE_INACTIVE_CHILD", added=1)
+    result = build_research_direction(h, {1: report})
+    assert result["recommended_mode"] == "EXPLORE"
+    assert result["reason_code"] == "LAST_CONTROL_INACTIVE_CHILD"

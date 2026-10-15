@@ -205,3 +205,37 @@ def test_fill_comparison_detects_added_and_removed_not_only_sizing(tmp_path: Pat
     assert {x['event_kind'] for x in delta.event_samples} == {'ADDED', 'REMOVED'}
     assert delta.matched_event_count == len(original.trades) - 2
     assert not delta.resized_event_count
+
+
+
+def test_inactive_child_cannot_claim_reduced_drawdown_improved_strategy(
+    tmp_path: Path,
+):
+    """Actual paired synthetic-market fills, not mocked numeric outcomes."""
+    catalog, compiled, market, payload = _inputs(tmp_path)
+    # plan_vote_score is normalized in [0, 1]; this threshold suppresses all
+    # entries. A zero-drawdown result is a NO-TRADE result, not risk alpha.
+    proposal = payload["hypotheses"][0]
+    proposal["expected_metric"] = "max_drawdown"
+    proposal["predicted_direction"] = "DECREASE"
+    proposal["test_design"] = "RULE_STRUCTURE"
+    proposal["next_intent"]["operations"] = [
+        {
+            "op": "REPLACE_RULE", "path": "entry.conditions.0",
+            "condition": {"op": "greater_than", "left": "plan_vote_score", "value": 1.1},
+        },
+        {
+            "op": "REPLACE_RULE", "path": "exit.conditions.0",
+            "condition": {"op": "less_equal", "left": "plan_vote_score", "value": 1.1},
+        },
+    ]
+    result = compare_controlled_experiments(catalog, compiled, market, payload)
+    observation = result.experiments[0]
+    assert observation.parent_fill_count > 0
+    assert observation.child_fill_count == 0
+    assert observation.child_metric == 0.0
+    assert observation.status == "DEGENERATE_INACTIVE_CHILD"
+    assert observation.execution_delta.removed_event_count > 0
+    assert observation.causal_status == "NOT_ESTABLISHED"
+    assert result.out_of_sample_approved is False
+    assert result.broker_executable is False

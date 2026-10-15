@@ -221,3 +221,13 @@ Databento XNAS.ITCH의 2026-10-31 예정 소급 변경을 앞두고 production/p
 조건 증빙 파일 0건 확인, 공급자 계정 AUTH_REQUIRED라 **실데이터 변경 0건이라고 주장하지 않음**.
 preview는 유료 요청이며 본 단계에서 호출/구매하지 않았다. PIT/실거래 인증 불가;
 1-2 외부 계약·실제 기록 미확보라 진행 중. 외부 대기 중 [2-1] MCP 전체 E2E 점검 병행 권장.
+
+
+### [2-1단계 / 전체 5단계] 실제 ChatGPT MCP QQQ 2세대 + S7 무거래 오판 방어 — 2026-10-15
+
+[실제 MCP 2세대 수치·Evidence·새 보호장벽](autoresearch-stage-2-1-live-mcp-qqq-two-generations-2026-10-15.md):
+기존 앱 인증으로 MCP 32개 직접 접근, 같은 URL에서 GPT가 typed Plan과 거래 ID 기반 DiagnosticResponse를 2세대 제출·완주; 실험 서버가 S7 및 다음 세대 S8 방향 자동 반환했다.
+1세대 81.97%/MDD20.13% 뒤 강화안 MDD26.35% 악화, 2세대 -16.59%/MDD21.47% 뒤 강화안 체결 0건 및 MDD0%를 기존 코드가 허위 DIRECTION_MATCHED 라벨로 분류함.
+이를 새 DEGENERATE_INACTIVE_CHILD, 구보고서 불변 S8 재해석 및 GPT에 실행 가능한 S7 metrics만 안내하는 변경으로 방어.
+서버 real_model_connection_verified/model_autonomy_verified는 false인 상태 그대로, 장기 10~100세대·PIT·OOS/순수익 아직 미검증.
+개발 브랜치 변경만 완료하며 운영 MCP URL/OAuth/원장/주문 상태는 유지.

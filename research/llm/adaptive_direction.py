@@ -16,6 +16,7 @@ Mode = Literal["EXPLORE", "TEST_HYPOTHESIS", "EVOLVE"]
 _ALLOWED_STATES = frozenset({
     "NO_OBSERVED_EFFECT", "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
     "DIRECTION_NOT_MATCHED_DEVELOPMENT_ONLY", "METRIC_UNAVAILABLE",
+    "DEGENERATE_INACTIVE_CHILD",
 })
 
 
@@ -74,6 +75,19 @@ def build_research_direction(
             if (state not in _ALLOWED_STATES
                     or observation.get("causal_status") != "NOT_ESTABLISHED"):
                 raise ResearchBudgetError("unsupported or promoted experiment status")
+            # Old immutable reports can have the pre-fix positive direction
+            # label for a zero-trade child. Do NOT change their hashed evidence;
+            # normalize ONLY the advisory reading of the old observation.
+            parent_fills = observation.get("parent_fill_count")
+            child_fills = observation.get("child_fill_count")
+            if (parent_fills is not None or child_fills is not None) and (
+                type(parent_fills) is not int or type(child_fills) is not int
+                or parent_fills < 0 or child_fills < 0
+            ):
+                raise ResearchBudgetError("invalid experiment fill counts")
+            if (parent_fills is not None and parent_fills > 0
+                    and child_fills == 0):
+                state = "DEGENERATE_INACTIVE_CHILD"
             delta = observation.get("execution_delta")
             if not isinstance(delta, dict):
                 raise ResearchBudgetError("missing measured execution attribution")
@@ -118,6 +132,12 @@ def build_research_direction(
         ):
             selected = "EVOLVE"
             basis = "LAST_CONTROL_MEASURED_NONTRIVIAL_SIGNAL_CHANGE"
+        elif all(
+            item["observed_result"] == "DEGENERATE_INACTIVE_CHILD"
+            for item in last_trials
+        ):
+            selected = "EXPLORE"
+            basis = "LAST_CONTROL_INACTIVE_CHILD"
         elif all(item["observed_result"] == "NO_OBSERVED_EFFECT" for item in last_trials):
             selected = "EXPLORE"
             basis = "LAST_CONTROL_NO_OBSERVED_EFFECT"

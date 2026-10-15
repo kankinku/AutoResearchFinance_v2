@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from research.indicator_engine.controlled_experiments import SUPPORTED_CONTROLLED_METRICS
 from research.llm.diagnostic_research import DiagnosticResponse
 from strategy_ir.schema import StrategyIR
 
@@ -53,6 +54,9 @@ def academic_diagnostic_quality_hint() -> dict[str, Any]:
         "schema": "academic-s7-quality-guidance-v1",
         "default_legacy_policy": "ALLOW_REPLAYABLE_NO_EFFECT",
         "strict_mcp_option": {"require_signal_change": True},
+        # The typed DiagnosticResponse includes metrics not yet implemented by
+        # S7; advertise the narrower runnable set BEFORE the model submits.
+        "supported_controlled_metrics": sorted(SUPPORTED_CONTROLLED_METRICS),
         "known_static_noop": (
             "For the canonical AlgorithmPlan, removing its only outer "
             "regime_filters.0 (plan_regime > 0.5) never changes executions: "

@@ -166,6 +166,7 @@ class ControlledOutcome:
     status: Literal[
         "NO_OBSERVED_EFFECT", "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
         "DIRECTION_NOT_MATCHED_DEVELOPMENT_ONLY", "METRIC_UNAVAILABLE",
+        "DEGENERATE_INACTIVE_CHILD",
     ]
     same_fill_trace: bool
     parent_fill_count: int
@@ -276,6 +277,11 @@ def compare_controlled_experiments(
         delta = candidate - baseline if candidate is not None and baseline is not None else None
         if identical:
             state = "NO_OBSERVED_EFFECT"
+        elif parent.trades_count > 0 and child.trades_count == 0:
+            # A completely inactive child cannot earn an improvement label:
+            # zero drawdown without participation is NOT a useful alpha test.
+            # Keep the actual zero metric and delta for independent review.
+            state = "DEGENERATE_INACTIVE_CHILD"
         elif delta is None:
             state = "METRIC_UNAVAILABLE"
         elif (
