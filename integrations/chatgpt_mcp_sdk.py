@@ -332,7 +332,9 @@ def chatgpt_tools() -> list[dict[str, object]]:
         ),
         _academic_tool(
             "submit_algorithm_plan",
-            "Validate GPT AlgorithmPlan and return measured backtest context.",
+            "Validate GPT AlgorithmPlan and return measured backtest context. "
+            "An identical retry of the latest acknowledged checkpoint returns its prior "
+            "stage without rerunning; changed payloads or stale checkpoints are rejected.",
             {"session_id": session_field, "checkpoint_token": token_field,
              "plan": {"type": "object"}},
             ["session_id", "checkpoint_token", "plan"],
@@ -341,7 +343,8 @@ def chatgpt_tools() -> list[dict[str, object]]:
             "submit_algorithm_diagnosis",
             "Validate GPT diagnosis and commit one researched generation. Optional "
             "require_signal_change rejects proven redundant regime-filter ablations "
-            "before consuming a checkpoint; existing callers remain compatible.",
+            "before consuming a checkpoint. Latest identical retries return the previously "
+            "committed generation without running experiments again.",
             {"session_id": session_field, "checkpoint_token": token_field,
              "diagnosis": {"type": "object"},
              "require_signal_change": {"type": "boolean", "default": False}},

@@ -89,12 +89,12 @@ def test_plan_and_diagnosis_tokens_protect_checkpoint(tmp_path: Path):
         })
     assert server._dispatch('get_algorithm_research', {
         'session_id':started['session_id']})['status']=='AWAITING_DIAGNOSIS'
-    with pytest.raises(ValueError, match='state|plan'):
-        server._dispatch('submit_algorithm_plan', {
-            'session_id':started['session_id'],
-            'checkpoint_token':started['checkpoint_token'],
-            'plan':_plan().model_dump(mode='json'),
-        })
+    # An identical lost-reply replay is safe; a different plan is not.
+    assert server._dispatch('submit_algorithm_plan', {
+        'session_id':started['session_id'],
+        'checkpoint_token':started['checkpoint_token'],
+        'plan':_plan().model_dump(mode='json'),
+    }) == staged
 
 
 def test_reject_unauthorized_path_and_oos_before_prompt(tmp_path: Path):
@@ -520,9 +520,10 @@ def test_mcp_first_diagnosis_commits_s7_and_refreshes_next_s8_context(tmp_path: 
         'plan': model.propose(started['model_context']),
     })
     assert plan['checkpoint_phase'] == 'AWAITING_DIAGNOSIS'
+    first_diagnosis = model.propose(plan['model_context'])
     completed = server._dispatch('submit_algorithm_diagnosis', {
         'session_id': sid, 'checkpoint_token': plan['checkpoint_token'],
-        'diagnosis': model.propose(plan['model_context']),
+        'diagnosis': first_diagnosis,
     })
     assert completed['completed_generations'] == 1
     assert completed['controlled_experiments_automatically_evaluated'] is True
@@ -543,11 +544,10 @@ def test_mcp_first_diagnosis_commits_s7_and_refreshes_next_s8_context(tmp_path: 
     assert server._dispatch('evaluate_algorithm_experiments', {
         'session_id': sid, 'generation': 1,
     }) == evidence
-    with pytest.raises(ValueError, match='checkpoint|token|state'):
-        server._dispatch('submit_algorithm_diagnosis', {
-            'session_id': sid, 'checkpoint_token': plan['checkpoint_token'],
-            'diagnosis': model.propose(plan['model_context']),
-        })
+    assert server._dispatch('submit_algorithm_diagnosis', {
+        'session_id': sid, 'checkpoint_token': plan['checkpoint_token'],
+        'diagnosis': first_diagnosis,
+    }) == completed
     assert server._dispatch('get_algorithm_research', {
         'session_id': sid,
     })['history'] == completed['history']
@@ -713,6 +713,10 @@ def test_mcp_no_fill_generation_progresses_then_normal_plan(tmp_path: Path):
         "plan": blocked,
     })
     assert staged["status"] == "AWAITING_DIAGNOSIS"
+    assert server._dispatch("submit_algorithm_plan", {
+        "session_id": session, "checkpoint_token": started["checkpoint_token"],
+        "plan": blocked,
+    }) == staged
     context = staged["model_context"]
     assert context["metrics"]["trade_count"] == 0
     assert not context["observations"]["execution_samples"]
@@ -753,6 +757,10 @@ def test_mcp_no_fill_generation_progresses_then_normal_plan(tmp_path: Path):
     assert finished["completed_generations"] == 1
     assert finished["status"] == "AWAITING_PROVIDER"
     assert finished["latest_controlled_experiments"]["generation"] == 1
+    assert server._dispatch("submit_algorithm_diagnosis", {
+        "session_id": session, "checkpoint_token": staged["checkpoint_token"],
+        "diagnosis": diagnostic,
+    }) == finished
     assert finished["orders_enabled"] is False
 
     scripted = ScriptedResearcher()

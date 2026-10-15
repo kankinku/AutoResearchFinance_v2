@@ -89,6 +89,13 @@ class AcademicMCPCheckpointService:
             report_json TEXT NOT NULL, report_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, generation)
         )''')
+        db.execute('''CREATE TABLE IF NOT EXISTS submission_receipts (
+            session_id TEXT NOT NULL, kind TEXT NOT NULL,
+            submitted_token_hash TEXT NOT NULL, request_hash TEXT NOT NULL,
+            resulting_token_hash TEXT NOT NULL, resulting_phase TEXT NOT NULL,
+            completed_generations INTEGER NOT NULL, receipt_hash TEXT NOT NULL,
+            PRIMARY KEY(session_id, kind)
+        )''')
         # Old sessions were created with the original catalog. Keep their
         # identity even after new S6 candidates become available.
         if 'catalog_version' not in {
@@ -98,6 +105,77 @@ class AcademicMCPCheckpointService:
                 "ALTER TABLE stages ADD COLUMN catalog_version TEXT NOT NULL DEFAULT 's3-v1'"
             )
         return db
+
+    @staticmethod
+    def _record_submission(
+        db: sqlite3.Connection, sid: str, kind: str, submitted_token: str,
+        request: object, resulting_token: str, resulting_phase: str,
+        completed_generations: int,
+    ) -> None:
+        """Persist a single most-recent receipt without storing secret tokens."""
+        body = {
+            'session_id': sid, 'kind': kind,
+            'submitted_token_hash': content_hash(submitted_token),
+            'request_hash': content_hash(request),
+            'resulting_token_hash': content_hash(resulting_token),
+            'resulting_phase': resulting_phase,
+            'completed_generations': completed_generations,
+        }
+        db.execute(
+            "INSERT INTO submission_receipts VALUES(?,?,?,?,?,?,?,?) "
+            "ON CONFLICT(session_id,kind) DO UPDATE SET "
+            "submitted_token_hash=excluded.submitted_token_hash, "
+            "request_hash=excluded.request_hash, "
+            "resulting_token_hash=excluded.resulting_token_hash, "
+            "resulting_phase=excluded.resulting_phase, "
+            "completed_generations=excluded.completed_generations, "
+            "receipt_hash=excluded.receipt_hash",
+            (*body.values(), content_hash(body)),
+        )
+
+    @staticmethod
+    def _is_recent_replay(
+        db: sqlite3.Connection, row: sqlite3.Row, current: dict[str, Any],
+        kind: str, submitted_token: str, request: object,
+    ) -> bool:
+        """Only replay the last identical acknowledged step at the same checkpoint."""
+        receipt = db.execute(
+            'SELECT * FROM submission_receipts WHERE session_id=? AND kind=?',
+            (row['session_id'], kind),
+        ).fetchone()
+        if receipt is None:
+            return False
+        body = {key: receipt[key] for key in (
+            'session_id', 'kind', 'submitted_token_hash', 'request_hash',
+            'resulting_token_hash', 'resulting_phase', 'completed_generations',
+        )}
+        if content_hash(body) != receipt['receipt_hash']:
+            raise CycleStateError('submission receipt integrity failure')
+        if receipt['submitted_token_hash'] != content_hash(submitted_token):
+            return False
+        if receipt['request_hash'] != content_hash(request):
+            raise CycleStateError('conflicting replay payload for consumed checkpoint token')
+        if (row['phase'] != receipt['resulting_phase']
+                or content_hash(row['token']) != receipt['resulting_token_hash']
+                or current['completed_generations'] != receipt['completed_generations']):
+            raise CycleStateError('stale replay after checkpoint advanced')
+        return True
+
+    def _evaluated_reply(self, sid: str, generation: int) -> dict[str, Any]:
+        """Reconstruct the two-write reply, including immutable S7 evidence."""
+        experiment_report = self.evaluate_experiments({
+            'session_id': sid, 'generation': generation,
+        })
+        refreshed = self.get({'session_id': sid})
+        if (
+            refreshed['completed_generations'] != generation
+            or experiment_report['original_generation_evidence_hash']
+            != refreshed['history'][-1]['evidence_hash']
+        ):
+            raise CycleStateError('post-diagnosis experiment evidence mismatch')
+        refreshed['latest_controlled_experiments'] = experiment_report
+        refreshed['controlled_experiments_automatically_evaluated'] = True
+        return refreshed
 
     def _catalog(self, version: str = 's3-v1') -> ResearchCatalog:
         if version not in ('s3-v1', 's6-v1', 's6-v2'):
@@ -291,6 +369,10 @@ class AcademicMCPCheckpointService:
         sid, token = args['session_id'], args['checkpoint_token']
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
+            if self._is_recent_replay(
+                db, row, current, 'plan', token, args['plan'],
+            ):
+                return self.get({'session_id': sid})
             if row['phase'] != 'AWAITING_PLAN' or current['status'] != 'AWAITING_PROVIDER':
                 raise CycleStateError('plan cannot be submitted in current state')
             if row['token'] != token:
@@ -310,6 +392,10 @@ class AcademicMCPCheckpointService:
             )
             if result.rowcount != 1:
                 raise CycleStateError('concurrent plan checkpoint was claimed')
+            self._record_submission(
+                db, sid, 'plan', token, args['plan'], new_token,
+                'AWAITING_DIAGNOSIS', current['completed_generations'],
+            )
         return self.get({'session_id': sid})
 
     def submit_diagnosis(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -322,6 +408,14 @@ class AcademicMCPCheckpointService:
         sid, token, diagnosis = args['session_id'], args['checkpoint_token'], args['diagnosis']
         if not isinstance(diagnosis, dict):
             raise ValueError('diagnosis must be a structured object')
+        # A lost MCP reply is recoverable without rerunning a generation.
+        replay_request = {'diagnosis': diagnosis, 'require_signal_change': strict_signal}
+        with self._connect() as db:
+            row, _, _, current = self._state(db, sid)
+            if self._is_recent_replay(
+                db, row, current, 'diagnosis', token, replay_request,
+            ):
+                return self._evaluated_reply(sid, current['completed_generations'])
         # Recompute all observed evidence before any generation can be committed.
         pending = self.get({'session_id': sid})
         if (pending['checkpoint_phase'] != 'AWAITING_DIAGNOSIS'
@@ -374,29 +468,24 @@ class AcademicMCPCheckpointService:
                 )
             raise
         with self._connect() as db:
-            db.execute('''UPDATE stages SET phase=?,token=?,plan_json=NULL,
+            new_token = uuid4().hex
+            next_phase = 'COMPLETED' if completed['status'] == 'COMPLETED' else 'AWAITING_PLAN'
+            committed = db.execute('''UPDATE stages SET phase=?,token=?,plan_json=NULL,
             plan_digest=NULL,context_digest=NULL WHERE session_id=? AND phase='RUNNING' ''',
-            ('COMPLETED' if completed['status']=='COMPLETED' else 'AWAITING_PLAN',uuid4().hex,sid))
+            (next_phase, new_token, sid))
+            if committed.rowcount != 1:
+                raise CycleStateError('diagnosis checkpoint finalization conflict')
+            self._record_submission(
+                db, sid, 'diagnosis', token, replay_request, new_token,
+                next_phase, completed['completed_generations'],
+            )
         # MCP-first shortcut: a complete research generation must carry its
         # measured experiment evidence into the NEXT LLM planning prompt.
         # Previously ChatGPT had to make an extra evaluate_* call and could
         # accidentally start the next generation from unmeasured hypotheses.
         # All comparison results use the existing immutable, idempotent S7
         # storage and the *same* development dataset as the original plan.
-        measured_generation = completed['completed_generations']
-        experiment_report = self.evaluate_experiments({
-            'session_id': sid, 'generation': measured_generation,
-        })
-        refreshed = self.get({'session_id': sid})
-        if (
-            refreshed['completed_generations'] != measured_generation
-            or experiment_report['original_generation_evidence_hash']
-            != refreshed['history'][-1]['evidence_hash']
-        ):
-            raise CycleStateError('post-diagnosis experiment evidence mismatch')
-        refreshed['latest_controlled_experiments'] = experiment_report
-        refreshed['controlled_experiments_automatically_evaluated'] = True
-        return refreshed
+        return self._evaluated_reply(sid, completed['completed_generations'])
 
     def cancel(self, args: dict[str, Any]) -> dict[str, Any]:
         """Stop between generation checkpoints without losing prior Evidence."""
