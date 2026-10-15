@@ -231,3 +231,8 @@ preview는 유료 요청이며 본 단계에서 호출/구매하지 않았다. P
 이를 새 DEGENERATE_INACTIVE_CHILD, 구보고서 불변 S8 재해석 및 GPT에 실행 가능한 S7 metrics만 안내하는 변경으로 방어.
 서버 real_model_connection_verified/model_autonomy_verified는 false인 상태 그대로, 장기 10~100세대·PIT·OOS/순수익 아직 미검증.
 개발 브랜치 변경만 완료하며 운영 MCP URL/OAuth/원장/주문 상태는 유지.
+
+
+### [2-2단계 / 전체 5단계] 실제 ChatGPT MCP 10세대 시도 무거래 진단 데드락 해소 — 2026-10-15
+
+[실제 MCP 실패·복구 개발 증거](autoresearch-stage-2-2-zero-fill-diagnostic-recovery-2026-10-15.md): ChatGPT MCP 32개 도구로 1세대 QQQ Plan→진단→S7 통제 실험 성공. 별도 10세대 목표 실험은 G1 완료 후 G2의 정상적 0-fill Plan에서 거래 ID가 없어 DiagnosticResponse의 최소 observed_ids 조건 충족 불가, 세션 증거 보존 후 CANCELLED(10세대 완주 아님). audit.trace_hash가 인증한 비실행 decision_id 최대 12개를 무거래 컨텍스트에만 추가해 모델 진단·연속세대 가능하게 개발. 거래 있는 세대 기존 컨텍스트/원장 해시 불변, fake ID 차단. 로컬 MCP 2세대 통합테스트 추가, 운영 배포와 원 MCP URL/OAuth/주문 권한 변경하지 않음. 향후 독립 QA 및 운영 반영 후 10/10 세대 재검증 필요.

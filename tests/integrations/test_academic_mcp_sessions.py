@@ -688,3 +688,84 @@ def test_mcp_first_last_generation_includes_s7_result_in_final_reply(tmp_path: P
         assert report['original_generation_evidence_hash'] == started['history'][
             gen - 1
         ]['evidence_hash']
+
+
+
+def test_mcp_no_fill_generation_progresses_then_normal_plan(tmp_path: Path):
+    """A real zero-trade audit must not deadlock GPT at mandatory evidence IDs."""
+    server, started = _setup(tmp_path)
+    session = started["session_id"]
+    blocked = {
+        "plan_id": "no_fills_first",
+        "cases": [{
+            "case_id": "unreachable",
+            "when": {
+                "indicator_id": "parkinson_variance",
+                "op": "greater_than",
+                "threshold": 1000000,
+            },
+            "votes": [{"indicator_id": "time_series_momentum", "weight": 1}],
+            "min_score": 0.5,
+        }],
+    }
+    staged = server._dispatch("submit_algorithm_plan", {
+        "session_id": session, "checkpoint_token": started["checkpoint_token"],
+        "plan": blocked,
+    })
+    assert staged["status"] == "AWAITING_DIAGNOSIS"
+    context = staged["model_context"]
+    assert context["metrics"]["trade_count"] == 0
+    assert not context["observations"]["execution_samples"]
+    anchor = context["observations"]["non_execution_decision_samples"][0]
+    assert anchor["decision_id"].endswith("-D-000000")
+    diagnostic = {
+        "context_hash": context["context_hash"],
+        "audit_hash": context["audit_hash"],
+        "strategy_hash": context["strategy_hash"],
+        "dataset_hash": context["dataset_hash"],
+        "summary": "Zero trades occurred; test a single weakened entry condition.",
+        "hypotheses": [{
+            "hypothesis_id": "blocked_zero_fill",
+            "observed_ids": [anchor["decision_id"]],
+            "mechanism": "The high risk threshold prevented any trade from occurring.",
+            "alternative": "Even if changed, no other entry signal may become actionable.",
+            "expected_metric": "trade_count",
+            "predicted_direction": "INCREASE",
+            "test_design": "RULE_STRUCTURE",
+            "control": "PARENT_UNCHANGED",
+            "next_intent": {
+                "mode": "structure",
+                "parent_ids": [context["algorithm_parent_id"]],
+                "operations": [{
+                    "op": "REPLACE_RULE", "path": "entry.conditions.0",
+                    "condition": {
+                        "left": "plan_vote_score", "op": "greater_than", "value": 0.2,
+                    },
+                }],
+                "rationale": "Measure one altered entry rule against inactive control.",
+            },
+        }],
+    }
+    finished = server._dispatch("submit_algorithm_diagnosis", {
+        "session_id": session, "checkpoint_token": staged["checkpoint_token"],
+        "diagnosis": diagnostic,
+    })
+    assert finished["completed_generations"] == 1
+    assert finished["status"] == "AWAITING_PROVIDER"
+    assert finished["latest_controlled_experiments"]["generation"] == 1
+    assert finished["orders_enabled"] is False
+
+    scripted = ScriptedResearcher()
+    plan2 = scripted.propose(finished["model_context"])
+    stage2 = server._dispatch("submit_algorithm_plan", {
+        "session_id": session, "checkpoint_token": finished["checkpoint_token"],
+        "plan": plan2,
+    })
+    result = server._dispatch("submit_algorithm_diagnosis", {
+        "session_id": session, "checkpoint_token": stage2["checkpoint_token"],
+        "diagnosis": scripted.propose(stage2["model_context"]),
+    })
+    assert result["status"] == "COMPLETED"
+    assert result["completed_generations"] == 2
+    assert len(result["history"]) == 2
+    assert not result["orders_enabled"]

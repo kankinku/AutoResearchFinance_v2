@@ -157,6 +157,36 @@ def build_diagnostic_context(
         "execution_policy": "PROPOSE_ONLY_NO_ORDER_OR_APPROVAL",
         "validation_scope": "REUSED_DEVELOPMENT_NON_PIT_NO_INDEPENDENT_OOS",
     }
+    # A valid zero-fill strategy has no trade_id/fill_id to cite, but requiring
+    # every diagnosis to cite one would deadlock a multi-generation GPT cycle.
+    # Instead expose a bounded, deterministic sample of ALREADY HASH-BOUND
+    # decisions where nothing executed. Never fabricate trades or change the
+    # existing signed audit packet or nonzero-run context hashes.
+    if not audit.fills:
+        eligible = [
+            decision for decision in audit.decisions
+            if decision.action in {"WARMUP", "FILTERED_REGIME", "NO_ENTRY_SIGNAL"}
+            and decision.fill_id is None
+        ]
+        limit = min(12, len(eligible))
+        chosen = (
+            [eligible[(i * (len(eligible) - 1)) // (limit - 1)]
+             for i in range(limit)]
+            if limit > 1 else eligible[:1]
+        )
+        context["observations"]["non_execution_decision_samples"] = [
+            {
+                "decision_id": item.decision_id,
+                "signal_time": item.signal_time.isoformat(),
+                "decision_action": item.action,
+                "entry_signal": item.entry_signal,
+                "regime_signal": item.regime_signal,
+                "evaluated_gates": dict(item.evaluated_gates),
+                "indicator_values": dict(item.indicator_values),
+                "fill_id": None,
+            }
+            for item in chosen
+        ]
     context["context_hash"] = content_hash(context)
     return context
 
@@ -199,6 +229,14 @@ def approve_diagnostic_plan(
             for value in (item["trade_id"], item["decision_id"], item["fill_id"])
         ),
     }
+    # Zero-fill research can reference only actual audited, non-executing
+    # decisions that the service made available to the model. These IDs are
+    # authenticated by _verify_audit's full decision trace hash, and any
+    # fabricated ID or modified model context is rejected above.
+    allowed_ids.update(
+        item["decision_id"]
+        for item in observations.get("non_execution_decision_samples", ())
+    )
     plans: list[ProposedExperiment] = []
     seen_children: set[str] = set()
     parent_semantic = semantic_strategy_hash(parent)
