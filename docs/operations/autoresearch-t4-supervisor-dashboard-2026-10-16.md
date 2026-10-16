@@ -23,3 +23,13 @@
 ## 후속
 - 실제 무인 GPT 모델 공급자는 비용/호출 권한 및 정책 검토 후 명시적으로 연결해야 한다. 현재 MCP ChatGPT 방식만으로 채팅 밖에서 자동 생성 불가능.
 - 해당 단계가 승인되면 중지·재개·단일 owner 상태를 보여주고 모델별 호출 예산·실행시간 및 실제 33~100세대 생성/진단·S7 검증으로 진행. OOS/실거래 비승인 유지.
+
+## 읽기 전용 모니터 운영 반영 완료
+
+- 개발 커밋 `5372449`를 detached worktree `/shared/moon-workspace/AutoResearchFinance_v2-academic-monitor-5372449`에 고정. 기존 모니터 포트 8081/8082 및 Quant MCP 운영 백엔드·인증은 그대로 유지.
+- 새 read-only FastAPI 프로세스 PID 22318, loopback 127.0.0.1:8083. 정확한 연구 원장 경로 `/shared/moon-workspace/AutoResearchFinance_v2-phase3-5-1-inventory/state/moon-http/research/academic-gpt-checkpoints`에서 S7/QQQ 원장과 supervisor control 형제 경로만 READ-ONLY 조회.
+- 직접 URL `http://127.0.0.1:8083/api/academic/overview` : HTTP 200; 32/100, `AWAITING_PLAN`, S7 누락 0, orders OFF, 별도 상주 provider 없음 `PROVIDER_REQUIRED`; 페이지·JS·CSS 각각 HTTP 200.
+- Windows Docker 포트 127.0.0.1:2999 기존 Nginx 보호 경로 `/academic`, `/api/academic/`, `/static/academic.js`, `/static/academic.css`만 내부 8082→8083 변경. Nginx -t 및 무중단 reload 통과, 원본 설정 백업 `/tmp/quant-academic-nginx-backup-before-5372449.conf`. 기존 8082 프로세스 미중단으로 rollback 가능.
+- 운영 인증: 해당 4경로 익명 401, 임시 일회성 기본 인증 사용자로 각각 HTTP 200, HTML에 새 worker 영역 확인, API 모델 상태 실제 `PROVIDER_REQUIRED`, 동일 세대 32/100. 기존 비밀번호 파일 원본 바이트 확인·임시 계정 삭제. 기존 Moon /health 200, Quant 익명 /quant/mcp 401 유지. Windows Firefox 직접 로그인 성공 여부는 사용자 측 확인이 필요.
+- 실험 원장·MCP URL·OAuth·실주문 설정·20문답 scope 미변경. 운영 대시보드 변경은 정적인 읽기 전용 UI/조회 로직만 적용, 모델 무인 GPT 실행기 자동 배포 아님.
+- 제한: 새 별도 대시보드 프로세스는 이 단계에서 수동 loopback 실행되며 **Docker 컨테이너 재시작 후 자동 기동을 보장하지 않음**. 지속성/헬스체크·시스템 구동 시 복구는 별도 운영 작업으로 다룸.
