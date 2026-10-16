@@ -47,6 +47,20 @@ from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
 
 
+class DuplicateAlgorithmPlanError(ValueError):
+    """A known proposal conflict; no stage or checkpoint token was consumed."""
+
+    def __init__(self, code: str, previous_generation: int) -> None:
+        if code not in ("DUPLICATE_SEMANTIC_PLAN", "DUPLICATE_EFFECTIVE_SIGNALS"):
+            raise ValueError("invalid duplicate-plan reason")
+        self.code = code
+        self.previous_generation = previous_generation
+        super().__init__(
+            f"{code}: previously tested generation {previous_generation}; "
+            "revise the plan and resubmit using the same checkpoint token"
+        )
+
+
 class _SubmittedProvider:
     """Transport for independently GPT-authored, immutable staged responses."""
 
@@ -494,16 +508,12 @@ class AcademicMCPCheckpointService:
             })
             for previous in current['history']:
                 if previous['algorithm_semantic_hash'] == semantic_hash:
-                    raise ValueError(
-                        'DUPLICATE_SEMANTIC_PLAN: previously tested generation '
-                        f"{previous['generation']}; revise the plan and resubmit "
-                        'using the same checkpoint token'
+                    raise DuplicateAlgorithmPlanError(
+                        'DUPLICATE_SEMANTIC_PLAN', previous['generation'],
                     )
                 if previous['effective_signal_hash'] == effective_hash:
-                    raise ValueError(
-                        'DUPLICATE_EFFECTIVE_SIGNALS: same historical entry/regime '
-                        f"signals as generation {previous['generation']}; revise "
-                        'the plan and resubmit using the same checkpoint token'
+                    raise DuplicateAlgorithmPlanError(
+                        'DUPLICATE_EFFECTIVE_SIGNALS', previous['generation'],
                     )
             audit = audit_algorithm_plan(catalog, compiled, data)
             context = build_diagnostic_context(audit, compiled.compiled.strategy)

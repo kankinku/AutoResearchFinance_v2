@@ -20,6 +20,7 @@ from core.integrity.hashes import content_hash
 from research.llm.checkpoint_autopilot import (
     AcademicCheckpointAutopilot,
     AutonomousLoopError,
+    DuplicateProposalRetryExceeded,
 )
 
 
@@ -35,6 +36,7 @@ class RecoveryAction(str, Enum):
     RETRY_TRANSIENT = "RETRY_TRANSIENT"
     REPAIR_MODEL_OUTPUT = "REPAIR_MODEL_OUTPUT"
     HOLD_POLICY = "HOLD_POLICY"
+    HOLD_DUPLICATE_BUDGET = "HOLD_DUPLICATE_BUDGET"
     HOLD_INTEGRITY = "HOLD_INTEGRITY"
     HOLD_UNKNOWN = "HOLD_UNKNOWN"
     RETRY_EXHAUSTED = "RETRY_EXHAUSTED"
@@ -53,6 +55,8 @@ def classify_research_failure(error: BaseException) -> RecoveryAction:
     """Only typed allowlisted failures are recoverable; no message parsing."""
     if isinstance(error, (ProviderPolicyRefusal, PermissionError)):
         return RecoveryAction.HOLD_POLICY
+    if isinstance(error, DuplicateProposalRetryExceeded):
+        return RecoveryAction.HOLD_DUPLICATE_BUDGET
     if isinstance(error, TransientProviderFailure):
         return RecoveryAction.RETRY_TRANSIENT
     if isinstance(error, ValidationError):

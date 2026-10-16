@@ -6,10 +6,14 @@ are the only authority. No orders/OOS/secret management, no new MCP URL.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Protocol
 
-from application.academic_checkpoint_service import AcademicMCPCheckpointService
+from application.academic_checkpoint_service import (
+    AcademicMCPCheckpointService,
+    DuplicateAlgorithmPlanError,
+)
 from research.indicator_engine.algorithm_plan import AlgorithmPlan
 from research.llm.diagnostic_research import DiagnosticResponse
 
@@ -24,6 +28,10 @@ class AutonomousLoopError(ValueError):
     """Refuse unsupported phase, provider response or model-less operation."""
 
 
+class DuplicateProposalRetryExceeded(AutonomousLoopError):
+    """A generation needs model/operator review after bounded new proposals."""
+
+
 class AcademicCheckpointAutopilot:
     """Complete up to max_generations whole cycles in an explicit foreground call.
 
@@ -36,9 +44,13 @@ class AcademicCheckpointAutopilot:
     def __init__(
         self, service: AcademicMCPCheckpointService,
         provider: AutonomousTransport,
+        *, max_duplicate_reproposals: int = 3,
     ) -> None:
+        if type(max_duplicate_reproposals) is not int or not 0 <= max_duplicate_reproposals <= 3:
+            raise ValueError("max_duplicate_reproposals must be 0..3")
         self.service = service
         self.provider = provider
+        self.max_duplicate_reproposals = max_duplicate_reproposals
 
     def run_resumable(
         self,
@@ -67,6 +79,7 @@ class AcademicCheckpointAutopilot:
             raise AutonomousLoopError("external model provider required")
         completed_here = 0
         proposal_count = 0
+        rejected_duplicate_proposals = 0
         paired_count = 0
         trial_count = 0
         last_measured_generation = 0
@@ -101,16 +114,66 @@ class AcademicCheckpointAutopilot:
                 raise AutonomousLoopError("unsupported or interrupted research checkpoint")
             before = state["completed_generations"]
             if phase == "AWAITING_PLAN":
-                plan = self.provider.propose(state["model_context"])
-                proposal_count += 1
-                if not isinstance(plan, dict):
-                    raise AutonomousLoopError("external model returned non-object plan")
-                typed = AlgorithmPlan.model_validate(plan)
-                state = self.service.submit_plan({
-                    "session_id": session_id,
-                    "checkpoint_token": state["checkpoint_token"],
-                    "plan": typed.model_dump(mode="json"),
-                })
+                # Proposal-level duplicates are not server failures. The canonical
+                # plan preflight preserves the token; ask the REAL model to invent
+                # a different plan on the same generation, with a strict budget.
+                # Never retry arbitrary exceptions or a policy refusal.
+                original = state
+                guidance: dict[str, Any] | None = None
+                for attempt in range(self.max_duplicate_reproposals + 1):
+                    context = deepcopy(original["model_context"])
+                    if guidance is not None:
+                        context["candidate_rejection"] = guidance
+                    plan = self.provider.propose(context)
+                    proposal_count += 1
+                    if not isinstance(plan, dict):
+                        raise AutonomousLoopError("external model returned non-object plan")
+                    typed = AlgorithmPlan.model_validate(plan)
+                    try:
+                        state = self.service.submit_plan({
+                            "session_id": session_id,
+                            "checkpoint_token": original["checkpoint_token"],
+                            "plan": typed.model_dump(mode="json"),
+                        })
+                        break
+                    except DuplicateAlgorithmPlanError as exc:
+                        # Even a legitimate conflict must not conceal an
+                        # unexpected concurrent writer or damaged evidence.
+                        latest = self.service.get({"session_id": session_id})
+                        if (
+                            latest["session_id"] != original["session_id"]
+                            or latest["dataset_hash"] != original["dataset_hash"]
+                            or latest["requested_generations"] != original["requested_generations"]
+                            or latest["orders_enabled"] is not False
+                            or latest["independent_oos_approved"] is not False
+                            or latest["status"] != "AWAITING_PROVIDER"
+                            or latest["checkpoint_phase"] != "AWAITING_PLAN"
+                            or latest["checkpoint_token"] != original["checkpoint_token"]
+                            or latest["completed_generations"] != before
+                            or latest["history"] != original["history"]
+                        ):
+                            raise AutonomousLoopError(
+                                "duplicate rejection changed protected checkpoint"
+                            ) from exc
+                        rejected_duplicate_proposals += 1
+                        if attempt >= self.max_duplicate_reproposals:
+                            raise DuplicateProposalRetryExceeded(
+                                "duplicate candidate retry budget exhausted; "
+                                "same checkpoint remains ready for model review"
+                            ) from exc
+                        guidance = {
+                            "type": "DUPLICATE_ALGORITHM_PLAN",
+                            "code": exc.code,
+                            "matching_prior_generation": exc.previous_generation,
+                            "reproposal_number": attempt + 1,
+                            "remaining_reproposals": self.max_duplicate_reproposals - attempt,
+                            "required_change": (
+                                "Design a genuinely different combination of entry and "
+                                "regime signals rather than renaming or only adjusting "
+                                "a threshold that leaves effective signals unchanged. "
+                                "Use the supplied research direction and authentic indicators."
+                            ),
+                        }
                 if state["checkpoint_phase"] != "AWAITING_DIAGNOSIS":
                     raise AutonomousLoopError("plan did not enter diagnosis checkpoint")
             diagnosis = self.provider.propose(state["model_context"])
@@ -149,6 +212,7 @@ class AcademicCheckpointAutopilot:
             "requested_generations": latest["requested_generations"],
             "advanced_generations_this_call": completed_here,
             "external_model_proposals_this_call": proposal_count,
+            "rejected_duplicate_proposals_this_call": rejected_duplicate_proposals,
             "controlled_experiments_read_or_executed": paired_count,
             "measured_hypotheses_read_or_executed": trial_count,
             "last_generation_evidence_hash": (
