@@ -48,3 +48,12 @@ http://127.0.0.1:8080/academic
 - 테스트: 대시보드 전용 + 기존 FastAPI·정적 UI·20문답 범위 잠금 **45 PASS**, Ruff/Mypy 변경 4개 모듈 PASS, JS node --check PASS, commit 06ae659 GitHub Push 완료.
 - **Windows 클라이언트 접근은 미검증**: 이 localhost는 Moon 컨테이너 기준. Windows localhost에서 바로 열린다는 보장 없음. 별도 승인된 SSH 로컬 터널 또는 호스트 루프백 포트 매핑이 필요할 수 있음.
 - 이 실행은 독립 nohup 프로세스이며 컨테이너 재부팅 시 자동 시작 관리가 구성된 것은 아님. 재부팅 후에는 위 명령으로 재실행한다.
+
+
+## Windows Firefox 로컬 접속 경로 복구
+
+- Windows docker ps: project-moon-local은 127.0.0.1:2999->2999/tcp 포트만 게시 중. 연구 모니터는 Docker 내부 127.0.0.1:8081에 바인딩되어 Windows의 같은 8081 주소로 연결되지 않음.
+- Nginx 기존 2999 리스너에 연구 화면 /academic 및 전용 /api/academic/, /static/academic.js, /static/academic.css 경로만 인증 보호 역방향 프록시로 연결.
+- 새 Docker 포트, 재생성, Quant MCP/OAuth 엔드포인트 변경 없음. Nginx 설정은 /shared/nginx/routes.d/30-academic-monitor.conf, 인증 해시는 /shared/nginx/auth/academic-monitor.htpasswd (root:www-data, 0640). 평문 비밀번호는 Git 저장소·문서에 넣지 않음.
+- Nginx 문법 검사 통과, 재로드 성공. 내부 기존 게시 포트 2999에서 미인증 요청 401, 별도 임시 테스트 계정 인증 HTML/JavaScript/CSS/API 200 확인. 임시 계정 제거 후 기존 인증 해시 원본 복구. Moon /health 200, Quant /quant/mcp 비인증 401로 불변.
+- Windows Firefox 접속 주소: http://127.0.0.1:2999/academic; 인증은 사용자에게 별도 전달. 실제 Windows Firefox에서 클릭 성공하는지 확인은 미실시. 기존 100세대 연구 30/100 완료, 모니터 S7 미측정 0건 기준.
