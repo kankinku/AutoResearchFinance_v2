@@ -26,3 +26,16 @@
 - dashboard/academic_monitor.py: 각 모델의 QQQ 대비 초과수익률(퍼센트포인트), 최고 모델과 최근 완료 모델의 상대 성과를 원래 세대 SHA 검증 후 계산.
 - dashboard/static/academic.html, .css, .js: QQQ 매수·보유 지표 카드, QQQ 대비 초과수익률, 30세대 비교표 열, 개발수익률 그래프 위 수동 보유 기준선. 배당 제외 및 연구 구간의 제약 표시.
 - 기존 인증된 localhost 경로 127.0.0.1:2999/academic 유지. 변경되는 것은 독립 연구 모니터 코드뿐이며 Quant MCP/연구 원장을 변경하거나 거래 주문을 실행하지 않는다.
+
+
+## 배포 및 운영 검증
+
+- 기능 코드 커밋 7e64f421e042a96d6d5cbb44070f4657ba82cdf9 를 GitHub 브랜치 feat/t4-qqq-buyhold-benchmark-20261016에 Push.
+- 전체 dashboard + 20문답 범위 잠금 관련 49 테스트 통과, Ruff/Mypy/Node 문법 검사 통과.
+- 기존 운영 Quant MCP PID 4010, URL/OAuth/주문 정책/연구 DB는 불변.
+- 새 읽기 전용 모니터 코드를 고정 Worktree /shared/moon-workspace/AutoResearchFinance_v2-academic-monitor-qqq-7e64f42에 배치해 loopback 127.0.0.1:8082에서 기동; 원래 모니터 127.0.0.1:8081 프로세스는 롤백용으로 보존.
+- Nginx 기존 인증·호스트 포트 2999의 연구 화면/API/static 프록시만 8081에서 8082로 전환. Nginx 문법 검사와 reload 통과; 기존 경로 및 비밀번호 해시 불변.
+- 실제 8082 HTTP API 200: 30/100, QQQ BENCHMARK DEVELOPMENT_ONLY +186.29614964744627%, 25세대 최고 모델 대비 −76.52056875367555%p, S7 0건 누락. 새 HTML과 JS/CSS 200 확인.
+- 기존 게시 포트 2999에서 보호 화면 응답 200 확인, 익명 화면 접속 401, 기존 Moon health 200 및 Quant MCP 익명 401 확인.
+- 상태는 검사 중 AWAITING_PLAN에서 일시적으로 INTERRUPTED / CycleStateError를 표시했다가 30/100, AWAITING_PLAN으로 복구됨. 동시 외부 운영 제어 또는 서버 reconciliation 여부는 미확인. 모니터는 읽기 전용이며 자동 실행·복구/주문을 수행하지 않음.
+- Windows Firefox 브라우저에서 로그인·렌더링 최종 확인은 사용자가 해야 함. 권장 접속 주소는 http://127.0.0.1:2999/academic (기존 인증 사용). 원래 8081은 여전히 Windows에 포트 게시되지 않음.
