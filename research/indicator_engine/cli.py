@@ -12,7 +12,11 @@ from pathlib import Path
 import httpx
 
 from core.data.parquet import ParquetDataProvider
-from research.indicator_engine.algorithm_plan import AlgorithmPlan
+from research.indicator_engine.algorithm_plan import (
+    AlgorithmPlan,
+    compile_algorithm_plan,
+    evaluate_algorithm_plan,
+)
 from research.indicator_engine.benchmark_reconciliation import reconcile_development_benchmark
 from research.indicator_engine.capture_integrity import verify_nasdaq_capture
 from research.indicator_engine.catalog import ResearchCatalog, ResearchCatalogError
@@ -22,6 +26,7 @@ from research.indicator_engine.corporate_actions import verify_dividend_snapshot
 from research.indicator_engine.corporate_asof_gate import audit_qqq_corporate_asof
 from research.indicator_engine.databento_cutover_audit import compare_condition_vintages
 from research.indicator_engine.databento_metadata_preflight import probe_qqq_xnas_metadata
+from research.indicator_engine.development_economics_v05 import audit_development_economics
 from research.indicator_engine.formula_calculator import FormulaCalculatorError, FormulaPreviewStore
 from research.indicator_engine.literature_discovery import (
     DEFAULT_LITERATURE_TOPICS,
@@ -53,6 +58,7 @@ from research.indicator_engine.sealed_oos_precommit import (
 )
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
+from research.indicator_engine.strategy_adapter import _COST
 from research.indicator_engine.verified_capture_vintages import (
     CapturedPriceVintage,
     compare_verified_nasdaq_vintages,
@@ -153,6 +159,15 @@ def main() -> int:
         freezing.add_argument("--plan-json-file", type=Path, required=True)
         freezing.add_argument("--study-id", required=True)
         freezing.add_argument("--receipt", type=Path, required=True)
+    economics = subs.add_parser(
+        "audit-algorithm-economics",
+        help="V05 development-only fixed-fill cost, volume, trial-selection audit",
+    )
+    economics.add_argument("--market-parquet", type=Path, required=True)
+    economics.add_argument("--plan-json-file", type=Path, required=True)
+    economics.add_argument("--attempted-trials", type=int, required=True)
+    economics.add_argument("--max-participation", type=float, required=True)
+    economics.add_argument("--stress-multiplier", type=float, required=True)
     parallel = subs.add_parser(
         "preview-parallel-algorithm",
         help="Offline bounded multi-ETF typed StrategyIR comparison; no portfolio orders",
@@ -437,6 +452,41 @@ def main() -> int:
     if args.database is None:
         parser.error("--database is required for catalog commands")
     db = ResearchCatalog(args.database)
+    if args.command == "audit-algorithm-economics":
+        try:
+            for source in (args.market_parquet, args.plan_json_file):
+                if (source.is_symlink() or not source.is_file()
+                        or source.stat().st_size > 64 * 1024 * 1024):
+                    raise ResearchCatalogError("invalid V05 development input file")
+            if args.plan_json_file.stat().st_size > 32768:
+                raise ResearchCatalogError("oversized V05 plan")
+            development_market = ParquetDataProvider.read(args.market_parquet)
+            development_plan = AlgorithmPlan.model_validate_json(
+                args.plan_json_file.read_text(encoding="utf-8")
+            )
+            economic_candidate = compile_algorithm_plan(
+                db, development_plan, development_market,
+            )
+            evaluated = evaluate_algorithm_plan(
+                db, economic_candidate, development_market,
+            )
+            economics_report = audit_development_economics(
+                development_market, evaluated, cost_model=_COST,
+                attempted_trials=args.attempted_trials,
+                max_daily_participation=args.max_participation,
+                stress_multiplier=args.stress_multiplier,
+            )
+        except (OSError, ValueError, ResearchCatalogError) as exc:
+            print(json.dumps({
+                "status": "DEVELOPMENT_ECONOMICS_REJECTED",
+                "error_type": type(exc).__name__,
+                "broker_executable": False,
+                "point_in_time_verified": False,
+            }, sort_keys=True))
+            return 2
+        print(json.dumps(economics_report, sort_keys=True, allow_nan=False))
+        return 0
+
     if args.command in {"freeze-development-selection", "verify-development-freeze"}:
         try:
             for source in (args.market_parquet, args.plan_json_file):
