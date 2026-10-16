@@ -111,3 +111,12 @@
 - **재시작 후 실제 연결된 Quant MCP 읽기 검증 PASS**: Workspace READY, 기존 100세대 세션 COMPLETE, 현 세션 33/100 `AWAITING_PLAN`, next 글로벌 **134**, 주문 비활성, 기존 고정 URL 유지. 익명 로컬 POST 401 확인.
 - 검증: 대상 경제성·적응 권고·S7 실험학습·MCP 세션 테스트 **58 passed**, 이후 저활동 가드 추가 단위 테스트 **8 passed**, 관련 Ruff PASS 및 변경 소스 Mypy PASS(가드 전; 최소 수정).
 - 다음 필수 작업 **P0-2**: 동일 시점 QQQ 보유 벤치마크·현금 보유/거래비용·위험 노출 조절 공정 비교. 다음 **P0-3**: 기존 S7 자식 전략을 해시/체결 재현 검증 후 정식 부모로 승인하는 기능. P1: 청산 규칙과 노출 비중 StrategyIR 확장.
+
+
+## 2026-10-17 P0-2 배포: 동일 비용 QQQ 벤치마크와 개발 데이터 설명용 위험 매칭
+
+- **신규 소스 커밋** `d1b9f09bf67a8127e65a328300ea5b5cd286c924` (`feat/p0-2-qqq-risk-benchmark-20261017`), 운영 런처 PIN 커밋 `d4e725c`, 기존 런처 백업 `state/moon-http/deployment-backup/run_quant_moon_http_before_p0_2_20261017.sh` (ignored).
+- `get_algorithm_research`의 `model_context.benchmark_comparison`에 기존 `academic-research-cost-v1` 수수료/스프레드/슬리피지 총 8bp 비용을 반영한 QQQ 다음 거래일 시가 1회 매수·보유 기준 및 동일 개발 표본의 **최초 노출률 비중 비교군**, **과거 일일 변동성 사후 맞춤 설명용 비교군** 추가. 배당 재투자, 현금 이자, 미래 가격 예측, 독립 OOS 통과 없음.
+- 실제 세션 전역 G133/300 (새 세션 33/100, `AWAITING_PLAN`)의 원본 해시와 전략의 최종 자산 재생 검증 PASS. 전략 +37.57%/MDD 9.83%; QQQ 비용 반영 단순 보유 **+187.77%/MDD 35.62%**; 동일 과거 노출률 31.63% 최초 비중 **+59.39%/MDD 16.63%**; 과거 변동성 사후 조정 24.43% 비중 **+45.86%/MDD 13.52%**. 다른 최초 체결가격/비용 모형 기준 수익률과 수치 차이 허용.
+- 대상 테스트 포함 **66 passed**, Ruff PASS, 변경 코드 Mypy PASS. **실제 연결된 Quant MCP로 검증:** `READY`, 기존 100/100 세션 `COMPLETED`, 신규 33/100 세션 유지, 추가 `benchmark_comparison` 정상, 주문 비활성, OOS 미승인. 새 PID로 supervisor 정상 복구 및 익명 MCP 401 확인.
+- 저장된 자료는 그대로. 새로운 전략은 이번 변경 작업에서 실행/승격하지 않음. 다음 개발은 **P0-3: 검증된 S7 자식의 재생 가능한 부모 계승 인터페이스**; 그 뒤 P1 청산/포지션 엔진.
