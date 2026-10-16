@@ -21,6 +21,12 @@
 - T4: **실제 연결 ChatGPT**로 남은 35~100 세대를 이어갈 실행 호스트/권한 승인·지속 구동을 별도로 확보한 뒤 100세대 원장 및 동예산 random 비교 확인. 그 전에는 `PROVIDER_REQUIRED`.
 - T5/T6: 이후 공급자 PIT·독립 OOS, paper-only 및 GO/NO-GO 평가. 별도 승인 전 실거래·봉인 OOS 사용 금지.
 
+## 실제 검증 결과
+
+- 신규 4개 검증은 구현 전 실패(4 FAIL), 수정 후 통과(4 PASS). 관련 기본 MCP 정책/예산·supervisor·autopilot/중복·대시보드 상태/거버넌스 **35 PASS**. 별도 범위잠금 Pytest **4 PASS**, 변경 소스 Ruff **PASS**, Mypy(`--follow-imports=skip`, 2개 소스) **PASS**, diff 검사 **PASS**.
+- 운영 데이터 read-only preflight: **34/100, AWAITING_PLAN, S7 미측정 0**, 권장 `get_algorithm_research`, 새 session false, 외부 API 호출 false, model host 없이 자동 실행 불가로 출력. 서버 CLI/호스트 모델 API는 실행하지 않았음.
+- 전체 저장소 T3/실 35~100세대/무인 GPT 공급자 연결/라이브 장애 재시작/실제 API 과금·토큰 계측/T5 PIT·OOS/T6 paper는 **NOT RUN**. 새로운 소스는 개발 브랜치에만 존재하며 **운영 배포되지 않음**.
+
 ## 운영 확인 및 남은 외부 조건
 
 - 기존 실제 연구는 34/100 `AWAITING_PLAN`, S7 누락 0, 실거래 OFF. 읽기 전용 CLI가 같은 상태를 출력하는지 확인한다.
