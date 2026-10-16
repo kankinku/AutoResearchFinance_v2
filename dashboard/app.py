@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from dashboard.academic_monitor import AcademicMonitorReader
+from dashboard.academic_routes import register_academic_routes
 from dashboard.contracts import DashboardSnapshot
 from dashboard.service import DashboardService
 
@@ -17,6 +20,10 @@ def create_app(service: DashboardService | None = None) -> FastAPI:
     static_dir = Path(__file__).parent / "static"
     if static_dir.is_dir():
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    academic_state = Path(
+        os.environ.get("QUANT_ACADEMIC_CHECKPOINT_DIR", "state/academic-gpt-checkpoints")
+    )
+    register_academic_routes(app, AcademicMonitorReader(academic_state))
 
     @app.get("/", include_in_schema=False, response_model=None)
     def index() -> Response:

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Quant Autoresearch · 연구 모니터</title>
+  <link rel="stylesheet" href="/static/academic.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="brand"><span class="brand-mark">Q<span>•</span></span>
+        <div><span class="eyebrow">RESEARCH CONTROL ROOM / LOCAL</span><h1>Quant Autoresearch</h1></div>
+      </div>
+      <div class="header-right"><span id="conn-status" class="chip chip-muted"><span class="dot"></span>접속 확인 중</span>
+        <div class="refresh-meta"><strong>3초 자동 갱신</strong><span id="last-refresh">데이터 확인 중</span></div>
+      </div>
+    </header>
+
+    <div class="notice">
+      <span class="notice-icon">!</span>
+      <p><strong>연구 개발 데이터 기준</strong> — 아래 수익률은 비PIT 과거 개발 백테스트 결과이며, 독립 검증된 실제 수익이나 매매 승인이 아닙니다. 이 화면은 읽기 전용입니다.</p>
+      <span class="notice-right">ORDERS DISABLED</span>
+    </div>
+
+    <section class="toolbar panel">
+      <div><p class="label">연구 세션</p><select id="session-select" aria-label="연구 세션 선택"><option>연결 확인 중...</option></select></div>
+      <div class="toolbar-status">
+        <div class="label">체크포인트 상태</div>
+        <strong id="phase-status" class="phase">—</strong>
+        <p id="phase-context" class="mini">—</p>
+      </div>
+      <button type="button" id="reload" class="reload">지금 확인 ↻</button>
+    </section>
+
+    <section class="progress-card panel">
+      <div class="progress-top">
+        <div><span class="eyebrow">GENERATION PROGRESS</span><h2><span id="completed">—</span> <span class="divider-mark">/</span> <span id="requested">—</span> <span class="unit">세대</span></h2></div>
+        <div class="progress-pct" id="progress-percent">—%</div>
+      </div>
+      <div class="track"><div id="progress-fill" class="fill" style="width:0%"></div></div>
+      <div class="progress-bottom"><span id="remaining">남은 세대 확인 중</span><span id="record-state">증거 검사 중</span></div>
+    </section>
+
+    <div class="comparison">
+      <section class="panel model-card current">
+        <div class="section-title"><div><span class="eyebrow">CURRENT CANDIDATE</span><h2>현재 모델</h2></div><span class="tag" id="current-tag">확인 중</span></div>
+        <h3 id="current-name">—</h3>
+        <p id="current-sub" class="muted">현재 평가 중인 모델 확인 중</p>
+        <div class="model-stat-grid">
+          <div><span>누적수익률</span><strong id="current-return">—</strong></div>
+          <div><span>최대낙폭</span><strong id="current-dd">—</strong></div>
+          <div><span>Sharpe</span><strong id="current-sharpe">—</strong></div>
+          <div><span>거래 수</span><strong id="current-trades">—</strong></div>
+        </div>
+      </section>
+      <section class="panel model-card best">
+        <div class="section-title"><div><span class="eyebrow">HIGHEST DEVELOPMENT RETURN</span><h2>최고 관측 모델</h2></div><span class="tag tag-neutral">수익률 기준</span></div>
+        <h3 id="best-name">—</h3>
+        <p id="best-sub" class="muted">실현 가능 수익 검증 아님</p>
+        <div class="model-stat-grid">
+          <div><span>누적수익률</span><strong id="best-return">—</strong></div>
+          <div><span>최대낙폭</span><strong id="best-dd">—</strong></div>
+          <div><span>Sharpe</span><strong id="best-sharpe">—</strong></div>
+          <div><span>거래 수</span><strong id="best-trades">—</strong></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="metrics-grid">
+      <div class="panel mini-card"><span>최근 완료 모델 수익률</span><strong id="latest-return">—</strong><small>개발 구간 누적수익</small></div>
+      <div class="panel mini-card"><span>최근 완료 모델 승률</span><strong id="latest-winrate">—</strong><small>거래 원장 기준</small></div>
+      <div class="panel mini-card"><span>최고 Sharpe 모델</span><strong id="best-sharpe-val">—</strong><small id="best-sharpe-id">—</small></div>
+      <div class="panel mini-card"><span>S7 미측정 세대</span><strong id="missing-s7">—</strong><small>세대별 실험 원장</small></div>
+    </section>
+
+    <section class="panel graph-panel">
+      <div class="section-title"><div><span class="eyebrow">GENERATION EVOLUTION</span><h2>세대별 성과 변화</h2></div><span class="legend"><i class="legend-return"></i>수익률 <i class="legend-dd"></i>최대낙폭</span></div>
+      <div class="graph-wrap"><svg id="evolution-chart" viewBox="0 0 900 255" aria-label="세대별 수익률과 최대낙폭 차트" role="img"></svg></div>
+      <p class="graph-foot">개별 세대 전략의 개발기간 결과입니다. 시간 순 투자계좌의 누적손익이 아닙니다.</p>
+    </section>
+
+    <section class="panel history-panel">
+      <div class="section-title"><div><span class="eyebrow">EVIDENCE LEDGER</span><h2>세대별 평가 기록</h2></div><span class="tag tag-neutral" id="history-count">0개</span></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>세대</th><th>모델</th><th>누적 수익률</th><th>최대낙폭</th><th>Sharpe</th><th>승률</th><th>거래</th><th>S7 실험</th></tr></thead>
+          <tbody id="history-rows"><tr><td colspan="8" class="empty">원장 확인 중…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+    <footer><span>LOCAL READ-ONLY · NO BROKER ORDERS · NON-PIT DEVELOPMENT</span><span>실제 연구 DB 읽기 전용 · 값은 매 3초 재조회</span></footer>
+  </div>
+  <script defer src="/static/academic.js"></script>
+</body>
+</html>
