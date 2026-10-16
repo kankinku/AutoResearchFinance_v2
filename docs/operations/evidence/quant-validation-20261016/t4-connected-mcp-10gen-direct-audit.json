@@ -1,0 +1,261 @@
+{
+  "schema": "t4-connected-quant-mcp-10gen-hash-audit-v1",
+  "verification_source": "connected_Qaunt_Autoresearch_MCP_read_only_tool_replay",
+  "session_id": "49d3033496844ea391f7bdc983da3fc9",
+  "requested_generations": 10,
+  "completed_generations": 10,
+  "status": "COMPLETED",
+  "phase": "COMPLETED",
+  "real_model_connection_verified_by_backend": false,
+  "chatgpt_direct_tool_path_observed_in_this_conversation": true,
+  "server_independently_attested_full_model_autonomy": false,
+  "orders_enabled": false,
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "market_scope": "QQQ_2020-2025_development_non_PIT_same_data_reused",
+  "unique_semantic_hash_count": 10,
+  "verified_experiment_evidence_count": 10,
+  "experiments_measured": 10,
+  "previous_cycle_final_report_tested_hypotheses": 0,
+  "backend_final_report_s7_count_known_stale": true,
+  "scope_notes": [
+    "No independently signed proof of model autonomy despite direct ChatGPT MCP submissions",
+    "Repeated DEVELOPMENT data; no independent PIT/OOS",
+    "Not a new preregistered equal-budget random comparator",
+    "No actual crash/resume/reconnect stress run",
+    "No 100-generation completion"
+  ],
+  "requested_100_generation_not_started": true,
+  "expected_next": "T4_FIX_SUMMARY_AND_INDEPENDENT_BASELINE_THEN_100",
+  "generations": [
+    {
+      "generation": 1,
+      "plan_id": "t4_g01_trend_breakout",
+      "semantic_hash": "ca0bfdfeaa11c12ecafa7f292c045691f41e11a2933ba63fa5b4f7cfb15cf19e",
+      "original_evidence_hash": "fce9743463c970732667b6f26dd322904bacb17ab927eac84b73d65643df8b8f",
+      "measured_s7_original_hash": "fce9743463c970732667b6f26dd322904bacb17ab927eac84b73d65643df8b8f",
+      "s7_link_verified": true,
+      "s7_record_hash": "64f8a4f40f7aaf3b6b37de8a6cacdcf2ac0f3f827933dbbb5146b8bb7ca19f1f",
+      "experiment_evidence_hash": "6a66210e635579b5e79d741963bbf8ab3c50f849c3dc09e6c67aadb5239a381a",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g01_high_vote",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "max_drawdown",
+          "delta": -0.2053498315147875,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.15765343243257313,
+      "development_max_drawdown": 0.34616013950464475,
+      "trade_count": 52
+    },
+    {
+      "generation": 2,
+      "plan_id": "t4_g02_vote_conservatism",
+      "semantic_hash": "51a0a79f589139648fe3cd7ab3a92ac3881fa5ce8271fc0b52feca444341b839",
+      "original_evidence_hash": "8ca632f2b5024f3dec336664777f0b8702cfee13cdc888dbc4e3a8c59f4b8185",
+      "measured_s7_original_hash": "8ca632f2b5024f3dec336664777f0b8702cfee13cdc888dbc4e3a8c59f4b8185",
+      "s7_link_verified": true,
+      "s7_record_hash": "b97fd44a98434b05b89f2f0cfd0ec397ba36af2420543a68d4e15e6399657db2",
+      "experiment_evidence_hash": "dd09b1c50a58095477f2863c66958c10b81e36447ee2adde47b0352530f16206",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g02_exit_hysteresis",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "total_return",
+          "delta": 0.47014741125970483,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.23770530821385893,
+      "development_max_drawdown": 0.16200520846569175,
+      "trade_count": 18
+    },
+    {
+      "generation": 3,
+      "plan_id": "t4_g03_ema_persistence",
+      "semantic_hash": "70d8770e4b81950153737fd9c511f32bbaa76506b10051f28ca7f0715ee487ac",
+      "original_evidence_hash": "1d4ac1ae820b5db41e818f760d6cb0a22ca899ba561d673fc902bc0ccff8a20e",
+      "measured_s7_original_hash": "1d4ac1ae820b5db41e818f760d6cb0a22ca899ba561d673fc902bc0ccff8a20e",
+      "s7_link_verified": true,
+      "s7_record_hash": "addb52bc5c3000ca7c7b5376a82a76675537c484213c6380aae83f290ef6414a",
+      "experiment_evidence_hash": "e258cd9e792589d082597cfd363317a2a4ea73e99d726660ce2f64e1d760b89c",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g03_ema_weak_consen",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "max_drawdown",
+          "delta": -0.1373003484374289,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.645802977440608,
+      "development_max_drawdown": 0.33387331182023217,
+      "trade_count": 77
+    },
+    {
+      "generation": 4,
+      "plan_id": "t4_g04_confirmed_trend",
+      "semantic_hash": "1f0e86e3e68603ac20a98e29c055e6dd65e3e227cfe3039830c6a08e2021b202",
+      "original_evidence_hash": "cf029adf1ef0a91493ffb7d2b748f0e88271d72410900d90994342afb6e3d2b6",
+      "measured_s7_original_hash": "cf029adf1ef0a91493ffb7d2b748f0e88271d72410900d90994342afb6e3d2b6",
+      "s7_link_verified": true,
+      "s7_record_hash": "9d2395bccaaa5173c76fac32627e400ce8538bb76843cba9ad27613527ce21ad",
+      "experiment_evidence_hash": "24cf00c9259c2c5c2fa55846ed63a181f442c4a14c194f052a7304f946a4ac27",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g04_exit_sma_hysteresis",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "max_drawdown",
+          "delta": -0.11839800311075405,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.3234781253265824,
+      "development_max_drawdown": 0.3239437149944013,
+      "trade_count": 60
+    },
+    {
+      "generation": 5,
+      "plan_id": "t4_g05_regime_momentum",
+      "semantic_hash": "a0aeffa73edc029e504cbd6a488ac72c594249d4ab825dfa55b033e8642ee6bc",
+      "original_evidence_hash": "00c4e937b17bc1d3b66fa1a90b7dc27463cabcb60eac9802d5caf00e724e4a24",
+      "measured_s7_original_hash": "00c4e937b17bc1d3b66fa1a90b7dc27463cabcb60eac9802d5caf00e724e4a24",
+      "s7_link_verified": true,
+      "s7_record_hash": "3121c18c192e353c0edf33e284e2e56c58af9e8b965c73c0dd07d599f2d7a224",
+      "experiment_evidence_hash": "2993de69fe79c50cdabbad17cc1f0b2aaea682c1868662314b4657513a60f030",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g05_reclaim_confirmation",
+          "observed_status": "DEGENERATE_INACTIVE_CHILD",
+          "metric": "trade_count",
+          "delta": -104,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.47564387720289214,
+      "development_max_drawdown": 0.19305425104572674,
+      "trade_count": 104
+    },
+    {
+      "generation": 6,
+      "plan_id": "t4_g06_bear_reclaim_confirmation",
+      "semantic_hash": "828d6596ea9195341afe37209866e9cdfefddd1a6875e8aeb57e309d0307cecd",
+      "original_evidence_hash": "7addaa831d842d429029cd5c3f544a27fe4eaae502fffcb03b2205af52943014",
+      "measured_s7_original_hash": "7addaa831d842d429029cd5c3f544a27fe4eaae502fffcb03b2205af52943014",
+      "s7_link_verified": true,
+      "s7_record_hash": "b0de69bdf05a980b3657e869a6c396299b07f6e67eab14a02e2773cb7b8bf691",
+      "experiment_evidence_hash": "d73146243edac834cf9806dfbd668c35c770312535f27810369ef33001f47a63",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g06_ema_bear_safety",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "trade_count",
+          "delta": -36,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.415961121063513,
+      "development_max_drawdown": 0.2607581679357167,
+      "trade_count": 115
+    },
+    {
+      "generation": 7,
+      "plan_id": "t4_g07_volatility_containment",
+      "semantic_hash": "76c0893031ad46b29d968bea5e8fb58bd4560f391dc07b6cceadb424b13a24e8",
+      "original_evidence_hash": "e4ecd2678a33fe184fe992a896012e3a5e1e95f5bc817b14546f61bb492f5421",
+      "measured_s7_original_hash": "e4ecd2678a33fe184fe992a896012e3a5e1e95f5bc817b14546f61bb492f5421",
+      "s7_link_verified": true,
+      "s7_record_hash": "f13a8270d9ca53ee104a4d6e3f109c209170f462e7391b18ee3889c54e082fdd",
+      "experiment_evidence_hash": "fc89fd19de3a65b8a9f558d7342c217e56f58670e4bacb9c313f40f08c31a7b3",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g07_volatility_exit_delay",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "total_return",
+          "delta": 0.006103429625253121,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.32557891558491114,
+      "development_max_drawdown": 0.2024282488217241,
+      "trade_count": 34
+    },
+    {
+      "generation": 8,
+      "plan_id": "t4_g08_stable_momentum_burst",
+      "semantic_hash": "094d2df299a9d41feb5c80ce5a45b21aa5e76df4beda85dfe80bdcca1b49bd71",
+      "original_evidence_hash": "3353ccb86119da132d3e4089906fc8bde842831cd6895446765a5b756cc6dd97",
+      "measured_s7_original_hash": "3353ccb86119da132d3e4089906fc8bde842831cd6895446765a5b756cc6dd97",
+      "s7_link_verified": true,
+      "s7_record_hash": "2c4f7f3428dada760fada6e25e8a63b31dcbc7dac1fcb844eb4b216bf7cbd568",
+      "experiment_evidence_hash": "97adde0ba3576b88118cfe667cb90c84fd6e1a486fb459366c16d2a52eb3454f",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g08_earlier_vote_exit",
+          "observed_status": "DIRECTION_NOT_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "max_drawdown",
+          "delta": 0.005725666780584948,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.19555655526480398,
+      "development_max_drawdown": 0.23454841763833364,
+      "trade_count": 28
+    },
+    {
+      "generation": 9,
+      "plan_id": "t4_g09_volatility_meanreversion",
+      "semantic_hash": "17a2949ea02d3927f5c90e1ff15f29f36860b486632a96a3b3d790595e45e616",
+      "original_evidence_hash": "95bc8683c0c3107c066bdc5835cc24c0f890f6378f0f6c32e9aa5a504ec788fd",
+      "measured_s7_original_hash": "95bc8683c0c3107c066bdc5835cc24c0f890f6378f0f6c32e9aa5a504ec788fd",
+      "s7_link_verified": true,
+      "s7_record_hash": "12fc80c826c474490c56f1a9ec8e6e75fc5bc226ba8e5b9bc45acd3ae8bc7be0",
+      "experiment_evidence_hash": "659606ae8fccb48aed8b8b96e1502112514cdc442792aa3748b98b5c80bd643c",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g09_recovery_confirm",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "max_drawdown",
+          "delta": -0.07273788356197117,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.37521735289652636,
+      "development_max_drawdown": 0.22383478587498348,
+      "trade_count": 68
+    },
+    {
+      "generation": 10,
+      "plan_id": "t4_g10_high_confidence_mixed",
+      "semantic_hash": "bc7d9e185c955dc1b4f854a8bbd2372522f0c475996e33af91f1a9b7a71c443e",
+      "original_evidence_hash": "f3ade1cf268b9a5a32311226dbd6013f4c462771b6b28dcc4d655a9b27413598",
+      "measured_s7_original_hash": "f3ade1cf268b9a5a32311226dbd6013f4c462771b6b28dcc4d655a9b27413598",
+      "s7_link_verified": true,
+      "s7_record_hash": "0030a66892577491b7c2fa5f46bcfbf6678435dc626e7acb16495053a28683a9",
+      "experiment_evidence_hash": "377b174fb1d7b8df3b0fd81b3b8ce9dec42345c5db7c6fa562e06fdbf40f9845",
+      "s7_status": "CONTROLLED_DEVELOPMENT_COMPARISON",
+      "comparison_outcomes": [
+        {
+          "hypothesis_id": "t4_g10_slow_exit_control",
+          "observed_status": "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+          "metric": "trade_count",
+          "delta": -27,
+          "observed_execution_change": true
+        }
+      ],
+      "development_total_return": 0.3412811104946256,
+      "development_max_drawdown": 0.10692060847892727,
+      "trade_count": 39
+    }
+  ]
+}
