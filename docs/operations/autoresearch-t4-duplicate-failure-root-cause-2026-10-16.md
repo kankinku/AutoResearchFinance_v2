@@ -26,3 +26,12 @@
 2. **지속 연구 실행기**는 별도 결손: 사용자 승인된 LLM 호출 주체/비용·세대 예산, 세대별 GPT Plan→진단→S7, 실패 타입 분류, heartbeat, DB 체크포인트 보존, 모델 호출 및 정책 거부 처리, 실행/중지 제어를 설계·운영 배포해야 한다. 단순 모니터 폴링/일시 통신 재시도만으로는 자동으로 새로운 GPT 계획을 만들 수 없다.
 3. 재개 정책: `AWAITING_PLAN` 정상 대기는 모델 입력을 기다리기. 중복/스키마 후보는 token 유지한 채 LLM 재생성(회수 제한), transient 네트워크 오류는 상태 재조회 후 제한 재시도, API 안전 거부/해시 불일치/인증 실패는 승인·수동 점검 전 재개 금지, 실제 `INTERRUPTED` 시 evidence/recovery receipt 확인 후 공식 resume.
 4. 실거래 주문 비활성, 독립 PIT/OOS 미승인, 과거 QQQ 개발 백테스트를 실제 순수익 검증이라고 주장하지 않음.
+
+## 운영 배포 검증 — T4 중복 후보 사전검사 적용됨
+
+- 운영 런타임 원본 `b50b4c7`에서 **사전검사 코드 27줄/회귀 테스트 2개만** cherry-pick한 최소 배포 브랜치 `deploy/quant-t4-duplicate-preflight-20261016`, 고정 commit **`2622f14`**. 런타임 경로 `/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-t4-preflight`. 기존 런타임 `b50b4c7`은 삭제하지 않아 롤백 가능.
+- 배포 고정 워크트리 기준 회귀 39 PASS, Ruff PASS, Mypy PASS. 원 개발 브랜치 회귀 43 PASS.
+- 운영 전 안전 점검: 기존 연구 세션 정확히 **32/100, AWAITING_PLAN**, 다른 실행 세션 EXECUTING 0, 기존 MCP 익명 401, Moon /health 200, 구 프로세스/경로/배포 인자 확인.
+- 동일 MCP 주소/URL, OAuth 승인키 파일, project-root/state-dir/포트 8787을 유지한 채 기존 프로세스 정상 종료→변경된 고정 소스로 재시작. 백엔드 익명 /mcp 401 및 Nginx Quant /quant/mcp 401·Moon /health 200 확인. 운영 PID 9958.
+- **재시작 후 실제 연결된 Qaunt Autoresearch MCP 32개 도구 그대로 접근 가능, `get_workspace_status` READY, orders_enabled=false**, `get_algorithm_research` 32/100, AWAITING_PLAN, 기존 마지막 원장 SHA 유지. 연구 모니터 8081과 8082 기존 프로세스 모두 HTTP 200/32세대/S7 미측정0/주문OFF.
+- **한계:** 실제 운영 세션에 고의 중복 전략을 제출해 중단 위험을 발생시키지는 않았다. 운영과 동일 소스/검증 정책을 가진 격리 테스트에서 중복후 체크포인트/이력/토큰 보존을 확인했다. 설치로 입력 대기 상태 자체가 없어지지는 않으며, ChatGPT MCP의 외부 모델 호출이 제공되지 않으면 33~100세대는 자동 진행하지 않는다. 정책 거부/원장 해시 실패 역시 자동 재실행 금지.
