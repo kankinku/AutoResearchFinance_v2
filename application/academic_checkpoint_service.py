@@ -50,6 +50,10 @@ from research.llm.economic_feedback import build_economic_feedback, gate_researc
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
 from research.llm.lineage_replay import verified_child_successor
+from research.llm.lineage_selection import (
+    choose_development_parent,
+    replay_lineage_candidate,
+)
 
 
 class _SubmittedProvider:
@@ -107,6 +111,13 @@ class AcademicMCPCheckpointService:
             request_hash TEXT NOT NULL, result_json TEXT NOT NULL,
             result_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, origin_generation, request_hash)
+        )''')
+        # Immutable per-next-generation parent *selection*, not promotion.
+        db.execute('''CREATE TABLE IF NOT EXISTS parent_selections (
+            session_id TEXT NOT NULL, next_generation INTEGER NOT NULL,
+            lineage_report_hash TEXT NOT NULL, selection_hash TEXT NOT NULL,
+            selection_json TEXT NOT NULL,
+            PRIMARY KEY(session_id, next_generation)
         )''')
         db.execute('''CREATE TABLE IF NOT EXISTS submission_receipts (
             session_id TEXT NOT NULL, kind TEXT NOT NULL,
@@ -350,6 +361,106 @@ class AcademicMCPCheckpointService:
             raise CycleStateError('controlled experiment record integrity mismatch')
         return {**body, 'record_hash': row['report_hash']}
 
+    def _selected_development_parent(
+        self, catalog: ResearchCatalog, data: MarketDataSet,
+        status: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Pin a full-fill-replayed S7 successor for the next generation.
+
+        A pinned selection has NO permission to replace AlgorithmPlan: the
+        counted S2/S7 adapter is still separately required. Never write to
+        original cycle generations or increment the research counter here.
+        """
+        # Parent selection is currently scoped to the one-symbol QQQ
+        # costed comparator. Never prevent non-QQQ legacy sessions from
+        # planning because a benchmark is not applicable.
+        if not data.bars or any(bar.symbol != "QQQ" for bar in data.bars):
+            return None
+        sid = status["session_id"]
+        next_generation = status["completed_generations"] + 1
+        with self._connect() as db:
+            pinned = db.execute(
+                "SELECT * FROM parent_selections "
+                "WHERE session_id=? AND next_generation=?",
+                (sid, next_generation),
+            ).fetchone()
+            if pinned is not None:
+                selection: dict[str, Any] = json.loads(pinned["selection_json"])
+                body = {k: v for k, v in selection.items() if k != "selection_hash"}
+                if (
+                    pinned["selection_hash"] != content_hash(body)
+                    or selection.get("selection_hash") != pinned["selection_hash"]
+                    or pinned["lineage_report_hash"] != selection.get("lineage_report_hash")
+                ):
+                    raise CycleStateError("parent selection integrity failure")
+                source = selection["source_generation"]
+                if (
+                    type(source) is not int
+                    or source < 1
+                    or source > status["completed_generations"]
+                    or status["history"][source - 1]["evidence_hash"]
+                    != selection["source_evidence_hash"]
+                ):
+                    raise CycleStateError("parent selection origin mismatch")
+                proof = db.execute(
+                    "SELECT result_hash FROM successor_lineages "
+                    "WHERE session_id=? AND origin_generation=? "
+                    "AND result_hash=?",
+                    (sid, source, selection["lineage_report_hash"]),
+                ).fetchone()
+                if proof is None:
+                    raise CycleStateError("parent selection proof disappeared")
+                return selection
+            rows = db.execute(
+                "SELECT origin_generation,result_json,result_hash "
+                "FROM successor_lineages WHERE session_id=? "
+                "ORDER BY origin_generation,request_hash", (sid,),
+            ).fetchall()
+            candidates = []
+            for row in rows:
+                proof = json.loads(row["result_json"])
+                # Older sidecars and legacy test fixtures remain readable.
+                if proof.get("schema") != "p0-3-child-to-successor-development-v1":
+                    continue
+                source = row["origin_generation"]
+                if (
+                    type(source) is not int
+                    or not 1 <= source <= status["completed_generations"]
+                    or proof.get("source_generation") != source
+                    or proof.get("source_evidence_hash")
+                    != status["history"][source - 1]["evidence_hash"]
+                    or proof.get("report_hash") != row["result_hash"]
+                    or content_hash({k: v for k, v in proof.items() if k != "report_hash"})
+                    != row["result_hash"]
+                ):
+                    raise CycleStateError("parent candidate evidence integrity failure")
+                measured = self._stored_experiment(db, sid, source)
+                if measured is None:
+                    raise CycleStateError("parent candidate is missing S7 evidence")
+                candidate = replay_lineage_candidate(
+                    catalog, data, status["history"][source - 1], measured, proof,
+                )
+                if (
+                    candidate["source_evidence_hash"] != proof["source_evidence_hash"]
+                    or candidate["lineage_report_hash"] != row["result_hash"]
+                    or candidate["successor_strategy_hash"] != proof["successor_strategy_hash"]
+                ):
+                    raise CycleStateError("parent replay candidate identity mismatch")
+                candidates.append(candidate)
+            chosen = choose_development_parent(candidates)
+            if chosen is None:
+                return None
+            # The old stage may still be read repeatedly. Pin *once* so
+            # later additional sidecars cannot silently replace the parent.
+            db.execute(
+                "INSERT OR IGNORE INTO parent_selections "
+                "(session_id,next_generation,lineage_report_hash,selection_hash,selection_json) "
+                "VALUES(?,?,?,?,?)",
+                (sid, next_generation, chosen["lineage_report_hash"],
+                 chosen["selection_hash"], json.dumps(chosen, sort_keys=True)),
+            )
+        return self._selected_development_parent(catalog, data, status)
+
     def _context(
         self, catalog: ResearchCatalog, data: MarketDataSet, status: dict[str, Any],
     ) -> dict[str, Any]:
@@ -451,6 +562,14 @@ class AcademicMCPCheckpointService:
                 }
             )
         context["verified_successor_lineages"] = successors
+        context["selected_development_parent"] = self._selected_development_parent(
+            catalog, data, status,
+        )
+        context["counted_parent_inheritance_ready"] = False
+        context["counted_parent_inheritance_blocker"] = (
+            "S2/S7 counted AlgorithmPlan cannot yet execute arbitrary inherited "
+            "StrategyIR; the audited successor is pinned but NOT counted"
+        )
         context['research_direction'] = gate_research_direction(
             build_research_direction(status['history'], scored_reports),
             context['economic_feedback'],
