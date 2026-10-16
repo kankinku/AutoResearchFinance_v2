@@ -478,6 +478,33 @@ class AcademicMCPCheckpointService:
                 raise CycleStateError('invalid checkpoint token')
             plan = AlgorithmPlan.model_validate(args['plan'])
             compiled = compile_algorithm_plan(catalog, plan, data)
+            # The canonical cycle rejects duplicate semantics and duplicate
+            # effective entry/regime vectors. Apply those SAME checks here
+            # before consuming the plan token or running model diagnosis.
+            # A duplicate is a recoverable proposal error, not a reason to
+            # interrupt every subsequent research generation.
+            semantic_hash = content_hash(plan.model_dump(
+                mode='json', exclude={'plan_id'},
+            ))
+            vectors = compiled.compiled.feature_values
+            effective_hash = content_hash({
+                'dataset_hash': data.dataset_hash,
+                'entry': vectors['plan_entry'],
+                'regime': vectors['plan_regime'],
+            })
+            for previous in current['history']:
+                if previous['algorithm_semantic_hash'] == semantic_hash:
+                    raise ValueError(
+                        'DUPLICATE_SEMANTIC_PLAN: previously tested generation '
+                        f"{previous['generation']}; revise the plan and resubmit "
+                        'using the same checkpoint token'
+                    )
+                if previous['effective_signal_hash'] == effective_hash:
+                    raise ValueError(
+                        'DUPLICATE_EFFECTIVE_SIGNALS: same historical entry/regime '
+                        f"signals as generation {previous['generation']}; revise "
+                        'the plan and resubmit using the same checkpoint token'
+                    )
             audit = audit_algorithm_plan(catalog, compiled, data)
             context = build_diagnostic_context(audit, compiled.compiled.strategy)
             pending = plan.model_dump(mode='json')
