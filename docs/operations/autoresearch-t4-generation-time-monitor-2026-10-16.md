@@ -16,6 +16,14 @@
 - 기존 진행 카드 **바로 아래** 3개 값: `이번 세대 경과시간`(plan staged 이후), `완료 세대 평균 소요시간`(실제 측정 개수 표시), `다음 세대 예상 남은시간`. 현재 기본 GPT가 입력 대기라면 예상 남은시간을 허구로 산출하지 않고 **예측 불가**로 명시한다. 역사 테이블에는 각 세대 소요시간 열 추가; 과거 측정 전 세대는 `기록 없음`.
 - 대시보드는 원래대로 읽기 전용 API(3초 polling)이며 주문/Start/Stop 쓰기 엔드포인트 추가 없음.
 
+## 실제 테스트·배포 결과
+
+- 대시보드, 보조시간 기록, MCP 계약, scope governance 연관 **44 PASS** (2026-10-16). 새 runtime branch `2622f14` 기반 `application/academic_checkpoint_service.py`에 시간 측정 코드만 추가해 **29 PASS**. 변경 소스 Ruff, Node 문법 검사 PASS; 대시보드 2 소스 Mypy PASS. 기존 개발판 `application/academic_checkpoint_service.py:400`의 별도 no-any-return 1건으로 해당 파일 단독 Mypy FAIL(기존 코드); 전체 저장소 Mypy NOT RUN.
+- GitHub 기능 브랜치 `feat/t4-generation-time-metrics-dashboard-20261016` **`2251d4935395872df9234448ebbb20495d1ea9d6` Push PASS**. 운영 dashboard 정적 코드 고정 별도 worktree, localhost **8085** GET 200, 기존 Nginx 인증 경로 **127.0.0.1:2999/academic**를 8085로 전환(`nginx -t`/reload PASS); 기존 8083·8084 롤백용 유지, 인증 없는 요청 HTTP 401.
+- 기존 운영 Quant MCP는 `2622f14` 사전 중복 차단 소스 기반 별도 최소 타이밍 계측 runtime **`625e18131e7de3dd512462bd1741e8e4eef8fb9a` Push PASS**. 원래 project/state/OAuth/URL 유지하는 launcher 소스 PIN 커밋 **`004a248` Push PASS**, 원 소스/launcher 파일 백업 존재. 감독 프로세스 재기동으로 실제 실행 CWD timing pinned worktree, 새 PID 35262. 미인증 local 8787/mcp와 host 2999/quant/mcp 401, 인증된 실제 MCP `get_algorithm_research` 36/100·S7 36·orders false, Workspace READY, 기존 공개 endpoint 변경 없음.
+- 운영 SQLite `gateway.sqlite`에 부가 테이블 `generation_timings` 1개가 존재함을 실제 확인, 과거 기록 0개(대시보드 평균 null, 과거 세대 `기록 없음`), 이후 **G37 plan 접수부터** 실측 가능. 실제 G37 제출/모델 호출은 하지 않았으며 실시간 값으로 평균/ETA가 출력되는 운영 실증은 후속 작업.
+- 독립 PIT/OOS, 무인 GPT 실행, 수익성 GO 및 주문 권한 평가 **NOT RUN**. 기존 연구 증거와 실거래 OFF 유지.
+
 ## 테스트·운영 적용 기준
 
 - 테스트: 실제 ScriptedResearcher의 plan→diagnosis→S7 기록에서 시각·원본 세대 SHA 바인딩, 기존 완료 G의 시간 미기록 대응, 보조 테이블 위조시 fail closed(HTTP 503). 기존 대시보드·MCP 복구/도구·20문답 거버넌스 회귀 검사, Ruff/Mypy(스코프)·Node 정적 검사.
