@@ -399,6 +399,40 @@ class AcademicMCPCheckpointService:
                                       'llm_controller': 'authenticated_chatgpt_mcp_client',
                                       'research_execution_policy': research_execution_policy(),
                                       'mcp_url_unchanged': True}
+            # Cycle-side summary cannot see gateway S7 trial records and
+            # defaults to zero even when the immutable paired experiments
+            # have already been evaluated. Reconcile only hash-verified S7
+            # reports here; absence remains zero, never a fictitious pass.
+            if isinstance(current['final_report'], dict):
+                tested = 0
+                for observed in current['history']:
+                    generation = observed['generation']
+                    stored = self._stored_experiment(db, sid, generation)
+                    if stored is None:
+                        continue
+                    trials = stored['report'].get('experiments')
+                    if (
+                        stored.get('session_id') != sid
+                        or stored.get('generation') != generation
+                        or stored.get('original_generation_evidence_hash')
+                        != observed['evidence_hash']
+                        or not isinstance(trials, list)
+                        or sorted(t['hypothesis_id'] for t in trials)
+                        != sorted(observed['hypothesis_ids'])
+                    ):
+                        raise CycleStateError('gateway S7 summary evidence mismatch')
+                    tested += len(trials)
+                report = dict(current['final_report'])
+                report['tested_hypotheses'] = tested
+                report['gateway_s7_count_source'] = (
+                    'HASH_VERIFIED_IMMUTABLE_GATEWAY_REPORTS'
+                )
+                report['all_proposed_hypotheses_measured'] = (
+                    tested == report['proposed_hypotheses']
+                )
+                # S7 completeness says nothing about LLM authenticity,
+                # external PIT, statistical independence or profitability.
+                result['final_report'] = report
             if row['phase'] == 'AWAITING_PLAN':
                 if current['status'] != 'AWAITING_PROVIDER':
                     raise CycleStateError('checkpoint phase mismatch')

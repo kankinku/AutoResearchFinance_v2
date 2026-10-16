@@ -679,6 +679,13 @@ def test_mcp_first_last_generation_includes_s7_result_in_final_reply(tmp_path: P
         assert started['latest_controlled_experiments']['generation'] == gen
     assert started['status'] == 'COMPLETED'
     assert started['final_report']['generations_completed'] == 2
+    assert started['final_report']['tested_hypotheses'] == 2
+    assert (
+        started['final_report']['gateway_s7_count_source']
+        == 'HASH_VERIFIED_IMMUTABLE_GATEWAY_REPORTS'
+    )
+    assert started['final_report']['all_proposed_hypotheses_measured'] is True
+    assert started['final_report']['model_autonomy_verified'] is False
     assert started['orders_enabled'] is False
     for gen in (1, 2):
         report = server._dispatch('evaluate_algorithm_experiments', {
