@@ -187,13 +187,22 @@ class ResearchRunSupervisor:
         max_generations: int,
         audit_path: Path,
         heartbeat_interval: float = 1.0,
+        max_model_proposals: int | None = None,
     ) -> dict[str, Any]:
         if type(max_generations) is not int or not 1 <= max_generations <= 100:
             raise SupervisorStateError("max_generations must be 1..100")
         if not 0.1 <= heartbeat_interval <= 30:
             raise SupervisorStateError("heartbeat interval must be 0.1..30 seconds")
+        if max_model_proposals is None:
+            max_model_proposals = max_generations * 5
+        if (type(max_model_proposals) is not int
+                or not 1 <= max_model_proposals <= 1000):
+            raise SupervisorStateError("model proposal budget must be 1..1000")
         if not callable(getattr(provider, "propose", None)):
             raise SupervisorStateError("explicit external model provider required")
+        proposal_limit: int = int(max_model_proposals)
+        model_proposals_used = 0
+        model_budget_hit = False
         stop_beat = threading.Event()
         owner = secrets.token_hex(12)
         with lifecycle_lock(self._path(session_id, "owner.lock")):
@@ -225,15 +234,22 @@ class ResearchRunSupervisor:
 
             class GuardedProvider:
                 def propose(self, context: dict[str, Any]) -> dict[str, Any]:
+                    nonlocal model_proposals_used, model_budget_hit
                     action = supervisor.requested_action(session_id)
                     if action != "RUN":
                         raise OperatorPauseRequested(f"operator requested {action}")
+                    if model_proposals_used >= proposal_limit:
+                        model_budget_hit = True
+                        raise OperatorPauseRequested("model proposal budget reached")
+                    model_proposals_used += 1
                     reply = provider.propose(context)
                     # A stop that arrives during a blocking model call must
                     # prevent submitting the newly returned uncommitted plan.
                     after = supervisor.requested_action(session_id)
                     if after != "RUN":
                         raise OperatorPauseRequested(f"operator requested {after}")
+                    if not isinstance(reply, dict):
+                        raise SupervisorStateError("model response must be a structured object")
                     return reply
 
             try:
@@ -246,6 +262,18 @@ class ResearchRunSupervisor:
                     audit_path=audit_path,
                 )
             except OperatorPauseRequested:
+                if model_budget_hit:
+                    self._save(
+                        self._path(session_id, "status.json"),
+                        self._snapshot(session_id, service, state="PAUSED", owner=owner),
+                    )
+                    return {
+                        "supervisor_state": "PAUSED",
+                        "pause_reason": "MODEL_PROPOSAL_BUDGET_REACHED",
+                        "model_proposals_used": model_proposals_used,
+                        "max_model_proposals": proposal_limit,
+                        **self.status(session_id),
+                    }
                 action = self.requested_action(session_id)
                 final_state = "STOPPED" if action == "STOP" else "PAUSED"
                 self._save(

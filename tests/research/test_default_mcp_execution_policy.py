@@ -104,3 +104,47 @@ def test_api_optin_requires_model_then_key_and_never_silently_falls_back(
         cli.main()
     assert exc.value.code == 2
     assert not (tmp_path / 'state').exists()
+
+
+def test_mcp_existing_session_preflight_is_read_only_and_never_uses_model(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str],
+):
+    monkeypatch.setenv('OPENAI_API_KEY', 'present-but-must-not-be-used')
+
+    def forbidden(*args: object, **kwargs: object) -> None:
+        raise AssertionError('preflight must never call a provider or write session')
+
+    monkeypatch.setattr(cli, 'OpenAIResponsesResearcher', forbidden)
+    monkeypatch.setattr(cli, 'AcademicMCPCheckpointService', forbidden)
+    sid = 'd' * 32
+    monkeypatch.setattr(sys, 'argv', [
+        'run_academic_autopilot.py', '--project-root', str(tmp_path / 'project'),
+        '--state-dir', str(tmp_path / 'state'), '--session-id', sid,
+    ])
+    cli.main()
+    body = json.loads(capsys.readouterr().out)
+    assert body['session_created'] is False
+    assert body['external_model_called'] is False
+    assert body['model_execution_possible_without_host'] is False
+    assert body['status'] == 'RESEARCH_STATE_UNAVAILABLE'
+    assert 'start_algorithm_research' not in body['next_step']
+    assert 'replacement session' in body['next_step']
+    assert 'checkpoint_token' not in body
+    assert not (tmp_path / 'state').exists()
+
+
+def test_paid_api_mode_requires_explicit_proposal_budget(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+):
+    monkeypatch.setenv('OPENAI_API_KEY', 'present-but-must-not-be-used')
+    monkeypatch.setattr(cli, 'OpenAIResponsesResearcher', lambda **kw: pytest.fail(
+        'model provider constructed before budget validation'))
+    monkeypatch.setattr(sys, 'argv', [
+        'run_academic_autopilot.py', '--project-root', str(tmp_path),
+        '--state-dir', str(tmp_path / 'state'), '--session-id', 'd' * 32,
+        '--execution-mode', 'openai-api', '--model', 'explicit-model',
+    ])
+    with pytest.raises(SystemExit) as exc:
+        cli.main()
+    assert exc.value.code == 2
+    assert not (tmp_path / 'state').exists()

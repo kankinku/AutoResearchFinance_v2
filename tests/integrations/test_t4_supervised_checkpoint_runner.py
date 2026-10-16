@@ -236,3 +236,59 @@ def test_stale_heartbeat_never_claims_worker_is_running(tmp_path: Path) -> None:
     # Request RESUME never claims a new live owner or starts GPT.
     owner.request(sid, "RUN")
     assert owner.status(sid)["heartbeat_health"] == "STALE_OR_UNVERIFIED"
+
+
+def test_bounded_model_proposals_stop_before_diagnosis_and_preserve_checkpoint(
+    tmp_path: Path,
+) -> None:
+    svc, sid, owner, log = _init(tmp_path)
+    delegate = ScriptedResearcher()
+
+    class CountingProvider:
+        def __init__(self):
+            self.count = 0
+
+        def propose(self, context):
+            self.count += 1
+            return delegate.propose(context)
+
+    provider = CountingProvider()
+    result = owner.run(
+        sid, service=svc, provider=provider, max_generations=2,
+        max_model_proposals=1, audit_path=log,
+    )
+    state = svc.get({'session_id': sid})
+    assert result['supervisor_state'] == 'PAUSED'
+    assert result['pause_reason'] == 'MODEL_PROPOSAL_BUDGET_REACHED'
+    assert result['model_proposals_used'] == 1
+    assert provider.count == 1
+    assert state['completed_generations'] == 0
+    assert state['checkpoint_phase'] == 'AWAITING_DIAGNOSIS'
+    staged_token = state['checkpoint_token']
+    assert owner.status(sid)['last_recorded']['checkpoint_phase'] == 'AWAITING_DIAGNOSIS'
+    assert owner.status(sid)['last_recorded']['provider_source'] == 'EXPLICIT_CALLER_SUPPLIED_ONLY'
+
+    continued = owner.run(
+        sid, service=svc, provider=provider, max_generations=1,
+        max_model_proposals=1, audit_path=log,
+    )
+    assert continued['supervisor_state'] == 'AWAITING_PROVIDER'
+    assert provider.count == 2
+    assert svc.get({'session_id': sid})['completed_generations'] == 1
+    assert svc.get({'session_id': sid})['checkpoint_token'] != staged_token
+
+
+def test_model_proposal_budget_validation_refuses_before_model_call(tmp_path: Path) -> None:
+    svc, sid, owner, log = _init(tmp_path)
+
+    class ForbiddenProvider:
+        def propose(self, context):
+            raise AssertionError('invalid budget must never call model')
+
+    for bad in (0, -1, True, 1001):
+        with pytest.raises(SupervisorStateError, match='model proposal budget'):
+            owner.run(
+                sid, service=svc, provider=ForbiddenProvider(),
+                max_generations=1, max_model_proposals=bad, audit_path=log,
+            )
+    assert svc.get({'session_id': sid})['completed_generations'] == 0
