@@ -6,6 +6,7 @@ are the only authority. No orders/OOS/secret management, no new MCP URL.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Protocol
 
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
@@ -38,6 +39,26 @@ class AcademicCheckpointAutopilot:
     ) -> None:
         self.service = service
         self.provider = provider
+
+    def run_resumable(
+        self,
+        session_id: str,
+        *,
+        max_generations: int,
+        audit_path: Path,
+    ) -> dict[str, Any]:
+        """Operator-invoked safe retry; never bypass provider/host policy denial.
+
+        A host-refused MCP call cannot reach this runner. The model transport
+        must explicitly classify a transient failure for bounded retry.
+        """
+        from research.llm.safe_checkpoint_recovery import (
+            SafeCheckpointRecoveryController,
+        )
+
+        return SafeCheckpointRecoveryController(
+            self, audit_path=audit_path,
+        ).run(session_id, max_generations=max_generations)
 
     def run(self, session_id: str, *, max_generations: int) -> dict[str, Any]:
         if type(max_generations) is not int or not 1 <= max_generations <= 100:
