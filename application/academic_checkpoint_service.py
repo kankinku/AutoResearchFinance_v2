@@ -879,6 +879,8 @@ class AcademicMCPCheckpointService:
             expected_child_strategy_hash=args["child_strategy_hash"],
             continuation_intent=args["continuation_intent"],
         )
+        # Canonicalize tuple-backed audit records to stable JSON list types.
+        result = json.loads(json.dumps(result, sort_keys=True))
         with self._connect() as db:
             locked = db.execute(
                 "SELECT phase,token FROM stages WHERE session_id=?", (sid,)

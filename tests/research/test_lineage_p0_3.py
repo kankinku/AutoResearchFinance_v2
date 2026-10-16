@@ -139,13 +139,16 @@ def test_gateway_preserves_checkpoint_and_adds_idempotent_lineage(tmp_path, monk
         "continuation_intent": item["proposed_intent"],
         "generation_counter_incremented": False,
         "independent_oos_approved": False,
+        "execution_delta": {"event_samples": ({"kind": "ADDED"},)},
     }
     fake = {**body, "report_hash": content_hash(body)}
+    import json
+    normalized = json.loads(json.dumps(fake))
     import application.academic_checkpoint_service as gateway
 
     monkeypatch.setattr(gateway, "verified_child_successor", lambda *a, **k: fake)
     persisted = server._dispatch("evaluate_algorithm_experiments", request)
-    assert persisted == fake
+    assert persisted == normalized
     monkeypatch.setattr(
         gateway,
         "verified_child_successor",
