@@ -120,3 +120,15 @@
 - 실제 세션 전역 G133/300 (새 세션 33/100, `AWAITING_PLAN`)의 원본 해시와 전략의 최종 자산 재생 검증 PASS. 전략 +37.57%/MDD 9.83%; QQQ 비용 반영 단순 보유 **+187.77%/MDD 35.62%**; 동일 과거 노출률 31.63% 최초 비중 **+59.39%/MDD 16.63%**; 과거 변동성 사후 조정 24.43% 비중 **+45.86%/MDD 13.52%**. 다른 최초 체결가격/비용 모형 기준 수익률과 수치 차이 허용.
 - 대상 테스트 포함 **66 passed**, Ruff PASS, 변경 코드 Mypy PASS. **실제 연결된 Quant MCP로 검증:** `READY`, 기존 100/100 세션 `COMPLETED`, 신규 33/100 세션 유지, 추가 `benchmark_comparison` 정상, 주문 비활성, OOS 미승인. 새 PID로 supervisor 정상 복구 및 익명 MCP 401 확인.
 - 저장된 자료는 그대로. 새로운 전략은 이번 변경 작업에서 실행/승격하지 않음. 다음 개발은 **P0-3: 검증된 S7 자식의 재생 가능한 부모 계승 인터페이스**; 그 뒤 P1 청산/포지션 엔진.
+
+
+## 2026-10-17 P0-3A 운영 적용 — S7 자식 StrategyIR 재현·후속 변형
+
+- 소스 브랜치 `feat/p0-3-child-lineage-replay-20261017`, 최종 변경 `27b3c21d17fedf858aa3ebcf39852e5b8b44a88e` (JSON 직렬화 정규화 포함). 배포 PIN 커밋 `f3ed7fc`. 기존 OAuth/MCP URL `https://project-moon.taild689f9.ts.net/quant` 변경 없음.
+- 기존 32개 MCP 도구 중 `evaluate_algorithm_experiments`에 선택적 `checkpoint_token, hypothesis_id, child_strategy_hash, continuation_intent` 입력으로 별도 계승 평가 가능. 기존 `session_id + generation` 호출 방식 보존.
+- 보존 증거·해시·거래비용·최종자산의 **동일 재생** 확인 후, 실제 자식 StrategyIR을 부모로 다시 변형. 다음 GPT 플랜 컨텍스트 `verified_successor_lineages`에 검증된 실험 요약 제공.
+- 운영 원장에서 실제 세션 `2ba41aaeacd547319cfbf7e6f266ad11`의 로컬 **29세대=전역129** S7 자식 **+44.44%** → `time_series_momentum>0.5` 조건 하나 추가한 다음 자식 **+48.95%**, 개선 **+4.5073%p**, lineage proof `9822931a599af246...`. 실험 요청 재호출 시 기존 결과 반환, 자료 추가 1건으로 제한 확인.
+- 재시작 후 연결된 MCP 검증: Workspace `READY`, `AWAITING_PLAN`, 로컬 33/100(전역133/300), `verified_successor_lineages` 1건, 원본 33세대 history 및 checkpoint token 변화 없음, 실거래 `false`.
+- 관련 회귀 테스트 **70 passed** (최종 코드 전 넓은 범위), JSON 왕복 보정 뒤 신규 계승 테스트 **4 passed**, 코드 타입 검사 통과. 별도 서식 정리 커밋으로 원본 외 비관련 변경 최소화.
+- **명확한 미완료 P0-3B**: 이번 후속 변형은 `successor_lineages`에 저장된 연구용 sidecar 증거다. 아직 정식 세대 카운터를 134로 올리거나 다음 본체 `AlgorithmPlan`이 자식 StrategyIR을 자동 선택하는 기술은 없음. 정식 counted generation 승격을 위해 CycleService·S2 진단·S7 대조·중복 신호 감지·중단 복구에 연결할 독립 설계/검증 필요.
+- 동일 2020–2025 개발 데이터 반복으로 과최적화 위험, 독립 OOS·PIT/수익성 검증 없음. 실거래 비활성.
