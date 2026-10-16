@@ -23,6 +23,7 @@ from research.indicator_engine.algorithm_plan import (
     compile_provider_algorithm_plan,
 )
 from research.indicator_engine.catalog import ResearchCatalog
+from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
 from research.llm.diagnostic_research import diagnose_with_provider
 
 
@@ -430,6 +431,213 @@ class AcademicCycleService:
             )
         return self.get(session_id, catalog, market)
 
+    def advance_inherited(
+        self,
+        session_id: str,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
+        provider: CycleResearcher | None,
+        *,
+        parent_compiled: CompiledAcademicStrategy,
+        compiled: CompiledAcademicStrategy,
+        source_plan: dict[str, Any],
+        inheritance: dict[str, Any],
+        inherited_intent: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Commit one REAL StrategyIR descendant through S2, never a proxy plan.
+
+        The gateway is responsible for independent S7 lineage verification
+        before calling this method. Even a trusted gateway must supply the
+        actual parent and mutation; all identities are checked again here.
+        """
+        from core.features.registry import research_feature_specs
+        from research.indicator_engine.algorithm_plan import AlgorithmPlan, compile_algorithm_plan
+        from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
+        from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
+        from research.llm.director import ResearchIntent
+        from research.llm.intent_bridge import apply_intent
+
+        if provider is None or not isinstance(compiled, CompiledAcademicStrategy):
+            raise CycleStateError("inherited generation requires genuine compiled strategy")
+        if not isinstance(parent_compiled, CompiledAcademicStrategy):
+            raise CycleStateError("inherited parent compilation required")
+        state = self.get(session_id, catalog, market)
+        if state["status"] != "AWAITING_PROVIDER":
+            raise CycleStateError("inherited generation requires idle research checkpoint")
+        history: list[dict[str, Any]] = state["history"]
+        if not history or state["completed_generations"] >= state["requested_generations"]:
+            raise CycleStateError("no available counted inheritance generation")
+        generation = state["completed_generations"] + 1
+        index = inheritance.get("source_generation")
+        if (
+            inheritance.get("schema") != "p0-3b-counted-inheritance-input-v1"
+            or type(index) is not int
+            or index < 1
+            or index > len(history)
+            or inheritance.get("source_evidence_hash") != history[index - 1]["evidence_hash"]
+            or inheritance.get("parent_strategy_hash") != parent_compiled.strategy_hash
+            or source_plan != history[index - 1].get("algorithm_plan")
+        ):
+            raise CycleStateError("inherited parent source provenance mismatch")
+        plan = AlgorithmPlan.model_validate(source_plan)
+        base = compile_algorithm_plan(catalog, plan, market)
+        if (
+            base.compiled.feature_values != parent_compiled.feature_values
+            or base.compiled.replay != parent_compiled.replay
+            or parent_compiled.dataset_hash != market.dataset_hash
+            or compiled.dataset_hash != market.dataset_hash
+            or compiled.feature_values != parent_compiled.feature_values
+            or compiled.replay != parent_compiled.replay
+        ):
+            raise CycleStateError("inherited parent source signal replay mismatch")
+        typed = ResearchIntent.model_validate(inherited_intent)
+        if (
+            typed.parent_ids != (parent_compiled.strategy.strategy_id,)
+            or typed.primitive_request is not None
+            or typed.feature_proposal is not None
+        ):
+            raise CycleStateError("inherited descendant intent is unapproved")
+        regenerated = apply_intent(
+            parent_compiled.strategy,
+            typed,
+            research_feature_specs(),
+        )
+        regenerated_hash = content_hash(regenerated.model_dump(mode="json", by_alias=True))
+        if (
+            regenerated != compiled.strategy
+            or regenerated_hash != compiled.strategy_hash
+            or content_hash(parent_compiled.strategy.model_dump(mode="json", by_alias=True))
+            != parent_compiled.strategy_hash
+        ):
+            raise CycleStateError("inherited mutation does not match actual compiled StrategyIR")
+        semantics = content_hash(
+            {
+                "base": base.plan_hash,
+                "parent_strategy": parent_compiled.strategy_hash,
+                "mutated_strategy": compiled.strategy.model_dump(mode="json", by_alias=True),
+            }
+        )
+        from core.backtest.engine import _regime_allows, _rules_match
+
+        values = {k: list(v) for k, v in compiled.feature_values.items()}
+        active_signals = {
+            "dataset_hash": market.dataset_hash,
+            "entry": tuple(
+                _rules_match(
+                    compiled.strategy.entry.conditions, compiled.strategy.entry.logic, values, i
+                )
+                for i in range(len(market.bars))
+            ),
+            "exit": tuple(
+                _rules_match(
+                    compiled.strategy.exit.conditions, compiled.strategy.exit.logic, values, i
+                )
+                for i in range(len(market.bars))
+            ),
+            "regime": tuple(
+                _regime_allows(compiled.strategy, values, i) for i in range(len(market.bars))
+            ),
+        }
+        effective_hash = content_hash(active_signals)
+        if any(
+            item.get("algorithm_semantic_hash") == semantics
+            or item.get("strategy_hash") == compiled.strategy_hash
+            or item.get("effective_signal_hash") == effective_hash
+            for item in history
+        ):
+            raise CycleStateError("duplicate inherited strategy signals or semantics")
+        # Full audit and S2 evidence check occur BEFORE claiming the generation.
+        audit = audit_inherited_decisions(compiled, market)
+        diagnosis = diagnose_with_provider(audit, compiled.strategy, provider)
+        prior = history[-1]
+        payload = {
+            "generation": generation,
+            "previous_evidence_hash": prior["evidence_hash"],
+            "algorithm_plan": None,
+            "base_algorithm_plan": source_plan,
+            "inherited_parent": inheritance,
+            "inherited_intent": typed.model_dump(mode="json"),
+            "inherited_strategy_ir": compiled.strategy.model_dump(mode="json", by_alias=True),
+            "algorithm_semantic_hash": semantics,
+            "effective_signal_hash": effective_hash,
+            "plan_hash": content_hash(
+                {
+                    "inherited_strategy": compiled.strategy_hash,
+                    "parent_lineage_proof": inheritance["parent_selection_hash"],
+                }
+            ),
+            "strategy_hash": compiled.strategy_hash,
+            "audit_hash": audit.trace_hash,
+            "diagnostic_context_hash": diagnosis.context_hash,
+            "diagnostic_proposal_hash": diagnosis.proposal_hash,
+            "analysis_summary": diagnosis.analysis_summary,
+            "causal_status": diagnosis.causal_claim,
+            "hypothesis_ids": [x.hypothesis_id for x in diagnosis.experiments],
+            "experiments": [
+                {
+                    "hypothesis_id": x.hypothesis_id,
+                    "observed_ids": list(x.observed_ids),
+                    "mechanism": x.mechanism,
+                    "alternative": x.alternative,
+                    "test_design": x.test_design,
+                    "control": x.control,
+                    "expected_metric": x.expected_metric,
+                    "predicted_direction": x.predicted_direction,
+                    "proposal_child_hash": x.child_hash,
+                    "proposed_intent": x.proposed_intent.model_dump(mode="json"),
+                    "status": x.causal_status,
+                }
+                for x in diagnosis.experiments
+            ],
+            "observed_trades": audit.evaluation.trades_count,
+            "metrics": audit.llm_packet["metrics"],
+            "measured_final_equity": audit.evaluation.final_equity,
+            "dataset_hash": market.dataset_hash,
+            "independent_oos_approved": False,
+            "broker_executable": False,
+        }
+        digest = self._row_evidence_hash(
+            session_id,
+            generation,
+            prior["evidence_hash"],
+            payload,
+        )
+        token = uuid4().hex
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT * FROM sessions WHERE id=?", (session_id,)).fetchone()
+            if (
+                row is None
+                or row["status"] != "AWAITING_PROVIDER"
+                or row["completed"] != generation - 1
+                or row["dataset_hash"] != market.dataset_hash
+            ):
+                raise CycleStateError("concurrent inherited generation claim rejected")
+            self._validate_dataset(row, catalog, market)
+            self._history(db, session_id)
+            changed = db.execute(
+                "UPDATE sessions SET status='EXECUTING',running_token=? "
+                "WHERE id=? AND status='AWAITING_PROVIDER' AND completed=?",
+                (token, session_id, generation - 1),
+            )
+            if changed.rowcount != 1:
+                raise CycleStateError("inherited generation checkpoint conflict")
+            db.execute(
+                "INSERT INTO generations(session_id,generation,evidence_json,evidence_hash) "
+                "VALUES(?,?,?,?)",
+                (session_id, generation, json.dumps(payload, sort_keys=True), digest),
+            )
+            db.execute(
+                "UPDATE sessions SET completed=?,status=?,running_token=NULL,error_type=NULL "
+                "WHERE id=? AND running_token=?",
+                (
+                    generation,
+                    "COMPLETED" if generation == row["requested"] else "AWAITING_PROVIDER",
+                    session_id,
+                    token,
+                ),
+            )
+        return self.get(session_id, catalog, market)
 
     def run_bounded(
         self, session_id: str, catalog: ResearchCatalog,

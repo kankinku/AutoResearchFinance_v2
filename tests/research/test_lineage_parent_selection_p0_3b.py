@@ -158,6 +158,25 @@ def test_gateway_freezes_parent_for_next_counted_generation_and_retries(tmp_path
     import application.academic_checkpoint_service as gateway
     monkeypatch.setattr(gateway, "replay_lineage_candidate",
                         lambda *args: expected)
+    # Synthetic fake lineage in this unit test is not a real S7 StrategyIR.
+    # Mock only the compiled source boundary; actual replay is covered by the
+    # read-only G129 and G134 shadow-checkpoint integration tests.
+    from types import SimpleNamespace
+
+    from research.indicator_engine.algorithm_plan import AlgorithmPlan, compile_algorithm_plan
+
+    with service._connect() as db:
+        _, catalog, market, _ = service._state(db, sid)
+    seed = compile_algorithm_plan(
+        catalog, AlgorithmPlan.model_validate(original["algorithm_plan"]), market,
+    )
+    monkeypatch.setattr(
+        gateway, "compile_replayed_successor",
+        lambda *args: SimpleNamespace(
+            strategy_hash="c" * 64,
+            strategy=seed.compiled.strategy,
+        ),
+    )
     selected = service.get({"session_id": sid})["model_context"][
         "selected_development_parent"
     ]

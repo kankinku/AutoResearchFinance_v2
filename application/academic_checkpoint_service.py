@@ -3,12 +3,13 @@
 The connected ChatGPT model is the Research Director. This service makes no
 LLM HTTP calls and NEVER creates/rotates an MCP URL, OAuth record or key.
 """
+
 from __future__ import annotations
 
 import json
 import sqlite3
 from copy import deepcopy
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ from uuid import uuid4
 
 from core.data.contracts import MarketDataSet
 from core.data.parquet import ParquetDataProvider
+from core.features.registry import research_feature_specs
 from core.integrity.hashes import content_hash
 from orchestration.evaluation_runner import resolve_project_input
 from research.indicator_engine.algorithm_plan import (
@@ -40,20 +42,27 @@ from research.indicator_engine.external_reference import (
     capture_s6_external_reference,
     get_s6_external_reference,
 )
+from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
+from research.indicator_engine.inherited_experiments import compare_inherited_experiments
 from research.indicator_engine.s6_seed import S6_SIGNALS, seed_s6_references
 from research.indicator_engine.seed import seed_approved_references
 from research.indicator_engine.signals import verify_signal_on_synthetic_prices
+from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
 from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
 from research.llm.diagnostic_research import DiagnosticResponse, build_diagnostic_context
+from research.llm.director import ResearchIntent
 from research.llm.economic_feedback import build_economic_feedback, gate_research_direction
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
+from research.llm.intent_bridge import apply_intent
 from research.llm.lineage_replay import verified_child_successor
 from research.llm.lineage_selection import (
     choose_development_parent,
+    compile_replayed_successor,
     replay_lineage_candidate,
 )
+from strategy_ir.schema import StrategyIR
 
 
 class _SubmittedProvider:
@@ -73,6 +82,20 @@ class _SubmittedProvider:
                 raise CycleStateError('diagnostic context changed after GPT saw it')
             return deepcopy(self.diagnosis)
         raise CycleStateError('unexpected research phase or duplicate provider call')
+
+
+class _SubmittedDiagnosisOnly:
+    """An inherited plan is already pinned and audited; GPT authors only S2."""
+
+    def __init__(self, diagnosis: dict[str, Any]):
+        self.diagnosis = diagnosis
+
+    def propose(self, context: dict[str, Any]) -> dict[str, Any]:
+        if context.get("schema") != "research-diagnostic-context-v1" or self.diagnosis.get(
+            "context_hash"
+        ) != context.get("context_hash"):
+            raise CycleStateError("inherited S2 diagnosis context mismatch")
+        return deepcopy(self.diagnosis)
 
 
 class AcademicMCPCheckpointService:
@@ -461,64 +484,172 @@ class AcademicMCPCheckpointService:
             )
         return self._selected_development_parent(catalog, data, status)
 
+    def _selected_ir(
+        self,
+        catalog: ResearchCatalog,
+        data: MarketDataSet,
+        state: dict[str, Any],
+    ) -> tuple[CompiledAcademicStrategy, dict[str, Any], dict[str, Any]]:
+        """Verify P0-3A S7 provenance and reproduce the pinned next parent."""
+        selected = self._selected_development_parent(catalog, data, state)
+        if selected is None:
+            raise CycleStateError("no verified successor selected for inheritance")
+        source = selected["source_generation"]
+        with self._connect() as db:
+            saved = db.execute(
+                "SELECT result_json,result_hash FROM successor_lineages "
+                "WHERE session_id=? AND origin_generation=? AND result_hash=?",
+                (state["session_id"], source, selected["lineage_report_hash"]),
+            ).fetchone()
+            measured = self._stored_experiment(db, state["session_id"], source)
+        if saved is None or measured is None:
+            raise CycleStateError("selected inheritance source missing")
+        proof = json.loads(saved["result_json"])
+        if saved["result_hash"] != proof.get("report_hash"):
+            raise CycleStateError("selected inheritance report hash mismatch")
+        original = state["history"][source - 1]
+        parent = compile_replayed_successor(catalog, data, original, measured, proof)
+        if parent.strategy_hash != selected["successor_strategy_hash"]:
+            raise CycleStateError("selected counted parent StrategyIR mismatch")
+        return parent, original, selected
+
+    def _materialize_inherited(
+        self,
+        catalog: ResearchCatalog,
+        data: MarketDataSet,
+        state: dict[str, Any],
+        pending: dict[str, Any],
+    ) -> tuple[CompiledAcademicStrategy, CompiledAcademicStrategy, dict[str, Any]]:
+        if pending.get("schema") != "p0-3b-inherited-pending-v1":
+            raise CycleStateError("unknown inherited pending schema")
+        parent, source, selection = self._selected_ir(catalog, data, state)
+        if (
+            pending.get("parent_selection_hash") != selection["selection_hash"]
+            or pending.get("base_algorithm_plan") != source["algorithm_plan"]
+        ):
+            raise CycleStateError("pending inherited parent selection mismatch")
+        intent = ResearchIntent.model_validate(pending["inherited_intent"])
+        if (
+            intent.mode != "structure"
+            or intent.parent_ids != (parent.strategy.strategy_id,)
+            or intent.feature_proposal is not None
+            or intent.primitive_request is not None
+            or not 1 <= len(intent.operations) <= 6
+        ):
+            raise CycleStateError("invalid inherited mutation intent")
+        child = apply_intent(parent.strategy, intent, research_feature_specs())
+        digest = content_hash(child.model_dump(mode="json", by_alias=True))
+        if digest != pending.get("strategy_hash"):
+            raise CycleStateError("inherited child StrategyIR changed after staging")
+        proof = {
+            "schema": "p0-3b-counted-inheritance-input-v1",
+            "source_generation": selection["source_generation"],
+            "source_evidence_hash": selection["source_evidence_hash"],
+            "parent_strategy_hash": parent.strategy_hash,
+            "origin_lineage_hash": selection["lineage_report_hash"],
+            "parent_selection_hash": selection["selection_hash"],
+        }
+        return parent, replace(parent, strategy=child, strategy_hash=digest), proof
+
+    def _inherited_from_evidence(
+        self,
+        catalog: ResearchCatalog,
+        data: MarketDataSet,
+        original: dict[str, Any],
+    ) -> CompiledAcademicStrategy:
+        base = compile_algorithm_plan(
+            catalog,
+            AlgorithmPlan.model_validate(original["base_algorithm_plan"]),
+            data,
+        )
+        inherited = StrategyIR.model_validate(original["inherited_strategy_ir"])
+        digest = content_hash(inherited.model_dump(mode="json", by_alias=True))
+        if (
+            digest != original["strategy_hash"]
+            or base.compiled.dataset_hash != original["dataset_hash"]
+        ):
+            raise CycleStateError("saved counted inherited StrategyIR integrity mismatch")
+        compiled = replace(base.compiled, strategy=inherited, strategy_hash=digest)
+        audited = audit_inherited_decisions(compiled, data)
+        if (
+            audited.trace_hash != original["audit_hash"]
+            or abs(audited.evaluation.final_equity - original["measured_final_equity"]) > 1e-6
+        ):
+            raise CycleStateError("saved inherited S2 evidence cannot replay")
+        return compiled
+
     def _context(
-        self, catalog: ResearchCatalog, data: MarketDataSet, status: dict[str, Any],
+        self,
+        catalog: ResearchCatalog,
+        data: MarketDataSet,
+        status: dict[str, Any],
     ) -> dict[str, Any]:
         context = build_algorithm_plan_context(catalog, data)
-        context['generation'] = status['completed_generations'] + 1
+        context["generation"] = status["completed_generations"] + 1
         # Verified QQQ costed B&H and historical, non-tradable risk proxies.
         # Replay the latest audited strategy; never trust LLM-claimed metrics.
-        last = status['history'][-1] if status['history'] else None
+        last = status["history"][-1] if status["history"] else None
         equity = None
         exposure = None
         if last is not None:
-            plan = AlgorithmPlan.model_validate(last['algorithm_plan'])
-            compiled = compile_algorithm_plan(catalog, plan, data)
-            if (compiled.plan_hash != last['plan_hash']
-                    or compiled.compiled.strategy_hash != last['strategy_hash']
-                    or last['dataset_hash'] != data.dataset_hash):
-                raise CycleStateError('previous generation benchmark identity mismatch')
-            replayed_evaluation = evaluate_algorithm_plan(catalog, compiled, data)
-            if abs(replayed_evaluation.final_equity - last['measured_final_equity']) > 1e-7:
-                raise CycleStateError('previous generation equity replay mismatch')
-            equity = replayed_evaluation.equity_curve
-            exposure = last['metrics']['exposure']
-        if data.bars and all(bar.symbol == 'QQQ' for bar in data.bars):
-            context['benchmark_comparison'] = compare_qqq_development_benchmarks(
-                data, strategy_equity_curve=equity, realized_exposure=exposure,
+            if last.get("inherited_strategy_ir") is not None:
+                previous_compiled = self._inherited_from_evidence(catalog, data, last)
+                evaluation = audit_inherited_decisions(previous_compiled, data).evaluation
+            else:
+                plan = AlgorithmPlan.model_validate(last["algorithm_plan"])
+                compiled = compile_algorithm_plan(catalog, plan, data)
+                if (
+                    compiled.plan_hash != last["plan_hash"]
+                    or compiled.compiled.strategy_hash != last["strategy_hash"]
+                    or last["dataset_hash"] != data.dataset_hash
+                ):
+                    raise CycleStateError("previous generation benchmark identity mismatch")
+                evaluation = evaluate_algorithm_plan(catalog, compiled, data)
+            if abs(evaluation.final_equity - last["measured_final_equity"]) > 1e-7:
+                raise CycleStateError("previous generation equity replay mismatch")
+            equity = evaluation.equity_curve
+            exposure = last["metrics"]["exposure"]
+        if data.bars and all(bar.symbol == "QQQ" for bar in data.bars):
+            context["benchmark_comparison"] = compare_qqq_development_benchmarks(
+                data,
+                strategy_equity_curve=equity,
+                realized_exposure=exposure,
             )
         else:
             # Prevent a QQQ comparator from blocking other research symbols.
-            context['benchmark_comparison'] = {
-                'status': 'NOT_APPLICABLE_NON_QQQ',
-                'independent_oos_approved': False,
-                'broker_executable': False,
+            context["benchmark_comparison"] = {
+                "status": "NOT_APPLICABLE_NON_QQQ",
+                "independent_oos_approved": False,
+                "broker_executable": False,
             }
         if last is not None:
-            context['benchmark_comparison'].update({
-                'strategy_generation': last['generation'],
-                'strategy_total_return': last['metrics']['total_return'],
-                'strategy_max_drawdown': last['metrics']['max_drawdown'],
-                'strategy_evidence_hash': last['evidence_hash'],
-            })
+            context["benchmark_comparison"].update(
+                {
+                    "strategy_generation": last["generation"],
+                    "strategy_total_return": last["metrics"]["total_return"],
+                    "strategy_max_drawdown": last["metrics"]["max_drawdown"],
+                    "strategy_evidence_hash": last["evidence_hash"],
+                }
+            )
         # Validate stored experiment checksum before it influences future LLM
         # direction. S7-v1 reports lack execution attribution and remain
         # readable, but cannot support the newer direction allocator.
         scored_reports: dict[int, dict[str, Any]] = {}
         with self._connect() as db:
-            for item in status['history']:
-                observed = self._stored_experiment(db, status['session_id'], item['generation'])
+            for item in status["history"]:
+                observed = self._stored_experiment(db, status["session_id"], item["generation"])
                 if observed is not None and all(
-                    'execution_delta' in experiment
-                    for experiment in observed['report'].get('experiments', [])
+                    "execution_delta" in experiment
+                    for experiment in observed["report"].get("experiments", [])
                 ):
-                    scored_reports[item['generation']] = observed
+                    scored_reports[item["generation"]] = observed
         # Economic feedback is derived from already hash-verified immutable
         # paired comparisons. A trade-count direction match is NOT sufficient
         # evidence for EVOLVE if the same child lost development money.
         # These are advisory review candidates, never auto-executed strategies.
-        context['economic_feedback'] = build_economic_feedback(
-            status['history'], scored_reports,
+        context["economic_feedback"] = build_economic_feedback(
+            status["history"],
+            scored_reports,
         )
         # Only lineage reports with intact hashes and immutable source ancestry
         # may influence the next GPT request. No automatic generation promotion.
@@ -563,41 +694,60 @@ class AcademicMCPCheckpointService:
             )
         context["verified_successor_lineages"] = successors
         context["selected_development_parent"] = self._selected_development_parent(
-            catalog, data, status,
+            catalog,
+            data,
+            status,
         )
-        context["counted_parent_inheritance_ready"] = False
-        context["counted_parent_inheritance_blocker"] = (
-            "S2/S7 counted AlgorithmPlan cannot yet execute arbitrary inherited "
-            "StrategyIR; the audited successor is pinned but NOT counted"
+        selected = context["selected_development_parent"]
+        if selected is not None:
+            parent, _, _ = self._selected_ir(catalog, data, status)
+            context["output_contract"] = "InheritedResearchIntent"
+            context["inherited_research_intent_schema"] = ResearchIntent.model_json_schema()
+            context["inherited_parent_strategy_id"] = parent.strategy.strategy_id
+            context["inherited_parent_strategy_hash"] = parent.strategy_hash
+            context["inherited_parent_entry_conditions"] = [
+                c.model_dump(mode="json") for c in parent.strategy.entry.conditions
+            ]
+            context["inherited_parent_exit_conditions"] = [
+                c.model_dump(mode="json") for c in parent.strategy.exit.conditions
+            ]
+        context["counted_parent_inheritance_ready"] = selected is not None
+        context["counted_parent_inheritance_gate"] = (
+            "DEVELOPMENT_ONLY_S2_S7_COUNTED_MUTATION_NO_ORDERS"
+            if selected is not None
+            else "NO_VERIFIED_PARENT_FALLBACK_ALGORITHM_PLAN"
         )
-        context['research_direction'] = gate_research_direction(
-            build_research_direction(status['history'], scored_reports),
-            context['economic_feedback'],
+        context["research_direction"] = gate_research_direction(
+            build_research_direction(status["history"], scored_reports),
+            context["economic_feedback"],
         )
         # Regenerate evidence-linked failure memory from immutable S7 results.
         # Never mutate any prior cycle evidence or permit automatic execution.
-        context['experiment_learning'] = build_experiment_learning(
-            status['history'], scored_reports,
+        context["experiment_learning"] = build_experiment_learning(
+            status["history"],
+            scored_reports,
         )
-        if status['history']:
-            previous = status['history'][-1]
-            context['prior_research'] = {
-                'generation': previous['generation'],
-                'evidence_hash': previous['evidence_hash'],
-                'audit_hash': previous['audit_hash'],
-                'diagnostic_proposal_hash': previous['diagnostic_proposal_hash'],
-                'causal_status': previous['causal_status'],
-                'analysis_summary': previous['analysis_summary'],
-                'experiments': previous['experiments'],
-                'metrics': previous['metrics'],
-                'prior_algorithm_semantic_hash': previous['algorithm_semantic_hash'],
+        if status["history"]:
+            previous = status["history"][-1]
+            context["prior_research"] = {
+                "generation": previous["generation"],
+                "evidence_hash": previous["evidence_hash"],
+                "audit_hash": previous["audit_hash"],
+                "diagnostic_proposal_hash": previous["diagnostic_proposal_hash"],
+                "causal_status": previous["causal_status"],
+                "analysis_summary": previous["analysis_summary"],
+                "experiments": previous["experiments"],
+                "metrics": previous["metrics"],
+                "prior_algorithm_semantic_hash": previous["algorithm_semantic_hash"],
             }
             with self._connect() as db:
                 measured = self._stored_experiment(
-                    db, status['session_id'], previous['generation'],
+                    db,
+                    status["session_id"],
+                    previous["generation"],
                 )
             if measured is not None:
-                context['prior_research']['controlled_experiments'] = measured
+                context["prior_research"]["controlled_experiments"] = measured
         return context
 
     def _state(
@@ -610,173 +760,292 @@ class AcademicMCPCheckpointService:
         return row, catalog, data, self.cycle.get(sid, catalog, data)
 
     def get(self, args: dict[str, Any]) -> dict[str, Any]:
-        self._one(args, {'session_id'}, {'session_id'})
-        sid = args['session_id']
+        self._one(args, {"session_id"}, {"session_id"})
+        sid = args["session_id"]
         if not isinstance(sid, str) or len(sid) != 32:
-            raise ValueError('session_id must be 32 hex characters')
+            raise ValueError("session_id must be 32 hex characters")
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
-            result: dict[str, Any] = {**current, 'checkpoint_phase': row['phase'],
-                                      'catalog_version': row['catalog_version'],
-                                      'llm_controller': 'authenticated_chatgpt_mcp_client',
-                                      'research_execution_policy': research_execution_policy(),
-                                      'mcp_url_unchanged': True}
+            result: dict[str, Any] = {
+                **current,
+                "checkpoint_phase": row["phase"],
+                "catalog_version": row["catalog_version"],
+                "llm_controller": "authenticated_chatgpt_mcp_client",
+                "research_execution_policy": research_execution_policy(),
+                "mcp_url_unchanged": True,
+            }
             # Cycle-side summary cannot see gateway S7 trial records and
             # defaults to zero even when the immutable paired experiments
             # have already been evaluated. Reconcile only hash-verified S7
             # reports here; absence remains zero, never a fictitious pass.
-            if isinstance(current['final_report'], dict):
+            if isinstance(current["final_report"], dict):
                 tested = 0
-                for observed in current['history']:
-                    generation = observed['generation']
+                for observed in current["history"]:
+                    generation = observed["generation"]
                     stored = self._stored_experiment(db, sid, generation)
                     if stored is None:
                         continue
-                    trials = stored['report'].get('experiments')
+                    trials = stored["report"].get("experiments")
                     if (
-                        stored.get('session_id') != sid
-                        or stored.get('generation') != generation
-                        or stored.get('original_generation_evidence_hash')
-                        != observed['evidence_hash']
+                        stored.get("session_id") != sid
+                        or stored.get("generation") != generation
+                        or stored.get("original_generation_evidence_hash")
+                        != observed["evidence_hash"]
                         or not isinstance(trials, list)
-                        or sorted(t['hypothesis_id'] for t in trials)
-                        != sorted(observed['hypothesis_ids'])
+                        or sorted(t["hypothesis_id"] for t in trials)
+                        != sorted(observed["hypothesis_ids"])
                     ):
-                        raise CycleStateError('gateway S7 summary evidence mismatch')
+                        raise CycleStateError("gateway S7 summary evidence mismatch")
                     tested += len(trials)
-                report = dict(current['final_report'])
-                report['tested_hypotheses'] = tested
-                report['gateway_s7_count_source'] = (
-                    'HASH_VERIFIED_IMMUTABLE_GATEWAY_REPORTS'
-                )
-                report['all_proposed_hypotheses_measured'] = (
-                    tested == report['proposed_hypotheses']
-                )
+                report = dict(current["final_report"])
+                report["tested_hypotheses"] = tested
+                report["gateway_s7_count_source"] = "HASH_VERIFIED_IMMUTABLE_GATEWAY_REPORTS"
+                report["all_proposed_hypotheses_measured"] = tested == report["proposed_hypotheses"]
                 # S7 completeness says nothing about LLM authenticity,
                 # external PIT, statistical independence or profitability.
-                result['final_report'] = report
-            if row['phase'] == 'AWAITING_PLAN':
-                if current['status'] != 'AWAITING_PROVIDER':
-                    raise CycleStateError('checkpoint phase mismatch')
-                result['checkpoint_token'] = row['token']
-                result['model_context'] = self._context(catalog, data, current)
-                result['model_context']['catalog_version'] = row['catalog_version']
-            elif row['phase'] == 'AWAITING_DIAGNOSIS':
-                if current['status'] != 'AWAITING_PROVIDER':
-                    raise CycleStateError('checkpoint phase mismatch')
-                pending = json.loads(row['plan_json'])
-                plan = AlgorithmPlan.model_validate(pending)
-                compiled = compile_algorithm_plan(catalog, plan, data)
-                if content_hash(pending) != row['plan_digest']:
-                    raise CycleStateError('pending algorithm integrity mismatch')
-                audit = audit_algorithm_plan(catalog, compiled, data)
-                context = build_diagnostic_context(audit, compiled.compiled.strategy)
-                if context['context_hash'] != row['context_digest']:
-                    raise CycleStateError('pending analysis integrity mismatch')
-                result['checkpoint_token'] = row['token']
+                result["final_report"] = report
+            if row["phase"] == "AWAITING_PLAN":
+                if current["status"] != "AWAITING_PROVIDER":
+                    raise CycleStateError("checkpoint phase mismatch")
+                result["checkpoint_token"] = row["token"]
+                result["model_context"] = self._context(catalog, data, current)
+                result["model_context"]["catalog_version"] = row["catalog_version"]
+            elif row["phase"] == "AWAITING_DIAGNOSIS":
+                if current["status"] != "AWAITING_PROVIDER":
+                    raise CycleStateError("checkpoint phase mismatch")
+                pending = json.loads(row["plan_json"])
+                if pending.get("schema") == "p0-3b-inherited-pending-v1":
+                    parent, inherited, _ = self._materialize_inherited(
+                        catalog,
+                        data,
+                        current,
+                        pending,
+                    )
+                    audit = audit_inherited_decisions(inherited, data)
+                    strategy = inherited.strategy
+                else:
+                    plan = AlgorithmPlan.model_validate(pending)
+                    compiled = compile_algorithm_plan(catalog, plan, data)
+                    audit = audit_algorithm_plan(catalog, compiled, data)
+                    strategy = compiled.compiled.strategy
+                if content_hash(pending) != row["plan_digest"]:
+                    raise CycleStateError("pending algorithm integrity mismatch")
+                context = build_diagnostic_context(audit, strategy)
+                if context["context_hash"] != row["context_digest"]:
+                    raise CycleStateError("pending analysis integrity mismatch")
+                result["checkpoint_token"] = row["token"]
                 # UX advice is added after verifying the sealed diagnostic hash;
                 # legacy stages and the model's signed observation context stay identical.
-                result['model_context'] = {
-                    **context, 'experiment_quality_guidance': academic_diagnostic_quality_hint(),
+                result["model_context"] = {
+                    **context,
+                    "experiment_quality_guidance": academic_diagnostic_quality_hint(),
                 }
-                result['status'] = 'AWAITING_DIAGNOSIS'
-            elif row['phase'] not in ('COMPLETED', 'INTERRUPTED', 'RUNNING', 'CANCELLED'):
-                raise CycleStateError('invalid checkpoint state')
+                result["status"] = "AWAITING_DIAGNOSIS"
+            elif row["phase"] not in ("COMPLETED", "INTERRUPTED", "RUNNING", "CANCELLED"):
+                raise CycleStateError("invalid checkpoint state")
             return result
 
+    def _stage_inherited_plan(
+        self,
+        db: sqlite3.Connection,
+        row: sqlite3.Row,
+        catalog: ResearchCatalog,
+        data: MarketDataSet,
+        state: dict[str, Any],
+        args: dict[str, Any],
+    ) -> None:
+        parent, original, selected = self._selected_ir(catalog, data, state)
+        intent = ResearchIntent.model_validate(args["plan"])
+        if (
+            intent.mode != "structure"
+            or intent.parent_ids != (parent.strategy.strategy_id,)
+            or intent.feature_proposal is not None
+            or intent.primitive_request is not None
+            or not 1 <= len(intent.operations) <= 6
+        ):
+            raise ValueError("inherited plan requires a registered, bounded ResearchIntent")
+        child = apply_intent(parent.strategy, intent, research_feature_specs())
+        digest = content_hash(child.model_dump(mode="json", by_alias=True))
+        if digest == parent.strategy_hash or any(
+            item["strategy_hash"] == digest for item in state["history"]
+        ):
+            raise ValueError("DUPLICATE_INHERITED_STRATEGY: change next mutation")
+        compiled = replace(parent, strategy=child, strategy_hash=digest)
+        audit = audit_inherited_decisions(compiled, data)
+        context = build_diagnostic_context(audit, child)
+        body = {
+            "schema": "p0-3b-inherited-pending-v1",
+            "base_algorithm_plan": original["algorithm_plan"],
+            "parent_selection_hash": selected["selection_hash"],
+            "inherited_intent": intent.model_dump(mode="json"),
+            "strategy_hash": digest,
+        }
+        token = uuid4().hex
+        updated = db.execute(
+            "UPDATE stages SET phase='AWAITING_DIAGNOSIS',token=?,plan_json=?,"
+            "plan_digest=?,context_digest=? WHERE session_id=? "
+            "AND phase='AWAITING_PLAN' AND token=?",
+            (
+                token,
+                json.dumps(body, sort_keys=True),
+                content_hash(body),
+                context["context_hash"],
+                state["session_id"],
+                row["token"],
+            ),
+        )
+        if updated.rowcount != 1:
+            raise CycleStateError("concurrent inherited plan checkpoint claim")
+        self._record_submission(
+            db,
+            state["session_id"],
+            "plan",
+            row["token"],
+            args["plan"],
+            token,
+            "AWAITING_DIAGNOSIS",
+            state["completed_generations"],
+        )
+        db.execute(
+            "INSERT OR IGNORE INTO generation_timings "
+            "(session_id,generation,start_utc) VALUES(?,?,?)",
+            (
+                state["session_id"],
+                state["completed_generations"] + 1,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+
     def submit_plan(self, args: dict[str, Any]) -> dict[str, Any]:
-        self._one(args, {'session_id', 'checkpoint_token', 'plan'},
-                  {'session_id', 'checkpoint_token', 'plan'})
-        sid, token = args['session_id'], args['checkpoint_token']
+        self._one(
+            args,
+            {"session_id", "checkpoint_token", "plan"},
+            {"session_id", "checkpoint_token", "plan"},
+        )
+        sid, token = args["session_id"], args["checkpoint_token"]
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
             if self._is_recent_replay(
-                db, row, current, 'plan', token, args['plan'],
+                db,
+                row,
+                current,
+                "plan",
+                token,
+                args["plan"],
             ):
-                return self.get({'session_id': sid})
-            if row['phase'] != 'AWAITING_PLAN' or current['status'] != 'AWAITING_PROVIDER':
-                raise CycleStateError('plan cannot be submitted in current state')
-            if row['token'] != token:
-                raise CycleStateError('invalid checkpoint token')
-            plan = AlgorithmPlan.model_validate(args['plan'])
+                return self.get({"session_id": sid})
+            if row["phase"] != "AWAITING_PLAN" or current["status"] != "AWAITING_PROVIDER":
+                raise CycleStateError("plan cannot be submitted in current state")
+            if row["token"] != token:
+                raise CycleStateError("invalid checkpoint token")
+            if self._selected_development_parent(catalog, data, current) is not None:
+                self._stage_inherited_plan(db, row, catalog, data, current, args)
+                db.commit()
+                return self.get({"session_id": sid})
+            plan = AlgorithmPlan.model_validate(args["plan"])
             compiled = compile_algorithm_plan(catalog, plan, data)
             # The canonical cycle rejects duplicate semantics and duplicate
             # effective entry/regime vectors. Apply those SAME checks here
             # before consuming the plan token or running model diagnosis.
             # A duplicate is a recoverable proposal error, not a reason to
             # interrupt every subsequent research generation.
-            semantic_hash = content_hash(plan.model_dump(
-                mode='json', exclude={'plan_id'},
-            ))
+            semantic_hash = content_hash(
+                plan.model_dump(
+                    mode="json",
+                    exclude={"plan_id"},
+                )
+            )
             vectors = compiled.compiled.feature_values
-            effective_hash = content_hash({
-                'dataset_hash': data.dataset_hash,
-                'entry': vectors['plan_entry'],
-                'regime': vectors['plan_regime'],
-            })
-            for previous in current['history']:
-                if previous['algorithm_semantic_hash'] == semantic_hash:
+            effective_hash = content_hash(
+                {
+                    "dataset_hash": data.dataset_hash,
+                    "entry": vectors["plan_entry"],
+                    "regime": vectors["plan_regime"],
+                }
+            )
+            for previous in current["history"]:
+                if previous["algorithm_semantic_hash"] == semantic_hash:
                     raise ValueError(
-                        'DUPLICATE_SEMANTIC_PLAN: previously tested generation '
+                        "DUPLICATE_SEMANTIC_PLAN: previously tested generation "
                         f"{previous['generation']}; revise the plan and resubmit "
-                        'using the same checkpoint token'
+                        "using the same checkpoint token"
                     )
-                if previous['effective_signal_hash'] == effective_hash:
+                if previous["effective_signal_hash"] == effective_hash:
                     raise ValueError(
-                        'DUPLICATE_EFFECTIVE_SIGNALS: same historical entry/regime '
+                        "DUPLICATE_EFFECTIVE_SIGNALS: same historical entry/regime "
                         f"signals as generation {previous['generation']}; revise "
-                        'the plan and resubmit using the same checkpoint token'
+                        "the plan and resubmit using the same checkpoint token"
                     )
             audit = audit_algorithm_plan(catalog, compiled, data)
             context = build_diagnostic_context(audit, compiled.compiled.strategy)
-            pending = plan.model_dump(mode='json')
+            pending = plan.model_dump(mode="json")
             new_token = uuid4().hex
             result = db.execute(
-                '''UPDATE stages SET phase='AWAITING_DIAGNOSIS',token=?,plan_json=?,
+                """UPDATE stages SET phase='AWAITING_DIAGNOSIS',token=?,plan_json=?,
                 plan_digest=?,context_digest=? WHERE session_id=? AND phase='AWAITING_PLAN'
-                AND token=?''',
-                (new_token, json.dumps(pending,sort_keys=True),content_hash(pending),
-                 context['context_hash'],sid,token),
+                AND token=?""",
+                (
+                    new_token,
+                    json.dumps(pending, sort_keys=True),
+                    content_hash(pending),
+                    context["context_hash"],
+                    sid,
+                    token,
+                ),
             )
             if result.rowcount != 1:
-                raise CycleStateError('concurrent plan checkpoint was claimed')
+                raise CycleStateError("concurrent plan checkpoint was claimed")
             self._record_submission(
-                db, sid, 'plan', token, args['plan'], new_token,
-                'AWAITING_DIAGNOSIS', current['completed_generations'],
+                db,
+                sid,
+                "plan",
+                token,
+                args["plan"],
+                new_token,
+                "AWAITING_DIAGNOSIS",
+                current["completed_generations"],
             )
             db.execute(
                 "INSERT OR IGNORE INTO generation_timings "
                 "(session_id,generation,start_utc) VALUES(?,?,?)",
-                (sid, current['completed_generations'] + 1,
-                 datetime.now(timezone.utc).isoformat()),
+                (sid, current["completed_generations"] + 1, datetime.now(timezone.utc).isoformat()),
             )
-        return self.get({'session_id': sid})
+        return self.get({"session_id": sid})
 
     def submit_diagnosis(self, args: dict[str, Any]) -> dict[str, Any]:
-        self._one(args, {'session_id','checkpoint_token','diagnosis',
-                         'require_signal_change'},
-                  {'session_id','checkpoint_token','diagnosis'})
-        strict_signal = args.get('require_signal_change', False)
+        self._one(
+            args,
+            {"session_id", "checkpoint_token", "diagnosis", "require_signal_change"},
+            {"session_id", "checkpoint_token", "diagnosis"},
+        )
+        strict_signal = args.get("require_signal_change", False)
         if type(strict_signal) is not bool:
-            raise ValueError('require_signal_change must be a boolean')
-        sid, token, diagnosis = args['session_id'], args['checkpoint_token'], args['diagnosis']
+            raise ValueError("require_signal_change must be a boolean")
+        sid, token, diagnosis = args["session_id"], args["checkpoint_token"], args["diagnosis"]
         if not isinstance(diagnosis, dict):
-            raise ValueError('diagnosis must be a structured object')
+            raise ValueError("diagnosis must be a structured object")
         # A lost MCP reply is recoverable without rerunning a generation.
-        replay_request = {'diagnosis': diagnosis, 'require_signal_change': strict_signal}
+        replay_request = {"diagnosis": diagnosis, "require_signal_change": strict_signal}
         with self._connect() as db:
             row, _, _, current = self._state(db, sid)
             if self._is_recent_replay(
-                db, row, current, 'diagnosis', token, replay_request,
+                db,
+                row,
+                current,
+                "diagnosis",
+                token,
+                replay_request,
             ):
-                return self._evaluated_reply(sid, current['completed_generations'])
+                return self._evaluated_reply(sid, current["completed_generations"])
         # Recompute all observed evidence before any generation can be committed.
-        pending = self.get({'session_id': sid})
-        if (pending['checkpoint_phase'] != 'AWAITING_DIAGNOSIS'
-                or pending['checkpoint_token'] != token):
-            raise CycleStateError('invalid diagnosis checkpoint token or state')
-        if diagnosis.get('context_hash') != pending['model_context']['context_hash']:
-            raise CycleStateError('invalid diagnosis context hash')
+        pending = self.get({"session_id": sid})
+        if (
+            pending["checkpoint_phase"] != "AWAITING_DIAGNOSIS"
+            or pending["checkpoint_token"] != token
+        ):
+            raise CycleStateError("invalid diagnosis checkpoint token or state")
+        if diagnosis.get("context_hash") != pending["model_context"]["context_hash"]:
+            raise CycleStateError("invalid diagnosis context hash")
         # S7 is automatically evaluated after the generation is committed.
         # Reject unsupported response metrics while the checkpoint is still
         # unclaimed, so the model can correct its diagnosis without creating
@@ -784,23 +1053,39 @@ class AcademicMCPCheckpointService:
         typed_diagnosis = DiagnosticResponse.model_validate(diagnosis)
         for hypothesis in typed_diagnosis.hypotheses:
             if hypothesis.expected_metric not in SUPPORTED_CONTROLLED_METRICS:
-                raise ValueError(f'unsupported S7 metric: {hypothesis.expected_metric}')
+                raise ValueError(f"unsupported S7 metric: {hypothesis.expected_metric}")
         if strict_signal:
             # The plan is recomputed from its pinned catalog before evaluating
             # the structural proof; this rejects only a certain no-op, not a
             # data-mined candidate whose performance happens to be unchanged.
             with self._connect() as db:
                 row, catalog, data, _ = self._state(db, sid)
-                parent_plan = AlgorithmPlan.model_validate(json.loads(row['plan_json']))
-                parent = compile_algorithm_plan(catalog, parent_plan, data).compiled.strategy
+                staged = json.loads(row["plan_json"])
+                if staged.get("schema") == "p0-3b-inherited-pending-v1":
+                    source_state = self.cycle.get(sid, catalog, data)
+                    _, inherited, _ = self._materialize_inherited(
+                        catalog,
+                        data,
+                        source_state,
+                        staged,
+                    )
+                    parent = inherited.strategy
+                else:
+                    parent_plan = AlgorithmPlan.model_validate(staged)
+                    parent = compile_algorithm_plan(
+                        catalog,
+                        parent_plan,
+                        data,
+                    ).compiled.strategy
             uninformative = static_noop_hypotheses(parent, typed_diagnosis)
             if uninformative:
                 raise ValueError(
-                    'known static no-op experiment: ' + ', '.join(uninformative)
-                    + '; edit diagnosis and resubmit using the same checkpoint token'
+                    "known static no-op experiment: "
+                    + ", ".join(uninformative)
+                    + "; edit diagnosis and resubmit using the same checkpoint token"
                 )
         with self._connect() as db:
-            row = db.execute('SELECT * FROM stages WHERE session_id=?', (sid,)).fetchone()
+            row = db.execute("SELECT * FROM stages WHERE session_id=?", (sid,)).fetchone()
             assert row is not None
             updated = db.execute(
                 "UPDATE stages SET phase='RUNNING' WHERE session_id=? "
@@ -808,30 +1093,62 @@ class AcademicMCPCheckpointService:
                 (sid, token),
             )
             if updated.rowcount != 1:
-                raise CycleStateError('concurrent diagnosis checkpoint was claimed')
-            catalog, data = self._catalog(row['catalog_version']), self._data(row['data_path'])
-            plan_json = json.loads(row['plan_json'])
+                raise CycleStateError("concurrent diagnosis checkpoint was claimed")
+            catalog, data = self._catalog(row["catalog_version"]), self._data(row["data_path"])
+            plan_json = json.loads(row["plan_json"])
         try:
-            completed = self.cycle.advance(sid, catalog, data,
-                                           _SubmittedProvider(plan_json, diagnosis))
+            if plan_json.get("schema") == "p0-3b-inherited-pending-v1":
+                state = self.cycle.get(sid, catalog, data)
+                parent_compiled, child, inheritance = self._materialize_inherited(
+                    catalog,
+                    data,
+                    state,
+                    plan_json,
+                )
+                completed = self.cycle.advance_inherited(
+                    sid,
+                    catalog,
+                    data,
+                    _SubmittedDiagnosisOnly(diagnosis),
+                    parent_compiled=parent_compiled,
+                    compiled=child,
+                    source_plan=plan_json["base_algorithm_plan"],
+                    inheritance=inheritance,
+                    inherited_intent=plan_json["inherited_intent"],
+                )
+            else:
+                completed = self.cycle.advance(
+                    sid,
+                    catalog,
+                    data,
+                    _SubmittedProvider(plan_json, diagnosis),
+                )
         except Exception:
             with self._connect() as db:
                 db.execute(
-                    "UPDATE stages SET phase='INTERRUPTED' "
-                    "WHERE session_id=? AND phase='RUNNING'", (sid,),
+                    "UPDATE stages SET phase='INTERRUPTED' WHERE session_id=? AND phase='RUNNING'",
+                    (sid,),
                 )
             raise
         with self._connect() as db:
             new_token = uuid4().hex
-            next_phase = 'COMPLETED' if completed['status'] == 'COMPLETED' else 'AWAITING_PLAN'
-            committed = db.execute('''UPDATE stages SET phase=?,token=?,plan_json=NULL,
-            plan_digest=NULL,context_digest=NULL WHERE session_id=? AND phase='RUNNING' ''',
-            (next_phase, new_token, sid))
+            next_phase = "COMPLETED" if completed["status"] == "COMPLETED" else "AWAITING_PLAN"
+            committed = db.execute(
+                """UPDATE stages SET phase=?,token=?,plan_json=NULL,
+            plan_digest=NULL,context_digest=NULL WHERE session_id=? AND phase='RUNNING' """,
+                (next_phase, new_token, sid),
+            )
             if committed.rowcount != 1:
-                raise CycleStateError('diagnosis checkpoint finalization conflict')
+                raise CycleStateError("diagnosis checkpoint finalization conflict")
             self._record_submission(
-                db, sid, 'diagnosis', token, replay_request, new_token,
-                next_phase, completed['completed_generations'],
+                db,
+                sid,
+                "diagnosis",
+                token,
+                replay_request,
+                new_token,
+                next_phase,
+                completed["completed_generations"],
             )
         # MCP-first shortcut: a complete research generation must carry its
         # measured experiment evidence into the NEXT LLM planning prompt.
@@ -839,7 +1156,7 @@ class AcademicMCPCheckpointService:
         # accidentally start the next generation from unmeasured hypotheses.
         # All comparison results use the existing immutable, idempotent S7
         # storage and the *same* development dataset as the original plan.
-        return self._evaluated_reply(sid, completed['completed_generations'])
+        return self._evaluated_reply(sid, completed["completed_generations"])
 
     def cancel(self, args: dict[str, Any]) -> dict[str, Any]:
         """Stop between generation checkpoints without losing prior Evidence."""
@@ -1029,81 +1346,98 @@ class AcademicMCPCheckpointService:
 
     def evaluate_experiments(self, args: dict[str, Any]) -> dict[str, Any]:
         """Evaluate a completed diagnosis against its frozen original strategy."""
-        if 'continuation_intent' in args or 'hypothesis_id' in args:
+        if "continuation_intent" in args or "hypothesis_id" in args:
             return self.continue_verified_child(args)
-        self._one(args, {'session_id', 'generation'}, {'session_id', 'generation'})
-        sid, generation = args['session_id'], args['generation']
+        self._one(args, {"session_id", "generation"}, {"session_id", "generation"})
+        sid, generation = args["session_id"], args["generation"]
         if type(generation) is not int or not 1 <= generation <= 100:
-            raise ValueError('generation must be integer 1-100')
+            raise ValueError("generation must be integer 1-100")
         with self._connect() as db:
             _, catalog, data, state = self._state(db, sid)
-            if generation > state['completed_generations']:
-                raise ValueError('generation is not complete')
+            if generation > state["completed_generations"]:
+                raise ValueError("generation is not complete")
             stored = self._stored_experiment(db, sid, generation)
             if stored is not None:
-                if stored['original_generation_evidence_hash'] != state['history'][
-                    generation - 1
-                ]['evidence_hash']:
-                    raise CycleStateError('controlled experiment parent evidence mismatch')
+                if (
+                    stored["original_generation_evidence_hash"]
+                    != state["history"][generation - 1]["evidence_hash"]
+                ):
+                    raise CycleStateError("controlled experiment parent evidence mismatch")
                 return stored
-        original = state['history'][generation - 1]
-        plan = AlgorithmPlan.model_validate(original['algorithm_plan'])
-        compiled = compile_algorithm_plan(catalog, plan, data)
-        if compiled.compiled.strategy_hash != original['strategy_hash']:
-            raise CycleStateError('original strategy hash mismatch')
+        original = state["history"][generation - 1]
+        inherited_generation = original.get("inherited_strategy_ir") is not None
+        if inherited_generation:
+            inherited = self._inherited_from_evidence(catalog, data, original)
+        else:
+            plan = AlgorithmPlan.model_validate(original["algorithm_plan"])
+            compiled = compile_algorithm_plan(catalog, plan, data)
+            if compiled.compiled.strategy_hash != original["strategy_hash"]:
+                raise CycleStateError("original strategy hash mismatch")
         hypotheses = [
             {
-                'hypothesis_id': item['hypothesis_id'],
-                'observed_ids': item['observed_ids'],
-                'mechanism': item['mechanism'],
-                'alternative': item['alternative'],
-                'expected_metric': item['expected_metric'],
-                'predicted_direction': item['predicted_direction'],
-                'test_design': item['test_design'],
-                'control': item['control'],
-                'next_intent': item['proposed_intent'],
+                "hypothesis_id": item["hypothesis_id"],
+                "observed_ids": item["observed_ids"],
+                "mechanism": item["mechanism"],
+                "alternative": item["alternative"],
+                "expected_metric": item["expected_metric"],
+                "predicted_direction": item["predicted_direction"],
+                "test_design": item["test_design"],
+                "control": item["control"],
+                "next_intent": item["proposed_intent"],
             }
-            for item in original['experiments']
+            for item in original["experiments"]
         ]
         diagnostic = {
-            'context_hash': original['diagnostic_context_hash'],
-            'audit_hash': original['audit_hash'],
-            'strategy_hash': original['strategy_hash'],
-            'dataset_hash': original['dataset_hash'],
-            'summary': original['analysis_summary'],
-            'hypotheses': hypotheses,
+            "context_hash": original["diagnostic_context_hash"],
+            "audit_hash": original["audit_hash"],
+            "strategy_hash": original["strategy_hash"],
+            "dataset_hash": original["dataset_hash"],
+            "summary": original["analysis_summary"],
+            "hypotheses": hypotheses,
         }
-        report = compare_controlled_experiments(catalog, compiled, data, diagnostic)
+        if inherited_generation:
+            report = compare_inherited_experiments(
+                inherited,
+                data,
+                diagnostic,
+                parent_proof_hash=original["inherited_parent"]["parent_selection_hash"],
+            )
+        else:
+            report = compare_controlled_experiments(catalog, compiled, data, diagnostic)
         if (
-            report.diagnostic_proposal_hash != original['diagnostic_proposal_hash']
-            or report.audit_hash != original['audit_hash']
-            or report.plan_hash != original['plan_hash']
+            report.diagnostic_proposal_hash != original["diagnostic_proposal_hash"]
+            or report.audit_hash != original["audit_hash"]
+            or report.plan_hash != original["plan_hash"]
         ):
-            raise CycleStateError('controlled experiment does not match original evidence')
+            raise CycleStateError("controlled experiment does not match original evidence")
         body = {
-            'session_id': sid,
-            'generation': generation,
-            'original_generation_evidence_hash': original['evidence_hash'],
-            'report': asdict(report),
-            'study_scope': 'REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF',
+            "session_id": sid,
+            "generation": generation,
+            "original_generation_evidence_hash": original["evidence_hash"],
+            "report": asdict(report),
+            "study_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF",
         }
         digest = content_hash(body)
         with self._connect() as db:
             db.execute(
-                'INSERT OR IGNORE INTO experiment_reports '
-                '(session_id,generation,report_json,report_hash) VALUES(?,?,?,?)',
+                "INSERT OR IGNORE INTO experiment_reports "
+                "(session_id,generation,report_json,report_hash) VALUES(?,?,?,?)",
                 (sid, generation, json.dumps(body, sort_keys=True), digest),
             )
             verified = self._stored_experiment(db, sid, generation)
             if verified is None:
-                raise CycleStateError('controlled experiment persistence failed')
-            if verified['original_generation_evidence_hash'] != original['evidence_hash']:
-                raise CycleStateError('controlled experiment concurrent identity mismatch')
+                raise CycleStateError("controlled experiment persistence failed")
+            if verified["original_generation_evidence_hash"] != original["evidence_hash"]:
+                raise CycleStateError("controlled experiment concurrent identity mismatch")
             db.execute(
                 "UPDATE generation_timings SET end_utc=?, evidence_hash=? "
                 "WHERE session_id=? AND generation=? AND end_utc IS NULL",
-                (datetime.now(timezone.utc).isoformat(), original['evidence_hash'],
-                 sid, generation),
+                (
+                    datetime.now(timezone.utc).isoformat(),
+                    original["evidence_hash"],
+                    sid,
+                    generation,
+                ),
             )
             return verified
 

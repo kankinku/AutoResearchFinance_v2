@@ -15,6 +15,7 @@ from typing import Any
 from core.data.contracts import MarketDataSet
 from core.integrity.hashes import content_hash
 from research.indicator_engine.catalog import ResearchCatalog
+from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
 
 
 class LineageSelectionError(ValueError):
@@ -30,9 +31,7 @@ def _finite(row: Mapping[str, Any], key: str) -> float:
 
 def _valid_hash(value: Any) -> bool:
     return (
-        isinstance(value, str)
-        and len(value) == 64
-        and all(c in "0123456789abcdef" for c in value)
+        isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
     )
 
 
@@ -55,8 +54,10 @@ def choose_development_parent(
     seen: set[str] = set()
     for row in candidates:
         for name in (
-            "source_evidence_hash", "lineage_report_hash",
-            "successor_strategy_hash", "strategy_equity_hash",
+            "source_evidence_hash",
+            "lineage_report_hash",
+            "successor_strategy_hash",
+            "strategy_equity_hash",
         ):
             if not _valid_hash(row.get(name)):
                 raise LineageSelectionError(f"invalid successor identity: {name}")
@@ -84,7 +85,10 @@ def choose_development_parent(
             or not 0 <= dd <= 1
             or not 0 <= child_dd <= 1
             or not 0 <= exposure <= 1
-            or ret <= -1 or child_ret <= -1 or qqq <= -1 or proxy <= -1
+            or ret <= -1
+            or child_ret <= -1
+            or qqq <= -1
+            or proxy <= -1
         ):
             continue
         if (
@@ -121,13 +125,15 @@ def choose_development_parent(
         eligible.append({**body, "selection_hash": content_hash(body)})
     if not eligible:
         return None
-    eligible.sort(key=lambda x: (
-        -x["parent_quality"]["total_return"],
-        x["parent_quality"]["max_drawdown"],
-        -x["parent_quality"]["closed_trades"],
-        abs(x["parent_quality"]["market_exposure"] - 0.35),
-        x["successor_strategy_hash"],
-    ))
+    eligible.sort(
+        key=lambda x: (
+            -x["parent_quality"]["total_return"],
+            x["parent_quality"]["max_drawdown"],
+            -x["parent_quality"]["closed_trades"],
+            abs(x["parent_quality"]["market_exposure"] - 0.35),
+            x["successor_strategy_hash"],
+        )
+    )
     return eligible[0]
 
 
@@ -162,21 +168,21 @@ def replay_lineage_candidate(
     if (
         stored_lineage.get("source_evidence_hash") != original.get("evidence_hash")
         or stored_lineage.get("source_generation") != original.get("generation")
-        or stored_lineage.get("report_hash") != content_hash({
-            k: v for k, v in stored_lineage.items() if k != "report_hash"
-        })
+        or stored_lineage.get("report_hash")
+        != content_hash({k: v for k, v in stored_lineage.items() if k != "report_hash"})
     ):
         raise LineageSelectionError("lineage origin or sidecar hash mismatch")
     hid = stored_lineage.get("hypothesis_id")
     if not isinstance(hid, str):
         raise LineageSelectionError("lineage hypothesis identity missing")
-    proposals = [
-        item for item in original["experiments"] if item["hypothesis_id"] == hid
-    ]
+    proposals = [item for item in original["experiments"] if item["hypothesis_id"] == hid]
     if len(proposals) != 1:
         raise LineageSelectionError("lineage hypothesis is absent or duplicated")
     expected = verified_child_successor(
-        catalog, market, original, stored_experiment,
+        catalog,
+        market,
+        original,
+        stored_experiment,
         hypothesis_id=hid,
         expected_child_strategy_hash=stored_lineage["reproduced_child_strategy_hash"],
         continuation_intent=stored_lineage["continuation_intent"],
@@ -253,10 +259,52 @@ def replay_lineage_candidate(
         "successor_closed_trades": closed,
         "successor_market_exposure": exposure,
         "qqq_buy_and_hold_return": benchmarks["qqq_costed_buy_and_hold"]["total_return"],
-        "qqq_exposure_matched_return": benchmarks[
-            "qqq_fixed_initial_allocation_proxy"
-        ]["total_return"],
+        "qqq_exposure_matched_return": benchmarks["qqq_fixed_initial_allocation_proxy"][
+            "total_return"
+        ],
         "replay_verified": True,
         "independent_oos_approved": False,
         "broker_executable": False,
     }
+
+
+def compile_replayed_successor(
+    catalog: ResearchCatalog,
+    market: MarketDataSet,
+    original: dict[str, Any],
+    stored_experiment: dict[str, Any],
+    stored_lineage: dict[str, Any],
+) -> CompiledAcademicStrategy:
+    """Return the exact IR after whole lineage and fill replay, never proxy IR."""
+    from dataclasses import replace
+
+    from core.features.registry import research_feature_specs
+    from research.indicator_engine.algorithm_plan import AlgorithmPlan, compile_algorithm_plan
+    from research.llm.director import ResearchIntent
+    from research.llm.intent_bridge import apply_intent
+
+    verified = replay_lineage_candidate(
+        catalog, market, original, stored_experiment, stored_lineage
+    )
+    base = compile_algorithm_plan(
+        catalog, AlgorithmPlan.model_validate(original["algorithm_plan"]), market
+    ).compiled
+    matching = [
+        x for x in original["experiments"] if x["hypothesis_id"] == stored_lineage["hypothesis_id"]
+    ]
+    if len(matching) != 1:
+        raise LineageSelectionError("invalid inherited source hypothesis")
+    child = apply_intent(
+        base.strategy,
+        ResearchIntent.model_validate(matching[0]["proposed_intent"]),
+        research_feature_specs(),
+    )
+    successor = apply_intent(
+        child,
+        ResearchIntent.model_validate(stored_lineage["continuation_intent"]),
+        research_feature_specs(),
+    )
+    digest = content_hash(successor.model_dump(mode="json", by_alias=True))
+    if digest != verified["successor_strategy_hash"]:
+        raise LineageSelectionError("source StrategyIR identity mismatch")
+    return replace(base, strategy=successor, strategy_hash=digest)

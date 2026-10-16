@@ -336,7 +336,8 @@ def chatgpt_tools() -> list[dict[str, object]]:
         ),
         _academic_tool(
             "submit_algorithm_plan",
-            "Validate GPT AlgorithmPlan and return measured backtest context. "
+            "Validate a GPT AlgorithmPlan, or a bounded ResearchIntent when "
+            "the model context identifies a replay-verified inherited parent. "
             "An identical retry of the latest acknowledged checkpoint returns its prior "
             "stage without rerunning; changed payloads or stale checkpoints are rejected.",
             {"session_id": session_field, "checkpoint_token": token_field,
