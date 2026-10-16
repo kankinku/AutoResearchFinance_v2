@@ -122,6 +122,19 @@ def choose_development_parent(
             "broker_executable": False,
             "counted_generation_incremented": False,
         }
+        if row.get("source_kind") == "COUNTED_S7_CHILD":
+            for name in ("hypothesis_id", "source_report_hash"):
+                if not row.get(name) or (
+                    name == "source_report_hash" and not _valid_hash(row[name])
+                ):
+                    raise LineageSelectionError("counted S7 child origin incomplete")
+            body.update(
+                {
+                    "source_kind": "COUNTED_S7_CHILD",
+                    "hypothesis_id": str(row["hypothesis_id"]),
+                    "source_report_hash": str(row["source_report_hash"]),
+                }
+            )
         eligible.append({**body, "selection_hash": content_hash(body)})
     if not eligible:
         return None
@@ -308,3 +321,169 @@ def compile_replayed_successor(
     if digest != verified["successor_strategy_hash"]:
         raise LineageSelectionError("source StrategyIR identity mismatch")
     return replace(base, strategy=successor, strategy_hash=digest)
+
+
+def replay_counted_s7_child(
+    catalog: ResearchCatalog,
+    market: MarketDataSet,
+    original: dict[str, Any],
+    stored_experiment: dict[str, Any],
+    parent: CompiledAcademicStrategy,
+    hypothesis_id: str,
+) -> tuple[dict[str, Any], CompiledAcademicStrategy]:
+    """Replay a counted S7 child, binding decision audit, fees and report bytes.
+
+    The parent's sealed cycle evidence and the S7 sidecar must already have
+    passed their persistent hash chains; we independently reconstruct both.
+    """
+    from dataclasses import asdict, replace
+
+    from core.features.registry import research_feature_specs
+    from evaluation.metrics import calculate_metrics
+    from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
+    from research.indicator_engine.inherited_experiments import compare_inherited_experiments
+    from research.indicator_engine.strategy_adapter import evaluate_compiled_development
+    from research.llm.director import ResearchIntent
+    from research.llm.intent_bridge import apply_intent
+
+    if (
+        original.get("inherited_strategy_ir") is None
+        or original.get("strategy_hash") != parent.strategy_hash
+        or original.get("dataset_hash") != market.dataset_hash
+        or stored_experiment.get("original_generation_evidence_hash")
+        != original.get("evidence_hash")
+        or stored_experiment.get("study_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+        or stored_experiment.get("record_hash")
+        != content_hash({k: v for k, v in stored_experiment.items() if k != "record_hash"})
+    ):
+        raise LineageSelectionError("counted S7 source evidence integrity mismatch")
+    report = stored_experiment["report"]
+    if (
+        report.get("broker_executable") is not False
+        or report.get("out_of_sample_approved") is not False
+        or report.get("causal_status") != "NOT_ESTABLISHED"
+        or report.get("dataset_hash") != market.dataset_hash
+        or report.get("audit_hash") != original.get("audit_hash")
+    ):
+        raise LineageSelectionError("counted S7 report identity mismatch")
+    proposals = [e for e in original["experiments"] if e.get("hypothesis_id") == hypothesis_id]
+    outcomes = [e for e in report["experiments"] if e.get("hypothesis_id") == hypothesis_id]
+    if len(proposals) != 1 or len(outcomes) != 1:
+        raise LineageSelectionError("counted S7 hypothesis missing or duplicated")
+    diagnostic = {
+        "context_hash": original["diagnostic_context_hash"],
+        "audit_hash": original["audit_hash"],
+        "strategy_hash": original["strategy_hash"],
+        "dataset_hash": original["dataset_hash"],
+        "summary": original["analysis_summary"],
+        "hypotheses": [
+            {
+                "hypothesis_id": row["hypothesis_id"],
+                "observed_ids": row["observed_ids"],
+                "mechanism": row["mechanism"],
+                "alternative": row["alternative"],
+                "expected_metric": row["expected_metric"],
+                "predicted_direction": row["predicted_direction"],
+                "test_design": row["test_design"],
+                "control": row["control"],
+                "next_intent": row["proposed_intent"],
+            }
+            for row in original["experiments"]
+        ],
+    }
+    replay = compare_inherited_experiments(
+        parent,
+        market,
+        diagnostic,
+        parent_proof_hash=original["inherited_parent"]["parent_selection_hash"],
+    )
+    if json.loads(json.dumps(asdict(replay))) != report:
+        raise LineageSelectionError("counted S7 full report replay mismatch")
+    if (
+        outcomes[0]["status"] in ("NO_OBSERVED_EFFECT", "DEGENERATE_INACTIVE_CHILD")
+        or outcomes[0]["same_fill_trace"] is True
+    ):
+        # Research memory still retains it, but it is not a better parent.
+        raise IneligibleCountedChild("counted S7 child has no effective trading change")
+    intent = ResearchIntent.model_validate(proposals[0]["proposed_intent"])
+    child_ir = apply_intent(parent.strategy, intent, research_feature_specs())
+    digest = content_hash(child_ir.model_dump(mode="json", by_alias=True))
+    if digest != outcomes[0]["child_strategy_hash"]:
+        raise LineageSelectionError("counted S7 child hash mismatch")
+    compiled = replace(parent, strategy=child_ir, strategy_hash=digest)
+    child = evaluate_compiled_development(compiled, market)
+    if (
+        abs(child.final_equity - outcomes[0]["child_final_equity"]) > 1e-6
+        or child.trades_count != outcomes[0]["child_fill_count"]
+        or abs(child.total_paid_costs - outcomes[0]["execution_delta"]["child_costs"]) > 1e-6
+        or parent.strategy_hash == digest
+    ):
+        raise LineageSelectionError("counted S7 child fills/equity/cost mismatch")
+    parent_metrics = calculate_metrics(
+        audit_inherited_decisions(parent, market).evaluation.equity_curve,
+        (),
+        periods_per_year=252,
+    )
+    child_metrics = calculate_metrics(child.equity_curve, (), periods_per_year=252)
+    closed = 0
+    held = False
+    timeline = {}
+    for trade in child.trades:
+        if trade.side == "buy" and not held:
+            held = True
+        elif trade.side == "sell" and held:
+            held = False
+            closed += 1
+        else:
+            raise LineageSelectionError("counted S7 child unpaired fill")
+        timeline[trade.timestamp] = held
+    exposed = 0
+    held = False
+    for bar in market.bars:
+        held = timeline.get(bar.timestamp.isoformat(), held)
+        exposed += int(held)
+    exposure = exposed / len(market.bars)
+    from research.indicator_engine.development_benchmark import (
+        compare_qqq_development_benchmarks,
+    )
+
+    benchmarks = compare_qqq_development_benchmarks(
+        market,
+        strategy_equity_curve=child.equity_curve,
+        realized_exposure=exposure,
+    )
+    lineage_body = {
+        "schema": "counted-s7-child-origin-v1",
+        "source_generation": original["generation"],
+        "source_evidence_hash": original["evidence_hash"],
+        "source_report_hash": stored_experiment["record_hash"],
+        "hypothesis_id": hypothesis_id,
+        "child_strategy_hash": digest,
+    }
+    return {
+        "source_kind": "COUNTED_S7_CHILD",
+        "source_generation": original["generation"],
+        "source_evidence_hash": original["evidence_hash"],
+        "source_report_hash": stored_experiment["record_hash"],
+        "hypothesis_id": hypothesis_id,
+        "lineage_report_hash": content_hash(lineage_body),
+        "successor_strategy_hash": digest,
+        "strategy_equity_hash": child.equity_hash,
+        "child_total_return": parent_metrics.total_return,
+        "child_max_drawdown": parent_metrics.max_drawdown,
+        "successor_total_return": child_metrics.total_return,
+        "successor_max_drawdown": child_metrics.max_drawdown,
+        "successor_closed_trades": closed,
+        "successor_market_exposure": exposure,
+        "qqq_buy_and_hold_return": benchmarks["qqq_costed_buy_and_hold"]["total_return"],
+        "qqq_exposure_matched_return": benchmarks["qqq_fixed_initial_allocation_proxy"][
+            "total_return"
+        ],
+        "replay_verified": True,
+        "independent_oos_approved": False,
+        "broker_executable": False,
+    }, compiled
+
+
+class IneligibleCountedChild(ValueError):
+    """Expected S7 non-improvement: record rejection, not fake promotion."""

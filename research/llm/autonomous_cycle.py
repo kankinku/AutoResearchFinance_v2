@@ -476,7 +476,12 @@ class AcademicCycleService:
             or index > len(history)
             or inheritance.get("source_evidence_hash") != history[index - 1]["evidence_hash"]
             or inheritance.get("parent_strategy_hash") != parent_compiled.strategy_hash
-            or source_plan != history[index - 1].get("algorithm_plan")
+            or source_plan
+            != (
+                history[index - 1]["base_algorithm_plan"]
+                if history[index - 1].get("inherited_strategy_ir") is not None
+                else history[index - 1]["algorithm_plan"]
+            )
         ):
             raise CycleStateError("inherited parent source provenance mismatch")
         plan = AlgorithmPlan.model_validate(source_plan)

@@ -58,8 +58,10 @@ from research.llm.experiment_learning import build_experiment_learning
 from research.llm.intent_bridge import apply_intent
 from research.llm.lineage_replay import verified_child_successor
 from research.llm.lineage_selection import (
+    IneligibleCountedChild,
     choose_development_parent,
     compile_replayed_successor,
+    replay_counted_s7_child,
     replay_lineage_candidate,
 )
 from strategy_ir.schema import StrategyIR
@@ -385,7 +387,9 @@ class AcademicMCPCheckpointService:
         return {**body, 'record_hash': row['report_hash']}
 
     def _selected_development_parent(
-        self, catalog: ResearchCatalog, data: MarketDataSet,
+        self,
+        catalog: ResearchCatalog,
+        data: MarketDataSet,
         status: dict[str, Any],
     ) -> dict[str, Any] | None:
         """Pin a full-fill-replayed S7 successor for the next generation.
@@ -403,8 +407,7 @@ class AcademicMCPCheckpointService:
         next_generation = status["completed_generations"] + 1
         with self._connect() as db:
             pinned = db.execute(
-                "SELECT * FROM parent_selections "
-                "WHERE session_id=? AND next_generation=?",
+                "SELECT * FROM parent_selections WHERE session_id=? AND next_generation=?",
                 (sid, next_generation),
             ).fetchone()
             if pinned is not None:
@@ -425,19 +428,38 @@ class AcademicMCPCheckpointService:
                     != selection["source_evidence_hash"]
                 ):
                     raise CycleStateError("parent selection origin mismatch")
-                proof = db.execute(
-                    "SELECT result_hash FROM successor_lineages "
-                    "WHERE session_id=? AND origin_generation=? "
-                    "AND result_hash=?",
-                    (sid, source, selection["lineage_report_hash"]),
-                ).fetchone()
-                if proof is None:
-                    raise CycleStateError("parent selection proof disappeared")
+                if selection.get("source_kind") == "COUNTED_S7_CHILD":
+                    stored = self._stored_experiment(db, sid, source)
+                    if stored is None or stored["record_hash"] != selection["source_report_hash"]:
+                        raise CycleStateError("counted S7 selected proof disappeared")
+                    source_row = status["history"][source - 1]
+                    expected_lineage = content_hash(
+                        {
+                            "schema": "counted-s7-child-origin-v1",
+                            "source_generation": source,
+                            "source_evidence_hash": source_row["evidence_hash"],
+                            "source_report_hash": stored["record_hash"],
+                            "hypothesis_id": selection["hypothesis_id"],
+                            "child_strategy_hash": selection["successor_strategy_hash"],
+                        }
+                    )
+                    if expected_lineage != selection["lineage_report_hash"]:
+                        raise CycleStateError("counted S7 selected origin mismatch")
+                else:
+                    proof = db.execute(
+                        "SELECT result_hash FROM successor_lineages "
+                        "WHERE session_id=? AND origin_generation=? "
+                        "AND result_hash=?",
+                        (sid, source, selection["lineage_report_hash"]),
+                    ).fetchone()
+                    if proof is None:
+                        raise CycleStateError("parent selection proof disappeared")
                 return selection
             rows = db.execute(
                 "SELECT origin_generation,result_json,result_hash "
                 "FROM successor_lineages WHERE session_id=? "
-                "ORDER BY origin_generation,request_hash", (sid,),
+                "ORDER BY origin_generation,request_hash",
+                (sid,),
             ).fetchall()
             candidates = []
             for row in rows:
@@ -461,7 +483,11 @@ class AcademicMCPCheckpointService:
                 if measured is None:
                     raise CycleStateError("parent candidate is missing S7 evidence")
                 candidate = replay_lineage_candidate(
-                    catalog, data, status["history"][source - 1], measured, proof,
+                    catalog,
+                    data,
+                    status["history"][source - 1],
+                    measured,
+                    proof,
                 )
                 if (
                     candidate["source_evidence_hash"] != proof["source_evidence_hash"]
@@ -470,17 +496,120 @@ class AcademicMCPCheckpointService:
                 ):
                     raise CycleStateError("parent replay candidate identity mismatch")
                 candidates.append(candidate)
+            baseline = choose_development_parent(candidates)
+            counted_tested = 0
+            rejected: list[dict[str, Any]] = []
+            valid_counted = 0
+            comparisons: list[dict[str, Any]] = []
+            for original in status["history"]:
+                if original.get("inherited_strategy_ir") is None:
+                    continue
+                generation = original["generation"]
+                report = self._stored_experiment(db, sid, generation)
+                if report is None:
+                    # The sealed S7 result must be present before next planning.
+                    raise CycleStateError("counted generation missing S7 measurement")
+                parent = self._inherited_from_evidence(catalog, data, original)
+                for experiment in original["experiments"]:
+                    counted_tested += 1
+                    hypothesis_id = experiment["hypothesis_id"]
+                    try:
+                        candidate, _ = replay_counted_s7_child(
+                            catalog,
+                            data,
+                            original,
+                            report,
+                            parent,
+                            hypothesis_id,
+                        )
+                    except IneligibleCountedChild:
+                        rejected.append(
+                            {
+                                "source_generation": generation,
+                                "hypothesis_id": hypothesis_id,
+                                "reason": "S7_NO_CHANGED_FILLS_OR_DEGENERATE",
+                            }
+                        )
+                        continue
+                    candidates.append(candidate)
+                    qualified = choose_development_parent([candidate]) is not None
+                    if qualified:
+                        valid_counted += 1
+                    champion_metrics = baseline["parent_quality"] if baseline is not None else None
+                    comparisons.append(
+                        {
+                            "source_generation": generation,
+                            "hypothesis_id": hypothesis_id,
+                            "child_strategy_hash": candidate["successor_strategy_hash"],
+                            "parent_s7_report_hash": candidate["source_report_hash"],
+                            "replay_verified": True,
+                            "policy_eligible": qualified,
+                            "total_return": candidate["successor_total_return"],
+                            "max_drawdown": candidate["successor_max_drawdown"],
+                            "closed_trades": candidate["successor_closed_trades"],
+                            "market_exposure": candidate["successor_market_exposure"],
+                            "qqq_buy_and_hold_return": candidate["qqq_buy_and_hold_return"],
+                            "qqq_exposure_matched_return": candidate["qqq_exposure_matched_return"],
+                            "vs_champion_return_pp": (
+                                100
+                                * (
+                                    candidate["successor_total_return"]
+                                    - champion_metrics["total_return"]
+                                )
+                                if champion_metrics is not None
+                                else None
+                            ),
+                            "vs_champion_mdd_pp": (
+                                100
+                                * (
+                                    candidate["successor_max_drawdown"]
+                                    - champion_metrics["max_drawdown"]
+                                )
+                                if champion_metrics is not None
+                                else None
+                            ),
+                        }
+                    )
             chosen = choose_development_parent(candidates)
             if chosen is None:
                 return None
+            for entry in comparisons:
+                if not entry["policy_eligible"]:
+                    entry["decision"] = "REJECTED_ECONOMIC_OR_RISK_GATES"
+                elif chosen.get("source_kind") == "COUNTED_S7_CHILD" and (
+                    chosen["source_generation"] == entry["source_generation"]
+                    and chosen["hypothesis_id"] == entry["hypothesis_id"]
+                ):
+                    entry["decision"] = "PROMOTED_BEST_VERIFIED_CANDIDATE"
+                else:
+                    entry["decision"] = "RETAINED_HIGHER_RANKED_PARENT"
+            body = {k: v for k, v in chosen.items() if k != "selection_hash"}
+            body["candidate_review"] = {
+                "counted_s7_tested": counted_tested,
+                "eligible_counted_s7": valid_counted,
+                "rejected_counted_s7": len(rejected),
+                "rejections": rejected,
+                "comparisons": comparisons,
+                "champion_retained": baseline is not None
+                and (baseline["successor_strategy_hash"] == chosen["successor_strategy_hash"]),
+                "baseline_parent_strategy_hash": (
+                    baseline["successor_strategy_hash"] if baseline is not None else None
+                ),
+            }
+            chosen = {**body, "selection_hash": content_hash(body)}
             # The old stage may still be read repeatedly. Pin *once* so
             # later additional sidecars cannot silently replace the parent.
             db.execute(
                 "INSERT OR IGNORE INTO parent_selections "
                 "(session_id,next_generation,lineage_report_hash,selection_hash,selection_json) "
                 "VALUES(?,?,?,?,?)",
-                (sid, next_generation, chosen["lineage_report_hash"],
-                 chosen["selection_hash"], json.dumps(chosen, sort_keys=True)),
+                (
+                    sid,
+                    next_generation,
+                    chosen["lineage_report_hash"],
+                    chosen["selection_hash"],
+                    json.dumps(chosen, sort_keys=True),
+                ),
             )
         return self._selected_development_parent(catalog, data, status)
 
@@ -495,20 +624,49 @@ class AcademicMCPCheckpointService:
         if selected is None:
             raise CycleStateError("no verified successor selected for inheritance")
         source = selected["source_generation"]
-        with self._connect() as db:
-            saved = db.execute(
-                "SELECT result_json,result_hash FROM successor_lineages "
-                "WHERE session_id=? AND origin_generation=? AND result_hash=?",
-                (state["session_id"], source, selected["lineage_report_hash"]),
-            ).fetchone()
-            measured = self._stored_experiment(db, state["session_id"], source)
-        if saved is None or measured is None:
-            raise CycleStateError("selected inheritance source missing")
-        proof = json.loads(saved["result_json"])
-        if saved["result_hash"] != proof.get("report_hash"):
-            raise CycleStateError("selected inheritance report hash mismatch")
         original = state["history"][source - 1]
-        parent = compile_replayed_successor(catalog, data, original, measured, proof)
+        with self._connect() as db:
+            measured = self._stored_experiment(db, state["session_id"], source)
+            if selected.get("source_kind") == "COUNTED_S7_CHILD":
+                saved = None
+            else:
+                saved = db.execute(
+                    "SELECT result_json,result_hash FROM successor_lineages "
+                    "WHERE session_id=? AND origin_generation=? AND result_hash=?",
+                    (state["session_id"], source, selected["lineage_report_hash"]),
+                ).fetchone()
+        if measured is None:
+            raise CycleStateError("selected inheritance source missing")
+        if selected.get("source_kind") == "COUNTED_S7_CHILD":
+            if measured["record_hash"] != selected["source_report_hash"]:
+                raise CycleStateError("selected S7 report changed")
+            parent_original = self._inherited_from_evidence(catalog, data, original)
+            evidence, parent = replay_counted_s7_child(
+                catalog,
+                data,
+                original,
+                measured,
+                parent_original,
+                selected["hypothesis_id"],
+            )
+            if any(
+                evidence.get(key) != selected.get(key)
+                for key in (
+                    "source_evidence_hash",
+                    "source_report_hash",
+                    "lineage_report_hash",
+                    "successor_strategy_hash",
+                    "strategy_equity_hash",
+                )
+            ):
+                raise CycleStateError("selected S7 StrategyIR or cost identity mismatch")
+        else:
+            if saved is None:
+                raise CycleStateError("selected lineage record missing")
+            proof = json.loads(saved["result_json"])
+            if saved["result_hash"] != proof.get("report_hash"):
+                raise CycleStateError("selected inheritance report hash mismatch")
+            parent = compile_replayed_successor(catalog, data, original, measured, proof)
         if parent.strategy_hash != selected["successor_strategy_hash"]:
             raise CycleStateError("selected counted parent StrategyIR mismatch")
         return parent, original, selected
@@ -523,9 +681,14 @@ class AcademicMCPCheckpointService:
         if pending.get("schema") != "p0-3b-inherited-pending-v1":
             raise CycleStateError("unknown inherited pending schema")
         parent, source, selection = self._selected_ir(catalog, data, state)
+        source_plan = (
+            source["base_algorithm_plan"]
+            if source.get("inherited_strategy_ir") is not None
+            else source["algorithm_plan"]
+        )
         if (
             pending.get("parent_selection_hash") != selection["selection_hash"]
-            or pending.get("base_algorithm_plan") != source["algorithm_plan"]
+            or pending.get("base_algorithm_plan") != source_plan
         ):
             raise CycleStateError("pending inherited parent selection mismatch")
         intent = ResearchIntent.model_validate(pending["inherited_intent"])
@@ -699,6 +862,11 @@ class AcademicMCPCheckpointService:
             status,
         )
         selected = context["selected_development_parent"]
+        context["inheritance_decision"] = (
+            selected.get("candidate_review", {})
+            if selected is not None
+            else {"status": "NO_VERIFIED_PARENT"}
+        )
         if selected is not None:
             parent, _, _ = self._selected_ir(catalog, data, status)
             context["output_contract"] = "InheritedResearchIntent"
@@ -875,7 +1043,11 @@ class AcademicMCPCheckpointService:
         context = build_diagnostic_context(audit, child)
         body = {
             "schema": "p0-3b-inherited-pending-v1",
-            "base_algorithm_plan": original["algorithm_plan"],
+            "base_algorithm_plan": (
+                original["base_algorithm_plan"]
+                if original.get("inherited_strategy_ir") is not None
+                else original["algorithm_plan"]
+            ),
             "parent_selection_hash": selected["selection_hash"],
             "inherited_intent": intent.model_dump(mode="json"),
             "strategy_hash": digest,
