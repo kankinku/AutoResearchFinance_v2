@@ -32,6 +32,10 @@ class DuplicateProposalRetryExceeded(AutonomousLoopError):
     """A generation needs model/operator review after bounded new proposals."""
 
 
+class OperatorPauseRequested(AutonomousLoopError):
+    """Explicit local pause/stop before a new model call, never a retryable error."""
+
+
 class AcademicCheckpointAutopilot:
     """Complete up to max_generations whole cycles in an explicit foreground call.
 

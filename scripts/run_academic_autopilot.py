@@ -12,12 +12,12 @@ import os
 from pathlib import Path
 
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
-from research.llm.checkpoint_autopilot import AcademicCheckpointAutopilot
 from research.llm.execution_policy import (
     DEFAULT_RESEARCH_EXECUTION_MODE,
     research_execution_policy,
 )
 from research.llm.openai_response_transport import OpenAIResponsesResearcher
+from research.llm.supervised_checkpoint_runner import ResearchRunSupervisor
 
 
 def main() -> None:
@@ -35,6 +35,8 @@ def main() -> None:
     mode.add_argument("--data-path")
     parser.add_argument("--generations", type=int, default=10)
     parser.add_argument("--max-generations-this-call", type=int, default=10)
+    parser.add_argument("--control-dir", type=Path)
+    parser.add_argument("--heartbeat-seconds", type=float, default=2.0)
     args = parser.parse_args()
     if args.execution_mode == "mcp":
         if args.model is not None:
@@ -73,8 +75,13 @@ def main() -> None:
         session_id = args.session_id
     # Print the exact resume identifier before the first external API call.
     print(json.dumps({"session_id": session_id, "status": "STARTED_OR_RESUMED"}), flush=True)
-    result = AcademicCheckpointAutopilot(service, provider).run(
-        session_id, max_generations=args.max_generations_this_call,
+    # Explicit opt-in paid API only; this process remains foreground.
+    control_dir = args.control_dir or (args.state_dir / "academic-supervisor-control")
+    result = ResearchRunSupervisor(control_dir).run(
+        session_id, service=service, provider=provider,
+        max_generations=args.max_generations_this_call,
+        heartbeat_interval=args.heartbeat_seconds,
+        audit_path=control_dir / (session_id + ".recovery.jsonl"),
     )
     print(json.dumps(result, ensure_ascii=False, sort_keys=True), flush=True)
 

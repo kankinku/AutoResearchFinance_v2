@@ -21,6 +21,7 @@ from research.llm.checkpoint_autopilot import (
     AcademicCheckpointAutopilot,
     AutonomousLoopError,
     DuplicateProposalRetryExceeded,
+    OperatorPauseRequested,
 )
 
 
@@ -224,6 +225,9 @@ class SafeCheckpointRecoveryController:
                 result = self.autopilot.run(session_id, max_generations=remaining)
                 self._verify_completed_result(current, result)
                 return result
+            except OperatorPauseRequested:
+                # Operator control cannot be treated as retryable model failure.
+                raise
             except Exception as exc:
                 decision = classify_research_failure(exc)
                 # Read the authoritative state before interpreting a lost reply.
