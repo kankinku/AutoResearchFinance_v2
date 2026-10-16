@@ -308,107 +308,84 @@ def chatgpt_tools() -> list[dict[str, object]]:
     )
     session_field = {"type": "string", "pattern": "^[0-9a-f]{32}$"}
     token_field = {"type": "string", "pattern": "^[0-9a-f]{32}$"}
-
     def _academic_tool(
-        name: str,
-        description: str,
-        properties: dict[str, object],
-        required: list[str],
+        name: str, description: str,
+        properties: dict[str, object], required: list[str],
     ) -> dict[str, object]:
         return {
-            "name": name,
-            "description": description,
+            "name": name, "description": description,
             "inputSchema": {
-                "type": "object",
-                "properties": properties,
-                "required": required,
-                "additionalProperties": False,
+                "type": "object", "properties": properties,
+                "required": required, "additionalProperties": False,
             },
         }
 
-    custom.extend(
-        [
-            _academic_tool(
-                "start_algorithm_research",
-                "Start a bounded development-only algorithm research session. "
-                "Returns a typed AlgorithmPlan prompt via the existing MCP URL.",
-                {
-                    "data_path": {"type": "string"},
-                    "generations": {"type": "integer", "minimum": 1, "maximum": 100},
-                },
-                ["data_path", "generations"],
-            ),
-            _academic_tool(
-                "get_algorithm_research",
-                "Read verified research history and current GPT planning or diagnostic checkpoint.",
-                {"session_id": session_field},
-                ["session_id"],
-            ),
-            _academic_tool(
-                "submit_algorithm_plan",
-                "Validate GPT AlgorithmPlan and return measured backtest context. "
-                "An identical retry of the latest acknowledged checkpoint returns its prior "
-                "stage without rerunning; changed payloads or stale checkpoints are rejected.",
-                {
-                    "session_id": session_field,
-                    "checkpoint_token": token_field,
-                    "plan": {"type": "object"},
-                },
-                ["session_id", "checkpoint_token", "plan"],
-            ),
-            _academic_tool(
-                "submit_algorithm_diagnosis",
-                "Validate GPT diagnosis and commit one researched generation. Optional "
-                "require_signal_change rejects proven redundant regime-filter ablations "
-                "before consuming a checkpoint. Latest identical retries return the previously "
-                "committed generation without running experiments again.",
-                {
-                    "session_id": session_field,
-                    "checkpoint_token": token_field,
-                    "diagnosis": {"type": "object"},
-                    "require_signal_change": {"type": "boolean", "default": False},
-                },
-                ["session_id", "checkpoint_token", "diagnosis"],
-            ),
-            _academic_tool(
-                "resume_algorithm_research",
-                "Explicitly resume a failed checkpoint; preserves all completed generations.",
-                {"session_id": session_field},
-                ["session_id"],
-            ),
-            _academic_tool(
-                "cancel_algorithm_research",
-                "Cancel academic research at its current checkpoint, keeping completed Evidence.",
-                {"session_id": session_field, "checkpoint_token": token_field},
-                ["session_id", "checkpoint_token"],
-            ),
-            _academic_tool(
-                "reconcile_algorithm_research",
-                "Operator-only recovery after the previous worker has fully stopped. "
-                "Restores missing S7 evidence before planning continues; repeated "
-                "recovery is read-only while the checkpoint remains unchanged.",
-                {"session_id": session_field},
-                ["session_id"],
-            ),
-            _academic_tool(
-                "evaluate_algorithm_experiments",
-                "Evaluate saved GPT hypotheses with identical development data and "
-                "fees. Optional checkpoint-bound child_strategy_hash, hypothesis_id "
-                "and continuation_intent replay the exact recorded S7 child and test "
-                "one next-generation mutation as a separate lineage proof, never an "
-                "automatically completed generation or broker strategy.",
-                {
-                    "session_id": session_field,
-                    "generation": {"type": "integer", "minimum": 1, "maximum": 100},
-                    "checkpoint_token": token_field,
-                    "hypothesis_id": {"type": "string", "minLength": 3, "maxLength": 96},
-                    "child_strategy_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-                    "continuation_intent": {"type": "object"},
-                },
-                ["session_id", "generation"],
-            ),
-        ]
-    )
+    custom.extend([
+        _academic_tool(
+            "start_algorithm_research",
+            "Start a bounded development-only algorithm research session. "
+            "Returns a typed AlgorithmPlan prompt via the existing MCP URL.",
+            {"data_path": {"type": "string"},
+             "generations": {"type": "integer", "minimum": 1, "maximum": 100}},
+            ["data_path", "generations"],
+        ),
+        _academic_tool(
+            "get_algorithm_research",
+            "Read verified research history and current GPT planning or diagnostic checkpoint.",
+            {"session_id": session_field}, ["session_id"],
+        ),
+        _academic_tool(
+            "submit_algorithm_plan",
+            "Validate GPT AlgorithmPlan and return measured backtest context. "
+            "An identical retry of the latest acknowledged checkpoint returns its prior "
+            "stage without rerunning; changed payloads or stale checkpoints are rejected.",
+            {"session_id": session_field, "checkpoint_token": token_field,
+             "plan": {"type": "object"}},
+            ["session_id", "checkpoint_token", "plan"],
+        ),
+        _academic_tool(
+            "submit_algorithm_diagnosis",
+            "Validate GPT diagnosis and commit one researched generation. Optional "
+            "require_signal_change rejects proven redundant regime-filter ablations "
+            "before consuming a checkpoint. Latest identical retries return the previously "
+            "committed generation without running experiments again.",
+            {"session_id": session_field, "checkpoint_token": token_field,
+             "diagnosis": {"type": "object"},
+             "require_signal_change": {"type": "boolean", "default": False}},
+            ["session_id", "checkpoint_token", "diagnosis"],
+        ),
+        _academic_tool(
+            "resume_algorithm_research",
+            "Explicitly resume a failed checkpoint; preserves all completed generations.",
+            {"session_id": session_field}, ["session_id"],
+        ),
+        _academic_tool(
+            "cancel_algorithm_research",
+            "Cancel academic research at its current checkpoint, keeping completed Evidence.",
+            {"session_id": session_field, "checkpoint_token": token_field},
+            ["session_id", "checkpoint_token"],
+        ),
+        _academic_tool(
+            "reconcile_algorithm_research",
+            "Operator-only recovery after the previous worker has fully stopped. "
+            "Restores missing S7 evidence before planning continues; repeated "
+            "recovery is read-only while the checkpoint remains unchanged.",
+            {"session_id": session_field}, ["session_id"],
+        ),
+        _academic_tool(
+            "evaluate_algorithm_experiments",
+            "Evaluate saved GPT hypotheses with unchanged DEVELOPMENT control; "
+            "optionally replay a hash-verified S7 child and test a continuation "
+            "mutation at the existing checkpoint, never place orders.",
+            {"session_id": session_field,
+             "generation": {"type": "integer", "minimum": 1, "maximum": 100},
+             "checkpoint_token": token_field,
+             "hypothesis_id": {"type": "string", "minLength": 3, "maxLength": 96},
+             "child_strategy_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+             "continuation_intent": {"type": "object"}},
+            ["session_id", "generation"],
+        ),
+    ])
     return canonical + custom
 
 
@@ -448,8 +425,7 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
                 raise TypeError("invalid advertised MCP tool contract")
             Draft202012Validator.check_schema(schema)
             self._input_validators[item["name"]] = Draft202012Validator(
-                schema,
-                format_checker=FormatChecker(),
+                schema, format_checker=FormatChecker(),
             )
         if len(self._input_validators) != 32:
             raise TypeError("unexpected ChatGPT tool contract count")
@@ -502,9 +478,7 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
         except (ValueError, TypeError, JSONSchemaValidationError):
             if self.audit is not None:
                 self.audit.emit(
-                    "tool_call",
-                    tool=params.name,
-                    result="ERROR",
+                    "tool_call", tool=params.name, result="ERROR",
                     error_code="INVALID_TOOL_ARGUMENTS",
                 )
             return _sdk_tool_result(
