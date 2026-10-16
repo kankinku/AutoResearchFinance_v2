@@ -44,6 +44,7 @@ from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
 from research.llm.diagnostic_research import DiagnosticResponse, build_diagnostic_context
+from research.llm.economic_feedback import build_economic_feedback, gate_research_direction
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
 
@@ -356,8 +357,16 @@ class AcademicMCPCheckpointService:
                     for experiment in observed['report'].get('experiments', [])
                 ):
                     scored_reports[item['generation']] = observed
-        context['research_direction'] = build_research_direction(
+        # Economic feedback is derived from already hash-verified immutable
+        # paired comparisons. A trade-count direction match is NOT sufficient
+        # evidence for EVOLVE if the same child lost development money.
+        # These are advisory review candidates, never auto-executed strategies.
+        context['economic_feedback'] = build_economic_feedback(
             status['history'], scored_reports,
+        )
+        context['research_direction'] = gate_research_direction(
+            build_research_direction(status['history'], scored_reports),
+            context['economic_feedback'],
         )
         # Regenerate evidence-linked failure memory from immutable S7 results.
         # Never mutate any prior cycle evidence or permit automatic execution.
