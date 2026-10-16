@@ -36,11 +36,17 @@ function updateInfo(d){
  $("phase-status").className="phase"+(phase==="RUNNING"?" active":["INTERRUPTED","FAILED","CANCELLED"].includes(phase)?" terminal":"");
  const descriptions={AWAITING_PLAN:"다음 계획 입력 대기 — 실제 연구 실행 중이 아닙니다.",AWAITING_DIAGNOSIS:"진단 제출을 기다립니다 — 실제 연구 실행 중이 아닙니다.",RUNNING:"연구 원장이 계산 중으로 표시됩니다. 별도 작업자 heartbeat는 확인되지 않습니다.",INTERRUPTED:"연구가 중단되었습니다.",COMPLETED:"요청된 모든 세대가 완료됐습니다.",CANCELLED:"연구 세션이 취소됐습니다."};
  write("phase-context",descriptions[phase]||"체크포인트 상태를 확인하십시오.");
- write("completed",d.completed);write("requested",d.requested);
- write("progress-percent",num(d.progress_pct,0)+"%");
- $("progress-fill").style.width=Math.min(100,Math.max(0,d.progress_pct))+"%";
- write("remaining","남은 "+(d.requested-d.completed)+"세대");
- write("record-state","S7 미측정 "+d.missing_s7_count+"건 · 읽기 전용");
+ const campaign=d.campaign||null;
+ const totalDone=campaign?campaign.completed:d.completed;
+ const totalRequested=campaign?campaign.requested:d.requested;
+ const totalPct=totalRequested?100*totalDone/totalRequested:0;
+ const offset=campaign?.local_offset||0;
+ write("completed",totalDone);write("requested",totalRequested);
+ write("progress-percent",num(totalPct,0)+"%");
+ $("progress-fill").style.width=Math.min(100,Math.max(0,totalPct))+"%";
+ write("remaining","남은 "+(totalRequested-totalDone)+"세대");
+ write("record-state",(campaign?"현재 세션 "+d.completed+"/"+d.requested+"세대 · ":"")+
+   "S7 미측정 "+d.missing_s7_count+"건 · 읽기 전용");
  const timing=d.timing||{};
  write("timing-current",typeof timing.current_elapsed_seconds==="number"?
    duration(timing.current_elapsed_seconds):"모델 입력 대기 / 미시작");
@@ -53,11 +59,11 @@ function updateInfo(d){
  const m=d.current_model||{}, staged=m.evaluation_status==="STAGED_NOT_COMMITTED";
  write("current-name",m.plan_id||"모델 없음");
  write("current-tag",staged?"진단 대기":"최근 완료");
- write("current-sub",staged?"제"+m.generation+"세대 · 아직 커밋 전인 모델입니다. 이전 세대 성과를 복사하지 않습니다.":m.generation?"제"+m.generation+"세대에서 확정된 개발 평가":"미완료");
+ write("current-sub",staged?"제"+(m.generation+offset)+"세대 · 아직 커밋 전입니다. 이전 세대 성과를 복사하지 않습니다.":m.generation?"제"+(m.generation+offset)+"세대에서 확정된 개발 평가":"미완료");
  valueCards("current",staged?null:m);
  const best=d.best_by_return;
  write("best-name",best?.plan_id||"후보 없음");
- write("best-sub",best?"제"+best.generation+"세대 · 최고 누적수익률 (개발기간 기준)":"후보 없음");
+ write("best-sub",best?"제"+(best.generation+offset)+"세대 · 현재 세션 최고 누적수익률 (개발기간 기준)":"후보 없음");
  valueCards("best",best);
  write("latest-return",pct(d.latest_completed_model?.metrics?.total_return));
  write("latest-winrate",pct(d.latest_completed_model?.metrics?.win_rate));
@@ -76,7 +82,7 @@ function updateInfo(d){
    "원본 QQQ 데이터가 없거나 연구 세션의 데이터 해시와 일치하지 않아 비교를 표시하지 않습니다.");
 }
 function excess(x){return typeof x==="number"&&Number.isFinite(x)?(x>0?"+":"")+x.toFixed(2)+"%p":"—";}
-function draw(history,qqq){
+function draw(history,qqq,offset=0){
  const svg=$("evolution-chart");
  svg.replaceChildren();
  const ns="http:"+"//"+"www.w3.org/2000/svg";
@@ -106,7 +112,7 @@ function draw(history,qqq){
   return;
  }
  [...new Set([0,Math.floor((history.length-1)/2),history.length-1])].forEach(i=>
-  element("text",{x:x(i),y:H-11,fill:"#8393ac","text-anchor":"middle","font-size":11},history[i].generation+"세대")
+  element("text",{x:x(i),y:H-11,fill:"#8393ac","text-anchor":"middle","font-size":11},(history[i].generation+offset)+"세대")
  );
  const path=fn=>history.map((h,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(fn(h)).toFixed(1)).join(" ");
  element("path",{d:path(h=>100*(h.metrics?.total_return??0)),fill:"none",stroke:"#78dfc3","stroke-width":2.7});
@@ -115,7 +121,7 @@ function draw(history,qqq){
   element("circle",{cx:x(history.length-1),cy:y(v),r:4,fill:color});
  }
 }
-function table(history){
+function table(history,offset=0){
  const body=$("history-rows");body.replaceChildren();
  write("history-count",history.length+"세대");
  if(!history.length){
@@ -125,7 +131,7 @@ function table(history){
  for(const g of [...history].reverse()){
   const tr=document.createElement("tr");
   const m=g.metrics||{};
-  const values=[g.generation,g.plan_id,pct(m.total_return),excess(g.qqq_excess_return_pp),pct(m.max_drawdown),num(m.sharpe),pct(m.win_rate),m.trade_count??"—",duration(g.duration_seconds),g.s7_status==="MEASURED"?"측정됨":"미측정"];
+  const values=[g.generation+offset,g.plan_id,pct(m.total_return),excess(g.qqq_excess_return_pp),pct(m.max_drawdown),num(m.sharpe),pct(m.win_rate),m.trade_count??"—",duration(g.duration_seconds),g.s7_status==="MEASURED"?"측정됨":"미측정"];
   values.forEach((value,i)=>{
    const td=document.createElement("td");td.textContent=String(value);
    if(i===1){td.className="model-id";td.title=String(value);}
@@ -161,7 +167,9 @@ async function refresh(){
   const data=await response.json();
   if(data.status!=="OK")throw new Error("연구 세션을 찾을 수 없습니다");
   options(data.sessions);
-  updateInfo(data);draw(data.history,data.buyhold_benchmark);table(data.history);
+  updateInfo(data);
+  const offset=data.campaign?.local_offset||0;
+  draw(data.history,data.buyhold_benchmark,offset);table(data.history,offset);
   write("last-refresh",new Date().toLocaleTimeString("ko-KR"));
   write("conn-status","연구 원장 연결됨");
   $("conn-status").className="chip";

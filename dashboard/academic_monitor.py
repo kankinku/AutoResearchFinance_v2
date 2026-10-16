@@ -106,6 +106,66 @@ class AcademicMonitorReader:
         with closing(self._db("cycles.sqlite")) as conn:
             return self._listed(conn)
 
+    def _campaign_progress(
+        self,
+        db: sqlite3.Connection,
+        selected: str,
+        session: sqlite3.Row,
+    ) -> dict[str, int] | None:
+        """Read a bounded campaign manifest, verify the origin session, never trust stale counters.
+
+        The manifest's current_local_completed and next_global_generation are
+        historical notes only. Current counts come strictly from cycle SQLite.
+        """
+        path = self.directory / "campaign-101-300.json"
+        if not path.exists():
+            return None
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 8192:
+            raise ResearchMonitorUnavailable("INVALID_CAMPAIGN_MANIFEST")
+        try:
+            info = json.loads(path.read_text(encoding="utf-8"))
+            if (
+                not isinstance(info, dict)
+                or info.get("schema") != "quant-autoresearch-campaign-lineage-v1"
+            ):
+                raise ValueError("campaign metadata schema")
+            if info.get("current_session_id") != selected:
+                return None
+            start, end = info["current_global_range"]
+            future_start, final = info["future_global_range"]
+            offset = info["origin_generations_completed"]
+            origin = info["origin_session_id"]
+            original = db.execute(
+                "SELECT completed,requested,status,dataset_hash FROM sessions WHERE id=?",
+                (origin,),
+            ).fetchone()
+            if (
+                not isinstance(offset, int) or isinstance(offset, bool)
+                or not _SESSION_RE.fullmatch(origin)
+                or not all(type(x) is int for x in (start,end,future_start,final))
+                or original is None
+                or original["status"] != "COMPLETED"
+                or original["completed"] != original["requested"]
+                or original["completed"] != offset
+                or db.execute(
+                    "SELECT COUNT(*) FROM generations WHERE session_id=?", (origin,),
+                ).fetchone()[0] != offset
+                or original["dataset_hash"] != session["dataset_hash"]
+                or info.get("dataset_hash") != session["dataset_hash"]
+                or (start, end) != (offset + 1, offset + session["requested"])
+                or (future_start, final) != (end + 1, 300)
+                or info.get("orders_enabled") is not False
+                or info.get("independent_oos_approved") is not False
+            ):
+                raise ValueError("campaign lineage mismatch")
+            return {
+                "completed": offset + session["completed"],
+                "requested": final,
+                "local_offset": offset,
+            }
+        except (OSError, ValueError, TypeError, KeyError, sqlite3.Error) as exc:
+            raise ResearchMonitorUnavailable("INVALID_CAMPAIGN_LINEAGE") from exc
+
     @staticmethod
     def _checkpoint_status(phase: str, status: str) -> dict[str, Any]:
         # A terminal cycle always overrides an older waiting gateway phase.
@@ -226,11 +286,35 @@ class AcademicMonitorReader:
                     metrics = raw.get("metrics", {})
                     if not isinstance(metrics, dict):
                         raise ResearchMonitorUnavailable("INVALID_GENERATION_METRICS")
-                    plan = raw.get("algorithm_plan", {})
+                    plan = raw.get("algorithm_plan")
+                    if isinstance(plan, dict):
+                        plan_name = plan.get("plan_id")
+                        if not isinstance(plan_name, str) or not plan_name:
+                            raise ResearchMonitorUnavailable("INVALID_ALGORITHM_PLAN_ID")
+                        kind = "ALGORITHM_PLAN"
+                        source_generation = None
+                    else:
+                        ir = raw.get("inherited_strategy_ir")
+                        parent = raw.get("inherited_parent")
+                        if (
+                            plan is not None
+                            or not isinstance(ir, dict)
+                            or not isinstance(parent, dict)
+                            or not isinstance(ir.get("id"), str)
+                            or not ir["id"]
+                            or not isinstance(parent.get("source_generation"), int)
+                            or content_hash(ir) != raw.get("strategy_hash")
+                        ):
+                            raise ResearchMonitorUnavailable("INVALID_INHERITED_STRATEGY_IR")
+                        plan_name = "계승 IR · " + ir["id"]
+                        kind = "INHERITED_STRATEGY_IR"
+                        source_generation = parent["source_generation"]
                     history.append(
                         {
                             "generation": index,
-                            "plan_id": str(plan.get("plan_id", ""))[:96],
+                            "plan_id": plan_name[:96],
+                            "strategy_kind": kind,
+                            "source_generation": source_generation,
                             "metrics": {k: metrics.get(k) for k in _PUBLIC_METRICS},
                             "s7_status": trial_status,
                             "evidence_hash_prefix": previous[:12],
@@ -254,7 +338,13 @@ class AcademicMonitorReader:
                     pending_raw = json.loads(stage["plan_json"] or "{}")
                     if not isinstance(pending_raw, dict):
                         raise ResearchMonitorUnavailable("INVALID_STAGED_PLAN")
-                    pending_plan_id = str(pending_raw.get("plan_id", ""))[:96]
+                    if pending_raw.get("schema") == "p0-3b-inherited-pending-v1":
+                        child_id = pending_raw.get("strategy_hash")
+                        if not isinstance(child_id, str) or len(child_id) != 64:
+                            raise ResearchMonitorUnavailable("INVALID_STAGED_INHERITED_IR")
+                        pending_plan_id = "계승 IR · " + child_id[:12]
+                    else:
+                        pending_plan_id = str(pending_raw.get("plan_id", ""))[:96]
                 benchmark = qqq_buyhold_for_session(
                     self.qqq_reference_path,
                     expected_dataset_hash=session["dataset_hash"],
@@ -288,9 +378,11 @@ class AcademicMonitorReader:
                     ),
                     default=None,
                 )
+                campaign = self._campaign_progress(cycles, selected, session)
                 return {
                     "status": "OK",
                     "selected_session_id": selected,
+                    "campaign": campaign,
                     "observed_at_utc": _utc_now(),
                     "sessions": sessions,
                     "checkpoint": self._checkpoint_status(phase, session["status"]),

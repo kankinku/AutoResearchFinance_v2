@@ -169,3 +169,170 @@ def test_existing_paper_dashboard_gets_readonly_academic_tab(
     assert payload.json()["selected_session_id"] == started["session_id"]
     assert payload.json()["orders_enabled"] is False
     assert client.post("/api/academic/overview").status_code == 405
+
+
+def _rewrite_as_inherited(root: Path, sid: str) -> None:
+    from core.integrity.hashes import content_hash
+    from research.llm.autonomous_cycle import AcademicCycleService
+
+    with sqlite3.connect(root / "cycles.sqlite") as db:
+        row = db.execute(
+            "SELECT evidence_json FROM generations WHERE session_id=? AND generation=1",
+            (sid,),
+        ).fetchone()
+        assert row is not None
+        payload = json.loads(row[0])
+        payload["base_algorithm_plan"] = payload["algorithm_plan"]
+        payload["algorithm_plan"] = None
+        payload["inherited_strategy_ir"] = {
+            "id": "research_plan_verified_ir", "schema_version": 1,
+            "entry": {"logic": "AND", "conditions": []},
+        }
+        payload["strategy_hash"] = content_hash(payload["inherited_strategy_ir"])
+        payload["inherited_parent"] = {
+            "source_generation": 1,
+            "parent_strategy_hash": "a" * 64,
+        }
+        digest = AcademicCycleService._row_evidence_hash(sid, 1, None, payload)
+        db.execute(
+            "UPDATE generations SET evidence_json=?,evidence_hash=? "
+            "WHERE session_id=? AND generation=1",
+            (json.dumps(payload, sort_keys=True), digest, sid),
+        )
+    with sqlite3.connect(root / "gateway.sqlite") as db:
+        row = db.execute(
+            "SELECT report_json FROM experiment_reports WHERE session_id=? AND generation=1",
+            (sid,),
+        ).fetchone()
+        assert row
+        report = json.loads(row[0])
+        report["original_generation_evidence_hash"] = digest
+        db.execute(
+            "UPDATE experiment_reports SET report_json=?,report_hash=? "
+            "WHERE session_id=? AND generation=1",
+            (json.dumps(report, sort_keys=True), content_hash(report), sid),
+        )
+        db.execute(
+            "UPDATE generation_timings SET evidence_hash=? "
+            "WHERE session_id=? AND generation=1",
+            (digest, sid),
+        )
+
+
+def test_inherited_ir_generation_does_not_crash_academic_api(tmp_path: Path) -> None:
+    server, started, root = _fixture(tmp_path)
+    scripted = ScriptedResearcher()
+    plan = server._dispatch(
+        "submit_algorithm_plan",
+        {"session_id": started["session_id"], "checkpoint_token": started["checkpoint_token"],
+         "plan": scripted.propose(started["model_context"])},
+    )
+    server._dispatch(
+        "submit_algorithm_diagnosis",
+        {"session_id": started["session_id"], "checkpoint_token": plan["checkpoint_token"],
+         "diagnosis": scripted.propose(plan["model_context"])},
+    )
+    _rewrite_as_inherited(root, started["session_id"])
+    response = TestClient(create_academic_app(root)).get("/api/academic/overview")
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["completed"] == 1
+    assert payload["checkpoint"]["code"] == "AWAITING_PLAN"
+    assert payload["history"][0]["plan_id"].startswith("계승 IR")
+    assert payload["history"][0]["strategy_kind"] == "INHERITED_STRATEGY_IR"
+    assert payload["history"][0]["source_generation"] == 1
+    assert payload["history"][0]["s7_status"] == "MEASURED"
+    assert payload["orders_enabled"] is False
+
+
+def test_inherited_ir_forged_strategy_hash_fails_closed(tmp_path: Path) -> None:
+    server, started, root = _fixture(tmp_path)
+    scripted = ScriptedResearcher()
+    plan = server._dispatch(
+        "submit_algorithm_plan",
+        {"session_id": started["session_id"], "checkpoint_token": started["checkpoint_token"],
+         "plan": scripted.propose(started["model_context"])},
+    )
+    server._dispatch(
+        "submit_algorithm_diagnosis",
+        {"session_id": started["session_id"], "checkpoint_token": plan["checkpoint_token"],
+         "diagnosis": scripted.propose(plan["model_context"])},
+    )
+    _rewrite_as_inherited(root, started["session_id"])
+    with sqlite3.connect(root / "cycles.sqlite") as db:
+        row = db.execute(
+            "SELECT evidence_json FROM generations WHERE session_id=? AND generation=1",
+            (started["session_id"],),
+        ).fetchone()
+        payload = json.loads(row[0])
+        payload["inherited_strategy_ir"]["id"] = "FORGED"
+        from research.llm.autonomous_cycle import AcademicCycleService
+        digest = AcademicCycleService._row_evidence_hash(
+            started["session_id"], 1, None, payload
+        )
+        db.execute(
+            "UPDATE generations SET evidence_json=?, evidence_hash=? "
+            "WHERE session_id=? AND generation=1",
+            (json.dumps(payload, sort_keys=True), digest, started["session_id"]),
+        )
+    response = TestClient(create_academic_app(root)).get("/api/academic/overview")
+    assert response.status_code == 503
+    assert response.json()["status"] == "RESEARCH_STATE_UNAVAILABLE"
+
+
+def test_global_campaign_counters_come_from_verified_sqlite_not_stale_manifest(
+    tmp_path: Path,
+) -> None:
+    origin_id = "a" * 32
+    current_id = "b" * 32
+    root = tmp_path / "academic-gpt-checkpoints"
+    root.mkdir()
+    with sqlite3.connect(root / "cycles.sqlite") as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            "CREATE TABLE sessions (id TEXT PRIMARY KEY,requested INTEGER,"
+            "completed INTEGER,status TEXT,dataset_hash TEXT)"
+        )
+        conn.execute(
+            "CREATE TABLE generations (session_id TEXT,generation INTEGER)"
+        )
+        conn.execute(
+            "INSERT INTO sessions VALUES(?,?,?,?,?)",
+            (origin_id, 100, 100, "COMPLETED", "0" * 64),
+        )
+        conn.execute(
+            "INSERT INTO sessions VALUES(?,?,?,?,?)",
+            (current_id, 100, 35, "AWAITING_PROVIDER", "0" * 64),
+        )
+        conn.executemany(
+            "INSERT INTO generations VALUES(?,?)",
+            ((origin_id, i) for i in range(1, 101)),
+        )
+        info = {
+            "schema": "quant-autoresearch-campaign-lineage-v1",
+            "origin_session_id": origin_id,
+            "origin_generations_completed": 100,
+            "current_session_id": current_id,
+            "current_global_range": [101, 200],
+            "future_global_range": [201, 300],
+            "current_local_completed": 33,  # stale historical manifest note
+            "next_global_generation": 134,  # must not be used as current value
+            "dataset_hash": "0" * 64,
+            "orders_enabled": False,
+            "independent_oos_approved": False,
+        }
+        (root / "campaign-101-300.json").write_text(json.dumps(info))
+        row = conn.execute(
+            "SELECT * FROM sessions WHERE id=?", (current_id,),
+        ).fetchone()
+        reader = AcademicMonitorReader(root)
+        assert reader._campaign_progress(conn, current_id, row) == {
+            "completed": 135, "requested": 300, "local_offset": 100,
+        }
+        assert reader._campaign_progress(conn, origin_id, row) is None
+        conn.execute(
+            "DELETE FROM generations WHERE session_id=? AND generation=100",
+            (origin_id,),
+        )
+        with pytest.raises(Exception, match="CAMPAIGN"):
+            reader._campaign_progress(conn, current_id, row)
