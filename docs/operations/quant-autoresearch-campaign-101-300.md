@@ -99,3 +99,15 @@
 - 정상 상태: `AWAITING_PLAN`, `completed_generations=33`, 다음은 **로컬 34 = 전역 134**.
 - 각 세대에 `submit_algorithm_plan` → 거래·신호·손실 확인 → `submit_algorithm_diagnosis(require_signal_change=true)` 순으로 진행. 새 세션 이력과 과거 완료 세션(`a84a100b15a242269b554282b01d91c9`)을 구분해서 근거 재사용.
 - 로컬 100세대 완료 전에는 다음 전역 201–300세대 세션을 만들지 않음. 이번 남은 **현재 세션 67세대**, 전체 캠페인 **167세대**.
+
+
+## 2026-10-17 P0-1 배포: 거래 횟수 위주 성공 판정 교정
+
+- **신규 코드 커밋**: `6f1f2f52f40fae95d8936f4c391326b92d123d3d` (`feat/p0-evidence-economic-feedback-20261017`). 기존 MCP 주소·OAuth·성공한 133세대 증거 보존.
+- **운영 런처 PIN 커밋**: `300abe5` (`deploy/quant-mcp-generation-timing-pin-20261016`). 이전 launcher 개인 백업 `state/moon-http/deployment-backup/run_quant_moon_http_before_p0_economic_20261017.sh` (git ignored).
+- 새 `economic_feedback`에 해시 검증된 S7 결과의 부모 대비 최종 자본, 수익률 개선·악화 분류, 30건 이상 거래 조건, 손실 윈도우 비교, 대조 자식 StrategyIR 증거 해시와 `proposed_intent`를 **검토용**으로 표시. 주문·자식 자동 승격 없음.
+- 현재 새 세션 33개 실험 중 수익률 개선 **17**, 악화 **16**. 마지막 전역 **133세대**: 대조 전략의 수익률이 +37.5731%에서 +31.3943%로 악화, `research_direction=TEST_HYPOTHESIS`, 이유 `LATEST_MATCHED_CONTROL_LOWER_DEVELOPMENT_RETURN`.
+- 실험 권고 지표는 `total_return/cagr/sharpe/max_drawdown` 중심, `trade_count` 결과만으로 진화 승인 금지. 이는 advisory 우선순위 수정이며 독립 OOS와 실제 수익성 검증 아님.
+- **재시작 후 실제 연결된 Quant MCP 읽기 검증 PASS**: Workspace READY, 기존 100세대 세션 COMPLETE, 현 세션 33/100 `AWAITING_PLAN`, next 글로벌 **134**, 주문 비활성, 기존 고정 URL 유지. 익명 로컬 POST 401 확인.
+- 검증: 대상 경제성·적응 권고·S7 실험학습·MCP 세션 테스트 **58 passed**, 이후 저활동 가드 추가 단위 테스트 **8 passed**, 관련 Ruff PASS 및 변경 소스 Mypy PASS(가드 전; 최소 수정).
+- 다음 필수 작업 **P0-2**: 동일 시점 QQQ 보유 벤치마크·현금 보유/거래비용·위험 노출 조절 공정 비교. 다음 **P0-3**: 기존 S7 자식 전략을 해시/체결 재현 검증 후 정식 부모로 승인하는 기능. P1: 청산 규칙과 노출 비중 StrategyIR 확장.
