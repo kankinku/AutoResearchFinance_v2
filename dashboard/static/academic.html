@@ -68,6 +68,16 @@
       </section>
     </div>
 
+    <section class="panel benchmark-panel">
+      <div class="section-title"><div><span class="eyebrow">SAME-DATASET BENCHMARK</span><h2>QQQ 그냥 매수 후 보유와 비교</h2></div><span class="tag tag-neutral">2020~2025 · 배당 제외</span></div>
+      <div class="benchmark-grid">
+        <div><span>QQQ 매수·보유 누적수익률</span><strong id="qqq-benchmark-return">—</strong><small id="qqq-benchmark-period">기간·원본 데이터 확인 중</small></div>
+        <div><span>최고 연구 모델의 QQQ 대비</span><strong id="best-qqq-excess">—</strong><small>같은 기간 · %p 차이</small></div>
+        <div><span>최근 완료 모델의 QQQ 대비</span><strong id="latest-qqq-excess">—</strong><small>같은 기간 · %p 차이</small></div>
+      </div>
+      <p class="benchmark-disclosure" id="benchmark-disclosure">QQQ 가격 기준 · 최초 매수 비용만 포함 · 배당금/재투자/최종 매도 비용은 제외합니다.</p>
+    </section>
+
     <section class="metrics-grid">
       <div class="panel mini-card"><span>최근 완료 모델 수익률</span><strong id="latest-return">—</strong><small>개발 구간 누적수익</small></div>
       <div class="panel mini-card"><span>최근 완료 모델 승률</span><strong id="latest-winrate">—</strong><small>거래 원장 기준</small></div>
@@ -76,7 +86,7 @@
     </section>
 
     <section class="panel graph-panel">
-      <div class="section-title"><div><span class="eyebrow">GENERATION EVOLUTION</span><h2>세대별 성과 변화</h2></div><span class="legend"><i class="legend-return"></i>수익률 <i class="legend-dd"></i>최대낙폭</span></div>
+      <div class="section-title"><div><span class="eyebrow">GENERATION EVOLUTION</span><h2>세대별 성과 변화</h2></div><span class="legend"><i class="legend-return"></i>수익률 <i class="legend-dd"></i>최대낙폭 <i class="legend-qqq"></i>QQQ 매수·보유</span></div>
       <div class="graph-wrap"><svg id="evolution-chart" viewBox="0 0 900 255" aria-label="세대별 수익률과 최대낙폭 차트" role="img"></svg></div>
       <p class="graph-foot">개별 세대 전략의 개발기간 결과입니다. 시간 순 투자계좌의 누적손익이 아닙니다.</p>
     </section>
@@ -85,8 +95,8 @@
       <div class="section-title"><div><span class="eyebrow">EVIDENCE LEDGER</span><h2>세대별 평가 기록</h2></div><span class="tag tag-neutral" id="history-count">0개</span></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>세대</th><th>모델</th><th>누적 수익률</th><th>최대낙폭</th><th>Sharpe</th><th>승률</th><th>거래</th><th>S7 실험</th></tr></thead>
-          <tbody id="history-rows"><tr><td colspan="8" class="empty">원장 확인 중…</td></tr></tbody>
+          <thead><tr><th>세대</th><th>모델</th><th>누적 수익률</th><th>QQQ 대비</th><th>최대낙폭</th><th>Sharpe</th><th>승률</th><th>거래</th><th>S7 실험</th></tr></thead>
+          <tbody id="history-rows"><tr><td colspan="9" class="empty">원장 확인 중…</td></tr></tbody>
         </table>
       </div>
     </section>

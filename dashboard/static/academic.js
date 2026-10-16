@@ -36,8 +36,19 @@ function updateInfo(d){
  write("best-sharpe-val",num(d.best_by_sharpe?.metrics?.sharpe));
  write("best-sharpe-id",d.best_by_sharpe?.plan_id||"후보 없음");
  write("missing-s7",d.missing_s7_count);
+ const q=d.buyhold_benchmark||{},available=q.status==="DEVELOPMENT_ONLY";
+ write("qqq-benchmark-return",available?pct(q.total_return):"산출 불가");
+ write("qqq-benchmark-period",available?q.first_date+" ~ "+q.last_date+" · "+q.trading_bars+"거래일":(q.reason||"동일 원본 데이터 확인 불가"));
+ write("best-qqq-excess",available?excess(d.best_model_vs_qqq_pp):"—");
+ write("latest-qqq-excess",available?excess(d.latest_model_vs_qqq_pp):"—");
+ $("best-qqq-excess").className=typeof d.best_model_vs_qqq_pp==="number"&&d.best_model_vs_qqq_pp<0?"negative":"positive";
+ $("latest-qqq-excess").className=typeof d.latest_model_vs_qqq_pp==="number"&&d.latest_model_vs_qqq_pp<0?"negative":"positive";
+ write("benchmark-disclosure",available?
+   "QQQ "+q.first_open.toFixed(2)+"달러 최초 시가 매수 → "+q.last_close.toFixed(2)+"달러 최종 종가 평가 · 최초 매수 비용 "+q.buy_cost_bps.toFixed(1)+"bp 포함 · 배당/재투자/최종 매도·세금 제외 · NON-PIT 개발 데이터":
+   "원본 QQQ 데이터가 없거나 연구 세션의 데이터 해시와 일치하지 않아 비교를 표시하지 않습니다.");
 }
-function draw(history){
+function excess(x){return typeof x==="number"&&Number.isFinite(x)?(x>0?"+":"")+x.toFixed(2)+"%p":"—";}
+function draw(history,qqq){
  const svg=$("evolution-chart");
  svg.replaceChildren();
  const ns="http:"+"//"+"www.w3.org/2000/svg";
@@ -48,7 +59,8 @@ function draw(history){
   svg.appendChild(e);return e;
  }
  const W=900,H=255,L=60,R=24,T=20,B=36;
- const values=history.flatMap(h=>[100*(h.metrics?.total_return??0),-100*(h.metrics?.max_drawdown??0)]).filter(Number.isFinite);
+ const qReturn=qqq?.status==="DEVELOPMENT_ONLY"?100*qqq.total_return:null;
+ const values=history.flatMap(h=>[100*(h.metrics?.total_return??0),-100*(h.metrics?.max_drawdown??0)]).concat(qReturn===null?[]:[qReturn]).filter(Number.isFinite);
  const lo=values.length?Math.min(-10,Math.floor(Math.min(...values)/20)*20):-20;
  const hi=values.length?Math.max(10,Math.ceil(Math.max(...values)/20)*20):20;
  const x=i=>L+(history.length<2?(W-L-R)/2:i*(W-L-R)/(history.length-1));
@@ -57,6 +69,9 @@ function draw(history){
   const v=lo+(hi-lo)*i/4;
   element("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:"#2c394d"});
   element("text",{x:48,y:y(v)+4,fill:"#8393ac","text-anchor":"end","font-size":11},Math.round(v)+"%");
+ }
+ if(qReturn!==null){
+  element("line",{x1:L,x2:W-R,y1:y(qReturn),y2:y(qReturn),stroke:"#e4bd78","stroke-width":2,"stroke-dasharray":"8 6"});
  }
  if(!history.length){
   element("text",{x:W/2,y:H/2,fill:"#9fb0c6","text-anchor":"middle"},"아직 완료된 세대가 없습니다.");
@@ -77,17 +92,18 @@ function table(history){
  write("history-count",history.length+"세대");
  if(!history.length){
   const tr=document.createElement("tr"),td=document.createElement("td");
-  td.colSpan=8;td.className="empty";td.textContent="저장된 세대가 없습니다.";tr.appendChild(td);body.appendChild(tr);return;
+  td.colSpan=9;td.className="empty";td.textContent="저장된 세대가 없습니다.";tr.appendChild(td);body.appendChild(tr);return;
  }
  for(const g of [...history].reverse()){
   const tr=document.createElement("tr");
   const m=g.metrics||{};
-  const values=[g.generation,g.plan_id,pct(m.total_return),pct(m.max_drawdown),num(m.sharpe),pct(m.win_rate),m.trade_count??"—",g.s7_status==="MEASURED"?"측정됨":"미측정"];
+  const values=[g.generation,g.plan_id,pct(m.total_return),excess(g.qqq_excess_return_pp),pct(m.max_drawdown),num(m.sharpe),pct(m.win_rate),m.trade_count??"—",g.s7_status==="MEASURED"?"측정됨":"미측정"];
   values.forEach((value,i)=>{
    const td=document.createElement("td");td.textContent=String(value);
    if(i===1){td.className="model-id";td.title=String(value);}
    if(i===2)td.className=typeof m.total_return==="number"&&m.total_return<0?"negative":"positive";
-   if(i===7)td.className=g.s7_status==="MEASURED"?"s7-ok":"s7-warn";
+   if(i===3)td.className=typeof g.qqq_excess_return_pp==="number"&&g.qqq_excess_return_pp<0?"negative":"positive";
+   if(i===8)td.className=g.s7_status==="MEASURED"?"s7-ok":"s7-warn";
    tr.appendChild(td);
   });
   body.appendChild(tr);
@@ -117,7 +133,7 @@ async function refresh(){
   const data=await response.json();
   if(data.status!=="OK")throw new Error("연구 세션을 찾을 수 없습니다");
   options(data.sessions);
-  updateInfo(data);draw(data.history);table(data.history);
+  updateInfo(data);draw(data.history,data.buyhold_benchmark);table(data.history);
   write("last-refresh",new Date().toLocaleTimeString("ko-KR"));
   write("conn-status","연구 원장 연결됨");
   $("conn-status").className="chip";

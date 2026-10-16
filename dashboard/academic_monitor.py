@@ -15,6 +15,10 @@ from pathlib import Path
 from typing import Any
 
 from core.integrity.hashes import content_hash
+from dashboard.academic_benchmark import (
+    inferred_qqq_market_path,
+    qqq_buyhold_for_session,
+)
 from research.llm.autonomous_cycle import AcademicCycleService
 
 _SESSION_RE = re.compile(r"^[0-9a-f]{32}$")
@@ -51,8 +55,18 @@ class ResearchSessionNotFound(LookupError):
 
 
 class AcademicMonitorReader:
-    def __init__(self, checkpoint_dir: Path) -> None:
+    def __init__(
+        self,
+        checkpoint_dir: Path,
+        *,
+        qqq_reference_path: Path | None = None,
+    ) -> None:
         self.directory = checkpoint_dir.resolve()
+        self.qqq_reference_path = (
+            qqq_reference_path
+            if qqq_reference_path is not None
+            else inferred_qqq_market_path(self.directory)
+        )
 
     def _db(self, filename: str) -> sqlite3.Connection:
         path = self.directory / filename
@@ -232,6 +246,21 @@ class AcademicMonitorReader:
                     if not isinstance(pending_raw, dict):
                         raise ResearchMonitorUnavailable("INVALID_STAGED_PLAN")
                     pending_plan_id = str(pending_raw.get("plan_id", ""))[:96]
+                benchmark = qqq_buyhold_for_session(
+                    self.qqq_reference_path,
+                    expected_dataset_hash=session["dataset_hash"],
+                )
+                if benchmark["status"] == "DEVELOPMENT_ONLY":
+                    for model in history:
+                        total = model["metrics"].get("total_return")
+                        model["qqq_excess_return_pp"] = (
+                            100 * (total - benchmark["total_return"])
+                            if isinstance(total, (int, float))
+                            else None
+                        )
+                else:
+                    for model in history:
+                        model["qqq_excess_return_pp"] = None
                 by_return = max(
                     history,
                     key=lambda r: (
@@ -274,6 +303,13 @@ class AcademicMonitorReader:
                         ),
                     },
                     "latest_completed_model": history[-1] if history else None,
+                    "buyhold_benchmark": benchmark,
+                    "best_model_vs_qqq_pp": (
+                        by_return["qqq_excess_return_pp"] if by_return else None
+                    ),
+                    "latest_model_vs_qqq_pp": (
+                        history[-1]["qqq_excess_return_pp"] if history else None
+                    ),
                     "best_by_return": by_return,
                     "best_by_sharpe": by_sharpe,
                     "missing_s7_count": missing_s7,
