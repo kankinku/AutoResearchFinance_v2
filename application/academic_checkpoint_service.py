@@ -9,6 +9,7 @@ import json
 import sqlite3
 from copy import deepcopy
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -84,6 +85,12 @@ class AcademicMCPCheckpointService:
           session_id TEXT PRIMARY KEY, data_path TEXT NOT NULL,
           phase TEXT NOT NULL, token TEXT NOT NULL,
           plan_json TEXT, plan_digest TEXT, context_digest TEXT
+        )''')
+        # Supplemental timing; original canonical evidence remains unchanged.
+        db.execute('''CREATE TABLE IF NOT EXISTS generation_timings (
+            session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+            start_utc TEXT NOT NULL, end_utc TEXT, evidence_hash TEXT,
+            PRIMARY KEY(session_id, generation)
         )''')
         db.execute('''CREATE TABLE IF NOT EXISTS experiment_reports (
             session_id TEXT NOT NULL, generation INTEGER NOT NULL,
@@ -522,6 +529,12 @@ class AcademicMCPCheckpointService:
                 db, sid, 'plan', token, args['plan'], new_token,
                 'AWAITING_DIAGNOSIS', current['completed_generations'],
             )
+            db.execute(
+                "INSERT OR IGNORE INTO generation_timings "
+                "(session_id,generation,start_utc) VALUES(?,?,?)",
+                (sid, current['completed_generations'] + 1,
+                 datetime.now(timezone.utc).isoformat()),
+            )
         return self.get({'session_id': sid})
 
     def submit_diagnosis(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -761,6 +774,12 @@ class AcademicMCPCheckpointService:
                 raise CycleStateError('controlled experiment persistence failed')
             if verified['original_generation_evidence_hash'] != original['evidence_hash']:
                 raise CycleStateError('controlled experiment concurrent identity mismatch')
+            db.execute(
+                "UPDATE generation_timings SET end_utc=?, evidence_hash=? "
+                "WHERE session_id=? AND generation=? AND end_utc IS NULL",
+                (datetime.now(timezone.utc).isoformat(), original['evidence_hash'],
+                 sid, generation),
+            )
             return verified
 
     def resume(self, args: dict[str, Any]) -> dict[str, Any]:
