@@ -1,6 +1,6 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
-갱신일: 2026-10-16 KST/UTC. `SCOPE_LOCKED_20Q` 유지. T4 신규 사용자 요청: 기존 FastAPI/static Dashboard에 **실제 Quant MCP SQLite 읽기 전용 localhost 연구 모니터** 구현(3초 polling, 상태·현재/최고 개발 모델·수익률/MDD/Sharpe·S7 해시 검증). 기존 연구 세션 **11/100 / G012 AWAITING_DIAGNOSIS**, 운영 MCP `b50b4c7`·URL/OAuth/주문OFF 불변. 다음 동일 T4 정상 승인 후 G012→13~100 진행.
+갱신일: 2026-10-16 KST/UTC. `SCOPE_LOCKED_20Q` 유지. T4 신규 사용자 요청: 기존 FastAPI/static Dashboard에 **실제 Quant MCP SQLite 읽기 전용 localhost 연구 모니터** 구현(3초 polling, 상태·현재/최고 개발 모델·수익률/MDD/Sharpe·S7 해시 검증). Moon 컨테이너 **127.0.0.1:8081 실제 HTTP 200 구동(커밋 `06ae659`, 개발 관련 45 PASS)**. 기존 연구 세션 **11/100 / G012 AWAITING_DIAGNOSIS**, 운영 MCP `b50b4c7`·URL/OAuth/주문OFF 불변. 다음 동일 T4 정상 승인 후 G012→13~100 진행.
 **상위 목표/변경 통제(필수):** [초기 사용자 20문답](../decisions/2026-10-14-autoresearch-interview-20q.md) → [2026-10-16 확정 범위 잠금 v1](../decisions/2026-10-16-autoresearch-20q-scope-lock-v1.md). 완료/미완료 상태는 이 현황표에서만 갱신하며, 목표나 승인된 순서는 사용자 명시 동의 없이는 수정하지 않는다. 특히 **V05 제한 검증 뒤 T4 진짜 GPT 10/100세대**를 더 많은 검증 도구 추가로 무기한 미루지 않는다.
 관련 문서: [기능 우선순위](autoresearch-feature-first-priority-2026-10-15.md), [개발 연대기](autoresearch-implementation-roadmap-2026-10-14.md).
 

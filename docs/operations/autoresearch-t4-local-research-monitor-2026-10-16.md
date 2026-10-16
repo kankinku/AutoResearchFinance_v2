@@ -38,3 +38,13 @@ http://127.0.0.1:8080/academic
 이번 기능은 별도의 localhost 표시 계층이며 기존 Quant MCP URL, OAuth, 32개 도구 및 운영 pinned SHA b50b4c7을 수정하지 않는다. 기존 GPT 연구 세션 a84a100b15a242269b554282b01d91c9는 11/100 완료, 12세대 진단 입력 대기 상태 그대로 유지한다.
 
 검증: FastAPI 스키마 및 실제 연구 원장 조회, 미커밋 모델/최고모델·S7 증거 검증, 고의 변조 차단, INTERRUPTED 우선 표시, 비인가 호스트 거부, 별도 모니터 및 기존 페이퍼 화면 연동, JS 문법 및 기존 대시보드 회귀 검사를 실시한다. GitHub 별도 브랜치에 이 모니터 변경을 기록한다.
+
+## 실제 localhost 구동 재검증 (같은 날짜)
+
+- Git 고정 소스 worktree: /shared/moon-workspace/AutoResearchFinance_v2-academic-monitor-06ae659, SHA 06ae659. 연구 운영 MCP는 별도 고정 소스 b50b4c7이며 **재시작하지 않음**.
+- Moon 호스트 컨테이너의 독립 dashboard process PID 6956이 TCP 127.0.0.1:8081에 Listen 중임을 확인. GET / = HTTP 200, GET /api/academic/overview = HTTP 200, POST /api/academic/overview = HTTP 405.
+- 원본 DB 직접 API 결과: 100세대 세션 11/100(11%), checkpoint AWAITING_DIAGNOSIS(진단 입력 대기, is_actively_running=false), 현재 미커밋 제12세대 t4_100_g012_risk_persistence(원장의 수익 지표는 null), S7 누락 0, orders_enabled=false.
+- 최고 개발 누적수익 후보는 제7세대 t4_100_g007_persistence_allocation: total_return=0.7229758960404302 (72.30%), max_drawdown=0.2519122473288892 (25.19%), Sharpe=0.7020396635017395. **비PIT 동일 개발 구간**, 시장 외부 검증 또는 미래 수익 확정 아님.
+- 테스트: 대시보드 전용 + 기존 FastAPI·정적 UI·20문답 범위 잠금 **45 PASS**, Ruff/Mypy 변경 4개 모듈 PASS, JS node --check PASS, commit 06ae659 GitHub Push 완료.
+- **Windows 클라이언트 접근은 미검증**: 이 localhost는 Moon 컨테이너 기준. Windows localhost에서 바로 열린다는 보장 없음. 별도 승인된 SSH 로컬 터널 또는 호스트 루프백 포트 매핑이 필요할 수 있음.
+- 이 실행은 독립 nohup 프로세스이며 컨테이너 재부팅 시 자동 시작 관리가 구성된 것은 아님. 재부팅 후에는 위 명령으로 재실행한다.
