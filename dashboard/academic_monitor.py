@@ -19,6 +19,7 @@ from dashboard.academic_benchmark import (
     inferred_qqq_market_path,
     qqq_buyhold_for_session,
 )
+from dashboard.academic_timing import generation_timing
 from dashboard.academic_worker_status import supervised_status
 from research.llm.autonomous_cycle import AcademicCycleService
 
@@ -238,6 +239,13 @@ class AcademicMonitorReader:
                     )
                 if set(s7) - set(range(1, done + 1)):
                     raise ResearchMonitorUnavailable("ORPHAN_S7_RECORD")
+                timing, intervals = generation_timing(
+                    gateway, session_id=selected, completed=done, requested=target,
+                    phase=phase, evidence_hashes=[row['evidence_hash'] for row in generation_rows],
+                )
+                for observed, model in zip(intervals, history, strict=True):
+                    model.update(duration_seconds=observed['duration_seconds'],
+                                 timing_status=observed['timing_status'])
                 # The pending plan is not committed and its backtest metrics are
                 # not in the two immutable SQLite tables. Never substitute the
                 # most recent completed model's metrics for it.
@@ -319,6 +327,7 @@ class AcademicMonitorReader:
                     "best_by_return": by_return,
                     "best_by_sharpe": by_sharpe,
                     "missing_s7_count": missing_s7,
+                    "timing": timing,
                     "history": history,
                     "data_label": "QQQ 연구 개발 데이터 — 사후 수집 NON_PIT",
                     "orders_enabled": False,

@@ -55,6 +55,11 @@
       </div>
       <div class="track"><div id="progress-fill" class="fill" style="width:0%"></div></div>
       <div class="progress-bottom"><span id="remaining">남은 세대 확인 중</span><span id="record-state">증거 검사 중</span></div>
+      <div class="generation-timing" aria-label="세대별 경과시간과 예상 소요시간">
+        <div><span>이번 세대 경과시간</span><strong id="timing-current">확인 중</strong></div>
+        <div><span>완료 세대 평균 소요시간</span><strong id="timing-average">확인 중</strong><small id="timing-samples">측정 기록 확인 중</small></div>
+        <div><span>다음 세대 예상 남은시간</span><strong id="timing-eta">확인 중</strong><small id="timing-disclosure">연구 진행 상태를 확인합니다.</small></div>
+      </div>
     </section>
 
     <div class="comparison">
@@ -109,8 +114,8 @@
       <div class="section-title"><div><span class="eyebrow">EVIDENCE LEDGER</span><h2>세대별 평가 기록</h2></div><span class="tag tag-neutral" id="history-count">0개</span></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>세대</th><th>모델</th><th>누적 수익률</th><th>QQQ 대비</th><th>최대낙폭</th><th>Sharpe</th><th>승률</th><th>거래</th><th>S7 실험</th></tr></thead>
-          <tbody id="history-rows"><tr><td colspan="9" class="empty">원장 확인 중…</td></tr></tbody>
+          <thead><tr><th>세대</th><th>모델</th><th>누적 수익률</th><th>QQQ 대비</th><th>최대낙폭</th><th>Sharpe</th><th>승률</th><th>거래</th><th>소요시간</th><th>S7 실험</th></tr></thead>
+          <tbody id="history-rows"><tr><td colspan="10" class="empty">원장 확인 중…</td></tr></tbody>
         </table>
       </div>
     </section>

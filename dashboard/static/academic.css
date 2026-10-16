@@ -19,3 +19,11 @@
 .execution-warning{font-size:11px;color:#aeb9c9;margin:0}
 .tag-warning{background:#483125;color:#ffcd8c}
 @media(max-width:800px){.execution-grid{grid-template-columns:1fr}.execution-panel{padding:16px}}
+
+/* Genuine local wall-clock observations, not an unattended provider ETA. */
+.generation-timing{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:17px}
+.generation-timing>div{padding:13px 16px;border:1px solid #31445a;background:#101825;border-radius:9px;min-width:0}
+.generation-timing span{display:block;color:var(--muted);font-size:12px}
+.generation-timing strong{display:block;font-size:18px;font-variant-numeric:tabular-nums;margin-top:4px}
+.generation-timing small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+@media(max-width:800px){.generation-timing{grid-template-columns:1fr}}

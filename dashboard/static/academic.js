@@ -4,6 +4,11 @@ const $ = id => document.getElementById(id);
 let selected = null, busy = false;
 const pct = x => typeof x === "number" && Number.isFinite(x) ? (100*x).toFixed(2)+"%" : "—";
 const num = (x,d=3) => typeof x === "number" && Number.isFinite(x) ? x.toFixed(d) : "—";
+function duration(seconds) {
+ if(typeof seconds!=="number"||!Number.isFinite(seconds)||seconds<0)return "기록 없음";
+ const s=Math.floor(seconds),h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+ return h? h+"시간 "+m+"분": m? m+"분 "+(s%60)+"초": seconds.toFixed(1)+"초";
+}
 const write = (id,v) => {$(id).textContent = v ?? "—";};
 function valueCards(prefix,row) {
  const m=row?.metrics||{};
@@ -36,6 +41,15 @@ function updateInfo(d){
  $("progress-fill").style.width=Math.min(100,Math.max(0,d.progress_pct))+"%";
  write("remaining","남은 "+(d.requested-d.completed)+"세대");
  write("record-state","S7 미측정 "+d.missing_s7_count+"건 · 읽기 전용");
+ const timing=d.timing||{};
+ write("timing-current",typeof timing.current_elapsed_seconds==="number"?
+   duration(timing.current_elapsed_seconds):"모델 입력 대기 / 미시작");
+ write("timing-average",duration(timing.average_seconds));
+ write("timing-samples",(timing.measured_generations||0)+"개 세대 실측 기준 · 계획 접수~S7 기록");
+ write("timing-eta",typeof timing.next_generation_eta_seconds==="number"?
+   duration(timing.next_generation_eta_seconds):"예측 불가");
+ write("timing-disclosure",timing.eta_reason==="COMPLETED"?
+   "모든 세대가 완료되었습니다.":"GPT 입력 대기 시간은 예측할 수 없습니다. 평균은 참고용입니다.");
  const m=d.current_model||{}, staged=m.evaluation_status==="STAGED_NOT_COMMITTED";
  write("current-name",m.plan_id||"모델 없음");
  write("current-tag",staged?"진단 대기":"최근 완료");
@@ -106,18 +120,18 @@ function table(history){
  write("history-count",history.length+"세대");
  if(!history.length){
   const tr=document.createElement("tr"),td=document.createElement("td");
-  td.colSpan=9;td.className="empty";td.textContent="저장된 세대가 없습니다.";tr.appendChild(td);body.appendChild(tr);return;
+  td.colSpan=10;td.className="empty";td.textContent="저장된 세대가 없습니다.";tr.appendChild(td);body.appendChild(tr);return;
  }
  for(const g of [...history].reverse()){
   const tr=document.createElement("tr");
   const m=g.metrics||{};
-  const values=[g.generation,g.plan_id,pct(m.total_return),excess(g.qqq_excess_return_pp),pct(m.max_drawdown),num(m.sharpe),pct(m.win_rate),m.trade_count??"—",g.s7_status==="MEASURED"?"측정됨":"미측정"];
+  const values=[g.generation,g.plan_id,pct(m.total_return),excess(g.qqq_excess_return_pp),pct(m.max_drawdown),num(m.sharpe),pct(m.win_rate),m.trade_count??"—",duration(g.duration_seconds),g.s7_status==="MEASURED"?"측정됨":"미측정"];
   values.forEach((value,i)=>{
    const td=document.createElement("td");td.textContent=String(value);
    if(i===1){td.className="model-id";td.title=String(value);}
    if(i===2)td.className=typeof m.total_return==="number"&&m.total_return<0?"negative":"positive";
    if(i===3)td.className=typeof g.qqq_excess_return_pp==="number"&&g.qqq_excess_return_pp<0?"negative":"positive";
-   if(i===8)td.className=g.s7_status==="MEASURED"?"s7-ok":"s7-warn";
+   if(i===9)td.className=g.s7_status==="MEASURED"?"s7-ok":"s7-warn";
    tr.appendChild(td);
   });
   body.appendChild(tr);
