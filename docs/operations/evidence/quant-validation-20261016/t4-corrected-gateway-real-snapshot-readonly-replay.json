@@ -1,0 +1,31 @@
+{
+  "PIT_OOS_proven": false,
+  "actual_live_rollout_occurred": false,
+  "arms": [
+    {
+      "arm": "chatgpt",
+      "broker_executable": false,
+      "corrected_measured_s7_count": 10,
+      "snapshot_report_hash": "0ada7f2ca235a27c1f70ae91991a1d4770c2e28be111e9c3e59d6c828174952f",
+      "source_report_still_legacy": true,
+      "source_session_id": "49d3033496844ea391f7bdc983da3fc9",
+      "verified_parent_generations": 10
+    },
+    {
+      "arm": "frozen_random",
+      "broker_executable": false,
+      "corrected_measured_s7_count": 10,
+      "snapshot_report_hash": "0f12eedbc4903e72d7229684cbd5cb76701fb40dfa1dcbd1d2de45a9826ae47b",
+      "source_report_still_legacy": true,
+      "source_session_id": "bb06ec457ee443bd9fb22273457c054f",
+      "verified_parent_generations": 10
+    }
+  ],
+  "code_branch_fix": "32e495e",
+  "model_autonomy_claimed": false,
+  "schema": "t4-actual-prod-sqlite-isolated-new-code-replay-v1",
+  "snapshots_deleted_after_replay": true,
+  "source": "read_only_live_sqlite_backup_to_ephemeral_temp",
+  "source_production_modified": false,
+  "two_complete_10gen_sessions": true
+}
