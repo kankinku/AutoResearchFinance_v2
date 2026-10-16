@@ -56,3 +56,12 @@ StrategyIR hash: `b7331a21c804eb2534faa0f3d3e6a16efec4f1fa3914b25834a2b9a591f6dd
 - `counted_parent_inheritance_ready=false`, 생성 카운터 변동 없음, 운영 URL/OAuth/실행 프로세스 변경 없음.
 
 **중요:** 이 검증은 부모 후보 자동 선택·고정을 증명할 뿐, 정식 134세대 StrategyIR 실행·S2/S7 감사 계승을 증명하지 않는다.
+
+
+## 최종 검증 기록 및 배포 판단
+
+- 신규 선택/원본 계승·MCP stage/중복·복구·S7 실험·MCP 런처 연관 회귀: **53 passed**, 0 failed (`pytest -q`, 86.41초; 신규 검증 13건 포함).
+- 프로젝트 전체 Ruff 검사: PASS. 프로젝트 전체 Mypy 검사: **262 source files PASS**.
+- 별도 전체 pytest 1회는 새 워크트리의 `.venv` 링크가 준비되기 전에 시작하여 MCP launcher 환경 테스트 1개가 실패했다. 이후 동일 launcher 테스트는 가상환경 연결 후 **별도 PASS**, 관련 53개 묶음에도 포함. 이 전체 실행은 마지막 집계 직전 인터럽트되어 총 통과 건수는 미확정이다. **전체 스위트 완전 통과로 표기하지 않는다.**
+- 개발 원장 복제본의 원본 G133 상태 보존·G134 부모 해시 고정·재조회 일치 검증 PASS. 운영 서비스 재시작/배포 없음.
+- 프로덕션 승격 기준 **BLOCKED**: 정식 StrategyIR을 실행하는 counted S2/S7 경로와 재계승 기능이 미완료. 별도 기능 브랜치를 배포 브랜치로 합치거나 운영 런처 PIN을 바꾸지 않는다.
