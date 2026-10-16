@@ -23,12 +23,14 @@ from research.indicator_engine.algorithm_plan import (
     audit_algorithm_plan,
     build_algorithm_plan_context,
     compile_algorithm_plan,
+    evaluate_algorithm_plan,
 )
 from research.indicator_engine.catalog import ResearchCatalog
 from research.indicator_engine.controlled_experiments import (
     SUPPORTED_CONTROLLED_METRICS,
     compare_controlled_experiments,
 )
+from research.indicator_engine.development_benchmark import compare_qqq_development_benchmarks
 from research.indicator_engine.experiment_preflight import (
     academic_diagnostic_quality_hint,
     static_noop_hypotheses,
@@ -345,6 +347,41 @@ class AcademicMCPCheckpointService:
     ) -> dict[str, Any]:
         context = build_algorithm_plan_context(catalog, data)
         context['generation'] = status['completed_generations'] + 1
+        # Verified QQQ costed B&H and historical, non-tradable risk proxies.
+        # Replay the latest audited strategy; never trust LLM-claimed metrics.
+        last = status['history'][-1] if status['history'] else None
+        equity = None
+        exposure = None
+        if last is not None:
+            plan = AlgorithmPlan.model_validate(last['algorithm_plan'])
+            compiled = compile_algorithm_plan(catalog, plan, data)
+            if (compiled.plan_hash != last['plan_hash']
+                    or compiled.compiled.strategy_hash != last['strategy_hash']
+                    or last['dataset_hash'] != data.dataset_hash):
+                raise CycleStateError('previous generation benchmark identity mismatch')
+            replayed_evaluation = evaluate_algorithm_plan(catalog, compiled, data)
+            if abs(replayed_evaluation.final_equity - last['measured_final_equity']) > 1e-7:
+                raise CycleStateError('previous generation equity replay mismatch')
+            equity = replayed_evaluation.equity_curve
+            exposure = last['metrics']['exposure']
+        if data.bars and all(bar.symbol == 'QQQ' for bar in data.bars):
+            context['benchmark_comparison'] = compare_qqq_development_benchmarks(
+                data, strategy_equity_curve=equity, realized_exposure=exposure,
+            )
+        else:
+            # Prevent a QQQ comparator from blocking other research symbols.
+            context['benchmark_comparison'] = {
+                'status': 'NOT_APPLICABLE_NON_QQQ',
+                'independent_oos_approved': False,
+                'broker_executable': False,
+            }
+        if last is not None:
+            context['benchmark_comparison'].update({
+                'strategy_generation': last['generation'],
+                'strategy_total_return': last['metrics']['total_return'],
+                'strategy_max_drawdown': last['metrics']['max_drawdown'],
+                'strategy_evidence_hash': last['evidence_hash'],
+            })
         # Validate stored experiment checksum before it influences future LLM
         # direction. S7-v1 reports lack execution attribution and remain
         # readable, but cannot support the newer direction allocator.
