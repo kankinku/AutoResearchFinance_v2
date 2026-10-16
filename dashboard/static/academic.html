@@ -34,6 +34,20 @@
       <button type="button" id="reload" class="reload">지금 확인 ↻</button>
     </section>
 
+    <section class="panel execution-panel" aria-label="연구 실행 관리자">
+      <div class="section-title">
+        <div><span class="eyebrow">AUTONOMOUS RESEARCH SUPERVISOR</span><h2>GPT 연구 실행 상태</h2></div>
+        <span id="worker-state" class="tag tag-neutral">연결 확인 중</span>
+      </div>
+      <div class="execution-grid">
+        <div><span>실행기 상태</span><strong id="worker-label">—</strong></div>
+        <div><span>Heartbeat 검증</span><strong id="worker-heartbeat">—</strong></div>
+        <div><span>최근 상태 기록</span><strong id="worker-last-seen">—</strong></div>
+      </div>
+      <p class="execution-note" id="worker-detail">실제 연구 원장과 실행기 상태를 확인 중입니다.</p>
+      <p class="execution-warning">읽기 전용 · GPT 공급자가 연결되지 않으면 새 세대를 자동 실행하지 않습니다 · Heartbeat만으로 실행 성공을 확정하지 않습니다</p>
+    </section>
+
     <section class="progress-card panel">
       <div class="progress-top">
         <div><span class="eyebrow">GENERATION PROGRESS</span><h2><span id="completed">—</span> <span class="divider-mark">/</span> <span id="requested">—</span> <span class="unit">세대</span></h2></div>

@@ -12,6 +12,20 @@ function valueCards(prefix,row) {
  $(prefix+"-return").className=(typeof m.total_return==="number"&&m.total_return<0)?"negative":"positive";
 }
 function updateInfo(d){
+ const supervisor=d.supervisor||{};
+ write("worker-state",supervisor.code||"UNAVAILABLE");
+ write("worker-label",supervisor.label||"실행 상태 미확인");
+ write("worker-heartbeat",({
+    NOT_RUNNING:"실행기 없음",RECENT_UNVERIFIED:"최근 신호 · 미확인",
+    STALE_OR_UNVERIFIED:"신호 끊김 · 미확인",UNVERIFIED:"검증 불가"
+ })[supervisor.heartbeat_health]||"확인 중");
+ const last=supervisor.last_heartbeat_at_utc;
+ write("worker-last-seen",typeof last==="string"&&!Number.isNaN(Date.parse(last))?
+   new Date(last).toLocaleString("ko-KR"):"기록 없음");
+ write("worker-detail",supervisor.detail||"상태 확인 필요");
+ $("worker-state").className="tag"+(
+   ["CONTROL_STATE_UNAVAILABLE","STALE_HEARTBEAT","REVIEW_REQUIRED"].includes(supervisor.code)?" tag-warning":" tag-neutral"
+ );
  const phase=d.checkpoint?.code||"UNKNOWN";
  write("phase-status",d.checkpoint?.label||"상태 확인 불가");
  $("phase-status").className="phase"+(phase==="RUNNING"?" active":["INTERRUPTED","FAILED","CANCELLED"].includes(phase)?" terminal":"");

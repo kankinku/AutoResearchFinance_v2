@@ -19,6 +19,7 @@ from dashboard.academic_benchmark import (
     inferred_qqq_market_path,
     qqq_buyhold_for_session,
 )
+from dashboard.academic_worker_status import supervised_status
 from research.llm.autonomous_cycle import AcademicCycleService
 
 _SESSION_RE = re.compile(r"^[0-9a-f]{32}$")
@@ -285,6 +286,11 @@ class AcademicMonitorReader:
                     "observed_at_utc": _utc_now(),
                     "sessions": sessions,
                     "checkpoint": self._checkpoint_status(phase, session["status"]),
+                    "supervisor": supervised_status(
+                        self.directory,
+                        selected,
+                        self._checkpoint_status(phase, session["status"])["code"],
+                    ),
                     "completed": done,
                     "requested": target,
                     "progress_pct": round(100 * done / target, 2) if target else 0,
