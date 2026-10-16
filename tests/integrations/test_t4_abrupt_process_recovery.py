@@ -10,6 +10,7 @@ import json
 import multiprocessing
 import os
 from pathlib import Path
+from typing import Any
 
 from application.academic_checkpoint_service import (
     AcademicMCPCheckpointService,
@@ -23,7 +24,7 @@ from tests.research.test_autonomous_academic_cycle import ScriptedResearcher
 def _crash_after_cycle_commit(
     project: str,
     state: str,
-    staged: dict,
+    staged: dict[str, Any],
     marker: str,
 ) -> None:
     svc = AcademicMCPCheckpointService(
