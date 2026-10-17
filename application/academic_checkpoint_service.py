@@ -25,7 +25,6 @@ from research.indicator_engine.algorithm_plan import (
     audit_algorithm_plan,
     build_algorithm_plan_context,
     compile_algorithm_plan,
-    evaluate_algorithm_plan,
 )
 from research.indicator_engine.catalog import ResearchCatalog
 from research.indicator_engine.controlled_experiments import (
@@ -64,6 +63,7 @@ from research.llm.lineage_selection import (
     replay_counted_s7_child,
     replay_lineage_candidate,
 )
+from research.llm.loss_attribution import build_loss_attribution
 from strategy_ir.schema import StrategyIR
 
 
@@ -77,13 +77,13 @@ class _SubmittedProvider:
 
     def propose(self, context: dict[str, Any]) -> dict[str, Any]:
         self.seen += 1
-        if self.seen == 1 and context.get('output_contract') == 'AlgorithmPlan':
+        if self.seen == 1 and context.get("output_contract") == "AlgorithmPlan":
             return deepcopy(self.plan)
-        if self.seen == 2 and context.get('schema') == 'research-diagnostic-context-v1':
-            if self.diagnosis.get('context_hash') != context.get('context_hash'):
-                raise CycleStateError('diagnostic context changed after GPT saw it')
+        if self.seen == 2 and context.get("schema") == "research-diagnostic-context-v1":
+            if self.diagnosis.get("context_hash") != context.get("context_hash"):
+                raise CycleStateError("diagnostic context changed after GPT saw it")
             return deepcopy(self.diagnosis)
-        raise CycleStateError('unexpected research phase or duplicate provider call')
+        raise CycleStateError("unexpected research phase or duplicate provider call")
 
 
 class _SubmittedDiagnosisOnly:
@@ -105,62 +105,62 @@ class AcademicMCPCheckpointService:
 
     def __init__(self, *, project_root: Path, state_dir: Path):
         self.root = project_root.resolve()
-        self.state = state_dir.resolve() / 'academic-gpt-checkpoints'
-        self.cycle = AcademicCycleService(self.state / 'cycles.sqlite')
+        self.state = state_dir.resolve() / "academic-gpt-checkpoints"
+        self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
 
     def _connect(self) -> sqlite3.Connection:
         self.state.mkdir(parents=True, exist_ok=True)
-        db = sqlite3.connect(self.state / 'gateway.sqlite', timeout=30)
+        db = sqlite3.connect(self.state / "gateway.sqlite", timeout=30)
         db.row_factory = sqlite3.Row
-        db.execute('PRAGMA busy_timeout=30000')
-        db.execute('PRAGMA journal_mode=WAL')
-        db.execute('''CREATE TABLE IF NOT EXISTS stages (
+        db.execute("PRAGMA busy_timeout=30000")
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("""CREATE TABLE IF NOT EXISTS stages (
           session_id TEXT PRIMARY KEY, data_path TEXT NOT NULL,
           phase TEXT NOT NULL, token TEXT NOT NULL,
           plan_json TEXT, plan_digest TEXT, context_digest TEXT
-        )''')
+        )""")
         # Supplemental timing; original canonical evidence remains unchanged.
-        db.execute('''CREATE TABLE IF NOT EXISTS generation_timings (
+        db.execute("""CREATE TABLE IF NOT EXISTS generation_timings (
             session_id TEXT NOT NULL, generation INTEGER NOT NULL,
             start_utc TEXT NOT NULL, end_utc TEXT, evidence_hash TEXT,
             PRIMARY KEY(session_id, generation)
-        )''')
-        db.execute('''CREATE TABLE IF NOT EXISTS experiment_reports (
+        )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS experiment_reports (
             session_id TEXT NOT NULL, generation INTEGER NOT NULL,
             report_json TEXT NOT NULL, report_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, generation)
-        )''')
+        )""")
         # Sidecar proof never edits immutable generation evidence.
-        db.execute('''CREATE TABLE IF NOT EXISTS successor_lineages (
+        db.execute("""CREATE TABLE IF NOT EXISTS successor_lineages (
             session_id TEXT NOT NULL, origin_generation INTEGER NOT NULL,
             request_hash TEXT NOT NULL, result_json TEXT NOT NULL,
             result_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, origin_generation, request_hash)
-        )''')
+        )""")
         # Immutable per-next-generation parent *selection*, not promotion.
-        db.execute('''CREATE TABLE IF NOT EXISTS parent_selections (
+        db.execute("""CREATE TABLE IF NOT EXISTS parent_selections (
             session_id TEXT NOT NULL, next_generation INTEGER NOT NULL,
             lineage_report_hash TEXT NOT NULL, selection_hash TEXT NOT NULL,
             selection_json TEXT NOT NULL,
             PRIMARY KEY(session_id, next_generation)
-        )''')
-        db.execute('''CREATE TABLE IF NOT EXISTS submission_receipts (
+        )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS submission_receipts (
             session_id TEXT NOT NULL, kind TEXT NOT NULL,
             submitted_token_hash TEXT NOT NULL, request_hash TEXT NOT NULL,
             resulting_token_hash TEXT NOT NULL, resulting_phase TEXT NOT NULL,
             completed_generations INTEGER NOT NULL, receipt_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, kind)
-        )''')
-        db.execute('''CREATE TABLE IF NOT EXISTS recovery_receipts (
+        )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS recovery_receipts (
             session_id TEXT NOT NULL, action TEXT NOT NULL,
             result_phase TEXT NOT NULL, result_token_hash TEXT NOT NULL,
             completed_generations INTEGER NOT NULL, receipt_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, action)
-        )''')
+        )""")
         # Old sessions were created with the original catalog. Keep their
         # identity even after new S6 candidates become available.
-        if 'catalog_version' not in {
-            column['name'] for column in db.execute('PRAGMA table_info(stages)')
+        if "catalog_version" not in {
+            column["name"] for column in db.execute("PRAGMA table_info(stages)")
         }:
             db.execute(
                 "ALTER TABLE stages ADD COLUMN catalog_version TEXT NOT NULL DEFAULT 's3-v1'"
@@ -169,18 +169,24 @@ class AcademicMCPCheckpointService:
 
     @staticmethod
     def _record_submission(
-        db: sqlite3.Connection, sid: str, kind: str, submitted_token: str,
-        request: object, resulting_token: str, resulting_phase: str,
+        db: sqlite3.Connection,
+        sid: str,
+        kind: str,
+        submitted_token: str,
+        request: object,
+        resulting_token: str,
+        resulting_phase: str,
         completed_generations: int,
     ) -> None:
         """Persist a single most-recent receipt without storing secret tokens."""
         body = {
-            'session_id': sid, 'kind': kind,
-            'submitted_token_hash': content_hash(submitted_token),
-            'request_hash': content_hash(request),
-            'resulting_token_hash': content_hash(resulting_token),
-            'resulting_phase': resulting_phase,
-            'completed_generations': completed_generations,
+            "session_id": sid,
+            "kind": kind,
+            "submitted_token_hash": content_hash(submitted_token),
+            "request_hash": content_hash(request),
+            "resulting_token_hash": content_hash(resulting_token),
+            "resulting_phase": resulting_phase,
+            "completed_generations": completed_generations,
         }
         db.execute(
             "INSERT INTO submission_receipts VALUES(?,?,?,?,?,?,?,?) "
@@ -196,58 +202,81 @@ class AcademicMCPCheckpointService:
 
     @staticmethod
     def _is_recent_replay(
-        db: sqlite3.Connection, row: sqlite3.Row, current: dict[str, Any],
-        kind: str, submitted_token: str, request: object,
+        db: sqlite3.Connection,
+        row: sqlite3.Row,
+        current: dict[str, Any],
+        kind: str,
+        submitted_token: str,
+        request: object,
     ) -> bool:
         """Only replay the last identical acknowledged step at the same checkpoint."""
         receipt = db.execute(
-            'SELECT * FROM submission_receipts WHERE session_id=? AND kind=?',
-            (row['session_id'], kind),
+            "SELECT * FROM submission_receipts WHERE session_id=? AND kind=?",
+            (row["session_id"], kind),
         ).fetchone()
         if receipt is None:
             return False
-        body = {key: receipt[key] for key in (
-            'session_id', 'kind', 'submitted_token_hash', 'request_hash',
-            'resulting_token_hash', 'resulting_phase', 'completed_generations',
-        )}
-        if content_hash(body) != receipt['receipt_hash']:
-            raise CycleStateError('submission receipt integrity failure')
-        if receipt['submitted_token_hash'] != content_hash(submitted_token):
+        body = {
+            key: receipt[key]
+            for key in (
+                "session_id",
+                "kind",
+                "submitted_token_hash",
+                "request_hash",
+                "resulting_token_hash",
+                "resulting_phase",
+                "completed_generations",
+            )
+        }
+        if content_hash(body) != receipt["receipt_hash"]:
+            raise CycleStateError("submission receipt integrity failure")
+        if receipt["submitted_token_hash"] != content_hash(submitted_token):
             return False
-        if receipt['request_hash'] != content_hash(request):
-            raise CycleStateError('conflicting replay payload for consumed checkpoint token')
-        if (row['phase'] != receipt['resulting_phase']
-                or content_hash(row['token']) != receipt['resulting_token_hash']
-                or current['completed_generations'] != receipt['completed_generations']):
-            raise CycleStateError('stale replay after checkpoint advanced')
+        if receipt["request_hash"] != content_hash(request):
+            raise CycleStateError("conflicting replay payload for consumed checkpoint token")
+        if (
+            row["phase"] != receipt["resulting_phase"]
+            or content_hash(row["token"]) != receipt["resulting_token_hash"]
+            or current["completed_generations"] != receipt["completed_generations"]
+        ):
+            raise CycleStateError("stale replay after checkpoint advanced")
         return True
 
     def _evaluated_reply(self, sid: str, generation: int) -> dict[str, Any]:
         """Reconstruct the two-write reply, including immutable S7 evidence."""
-        experiment_report = self.evaluate_experiments({
-            'session_id': sid, 'generation': generation,
-        })
-        refreshed = self.get({'session_id': sid})
+        experiment_report = self.evaluate_experiments(
+            {
+                "session_id": sid,
+                "generation": generation,
+            }
+        )
+        refreshed = self.get({"session_id": sid})
         if (
-            refreshed['completed_generations'] != generation
-            or experiment_report['original_generation_evidence_hash']
-            != refreshed['history'][-1]['evidence_hash']
+            refreshed["completed_generations"] != generation
+            or experiment_report["original_generation_evidence_hash"]
+            != refreshed["history"][-1]["evidence_hash"]
         ):
-            raise CycleStateError('post-diagnosis experiment evidence mismatch')
-        refreshed['latest_controlled_experiments'] = experiment_report
-        refreshed['controlled_experiments_automatically_evaluated'] = True
+            raise CycleStateError("post-diagnosis experiment evidence mismatch")
+        refreshed["latest_controlled_experiments"] = experiment_report
+        refreshed["controlled_experiments_automatically_evaluated"] = True
         return refreshed
 
     @staticmethod
     def _store_recovery_receipt(
-        db: sqlite3.Connection, sid: str, action: str, phase: str,
-        token: str, completed_generations: int,
+        db: sqlite3.Connection,
+        sid: str,
+        action: str,
+        phase: str,
+        token: str,
+        completed_generations: int,
     ) -> None:
         """Record one completed recovery action; never retain the raw token."""
         body = {
-            'session_id': sid, 'action': action, 'result_phase': phase,
-            'result_token_hash': content_hash(token),
-            'completed_generations': completed_generations,
+            "session_id": sid,
+            "action": action,
+            "result_phase": phase,
+            "result_token_hash": content_hash(token),
+            "completed_generations": completed_generations,
         }
         db.execute(
             "INSERT INTO recovery_receipts VALUES(?,?,?,?,?,?) "
@@ -261,55 +290,69 @@ class AcademicMCPCheckpointService:
 
     @staticmethod
     def _is_recovery_replay(
-        db: sqlite3.Connection, row: sqlite3.Row,
-        current: dict[str, Any], action: str,
+        db: sqlite3.Connection,
+        row: sqlite3.Row,
+        current: dict[str, Any],
+        action: str,
     ) -> bool:
         """Only accept a repeat while the exact recovered checkpoint survives."""
         receipt = db.execute(
-            'SELECT * FROM recovery_receipts WHERE session_id=? AND action=?',
-            (row['session_id'], action),
+            "SELECT * FROM recovery_receipts WHERE session_id=? AND action=?",
+            (row["session_id"], action),
         ).fetchone()
         if receipt is None:
             return False
-        body = {name: receipt[name] for name in (
-            'session_id', 'action', 'result_phase', 'result_token_hash',
-            'completed_generations',
-        )}
-        if content_hash(body) != receipt['receipt_hash']:
-            raise CycleStateError('recovery receipt integrity failure')
+        body = {
+            name: receipt[name]
+            for name in (
+                "session_id",
+                "action",
+                "result_phase",
+                "result_token_hash",
+                "completed_generations",
+            )
+        }
+        if content_hash(body) != receipt["receipt_hash"]:
+            raise CycleStateError("recovery receipt integrity failure")
         return bool(
-            receipt['result_phase'] == row['phase']
-            and receipt['result_token_hash'] == content_hash(row['token'])
-            and receipt['completed_generations'] == current['completed_generations']
+            receipt["result_phase"] == row["phase"]
+            and receipt["result_token_hash"] == content_hash(row["token"])
+            and receipt["completed_generations"] == current["completed_generations"]
         )
 
     def _recovery_reply(
-        self, sid: str, generations: int,
+        self,
+        sid: str,
+        generations: int,
     ) -> dict[str, Any]:
         """Require S7 provenance for any exposed recovered completed generation."""
         if generations == 0:
-            return self.get({'session_id': sid})
+            return self.get({"session_id": sid})
         return self._evaluated_reply(sid, generations)
 
-    def _catalog(self, version: str = 's3-v1') -> ResearchCatalog:
-        if version not in ('s3-v1', 's6-v1', 's6-v2'):
-            raise CycleStateError('unknown pinned research indicator catalog version')
+    def _catalog(self, version: str = "s3-v1") -> ResearchCatalog:
+        if version not in ("s3-v1", "s6-v1", "s6-v2"):
+            raise CycleStateError("unknown pinned research indicator catalog version")
         catalog_files = {
-            's3-v1': 'catalog.sqlite',
-            's6-v1': 'catalog-s6-v1.sqlite',
-            's6-v2': 'catalog-s6-v2.sqlite',
+            "s3-v1": "catalog.sqlite",
+            "s6-v1": "catalog-s6-v1.sqlite",
+            "s6-v2": "catalog-s6-v2.sqlite",
         }
         catalog = ResearchCatalog(self.state / catalog_files[version])
         seed_approved_references(catalog)
-        names: tuple[str, ...] = ('time_series_momentum', 'previous_range_breakout',
-                 'parkinson_variance', 'sma_direction')
-        if version in ('s6-v1', 's6-v2'):
+        names: tuple[str, ...] = (
+            "time_series_momentum",
+            "previous_range_breakout",
+            "parkinson_variance",
+            "sma_direction",
+        )
+        if version in ("s6-v1", "s6-v2"):
             seed_s6_references(catalog)
             names += tuple(candidate.signal_id for candidate in S6_SIGNALS)
         s6_names = {candidate.signal_id for candidate in S6_SIGNALS}
         for name in names:
             indicator = catalog.get_indicator(name)
-            if version == 's6-v2' and name in s6_names:
+            if version == "s6-v2" and name in s6_names:
                 evidence = get_s6_external_reference(catalog, name)
                 if evidence is None:
                     # For a newly PROPOSED signal, require both reviewed
@@ -317,74 +360,87 @@ class AcademicMCPCheckpointService:
                     # after promotion can backfill provenance without
                     # modifying the pinned indicator definition.
                     evidence = audit_s6_external_reference(indicator)
-                    if indicator.status == 'PROPOSED':
+                    if indicator.status == "PROPOSED":
                         catalog.verify_and_register(
                             name, verify_signal_on_synthetic_prices(indicator)
                         )
                     capture_s6_external_reference(catalog, evidence)
-                if catalog.get_indicator(name).status != 'VERIFIED':
-                    raise CycleStateError('S6 external reference not promoted')
-            elif indicator.status == 'PROPOSED':
+                if catalog.get_indicator(name).status != "VERIFIED":
+                    raise CycleStateError("S6 external reference not promoted")
+            elif indicator.status == "PROPOSED":
                 catalog.verify_and_register(name, verify_signal_on_synthetic_prices(indicator))
         return catalog
 
     def _data(self, path: str) -> MarketDataSet:
-        return ParquetDataProvider.read(resolve_project_input(
-            self.root, path, frozenset({'.parquet'})
-        ))
+        return ParquetDataProvider.read(
+            resolve_project_input(self.root, path, frozenset({".parquet"}))
+        )
 
     @staticmethod
     def _one(
-        args: dict[str, Any], allowed: set[str], required: set[str],
+        args: dict[str, Any],
+        allowed: set[str],
+        required: set[str],
     ) -> None:
         if set(args) - allowed or not required <= set(args):
-            raise ValueError('unexpected or missing academic checkpoint arguments')
+            raise ValueError("unexpected or missing academic checkpoint arguments")
 
     def start(self, args: dict[str, Any]) -> dict[str, Any]:
-        self._one(args, {'data_path', 'generations'}, {'data_path', 'generations'})
-        if type(args['generations']) is not int or not 1 <= args['generations'] <= 100:
-            raise ValueError('generations must be integer 1..100')
-        if not isinstance(args['data_path'], str):
-            raise ValueError('data_path must be a string')
-        path = resolve_project_input(self.root, args['data_path'], frozenset({'.parquet'}))
+        self._one(args, {"data_path", "generations"}, {"data_path", "generations"})
+        if type(args["generations"]) is not int or not 1 <= args["generations"] <= 100:
+            raise ValueError("generations must be integer 1..100")
+        if not isinstance(args["data_path"], str):
+            raise ValueError("data_path must be a string")
+        path = resolve_project_input(self.root, args["data_path"], frozenset({".parquet"}))
         data = ParquetDataProvider.read(path)
-        catalog_version = 's6-v2'
+        catalog_version = "s6-v2"
         catalog = self._catalog(catalog_version)
         # Preserve existing replay, but reject newly started sessions after
         # the external provider has changed without a versioned review.
         from research.indicator_engine.external_reference import _backend_version
+
         current_version = _backend_version()
         for source in S6_SIGNALS:
             proof = get_s6_external_reference(catalog, source.signal_id)
             if proof is None or proof.version != current_version:
-                raise CycleStateError('S6 reference backend version changed; new catalog required')
-        started = self.cycle.start(catalog, data, generations=args['generations'])
+                raise CycleStateError("S6 reference backend version changed; new catalog required")
+        started = self.cycle.start(catalog, data, generations=args["generations"])
         token = uuid4().hex
-        sid = str(started['session_id'])
+        sid = str(started["session_id"])
         with self._connect() as db:
             db.execute(
-                'INSERT INTO stages(session_id,data_path,phase,token,catalog_version) '
-                'VALUES(?,?,?,?,?)', (sid, path.relative_to(self.root).as_posix(),
-                                     'AWAITING_PLAN', token, catalog_version),
+                "INSERT INTO stages(session_id,data_path,phase,token,catalog_version) "
+                "VALUES(?,?,?,?,?)",
+                (
+                    sid,
+                    path.relative_to(self.root).as_posix(),
+                    "AWAITING_PLAN",
+                    token,
+                    catalog_version,
+                ),
             )
-        return self.get({'session_id': sid})
+        return self.get({"session_id": sid})
 
     def _stored_experiment(
-        self, db: sqlite3.Connection, sid: str, generation: int,
+        self,
+        db: sqlite3.Connection,
+        sid: str,
+        generation: int,
     ) -> dict[str, Any] | None:
         row = db.execute(
-            'SELECT report_json,report_hash FROM experiment_reports '
-            'WHERE session_id=? AND generation=?', (sid, generation),
+            "SELECT report_json,report_hash FROM experiment_reports "
+            "WHERE session_id=? AND generation=?",
+            (sid, generation),
         ).fetchone()
         if row is None:
             return None
         try:
-            body = json.loads(row['report_json'])
+            body = json.loads(row["report_json"])
         except ValueError as exc:
-            raise CycleStateError('controlled experiment record integrity mismatch') from exc
-        if not isinstance(body, dict) or content_hash(body) != row['report_hash']:
-            raise CycleStateError('controlled experiment record integrity mismatch')
-        return {**body, 'record_hash': row['report_hash']}
+            raise CycleStateError("controlled experiment record integrity mismatch") from exc
+        if not isinstance(body, dict) or content_hash(body) != row["report_hash"]:
+            raise CycleStateError("controlled experiment record integrity mismatch")
+        return {**body, "record_hash": row["report_hash"]}
 
     def _selected_development_parent(
         self,
@@ -757,7 +813,7 @@ class AcademicMCPCheckpointService:
         if last is not None:
             if last.get("inherited_strategy_ir") is not None:
                 previous_compiled = self._inherited_from_evidence(catalog, data, last)
-                evaluation = audit_inherited_decisions(previous_compiled, data).evaluation
+                previous_audit = audit_inherited_decisions(previous_compiled, data)
             else:
                 plan = AlgorithmPlan.model_validate(last["algorithm_plan"])
                 compiled = compile_algorithm_plan(catalog, plan, data)
@@ -767,11 +823,22 @@ class AcademicMCPCheckpointService:
                     or last["dataset_hash"] != data.dataset_hash
                 ):
                     raise CycleStateError("previous generation benchmark identity mismatch")
-                evaluation = evaluate_algorithm_plan(catalog, compiled, data)
-            if abs(evaluation.final_equity - last["measured_final_equity"]) > 1e-7:
-                raise CycleStateError("previous generation equity replay mismatch")
+                previous_audit = audit_algorithm_plan(catalog, compiled, data)
+            evaluation = previous_audit.evaluation
+            if (
+                abs(evaluation.final_equity - last["measured_final_equity"]) > 1e-7
+                or previous_audit.trace_hash != last["audit_hash"]
+            ):
+                raise CycleStateError("previous generation economic or decision audit mismatch")
             equity = evaluation.equity_curve
             exposure = last["metrics"]["exposure"]
+            # New planning-context advisory only. Do not change the existing
+            # signed S2 diagnostic-context hash or any completed generation.
+            context["loss_attribution"] = {
+                **build_loss_attribution(previous_audit, data),
+                "source_generation": last["generation"],
+                "source_generation_evidence_hash": last["evidence_hash"],
+            }
         if data.bars and all(bar.symbol == "QQQ" for bar in data.bars):
             context["benchmark_comparison"] = compare_qqq_development_benchmarks(
                 data,
@@ -919,12 +986,14 @@ class AcademicMCPCheckpointService:
         return context
 
     def _state(
-        self, db: sqlite3.Connection, sid: str,
+        self,
+        db: sqlite3.Connection,
+        sid: str,
     ) -> tuple[sqlite3.Row, ResearchCatalog, MarketDataSet, dict[str, Any]]:
-        row = db.execute('SELECT * FROM stages WHERE session_id=?', (sid,)).fetchone()
+        row = db.execute("SELECT * FROM stages WHERE session_id=?", (sid,)).fetchone()
         if row is None:
-            raise CycleStateError('unknown academic MCP session')
-        catalog, data = self._catalog(row['catalog_version']), self._data(row['data_path'])
+            raise CycleStateError("unknown academic MCP session")
+        catalog, data = self._catalog(row["catalog_version"]), self._data(row["data_path"])
         return row, catalog, data, self.cycle.get(sid, catalog, data)
 
     def get(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -1332,17 +1401,16 @@ class AcademicMCPCheckpointService:
 
     def cancel(self, args: dict[str, Any]) -> dict[str, Any]:
         """Stop between generation checkpoints without losing prior Evidence."""
-        self._one(args, {'session_id', 'checkpoint_token'},
-                  {'session_id', 'checkpoint_token'})
-        sid, token = args['session_id'], args['checkpoint_token']
+        self._one(args, {"session_id", "checkpoint_token"}, {"session_id", "checkpoint_token"})
+        sid, token = args["session_id"], args["checkpoint_token"]
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
-            if row['token'] != token:
-                raise CycleStateError('invalid checkpoint token')
-            if row['phase'] not in ('AWAITING_PLAN', 'AWAITING_DIAGNOSIS', 'INTERRUPTED'):
-                raise CycleStateError('cancel only at a safe checkpoint')
-            if current['status'] not in ('AWAITING_PROVIDER', 'INTERRUPTED'):
-                raise CycleStateError('cancel requires a stable checkpoint')
+            if row["token"] != token:
+                raise CycleStateError("invalid checkpoint token")
+            if row["phase"] not in ("AWAITING_PLAN", "AWAITING_DIAGNOSIS", "INTERRUPTED"):
+                raise CycleStateError("cancel only at a safe checkpoint")
+            if current["status"] not in ("AWAITING_PROVIDER", "INTERRUPTED"):
+                raise CycleStateError("cancel requires a stable checkpoint")
             self.cycle.cancel(sid, catalog, data)
             changed = db.execute(
                 "UPDATE stages SET phase='CANCELLED',plan_json=NULL,"
@@ -1351,8 +1419,8 @@ class AcademicMCPCheckpointService:
                 (uuid4().hex, sid, token),
             )
             if changed.rowcount != 1:
-                raise CycleStateError('cancel checkpoint conflict')
-        return self.get({'session_id': sid})
+                raise CycleStateError("cancel checkpoint conflict")
+        return self.get({"session_id": sid})
 
     def reconcile(self, args: dict[str, Any]) -> dict[str, Any]:
         """Operator-only crash reconciliation; caller has confirmed worker stopped.
@@ -1361,50 +1429,58 @@ class AcademicMCPCheckpointService:
         recovered before exposing the next GPT planning checkpoint. Repeating
         a successful reconciliation is read-only and preserves token/evidence.
         """
-        self._one(args, {'session_id'}, {'session_id'})
-        sid = args['session_id']
+        self._one(args, {"session_id"}, {"session_id"})
+        sid = args["session_id"]
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
-            if row['phase'] != 'RUNNING':
-                if self._is_recovery_replay(db, row, current, 'reconcile'):
-                    return self._recovery_reply(sid, current['completed_generations'])
-                raise CycleStateError('reconcile only stalled running gateway checkpoint')
+            if row["phase"] != "RUNNING":
+                if self._is_recovery_replay(db, row, current, "reconcile"):
+                    return self._recovery_reply(sid, current["completed_generations"])
+                raise CycleStateError("reconcile only stalled running gateway checkpoint")
             # Check the previously recorded receipt too, fail closed on damage.
-            self._is_recovery_replay(db, row, current, 'reconcile')
-            cycle_status = current['status']
-            if cycle_status == 'EXECUTING':
+            self._is_recovery_replay(db, row, current, "reconcile")
+            cycle_status = current["status"]
+            if cycle_status == "EXECUTING":
                 # Existing cycle-side CAS token prevents a killed former worker
                 # from committing evidence if it returns after reconciliation.
                 self.cycle.interrupt_stale(sid, catalog, data)
-                phase = 'INTERRUPTED'
-            elif cycle_status == 'INTERRUPTED':
-                phase = 'INTERRUPTED'
-            elif cycle_status == 'COMPLETED':
-                phase = 'COMPLETED'
-            elif cycle_status == 'AWAITING_PROVIDER':
-                phase = 'AWAITING_PLAN'
+                phase = "INTERRUPTED"
+            elif cycle_status == "INTERRUPTED":
+                phase = "INTERRUPTED"
+            elif cycle_status == "COMPLETED":
+                phase = "COMPLETED"
+            elif cycle_status == "AWAITING_PROVIDER":
+                phase = "AWAITING_PLAN"
             else:
-                raise CycleStateError('inconsistent checkpoint cannot be reconciled')
+                raise CycleStateError("inconsistent checkpoint cannot be reconciled")
 
             # The cycle DB may have committed its immutable generation before
             # the gateway process died. Persist/re-check S7 before granting
             # access to next model prompts: corrupted proof must block recovery.
-            generation = current['completed_generations']
+            generation = current["completed_generations"]
             if generation > 0:
-                self.evaluate_experiments({
-                    'session_id': sid, 'generation': generation,
-                })
+                self.evaluate_experiments(
+                    {
+                        "session_id": sid,
+                        "generation": generation,
+                    }
+                )
             new_token = uuid4().hex
             changed = db.execute(
-                'UPDATE stages SET phase=?,token=?,plan_json=NULL,'
-                'plan_digest=NULL,context_digest=NULL '
+                "UPDATE stages SET phase=?,token=?,plan_json=NULL,"
+                "plan_digest=NULL,context_digest=NULL "
                 "WHERE session_id=? AND phase='RUNNING' AND token=?",
-                (phase, new_token, sid, row['token']),
+                (phase, new_token, sid, row["token"]),
             )
             if changed.rowcount != 1:
-                raise CycleStateError('concurrent gateway checkpoint change')
+                raise CycleStateError("concurrent gateway checkpoint change")
             self._store_recovery_receipt(
-                db, sid, 'reconcile', phase, new_token, generation,
+                db,
+                sid,
+                "reconcile",
+                phase,
+                new_token,
+                generation,
             )
         return self._recovery_reply(sid, generation)
 
@@ -1615,30 +1691,34 @@ class AcademicMCPCheckpointService:
 
     def resume(self, args: dict[str, Any]) -> dict[str, Any]:
         """Explicitly resume interrupted research; duplicate resume is a read."""
-        self._one(args, {'session_id'}, {'session_id'})
-        sid = args['session_id']
+        self._one(args, {"session_id"}, {"session_id"})
+        sid = args["session_id"]
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
-            if row['phase'] != 'INTERRUPTED':
-                if self._is_recovery_replay(db, row, current, 'resume'):
-                    return self.get({'session_id': sid})
-                raise CycleStateError('only interrupted academic MCP sessions can resume')
-            self._is_recovery_replay(db, row, current, 'resume')
-            if current['status'] not in ('INTERRUPTED', 'AWAITING_PROVIDER'):
-                raise CycleStateError('only interrupted academic MCP sessions can resume')
-            if current['status'] == 'INTERRUPTED':
+            if row["phase"] != "INTERRUPTED":
+                if self._is_recovery_replay(db, row, current, "resume"):
+                    return self.get({"session_id": sid})
+                raise CycleStateError("only interrupted academic MCP sessions can resume")
+            self._is_recovery_replay(db, row, current, "resume")
+            if current["status"] not in ("INTERRUPTED", "AWAITING_PROVIDER"):
+                raise CycleStateError("only interrupted academic MCP sessions can resume")
+            if current["status"] == "INTERRUPTED":
                 self.cycle.resume(sid, catalog, data)
             new_token = uuid4().hex
             changed = db.execute(
                 "UPDATE stages SET phase='AWAITING_PLAN',token=?,plan_json=NULL,"
                 "plan_digest=NULL,context_digest=NULL "
                 "WHERE session_id=? AND phase='INTERRUPTED' AND token=?",
-                (new_token, sid, row['token']),
+                (new_token, sid, row["token"]),
             )
             if changed.rowcount != 1:
-                raise CycleStateError('concurrent resume checkpoint change')
+                raise CycleStateError("concurrent resume checkpoint change")
             self._store_recovery_receipt(
-                db, sid, 'resume', 'AWAITING_PLAN', new_token,
-                current['completed_generations'],
+                db,
+                sid,
+                "resume",
+                "AWAITING_PLAN",
+                new_token,
+                current["completed_generations"],
             )
-        return self.get({'session_id': sid})
+        return self.get({"session_id": sid})
