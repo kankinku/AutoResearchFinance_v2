@@ -1129,8 +1129,23 @@ class AcademicMCPCheckpointService:
             item["strategy_hash"] == digest for item in state["history"]
         ):
             raise ValueError("DUPLICATE_INHERITED_STRATEGY: change next mutation")
+        # Reject syntactically different IR with unchanged canonical fills.
+        # This is read-only and occurs before claiming the checkpoint token.
+        require_change = args.get("require_execution_change", False)
+        baseline = audit_inherited_decisions(parent, data) if require_change else None
         compiled = replace(parent, strategy=child, strategy_hash=digest)
         audit = audit_inherited_decisions(compiled, data)
+
+        def _fill_schedule(observed: Any) -> tuple[tuple[str, str], ...]:
+            return tuple((fill.execution_time.isoformat(), fill.side) for fill in observed.fills)
+
+        if args.get("require_execution_change", False) and _fill_schedule(
+            baseline
+        ) == _fill_schedule(audit):
+            raise ValueError(
+                "UNCHANGED_INHERITED_EXECUTIONS: different strategy hash "
+                "but identical canonical entry/exit fill schedule"
+            )
         context = build_diagnostic_context(audit, child)
         body = {
             "schema": "p0-3b-inherited-pending-v1",
@@ -1182,9 +1197,14 @@ class AcademicMCPCheckpointService:
     def submit_plan(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {"session_id", "checkpoint_token", "plan"},
+            {"session_id", "checkpoint_token", "plan", "require_execution_change"},
             {"session_id", "checkpoint_token", "plan"},
         )
+        if (
+            "require_execution_change" in args
+            and type(args["require_execution_change"]) is not bool
+        ):
+            raise ValueError("require_execution_change must be boolean")
         sid, token = args["session_id"], args["checkpoint_token"]
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
