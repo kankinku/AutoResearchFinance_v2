@@ -64,6 +64,10 @@ from research.llm.lineage_selection import (
     replay_lineage_candidate,
 )
 from research.llm.loss_attribution import build_loss_attribution
+from research.llm.trade_cohort_review import (
+    build_trade_cohort_review,
+    link_completed_s7_to_cohort,
+)
 from strategy_ir.schema import StrategyIR
 
 
@@ -873,6 +877,16 @@ class AcademicMCPCheckpointService:
                     for experiment in observed["report"].get("experiments", [])
                 ):
                     scored_reports[item["generation"]] = observed
+        if last is not None:
+            # P2-2: full closed-trade cohort and the already measured S7 trial
+            # are read-only advice for the NEXT GPT plan, not part of the
+            # immutable historical S2 diagnostic context.
+            context["trade_cohort_review"] = build_trade_cohort_review(previous_audit, data)
+            context["paired_s7_evidence_link"] = link_completed_s7_to_cohort(
+                previous_audit,
+                last,
+                scored_reports.get(last["generation"]),
+            )
         # Economic feedback is derived from already hash-verified immutable
         # paired comparisons. A trade-count direction match is NOT sufficient
         # evidence for EVOLVE if the same child lost development money.
