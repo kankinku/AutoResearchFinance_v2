@@ -10,8 +10,11 @@ import hashlib
 import json
 import sqlite3
 from collections import Counter
+from math import isfinite
 from pathlib import Path
 from typing import Any
+
+from core.integrity.hashes import content_hash
 
 
 def _sha256(path: Path) -> str:
@@ -221,6 +224,139 @@ def _candidate_risk_coverage(
     }
 
 
+def _merged_risk_sidecar(
+    snapshot: Path,
+    cycles: sqlite3.Connection,
+    gateway: sqlite3.Connection,
+    session: str,
+    evidences: dict[int, dict[str, Any]],
+    reports: dict[int, dict[str, Any]],
+) -> dict[str, object] | None:
+    """Require all sidecar entries to match the frozen S7 identity and the DB.
+
+    This validates referenced hashes, not a substitute for a full replay.
+    """
+    path = snapshot / "risk-replay-sidecar.json"
+    if not path.is_file():
+        return None
+    source = snapshot / "risk-replay-inputs.json"
+    if not source.is_file():
+        raise ValueError("S7 sidecar missing input manifest")
+    frozen_inputs = json.loads(source.read_text(encoding="utf-8"))
+    frozen_catalog = snapshot / "catalog-for-risk-replay.sqlite"
+    if _sha256(frozen_catalog) != frozen_inputs.get("catalog_copy_sha256"):
+        raise ValueError("S7 replay catalog checksum mismatch")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        payload.get("schema") != "academic-s7-full-period-risk-sidecar-v1"
+        or payload.get("session_id") != session
+        or payload.get("source_scope") != "REUSED_DEVELOPMENT_ONLY_NOT_OOS"
+        or payload.get("dataset_hash") != next(iter(evidences.values()))["dataset_hash"]
+        or payload.get("sealed_oos_approved") is not False
+        or payload.get("broker_executable") is not False
+    ):
+        raise ValueError("S7 sidecar scope or dataset mismatch")
+    listed = payload.get("preexisting_records", []) + payload.get("replay_records", [])
+    if (
+        len(listed) != payload.get("expected_generations")
+        or len(payload.get("preexisting_records", [])) != payload.get("preexisting_verified")
+        or len(payload.get("replay_records", [])) != payload.get("newly_replayed")
+        or len(listed) != payload.get("full_period_coverage")
+        or len(listed) != len(reports)
+    ):
+        raise ValueError("S7 sidecar incomplete coverage")
+    selections: dict[tuple[int, str], dict[str, Any]] = {}
+    for (raw,) in gateway.execute(
+        "SELECT selection_json FROM parent_selections WHERE session_id=?", (session,)
+    ):
+        parent = json.loads(raw)
+        if parent.get("selection_hash") != content_hash(
+            {k: v for k, v in parent.items() if k != "selection_hash"}
+        ):
+            raise ValueError("selected parent checksum mismatch")
+        for candidate in parent.get("candidate_review", {}).get("comparisons", []):
+            if candidate.get("replay_verified") is True:
+                selections[(candidate["source_generation"], candidate["child_strategy_hash"])] = (
+                    candidate
+                )
+    seen: set[int] = set()
+    mdd_better = mdd_worse = return_up_and_mdd_not_worse = return_up_and_mdd_worse = 0
+    for entry in listed:
+        generation = entry["generation"]
+        if generation in seen or generation not in reports:
+            raise ValueError("S7 sidecar duplicate or unknown generation")
+        seen.add(generation)
+        reported = reports[generation]["report"]["experiments"][0]
+        ehash = cycles.execute(
+            "SELECT evidence_hash FROM generations WHERE session_id=? AND generation=?",
+            (session, generation),
+        ).fetchone()[0]
+        rhash = gateway.execute(
+            "SELECT report_hash FROM experiment_reports WHERE session_id=? AND generation=?",
+            (session, generation),
+        ).fetchone()[0]
+        if (
+            entry.get("origin_evidence_hash") != ehash
+            or entry.get("s7_report_hash") != rhash
+            or entry.get("child_strategy_hash") != reported["child_strategy_hash"]
+            or abs(entry["total_return"] - (reported["child_final_equity"] / 10000 - 1)) > 1e-6
+        ):
+            raise ValueError("S7 sidecar source evidence mismatch")
+        if any(
+            type(entry.get(k)) not in (float, int) or not isfinite(entry[k])
+            for k in ("total_return", "max_drawdown", "market_exposure")
+        ) or not (0 <= entry["max_drawdown"] <= 1 and 0 <= entry["market_exposure"] <= 1):
+            raise ValueError("S7 sidecar invalid risk statistics")
+        if type(entry["closed_trades"]) is not int or entry["closed_trades"] < 0:
+            raise ValueError("S7 sidecar invalid trade count")
+        if entry.get("source") == "CANONICAL_S7_REPLAY_FROM_FROZEN_DEVELOPMENT":
+            if (
+                entry.get("replay_proof_hash")
+                != content_hash({k: v for k, v in entry.items() if k != "replay_proof_hash"})
+                or abs(
+                    entry.get("total_paid_costs", -1) - reported["execution_delta"]["child_costs"]
+                )
+                > 1e-6
+                or len(str(entry.get("equity_curve_hash", ""))) != 64
+            ):
+                raise ValueError("S7 replay record proof mismatch")
+        elif entry.get("source") == "EXISTING_VERIFIED_PARENT_SELECTION":
+            selection = selections.get((generation, entry["child_strategy_hash"]))
+            if selection is None or any(
+                abs(entry[a] - selection[b]) > 1e-9
+                for a, b in (
+                    ("total_return", "total_return"),
+                    ("max_drawdown", "max_drawdown"),
+                    ("market_exposure", "market_exposure"),
+                    ("closed_trades", "closed_trades"),
+                )
+            ):
+                raise ValueError("S7 sidecar claimed selection proof mismatch")
+        else:
+            raise ValueError("S7 sidecar source mode unsupported")
+        parent_metrics = evidences[generation]["metrics"]
+        dd_delta = entry["max_drawdown"] - parent_metrics["max_drawdown"]
+        return_delta = entry["total_return"] - parent_metrics["total_return"]
+        mdd_better += int(dd_delta < -1e-9)
+        mdd_worse += int(dd_delta > 1e-9)
+        return_up_and_mdd_not_worse += int(return_delta > 1e-9 and dd_delta <= 1e-9)
+        return_up_and_mdd_worse += int(return_delta > 1e-9 and dd_delta > 1e-9)
+    if seen != set(reports):
+        raise ValueError("S7 sidecar generation mismatch")
+    return {
+        "replayed_full_period_risk_coverage": len(listed),
+        "missing_full_period_risk_generations_local": [],
+        "original_selection_risk_count": payload["preexisting_verified"],
+        "newly_replayed_risk_count": payload["newly_replayed"],
+        "child_mdd_improved": mdd_better,
+        "child_mdd_worsened": mdd_worse,
+        "return_up_mdd_not_worse": return_up_and_mdd_not_worse,
+        "return_up_mdd_worse": return_up_and_mdd_worse,
+        "missing_risk_not_inferred_from_development_windows": True,
+        "replay_scope": "REUSED_DEVELOPMENT_ONLY",
+    }
+
+
 def audit_campaign(
     snapshot: Path, *, origin_session: str, active_session: str
 ) -> dict[str, object]:
@@ -253,6 +389,16 @@ def audit_campaign(
                 raise ValueError(f"missing gateway stage: {session}")
         champion = _read_champion(gateway, active_session)
         coverage = _candidate_risk_coverage(gateway, active_session, reports[active_session])
+        reconstructed = _merged_risk_sidecar(
+            snapshot,
+            cycles,
+            gateway,
+            active_session,
+            evidences[active_session],
+            reports[active_session],
+        )
+        if reconstructed is not None:
+            coverage = reconstructed
     if sessions[origin_session]["dataset_hash"] != sessions[active_session]["dataset_hash"]:
         raise ValueError("campaign dataset mismatch")
     quality = champion.get("parent_quality") if champion else None

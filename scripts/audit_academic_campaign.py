@@ -33,6 +33,16 @@ def _markdown(result: dict[str, object]) -> str:
     champion_exposure = float(champion.get("exposure") or 0)
     available_risk = coverage["replayed_full_period_risk_coverage"]
     total_experiments = active["experiments"]
+    detailed = []
+    if coverage.get("newly_replayed_risk_count") is not None:
+        detailed = [
+            f"- 신규 전체기간 위험 재생: **{coverage['newly_replayed_risk_count']}건** "
+            f"(기존 부모 선정 재생 근거: {coverage['original_selection_risk_count']}건)",
+            f"- MDD 개선·악화: **{coverage['child_mdd_improved']} / "
+            f"{coverage['child_mdd_worsened']}건**",
+            f"- 수익 개선+MDD 유지/개선: **{coverage['return_up_mdd_not_worse']}건**",
+            f"- 수익은 증가했지만 MDD 악화: **{coverage['return_up_mdd_worse']}건**",
+        ]
     return "\n".join(
         [
             "# Quant 학술 연구 원장 품질 감사 (1단계)",
@@ -51,14 +61,15 @@ def _markdown(result: dict[str, object]) -> str:
             f"MDD: **{champion_mdd:.2%}**, 노출률: **{champion_exposure:.2%}**",
             f"- S7 자식 전체기간 위험·노출 지표 재검증 가능: "
             f"**{available_risk}/{total_experiments}건**",
+            *detailed,
             "",
             "## 해석 경계",
             "",
             "- 비용 합계는 서로 다른 반복 백테스트의 합이며 포트폴리오 손익이 아님.",
             "- 원장 데이터는 개발 QQQ 기간을 반복 재사용하므로 과적합·다중검정 위험이 높음.",
             "- 부모 전략 단순 보유 QQQ 비교는 독립 OOS도 동일 위험의 전방검증 비교도 아님.",
-            "- 각 세대 S7 자식 전체기간 MDD·노출률 일부는 제공되지 않아 임의로 계산하지 않음.",
-            "- 파일 SHA256은 스냅샷 보존만 검증. 운영 증거 해시의 원본 재생검증은 별도 필요.",
+            "- 전체기간 MDD·노출률은 개발 데이터 재생 또는 기존 재현성 검증 근거이며 OOS가 아님.",
+            "- SQLite 스냅샷 해시만으로 원장 전체 증거의 독립적인 재생증명이 되지는 않음.",
             "- GPT/무작위 탐색의 예산 통제 비교는 아직 수행되지 않음.",
             "",
         ]
