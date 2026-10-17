@@ -138,10 +138,9 @@ def test_inherited_s7_rejects_tampered_diagnosis_without_counting():
 
 
 def test_cycle_counted_inherited_generation_preserves_hash_chain(tmp_path):
-    import sqlite3
 
     from research.llm.autonomous_cycle import AcademicCycleService
-    from tests.research.test_lineage_p0_3 import ROOT, SID, _actual_source
+    from tests.research.test_lineage_p0_3 import SID, _actual_source
 
     catalog, data, original, stored, proposal, continuation = _actual_source()
     _, base_compiled = _real()
@@ -162,11 +161,9 @@ def test_cycle_counted_inherited_generation_preserves_hash_chain(tmp_path):
     descendant = apply_intent(base_compiled.strategy, next_intent, research_feature_specs())
     digest = content_hash(descendant.model_dump(mode="json", by_alias=True))
     compiled = replace(base_compiled, strategy=descendant, strategy_hash=digest)
-    original_db = ROOT / "state/moon-http/research/academic-gpt-checkpoints/cycles.sqlite"
-    backup_db = tmp_path / "cycles.sqlite"
-    with sqlite3.connect(f"file:{original_db}?mode=ro", uri=True) as src:
-        with sqlite3.connect(backup_db) as dst:
-            src.backup(dst)
+    from tests.research.historical_g33_fixture import copy_historical_g33_checkpoint
+
+    backup_db = copy_historical_g33_checkpoint(tmp_path) / "cycles.sqlite"
     cycle = AcademicCycleService(backup_db)
     assert cycle.get(SID, catalog, data)["completed_generations"] == 33
     audit = audit_inherited_decisions(compiled, data)
@@ -243,25 +240,13 @@ def test_exact_selected_parent_compilation_matches_p0_3a_lineage():
 
 
 def test_gateway_binds_counted_parent_to_staged_diagnosis(tmp_path):
-    import sqlite3
 
     from application.academic_checkpoint_service import AcademicMCPCheckpointService
     from research.llm.autonomous_cycle import AcademicCycleService
+    from tests.research.historical_g33_fixture import copy_historical_g33_checkpoint
     from tests.research.test_lineage_p0_3 import ROOT, SID
 
-    src = ROOT / "state/moon-http/research/academic-gpt-checkpoints"
-    dst = tmp_path / "academic-gpt-checkpoints"
-    dst.mkdir()
-    for name in (
-        "gateway.sqlite",
-        "cycles.sqlite",
-        "catalog.sqlite",
-        "catalog-s6-v1.sqlite",
-        "catalog-s6-v2.sqlite",
-    ):
-        with sqlite3.connect(f"file:{src / name}?mode=ro", uri=True) as before:
-            with sqlite3.connect(dst / name) as after:
-                before.backup(after)
+    dst = copy_historical_g33_checkpoint(tmp_path)
     svc = AcademicMCPCheckpointService(project_root=ROOT, state_dir=tmp_path)
     svc.cycle = AcademicCycleService(dst / "cycles.sqlite")
     state = svc.get({"session_id": SID})

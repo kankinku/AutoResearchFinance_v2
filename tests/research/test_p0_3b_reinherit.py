@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from pathlib import Path
 
 import pytest
@@ -11,24 +10,15 @@ import pytest
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
 from research.llm.autonomous_cycle import AcademicCycleService
 from research.llm.lineage_selection import choose_development_parent
+from tests.research.historical_g33_fixture import copy_historical_g33_checkpoint
 from tests.research.test_lineage_p0_3 import ROOT, SID
 
 _SOURCE = ROOT / "state/moon-http/research/academic-gpt-checkpoints"
 
 
 def _isolated_service(path: Path) -> AcademicMCPCheckpointService:
-    dst = path / "academic-gpt-checkpoints"
-    dst.mkdir()
-    for name in (
-        "gateway.sqlite",
-        "cycles.sqlite",
-        "catalog.sqlite",
-        "catalog-s6-v1.sqlite",
-        "catalog-s6-v2.sqlite",
-    ):
-        with sqlite3.connect(f"file:{_SOURCE / name}?mode=ro", uri=True) as source:
-            with sqlite3.connect(dst / name) as target:
-                source.backup(target)
+    """Replay historical G34/G35 only from pinned, isolated G33 snapshot."""
+    dst = copy_historical_g33_checkpoint(path)
     service = AcademicMCPCheckpointService(project_root=ROOT, state_dir=path)
     service.cycle = AcademicCycleService(dst / "cycles.sqlite")
     return service

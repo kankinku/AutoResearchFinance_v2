@@ -67,8 +67,22 @@ def test_crossover_is_fallback_only_for_explicit_partner() -> None:
     assert candidate.strategy.exit == second.exit
 
 
-def test_only_registered_second_parent_is_accepted_in_mixed_mode() -> None:
-    root = ROOT
+def test_only_registered_second_parent_is_accepted_in_mixed_mode(tmp_path: Path) -> None:
+    from shutil import copy2
+
+    from core.data.parquet import ParquetDataProvider
+    from tests.research.test_academic_algorithm_plan import _market
+
+    # Registered parents stay the real versioned repository fixture; the input
+    # market is isolated, avoiding reliance on ignored live vendor data files.
+    root = tmp_path
+    normalized = root / "strategies/normalized"
+    normalized.mkdir(parents=True)
+    for source in (ROOT / "strategies/normalized").glob("*.json"):
+        copy2(source, normalized / source.name)
+    market_file = root / "data/market/tiingo/QQQ_2020-01-02_2025-12-31_raw.parquet"
+    market_file.parent.mkdir(parents=True)
+    ParquetDataProvider.write(market_file, _market())
     s = ResearchBatchService(project_root=root, state_dir=root / "state/moon-http/research")
     args = {
         "source_path": "strategies/normalized/e8dad9397b1d9611-5.json",
