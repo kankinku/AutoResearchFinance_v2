@@ -49,6 +49,7 @@ from research.indicator_engine.signals import verify_signal_on_synthetic_prices
 from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
 from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
+from research.llm.cross_generation_memory import build_cross_generation_memory
 from research.llm.diagnostic_research import DiagnosticResponse, build_diagnostic_context
 from research.llm.director import ResearchIntent
 from research.llm.economic_feedback import build_economic_feedback, gate_research_direction
@@ -973,6 +974,13 @@ class AcademicMCPCheckpointService:
         # Regenerate evidence-linked failure memory from immutable S7 results.
         # Never mutate any prior cycle evidence or permit automatic execution.
         context["experiment_learning"] = build_experiment_learning(
+            status["history"],
+            scored_reports,
+        )
+        # P2-3: compare already signed S7 economic outcomes by typed, stable
+        # intervention families across the entire session. Advisory only;
+        # never touch historical cycle evidence or automatically choose a child.
+        context["cross_generation_memory"] = build_cross_generation_memory(
             status["history"],
             scored_reports,
         )
