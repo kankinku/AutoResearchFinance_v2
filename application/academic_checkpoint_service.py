@@ -65,6 +65,7 @@ from research.llm.lineage_selection import (
     replay_lineage_candidate,
 )
 from research.llm.loss_attribution import build_loss_attribution
+from research.llm.s2_execution_preflight import compare_inherited_s2_execution
 from research.llm.trade_cohort_review import (
     build_trade_cohort_review,
     link_completed_s7_to_cohort,
@@ -1099,6 +1100,10 @@ class AcademicMCPCheckpointService:
                     **context,
                     "experiment_quality_guidance": academic_diagnostic_quality_hint(),
                 }
+                if pending.get("s2_execution_preflight") is not None:
+                    result["model_context"]["s2_execution_preflight"] = pending[
+                        "s2_execution_preflight"
+                    ]
                 result["status"] = "AWAITING_DIAGNOSIS"
             elif row["phase"] not in ("COMPLETED", "INTERRUPTED", "RUNNING", "CANCELLED"):
                 raise CycleStateError("invalid checkpoint state")
@@ -1112,6 +1117,9 @@ class AcademicMCPCheckpointService:
         data: MarketDataSet,
         state: dict[str, Any],
         args: dict[str, Any],
+        *,
+        require_execution_change: bool = False,
+        receipt_request: dict[str, Any] | None = None,
     ) -> None:
         parent, original, selected = self._selected_ir(catalog, data, state)
         intent = ResearchIntent.model_validate(args["plan"])
@@ -1131,6 +1139,11 @@ class AcademicMCPCheckpointService:
             raise ValueError("DUPLICATE_INHERITED_STRATEGY: change next mutation")
         compiled = replace(parent, strategy=child, strategy_hash=digest)
         audit = audit_inherited_decisions(compiled, data)
+        preflight = (
+            compare_inherited_s2_execution(parent, audit, data)
+            if require_execution_change
+            else None
+        )
         context = build_diagnostic_context(audit, child)
         body = {
             "schema": "p0-3b-inherited-pending-v1",
@@ -1143,6 +1156,8 @@ class AcademicMCPCheckpointService:
             "inherited_intent": intent.model_dump(mode="json"),
             "strategy_hash": digest,
         }
+        if preflight is not None:
+            body["s2_execution_preflight"] = preflight
         token = uuid4().hex
         updated = db.execute(
             "UPDATE stages SET phase='AWAITING_DIAGNOSIS',token=?,plan_json=?,"
@@ -1164,7 +1179,7 @@ class AcademicMCPCheckpointService:
             state["session_id"],
             "plan",
             row["token"],
-            args["plan"],
+            receipt_request if receipt_request is not None else args["plan"],
             token,
             "AWAITING_DIAGNOSIS",
             state["completed_generations"],
@@ -1182,10 +1197,20 @@ class AcademicMCPCheckpointService:
     def submit_plan(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {"session_id", "checkpoint_token", "plan"},
+            {"session_id", "checkpoint_token", "plan", "require_execution_change"},
             {"session_id", "checkpoint_token", "plan"},
         )
         sid, token = args["session_id"], args["checkpoint_token"]
+        strict_execution = args.get("require_execution_change", False)
+        if type(strict_execution) is not bool:
+            raise ValueError("require_execution_change must be a boolean")
+        # Bind the stricter preflight to the submission receipt. A later caller
+        # cannot replay an already-staged unguarded plan as a guarded one.
+        receipt_request = (
+            {"plan": args["plan"], "require_execution_change": True}
+            if strict_execution
+            else args["plan"]
+        )
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
             if self._is_recent_replay(
@@ -1194,7 +1219,7 @@ class AcademicMCPCheckpointService:
                 current,
                 "plan",
                 token,
-                args["plan"],
+                receipt_request,
             ):
                 return self.get({"session_id": sid})
             if row["phase"] != "AWAITING_PLAN" or current["status"] != "AWAITING_PROVIDER":
@@ -1202,9 +1227,20 @@ class AcademicMCPCheckpointService:
             if row["token"] != token:
                 raise CycleStateError("invalid checkpoint token")
             if self._selected_development_parent(catalog, data, current) is not None:
-                self._stage_inherited_plan(db, row, catalog, data, current, args)
+                self._stage_inherited_plan(
+                    db,
+                    row,
+                    catalog,
+                    data,
+                    current,
+                    args,
+                    require_execution_change=strict_execution,
+                    receipt_request=receipt_request,
+                )
                 db.commit()
                 return self.get({"session_id": sid})
+            if strict_execution:
+                raise ValueError("S2 execution-change gate requires an inherited selected parent")
             plan = AlgorithmPlan.model_validate(args["plan"])
             compiled = compile_algorithm_plan(catalog, plan, data)
             # The canonical cycle rejects duplicate semantics and duplicate

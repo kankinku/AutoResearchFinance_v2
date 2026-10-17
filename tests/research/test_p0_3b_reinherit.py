@@ -39,7 +39,13 @@ def _intent(parent_id: str, threshold: float) -> dict:
     }
 
 
-def _advance(service: AcademicMCPCheckpointService, threshold: float, hypothesis: float):
+def _advance(
+    service: AcademicMCPCheckpointService,
+    threshold: float,
+    hypothesis: float,
+    *,
+    strict_plan_execution: bool = False,
+):
     from dataclasses import replace
 
     from core.features.registry import research_feature_specs
@@ -59,8 +65,11 @@ def _advance(service: AcademicMCPCheckpointService, threshold: float, hypothesis
             "session_id": SID,
             "checkpoint_token": before["checkpoint_token"],
             "plan": plan,
+            "require_execution_change": strict_plan_execution,
         }
     )
+    if strict_plan_execution:
+        assert staged["model_context"]["s2_execution_preflight"]["same_fill_trace"] is False
     child = apply_intent(
         parent.strategy, ResearchIntent.model_validate(plan), research_feature_specs()
     )
@@ -246,3 +255,15 @@ def test_shadow_counted_s7_parent_materializes_and_counts_135(tmp_path, monkeypa
         == generation["evidence_hash"]
     )
     assert second["checkpoint_phase"] == "AWAITING_PLAN"
+
+
+def test_g34_strict_s2_plan_to_s7_keeps_evidence_and_restore(tmp_path):
+    service = _isolated_service(tmp_path)
+    completed = _advance(service, 0.28, 0.35, strict_plan_execution=True)
+    assert completed["completed_generations"] == 34
+    assert completed["history"][-1]["evidence_hash"]
+    assert completed["latest_controlled_experiments"]["report"]["experiments"]
+    restored = service.get({"session_id": SID})
+    assert restored["completed_generations"] == 34
+    assert restored["history"] == completed["history"]
+    assert not restored["orders_enabled"]
