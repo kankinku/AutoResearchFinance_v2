@@ -13,6 +13,7 @@ from core.features.calculators import FeatureCalculationError, calculate_feature
 from core.features.contracts import FeatureSpec
 from core.features.series import TimeFrame, resample_completed
 from core.integrity.hashes import content_hash
+from strategy_ir.policy_decision import PolicyDecision
 from strategy_ir.schema import Condition, IndicatorSpec, StrategyIR
 
 
@@ -32,6 +33,7 @@ class BacktestRequest:
     # Earliest completed bar allowed to generate new entry signals. Previous
     # bars can still warm up indicators, but cannot create any positions.
     signal_start_at: datetime | None = None
+    policy_decisions: tuple[PolicyDecision, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,8 @@ class BacktestEngine:
             request.signal_start_at.tzinfo is None or request.signal_start_at.utcoffset() is None
         ):
             raise ValueError("signal start timezone is required")
+        if request.policy_decisions is not None:
+            return self._run_policy_decisions(request)
         if request.strategy is not None:
             return self._run_strategy(request)
         symbols = tuple(sorted({bar.symbol for bar in request.dataset.bars}))
@@ -98,6 +102,81 @@ class BacktestEngine:
             curve,
             content_hash(curve),
             "SUCCEEDED",
+        )
+
+    def _run_policy_decisions(self, request: BacktestRequest) -> BacktestResult:
+        """Single-symbol, development-only target-weight execution using canonical costs.
+
+        A decision may be formed at bar close and only fill at the *next* bar open.
+        No trade or fill is synthesized for a missing scheduled bar.
+        """
+        if request.strategy is not None:
+            raise ValueError("policy decisions and legacy strategy are mutually exclusive")
+        if request.dataset.zone != "development":
+            raise ValueError("policy research requires development data")
+        bars = request.dataset.bars
+        if not bars or len({bar.symbol for bar in bars}) != 1:
+            raise ValueError("policy research currently requires exactly one symbol")
+        decisions = request.policy_decisions
+        assert decisions is not None
+        pending: dict[datetime, PolicyDecision] = {}
+        bar_positions = {bar.timestamp: i for i, bar in enumerate(bars)}
+        if len(bar_positions) != len(bars):
+            raise ValueError("duplicate bar timestamp")
+        for decision in decisions:
+            if decision.symbol != bars[0].symbol:
+                raise ValueError("policy symbol mismatch")
+            execution_index = bar_positions.get(decision.executable_at)
+            decision_index = bar_positions.get(decision.decided_at)
+            if (
+                execution_index is None
+                or decision_index is None
+                or execution_index != decision_index + 1
+            ):
+                raise ValueError("decision must use an observed close and exact next bar open")
+            if decision.executable_at in pending:
+                raise ValueError("multiple policy targets at one execution time")
+            pending[decision.executable_at] = decision
+        cash = request.initial_cash
+        units = 0.0
+        trades: list[Trade] = []
+        curve: list[float] = []
+        for bar in bars:
+            active_decision = pending.get(bar.timestamp)
+            if active_decision is not None:
+                equity_at_open = cash + units * bar.open
+                target_notional = equity_at_open * active_decision.target_weight
+                delta_notional = target_notional - units * bar.open
+                if abs(delta_notional) > 1e-9:
+                    side = "buy" if delta_notional > 0 else "sell"
+                    planned = abs(delta_notional)
+                    # Fees are funded from purchased notional, as in canonical v1.
+                    # Sell fees reduce the received cash; both preserve cash accounting.
+                    cost = _cost(request.cost_model, planned, side, request.cost_stress_multiplier)
+                    if cost >= planned:
+                        raise ValueError("execution costs exceed notional")
+                    quantity = (planned - cost) / bar.open if side == "buy" else planned / bar.open
+                    if side == "buy":
+                        if planned > cash + 1e-8:
+                            raise ValueError("target purchase exceeds available cash")
+                        cash -= planned
+                        units += quantity
+                    else:
+                        if quantity > units + 1e-8:
+                            raise ValueError("target sale exceeds holdings")
+                        units -= quantity
+                        cash += planned - cost
+                    trades.append(_trade(bar, side, quantity, cost, price=bar.open))
+            curve.append(cash + units * bar.close)
+        evidence = tuple(curve)
+        return BacktestResult(
+            request.run_id,
+            request.strategy_hash,
+            request.dataset.dataset_hash,
+            evidence,
+            content_hash(evidence),
+            "SUCCEEDED",
+            tuple(trades),
         )
 
     def _run_multi_symbol_passthrough(
