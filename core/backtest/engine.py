@@ -45,6 +45,9 @@ class Trade:
     notional: float
     cost: float
     symbol: str = ""
+    policy_id: str = ""
+    reason_hash: str = ""
+    fill_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -145,28 +148,59 @@ class BacktestEngine:
             active_decision = pending.get(bar.timestamp)
             if active_decision is not None:
                 equity_at_open = cash + units * bar.open
-                target_notional = equity_at_open * active_decision.target_weight
-                delta_notional = target_notional - units * bar.open
-                if abs(delta_notional) > 1e-9:
-                    side = "buy" if delta_notional > 0 else "sell"
-                    planned = abs(delta_notional)
-                    # Fees are funded from purchased notional, as in canonical v1.
-                    # Sell fees reduce the received cash; both preserve cash accounting.
-                    cost = _cost(request.cost_model, planned, side, request.cost_stress_multiplier)
-                    if cost >= planned:
+                holdings = units * bar.open
+                target = active_decision.target_weight
+                delta = target * equity_at_open - holdings
+                if abs(delta) > 1e-9:
+                    side = "buy" if delta > 0 else "sell"
+                    rate = _cost(request.cost_model, 1.0, side, request.cost_stress_multiplier)
+                    if rate >= 1:
                         raise ValueError("execution costs exceed notional")
+                    # Solve target weight *after* trade fees, rather than targeting
+                    # pre-fee equity (which leaves a systematic sizing deviation).
+                    denominator = (
+                        (1 - rate + target * rate) if side == "buy" else (1 - target * rate)
+                    )
+                    planned = abs(delta) / denominator
+                    cost = _cost(request.cost_model, planned, side, request.cost_stress_multiplier)
                     quantity = (planned - cost) / bar.open if side == "buy" else planned / bar.open
                     if side == "buy":
-                        if planned > cash + 1e-8:
+                        if planned > cash + 1e-7:
                             raise ValueError("target purchase exceeds available cash")
                         cash -= planned
                         units += quantity
                     else:
-                        if quantity > units + 1e-8:
+                        if quantity > units + 1e-7:
                             raise ValueError("target sale exceeds holdings")
                         units -= quantity
                         cash += planned - cost
-                    trades.append(_trade(bar, side, quantity, cost, price=bar.open))
+                    base_trade = _trade(bar, side, quantity, cost, price=bar.open)
+                    trades.append(
+                        Trade(
+                            base_trade.timestamp,
+                            base_trade.side,
+                            base_trade.price,
+                            base_trade.quantity,
+                            base_trade.notional,
+                            base_trade.cost,
+                            base_trade.symbol,
+                            active_decision.policy_id,
+                            active_decision.reason_hash,
+                            content_hash(
+                                {
+                                    "version": 1,
+                                    "run_id": request.run_id,
+                                    "data_hash": request.dataset.dataset_hash,
+                                    "strategy_hash": request.strategy_hash,
+                                    "timestamp": base_trade.timestamp,
+                                    "symbol": base_trade.symbol,
+                                    "policy_id": active_decision.policy_id,
+                                    "reason_hash": active_decision.reason_hash,
+                                    "side": side,
+                                }
+                            ),
+                        )
+                    )
             curve.append(cash + units * bar.close)
         evidence = tuple(curve)
         return BacktestResult(
