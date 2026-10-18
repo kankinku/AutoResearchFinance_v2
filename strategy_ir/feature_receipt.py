@@ -5,7 +5,7 @@ A receipt proves consistency with a trusted verifier's prior review, not PIT app
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from core.data.contracts import MarketDataSet
@@ -48,3 +48,25 @@ def compile_reviewed_policy_switch(
     return compile_policy_switch(
         dataset, program, features, audited_features=frozenset(identifiers)
     )
+
+
+def compile_with_trusted_receipt_lookup(
+    dataset: MarketDataSet,
+    program: PolicySwitch,
+    features: Mapping[str, Sequence[float | None]],
+    *,
+    lookup: Callable[[str], FeatureAuditReceipt | None],
+) -> tuple[PolicyDecision, ...]:
+    """Resolve receipts through an injected trusted server-side reader.
+
+    Caller must supply a read-only approved evidence-store lookup, never a
+    lookup derived from LLM payload or self-attested registration metadata.
+    """
+    identifiers = {predicate.feature for predicate in program.predicates}
+    receipts: dict[str, FeatureAuditReceipt] = {}
+    for feature_id in sorted(identifiers):
+        receipt = lookup(feature_id)
+        if receipt is None:
+            raise ValueError("trusted evidence store has no reviewed feature")
+        receipts[feature_id] = receipt
+    return compile_reviewed_policy_switch(dataset, program, features, trusted_receipts=receipts)
