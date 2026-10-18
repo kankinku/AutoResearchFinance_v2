@@ -30,10 +30,10 @@ if [[ -n "${QUANT_MCP_PUBLIC_BASE:-}" && "$QUANT_MCP_PUBLIC_BASE" != "$PINNED_BA
 fi
 export QUANT_MCP_PUBLIC_BASE="$PINNED_BASE"
 # Upgrade imported application code only; keep ROOT / pinned URL / OAuth state untouched.
-SOURCE_ROOT="/shared/moon-workspace/AutoResearchFinance_v2-quant-mcp-runtime-p0-3b-20261017"
+SOURCE_ROOT="/shared/moon-workspace/AutoResearchFinance_v2-context-budget-20261018"
 [[ -d "$SOURCE_ROOT/integrations" && -f "$SOURCE_ROOT/application/academic_checkpoint_service.py" ]] || exit 1
 # Refuse a moved or edited code worktree: production is commit-pinned.
-EXPECTED_SOURCE_SHA="7153a94a09443d150840bd5637da7aaa27d533e6"
+EXPECTED_SOURCE_SHA="54a515fcb8bdc59079cb60089c91d2ae46cca86a"
 [[ "$(git -C "$SOURCE_ROOT" rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA" ]] || exit 1
 [[ -z "$(git -C "$SOURCE_ROOT" status --porcelain)" ]] || exit 1
 export PYTHONPATH="$SOURCE_ROOT${PYTHONPATH:+:$PYTHONPATH}"
