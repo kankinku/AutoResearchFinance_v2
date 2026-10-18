@@ -32,3 +32,19 @@
 3. Preserve original work order T4→external V01–V04 PIT/OOS as available→V06 paper-only→V07 independent GO/NO-GO. No third-party paid model API or trading/secret changes.
 
 Note: Status ledger + this report live on the separate docs branch, intentionally not on the production-pinned service checkout. The file documents a completed current-turn intervention, not unattended scheduled follow-up.
+
+## Addendum — genuine G193–G194 and uncounted G195 checkpoint interruption
+
+This report's **latest** counted state supersedes the preceding G192 interim count: authenticated GPT MCP completed G193 and G194 through valid Plan→real S2 audit→LLM diagnostic with trade IDs→measured S7. **Current global 194/300, requested add-100 progress 13/100, remaining 87**. The original active session is local 94/100 (6 slots left), `AWAITING_PLAN`; all 94 immutable counted generations still present.
+
+| Global generation | Real QQQ development total return | Full-period MDD | Closed trades | Exposure | Matched S7 comparison |
+|---|---:|---:|---:|---:|---|
+| G193 | +63.4794% | 7.6761% | 34 | 31.366% | Replace the SMA-confirmation gate with 252-day momentum under removed outer Parkinson filter: **RETURN_WORSE**, -1.8948 pp net return, 34→33 closed trades |
+| G194 | +61.5846% | 6.6608% | 33 | 30.172% | Ablate the added 252-day momentum confirmation: **RETURN_BETTER**, +1.8948 pp net return, 33→34 trades, revealing a return-vs-MDD risk tradeoff |
+
+- G193 original generation evidence SHA `871138cac034bc666895f0a7cf039010ace50ea6853702be1e649db860d34c91`.
+- G194 original generation evidence SHA `c5750d8a73ff0129abc6504e10ae0c422d0f8644655714fd25ab330be2956618`, G194 S7 controlled-record SHA `b93ffbd79c4951cbcab8f64b81e5142e5662fcdb2a3e5e5597396f4fcbcb056c`.
+- An attempted **G195 stage** adjusting vote-score exit to 0.70 obtained a measured S2 (+53.9520%, MDD 7.7818%, 33 trades), but its S7 proposal at a narrow 0.715 threshold failed with `TOOL_EXECUTION_FAILED`, flipping the checkpoint to `INTERRUPTED` before the generation could be committed. The explicit authenticated `resume_algorithm_research` call restored the checkpoint to `AWAITING_PLAN` at exactly **94/100** and retained prior hashes. G195 is **not counted**. The service currently treats certain failed S7 paths as interrupted rather than returning a clean structured no-op rejection; review needed before expecting unattended operation. The cause is not definitively diagnosed; further silent retries of the same failed proposal are not warranted.
+- The dashboard remains Supervisor-managed and readable with `orders_enabled=false`. Cross-session lineage of the actual selected champion + verified negative learning is still unproven. Completing all remaining 87 via model-free synthetic loops would violate the requested GPT-driven research definition.
+
+**Updated next work:** fix/readably classify S7 interruption without losing counted evidence, finish 6 GPT-validated generations to global 200, then establish authenticated carryover G201–G281. The auto-start monitor is complete, but automatic GPT research generation is NOT implemented or verified. No new orders or paid model API calls.
