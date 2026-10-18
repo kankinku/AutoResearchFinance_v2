@@ -22,6 +22,12 @@ from integrations.codex_mcp_sdk_server import (
     _sdk_tool,
     _sdk_tool_result,
 )
+from integrations.mcp_context_budget import (
+    COMPACTABLE_TOOLS,
+    append_context_metrics,
+    compact_mcp_context,
+    encoded_size,
+)
 from integrations.quant_mcp_diagnostics import MCPAuditLog
 
 _CHATGPT_CANONICAL = frozenset(
@@ -66,12 +72,37 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
 
 def chatgpt_tools() -> list[dict[str, object]]:
     """Advertise no autonomous Codex start/stop and no broker/order operations."""
-    canonical = [item for item in _tools() if item["name"] in _CHATGPT_CANONICAL]
+    canonical = [dict(item) for item in _tools() if item["name"] in _CHATGPT_CANONICAL]
+    # Only GPT-facing read-only status tools advertise an optional full response.
+    for item in canonical:
+        if item["name"] == "get_dashboard_status":
+            item["inputSchema"] = {
+                "type": "object",
+                "properties": {
+                    "response_mode": {
+                        "type": "string",
+                        "enum": ["summary", "full"],
+                        "default": "summary",
+                        "description": "Full can be very large; summary is context-budgeted.",
+                    },
+                },
+                "additionalProperties": False,
+            }
     custom: list[dict[str, object]] = [
         {
             "name": "get_research_brief",
             "description": "Read sanitized research context, Frontier and prior failure evidence.",
-            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "response_mode": {
+                        "type": "string",
+                        "enum": ["summary", "full"],
+                        "default": "summary",
+                    },
+                },
+                "additionalProperties": False,
+            },
         },
         {
             "name": "run_research_step",
@@ -194,7 +225,7 @@ def chatgpt_tools() -> list[dict[str, object]]:
         },
         "required": ["source_path", "data_path", "intent", "generations"],
     }
-    status_schema = {
+    status_schema: dict[str, Any] = {
         "type": "object",
         "properties": {"job_id": {"type": "string", "description": "Omit for most recent batch"}},
         "additionalProperties": False,
@@ -224,7 +255,17 @@ def chatgpt_tools() -> list[dict[str, object]]:
                 "name": "get_research_batch_report",
                 "description": "Report generation times, verified successor IDs and funnel counts. "
                 "Final report only after completion; no OOS approval implied.",
-                "inputSchema": status_schema,
+                "inputSchema": {
+                    **status_schema,
+                    "properties": {
+                        **status_schema["properties"],
+                        "response_mode": {
+                            "type": "string",
+                            "enum": ["summary", "full"],
+                            "default": "summary",
+                        },
+                    },
+                },
             },
             {
                 "name": "resume_research_batch",
@@ -518,7 +559,16 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
                 },
                 is_error=True,
             )
-        result = await super().call_tool(_context, params)
+        response_mode = str(arguments.get("response_mode", "summary"))
+        dispatch_arguments = (
+            {key: value for key, value in arguments.items() if key != "response_mode"}
+            if params.name in COMPACTABLE_TOOLS
+            else arguments
+        )
+        result = await super().call_tool(
+            _context,
+            types.CallToolRequestParams(name=params.name, arguments=dispatch_arguments),
+        )
         if self.audit is not None:
             error_code = None
             if (
@@ -536,7 +586,9 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
                 result="ERROR" if result.is_error else "OK",
                 error_code=error_code or ("TOOL_EXECUTION_FAILED" if result.is_error else None),
             )
-        if result.is_error or params.name not in _CHATGPT_CUSTOM:
+        if result.is_error or (
+            params.name not in _CHATGPT_CUSTOM and params.name not in COMPACTABLE_TOOLS
+        ):
             return result
         content = result.content[0]
         if not isinstance(content, types.TextContent):
@@ -548,9 +600,20 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
             return _sdk_tool_result(
                 {"status": "ERROR", "message": "tool request failed"}, is_error=True
             )
-        payload["_contract"] = PublicToolContractMetadata(
-            tool=params.name, plane=_CHATGPT_CUSTOM[params.name], orders_enabled=False
-        ).model_dump(mode="json")
+        if params.name in _CHATGPT_CUSTOM:
+            payload["_contract"] = PublicToolContractMetadata(
+                tool=params.name, plane=_CHATGPT_CUSTOM[params.name], orders_enabled=False
+            ).model_dump(mode="json")
+        if params.name in COMPACTABLE_TOOLS:
+            original_bytes = encoded_size(payload)
+            payload = compact_mcp_context(params.name, payload, response_mode=response_mode)
+            append_context_metrics(
+                self.state_dir,
+                tool=params.name,
+                original_bytes=original_bytes,
+                returned_bytes=encoded_size(payload),
+                mode=response_mode,
+            )
         return _sdk_tool_result(payload, is_error=False)
 
 
