@@ -11,7 +11,9 @@ import json
 import sqlite3
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
+from core.data.contracts import MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.integrity.hashes import content_hash
 from research.indicator_engine.algorithm_plan import (
@@ -20,6 +22,7 @@ from research.indicator_engine.algorithm_plan import (
     compile_algorithm_plan,
 )
 from research.indicator_engine.catalog import ResearchCatalog
+from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
 from research.llm.director import ResearchIntent
 from research.llm.fixed_budget_arms import (
     FixedBudgetError,
@@ -92,7 +95,7 @@ FROZEN_PROBES = (
 )
 
 
-def _source():
+def _source() -> tuple[dict[str, Any], dict[str, Any]]:
     with sqlite3.connect(f"file:{DB / 'cycles.sqlite'}?mode=ro", uri=True) as db:
         db.row_factory = sqlite3.Row
         row = db.execute(
@@ -125,7 +128,9 @@ def _source():
     return source, s7
 
 
-def _parent_and_market(source, scratch):
+def _parent_and_market(
+    source: dict[str, Any], scratch: Path
+) -> tuple[CompiledAcademicStrategy, MarketDataSet]:
     if not MARKET.is_file():
         raise FixedBudgetError("original QQQ market parquet missing")
     market = ParquetDataProvider.read(MARKET)
@@ -154,7 +159,7 @@ def _parent_and_market(source, scratch):
     return compiled.compiled, market
 
 
-def _proposals(parent):
+def _proposals(parent: CompiledAcademicStrategy) -> list[ResearchIntent]:
     proposals = []
     for i, (path, op, value, reason) in enumerate(FROZEN_PROBES, 1):
         proposals.append(
@@ -176,7 +181,7 @@ def _proposals(parent):
     return proposals
 
 
-def run():
+def run() -> None:
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument("mode", choices=["freeze", "score"])
     cli.add_argument("--output", required=True, type=Path)

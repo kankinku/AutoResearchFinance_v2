@@ -57,14 +57,24 @@ def _validate_parent(parent: CompiledAcademicStrategy, market: MarketDataSet) ->
         raise FixedBudgetError("parent strategy or dataset hash mismatch")
 
 
-def _eligible_thresholds(parent: CompiledAcademicStrategy) -> list[tuple[str, Any, float, float]]:
+def _eligible_thresholds(
+    parent: CompiledAcademicStrategy,
+    *,
+    archived_pre_p05: bool = False,
+) -> list[tuple[str, Any, float, float]]:
     """Predefined reviewed, scalar, existing rule family; never new code or indicator."""
     checks = (
         [(f"entry.conditions.{i}", rule) for i, rule in enumerate(parent.strategy.entry.conditions)]
         + [(f"exit.conditions.{i}", rule) for i, rule in enumerate(parent.strategy.exit.conditions)]
-        # Regime filter replacements require their own typed mutation contract.
-        # The current control mutation uses REPLACE_RULE, which ONLY targets
-        # entry/exit conditions. Never preregister an invalid regime mutation.
+        # P3-1 previously admitted regime scalar coordinates, although the
+        # REPLACE_RULE mutation sometimes cannot target them. Preserve this
+        # historical selector ONLY for frozen pre-P0-5 archive replay. New
+        # manifests exclude invalid regime mutation coordinates.
+        + (
+            [(f"regime_filters.{i}", rule) for i, rule in enumerate(parent.strategy.regime_filters)]
+            if archived_pre_p05
+            else []
+        )
     )
     eligible = []
     for path, rule in checks:
@@ -124,10 +134,12 @@ def _generate_controls(
     budget: int,
     seed: int,
     policy_version: str = _LEGACY_POLICY,
+    *,
+    archived_pre_p05: bool = False,
 ) -> dict[str, list[ResearchIntent]]:
     if policy_version not in _POLICIES:
         raise FixedBudgetError("unknown preregistered control mutation policy")
-    coords = _eligible_thresholds(parent)
+    coords = _eligible_thresholds(parent, archived_pre_p05=archived_pre_p05)
     rnd = Random(seed)
     result: dict[str, list[ResearchIntent]] = {"RANDOM": [], "LOCAL_EVOLUTION": []}
     if policy_version == _CONTINUOUS_POLICY:
@@ -188,6 +200,7 @@ def build_fixed_budget_manifest(
     source_evidence_hash: str,
     research_origin: str = "HISTORICAL_UNVERIFIED",
     control_policy: str = _LEGACY_POLICY,
+    legacy_archive_mode: bool = False,
 ) -> dict[str, Any]:
     """Freeze EVERY candidate identity before any outcome is measured."""
     _validate_parent(parent, market)
@@ -199,7 +212,17 @@ def build_fixed_budget_manifest(
         raise FixedBudgetError("candidate budget must be between 1 and 5 per arm")
     if research_origin not in _ORIGINS:
         raise FixedBudgetError("unsupported or certified model origin")
-    controls = _generate_controls(parent, len(gpt_intents), seed, control_policy)
+    if legacy_archive_mode and (
+        research_origin != "HISTORICAL_UNVERIFIED" or control_policy != _LEGACY_POLICY
+    ):
+        raise FixedBudgetError("archived replay can only use historic legacy policy")
+    controls = _generate_controls(
+        parent,
+        len(gpt_intents),
+        seed,
+        control_policy,
+        archived_pre_p05=legacy_archive_mode,
+    )
     all_intents = {
         "GPT_HISTORICAL": gpt_intents,
         "RANDOM": controls["RANDOM"],
@@ -254,6 +277,16 @@ def build_fixed_budget_manifest(
         "broker_executable": False,
         "independent_oos_approved": False,
     }
+    if legacy_archive_mode:
+        # Before P0-5 the frozen manifest schema had no model-origin metadata.
+        # Never rewrite a pinned 2026-10-17 audit hash to "modernize" it.
+        for key in (
+            "research_origin",
+            "model_identity_verified",
+            "adaptive_reasoning_verified",
+            "gpt_arm_label_is_claim_not_authentication",
+        ):
+            body.pop(key)
     return {**body, "freeze_hash": content_hash(body)}
 
 
@@ -261,16 +294,32 @@ def _validate_manifest(manifest: dict[str, Any]) -> None:
     if not isinstance(manifest, dict):
         raise FixedBudgetError("missing manifest")
     body = {k: v for k, v in manifest.items() if k != "freeze_hash"}
+    old_archive = "research_origin" not in manifest
+    claim_keys = {
+        "research_origin",
+        "model_identity_verified",
+        "adaptive_reasoning_verified",
+        "gpt_arm_label_is_claim_not_authentication",
+    }
+    if old_archive and (
+        manifest.get("policy_version") != _LEGACY_POLICY or claim_keys.intersection(manifest)
+    ):
+        raise FixedBudgetError("partial or invalid archived model provenance")
     if (
         content_hash(body) != manifest.get("freeze_hash")
         or manifest.get("schema") != _SCHEMA
         or manifest.get("arm_names") != list(_ARMS)
         or manifest.get("policy_version") not in _POLICIES
         or manifest.get("source_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
-        or manifest.get("research_origin") not in _ORIGINS
-        or manifest.get("model_identity_verified") is not False
-        or manifest.get("adaptive_reasoning_verified") is not False
-        or manifest.get("gpt_arm_label_is_claim_not_authentication") is not True
+        or (
+            not old_archive
+            and (
+                manifest.get("research_origin") not in _ORIGINS
+                or manifest.get("model_identity_verified") is not False
+                or manifest.get("adaptive_reasoning_verified") is not False
+                or manifest.get("gpt_arm_label_is_claim_not_authentication") is not True
+            )
+        )
         or manifest.get("broker_executable") is not False
         or manifest.get("independent_oos_approved") is not False
         or manifest.get("generation_count_increment") != 0
@@ -339,8 +388,9 @@ def score_frozen_budget(
             gpt,
             seed=manifest["random_seed"],
             source_evidence_hash=manifest["source_gpt_evidence_hash"],
-            research_origin=manifest["research_origin"],
+            research_origin=manifest.get("research_origin", "HISTORICAL_UNVERIFIED"),
             control_policy=manifest["policy_version"],
+            legacy_archive_mode="research_origin" not in manifest,
         )
     except (ValueError, TypeError) as exc:
         raise FixedBudgetError("frozen candidate regeneration failed") from exc
@@ -408,9 +458,15 @@ def score_frozen_budget(
         "schema": "three-arm-canonical-research-measurements-p3-1-v1",
         "frozen_study_hash": manifest["freeze_hash"],
         "source_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF",
-        "research_origin": manifest["research_origin"],
-        "model_identity_verified": False,
-        "adaptive_reasoning_verified": False,
+        **(
+            {
+                "research_origin": manifest["research_origin"],
+                "model_identity_verified": False,
+                "adaptive_reasoning_verified": False,
+            }
+            if "research_origin" in manifest
+            else {}
+        ),
         "parent": parent_measure,
         "benchmark": {
             "costed_qqq_buy_and_hold_return": benchmark["total_return"],
