@@ -56,6 +56,7 @@ from research.llm.economic_feedback import build_economic_feedback, gate_researc
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
 from research.llm.intent_bridge import apply_intent
+from research.llm.lineage_bootstrap_guidance import build_lineage_bootstrap_guidance
 from research.llm.lineage_replay import verified_child_successor
 from research.llm.lineage_selection import (
     IneligibleCountedChild,
@@ -945,6 +946,19 @@ class AcademicMCPCheckpointService:
             status,
         )
         selected = context["selected_development_parent"]
+        # P0-2A: legacy AlgorithmPlan sessions have no selected parent until a
+        # real S7 child->successor lineage is proven. Surface bounded,
+        # evidence-linked *hints*, not fabricated or auto-promoted parents.
+        context["verified_lineage_bootstrap"] = (
+            build_lineage_bootstrap_guidance(status["history"], scored_reports)
+            if selected is None
+            else {
+                "schema": "research-lineage-bootstrap-guidance-v1",
+                "status": "VERIFIED_PARENT_ALREADY_SELECTED",
+                "selection_hash": selected["selection_hash"],
+                "automatic_parent_promotion": False,
+            }
+        )
         context["inheritance_decision"] = (
             selected.get("candidate_review", {})
             if selected is not None
