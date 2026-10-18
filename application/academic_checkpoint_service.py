@@ -1026,9 +1026,11 @@ class AcademicMCPCheckpointService:
         # paired comparisons. A trade-count direction match is NOT sufficient
         # evidence for EVOLVE if the same child lost development money.
         # These are advisory review candidates, never auto-executed strategies.
+        qqq_costed = context["benchmark_comparison"].get("qqq_costed_buy_and_hold")
         context["economic_feedback"] = build_economic_feedback(
             status["history"],
             scored_reports,
+            qqq_total_return=(qqq_costed["total_return"] if isinstance(qqq_costed, dict) else None),
         )
         # Only lineage reports with intact hashes and immutable source ancestry
         # may influence the next GPT request. No automatic generation promotion.
