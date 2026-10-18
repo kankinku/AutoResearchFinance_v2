@@ -36,6 +36,9 @@ class FixedBudgetError(ValueError):
 
 _ARMS = ("GPT_HISTORICAL", "RANDOM", "LOCAL_EVOLUTION")
 _SCHEMA = "preregistered-three-arm-development-budget-p3-1-v1"
+_LEGACY_POLICY = "RANDOM_UNIFORM_LOCAL_5PCT_RANGE_V1"
+_CONTINUOUS_POLICY = "PLAN_VOTE_SCORE_MATCHED_COORDINATES_V2"
+_POLICIES = frozenset({_LEGACY_POLICY, _CONTINUOUS_POLICY})
 _ORIGINS = frozenset(
     {"HISTORICAL_UNVERIFIED", "DECLARED_CHATGPT_CLIENT_UNVERIFIED", "SCRIPTED_TEMPLATE"}
 )
@@ -97,10 +100,15 @@ def _candidate_intent(
     value: float,
     arm: str,
     number: int,
+    *,
+    use_continuous_vote: bool = False,
 ) -> ResearchIntent:
     path, condition, _lo, _hi = item
     replacement = condition.model_dump(mode="json")
     replacement["value"] = value
+    if use_continuous_vote:
+        replacement["left"] = "plan_vote_score"
+        replacement["right"] = None
     return ResearchIntent.model_validate(
         {
             "mode": "structure",
@@ -112,26 +120,62 @@ def _candidate_intent(
 
 
 def _generate_controls(
-    parent: CompiledAcademicStrategy, budget: int, seed: int
+    parent: CompiledAcademicStrategy,
+    budget: int,
+    seed: int,
+    policy_version: str = _LEGACY_POLICY,
 ) -> dict[str, list[ResearchIntent]]:
+    if policy_version not in _POLICIES:
+        raise FixedBudgetError("unknown preregistered control mutation policy")
     coords = _eligible_thresholds(parent)
     rnd = Random(seed)
     result: dict[str, list[ResearchIntent]] = {"RANDOM": [], "LOCAL_EVOLUTION": []}
+    if policy_version == _CONTINUOUS_POLICY:
+        # The original G25 parent evaluates binary plan_entry=0/1. Randomly
+        # changing a threshold inside (0,1) cannot change its fills. A
+        # model-authored change to continuous plan_vote_score then gets a
+        # fundamentally larger search space. Compare the SAME continuous
+        # score and the SAME one-rule decision-coordinate scope across arms.
+        coords = [
+            item
+            for item in coords
+            if item[0].startswith(("entry.conditions.", "exit.conditions."))
+            and item[1].left in {"plan_entry", "plan_vote_score"}
+            and item[1].op in {"greater_than", "less_equal"}
+        ]
+        if not any(c[0].startswith("entry.") for c in coords) or not any(
+            c[0].startswith("exit.") for c in coords
+        ):
+            raise FixedBudgetError("continuous-score controls require entry and exit gates")
     for i in range(budget):
-        # FIXED number of proposals; no rejection-resampling or best-of-K
-        # hidden search. Each generated candidate uses one evaluation slot.
+        # Exactly one candidate per slot, even when the result is inactive or
+        # unchanged. No hidden repeated draws or outcome-driven replacement.
         selected = coords[rnd.randrange(len(coords))]
-        lo, hi = selected[2], selected[3]
-        value = lo + (hi - lo) * rnd.random()
-        result["RANDOM"].append(_candidate_intent(parent, selected, value, "RANDOM", i))
-        local = coords[i % len(coords)]
-        llo, lhi = local[2], local[3]
-        original = float(local[1].value)
-        sign = 1 if i % 2 == 0 else -1
-        closer = max(llo, min(lhi, original + sign * (lhi - llo) * 0.05))
-        result["LOCAL_EVOLUTION"].append(
-            _candidate_intent(parent, local, closer, "LOCAL_EVOLUTION", i)
-        )
+        if policy_version == _CONTINUOUS_POLICY:
+            value = 0.35 + 0.55 * rnd.random()
+            result["RANDOM"].append(
+                _candidate_intent(parent, selected, value, "RANDOM", i, use_continuous_vote=True)
+            )
+            local = coords[i % len(coords)]
+            offset = 0.06 * (i // len(coords) + 1) * (1 if i % 2 == 0 else -1)
+            local_value = max(0.35, min(0.90, 0.50 + offset))
+            result["LOCAL_EVOLUTION"].append(
+                _candidate_intent(
+                    parent, local, local_value, "LOCAL_EVOLUTION", i, use_continuous_vote=True
+                )
+            )
+        else:
+            lo, hi = selected[2], selected[3]
+            value = lo + (hi - lo) * rnd.random()
+            result["RANDOM"].append(_candidate_intent(parent, selected, value, "RANDOM", i))
+            local = coords[i % len(coords)]
+            llo, lhi = local[2], local[3]
+            original = float(local[1].value)
+            sign = 1 if i % 2 == 0 else -1
+            closer = max(llo, min(lhi, original + sign * (lhi - llo) * 0.05))
+            result["LOCAL_EVOLUTION"].append(
+                _candidate_intent(parent, local, closer, "LOCAL_EVOLUTION", i)
+            )
     return result
 
 
@@ -143,6 +187,7 @@ def build_fixed_budget_manifest(
     seed: int,
     source_evidence_hash: str,
     research_origin: str = "HISTORICAL_UNVERIFIED",
+    control_policy: str = _LEGACY_POLICY,
 ) -> dict[str, Any]:
     """Freeze EVERY candidate identity before any outcome is measured."""
     _validate_parent(parent, market)
@@ -154,7 +199,7 @@ def build_fixed_budget_manifest(
         raise FixedBudgetError("candidate budget must be between 1 and 5 per arm")
     if research_origin not in _ORIGINS:
         raise FixedBudgetError("unsupported or certified model origin")
-    controls = _generate_controls(parent, len(gpt_intents), seed)
+    controls = _generate_controls(parent, len(gpt_intents), seed, control_policy)
     all_intents = {
         "GPT_HISTORICAL": gpt_intents,
         "RANDOM": controls["RANDOM"],
@@ -204,7 +249,7 @@ def build_fixed_budget_manifest(
         "benchmark_outcome_not_yet_measured": True,
         "comparison_is_retrospective": True,
         "source_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF",
-        "policy_version": "RANDOM_UNIFORM_LOCAL_5PCT_RANGE_V1",
+        "policy_version": control_policy,
         "candidates": rows,
         "broker_executable": False,
         "independent_oos_approved": False,
@@ -220,7 +265,7 @@ def _validate_manifest(manifest: dict[str, Any]) -> None:
         content_hash(body) != manifest.get("freeze_hash")
         or manifest.get("schema") != _SCHEMA
         or manifest.get("arm_names") != list(_ARMS)
-        or manifest.get("policy_version") != "RANDOM_UNIFORM_LOCAL_5PCT_RANGE_V1"
+        or manifest.get("policy_version") not in _POLICIES
         or manifest.get("source_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
         or manifest.get("research_origin") not in _ORIGINS
         or manifest.get("model_identity_verified") is not False
@@ -295,6 +340,7 @@ def score_frozen_budget(
             seed=manifest["random_seed"],
             source_evidence_hash=manifest["source_gpt_evidence_hash"],
             research_origin=manifest["research_origin"],
+            control_policy=manifest["policy_version"],
         )
     except (ValueError, TypeError) as exc:
         raise FixedBudgetError("frozen candidate regeneration failed") from exc

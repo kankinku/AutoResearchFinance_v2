@@ -180,6 +180,14 @@ def run():
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument("mode", choices=["freeze", "score"])
     cli.add_argument("--output", required=True, type=Path)
+    cli.add_argument(
+        "--control-policy",
+        choices=(
+            "RANDOM_UNIFORM_LOCAL_5PCT_RANGE_V1",
+            "PLAN_VOTE_SCORE_MATCHED_COORDINATES_V2",
+        ),
+        default="RANDOM_UNIFORM_LOCAL_5PCT_RANGE_V1",
+    )
     a = cli.parse_args()
     evidence, _s7 = _source()
     with TemporaryDirectory(prefix="t4-p05-catalog-copy-") as tmp:
@@ -194,6 +202,7 @@ def run():
                 seed=SEED,
                 source_evidence_hash=evidence["evidence_hash"],
                 research_origin=ORIGIN,
+                control_policy=a.control_policy,
             )
             a.output.mkdir(parents=True, exist_ok=True)
             write_frozen_manifest(path, plan)
@@ -215,6 +224,7 @@ def run():
             plan["source_gpt_evidence_hash"] != evidence["evidence_hash"]
             or plan["random_seed"] != SEED
             or plan["research_origin"] != ORIGIN
+            or plan["policy_version"] != a.control_policy
         ):
             raise FixedBudgetError("frozen original provenance mismatch")
         report = score_frozen_budget(parent, market, plan)
