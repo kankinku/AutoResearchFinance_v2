@@ -50,6 +50,12 @@ from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
 from research.llm.adaptive_direction import build_research_direction
 from research.llm.autonomous_cycle import AcademicCycleService, CycleStateError
 from research.llm.cross_generation_memory import build_cross_generation_memory
+from research.llm.decision_provenance import (
+    DecisionProvenanceError,
+    bound_decision_receipt,
+    validate_decision_evidence,
+    verify_decision_receipt,
+)
 from research.llm.diagnostic_research import DiagnosticResponse, build_diagnostic_context
 from research.llm.director import ResearchIntent
 from research.llm.economic_feedback import build_economic_feedback, gate_research_direction
@@ -158,6 +164,14 @@ class AcademicMCPCheckpointService:
             completed_generations INTEGER NOT NULL, receipt_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, kind)
         )""")
+        # Advisory model-origin declarations are never proof of genuine GPT
+        # inference. Supplemental receipts never alter immutable cycle evidence.
+        db.execute("""CREATE TABLE IF NOT EXISTS research_decision_receipts (
+            session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+            phase TEXT NOT NULL, receipt_json TEXT NOT NULL,
+            receipt_hash TEXT NOT NULL,
+            PRIMARY KEY(session_id,generation,phase)
+        )""")
         db.execute("""CREATE TABLE IF NOT EXISTS recovery_receipts (
             session_id TEXT NOT NULL, action TEXT NOT NULL,
             result_phase TEXT NOT NULL, result_token_hash TEXT NOT NULL,
@@ -173,6 +187,124 @@ class AcademicMCPCheckpointService:
                 "ALTER TABLE stages ADD COLUMN catalog_version TEXT NOT NULL DEFAULT 's3-v1'"
             )
         return db
+
+    def _validate_decision_evidence(
+        self,
+        db: sqlite3.Connection,
+        sid: str,
+        current: dict[str, Any],
+        args: dict[str, Any],
+        *,
+        phase: str,
+        submitted: object,
+        diagnostic_context: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        required = args.get("require_decision_evidence", False)
+        if type(required) is not bool:
+            raise ValueError("require_decision_evidence must be boolean")
+        raw = args.get("decision_evidence")
+        if raw is None:
+            if required:
+                raise DecisionProvenanceError("opt-in research decision evidence required")
+            return None
+        references = raw.get("referenced_s7", []) if isinstance(raw, dict) else []
+        measured: dict[int, dict[str, Any]] = {}
+        if isinstance(references, list):
+            for citation in references:
+                if isinstance(citation, dict) and type(citation.get("generation")) is int:
+                    g = citation["generation"]
+                    if 1 <= g <= current["completed_generations"]:
+                        stored = self._stored_experiment(db, sid, g)
+                        if stored is not None:
+                            measured[g] = stored
+        audit_ids: set[str] | None = None
+        if diagnostic_context is not None:
+            audit_ids = set()
+            obs = diagnostic_context.get("observations", {})
+            for category in ("loss_cases", "execution_samples", "non_execution_decision_samples"):
+                for event in obs.get(category, []):
+                    if isinstance(event, dict):
+                        for key in (
+                            "trade_id",
+                            "decision_id",
+                            "entry_decision_id",
+                            "exit_decision_id",
+                        ):
+                            if isinstance(event.get(key), str):
+                                audit_ids.add(event[key])
+        decision = validate_decision_evidence(
+            raw,
+            phase=phase,
+            generation=current["completed_generations"] + 1,
+            measured_s7=measured,
+            audit_observations=audit_ids,
+        )
+        previous = current["history"][-1] if current["history"] else None
+        return bound_decision_receipt(
+            session_id=sid,
+            submitted_hash=content_hash(submitted),
+            decision=decision,
+            ancestor_evidence_hash=previous["evidence_hash"] if previous else None,
+        )
+
+    @staticmethod
+    def _save_decision_evidence(db: sqlite3.Connection, receipt: dict[str, Any] | None) -> None:
+        if receipt is None:
+            return
+        verify_decision_receipt(receipt)
+        db.execute(
+            "INSERT INTO research_decision_receipts VALUES(?,?,?,?,?)",
+            (
+                receipt["session_id"],
+                receipt["generation"],
+                receipt["phase"],
+                json.dumps(receipt, sort_keys=True),
+                receipt["receipt_hash"],
+            ),
+        )
+
+    @staticmethod
+    def _recent_decision_receipts(
+        db: sqlite3.Connection, sid: str, generation: int
+    ) -> dict[str, Any]:
+        rows = db.execute(
+            "SELECT * FROM research_decision_receipts WHERE session_id=? "
+            "ORDER BY generation DESC,phase DESC LIMIT 10",
+            (sid,),
+        ).fetchall()
+        entries: list[dict[str, Any]] = []
+        for row in rows:
+            receipt = json.loads(row["receipt_json"])
+            verify_decision_receipt(receipt)
+            if (
+                receipt["session_id"] != sid
+                or receipt["generation"] != row["generation"]
+                or receipt["phase"] != row["phase"]
+                or receipt["receipt_hash"] != row["receipt_hash"]
+                or receipt["generation"] > generation + 1
+            ):
+                raise DecisionProvenanceError("stored decision sidecar identity mismatch")
+            entries.append(
+                {
+                    "generation": receipt["generation"],
+                    "phase": receipt["phase"],
+                    "receipt_hash": receipt["receipt_hash"],
+                    "source_origin_verified": False,
+                    "evidence_links_verified": True,
+                    "declared_origin": receipt["evidence"]["declared_origin"],
+                    "decision_summary": receipt["evidence"]["decision_summary"],
+                    "rejected_alternative": receipt["evidence"]["rejected_alternative"],
+                    "referenced_s7": receipt["evidence"]["referenced_s7"],
+                }
+            )
+        return {
+            "schema": "research-decision-provenance-status-v1",
+            "origin_authenticity": "UNVERIFIED_CLIENT_CLAIM",
+            "real_model_connection_verified": False,
+            "model_autonomy_verified": False,
+            "recorded_claims": len(entries),
+            "recent_decisions": entries,
+        }
 
     @staticmethod
     def _record_submission(
@@ -1048,6 +1180,9 @@ class AcademicMCPCheckpointService:
                 "research_execution_policy": research_execution_policy(),
                 "mcp_url_unchanged": True,
             }
+            result["decision_provenance"] = self._recent_decision_receipts(
+                db, sid, current["completed_generations"]
+            )
             # Cycle-side summary cannot see gateway S7 trial records and
             # defaults to zero even when the immutable paired experiments
             # have already been evaluated. Reconcile only hash-verified S7
@@ -1084,6 +1219,7 @@ class AcademicMCPCheckpointService:
                 result["checkpoint_token"] = row["token"]
                 result["model_context"] = self._context(catalog, data, current)
                 result["model_context"]["catalog_version"] = row["catalog_version"]
+                result["model_context"]["prior_decision_provenance"] = result["decision_provenance"]
             elif row["phase"] == "AWAITING_DIAGNOSIS":
                 if current["status"] != "AWAITING_PROVIDER":
                     raise CycleStateError("checkpoint phase mismatch")
@@ -1211,7 +1347,14 @@ class AcademicMCPCheckpointService:
     def submit_plan(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {"session_id", "checkpoint_token", "plan", "require_execution_change"},
+            {
+                "session_id",
+                "checkpoint_token",
+                "plan",
+                "require_execution_change",
+                "decision_evidence",
+                "require_decision_evidence",
+            },
             {"session_id", "checkpoint_token", "plan"},
         )
         sid, token = args["session_id"], args["checkpoint_token"]
@@ -1220,10 +1363,19 @@ class AcademicMCPCheckpointService:
             raise ValueError("require_execution_change must be a boolean")
         # Bind the stricter preflight to the submission receipt. A later caller
         # cannot replay an already-staged unguarded plan as a guarded one.
+        extra_trace = "decision_evidence" in args or "require_decision_evidence" in args
         receipt_request = (
-            {"plan": args["plan"], "require_execution_change": True}
-            if strict_execution
-            else args["plan"]
+            {
+                key: value
+                for key, value in args.items()
+                if key not in {"session_id", "checkpoint_token"}
+            }
+            if extra_trace
+            else (
+                {"plan": args["plan"], "require_execution_change": True}
+                if strict_execution
+                else args["plan"]
+            )
         )
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
@@ -1240,6 +1392,9 @@ class AcademicMCPCheckpointService:
                 raise CycleStateError("plan cannot be submitted in current state")
             if row["token"] != token:
                 raise CycleStateError("invalid checkpoint token")
+            trace = self._validate_decision_evidence(
+                db, sid, current, args, phase="PLAN", submitted=args["plan"]
+            )
             if self._selected_development_parent(catalog, data, current) is not None:
                 self._stage_inherited_plan(
                     db,
@@ -1251,6 +1406,7 @@ class AcademicMCPCheckpointService:
                     require_execution_change=strict_execution,
                     receipt_request=receipt_request,
                 )
+                self._save_decision_evidence(db, trace)
                 db.commit()
                 return self.get({"session_id": sid})
             if strict_execution:
@@ -1313,11 +1469,12 @@ class AcademicMCPCheckpointService:
                 sid,
                 "plan",
                 token,
-                args["plan"],
+                receipt_request,
                 new_token,
                 "AWAITING_DIAGNOSIS",
                 current["completed_generations"],
             )
+            self._save_decision_evidence(db, trace)
             db.execute(
                 "INSERT OR IGNORE INTO generation_timings "
                 "(session_id,generation,start_utc) VALUES(?,?,?)",
@@ -1328,7 +1485,14 @@ class AcademicMCPCheckpointService:
     def submit_diagnosis(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {"session_id", "checkpoint_token", "diagnosis", "require_signal_change"},
+            {
+                "session_id",
+                "checkpoint_token",
+                "diagnosis",
+                "require_signal_change",
+                "decision_evidence",
+                "require_decision_evidence",
+            },
             {"session_id", "checkpoint_token", "diagnosis"},
         )
         strict_signal = args.get("require_signal_change", False)
@@ -1339,6 +1503,15 @@ class AcademicMCPCheckpointService:
             raise ValueError("diagnosis must be a structured object")
         # A lost MCP reply is recoverable without rerunning a generation.
         replay_request = {"diagnosis": diagnosis, "require_signal_change": strict_signal}
+        if "decision_evidence" in args or "require_decision_evidence" in args:
+            replay_request = {
+                **replay_request,
+                **{
+                    k: args[k]
+                    for k in ("decision_evidence", "require_decision_evidence")
+                    if k in args
+                },
+            }
         with self._connect() as db:
             row, _, _, current = self._state(db, sid)
             if self._is_recent_replay(
@@ -1359,6 +1532,17 @@ class AcademicMCPCheckpointService:
             raise CycleStateError("invalid diagnosis checkpoint token or state")
         if diagnosis.get("context_hash") != pending["model_context"]["context_hash"]:
             raise CycleStateError("invalid diagnosis context hash")
+        with self._connect() as db:
+            _, _, _, current = self._state(db, sid)
+            trace = self._validate_decision_evidence(
+                db,
+                sid,
+                current,
+                args,
+                phase="DIAGNOSIS",
+                submitted=diagnosis,
+                diagnostic_context=pending["model_context"],
+            )
         # S7 is automatically evaluated after the generation is committed.
         # Reject unsupported response metrics while the checkpoint is still
         # unclaimed, so the model can correct its diagnosis without creating
@@ -1463,6 +1647,7 @@ class AcademicMCPCheckpointService:
                 next_phase,
                 completed["completed_generations"],
             )
+            self._save_decision_evidence(db, trace)
         # MCP-first shortcut: a complete research generation must carry its
         # measured experiment evidence into the NEXT LLM planning prompt.
         # Previously ChatGPT had to make an extra evaluate_* call and could

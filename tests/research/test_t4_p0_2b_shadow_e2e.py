@@ -142,12 +142,41 @@ def test_real_g25_child_promotes_as_verified_parent_then_counted_g54(tmp_path: P
         )
     assert service.get({"session_id": SID})["completed_generations"] == 53
 
+    original_s7 = service.evaluate_experiments({"session_id": SID, "generation": 25})
+    prior_experiment = original_s7["report"]["experiments"][0]
+    prior_citation = [
+        {
+            "generation": 25,
+            "hypothesis_id": prior_experiment["hypothesis_id"],
+            "s7_record_hash": original_s7["record_hash"],
+            "observed_status": prior_experiment["status"],
+        }
+    ]
+
+    def decision_claim(*, diagnostic_ids: list[str] | None = None) -> dict:
+        return {
+            "declared_origin": "SCRIPTED",  # test provider, NOT certified model
+            "decision_summary": (
+                "The verified G25 S7 descendant improved costed development equity, "
+                "but the measured trading decisions still leave adverse exits. "
+                "Test a different exit confidence threshold against unchanged parent."
+            ),
+            "rejected_alternative": (
+                "Reducing portfolio position sizing mechanically shrinks losses "
+                "but would not test whether real entry or exit decisions improve."
+            ),
+            "referenced_s7": prior_citation,
+            "current_observation_ids": diagnostic_ids or [],
+        }
+
     staged = service.submit_plan(
         {
             "session_id": SID,
             "checkpoint_token": prepared["checkpoint_token"],
             "plan": candidate(0.82),
             "require_execution_change": True,
+            "require_decision_evidence": True,
+            "decision_evidence": decision_claim(),
         }
     )
     assert staged["checkpoint_phase"] == "AWAITING_DIAGNOSIS"
@@ -188,8 +217,12 @@ def test_real_g25_child_promotes_as_verified_parent_then_counted_g54(tmp_path: P
             "session_id": SID,
             "checkpoint_token": staged["checkpoint_token"],
             "diagnosis": diagnosis,
+            "require_decision_evidence": True,
+            "decision_evidence": decision_claim(diagnostic_ids=[example["trade_id"]]),
         }
     )
+    assert committed["decision_provenance"]["recorded_claims"] == 2
+    assert committed["decision_provenance"]["model_autonomy_verified"] is False
     assert committed["completed_generations"] == G54
     assert committed["checkpoint_phase"] == "AWAITING_PLAN"
     assert [x["evidence_hash"] for x in committed["history"][:53]] == original_53_hashes

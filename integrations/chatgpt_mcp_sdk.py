@@ -349,6 +349,53 @@ def chatgpt_tools() -> list[dict[str, object]]:
     )
     session_field = {"type": "string", "pattern": "^[0-9a-f]{32}$"}
     token_field = {"type": "string", "pattern": "^[0-9a-f]{32}$"}
+    # Client declarations do NOT prove genuine GPT usage. Measured S7 citations
+    # and current audited event IDs are validated server-side before acceptance.
+    research_decision_schema: dict[str, Any] = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "declared_origin": {
+                "type": "string",
+                "enum": ["CHATGPT_CLIENT", "SCRIPTED", "HUMAN", "UNSPECIFIED"],
+                "description": "Self-declared only; never model-authenticated.",
+            },
+            "decision_summary": {"type": "string", "minLength": 32, "maxLength": 900},
+            "rejected_alternative": {"type": "string", "minLength": 24, "maxLength": 650},
+            "referenced_s7": {
+                "type": "array",
+                "maxItems": 6,
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "generation": {"type": "integer", "minimum": 1, "maximum": 99},
+                        "hypothesis_id": {"type": "string"},
+                        "s7_record_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+                        "observed_status": {"type": "string"},
+                    },
+                    "required": [
+                        "generation",
+                        "hypothesis_id",
+                        "s7_record_hash",
+                        "observed_status",
+                    ],
+                },
+            },
+            "current_observation_ids": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {"type": "string", "minLength": 2, "maxLength": 120},
+            },
+        },
+        "required": [
+            "declared_origin",
+            "decision_summary",
+            "rejected_alternative",
+            "referenced_s7",
+            "current_observation_ids",
+        ],
+    }
 
     def _academic_tool(
         name: str,
@@ -398,6 +445,8 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "checkpoint_token": token_field,
                     "plan": {"type": "object"},
                     "require_execution_change": {"type": "boolean", "default": False},
+                    "decision_evidence": research_decision_schema,
+                    "require_decision_evidence": {"type": "boolean", "default": False},
                 },
                 ["session_id", "checkpoint_token", "plan"],
             ),
@@ -412,6 +461,8 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "checkpoint_token": token_field,
                     "diagnosis": {"type": "object"},
                     "require_signal_change": {"type": "boolean", "default": False},
+                    "decision_evidence": research_decision_schema,
+                    "require_decision_evidence": {"type": "boolean", "default": False},
                 },
                 ["session_id", "checkpoint_token", "diagnosis"],
             ),
