@@ -36,6 +36,9 @@ class FixedBudgetError(ValueError):
 
 _ARMS = ("GPT_HISTORICAL", "RANDOM", "LOCAL_EVOLUTION")
 _SCHEMA = "preregistered-three-arm-development-budget-p3-1-v1"
+_ORIGINS = frozenset(
+    {"HISTORICAL_UNVERIFIED", "DECLARED_CHATGPT_CLIENT_UNVERIFIED", "SCRIPTED_TEMPLATE"}
+)
 
 
 def _validate_parent(parent: CompiledAcademicStrategy, market: MarketDataSet) -> None:
@@ -56,7 +59,9 @@ def _eligible_thresholds(parent: CompiledAcademicStrategy) -> list[tuple[str, An
     checks = (
         [(f"entry.conditions.{i}", rule) for i, rule in enumerate(parent.strategy.entry.conditions)]
         + [(f"exit.conditions.{i}", rule) for i, rule in enumerate(parent.strategy.exit.conditions)]
-        + [(f"regime_filters.{i}", rule) for i, rule in enumerate(parent.strategy.regime_filters)]
+        # Regime filter replacements require their own typed mutation contract.
+        # The current control mutation uses REPLACE_RULE, which ONLY targets
+        # entry/exit conditions. Never preregister an invalid regime mutation.
     )
     eligible = []
     for path, rule in checks:
@@ -137,6 +142,7 @@ def build_fixed_budget_manifest(
     *,
     seed: int,
     source_evidence_hash: str,
+    research_origin: str = "HISTORICAL_UNVERIFIED",
 ) -> dict[str, Any]:
     """Freeze EVERY candidate identity before any outcome is measured."""
     _validate_parent(parent, market)
@@ -146,6 +152,8 @@ def build_fixed_budget_manifest(
         raise FixedBudgetError("missing GPT source evidence hash")
     if not 1 <= len(gpt_intents) <= 5:
         raise FixedBudgetError("candidate budget must be between 1 and 5 per arm")
+    if research_origin not in _ORIGINS:
+        raise FixedBudgetError("unsupported or certified model origin")
     controls = _generate_controls(parent, len(gpt_intents), seed)
     all_intents = {
         "GPT_HISTORICAL": gpt_intents,
@@ -185,6 +193,10 @@ def build_fixed_budget_manifest(
         "parent_strategy_hash": parent.strategy_hash,
         "dataset_hash": market.dataset_hash,
         "source_gpt_evidence_hash": source_evidence_hash,
+        "research_origin": research_origin,
+        "model_identity_verified": False,
+        "adaptive_reasoning_verified": False,
+        "gpt_arm_label_is_claim_not_authentication": True,
         "arm_names": list(_ARMS),
         "candidates_per_arm": len(gpt_intents),
         "random_seed": seed,
@@ -210,6 +222,10 @@ def _validate_manifest(manifest: dict[str, Any]) -> None:
         or manifest.get("arm_names") != list(_ARMS)
         or manifest.get("policy_version") != "RANDOM_UNIFORM_LOCAL_5PCT_RANGE_V1"
         or manifest.get("source_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+        or manifest.get("research_origin") not in _ORIGINS
+        or manifest.get("model_identity_verified") is not False
+        or manifest.get("adaptive_reasoning_verified") is not False
+        or manifest.get("gpt_arm_label_is_claim_not_authentication") is not True
         or manifest.get("broker_executable") is not False
         or manifest.get("independent_oos_approved") is not False
         or manifest.get("generation_count_increment") != 0
@@ -278,6 +294,7 @@ def score_frozen_budget(
             gpt,
             seed=manifest["random_seed"],
             source_evidence_hash=manifest["source_gpt_evidence_hash"],
+            research_origin=manifest["research_origin"],
         )
     except (ValueError, TypeError) as exc:
         raise FixedBudgetError("frozen candidate regeneration failed") from exc
@@ -345,6 +362,9 @@ def score_frozen_budget(
         "schema": "three-arm-canonical-research-measurements-p3-1-v1",
         "frozen_study_hash": manifest["freeze_hash"],
         "source_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF",
+        "research_origin": manifest["research_origin"],
+        "model_identity_verified": False,
+        "adaptive_reasoning_verified": False,
         "parent": parent_measure,
         "benchmark": {
             "costed_qqq_buy_and_hold_return": benchmark["total_return"],

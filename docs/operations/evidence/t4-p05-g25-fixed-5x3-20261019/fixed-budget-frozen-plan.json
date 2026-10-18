@@ -1,0 +1,567 @@
+{
+  "adaptive_reasoning_verified": false,
+  "arm_names": [
+    "GPT_HISTORICAL",
+    "RANDOM",
+    "LOCAL_EVOLUTION"
+  ],
+  "benchmark_outcome_not_yet_measured": true,
+  "broker_executable": false,
+  "candidates": [
+    {
+      "arm": "GPT_HISTORICAL",
+      "candidate_id": "GPT_HISTORICAL-1",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_vote_score",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.62
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREREGISTERED_P0_5_G25_SLOT_1: G25 rarely participated (about 7 percent exposure); admit moderate confirmation to test missed recoveries versus false entries."
+      },
+      "origin": "PRIOR_GPT_MCP_RESEARCH_NOT_NEW_CALL",
+      "slot": 1,
+      "strategy_hash": "931e8fda3b7e5746f1f961badabc160ae93a26dc62c45e3c0eec016cf7e89079"
+    },
+    {
+      "arm": "GPT_HISTORICAL",
+      "candidate_id": "GPT_HISTORICAL-2",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_vote_score",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.82
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREREGISTERED_P0_5_G25_SLOT_2: G25 lost money despite 59 completed trades; demand stronger votes to test false positives even if opportunity is lost."
+      },
+      "origin": "PRIOR_GPT_MCP_RESEARCH_NOT_NEW_CALL",
+      "slot": 2,
+      "strategy_hash": "8090f4d4453a8bf7e851e8670b1473886cf7b9470fdcb147925b0942d3649f3d"
+    },
+    {
+      "arm": "GPT_HISTORICAL",
+      "candidate_id": "GPT_HISTORICAL-3",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_vote_score",
+              "op": "less_equal",
+              "right": null,
+              "value": 0.54
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "exit.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREREGISTERED_P0_5_G25_SLOT_3: Replace binary exit with vote-confidence 0.54 to test whether declining EMA consensus exits before observed reversals."
+      },
+      "origin": "PRIOR_GPT_MCP_RESEARCH_NOT_NEW_CALL",
+      "slot": 3,
+      "strategy_hash": "58aabc3aa1555ffce910bd57da38660aa63848a3f5337716cd7c0ae4e9ca86a2"
+    },
+    {
+      "arm": "GPT_HISTORICAL",
+      "candidate_id": "GPT_HISTORICAL-4",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_vote_score",
+              "op": "less_equal",
+              "right": null,
+              "value": 0.7
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "exit.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREREGISTERED_P0_5_G25_SLOT_4: Exit earlier as measured consensus weakens; compare avoided drawdown with turnover and fees on the same tape."
+      },
+      "origin": "PRIOR_GPT_MCP_RESEARCH_NOT_NEW_CALL",
+      "slot": 4,
+      "strategy_hash": "211d5256ac1277f8eb978fd651f7962966f3e600d62d2902b98216832b90e520"
+    },
+    {
+      "arm": "GPT_HISTORICAL",
+      "candidate_id": "GPT_HISTORICAL-5",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_vote_score",
+              "op": "less_equal",
+              "right": null,
+              "value": 0.82
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "exit.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREREGISTERED_P0_5_G25_SLOT_5: A defensive 0.82 exit may eliminate weak-vote exposure; alternative is losing trend capture and worse net return."
+      },
+      "origin": "PRIOR_GPT_MCP_RESEARCH_NOT_NEW_CALL",
+      "slot": 5,
+      "strategy_hash": "ca7689997fdf98b61cf2af64515cb91392b6988bda27e65cecf4b53a02f1e569"
+    },
+    {
+      "arm": "RANDOM",
+      "candidate_id": "RANDOM-1",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "less_equal",
+              "right": null,
+              "value": 0.8712017638884725
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "exit.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_RANDOM_POLICY_V1_SLOT_0_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 1,
+      "strategy_hash": "3686324bdfc952298817abf80d0150d0f891ade4f86301a7e8bfe911390c432e"
+    },
+    {
+      "arm": "RANDOM",
+      "candidate_id": "RANDOM-2",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.26955645960613717
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_RANDOM_POLICY_V1_SLOT_1_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 2,
+      "strategy_hash": "d8f51c55944e6df31a3c2133023d57af2e19a23365984885416b1a9b3d677370"
+    },
+    {
+      "arm": "RANDOM",
+      "candidate_id": "RANDOM-3",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "less_equal",
+              "right": null,
+              "value": 0.3134483439715713
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "exit.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_RANDOM_POLICY_V1_SLOT_2_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 3,
+      "strategy_hash": "9242c4ccc5b07a354e6178c495a8a48c3414eb0d8d904a6bd9f2c8139dc320d4"
+    },
+    {
+      "arm": "RANDOM",
+      "candidate_id": "RANDOM-4",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.37899125896563024
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_RANDOM_POLICY_V1_SLOT_3_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 4,
+      "strategy_hash": "b948370b6f834cd8a63bd0a177ea6e99298f27e170dca96e9f630bd59ea1709d"
+    },
+    {
+      "arm": "RANDOM",
+      "candidate_id": "RANDOM-5",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.6806477459985978
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_RANDOM_POLICY_V1_SLOT_4_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 5,
+      "strategy_hash": "557c56a3d4275786a9edee084a2458cf41c7cc505939f85bab0fe48968628413"
+    },
+    {
+      "arm": "LOCAL_EVOLUTION",
+      "candidate_id": "LOCAL_EVOLUTION-1",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.54
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_LOCAL_EVOLUTION_POLICY_V1_SLOT_0_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 1,
+      "strategy_hash": "052418a34cf4927bfe92e860c63e718920e989eda14c0c9ffa1855a28927d844"
+    },
+    {
+      "arm": "LOCAL_EVOLUTION",
+      "candidate_id": "LOCAL_EVOLUTION-2",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "less_equal",
+              "right": null,
+              "value": 0.45999999999999996
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "exit.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_LOCAL_EVOLUTION_POLICY_V1_SLOT_1_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 2,
+      "strategy_hash": "405d78ebd899e21bd1584abf791134a22976f4830774f7561b18e6fc857bb6c8"
+    },
+    {
+      "arm": "LOCAL_EVOLUTION",
+      "candidate_id": "LOCAL_EVOLUTION-3",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.54
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_LOCAL_EVOLUTION_POLICY_V1_SLOT_2_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 3,
+      "strategy_hash": "052418a34cf4927bfe92e860c63e718920e989eda14c0c9ffa1855a28927d844"
+    },
+    {
+      "arm": "LOCAL_EVOLUTION",
+      "candidate_id": "LOCAL_EVOLUTION-4",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "less_equal",
+              "right": null,
+              "value": 0.45999999999999996
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "exit.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_LOCAL_EVOLUTION_POLICY_V1_SLOT_3_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 4,
+      "strategy_hash": "405d78ebd899e21bd1584abf791134a22976f4830774f7561b18e6fc857bb6c8"
+    },
+    {
+      "arm": "LOCAL_EVOLUTION",
+      "candidate_id": "LOCAL_EVOLUTION-5",
+      "intent": {
+        "evaluator_change": null,
+        "feature_proposal": null,
+        "feature_selections": [],
+        "mode": "structure",
+        "operations": [
+          {
+            "condition": {
+              "enabled": true,
+              "left": "plan_entry",
+              "op": "greater_than",
+              "right": null,
+              "value": 0.54
+            },
+            "feature": null,
+            "indicator": null,
+            "logic": null,
+            "op": "REPLACE_RULE",
+            "path": "entry.conditions.0",
+            "value": null
+          }
+        ],
+        "parent_ids": [
+          "research_plan_4530a415e4c81699"
+        ],
+        "primitive_request": null,
+        "python_patch": null,
+        "rationale": "PREDECLARED_LOCAL_EVOLUTION_POLICY_V1_SLOT_4_NOT_LLM"
+      },
+      "origin": "DETERMINISTIC_RESEARCH_CONTROL_NO_MODEL",
+      "slot": 5,
+      "strategy_hash": "052418a34cf4927bfe92e860c63e718920e989eda14c0c9ffa1855a28927d844"
+    }
+  ],
+  "candidates_per_arm": 5,
+  "comparison_is_retrospective": true,
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "freeze_hash": "dfecd3dfee1143d62a1dedd4b3af0bf10e28a9ea3d8720110dd2ec160a9d2376",
+  "generation_count_increment": 0,
+  "gpt_arm_label_is_claim_not_authentication": true,
+  "independent_oos_approved": false,
+  "model_identity_verified": false,
+  "parent_strategy_hash": "8a152c287bba5c386af700636ec23e037228c479f86b9f0f467b29e6dd0dce22",
+  "policy_version": "RANDOM_UNIFORM_LOCAL_5PCT_RANGE_V1",
+  "random_seed": 20261019,
+  "research_origin": "DECLARED_CHATGPT_CLIENT_UNVERIFIED",
+  "schema": "preregistered-three-arm-development-budget-p3-1-v1",
+  "source_gpt_evidence_hash": "319ed66048ab152515305db45cddc92d94320e0272d1d348d3e4a394749383b6",
+  "source_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+}
