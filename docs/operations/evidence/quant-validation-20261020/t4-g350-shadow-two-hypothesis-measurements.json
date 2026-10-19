@@ -1,0 +1,76 @@
+{
+  "schema": "T4_G350_SHADOW_COSTED_CANDIDATE_REPLAY_V1",
+  "verified_scope": "READ_ONLY_CANONICAL_DEVELOPMENT_REPLAY_NOT_FORMAL_GENERATION",
+  "source_generation_count": 350,
+  "source_terminal_evidence_hash": "26647e424913125cee1ec1dd6333538938237fb7205f7fc5147519b9c6cb725d",
+  "source_g262_evidence_hash": "bc3fccb5a9f6805ec44c81cfdef6ed1a83c01bfb5dfec46d1f882745231d3cb0",
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "parent_selection_hash": "1b0e217d66858bf6f320168cf990e785caf65bdb504e756af4429b8b87d4eddf",
+  "currency": "USD",
+  "initial_cash": 10000,
+  "source_mode": "production_copy_readonly_then_shadow_only",
+  "parent": {
+    "strategy_hash": "23f6365f34e8a34e5ff6884f05db0e2ef90e1f3b7367b5a192aaee1d1fc2070c",
+    "total_return": 0.7459160276657815,
+    "max_drawdown": 0.060013626250434646,
+    "sharpe": 1.148079470088121,
+    "fill_count": 108,
+    "total_paid_costs": 1173.5702003807373,
+    "final_equity": 17459.160276657814
+  },
+  "hypotheses": [
+    {
+      "label": "A",
+      "description": "Avoid premature split-vote exit by modifying sole exit to plan_vote_score <=0.45",
+      "operation": {
+        "op": "REPLACE_RULE",
+        "path": "exit.conditions.0",
+        "condition": {
+          "op": "less_equal",
+          "left": "plan_vote_score",
+          "value": 0.45
+        }
+      },
+      "strateg_hash": "e78023d3aa99c0f6ec46e55853affec0a29e67dc6044f6fc93bf84f24de5b6d4",
+      "total_return": 0.5657171284045057,
+      "max_drawdown": 0.11377323954849011,
+      "sharpe": 0.768341625933261,
+      "fill_count": 79,
+      "total_paid_costs": 775.3091564452169,
+      "final_equity": 15657.171284045058,
+      "fill_trace_changed": true,
+      "adoption": "REJECT_NOT_BETTER_THAN_PARENT"
+    },
+    {
+      "label": "B",
+      "description": "Retain original exit and demand EMA positive on entry after observing loss with EMA=0",
+      "operation": {
+        "op": "ADD_RULE",
+        "path": "entry.conditions",
+        "condition": {
+          "op": "greater_than",
+          "left": "ema_direction_20",
+          "value": 0.5
+        }
+      },
+      "strateg_hash": "24724b2b066673080728fd356338ff2bc0efe4105fd858ec413b2f4ca9fb9693",
+      "total_return": 0.5432064303841715,
+      "max_drawdown": 0.06463878476131352,
+      "sharpe": 0.9567894270737076,
+      "fill_count": 78,
+      "total_paid_costs": 792.5506409297514,
+      "final_equity": 15432.064303841715,
+      "fill_trace_changed": true,
+      "adoption": "REJECT_NOT_BETTER_THAN_PARENT"
+    }
+  ],
+  "experiment_submission_status": "BLOCKED_BY_EXECUTION_SAFETY_GATE",
+  "formal_counted_generations_added": 0,
+  "broker_orders_placed": 0,
+  "original_session_state": "COMPLETED_350_OF_350",
+  "shadow_state": "AWAITING_PLAN_350_OF_352",
+  "shadow_counted_rows": 350,
+  "causal_status": "NOT_ESTABLISHED",
+  "oos_verified": false,
+  "independent_profitability_verified": false
+}
