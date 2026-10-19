@@ -572,15 +572,67 @@ class AcademicMCPCheckpointService:
             rejected: list[dict[str, Any]] = []
             valid_counted = 0
             comparisons: list[dict[str, Any]] = []
-            for original in status["history"]:
-                if original.get("inherited_strategy_ir") is None:
+            # Initial bootstrap: without a manually created child->grandchild
+            # sidecar, an ordinary completed GPT generation's *verified S7
+            # child* can become a counted next parent. Shortlist across the
+            # entire immutable history; preserve a qualifying historical
+            # lineage's prior parent selection. Never skip bootstrap merely
+            # because an older manually supplied lineage FAILED quality gates.
+            bootstrap_plain = baseline is None
+            if bootstrap_plain:
+                # Read the full immutable history *cheaply*, then canonically
+                # replay a bounded set of promising S7 origins. A last-eight
+                # only filter would miss G326 when continuing G350.
+                coarse: list[tuple[float, int, dict[str, Any]]] = []
+                for historic in status["history"]:
+                    measured = self._stored_experiment(db, sid, historic["generation"])
+                    if measured is None:
+                        continue
+                    if measured.get("study_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF":
+                        # Legacy S7-v1 imports stay readable for research
+                        # memory, but cannot enter this stricter parent gate.
+                        continue
+                    if (
+                        measured.get("original_generation_evidence_hash")
+                        != historic["evidence_hash"]
+                    ):
+                        raise CycleStateError("bootstrap S7 coarse evidence mismatch")
+                    for outcome in measured["report"]["experiments"]:
+                        eq = outcome.get("child_final_equity")
+                        before = outcome.get("parent_final_equity")
+                        count = outcome.get("child_fill_count")
+                        if (
+                            type(eq) in (float, int)
+                            and type(before) in (float, int)
+                            and type(count) is int
+                            and eq > before > 0
+                            and count >= 60
+                            and outcome.get("same_fill_trace") is False
+                            and outcome.get("status")
+                            not in ("NO_OBSERVED_EFFECT", "DEGENERATE_INACTIVE_CHILD")
+                        ):
+                            coarse.append((float(eq), historic["generation"], historic))
+                coarse.sort(key=lambda item: (-item[0], -item[1]))
+                # A cheap coarse metric is NEVER eligible for inheritance.
+                # All shortlisted trials must pass unchanged deep replay,
+                # full costs, closed-trade count, risk and selection gates.
+                picks = {item[1] for item in coarse[:16]}
+                source_rows = [row for row in status["history"] if row["generation"] in picks]
+            else:
+                source_rows = status["history"]
+            for original in source_rows:
+                if original.get("inherited_strategy_ir") is None and not bootstrap_plain:
                     continue
                 generation = original["generation"]
                 report = self._stored_experiment(db, sid, generation)
                 if report is None:
                     # The sealed S7 result must be present before next planning.
                     raise CycleStateError("counted generation missing S7 measurement")
-                parent = self._inherited_from_evidence(catalog, data, original)
+                if original.get("inherited_strategy_ir") is not None:
+                    parent = self._inherited_from_evidence(catalog, data, original)
+                else:
+                    plan = AlgorithmPlan.model_validate(original["algorithm_plan"])
+                    parent = compile_algorithm_plan(catalog, plan, data).compiled
                 for experiment in original["experiments"]:
                     counted_tested += 1
                     hypothesis_id = experiment["hypothesis_id"]
@@ -711,7 +763,12 @@ class AcademicMCPCheckpointService:
         if selected.get("source_kind") == "COUNTED_S7_CHILD":
             if measured["record_hash"] != selected["source_report_hash"]:
                 raise CycleStateError("selected S7 report changed")
-            parent_original = self._inherited_from_evidence(catalog, data, original)
+            if original.get("inherited_strategy_ir") is not None:
+                parent_original = self._inherited_from_evidence(catalog, data, original)
+            else:
+                parent_original = compile_algorithm_plan(
+                    catalog, AlgorithmPlan.model_validate(original["algorithm_plan"]), data
+                ).compiled
             evidence, parent = replay_counted_s7_child(
                 catalog,
                 data,
@@ -1792,8 +1849,11 @@ class AcademicMCPCheckpointService:
         if (
             not (terminal or idle)
             or not 1 <= completed < new_requested <= 400
-            or (terminal and original.get("final_report", {}).get(
-                "all_proposed_hypotheses_measured") is not True)
+            or (
+                terminal
+                and original.get("final_report", {}).get("all_proposed_hypotheses_measured")
+                is not True
+            )
         ):
             raise CycleStateError("extension requires sealed or idle checkpoint")
         history = original["history"]
@@ -1839,8 +1899,7 @@ class AcademicMCPCheckpointService:
                 stored = self._stored_experiment(db, session_id, observed["generation"])
                 if (
                     stored is None
-                    or stored.get("original_generation_evidence_hash")
-                    != observed["evidence_hash"]
+                    or stored.get("original_generation_evidence_hash") != observed["evidence_hash"]
                     or sorted(x["hypothesis_id"] for x in stored["report"]["experiments"])
                     != sorted(observed["hypothesis_ids"])
                 ):

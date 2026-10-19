@@ -340,6 +340,12 @@ def replay_counted_s7_child(
 
     from core.features.registry import research_feature_specs
     from evaluation.metrics import calculate_metrics
+    from research.indicator_engine.algorithm_plan import (
+        AlgorithmPlan,
+        audit_algorithm_plan,
+        compile_algorithm_plan,
+    )
+    from research.indicator_engine.controlled_experiments import compare_controlled_experiments
     from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
     from research.indicator_engine.inherited_experiments import compare_inherited_experiments
     from research.indicator_engine.strategy_adapter import evaluate_compiled_development
@@ -347,8 +353,7 @@ def replay_counted_s7_child(
     from research.llm.intent_bridge import apply_intent
 
     if (
-        original.get("inherited_strategy_ir") is None
-        or original.get("strategy_hash") != parent.strategy_hash
+        original.get("strategy_hash") != parent.strategy_hash
         or original.get("dataset_hash") != market.dataset_hash
         or stored_experiment.get("original_generation_evidence_hash")
         != original.get("evidence_hash")
@@ -391,12 +396,31 @@ def replay_counted_s7_child(
             for row in original["experiments"]
         ],
     }
-    replay = compare_inherited_experiments(
-        parent,
-        market,
-        diagnostic,
-        parent_proof_hash=original["inherited_parent"]["parent_selection_hash"],
-    )
+    inherited = original.get("inherited_strategy_ir") is not None
+    if inherited:
+        replay = compare_inherited_experiments(
+            parent,
+            market,
+            diagnostic,
+            parent_proof_hash=original["inherited_parent"]["parent_selection_hash"],
+        )
+        parent_evaluation = audit_inherited_decisions(parent, market).evaluation
+    else:
+        # Bootstrap the FIRST inherited parent from an ordinary GPT-authored
+        # AlgorithmPlan S7 child. No fabricated two-step lineage or proxy IR.
+        plan = AlgorithmPlan.model_validate(original["algorithm_plan"])
+        baseline = compile_algorithm_plan(catalog, plan, market)
+        audit = audit_algorithm_plan(catalog, baseline, market)
+        if (
+            baseline.plan_hash != original.get("plan_hash")
+            or baseline.compiled.strategy_hash != parent.strategy_hash
+            or baseline.compiled != parent
+            or audit.trace_hash != original.get("audit_hash")
+            or abs(audit.evaluation.final_equity - original["measured_final_equity"]) > 1e-6
+        ):
+            raise LineageSelectionError("original non-inherited parent cannot replay")
+        replay = compare_controlled_experiments(catalog, baseline, market, diagnostic)
+        parent_evaluation = audit.evaluation
     if json.loads(json.dumps(asdict(replay))) != report:
         raise LineageSelectionError("counted S7 full report replay mismatch")
     if (
@@ -420,7 +444,7 @@ def replay_counted_s7_child(
     ):
         raise LineageSelectionError("counted S7 child fills/equity/cost mismatch")
     parent_metrics = calculate_metrics(
-        audit_inherited_decisions(parent, market).evaluation.equity_curve,
+        parent_evaluation.equity_curve,
         (),
         periods_per_year=252,
     )
