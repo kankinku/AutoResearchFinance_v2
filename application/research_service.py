@@ -50,6 +50,7 @@ class ResearchService:
                 "frontier": [],
                 "observations": observations,
                 "feature_catalog": self.catalog.research_features(),
+                "feature_capability_summary": self.catalog.capability_summary(),
             }
         )
         if not isinstance(payload, dict):

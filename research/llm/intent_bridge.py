@@ -75,8 +75,7 @@ def intent_to_operations(
         if operation is not None
     )
     selected = tuple(
-        _selection_operation(selection, specs)
-        for selection in intent.feature_selections
+        _selection_operation(selection, specs) for selection in intent.feature_selections
     )
     return _order_operations(operations + selected)
 
@@ -89,17 +88,14 @@ def apply_intent(
     """Apply an eligible intent and preserve generation/lineage in the IR."""
 
     if parent.strategy_id not in intent.parent_ids:
-        raise IntentEligibilityError(
-            f"intent parent does not match strategy: {parent.strategy_id}"
-        )
+        raise IntentEligibilityError(f"intent parent does not match strategy: {parent.strategy_id}")
     operations = intent_to_operations(intent, feature_specs)
     try:
         child = apply_operations(parent, list(operations))
     except ValueError as exc:
         raise IntentEligibilityError(str(exc), code="INTENT_MUTATION_INVALID") from exc
     mutation_names = [
-        f"{operation.op}:{operation.path or ''}".rstrip(":")
-        for operation in operations
+        f"{operation.op}:{operation.path or ''}".rstrip(":") for operation in operations
     ]
     data = child.model_dump(mode="python", by_alias=False)
     data["generation"] = parent.generation + 1
@@ -123,6 +119,30 @@ def _index_specs(
     return indexed
 
 
+def _require_scalar_research_feature(spec: FeatureSpec) -> None:
+    """Fail closed before staging a feature the canonical bar evaluator cannot calculate.
+
+    Specialized observations require a reviewed bar-alignment adapter. A source
+    license is not a permission grant; restrictive origins need a separate
+    documented permission gate. This guard applies only to *new* selections,
+    preserving old archived StrategyIR and fixed research evidence.
+    """
+    if any(
+        marker in license_name.lower()
+        for license_name in spec.source_licenses
+        for marker in ("by-nc", "noncommercial", "all rights reserved", "no license")
+    ):
+        raise IntentEligibilityError(
+            f"feature requires source permission review: {spec.name}",
+            code="INTENT_FEATURE_LICENSE_REVIEW",
+        )
+    if spec.data_contract != "scalar":
+        raise IntentEligibilityError(
+            f"specialized feature has no reviewed canonical bar adapter: {spec.name}",
+            code="INTENT_FEATURE_NOT_EXECUTABLE",
+        )
+
+
 def _selection_operation(
     selection: FeatureSelection, specs: Mapping[str, FeatureSpec]
 ) -> MutationOperation:
@@ -132,6 +152,7 @@ def _selection_operation(
             f"feature is not registered: {selection.feature_id}",
             code="INTENT_UNREGISTERED_FEATURE",
         )
+    _require_scalar_research_feature(spec)
     inputs = selection.inputs or spec.inputs
     _validate_inputs(inputs)
     if selection.parameters:
@@ -303,14 +324,18 @@ def _typed_operation_from_model(
                 code="INTENT_PATH_TARGET",
             )
         return MutationOperation(operation.op, path, operation.value)
-    if operation.op in {
-        "REMOVE_RULE",
-        "REMOVE_FEATURE",
-        "REMOVE_INDICATOR",
-        "REMOVE_REGIME_FILTER",
-        "ENABLE_RULE",
-        "DISABLE_RULE",
-    } and not path:
+    if (
+        operation.op
+        in {
+            "REMOVE_RULE",
+            "REMOVE_FEATURE",
+            "REMOVE_INDICATOR",
+            "REMOVE_REGIME_FILTER",
+            "ENABLE_RULE",
+            "DISABLE_RULE",
+        }
+        and not path
+    ):
         raise IntentEligibilityError(
             f"{operation.op} requires a target path", code="INTENT_PATH_TARGET"
         )
@@ -358,9 +383,7 @@ def _condition_value(operation: IntentOperation) -> dict[str, object]:
         raise IntentEligibilityError(
             f"{operation.op} requires a condition object", code="INTENT_VALUE_TYPE"
         )
-    return operation.condition.model_dump(
-        mode="python", exclude_none=True, exclude_defaults=True
-    )
+    return operation.condition.model_dump(mode="python", exclude_none=True, exclude_defaults=True)
 
 
 def _normalize_operation(op: str, path: str | None) -> tuple[str, str | None]:
@@ -398,8 +421,7 @@ def _normalize_path(path: str | None) -> str | None:
     if parts and parts[0] == "source_strategy":
         parts = parts[1:]
     if not parts or any(
-        not part or (part == "-" and index != len(parts) - 1)
-        for index, part in enumerate(parts)
+        not part or (part == "-" and index != len(parts) - 1) for index, part in enumerate(parts)
     ):
         raise IntentEligibilityError(f"invalid intent operation path: {path}")
     decoded = [part.replace("~1", "/").replace("~0", "~") for part in parts]
@@ -432,9 +454,7 @@ def _order_operations(
         "REPLACE_RULE": 2,
         "ADD_REGIME_FILTER": 2,
     }
-    ordered = sorted(
-        enumerate(operations), key=lambda item: (priority.get(item[1].op, 3), item[0])
-    )
+    ordered = sorted(enumerate(operations), key=lambda item: (priority.get(item[1].op, 3), item[0]))
     return tuple(operation for _, operation in ordered)
 
 
@@ -462,6 +482,7 @@ def _feature_reference(value: object, specs: Mapping[str, FeatureSpec]) -> Featu
                 f"feature is not registered: {value.feature_id}",
                 code="INTENT_UNREGISTERED_FEATURE",
             )
+        _require_scalar_research_feature(spec)
         data = value.model_dump(mode="python")
         data["feature_id"] = spec.name
         if not data.get("inputs"):
@@ -483,6 +504,7 @@ def _feature_reference(value: object, specs: Mapping[str, FeatureSpec]) -> Featu
             f"feature is not registered: {feature_id}",
             code="INTENT_UNREGISTERED_FEATURE",
         )
+    _require_scalar_research_feature(spec)
     allowed = {
         "feature_id",
         "timeframe",
