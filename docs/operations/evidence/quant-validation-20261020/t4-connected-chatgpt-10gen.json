@@ -1,0 +1,835 @@
+{
+  "schema": "T4_CONNECTED_CHATGPT_10GEN_DEVELOPMENT_AUDIT_V1",
+  "session_id": "30da9a29502d4bf2a67e014358dab2e9",
+  "source_tool": "get_algorithm_research",
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "status": "COMPLETED",
+  "controller": "authenticated_chatgpt_mcp_client",
+  "real_model_connection_verified": false,
+  "independent_oos_approved": false,
+  "orders_enabled": false,
+  "generation_evidence_chain_valid": true,
+  "final_report": {
+    "all_proposed_hypotheses_measured": true,
+    "best_development_return": 0.8176538771363557,
+    "causal_status": "NOT_ESTABLISHED",
+    "completion_reason": "REQUESTED_GENERATIONS_COMPLETED",
+    "first_total_return": 0.15539145964418366,
+    "gateway_s7_count_source": "HASH_VERIFIED_IMMUTABLE_GATEWAY_REPORTS",
+    "generations_completed": 10,
+    "generations_requested": 10,
+    "independent_profitability_verified": false,
+    "last_max_drawdown": 0.1868759970896168,
+    "last_total_return": 0.8176538771363557,
+    "model_autonomy_verified": false,
+    "proposed_hypotheses": 10,
+    "tested_hypotheses": 10,
+    "total_observed_fills": 835
+  },
+  "study_limitations": [
+    "Same reused QQQ development RAW data, non-PIT/unverified corporate actions",
+    "ChatGPT directly invoked MCP; backend autonomous model identity is not verified",
+    "No concurrent, same-universe fixed-seed randomized baseline in this new session",
+    "Current runtime AlgorithmPlan v1, not P1-3 GeneralResearchPlan or StateMachine",
+    "Not evidence of future real trading profitability"
+  ],
+  "generations": [
+    {
+      "generation": 1,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "calm_trend",
+            "min_score": 0.6,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0002
+            }
+          },
+          {
+            "case_id": "volatile_breakout",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.65
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.35
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0002
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g01",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "198dad8447d40d9b2ff11aebcbb7adf56fc69f7183a2ef45b4496f48d0efe34d",
+      "strategy_hash": "6279dd4044dcc3b09cc741ec5a0dada2f225cd5bfe7161329ab5a2976388d552",
+      "plan_hash": "a747888896a5fc42744f7985f9252a7c53d223518f35ac63b67004c0ed2060d3",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.024447121475441813,
+        "calmar": 0.08407260481473848,
+        "exposure": 0.4542440318302387,
+        "max_drawdown": 0.290785821722941,
+        "profit_factor": 1.229121133298313,
+        "sharpe": 0.2782787601603169,
+        "sortino": 0.37063276788050475,
+        "total_return": 0.15539145964418366,
+        "trade_count": 70,
+        "turnover": 136.88128591702375,
+        "win_rate": 0.4142857142857143
+      },
+      "observed_trades": 141,
+      "experiment_ids": [
+        "g01_entry_confluence_only"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g01_entry_confluence_only",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "6279dd4044dc-T-000050",
+            "6279dd4044dc-T-000136"
+          ],
+          "proposal_child_hash": "d30e70bcb08b8c66ff53c1e753ef96e0c91e36259cdbfee341289c7b35a36710"
+        }
+      ],
+      "evidence_hash": "ec0bd8f35d796e63289c82de2a1e5c548d02ae7276688f68fccaa821d3e01b1c",
+      "previous_evidence_hash": null
+    },
+    {
+      "generation": 2,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "trend_confirmation",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          },
+          {
+            "case_id": "weak_rebound",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "less_equal",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g02",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "3d51f784a8eba6dc729f123352b892a78480183037154fe4948657c9bae526f2",
+      "strategy_hash": "4c56ec81fbcb9d4db9d3f18d4099a1c70f229520a308c23ff581d81f6455043c",
+      "plan_hash": "3d1274571017bdcba7c87e936d1b23018415b4a08b91fa22e64e0b9204533c5f",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.020713481390357558,
+        "calmar": 0.07498801654128104,
+        "exposure": 0.47015915119363394,
+        "max_drawdown": 0.2762238867720251,
+        "profit_factor": 1.1139933229706653,
+        "sharpe": 0.22554748450336,
+        "sortino": 0.3070519900312847,
+        "total_return": 0.13043720246279777,
+        "trade_count": 102,
+        "turnover": 227.68106124837246,
+        "win_rate": 0.45098039215686275
+      },
+      "observed_trades": 204,
+      "experiment_ids": [
+        "g02_exit_low_score_only"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g02_exit_low_score_only",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "4c56ec81fbcb-T-000062",
+            "4c56ec81fbcb-T-000178"
+          ],
+          "proposal_child_hash": "940c4ba5229a2264c584e64a6978894bfd942e872f94b253efdf33ce073ad825"
+        }
+      ],
+      "evidence_hash": "00e7f5e67ef91ecedb89a2e0d8418db5fbd1645713e985cc0bb3f69fbf52fac7",
+      "previous_evidence_hash": "ec0bd8f35d796e63289c82de2a1e5c548d02ae7276688f68fccaa821d3e01b1c"
+    },
+    {
+      "generation": 3,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "quiet_persistent",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.5
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          },
+          {
+            "case_id": "active_persistent",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g03",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "34c60646adabce622dfda8d70bad92a935f18db254dcfa329621fa81090c62f5",
+      "strategy_hash": "e67884bbebafa330ccf96978baf30b91c05e9aada4d3f28dbf3aea0ebe7cffdb",
+      "plan_hash": "9ed3303410b04636d8eb3bda6624806680beb208609da843a63618bed72d2b54",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.07689469544785421,
+        "calmar": 0.28256619110832043,
+        "exposure": 0.6041114058355438,
+        "max_drawdown": 0.27212985087227576,
+        "profit_factor": 1.857619771371879,
+        "sharpe": 0.5874306481485603,
+        "sortino": 0.8114743002495727,
+        "total_return": 0.5574032206306587,
+        "trade_count": 29,
+        "turnover": 69.86330157780003,
+        "win_rate": 0.4827586206896552
+      },
+      "observed_trades": 58,
+      "experiment_ids": [
+        "g03_early_exit_vote_only"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g03_early_exit_vote_only",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "max_drawdown",
+          "observed_ids": [
+            "e67884bbebaf-T-000006",
+            "e67884bbebaf-T-000052"
+          ],
+          "proposal_child_hash": "82bfcc3626b9eb8742dc5f014df0745bd0b11f5597fa849c5b77c9f3a1539a45"
+        }
+      ],
+      "evidence_hash": "1d7c4c83f1c8c4b8b7b734ce7a3678fbc958d0053efae737d00f5ef5918e9836",
+      "previous_evidence_hash": "00e7f5e67ef91ecedb89a2e0d8418db5fbd1645713e985cc0bb3f69fbf52fac7"
+    },
+    {
+      "generation": 4,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "quiet_ensemble",
+            "min_score": 0.64,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.45
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0001
+            }
+          },
+          {
+            "case_id": "volatile_conservative",
+            "min_score": 0.95,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.5
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0001
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g04",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "1cc7bd1abfa69a0a6d9b2b2aadc9f4a80fbac6e0250429b2cee9c180b547e8f9",
+      "strategy_hash": "bb4d6c4306a533bde33568fce4037a53a6d4d22ab5cccc70d8813aefea93ba91",
+      "plan_hash": "e1b23aea287d26329fb195e2dfa60e668a59fc6efa5401de256672d25e3ff258",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.03731408125625757,
+        "calmar": 0.1926070329579313,
+        "exposure": 0.4860742705570292,
+        "max_drawdown": 0.19373166536658923,
+        "profit_factor": 1.6515736865145039,
+        "sharpe": 0.3684211165847595,
+        "sortino": 0.5087844574944406,
+        "total_return": 0.24493294562285306,
+        "trade_count": 17,
+        "turnover": 33.88614143253352,
+        "win_rate": 0.4117647058823529
+      },
+      "observed_trades": 34,
+      "experiment_ids": [
+        "g04_unanimous_entry_only"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g04_unanimous_entry_only",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "bb4d6c4306a5-T-000008",
+            "bb4d6c4306a5-T-000028"
+          ],
+          "proposal_child_hash": "e8754fbc515aef508ace730427eda009ed9d4c292cf72a744bd076820fa056ce"
+        }
+      ],
+      "evidence_hash": "ee31d96c08de2090f6a114b7678fc089ef0f34d1f24cfceed0161603a6002234",
+      "previous_evidence_hash": "1d7c4c83f1c8c4b8b7b734ce7a3678fbc958d0053efae737d00f5ef5918e9836"
+    },
+    {
+      "generation": 5,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "bullish_only",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.45
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g05",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "c1e2efbb6646346eb50f84a4d49c67119726045bfedb75ff2bfc5bfab5ef1792",
+      "strategy_hash": "587f10de53e5111c87541586002deb23c412e02ee56fe25a21f324addaf97090",
+      "plan_hash": "bf4e8a82715f5f55ac24ebe971c3f11eb4f03767e6a74ce4b446c57d6a26c695",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.007801361966189413,
+        "calmar": 0.03194171807876712,
+        "exposure": 0.4323607427055703,
+        "max_drawdown": 0.24423739345991147,
+        "profit_factor": 1.0696682888152773,
+        "sharpe": 0.12581273556688718,
+        "sortino": 0.17205945285395602,
+        "total_return": 0.04756910695369121,
+        "trade_count": 56,
+        "turnover": 111.3843162087721,
+        "win_rate": 0.375
+      },
+      "observed_trades": 112,
+      "experiment_ids": [
+        "g05_entry_unanimous_score"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g05_entry_unanimous_score",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "587f10de53e5-T-000028",
+            "587f10de53e5-T-000034"
+          ],
+          "proposal_child_hash": "5a066e2ee253759aa6beb739461f5c67c457cc2e6b84c1c898cd1b70d966b4c0"
+        }
+      ],
+      "evidence_hash": "80013dc36dea6c4ec068eca95134c895280be8ade828dfeb28d43df71d3cd45b",
+      "previous_evidence_hash": "ee31d96c08de2090f6a114b7678fc089ef0f34d1f24cfceed0161603a6002234"
+    },
+    {
+      "generation": 6,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "quiet_dip_reentry",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00025
+            }
+          },
+          {
+            "case_id": "active_confirmed_break",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00025
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g06",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "4b4516f72cf0c374039e14ab1d4dbe4d89209d054b511b69ad4ba7f2fcff541f",
+      "strategy_hash": "11e007bbb2dae10357e2c5bb9b4b0ca35f8ada20b29d5b799877b6b1e98baf29",
+      "plan_hash": "d60fb274fc90df92bd8fbd0dc176629a5b8c139e94c7dd81f7852402c69e5dd9",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": -0.030283510733433605,
+        "calmar": -0.11972667081405605,
+        "exposure": 0.028514588859416445,
+        "max_drawdown": 0.25293871889636044,
+        "profit_factor": 0.4897923874866573,
+        "sharpe": -0.6729816076636966,
+        "sortino": -0.7707934973120172,
+        "total_return": -0.16798018845232487,
+        "trade_count": 41,
+        "turnover": 70.54187285987321,
+        "win_rate": 0.4634146341463415
+      },
+      "observed_trades": 82,
+      "experiment_ids": [
+        "g06_relax_entry_only"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g06_relax_entry_only",
+          "predicted_direction": "INCREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "11e007bbb2da-T-000030",
+            "11e007bbb2da-T-000028"
+          ],
+          "proposal_child_hash": "0a68e756bbed05447dd9e2bc535cf455f832e92e99e99006d4913ea771e64217"
+        }
+      ],
+      "evidence_hash": "fcca42c7abd9958d7d47e95617145c7017f8ffb781b2e0b3b966892eba96698b",
+      "previous_evidence_hash": "80013dc36dea6c4ec068eca95134c895280be8ade828dfeb28d43df71d3cd45b"
+    },
+    {
+      "generation": 7,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "low_vol_trend_only",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g07",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "01d3abdaf4f35f5508102e2b49162a2b10bd007da67e44638e2330296845fb4b",
+      "strategy_hash": "6d2387318cc7d947176caa560d0f2e4fc133463c6b77fe3d5999eb921896ed33",
+      "plan_hash": "f506ba0b4b81c0f845f04e303ee96e8776f343d02a1c4d77197be8dd6133f78d",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.036304595277932394,
+        "calmar": 0.2240952350962266,
+        "exposure": 0.46220159151193635,
+        "max_drawdown": 0.16200520846569175,
+        "profit_factor": 1.6966627129130196,
+        "sharpe": 0.37087944015576435,
+        "sortino": 0.5074147376466757,
+        "total_return": 0.23770530821385893,
+        "trade_count": 18,
+        "turnover": 36.42896878576298,
+        "win_rate": 0.4444444444444444
+      },
+      "observed_trades": 36,
+      "experiment_ids": [
+        "g07_exit_partial_score_gate"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g07_exit_partial_score_gate",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "6d2387318cc7-T-000030",
+            "6d2387318cc7-T-000002"
+          ],
+          "proposal_child_hash": "2880b0651b21bb4c109819716d7b1d2ae8435cfeee97d55fd00297f758430f7a"
+        }
+      ],
+      "evidence_hash": "59e3812c39a1b2e4bd7859324a0f3f125f2120d1408491c4dc949a2caff341b4",
+      "previous_evidence_hash": "fcca42c7abd9958d7d47e95617145c7017f8ffb781b2e0b3b966892eba96698b"
+    },
+    {
+      "generation": 8,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "quiet_trend",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          },
+          {
+            "case_id": "hot_breakout",
+            "min_score": 0.85,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g08",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "dc0c7fa05873662ac78d7e08dc63e7785cdbb7983e7d1d711c37a0bfddd3e64a",
+      "strategy_hash": "3eb87396688f17ef5e069f7f55138823c0bf8add4ae7cf9651d965e7f6b9ac5f",
+      "plan_hash": "be40e3cf6981e7781646f6ace53c31f57106d79f69f04589b1c524da68dd4bc6",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.011460918804545805,
+        "calmar": 0.05096148125046819,
+        "exposure": 0.49137931034482757,
+        "max_drawdown": 0.2248937535433296,
+        "profit_factor": 1.137340228231317,
+        "sharpe": 0.15546090886751895,
+        "sortino": 0.21059263765744474,
+        "total_return": 0.07052409192359455,
+        "trade_count": 44,
+        "turnover": 79.1941585223498,
+        "win_rate": 0.36363636363636365
+      },
+      "observed_trades": 88,
+      "experiment_ids": [
+        "g08_filter_high_vol_branch_only"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g08_filter_high_vol_branch_only",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "3eb87396688f-T-000080",
+            "3eb87396688f-T-000022"
+          ],
+          "proposal_child_hash": "abc0787a5a7a03373f55d73f1141e0e42e901ab4253ae1de4b1361c9800722f5"
+        }
+      ],
+      "evidence_hash": "9b5ff360e219fd5b735bae143ae6b20d69cd7afcd7107fdc77337cde65795639",
+      "previous_evidence_hash": "59e3812c39a1b2e4bd7859324a0f3f125f2120d1408491c4dc949a2caff341b4"
+    },
+    {
+      "generation": 9,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "expanded_low_risk_trend",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00025
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g09",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "eb597cb8c2cb6261ea7654b4b72cbaf10d79de375b8243651fc37767b83aa722",
+      "strategy_hash": "bb83a6a652005b9ead2000c19b6cde613ef499706b887535db835b73596d4c09",
+      "plan_hash": "e5d9cc5091d73964a411151ce2c286331527f2596587fd9e69090c3f477136b9",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.04004670623339557,
+        "calmar": 0.22821948788242688,
+        "exposure": 0.47877984084880637,
+        "max_drawdown": 0.17547452500650013,
+        "profit_factor": 1.7203790615253807,
+        "sharpe": 0.3916722947199597,
+        "sortino": 0.5417800838214907,
+        "total_return": 0.264674342283318,
+        "trade_count": 17,
+        "turnover": 34.28949099720316,
+        "win_rate": 0.47058823529411764
+      },
+      "observed_trades": 34,
+      "experiment_ids": [
+        "g09_entry_volatility_cap_only"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g09_entry_volatility_cap_only",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "bb83a6a65200-T-000008",
+            "bb83a6a65200-T-000028"
+          ],
+          "proposal_child_hash": "ffd1bd9d58d85e828ebe14b986344270a08946f9649385ff0cab02ff4e331a20"
+        }
+      ],
+      "evidence_hash": "08597e67fdf1849df8aeab7e1b8df2026de880c5a9afde61ac49f7d49a11e7a3",
+      "previous_evidence_hash": "9b5ff360e219fd5b735bae143ae6b20d69cd7afcd7107fdc77337cde65795639"
+    },
+    {
+      "generation": 10,
+      "plan": {
+        "cases": [
+          {
+            "case_id": "quiet_dual_confirmation",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.3
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00018
+            }
+          },
+          {
+            "case_id": "volatile_multi_confirmation",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.25
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00018
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g10",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      "algorithm_semantic_hash": "370fad894f4259d2caee7fab3d1ff5eda205b07ae894d7b8ce4c3246fc63ed67",
+      "strategy_hash": "065c5854069da964ce17ce8655fee07a6a10f80ecf36bd847ffb7e9a7515d4fb",
+      "plan_hash": "36b2138b49927e5f4ff76c42765eadb25cc4e6666081a4e7a633317e8bf8b3a8",
+      "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+      "metrics": {
+        "cagr": 0.10508419521539158,
+        "calmar": 0.5623204523425136,
+        "exposure": 0.5921750663129973,
+        "max_drawdown": 0.1868759970896168,
+        "profit_factor": 2.6449384961887517,
+        "sharpe": 0.7785000618999371,
+        "sortino": 1.0937357305641993,
+        "total_return": 0.8176538771363557,
+        "trade_count": 23,
+        "turnover": 63.506611441907616,
+        "win_rate": 0.5217391304347826
+      },
+      "observed_trades": 46,
+      "experiment_ids": [
+        "g10_entry_full_confluence_test"
+      ],
+      "experiments": [
+        {
+          "hypothesis_id": "g10_entry_full_confluence_test",
+          "predicted_direction": "DECREASE",
+          "expected_metric": "trade_count",
+          "observed_ids": [
+            "065c5854069d-T-000040",
+            "065c5854069d-T-000006"
+          ],
+          "proposal_child_hash": "d4b66eafbe7cbf2ff165f152af4d16ad361ce7c4bb28f6d67257432a33f1e561"
+        }
+      ],
+      "evidence_hash": "8eb3d73e8d98eb2acb76215677d23a07ecb2edae08950e1793d0f34e872a3240",
+      "previous_evidence_hash": "08597e67fdf1849df8aeab7e1b8df2026de880c5a9afde61ac49f7d49a11e7a3"
+    }
+  ]
+}
