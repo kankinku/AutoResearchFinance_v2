@@ -1,0 +1,111 @@
+{
+  "broker_executable": false,
+  "causal_status": "NOT_ESTABLISHED",
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "features": [
+    {
+      "evidence_status": "OBSERVED_NON_CAUSAL",
+      "formula_identity": "5e4734c48da905efd9919b5e50709f2b455f2fd05e9a0c198c1b6c2d7cd08033",
+      "id": "ema_direction_20",
+      "loss_entries": 20,
+      "missing_bars": 19,
+      "no_entry_decisions": 700,
+      "observed_bars": 1489,
+      "profile_hash": "3bb01bce3b696306465b42b26e322009d10f4efe8a212cc2125b5f546115894e",
+      "signal_conditioned_entry_outcomes": [
+        {
+          "flats": 0,
+          "insufficient_for_inference": true,
+          "losses": 3,
+          "signal_state": "NON_POSITIVE",
+          "wins": 12
+        },
+        {
+          "flats": 0,
+          "insufficient_for_inference": false,
+          "losses": 17,
+          "signal_state": "POSITIVE",
+          "wins": 29
+        }
+      ],
+      "win_entries": 41
+    },
+    {
+      "evidence_status": "OBSERVED_NON_CAUSAL",
+      "formula_identity": "fa01e916594e63a3d63014b73c66c73e6e38743469c9c8860adf8ecac72384dd",
+      "id": "sma_direction",
+      "loss_entries": 20,
+      "missing_bars": 19,
+      "no_entry_decisions": 700,
+      "observed_bars": 1489,
+      "profile_hash": "0158143adfad99b07b0e75c580a5524ecf8cd670e6b990e1016debc22b2882a9",
+      "signal_conditioned_entry_outcomes": [
+        {
+          "flats": 0,
+          "insufficient_for_inference": false,
+          "losses": 5,
+          "signal_state": "NON_POSITIVE",
+          "wins": 18
+        },
+        {
+          "flats": 0,
+          "insufficient_for_inference": false,
+          "losses": 15,
+          "signal_state": "POSITIVE",
+          "wins": 23
+        }
+      ],
+      "win_entries": 41
+    },
+    {
+      "evidence_status": "OBSERVED_NON_CAUSAL",
+      "formula_identity": "385a0c3935a04cae65096d1000009046de627c0d0158039106420568c525170a",
+      "id": "parkinson_variance",
+      "loss_entries": 20,
+      "missing_bars": 19,
+      "no_entry_decisions": 700,
+      "observed_bars": 1489,
+      "profile_hash": "973631ea359182425e3464b20e69ff82521006aad019715a73705dc9d576fcd5",
+      "signal_conditioned_entry_outcomes": [
+        {
+          "flats": 0,
+          "insufficient_for_inference": false,
+          "losses": 20,
+          "signal_state": "CONTINUOUS",
+          "wins": 41
+        }
+      ],
+      "win_entries": 41
+    }
+  ],
+  "generation": 350,
+  "independent_oos_approved": false,
+  "pairwise_agreement": [
+    {
+      "binary_signal_agreement": 0.9617192746809939,
+      "incremental_information_not_established": true,
+      "left": "ema_direction_20",
+      "overlap_count": 1489,
+      "right": "sma_direction"
+    },
+    {
+      "binary_signal_agreement": null,
+      "incremental_information_not_established": true,
+      "left": "ema_direction_20",
+      "overlap_count": 1489,
+      "right": "parkinson_variance"
+    },
+    {
+      "binary_signal_agreement": null,
+      "incremental_information_not_established": true,
+      "left": "sma_direction",
+      "overlap_count": 1489,
+      "right": "parkinson_variance"
+    }
+  ],
+  "profile_evidence_hash": "bb0da9822b73e720f80ae47ddb0b143c828bcb9efc6ffe3bc4fc46a3f3c8e6bf",
+  "schema": "autoresearch-f1-g350-readonly-observation-v1",
+  "source": "VERIFIED_ACADEMIC_CALCULATORS_AND_CANONICAL_AUDIT",
+  "source_audit_hash": "2edf373c4ff90aa45044102b3460a43199d6356f2bc4b181e7185cf05edc56f6",
+  "source_generation_evidence_hash": "26647e424913125cee1ec1dd6333538938237fb7205f7fc5147519b9c6cb725d"
+}
