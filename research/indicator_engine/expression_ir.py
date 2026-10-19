@@ -14,7 +14,15 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictFloat,
+    ValidationError,
+    model_validator,
+)
 
 from core.data.contracts import DataZone, MarketDataSet
 from core.integrity.hashes import content_hash
@@ -81,10 +89,10 @@ class Expression(BaseModel):
 
     op: Operation
     args: tuple[Expression, ...] = ()
-    value: float | bool | None = None
+    value: StrictFloat | StrictBool | None = None
     name: str | None = None
-    periods: int | None = Field(default=None, ge=1, le=MAX_LOOKBACK)
-    window: int | None = Field(default=None, ge=2, le=MAX_LOOKBACK)
+    periods: int | None = Field(default=None, ge=1, le=MAX_LOOKBACK, strict=True)
+    window: int | None = Field(default=None, ge=2, le=MAX_LOOKBACK, strict=True)
 
     @model_validator(mode="after")
     def valid_node(self) -> Expression:

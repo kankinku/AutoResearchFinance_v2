@@ -146,6 +146,9 @@ def test_completed_prefix_stability_for_four_different_expressions() -> None:
         (expr("div", src(), number(float("inf"))), {"close": "number"}),
         ({"op": "source", "name": "close", "forward": 10}, {"close": "number"}),
         ({"op": "const", "value": float("nan")}, {}),
+        ({"op": "const", "value": "1.2"}, {}),
+        ({"op": "lag", "periods": "1", "args": [src()]}, {"close": "number"}),
+        ({"op": "const", "value": {}}, {}),
     ],
 )
 def test_compiler_fails_closed(candidate, declarations) -> None:
