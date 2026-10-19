@@ -1,0 +1,145 @@
+{
+  "broker_executable": false,
+  "candidate_features": [
+    {
+      "auto_select": false,
+      "candidate_status": "OBSERVED_CONTRADICTORY_OR_INSUFFICIENT",
+      "counterexamples": [
+        {
+          "assumption_challenged": "ALWAYS_REQUIRE_POSITIVE_SIGNAL",
+          "losing_entries_also_excluded": 3,
+          "not_portfolio_counterfactual": true,
+          "winning_entries_excluded_by_blanket_filter": 12
+        },
+        {
+          "assumption_challenged": "POSITIVE_SIGNAL_GUARANTEES_WIN",
+          "losing_entries_with_positive_signal": 17,
+          "not_portfolio_counterfactual": true,
+          "winning_entries_with_positive_signal": 29
+        }
+      ],
+      "formula_hash": "5e4734c48da905efd9919b5e50709f2b455f2fd05e9a0c198c1b6c2d7cd08033",
+      "id": "ema_direction_20",
+      "observed_entry_states": [
+        {
+          "flats": 0,
+          "insufficient_for_inference": true,
+          "losses": 3,
+          "signal_state": "NON_POSITIVE",
+          "wins": 12
+        },
+        {
+          "flats": 0,
+          "insufficient_for_inference": false,
+          "losses": 17,
+          "signal_state": "POSITIVE",
+          "wins": 29
+        }
+      ],
+      "potential_information_gain": "NOT_ESTABLISHED",
+      "profile_hash": "94ac300a689e2c7ebfa0873d8f6a3b19e46f2d85d128a10a0e509fb197368f60"
+    },
+    {
+      "auto_select": false,
+      "candidate_status": "OBSERVED_CONTRADICTORY_OR_INSUFFICIENT",
+      "counterexamples": [
+        {
+          "assumption_challenged": "ALWAYS_REQUIRE_POSITIVE_SIGNAL",
+          "losing_entries_also_excluded": 20,
+          "not_portfolio_counterfactual": true,
+          "winning_entries_excluded_by_blanket_filter": 37
+        }
+      ],
+      "formula_hash": "b95309ff7eec9386c3001f0df09e483d32ad172316af0b4eadd75ebaeeb2b902",
+      "id": "previous_range_breakout",
+      "observed_entry_states": [
+        {
+          "flats": 0,
+          "insufficient_for_inference": false,
+          "losses": 20,
+          "signal_state": "NON_POSITIVE",
+          "wins": 37
+        },
+        {
+          "flats": 0,
+          "insufficient_for_inference": true,
+          "losses": 0,
+          "signal_state": "POSITIVE",
+          "wins": 4
+        }
+      ],
+      "potential_information_gain": "NOT_ESTABLISHED",
+      "profile_hash": "075e5b752daa4ba8a05445b64ef5b3d64619b434556407d7d3a6d20bcdabf1b8"
+    },
+    {
+      "auto_select": false,
+      "candidate_status": "OBSERVED_CONTRADICTORY_OR_INSUFFICIENT",
+      "counterexamples": [
+        {
+          "assumption_challenged": "OBSERVATIONAL_EVIDENCE_IS_PROOF",
+          "not_portfolio_counterfactual": true,
+          "reason": "No supported conditional effect or insufficient samples"
+        }
+      ],
+      "formula_hash": "385a0c3935a04cae65096d1000009046de627c0d0158039106420568c525170a",
+      "id": "parkinson_variance",
+      "observed_entry_states": [
+        {
+          "flats": 0,
+          "insufficient_for_inference": false,
+          "losses": 20,
+          "signal_state": "CONTINUOUS",
+          "wins": 41
+        }
+      ],
+      "potential_information_gain": "NOT_ESTABLISHED",
+      "profile_hash": "ed7208b4801949d1356972468ad044092f7f47fc51c0d5e63b47e741a4aaeb1d"
+    }
+  ],
+  "causal_status": "NOT_ESTABLISHED",
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "feature_profile_evidence_hash": "45c7c606aa68928043497d7376d0039413c99b09eed0b6f2dd8a76b5170b4bba",
+  "guidance_hash": "ce8349a7cfa50c8a432ad427ec590cc4cafd8516aab4d81ce4efb3c9ae354ffb",
+  "independent_oos_approved": false,
+  "not_a_counterfactual": "YES",
+  "recommended_auto_mutations": [],
+  "schema": "autoresearch-f2-g350-weakness-feature-guidance-readonly-v1",
+  "source_audit_hash": "2edf373c4ff90aa45044102b3460a43199d6356f2bc4b181e7185cf05edc56f6",
+  "source_generation": 350,
+  "source_generation_evidence_hash": "26647e424913125cee1ec1dd6333538938237fb7205f7fc5147519b9c6cb725d",
+  "source_loss_evidence_hash": "daf2968a192386cd82f9133ec7280477d42fcf1612b9d166c65348b844a578cd",
+  "weaknesses": [
+    {
+      "id": "e521893a3b063a6360d476a2",
+      "needed_information": "Is a trend reversal real or only a transient EMA change?",
+      "observation_code": "EMA_TURNED_OFF_BY_EXIT",
+      "source_indicator_or_metric": "ema_direction_20",
+      "source_trade_count": 7,
+      "test_result": "NOT_RUN"
+    },
+    {
+      "id": "38eb14362c774ffbeb471e0e",
+      "needed_information": "Does breakout context distinguish false entries from missed trend starts?",
+      "observation_code": "NO_BREAKOUT_AT_ENTRY",
+      "source_indicator_or_metric": "previous_range_breakout",
+      "source_trade_count": 8,
+      "test_result": "NOT_RUN"
+    },
+    {
+      "id": "9ac90fdc77caf52d6961220a",
+      "needed_information": "Does rising range volatility change downside risk?",
+      "observation_code": "PARKINSON_VARIANCE_ROSE_DURING_HOLD",
+      "source_indicator_or_metric": "parkinson_variance",
+      "source_trade_count": 1,
+      "test_result": "NOT_RUN"
+    },
+    {
+      "id": "706c1e2e507b40d54dce5683",
+      "needed_information": "Would exit timing information reduce giveback without churn?",
+      "observation_code": "EXIT_BELOW_OBSERVED_CLOSE_PEAK",
+      "source_indicator_or_metric": "plan_vote_score",
+      "source_trade_count": 1,
+      "test_result": "NOT_RUN"
+    }
+  ]
+}

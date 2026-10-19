@@ -70,6 +70,7 @@ from research.llm.trade_cohort_review import (
     build_trade_cohort_review,
     link_completed_s7_to_cohort,
 )
+from research.llm.weakness_feature_matcher import build_weakness_feature_guidance
 from strategy_ir.schema import StrategyIR
 
 
@@ -950,6 +951,16 @@ class AcademicMCPCheckpointService:
             # are read-only advice for the NEXT GPT plan, not part of the
             # immutable historical S2 diagnostic context.
             context["trade_cohort_review"] = build_trade_cohort_review(previous_audit, data)
+            # F2: research-plan advice only. F1 profiles verified calculators
+            # against the SAME audited entry, win, loss and no-entry decisions.
+            # The loss/feature join is hash-checked and no child is auto-selected.
+            guidance = build_weakness_feature_guidance(catalog, previous_audit, data)
+            guidance["source_generation"] = last["generation"]
+            guidance["source_generation_evidence_hash"] = last["evidence_hash"]
+            guidance["guidance_hash"] = content_hash(
+                {key: value for key, value in guidance.items() if key != "guidance_hash"}
+            )
+            context["feature_weakness_guidance"] = guidance
             context["paired_s7_evidence_link"] = link_completed_s7_to_cohort(
                 previous_audit,
                 last,
