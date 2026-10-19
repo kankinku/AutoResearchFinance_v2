@@ -129,9 +129,97 @@ def test_mcp_s7_allows_later_generation_without_enlarging_start():
         schema["evaluate_algorithm_experiments"]["inputSchema"]["properties"]["generation"][
             "maximum"
         ]
-        == 200
+        == 300
     )
     assert (
         schema["start_algorithm_research"]["inputSchema"]["properties"]["generations"]["maximum"]
         == 100
     )
+
+def test_midstream_extension_retains_original_evidence_and_receipts(tmp_path: Path):
+    server, sealed, scripted = _finish_two(tmp_path)
+    sid = sealed["session_id"]
+    service = AcademicMCPCheckpointService(
+        project_root=tmp_path / "project",
+        state_dir=tmp_path / "state",
+    )
+    first = service.extend_completed_session(sid, additional_generations=100)
+    stage = server._dispatch(
+        "submit_algorithm_plan",
+        {
+            "session_id": sid,
+            "checkpoint_token": first["checkpoint_token"],
+            "plan": scripted.propose(first["model_context"]),
+        },
+    )
+    middle = server._dispatch(
+        "submit_algorithm_diagnosis",
+        {
+            "session_id": sid,
+            "checkpoint_token": stage["checkpoint_token"],
+            "diagnosis": scripted.propose(stage["model_context"]),
+        },
+    )
+    assert middle["completed_generations"] == 3
+    assert middle["requested_generations"] == 102
+    assert middle["checkpoint_phase"] == "AWAITING_PLAN"
+    original_hashes = [row["evidence_hash"] for row in middle["history"]]
+    extended = service.extend_completed_session(sid, additional_generations=100)
+    assert extended["completed_generations"] == 3
+    assert extended["requested_generations"] == 202
+    assert extended["status"] == "AWAITING_PROVIDER"
+    assert extended["checkpoint_phase"] == "AWAITING_PLAN"
+    assert [row["evidence_hash"] for row in extended["history"]] == original_hashes
+    with service._connect() as db:
+        receipts = db.execute(
+            "SELECT old_requested,new_requested,completed FROM session_extensions "
+            "WHERE session_id=? ORDER BY new_requested",
+            (sid,),
+        ).fetchall()
+        assert [tuple(row) for row in receipts] == [(2, 102, 2), (102, 202, 3)]
+    with pytest.raises((ValueError, RuntimeError), match="checkpoint|token"):
+        server._dispatch(
+            "submit_algorithm_plan",
+            {
+                "session_id": sid,
+                "checkpoint_token": middle["checkpoint_token"],
+                "plan": scripted.propose(middle["model_context"]),
+            },
+        )
+
+
+def test_midstream_extension_requires_complete_s7(tmp_path: Path):
+    server, sealed, scripted = _finish_two(tmp_path)
+    sid = sealed["session_id"]
+    service = AcademicMCPCheckpointService(
+        project_root=tmp_path / "project",
+        state_dir=tmp_path / "state",
+    )
+    first = service.extend_completed_session(sid, additional_generations=100)
+    stage = server._dispatch(
+        "submit_algorithm_plan",
+        {
+            "session_id": sid,
+            "checkpoint_token": first["checkpoint_token"],
+            "plan": scripted.propose(first["model_context"]),
+        },
+    )
+    middle = server._dispatch(
+        "submit_algorithm_diagnosis",
+        {
+            "session_id": sid,
+            "checkpoint_token": stage["checkpoint_token"],
+            "diagnosis": scripted.propose(stage["model_context"]),
+        },
+    )
+    with service._connect() as db:
+        db.execute(
+            "DELETE FROM experiment_reports WHERE session_id=? AND generation=?",
+            (sid, 3),
+        )
+    with pytest.raises(ValueError, match="S7 evidence"):
+        service.extend_completed_session(sid, additional_generations=100)
+    after = service.get({"session_id": sid})
+    assert after["requested_generations"] == 102
+    assert after["completed_generations"] == 3
+    assert after["history"] == middle["history"]

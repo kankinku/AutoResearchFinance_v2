@@ -46,7 +46,7 @@ def build_experiment_learning(
     parameters, independent counterfactual controls or a broker-ready decision.
     No LLM or backtest is invoked and no source evidence is modified.
     """
-    if not 1 <= max_recent <= 50 or len(history) > 100 or len(records) > len(history):
+    if not 1 <= max_recent <= 50 or len(history) > 300 or len(records) > len(history):
         raise ExperimentLearningError("unbounded experiment learning request")
     for k, past_generation in enumerate(history, 1):
         if (

@@ -66,7 +66,7 @@ def choose_development_parent(
             raise LineageSelectionError("duplicate lineage report in parent pool")
         seen.add(digest)
         generation = row.get("source_generation")
-        if type(generation) is not int or not 1 <= generation <= 200:
+        if type(generation) is not int or not 1 <= generation <= 300:
             raise LineageSelectionError("invalid source generation")
         ret = _finite(row, "successor_total_return")
         child_ret = _finite(row, "child_total_return")

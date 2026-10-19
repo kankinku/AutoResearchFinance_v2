@@ -28,14 +28,19 @@ def main() -> None:
         state_dir=args.state_dir,
     )
     before = service.get({"session_id": args.session_id})
-    if (
-        before["completed_generations"] != args.expected_completed
-        or before["requested_generations"] != args.expected_completed
-        or before["checkpoint_phase"] != "COMPLETED"
-        or before["status"] != "COMPLETED"
-        or before["final_report"]["all_proposed_hypotheses_measured"] is not True
-    ):
-        raise RuntimeError("precondition failed: completed session must be exact")
+    terminal = (
+        before["status"] == "COMPLETED"
+        and before["checkpoint_phase"] == "COMPLETED"
+        and before["completed_generations"] == before["requested_generations"]
+        and before["final_report"]["all_proposed_hypotheses_measured"] is True
+    )
+    idle = (
+        before["status"] == "AWAITING_PROVIDER"
+        and before["checkpoint_phase"] == "AWAITING_PLAN"
+        and before["completed_generations"] < before["requested_generations"]
+    )
+    if before["completed_generations"] != args.expected_completed or not (terminal or idle):
+        raise RuntimeError("precondition failed: exact idle/sealed session required")
     if args.backup_dir.exists():
         raise RuntimeError("backup target already exists; refusing overwrite")
     args.backup_dir.mkdir(parents=True, mode=0o700)

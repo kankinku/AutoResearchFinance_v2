@@ -1579,7 +1579,7 @@ class AcademicMCPCheckpointService:
         sid, generation = args["session_id"], args["generation"]
         if (
             type(generation) is not int
-            or not 1 <= generation <= 200
+            or not 1 <= generation <= 300
             or not isinstance(args["hypothesis_id"], str)
             or not isinstance(args["child_strategy_hash"], str)
             or len(args["child_strategy_hash"]) != 64
@@ -1665,7 +1665,7 @@ class AcademicMCPCheckpointService:
             return self.continue_verified_child(args)
         self._one(args, {"session_id", "generation"}, {"session_id", "generation"})
         sid, generation = args["session_id"], args["generation"]
-        if type(generation) is not int or not 1 <= generation <= 200:
+        if type(generation) is not int or not 1 <= generation <= 300:
             raise ValueError("generation must be integer 1-100")
         with self._connect() as db:
             _, catalog, data, state = self._state(db, sid)
@@ -1762,7 +1762,7 @@ class AcademicMCPCheckpointService:
         *,
         additional_generations: int,
     ) -> dict[str, Any]:
-        """Operator-only, audited extension of a completed checkpoint.
+        """Operator-only, audited extension at a sealed or idle plan checkpoint.
 
         This is intentionally NOT an MCP tool. Stop other academic gateway
         writers before invoking it; use an external SQLite backup/rollback
@@ -1779,14 +1779,23 @@ class AcademicMCPCheckpointService:
         completed = original["completed_generations"]
         old_requested = original["requested_generations"]
         new_requested = old_requested + additional_generations
+        terminal = (
+            original["status"] == "COMPLETED"
+            and original["checkpoint_phase"] == "COMPLETED"
+            and completed == old_requested
+        )
+        idle = (
+            original["status"] == "AWAITING_PROVIDER"
+            and original["checkpoint_phase"] == "AWAITING_PLAN"
+            and completed < old_requested
+        )
         if (
-            original["status"] != "COMPLETED"
-            or original["checkpoint_phase"] != "COMPLETED"
-            or completed != old_requested
-            or not 1 <= completed < new_requested <= 200
-            or original.get("final_report", {}).get("all_proposed_hypotheses_measured") is not True
+            not (terminal or idle)
+            or not 1 <= completed < new_requested <= 300
+            or (terminal and original.get("final_report", {}).get(
+                "all_proposed_hypotheses_measured") is not True)
         ):
-            raise CycleStateError("extension requires complete hash-verified S7 evidence")
+            raise CycleStateError("extension requires sealed or idle checkpoint")
         history = original["history"]
         if len(history) != completed:
             raise CycleStateError("extension evidence head is incomplete")
@@ -1806,11 +1815,11 @@ class AcademicMCPCheckpointService:
             if (
                 current is None
                 or cycle is None
-                or current["phase"] != "COMPLETED"
+                or current["phase"] != original["checkpoint_phase"]
                 or current["plan_json"] is not None
                 or current["plan_digest"] is not None
                 or current["context_digest"] is not None
-                or cycle["status"] != "COMPLETED"
+                or cycle["status"] != original["status"]
                 or cycle["requested"] != old_requested
                 or cycle["completed"] != completed
                 or cycle["dataset_hash"] != original["dataset_hash"]
@@ -1824,6 +1833,18 @@ class AcademicMCPCheckpointService:
             ).fetchone()
             if proof is None or proof["generation"] != completed or proof["evidence_hash"] != head:
                 raise CycleStateError("extension original evidence hash mismatch")
+            # Verify every original S7 report and its parent evidence before
+            # changing target generation count, including idle 101+ sessions.
+            for observed in history:
+                stored = self._stored_experiment(db, session_id, observed["generation"])
+                if (
+                    stored is None
+                    or stored.get("original_generation_evidence_hash")
+                    != observed["evidence_hash"]
+                    or sorted(x["hypothesis_id"] for x in stored["report"]["experiments"])
+                    != sorted(observed["hypothesis_ids"])
+                ):
+                    raise CycleStateError("extension missing hash-verified S7 evidence")
             old_token = current["token"]
             body = {
                 "session_id": session_id,
@@ -1837,15 +1858,15 @@ class AcademicMCPCheckpointService:
             db.execute(
                 "UPDATE academic_cycle.sessions SET requested=?,"
                 "status='AWAITING_PROVIDER',error_type=NULL "
-                "WHERE id=? AND status='COMPLETED' AND completed=? AND requested=?",
-                (new_requested, session_id, completed, old_requested),
+                "WHERE id=? AND status=? AND completed=? AND requested=?",
+                (new_requested, session_id, original["status"], completed, old_requested),
             )
             if db.execute("SELECT changes()").fetchone()[0] != 1:
                 raise CycleStateError("extension cycle update collision")
             db.execute(
                 "UPDATE stages SET phase='AWAITING_PLAN',token=? "
-                "WHERE session_id=? AND phase='COMPLETED' AND token=?",
-                (new_token, session_id, old_token),
+                "WHERE session_id=? AND phase=? AND token=?",
+                (new_token, session_id, original["checkpoint_phase"], old_token),
             )
             if db.execute("SELECT changes()").fetchone()[0] != 1:
                 raise CycleStateError("extension gateway update collision")

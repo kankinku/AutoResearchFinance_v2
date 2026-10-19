@@ -442,7 +442,7 @@ def chatgpt_tools() -> list[dict[str, object]]:
                 "mutation at the existing checkpoint, never place orders.",
                 {
                     "session_id": session_field,
-                    "generation": {"type": "integer", "minimum": 1, "maximum": 200},
+                    "generation": {"type": "integer", "minimum": 1, "maximum": 300},
                     "checkpoint_token": token_field,
                     "hypothesis_id": {"type": "string", "minLength": 3, "maxLength": 96},
                     "child_strategy_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
