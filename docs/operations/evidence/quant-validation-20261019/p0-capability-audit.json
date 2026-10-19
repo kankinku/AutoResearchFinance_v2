@@ -1,0 +1,1842 @@
+{
+  "academic_fixture": {
+    "count": 7,
+    "rows": [
+      {
+        "calculation_observed": false,
+        "calculator": "cross_sectional_momentum",
+        "declared_status": "PROPOSED",
+        "llm_exposed": false,
+        "name": "cross_sectional_momentum",
+        "reason": "NOT_PROVIDER_ELIGIBLE",
+        "status": "PARTIAL",
+        "surface": "academic_algorithm_provider"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "garman_klass_variance",
+        "declared_status": "PROPOSED",
+        "llm_exposed": false,
+        "name": "garman_klass_variance",
+        "reason": "NOT_PROVIDER_ELIGIBLE",
+        "status": "PARTIAL",
+        "surface": "academic_algorithm_provider"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "parkinson_variance",
+        "declared_status": "PROPOSED",
+        "llm_exposed": false,
+        "name": "parkinson_variance",
+        "reason": "NOT_PROVIDER_ELIGIBLE",
+        "status": "PARTIAL",
+        "surface": "academic_algorithm_provider"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "previous_range_breakout",
+        "declared_status": "VERIFIED",
+        "llm_exposed": true,
+        "name": "previous_range_breakout",
+        "reason": "VERIFIED_PROVIDER_DEVELOPMENT_SIGNAL",
+        "status": "SUPPORTED_AND_EXECUTABLE",
+        "surface": "academic_algorithm_provider"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "sma_direction",
+        "declared_status": "VERIFIED",
+        "llm_exposed": true,
+        "name": "sma_direction",
+        "reason": "VERIFIED_PROVIDER_DEVELOPMENT_SIGNAL",
+        "status": "SUPPORTED_AND_EXECUTABLE",
+        "surface": "academic_algorithm_provider"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "time_series_momentum",
+        "declared_status": "VERIFIED",
+        "llm_exposed": true,
+        "name": "time_series_momentum",
+        "reason": "VERIFIED_PROVIDER_DEVELOPMENT_SIGNAL",
+        "status": "SUPPORTED_AND_EXECUTABLE",
+        "surface": "academic_algorithm_provider"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "volatility_managed_exposure",
+        "declared_status": "PROPOSED",
+        "llm_exposed": false,
+        "name": "volatility_managed_exposure",
+        "reason": "NOT_PROVIDER_ELIGIBLE",
+        "status": "PARTIAL",
+        "surface": "academic_algorithm_provider"
+      }
+    ],
+    "status_counts": {
+      "PARTIAL": 4,
+      "SUPPORTED_AND_EXECUTABLE": 3
+    },
+    "verification": "THREE_SYNTHETIC_VERIFIED_IN_TEMP_DB_NOT_LIVE"
+  },
+  "baseline_existing_typed_plan": {
+    "equity_hash": "e89d510c7be83b9cc5653e5bca8f5845ef8e0d568ebf30730e8c68dc4d3d42bf",
+    "plan_hash": "da5fcf076a27a07dc2e616d6aa83aa8a4720109f98d10dc6c53be38454729ec0",
+    "replay_hash": "1e79ec6a8b4e4880f6db2c056ce0976e57e8d8ed9ca80b94c050327933401bd3",
+    "strategy_hash": "34d07083981652a46d15449338647698fa4a93c53df6cd0c48decc7e83671204",
+    "trade_count": 4
+  },
+  "limitations": [
+    "Native result PARTIAL does NOT mean unavailable to every other LLM mutation path; this is an academic-provider inventory and scalar calculator probe, not a universal reachability proof.",
+    "Native calculation_observed is NOT end-to-end backtest proof or mathematical reference parity.",
+    "Academic fixture verification is isolated in a temporary SQLite database and is not the current live provider registration state.",
+    "No production feature was promoted or enabled. No broker, OOS or live trading was run."
+  ],
+  "native_catalog": {
+    "calculation_observed": 135,
+    "count": 173,
+    "reason_counts": {
+      "EXTERNAL_OBSERVATIONS_REQUIRED": 14,
+      "NOT_IN_ACADEMIC_PLAN_PROVIDER": 135,
+      "NO_OBSERVABLE_OUTPUT": 12,
+      "SPECIALIZED_NOT_BAR_ALIGNED": 12
+    },
+    "rows": [
+      {
+        "calculation_observed": true,
+        "calculator": "adaptive_cycle_divergence",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "adaptive_cycle_divergence",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "adl",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "adl",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "aroon",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "aroon",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "atr",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "atr",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "atr_percent",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "atr_percent",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "bandpass_filter",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "bandpass_filter",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "bar_range_ratio",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "bar_range_ratio",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "bollinger",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "bollinger",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "cci",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "cci",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "center_of_gravity",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "center_of_gravity",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "chaikin_volatility",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "chaikin_volatility",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "cmf",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "cmf",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "cmo",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "cmo",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "connors_rsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "connors_rsi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "cusum",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "cusum",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "cyber_cycle",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "cyber_cycle",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "day_of_week",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "day_of_week",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "dc_based_rsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "dc_based_rsi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "dema",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "dema",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "detect_marubozu",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "detect_marubozu",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "detect_three_bar_reversal",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "detect_three_bar_reversal",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "dmi_adx",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "dmi_adx",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "doji",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "doji",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "dominant_cycle",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "dominant_cycle",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "donchian",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "donchian",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "donchian_channel_width",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "donchian_channel_width",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "dpo",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "dpo",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "dti",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "dti",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "dxy_returns",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "ease_of_movement",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "ease_of_movement",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "ema",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "ema",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "engulfing",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "engulfing",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "entropy",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "entropy",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "evening_star",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "evening_star",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "fama",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "fama",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "fisher",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "fisher",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "force_index",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "force_index",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "fractal",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "fractal",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "fractal_dimension",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "fractal_dimension",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "fractional_difference",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "fractional_difference",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "garman_klass",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "garman_klass",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "gold_returns",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "guppy_mma",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "guppy_mma",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "hammer",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "hammer",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "heikin_ashi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "heikin_ashi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "high_low_breakout",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "high_low_breakout",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "higher_high_lower_low",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "higher_high_lower_low",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "hilbert_phase",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "hilbert_phase",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "hilbert_sine",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "hilbert_sine",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "hilbert_transform",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "hilbert_transform",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "hilbert_trendline",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "hilbert_trendline",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "historical_volatility",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "historical_volatility",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "hma",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "hma",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "hurst",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "hurst",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "ichimoku",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "ichimoku",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "inside_bar",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "inside_bar",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "intraday_intensity",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "intraday_intensity",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "inverse_fisher_transform",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "inverse_fisher_transform",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "itrend",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "itrend",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "japan_10y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "japan_20y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "japan_2y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "kalman_slope",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "kalman_slope",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "kama",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "kama",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "keltner",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "keltner",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "kl_divergence",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "kl_divergence",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "klinger",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "klinger",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "korea_10y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "korea_20y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "korea_2y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "laguerre",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "laguerre",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "laguerre_rsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "laguerre_rsi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "linear_regression",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "linear_regression",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "log_returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "log_returns",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "macd",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "macd",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "macd_histogram",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "macd_histogram",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "macd_signal",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "macd_signal",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "mad",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "mad",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "mass_index",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "mass_index",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "mcginley",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "mcginley",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "median_price",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "median_price",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "mfi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "mfi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "minmax_scale",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "minmax_scale",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "momentum",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "momentum",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "morning_star",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "morning_star",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "moving_average_envelope",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "moving_average_envelope",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "nasdaq_returns",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "normalized_atr",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "normalized_atr",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "normalized_atr_percent",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "normalized_atr_percent",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "normalized_time_of_day",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "normalized_time_of_day",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "nvi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "nvi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "obv",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "obv",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "order_flow_delta",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "order_flow_delta",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "order_flow_imbalance",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "order_flow_imbalance",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "outside_bar",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "outside_bar",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "parabolic_sar",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "parabolic_sar",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "parkinson",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "parkinson",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "percentile_rank",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "percentile_rank",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "phase_accumulation_cycle",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "phase_accumulation_cycle",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "pin_bar",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "pin_bar",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "pivot_points",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "pivot_points",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "price_action_score",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "price_action_score",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "price_roc",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "price_roc",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "pvi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "pvi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "pvt",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "pvt",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "qqq_returns",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "qstick",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "qstick",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "range_volatility",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "range_volatility",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "relative_volatility_index",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "relative_volatility_index",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "renko",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "renko",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "returns",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "robust_scale",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "robust_scale",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "roc",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "roc",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "rolling_kurtosis",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "rolling_kurtosis",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "rolling_skewness",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "rolling_skewness",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "roofing_filter",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "roofing_filter",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "rsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "rsi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "rsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "rsi.ema",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "rsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "rsi.wilder",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "rsx",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "rsx",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "rvi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "rvi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "schaff_trend_cycle",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "schaff_trend_cycle",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "session_flag",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "session_flag",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "session_high",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "session_high",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "session_low",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "session_low",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "session_overlay_flags",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "session_overlay_flags",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "shannon_entropy",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "shannon_entropy",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "shooting_star",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "shooting_star",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "slope_of_ema",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "slope_of_ema",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "sma",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "sma",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "smi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "smi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "smoothed_obv",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "smoothed_obv",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "standard_deviation",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "standard_deviation",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "stoch_rsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "stoch_rsi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "stochastic",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "stochastic",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "super_smoother",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "super_smoother",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "supertrend",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "supertrend",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "support_resistance",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "support_resistance",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "tema",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "tema",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "time_of_day",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "time_of_day",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "time_since_extreme",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "time_since_extreme",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "tma",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "tma",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "tpo_profile",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "tpo_profile",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "trend_candle_strength",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "trend_candle_strength",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "trix",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "trix",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "true_range",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "true_range",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "tsf",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "tsf",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "tsi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "tsi",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "typical_price",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "typical_price",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "ulcer_index",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "ulcer_index",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "ultimate_oscillator",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "ultimate_oscillator",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "us_10y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "us_20y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "returns",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "us_2y_change",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "vfi",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "vfi",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "vidya",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "vidya",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "percentile",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "vix_percentile",
+        "reason": "EXTERNAL_OBSERVATIONS_REQUIRED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "volatility_ratio",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "volatility_ratio",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "volume_delta",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "volume_delta",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "volume_oscillator",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "volume_oscillator",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "volume_profile",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "volume_profile",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "volume_roc",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "volume_roc",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "vortex",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "vortex",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "vw_macd",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "vw_macd",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "vwap",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "vwap",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "vwma",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "vwma",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "weis_wyckoff",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "weis_wyckoff",
+        "reason": "SPECIALIZED_NOT_BAR_ALIGNED",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "wick_ratio",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "wick_ratio",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "williams_r",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "williams_r",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "wma",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "wma",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": false,
+        "calculator": "zero_lag_ema",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "zero_lag_ema",
+        "reason": "NO_OBSERVABLE_OUTPUT",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "zigzag",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "zigzag",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      },
+      {
+        "calculation_observed": true,
+        "calculator": "zscore",
+        "declared_status": "REGISTERED",
+        "llm_exposed": false,
+        "name": "zscore",
+        "reason": "NOT_IN_ACADEMIC_PLAN_PROVIDER",
+        "status": "PARTIAL",
+        "surface": "native_feature_catalog"
+      }
+    ],
+    "status_counts": {
+      "PARTIAL": 173
+    }
+  },
+  "schema": "CAPABILITY_AUDIT_P0_1_V1",
+  "study": "SYNTHETIC_PROBE_ONLY_NOT_LIVE_NOT_PIT_NOT_PROFIT"
+}
