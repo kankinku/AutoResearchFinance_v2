@@ -252,6 +252,8 @@ def compile_expression(
 def evaluate_expression(
     compiled: CompiledExpression,
     sources: Mapping[str, Sequence[Value]],
+    *,
+    bar_count: int | None = None,
 ) -> tuple[Value, ...]:
     """Return observations at completed close t; execution is not performed here."""
     replay = compile_expression(compiled.expression, dict(compiled.source_types))
@@ -266,9 +268,11 @@ def evaluate_expression(
     lengths = {len(source) for source in sources.values()}
     if len(lengths) > 1:
         raise ExpressionError("source series length mismatch")
-    count = lengths.pop() if lengths else 0
-    if count < 1 or count > MAX_BARS:
+    count = lengths.pop() if lengths else bar_count
+    if type(count) is not int or count < 1 or count > MAX_BARS:
         raise ExpressionError("unbounded or empty input series")
+    if bar_count is not None and (type(bar_count) is not int or bar_count != count):
+        raise ExpressionError("bar count does not match input series")
     checked: dict[str, tuple[Value, ...]] = {}
     for name, observations in sources.items():
         kind = names[name]
