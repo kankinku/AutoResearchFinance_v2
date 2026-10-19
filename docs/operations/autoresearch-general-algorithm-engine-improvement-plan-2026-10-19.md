@@ -1,7 +1,7 @@
 # Quant AutoResearch — 범용 알고리즘 연구 엔진 개선계획 v1.0
 
 **날짜:** 2026-10-19 KST
-**상태:** `P0_1_P0_2_DONE; P0_OVERALL_PARTIAL; P1_1_P1_2_ISOLATED_DONE; P1_OVERALL_PARTIAL; P2_P5_PROPOSED` — 기능 표현 언어 IR v2 / 주문 계층 **미구현**, 신규 공식 연구 세대 **0**, 운영 배포 **0**. P0-1·P0-2는 [각 보고서](autoresearch-general-algorithm-p0-2-2026-10-19.md)에 별도 기록.
+**상태:** `P0_1_P0_2_DONE; P0_OVERALL_PARTIAL; P1_1_P1_2_DONE; P1_3_OPT_IN_PROVIDER_DONE; P1_OVERALL_PARTIAL; P2_P5_PROPOSED` — 기능 표현 언어 IR v2 / 주문 계층 **미구현**, 신규 공식 연구 세대 **0**, 운영 배포 **0**. P0-1·P0-2는 [각 보고서](autoresearch-general-algorithm-p0-2-2026-10-19.md)에 별도 기록.
 **근거:** 기존 사용자의 20문답 Q02/Q05/Q06/Q07/Q08/Q09/Q10/Q11/Q12/Q14/Q17/Q18/Q19/Q20, 2026-10-16 확정 범위 잠금, Pine 11개 *일회성 외부 사례*.
 **최상위 목표:** 기존 전략 목록을 점점 늘리는 것이 아니라 LLM이 독자적으로 새로운 계산과 판단·상태·실행 정책을 표현, 실험, 수정, 검증하는 **범용 자율 연구 엔진**.
 
