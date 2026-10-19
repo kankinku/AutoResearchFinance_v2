@@ -1,7 +1,7 @@
 # Quant AutoResearch — 지표 특성 분석과 전략 약점 보완 연구 계획 v1.0
 
 작성일: 2026-10-20 KST
-상태: PLAN_ONLY — 구현·운영 배포·신규 세대 실행 없음.
+상태: F0_DONE / F1_DEVELOPMENT_VERIFIED / F2_F5_PENDING — 개발 구현·G350 읽기 전용 근거 분석 완료, 운영 배포·신규 세대 실행 없음.
 범위: 기존 사용자 20문답 Q02/Q05/Q06/Q07/Q08/Q09/Q10/Q11/Q12/Q14/Q17/Q18/Q20에 따른 T4 연구 진화의 하위 개선. V05 → T4 → V01~V04 → V06 → V07 순서와 기존 MCP 주소/OAuth, 실주문 OFF 유지.
 
 ## 1. 목표
@@ -109,6 +109,6 @@ GPT 가설은 weakness_id, candidate feature/formula hash, 필요 정보, 기대
 
 기존 source of truth는 typed StrategyIR과 append-only 증거 원장. core/data, core/backtest, core/evaluator, core/costs, core/validation, core/integrity, 봉인 OOS, 운영 OAuth/MCP URL, 실주문 OFF는 별도 승인 없이 변경하지 않음. 외부 데이터 발표 시점·라이선스 제약을 안전하게 처리. 신규 연구 코드 PASS는 GPT 자율성·미래 수익성을 증명하지 않는다.
 
-이 계획은 사용자가 지적한 두 능력을 기존 아키텍처의 T4 단계 안에 보강하는 기술 의존 계획이며, **아직 구현하지 않았다.**
+이 계획은 기존 T4 연구 진화의 하위 개선 사항이다. **F0와 F1의 개발·검증 완료, F2~F5 미구현.** [F0/F1 실측 결과](autoresearch-feature-weakness-f0-f1-2026-10-20.md).
 
-**최초 실행 대상: F0의 실제 연결도·기준 해시 확인 후 F1의 소수 지표 프로파일부터 시작.** 이미 구현된 부모 계승 운영 검증을 뒤로 미루거나 병렬로 새 엔진을 만들지 않는다.
+**다음 F2: 부모 전략의 WeaknessHypothesis와 F1 지표 프로파일을 연결해 GPT에 반례·불확실성을 포함한 보완 후보를 전달.** 기존 S7·부모 계승 운영 검증을 지연하지 않는다.
