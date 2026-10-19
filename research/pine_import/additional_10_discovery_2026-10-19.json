@@ -1,0 +1,235 @@
+{
+  "schema": "quant.pine.source-discovery.v1",
+  "created_date": "2026-10-19",
+  "stage": "ADDITIONAL_DISCOVERY_ONLY",
+  "parent_catalog": "research/pine_import/phase1_catalog_2026-10-19.json",
+  "notes": "These are ten NEW candidates (not the prior P06-P15). No Pine source or source license headers captured. TradingView open-source badge is not license verification. No StrategyIR conversion or backtest has been performed.",
+  "count": 10,
+  "source_code_captured": 0,
+  "source_hash_verified": 0,
+  "converted_to_strategy_ir": 0,
+  "backtested": 0,
+  "execution_approved": false,
+  "candidates": [
+    {
+      "id": "N01",
+      "title": "Chandelier Exit - Strategy",
+      "author": "melihtuna",
+      "script_id": "yca6gmSk-Chandelier-Exit-Strategy",
+      "source_url": "https://www.tradingview.com/script/yca6gmSk-Chandelier-Exit-Strategy/",
+      "family": "atr_chandelier",
+      "description_only_concept": "trailing stop, TP and date filters",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N02",
+      "title": "Chandelier Exit Strategy with 200 EMA Filter",
+      "author": "PakunFX",
+      "script_id": "T7c4n0Qu",
+      "source_url": "https://www.tradingview.com/script/T7c4n0Qu/",
+      "family": "atr_ema_filter",
+      "description_only_concept": "trend gating + trailing stop",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N03",
+      "title": "Bollinger Band + RSI + ADX + MACD + Heikinashi",
+      "author": "TradeUsingPivots",
+      "script_id": "ezkXKevK-Bollinger-Band-RSI-ADX-MACD-Heikinashi",
+      "source_url": "https://www.tradingview.com/script/ezkXKevK-Bollinger-Band-RSI-ADX-MACD-Heikinashi/",
+      "family": "multi_factor_long_only",
+      "description_only_concept": "BB excursion + RSI/ADX/MACD/HA filter",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N04",
+      "title": "DSS Bressert (Double Smoothed Stochastic) Strategy Backtest",
+      "author": "HPotterWizard",
+      "script_id": "1ufNYwM1-DSS-Bressert-Double-Smoothed-Stochastic-Strategy-Backtest",
+      "source_url": "https://www.tradingview.com/script/1ufNYwM1-DSS-Bressert-Double-Smoothed-Stochastic-Strategy-Backtest/",
+      "family": "double_smooth_oscillator",
+      "description_only_concept": "DSS oscillator entry; exact exits unknown",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N05",
+      "title": "Combo Backtest 123 Reversal & DSS Bressert",
+      "author": "HPotterWizard",
+      "script_id": "9A3jl8Kt-Combo-Backtest-123-Reversal-DSS-Bressert",
+      "source_url": "https://www.tradingview.com/script/9A3jl8Kt-Combo-Backtest-123-Reversal-DSS-Bressert/",
+      "family": "reversal_confirmed",
+      "description_only_concept": "two-stage reversal and DSS combination",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N06",
+      "title": "FM Strategy",
+      "author": "iolufemitalks",
+      "script_id": "Ujw4avcP-FM-Strategy",
+      "source_url": "https://www.tradingview.com/script/Ujw4avcP-FM-Strategy/",
+      "family": "rsi_adx_macd",
+      "description_only_concept": "momentum-strength composite; code rules unknown",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N07",
+      "title": "10-Factor Super Indicator Strategy (Fixed)",
+      "author": "kmarin137",
+      "script_id": "wwv97U4a-10-Factor-Super-Indicator-Strategy-Fixed",
+      "source_url": "https://www.tradingview.com/script/wwv97U4a-10-Factor-Super-Indicator-Strategy-Fixed/",
+      "family": "weighted_regime_votes",
+      "description_only_concept": "ten-factor weighted scores and regime gates",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N08",
+      "title": "Parabolic SAR Strategy (on close) [QuantNomad]",
+      "author": "QuantNomad",
+      "script_id": "gK7skk6m-Parabolic-SAR-Strategy-on-close-QuantNomad",
+      "source_url": "https://www.tradingview.com/script/gK7skk6m-Parabolic-SAR-Strategy-on-close-QuantNomad/",
+      "family": "psar_close_confirmation",
+      "description_only_concept": "SAR reversal only after closing confirmation",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N09",
+      "title": "Turtle Trading Strategy@lihexie",
+      "author": "lihexie",
+      "script_id": "f5tFaQMQ",
+      "source_url": "https://www.tradingview.com/script/f5tFaQMQ/",
+      "family": "turtle_pyramiding",
+      "description_only_concept": "20/55-day breakout, profit skip, pyramiding and risk controls",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    },
+    {
+      "id": "N10",
+      "title": "Parabolic SAR with Early Buy & MA-Based Exit Strategy",
+      "author": "tarangbharti18",
+      "script_id": "4wpplfPo-Parabolic-SAR-with-Early-Buy-MA-Based-Exit-Strategy",
+      "source_url": "https://www.tradingview.com/script/4wpplfPo-Parabolic-SAR-with-Early-Buy-MA-Based-Exit-Strategy/",
+      "family": "psar_ma_exit",
+      "description_only_concept": "PSAR flip entry, PSAR and SMA joint exit",
+      "publisher_open_source": true,
+      "licensing": {
+        "status": "SOURCE_HEADER_NOT_VERIFIED"
+      },
+      "code_capture": {
+        "available": false,
+        "sha256": null
+      },
+      "strategy_ir": {
+        "status": "BLOCKED_UNTIL_SOURCE_VERIFIED"
+      },
+      "validation_status": "NOT_RUN",
+      "execution_approved": false
+    }
+  ]
+}
