@@ -1,7 +1,7 @@
 # Quant AutoResearch — 지표 특성 분석과 전략 약점 보완 연구 계획 v1.0
 
 작성일: 2026-10-20 KST
-상태: F0_DONE / F1_DONE / F2_DEVELOPMENT_VERIFIED / F3_F5_PENDING — F2 후속 GPT 계획 문맥 연결·G350 읽기 전용 근거 분석 완료, 운영 배포·신규 세대 실행 없음.
+상태: F0_DONE / F1_DONE / F2_DONE / F3_DEVELOPMENT_VERIFIED / F4_F5_PENDING — F3 S7 기여도 별도 검증·G350 읽기 전용 측정 완료, 운영 배포·신규 세대 실행 없음.
 범위: 기존 사용자 20문답 Q02/Q05/Q06/Q07/Q08/Q09/Q10/Q11/Q12/Q14/Q17/Q18/Q20에 따른 T4 연구 진화의 하위 개선. V05 → T4 → V01~V04 → V06 → V07 순서와 기존 MCP 주소/OAuth, 실주문 OFF 유지.
 
 ## 1. 목표
@@ -109,6 +109,6 @@ GPT 가설은 weakness_id, candidate feature/formula hash, 필요 정보, 기대
 
 기존 source of truth는 typed StrategyIR과 append-only 증거 원장. core/data, core/backtest, core/evaluator, core/costs, core/validation, core/integrity, 봉인 OOS, 운영 OAuth/MCP URL, 실주문 OFF는 별도 승인 없이 변경하지 않음. 외부 데이터 발표 시점·라이선스 제약을 안전하게 처리. 신규 연구 코드 PASS는 GPT 자율성·미래 수익성을 증명하지 않는다.
 
-이 계획은 기존 T4 연구 진화의 하위 개선 사항이다. **F0·F1·F2의 개발·검증 완료, F3~F5 미구현.** [F0/F1 실측 결과](autoresearch-feature-weakness-f0-f1-2026-10-20.md) · [F2 연결 결과](autoresearch-feature-weakness-f2-2026-10-20.md).
+이 계획은 기존 T4 연구 진화의 하위 개선 사항이다. **F0~F2 완료, F3 개발 연구용 실측/테스트 완료, F4~F5 미구현.** [F0/F1 실측 결과](autoresearch-feature-weakness-f0-f1-2026-10-20.md) · [F2 연결 결과](autoresearch-feature-weakness-f2-2026-10-20.md) · [F3 비용 반영 S7 기여도](autoresearch-feature-weakness-f3-2026-10-20.md).
 
-**다음 F3: 실제 GPT가 약점–지표 관찰 결과를 참고해 제안한 개선안을 기존 부모와 동일 비용·시장으로 S7 대조하며 피한 손실/놓친 수익을 함께 검증.** 기존 S7·부모 계승 운영 검증을 지연하지 않는다.
+**다음 F4: F2 약점/지표/수식 해시와 F3 비용 반영 부모·자식 실측을 기존 experiment_learning 및 cross_generation_memory에 연결해 후속 GPT가 근거 있는 실패·반례를 재사용하도록 한다.** F3 파생 보고서의 운영 GPT 자동 주입과 실제 진화 효과는 아직 미완료이며, 이후 F5/T4를 최우선 검증한다.

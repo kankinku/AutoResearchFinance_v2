@@ -1,0 +1,37 @@
+{
+  "broker_executable": false,
+  "contributions": [
+    {
+      "adoption_review": "PARENT_REMAINS_BETTER_ON_RETURN_OR_RISK",
+      "child_closed_trades": 60,
+      "child_market_exposure": 0.33045786330457866,
+      "child_max_drawdown": 0.08667658057462255,
+      "child_only_losing_entries": 0,
+      "child_only_winning_entries": 0,
+      "child_total_paid_costs": 1328.5682340355502,
+      "child_total_return": 0.768640025248893,
+      "evidence_hash": "65308f779b349a3044a0ebb2010fef323f8157910919872b8fe30c39c8a48f74",
+      "hypothesis_id": "g350_policy_0_s7",
+      "parent_closed_trades": 61,
+      "parent_market_exposure": 0.3284671532846715,
+      "parent_max_drawdown": 0.08667658057462267,
+      "parent_only_losing_entries": 1,
+      "parent_only_winning_entries": 0,
+      "parent_total_paid_costs": 1362.1624725493007,
+      "parent_total_return": 0.7898242268499747,
+      "qqq_costed_buy_and_hold_return": 1.8777241068917014,
+      "return_delta": -0.021184201601081698
+    }
+  ],
+  "formal_generations_added": 0,
+  "independent_oos_approved": false,
+  "observed_excluded_entries_are_not_forgone_or_avoided_causal_profit": true,
+  "operational_mcp_deployed": false,
+  "s7_report_hash": "1519ca49899057dcebcf4270447e1ac9feba551d0aa2e04dd3e4d8532f8a37f9",
+  "schema": "autoresearch-f3-g350-readonly-costed-s7-v1",
+  "source_dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "source_generation": 350,
+  "source_generation_evidence_hash": "26647e424913125cee1ec1dd6333538938237fb7205f7fc5147519b9c6cb725d",
+  "source_parent_audit_hash": "2edf373c4ff90aa45044102b3460a43199d6356f2bc4b181e7185cf05edc56f6",
+  "study_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+}
