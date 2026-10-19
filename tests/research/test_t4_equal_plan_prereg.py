@@ -25,7 +25,7 @@ def test_frozen_manifest_reproduces_from_prior_gpt_evidence() -> None:
     previous = json.loads((EVIDENCE / "t4-connected-chatgpt-10gen.json").read_text())
     saved = json.loads((EVIDENCE / "t4-equal-plan-frozen-manifest.json").read_text())
     expected = freeze(previous)
-    assert expected == saved
+    assert json.loads(json.dumps(expected)) == saved
     assert saved["freeze_hash"] == digest({k: v for k, v in saved.items() if k != "freeze_hash"})
     assert saved["control_result_not_yet_observed"] is True
     assert saved["design"] == "GPT_RETROSPECTIVE_RANDOM_LOCAL_PREREGISTERED"
