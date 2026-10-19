@@ -163,6 +163,15 @@ class AcademicMCPCheckpointService:
             completed_generations INTEGER NOT NULL, receipt_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, action)
         )""")
+        # Operator-only extension history. Retains the old evidence head and
+        # checkpoint identity without changing a single generation record.
+        db.execute("""CREATE TABLE IF NOT EXISTS session_extensions (
+            session_id TEXT NOT NULL, old_requested INTEGER NOT NULL,
+            new_requested INTEGER NOT NULL, completed INTEGER NOT NULL,
+            evidence_head TEXT NOT NULL, previous_token_hash TEXT NOT NULL,
+            new_token_hash TEXT NOT NULL, receipt_hash TEXT NOT NULL,
+            PRIMARY KEY(session_id, new_requested)
+        )""")
         # Old sessions were created with the original catalog. Keep their
         # identity even after new S6 candidates become available.
         if "catalog_version" not in {
@@ -1570,7 +1579,7 @@ class AcademicMCPCheckpointService:
         sid, generation = args["session_id"], args["generation"]
         if (
             type(generation) is not int
-            or not 1 <= generation <= 100
+            or not 1 <= generation <= 200
             or not isinstance(args["hypothesis_id"], str)
             or not isinstance(args["child_strategy_hash"], str)
             or len(args["child_strategy_hash"]) != 64
@@ -1656,7 +1665,7 @@ class AcademicMCPCheckpointService:
             return self.continue_verified_child(args)
         self._one(args, {"session_id", "generation"}, {"session_id", "generation"})
         sid, generation = args["session_id"], args["generation"]
-        if type(generation) is not int or not 1 <= generation <= 100:
+        if type(generation) is not int or not 1 <= generation <= 200:
             raise ValueError("generation must be integer 1-100")
         with self._connect() as db:
             _, catalog, data, state = self._state(db, sid)
@@ -1746,6 +1755,114 @@ class AcademicMCPCheckpointService:
                 ),
             )
             return verified
+
+    def extend_completed_session(
+        self,
+        session_id: str,
+        *,
+        additional_generations: int,
+    ) -> dict[str, Any]:
+        """Operator-only, audited extension of a completed checkpoint.
+
+        This is intentionally NOT an MCP tool. Stop other academic gateway
+        writers before invoking it; use an external SQLite backup/rollback
+        as SQLite WAL cannot guarantee cross-database crash atomicity.
+        """
+        if (
+            not isinstance(session_id, str)
+            or len(session_id) != 32
+            or type(additional_generations) is not int
+            or not 1 <= additional_generations <= 100
+        ):
+            raise ValueError("invalid operator extension request")
+        original = self.get({"session_id": session_id})
+        completed = original["completed_generations"]
+        old_requested = original["requested_generations"]
+        new_requested = old_requested + additional_generations
+        if (
+            original["status"] != "COMPLETED"
+            or original["checkpoint_phase"] != "COMPLETED"
+            or completed != old_requested
+            or not 1 <= completed < new_requested <= 200
+            or original.get("final_report", {}).get("all_proposed_hypotheses_measured") is not True
+        ):
+            raise CycleStateError("extension requires complete hash-verified S7 evidence")
+        history = original["history"]
+        if len(history) != completed:
+            raise CycleStateError("extension evidence head is incomplete")
+        head = history[-1]["evidence_hash"]
+        new_token = uuid4().hex
+        with self._connect() as db:
+            db.execute("ATTACH DATABASE ? AS academic_cycle", (str(self.cycle.db_path),))
+            db.execute("BEGIN IMMEDIATE")
+            current = db.execute(
+                "SELECT * FROM stages WHERE session_id=?",
+                (session_id,),
+            ).fetchone()
+            cycle = db.execute(
+                "SELECT * FROM academic_cycle.sessions WHERE id=?",
+                (session_id,),
+            ).fetchone()
+            if (
+                current is None
+                or cycle is None
+                or current["phase"] != "COMPLETED"
+                or current["plan_json"] is not None
+                or current["plan_digest"] is not None
+                or current["context_digest"] is not None
+                or cycle["status"] != "COMPLETED"
+                or cycle["requested"] != old_requested
+                or cycle["completed"] != completed
+                or cycle["dataset_hash"] != original["dataset_hash"]
+                or cycle["running_token"] is not None
+            ):
+                raise CycleStateError("extension concurrent or inconsistent checkpoint")
+            proof = db.execute(
+                "SELECT generation,evidence_hash FROM academic_cycle.generations "
+                "WHERE session_id=? ORDER BY generation DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+            if proof is None or proof["generation"] != completed or proof["evidence_hash"] != head:
+                raise CycleStateError("extension original evidence hash mismatch")
+            old_token = current["token"]
+            body = {
+                "session_id": session_id,
+                "old_requested": old_requested,
+                "new_requested": new_requested,
+                "completed": completed,
+                "evidence_head": head,
+                "previous_token_hash": content_hash(old_token),
+                "new_token_hash": content_hash(new_token),
+            }
+            db.execute(
+                "UPDATE academic_cycle.sessions SET requested=?,"
+                "status='AWAITING_PROVIDER',error_type=NULL "
+                "WHERE id=? AND status='COMPLETED' AND completed=? AND requested=?",
+                (new_requested, session_id, completed, old_requested),
+            )
+            if db.execute("SELECT changes()").fetchone()[0] != 1:
+                raise CycleStateError("extension cycle update collision")
+            db.execute(
+                "UPDATE stages SET phase='AWAITING_PLAN',token=? "
+                "WHERE session_id=? AND phase='COMPLETED' AND token=?",
+                (new_token, session_id, old_token),
+            )
+            if db.execute("SELECT changes()").fetchone()[0] != 1:
+                raise CycleStateError("extension gateway update collision")
+            db.execute(
+                "INSERT INTO session_extensions VALUES(?,?,?,?,?,?,?,?)",
+                (*body.values(), content_hash(body)),
+            )
+        resumed = self.get({"session_id": session_id})
+        if (
+            resumed["completed_generations"] != completed
+            or resumed["requested_generations"] != new_requested
+            or resumed["checkpoint_phase"] != "AWAITING_PLAN"
+            or resumed["history"][-1]["evidence_hash"] != head
+            or resumed["checkpoint_token"] == old_token
+        ):
+            raise CycleStateError("extended checkpoint postcondition mismatch")
+        return resumed
 
     def resume(self, args: dict[str, Any]) -> dict[str, Any]:
         """Explicitly resume interrupted research; duplicate resume is a read."""
