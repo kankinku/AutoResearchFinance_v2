@@ -129,7 +129,7 @@ def test_mcp_s7_allows_later_generation_without_enlarging_start():
         schema["evaluate_algorithm_experiments"]["inputSchema"]["properties"]["generation"][
             "maximum"
         ]
-        == 300
+        == 400
     )
     assert (
         schema["start_algorithm_research"]["inputSchema"]["properties"]["generations"]["maximum"]

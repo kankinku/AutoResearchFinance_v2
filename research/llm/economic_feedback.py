@@ -48,7 +48,7 @@ def build_economic_feedback(
     must never be described as out-of-sample or prospective confirmation.
     """
     if (
-        len(history) > 300
+        len(history) > 400
         or len(records) > len(history)
         or not 1 <= max_candidates <= 10
         or not 1 <= min_closed_trades <= 1000

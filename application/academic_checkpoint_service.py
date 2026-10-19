@@ -1579,7 +1579,7 @@ class AcademicMCPCheckpointService:
         sid, generation = args["session_id"], args["generation"]
         if (
             type(generation) is not int
-            or not 1 <= generation <= 300
+            or not 1 <= generation <= 400
             or not isinstance(args["hypothesis_id"], str)
             or not isinstance(args["child_strategy_hash"], str)
             or len(args["child_strategy_hash"]) != 64
@@ -1665,8 +1665,8 @@ class AcademicMCPCheckpointService:
             return self.continue_verified_child(args)
         self._one(args, {"session_id", "generation"}, {"session_id", "generation"})
         sid, generation = args["session_id"], args["generation"]
-        if type(generation) is not int or not 1 <= generation <= 300:
-            raise ValueError("generation must be integer 1-100")
+        if type(generation) is not int or not 1 <= generation <= 400:
+            raise ValueError("generation must be integer 1-400")
         with self._connect() as db:
             _, catalog, data, state = self._state(db, sid)
             if generation > state["completed_generations"]:
@@ -1791,7 +1791,7 @@ class AcademicMCPCheckpointService:
         )
         if (
             not (terminal or idle)
-            or not 1 <= completed < new_requested <= 300
+            or not 1 <= completed < new_requested <= 400
             or (terminal and original.get("final_report", {}).get(
                 "all_proposed_hypotheses_measured") is not True)
         ):

@@ -34,7 +34,7 @@ def build_research_direction(
     is counted once, not once per proposal/backtest. Counts are descriptive,
     not fixed model quotas or a claim of adaptive policy superiority.
     """
-    if len(history) > 300 or len(controlled_reports) > len(history):
+    if len(history) > 400 or len(controlled_reports) > len(history):
         raise ResearchBudgetError("unbounded or inconsistent generation evidence")
     known: set[str] = set()
     duplicated = 0
