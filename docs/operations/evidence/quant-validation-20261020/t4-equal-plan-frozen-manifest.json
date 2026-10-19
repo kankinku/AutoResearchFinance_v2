@@ -1,0 +1,1404 @@
+{
+  "allocation": "100_PCT_LONG_FLAT",
+  "approved_entry_indicators": [
+    "dual_sma_trend_50",
+    "ema_direction_20",
+    "previous_range_breakout",
+    "range_low_reclaim_20",
+    "sma_pullback_20",
+    "time_series_momentum"
+  ],
+  "approved_regime_indicators": [
+    "parkinson_variance",
+    "sma_direction"
+  ],
+  "arm_size": 10,
+  "control_result_not_yet_observed": true,
+  "controlled_tests_per_generation": 1,
+  "dataset_hash": "328f1cbd8ac5bf754de6aa2f21f580f68cfa8ea1511ae84bce77efe924a0b1f6",
+  "design": "GPT_RETROSPECTIVE_RANDOM_LOCAL_PREREGISTERED",
+  "entry_and_exit_execution": "CANONICAL_NEXT_OPEN_SAME_FEES",
+  "freeze_hash": "63b2a84506443a76b86f691f84b01fe8361933d84bfaee18cf010a82d12538a1",
+  "gpt_history_hash": "caf13377825f7f6eda0f31297eff29e569f9116f9690b71b06a4e6ea9a43e57c",
+  "gpt_prior_outcomes_visible": true,
+  "gpt_source_generation_evidence_hashes": [
+    "ec0bd8f35d796e63289c82de2a1e5c548d02ae7276688f68fccaa821d3e01b1c",
+    "00e7f5e67ef91ecedb89a2e0d8418db5fbd1645713e985cc0bb3f69fbf52fac7",
+    "1d7c4c83f1c8c4b8b7b734ce7a3678fbc958d0053efae737d00f5ef5918e9836",
+    "ee31d96c08de2090f6a114b7678fc089ef0f34d1f24cfceed0161603a6002234",
+    "80013dc36dea6c4ec068eca95134c895280be8ade828dfeb28d43df71d3cd45b",
+    "fcca42c7abd9958d7d47e95617145c7017f8ffb781b2e0b3b966892eba96698b",
+    "59e3812c39a1b2e4bd7859324a0f3f125f2120d1408491c4dc949a2caff341b4",
+    "9b5ff360e219fd5b735bae143ae6b20d69cd7afcd7107fdc77337cde65795639",
+    "08597e67fdf1849df8aeab7e1b8df2026de880c5a9afde61ac49f7d49a11e7a3",
+    "8eb3d73e8d98eb2acb76215677d23a07ecb2edae08950e1793d0f34e872a3240"
+  ],
+  "market": "QQQ_RAW_2020-2025_DEVELOPMENT_NON_PIT",
+  "model": "EXISTING_ALGORITHM_PLAN_V1_NOT_GENERAL_PLAN",
+  "no_live_orders": true,
+  "no_parent_promotion": true,
+  "plans": {
+    "GPT_RECORDED": [
+      {
+        "cases": [
+          {
+            "case_id": "calm_trend",
+            "min_score": 0.6,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0002
+            }
+          },
+          {
+            "case_id": "volatile_breakout",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.65
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.35
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0002
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g01",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "trend_confirmation",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          },
+          {
+            "case_id": "weak_rebound",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "less_equal",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g02",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "quiet_persistent",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.5
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          },
+          {
+            "case_id": "active_persistent",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g03",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "quiet_ensemble",
+            "min_score": 0.64,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.45
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0001
+            }
+          },
+          {
+            "case_id": "volatile_conservative",
+            "min_score": 0.95,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.5
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0001
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g04",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "bullish_only",
+            "min_score": 0.65,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.45
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g05",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "quiet_dip_reentry",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00025
+            }
+          },
+          {
+            "case_id": "active_confirmed_break",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00025
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g06",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "low_vol_trend_only",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g07",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "quiet_trend",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          },
+          {
+            "case_id": "hot_breakout",
+            "min_score": 0.85,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g08",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "expanded_low_risk_trend",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00025
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g09",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "quiet_dual_confirmation",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.3
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.2
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00018
+            }
+          },
+          {
+            "case_id": "volatile_multi_confirmation",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.25
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00018
+            }
+          }
+        ],
+        "plan_id": "adaptive_study_g10",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      }
+    ],
+    "LOCAL": [
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.7,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.7,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "t4_local_01",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.8,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0002
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.8,
+            "votes": [
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.25
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0002
+            }
+          }
+        ],
+        "plan_id": "t4_local_02",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.9,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00025
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.9,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00025
+            }
+          }
+        ],
+        "plan_id": "t4_local_03",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00018
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00018
+            }
+          }
+        ],
+        "plan_id": "t4_local_04",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.6,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0001
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.6,
+            "votes": [
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.25
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0001
+            }
+          }
+        ],
+        "plan_id": "t4_local_05",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.7,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00015
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.7,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00015
+            }
+          }
+        ],
+        "plan_id": "t4_local_06",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.8,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0002
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.8,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0002
+            }
+          }
+        ],
+        "plan_id": "t4_local_07",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.9,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00025
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.9,
+            "votes": [
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.25
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.5
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00025
+            }
+          }
+        ],
+        "plan_id": "t4_local_08",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.6
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.4
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00018
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.75,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00018
+            }
+          }
+        ],
+        "plan_id": "t4_local_09",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "local_1",
+            "min_score": 0.6,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.4
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.35
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.25
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0001
+            }
+          },
+          {
+            "case_id": "local_2",
+            "min_score": 0.6,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.55
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.45
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0001
+            }
+          }
+        ],
+        "plan_id": "t4_local_10",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      }
+    ],
+    "RANDOM": [
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.58274,
+            "votes": [
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.62299
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.71725
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "less_equal",
+              "threshold": 0.5
+            }
+          },
+          {
+            "case_id": "rand_2",
+            "min_score": 0.58612,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.33235
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.36001
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "t4_random_01",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.84701,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.30284
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.82879
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00018707
+            }
+          }
+        ],
+        "plan_id": "t4_random_02",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.58724,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.84282
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.71844
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.71545
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "less_equal",
+              "threshold": 0.5
+            }
+          },
+          {
+            "case_id": "rand_2",
+            "min_score": 0.93193,
+            "votes": [
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.84721
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.34017
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "t4_random_03",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.58673,
+            "votes": [
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.26173
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.32465
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00013297
+            }
+          }
+        ],
+        "plan_id": "t4_random_04",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.6626,
+            "votes": [
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.45988
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.33608
+              },
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.62359
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00017376
+            }
+          },
+          {
+            "case_id": "rand_2",
+            "min_score": 0.89344,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.49881
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.48902
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.34075
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00017376
+            }
+          }
+        ],
+        "plan_id": "t4_random_05",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.62026,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.61296
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.84575
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.77536
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 9.086e-05
+            }
+          }
+        ],
+        "plan_id": "t4_random_06",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.63774,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.5511
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.34531
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.5101
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.00012894
+            }
+          },
+          {
+            "case_id": "rand_2",
+            "min_score": 0.70149,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.51589
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.63661
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.00012894
+            }
+          }
+        ],
+        "plan_id": "t4_random_07",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.72387,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.78658
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.60118
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "less_equal",
+              "threshold": 0.5
+            }
+          },
+          {
+            "case_id": "rand_2",
+            "min_score": 0.85236,
+            "votes": [
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.76732
+              },
+              {
+                "indicator_id": "range_low_reclaim_20",
+                "weight": 0.22932
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.41651
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "t4_random_08",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.8641,
+            "votes": [
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.32595
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.76913
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.3249
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "less_equal",
+              "threshold": 0.5
+            }
+          },
+          {
+            "case_id": "rand_2",
+            "min_score": 0.83547,
+            "votes": [
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.23358
+              },
+              {
+                "indicator_id": "sma_pullback_20",
+                "weight": 0.66083
+              },
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.61617
+              }
+            ],
+            "when": {
+              "indicator_id": "sma_direction",
+              "op": "greater_than",
+              "threshold": 0.5
+            }
+          }
+        ],
+        "plan_id": "t4_random_09",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      },
+      {
+        "cases": [
+          {
+            "case_id": "rand_1",
+            "min_score": 0.68576,
+            "votes": [
+              {
+                "indicator_id": "ema_direction_20",
+                "weight": 0.75441
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.48718
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "less_equal",
+              "threshold": 0.0001072
+            }
+          },
+          {
+            "case_id": "rand_2",
+            "min_score": 0.84361,
+            "votes": [
+              {
+                "indicator_id": "time_series_momentum",
+                "weight": 0.76515
+              },
+              {
+                "indicator_id": "previous_range_breakout",
+                "weight": 0.67925
+              },
+              {
+                "indicator_id": "dual_sma_trend_50",
+                "weight": 0.50873
+              }
+            ],
+            "when": {
+              "indicator_id": "parkinson_variance",
+              "op": "greater_than",
+              "threshold": 0.0001072
+            }
+          }
+        ],
+        "plan_id": "t4_random_10",
+        "position_size_pct": 100,
+        "unmatched": "FLAT"
+      }
+    ]
+  },
+  "random_seed": 20261020,
+  "schema": "T4_EQUAL_ALGORITHM_PLAN_OPPORTUNITY_V1",
+  "scoring_preset": {
+    "inferential_claim": "NONE_TEN_TRIALS_NONPIT_AND_RETROSPECTIVE_MODEL",
+    "pass_gates": {
+      "mdd_lte": 0.2,
+      "min_closed_trades": 10,
+      "positive_return": true,
+      "sharpe_gt": 0.5
+    },
+    "primary": "MEDIAN_COSTED_TOTAL_RETURN",
+    "secondary": [
+      "MEDIAN_FULL_PERIOD_MDD",
+      "PASS_COUNT_GATES",
+      "MEDIAN_SHARPE",
+      "MEDIAN_CLOSED_TRADES",
+      "BEST_DEVELOPMENT_RETURN"
+    ]
+  },
+  "source_gpt_session": "30da9a29502d4bf2a67e014358dab2e9"
+}
