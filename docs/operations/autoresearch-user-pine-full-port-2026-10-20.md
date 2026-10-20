@@ -16,7 +16,7 @@
 | 순서 | 원본 / 유형 | 출처 | 이식 현황 |
 |---|---|---|---|
 | 01 | Zeiierman Buyers & Sellers Profile + Dynamic S/R / indicator v6 | CC BY-NC-SA 4.0 | ANALYSIS_ONLY; 코드 재사용 제약, 선형 체결량/피벗·프로파일 구현·검증 없음 |
-| 02 | Shaakuni Liquidity Levels & Order Blocks v1.4 / indicator v6 | MPL-2.0 | **PARTIAL**: completed prior day/week H/L/EQ만 기존 `core/features/pine_liquidity_levels.py`. OB/세션/스윕 및 Registry 연결 미구현 |
+| 02 | Shaakuni Liquidity Levels & Order Blocks v1.4 / indicator v6 | MPL-2.0 | **CAUSAL_OB_PORT_STAGED**: 기존 `core/features/pine_liquidity_levels.py`의 확정 일·주 고저/EQ와 신규 `research/pine_import/shaakuni_order_blocks.py`의 ATR 스윙 돌파→충격봉→원본 캔들→fresh OB 생성·다음 봉부터 mitigation·confirmed-bar 기반 만료, 전일 고저 Break/Sweep 관측 및 NY 세션 독립 계산. `shaakuni_bridge.py`로 시점·해시 기반 1d 개발 연구 벡터 생성. **TradingView 도형·live timenow·weekend islast 동등성/운영 FeatureRegistry 미검증** |
 | 03 | Wyckoff [theUltimator5] / indicator v6 | 라이선스 미확인 | 분석만, Wyckoff 상태/이벤트/MTF 실행 계약 미구현 |
 | 04 | BigBeluga Volume Delta Pivot Matrix / indicator | CC BY-NC-SA 4.0 | 분석만. 추정 delta를 실제 호가 체결 delta라 주장하지 않음 |
 | 05 | Michael_Fx_Trader RSI Signals Entries / indicator v6 | All rights reserved | 분석만, armed/fired 상태기계 미구현. 직접 복제 제한 |
@@ -39,8 +39,19 @@
 
 ## 다음의 구체적인 작업
 
-**다음 후보 02 Shaakuni**를 원본 MPL-2.0/지표로 지정: 이미 완료된 일·주 고저/EQ 계산을 재사용해 ATR 기반 확정 OB·활성/만료·현재 봉의 실시간 패널 상태·최종 경보를 이벤트로 구현하고 (차트 도형은 의미를 가진 draw-spec으로 분리), 바 단위 prefix/delay 및 Pine 시각/거래 parity부터 완료할 것.
+**02 Shaakuni 현재 연구용 의미론 구현 단계 완료**: 원본 OB/mitigation 로직을 BAR_CLOSE 관측으로 구현하고 이전 고저/시점 계산을 연구 벡터로 연결. 原 Pine `timenow`/`barstate.islast`를 1d 일자별 백테스트 신호로 사용하지 않는다. 원본 차트와 1:1 확인/Registry 연결 전까지 FULL은 아님. **다음은** 원문-참조 출력을 바 단위로 비교하고 Pine 세션/인디케이터 도형의 비거래 시맨틱스를 검증·보강하는 것.
 
 병행 과제로 현재 06 BOSWaves는 본문 numeric 포트→Pine 출력 비교 시점·ALMA seed/ATR warmup/parity 검증→합격한 feature만 Registry(운영과 분리된 opt-in) 연결→F1~F4 지표 장단점 연구/S7 비교→명시적 운영 승인. **FULL_PORT_PARITY_VERIFIED는 지금까지 0/11**.
 
 다음 단계 선택에서도 사용자의 본래 목표인 GPT의 *부모 약점 → 필요한 지표 특성 분석 → 기존/새 알고리즘 진화*를 위해 지표 모듈로 이식하며, 원본 전략을 그대로 최고 전략으로 등재하지 않는다.
+
+## 2026-10-20 이어 진행: Shaakuni v1.4 연구 의미론 이식
+
+**추가한 코드**
+- [OB/POI 계산](../../research/pine_import/shaakuni_order_blocks.py): 원본의 ATR_PERIOD=14, OB_MIN_HOFF=3, swing length=10/지정범위, current-ATR impulse threshold, 이전 스윙 극값 돌파, 반대색 캔들 탐색, 구역 fresh 체크, 생성 다음 봉부터 mitigation, 생성 확정봉 기준 zone lookback 만료. 원본 `showOB`=false 때 새 구역 생성 금지.
+- [연구 신호 연결](../../research/pine_import/shaakuni_bridge.py): completed prior day/week high/low, bull/bear OB 확인 시그널, fresh zone 수, mitigation 수를 종료된 봉 기준 연구 벡터로 출력하며 다음 봉 이전 거래 금지. 소스 업로드 SHA-256 `54dabcd62a87df46e0b248ef290ccf3f1346d4b2f5f49ec72b6c68148e703f78`, 원본 MPL-2.0.
+- [OB 테스트](../../tests/research/test_shaakuni_order_blocks_port.py), [브리지 테스트](../../tests/research/test_shaakuni_bridge_port.py): 황소/곰 반전 대칭 예제, 새로 생성된 구역 동일봉 완화 금지, 후속 완화·만료, 미래 봉 변경에 대한 과거 신호 불변, 개발 데이터/타임프레임 범위 차단.
+
+**검증 한계:** 테스트들은 **GitHub에 작성 완료했으나 해당 커밋을 실행한 pytest/CI 증거는 아직 없음**(Moon shell `spawn /bin/bash ENOENT`). 소스 Pine과 TradingView 출력을 비교해 확인한 *완전한 parity* 없음. 일봉의 NY session은 원본 `timenow` 현재 실시간 표기와 다르기 때문에 역사적 시점 snapshot으로 분리했고, weekend last-bar shifts는 미래 정보 위험으로 연구 시그널에서는 제외. ATR/OB core 구현 또한 TradingView 내장 `ta.atr` 대비 참조 샘플 검증 전까지 COMPLETE로 표기하지 않음. G350/원본 S7, 보호 원장, 주문 비활성, 독립 OOS 불변. **완전 검증 0/11**.
+
+**후속:** Moon 명령 실행 환경 복구 → 정확한 저장소 커밋의 신규 테스트·전체 Ruff/Mypy·회귀 → Pine 기준 벡터/그림 parity 수락 시험 → 라이선스 준수 모듈만 opt-in feature 등록 → 다음 11개 원본 순차 이식.
