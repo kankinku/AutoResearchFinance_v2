@@ -55,3 +55,13 @@
 **검증 한계:** 테스트들은 **GitHub에 작성 완료했으나 해당 커밋을 실행한 pytest/CI 증거는 아직 없음**(Moon shell `spawn /bin/bash ENOENT`). 소스 Pine과 TradingView 출력을 비교해 확인한 *완전한 parity* 없음. 일봉의 NY session은 원본 `timenow` 현재 실시간 표기와 다르기 때문에 역사적 시점 snapshot으로 분리했고, weekend last-bar shifts는 미래 정보 위험으로 연구 시그널에서는 제외. ATR/OB core 구현 또한 TradingView 내장 `ta.atr` 대비 참조 샘플 검증 전까지 COMPLETE로 표기하지 않음. G350/원본 S7, 보호 원장, 주문 비활성, 독립 OOS 불변. **완전 검증 0/11**.
 
 **후속:** Moon 명령 실행 환경 복구 → 정확한 저장소 커밋의 신규 테스트·전체 Ruff/Mypy·회귀 → Pine 기준 벡터/그림 parity 수락 시험 → 라이선스 준수 모듈만 opt-in feature 등록 → 다음 11개 원본 순차 이식.
+
+## 2026-10-20 인터뷰 확정 이후 P3→P4 조합 경로 (개발 연구 격리)
+
+- [5문답 확정 ADR](../decisions/2026-10-20-pinecode-internalization-5q-user-confirmed.md) — 본 문서의 원본 재현+독립 알고리즘 분해+GPT 자율 창안+격리 검증+실제 연구 사용 완료 기준을 상위 계약으로 고정.
+- [타입드 Pine 교차-원리 실험](../../research/pine_import/expression_study.py) — 기존 `research/indicator_engine/expression_ir.py`의 `compile_expression`/`evaluate_expression`를 재사용하고, 연구 브리지 2개의 causally aligned 8개 신호를 이름 붙여 `AND/OR/IF/비교/수치 연산`이 들어간 GPT-작성 수식 정의를 **격리 연구**로 평가. 새 Pine interpreter, eval, Python 실행, 백테스터/주문모듈 수정 없음.
+- 결과에 `dataset_hash`, typed algorithm hash, 원본 브리지 해시, 관측값 hash, `next_bar_timestamps`와 `broker_executable=False` / `operationally_registered=False` / `tradingview_parity_verified=False`를 보존. 사용 가능 소스 이름을 8개로 고정하고 미등록 키·boolean 이외의 최종 타입·봉인 OOS를 차단함.
+- [조합 회귀 테스트](../../tests/research/test_pine_expression_study.py) 4개를 **작성·GitHub 반영했으나 실행은 미완료**. 검증 환경 Moon shell 오류 때문에 정확한 저장소 커밋의 pytest/Ruff/Mypy는 `NOT_RUN`. 테스트 코드 존재를 PASS라고 주장하지 않음.
+- **이것은 GPT가 실험 수식을 투입할 수 있는 opt-in 라이브러리 경계까지만 구현**한 것. 아직 정식 GPT MCP context 자동 노출, FeatureRegistry 검증·등록, S7 부모 전략 변형/계승 및 실제 G351+ 세대의 사용 증거가 없으므로 **P6/P7 미완료 / 최종 내재화 0/11**.
+
+**다음 의존 작업:** (1) Moon 테스트 실행 환경 복구 또는 같은 브랜치에 대한 동등한 CI 설치/실행, (2) Pine 원본 series/이벤트 바 단위 비교 + ATR·시계열 시점 상이점 수정(P5), (3) 검증된 지표만 타입드 사용 허용 및 실제 GPT T4 세대 선택/분석/재계승 실험(P6/P7). 권리 불명확 원본은 그대로 편입하지 않음.
