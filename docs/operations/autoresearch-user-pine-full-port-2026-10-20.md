@@ -78,3 +78,7 @@
 - BOSWaves Pine source ta.lowest/highest(lookback)[1] needs a full historical window: native partial-window SL risk 6.0 versus Pine-defined 1.5 on regression fixture. RED → GREEN fix made.
 - Added independent ALMA/stdev/Wilder ATR source formula checks (2 PASS). Existing Pine/typed-expression/scope-lock tests 29 PASS; full Ruff PASS; full Mypy 294 source PASS; 1,904 tests collected successfully. **Full pytest suite was INTERRUPTED at 185-second timeout, not PASS.**
 - Full P5 requires real TradingView exported bar/event comparison; P6/P7 not deployed; **0/11** originals fully internalized. Code commit 271175dbb8d6c56de0dcf4a5dd311946d6e975f2 pushed. [Detailed report](autoresearch-pine-p5-window-2026-10-21.md).
+
+## 2026-10-21 P5 외부 Pine 기준 CSV 검증 도입
+
+원본 archive·dataset·CSV SHA, UTC-offset timestamp, OHLC, 지표/이벤트 봉별 검증. 실제 TradingView 원본 CSV는 확보하지 않았으므로 synthetic 7테스트 PASS와 외부 독립 동등성은 별개. source commit ffb317e Push 확인. Scoped 36 PASS/Ruff PASS/Mypy 295 PASS. Full-suite shard 결과 research 670 PASS, 9 FAIL(외부 G33 snapshot 누락), 17 SKIP; other/integration 3그룹 TIMEOUT. 이식 완료 0/11, P5 외부 파리티/P6/P7 미완료. [관측값 상세](autoresearch-pine-p5-shards-2026-10-21.md).
