@@ -63,6 +63,8 @@ class ContextBar:
     day_high_status: Literal["ACTIVE", "SWEEP", "BREAK"]
     day_low_status: Literal["ACTIVE", "SWEEP", "BREAK"]
     created_ids: tuple[int, ...]
+    created_bull_ids: tuple[int, ...]
+    created_bear_ids: tuple[int, ...]
     mitigated_ids: tuple[int, ...]
     fresh_bull: int
     fresh_bear: int
@@ -169,6 +171,8 @@ def compute_shaakuni(
                   "SWEEP" if day_low < p.previous_day_low else "ACTIVE")
 
         created: list[int] = []
+        created_bulls: list[int] = []
+        created_bears: list[int] = []
         if params.show_order_blocks and atr is not None and i > params.swing_lookback+2:
             for bullish in (True, False):
                 # Pine starts at offset=1 and replaces only on strict extremes.
@@ -216,6 +220,7 @@ def compute_shaakuni(
                     source_bar, i, high[source_bar], low[source_bar],
                 ))
                 created.append(next_id)
+                (created_bulls if bullish else created_bears).append(next_id)
                 next_id += 1
 
         mitigated: list[int] = []
@@ -231,7 +236,8 @@ def compute_shaakuni(
                 remaining.append(block)
         zones = remaining
         output.append(ContextBar(
-            i, atr, p, hs, ls, tuple(created), tuple(mitigated),
+            i, atr, p, hs, ls, tuple(created), tuple(created_bulls),
+            tuple(created_bears), tuple(mitigated),
             sum(b.side == "BULL" and b.mitigated_bar is None for b in zones),
             sum(b.side == "BEAR" and b.mitigated_bar is None for b in zones),
             len(zones),
