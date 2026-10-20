@@ -204,11 +204,16 @@ def compute_ribbon(
                     projected_through_bar=i,
                 )
                 positions[-1] = active
-            earlier_lows = low[max(0, i - params.structure_lookback):i]
-            earlier_highs = high[max(0, i - params.structure_lookback):i]
-            structure = (
-                min(earlier_lows) if flip == 1 else max(earlier_highs)
-            ) if earlier_lows else None
+            # Pine ta.lowest/highest(..., lookback)[1] is na before
+            # the full historical window exists. Do not shorten the
+            # requested window and accidentally tighten the visual stop.
+            structure = None
+            if i >= params.structure_lookback:
+                start = i - params.structure_lookback
+                structure = (
+                    min(low[start:i]) if flip == 1
+                    else max(high[start:i])
+                )
             raw_risk = (
                 close[i] - structure if flip == 1 else structure - close[i]
             ) if structure is not None else None

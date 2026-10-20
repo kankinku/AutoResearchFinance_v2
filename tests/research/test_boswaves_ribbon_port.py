@@ -92,3 +92,19 @@ def test_original_pine_visual_targets_can_hit_on_entry_flip_bar():
     first = result.visual_positions[0]
     assert first.entry_bar == 36
     assert first.target_hit[0]
+
+
+
+def test_pine_ta_lowest_not_ready_does_not_use_partial_history():
+    # Source Pine: ta.lowest(low, stopLookback)[1] is na until the entire
+    # requested window exists. nz(rawRisk, minRisk) must be selected instead
+    # of silently using only the available early candles.
+    high, low, close = _series()
+    params = RibbonParams(structure_lookback=50)
+    out = compute_ribbon(high, low, close, params=params)
+    early = next(p for p in out.visual_positions if p.entry_bar < 50)
+    first = out.bars[early.entry_bar]
+    assert first.atr is not None
+    assert early.risk_distance == pytest.approx(
+        first.atr * params.min_stop_atr
+    )
