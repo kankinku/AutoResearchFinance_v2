@@ -65,3 +65,10 @@
 - **이것은 GPT가 실험 수식을 투입할 수 있는 opt-in 라이브러리 경계까지만 구현**한 것. 아직 정식 GPT MCP context 자동 노출, FeatureRegistry 검증·등록, S7 부모 전략 변형/계승 및 실제 G351+ 세대의 사용 증거가 없으므로 **P6/P7 미완료 / 최종 내재화 0/11**.
 
 **다음 의존 작업:** (1) Moon 테스트 실행 환경 복구 또는 같은 브랜치에 대한 동등한 CI 설치/실행, (2) Pine 원본 series/이벤트 바 단위 비교 + ATR·시계열 시점 상이점 수정(P5), (3) 검증된 지표만 타입드 사용 허용 및 실제 GPT T4 세대 선택/분석/재계승 실험(P6/P7). 권리 불명확 원본은 그대로 편입하지 않음.
+
+## 2026-10-21 실제 회귀 검증 및 Pine 원본 의미론 수정
+
+- 원본 BOSWaves Pine v6 Active Position 로직 기준 **플립 봉 targetHit 즉시 평가**, stop은 다음 봉부터 평가하도록 수정. Wide-wick 반례 재현 RED→GREEN 테스트 신규 추가. 원본 전체 parity는 여전히 NOT RUN.
+- 9개 변경 파일 source commit **974d5f7** push 확인. BOSWaves / Shaakuni / 교차-지표 typed 연구 및 기존 20문답 governance 테스트 **26 PASS**. Repo 전체 Ruff PASS, scoped Pine Mypy PASS.
+- 전체 pytest collection 63 ERRORS / 전체 Mypy 31 ERRORS는 새 격리 작업환경의 FastAPI/MCP 등의 전체 dependency 부족으로 인한 실패. 전체 PASS 불가. [증빙 및 후속](autoresearch-pine-port-validation-2026-10-21.md).
+- 정식 Pine 원본 내재화 0/11, P5 full parity·P6 runtime registry·P7 GPT 실제 연구 미완료. PineCode는 Python 원리 재구현과 독립 baseline을 병행; 기존 G350 및 실주문 OFF 그대로.
