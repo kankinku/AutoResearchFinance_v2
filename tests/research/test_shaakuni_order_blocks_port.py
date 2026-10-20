@@ -97,3 +97,22 @@ def test_ny_clock_reproduces_fixed_session_boundaries_not_live_timenow():
     assert session_at(datetime(2026, 7, 1, 6, 0, tzinfo=timezone.utc)) == "London"
     with pytest.raises(ValueError):
         session_at(datetime(2026, 7, 1))
+
+
+def test_completed_zone_ages_out_without_erasing_original_signal():
+    t, o, h, l, c = _bull_fixture()
+    for i in range(22, 190):
+        t.append(t[0] + timedelta(hours=i))
+        o.append(100.0)
+        h.append(101.0)
+        l.append(99.0)
+        c.append(100.0)
+    report = compute_shaakuni(
+        t, o, h, l, c,
+        ShaakuniParams(zone_lookback=30),
+    )
+    assert report.bars[20].created_bull_ids == (1,)
+    assert report.bars[20].created_bear_ids == ()
+    assert report.bars[21].mitigated_ids == (1,)
+    assert all(block.block_id != 1 for block in report.retained_blocks)
+    assert report.bars[20].created_bull_ids == (1,)
