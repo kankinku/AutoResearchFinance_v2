@@ -41,7 +41,7 @@ _BOSWAVES_UPLOAD_SHA256 = (
 
 
 def prepare_boswaves_development_replay(
-    dataset: MarketDataSet, *, params: RibbonParams = RibbonParams(),
+    dataset: MarketDataSet, *, params: RibbonParams | None = None,
 ) -> PineIndicatorReplay:
     """Typed causal signal vectors for opt-in US-equity 1d research.
 
@@ -49,6 +49,8 @@ def prepare_boswaves_development_replay(
     fills. Only its trend/flip/conviction outputs are exposed as observations.
     This cannot modify a certified StrategyIR or use sealed PIT/OOS data.
     """
+    if params is None:
+        params = RibbonParams()
     if DataZone(dataset.zone) != DataZone.DEVELOPMENT:
         raise ValueError("BOSWaves research replay requires development dataset")
     if dataset.calendar != "us_equities" or dataset.timeframe != "1d":
@@ -58,7 +60,7 @@ def prepare_boswaves_development_replay(
     if len({bar.symbol for bar in dataset.bars}) != 1:
         raise ValueError("cross-asset research requires a separate PIT model")
     timestamps = tuple(bar.timestamp for bar in dataset.bars)
-    if any(a >= b for a, b in zip(timestamps, timestamps[1:])):
+    if any(a >= b for a, b in zip(timestamps, timestamps[1:], strict=False)):
         raise ValueError("non-monotonic signal times")
     output = compute_ribbon(
         tuple(float(bar.high) for bar in dataset.bars),

@@ -75,3 +75,20 @@ def test_indicator_does_not_pretend_to_trade():
         position.end_reason in ("REVERSED", "STOP_VISUAL", None)
         for position in result.visual_positions
     )
+
+
+
+def test_original_pine_visual_targets_can_hit_on_entry_flip_bar():
+    # In Pine's Active Position code, stop checks require bar_index >
+    # entryBar but targetHit updates are evaluated even on the flip bar.
+    # A wide wick may visually hit targets immediately, not create trades.
+    high, low, close = _series()
+    high[36] = close[36] + 20.0
+    result = compute_ribbon(high, low, close)
+    bar = result.bars[36]
+    assert bar.flip == 1
+    assert not bar.stopped_now
+    assert 1 in bar.newly_hit_targets
+    first = result.visual_positions[0]
+    assert first.entry_bar == 36
+    assert first.target_hit[0]

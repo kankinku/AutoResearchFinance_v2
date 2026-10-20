@@ -26,8 +26,8 @@ def _bull_fixture():
 
 
 def test_bullish_original_swing_impulse_fresh_and_later_mitigation():
-    t, o, h, l, c = _bull_fixture()
-    study = compute_shaakuni(t, o, h, l, c)
+    t, o, h, low_values, c = _bull_fixture()
+    study = compute_shaakuni(t, o, h, low_values, c)
     assert study.bars[20].created_ids == (1,)
     assert study.bars[20].mitigated_ids == ()
     assert study.bars[20].fresh_bull == 1
@@ -46,9 +46,9 @@ def test_bullish_original_swing_impulse_fresh_and_later_mitigation():
 
 
 def test_mirrored_bearish_source_and_mitigation():
-    t, o, h, l, c = _bull_fixture()
+    t, o, h, low_values, c = _bull_fixture()
     bear = compute_shaakuni(
-        t, [220 - x for x in o], [220 - x for x in l],
+        t, [220 - x for x in o], [220 - x for x in low_values],
         [220 - x for x in h], [220 - x for x in c],
     )
     assert bear.bars[20].created_ids == (1,)
@@ -61,13 +61,13 @@ def test_mirrored_bearish_source_and_mitigation():
 
 
 def test_prefix_causality_and_no_creation_when_display_disabled():
-    t, o, h, l, c = _bull_fixture()
-    full = compute_shaakuni(t, o, h, l, c)
+    t, o, h, low_values, c = _bull_fixture()
+    full = compute_shaakuni(t, o, h, low_values, c)
     for n in (12, 19, 21):
-        partial = compute_shaakuni(t[:n], o[:n], h[:n], l[:n], c[:n])
+        partial = compute_shaakuni(t[:n], o[:n], h[:n], low_values[:n], c[:n])
         assert partial.bars == full.bars[:n]
     off = compute_shaakuni(
-        t, o, h, l, c,
+        t, o, h, low_values, c,
         ShaakuniParams(show_order_blocks=False),
     )
     assert not off.retained_blocks
@@ -75,16 +75,16 @@ def test_prefix_causality_and_no_creation_when_display_disabled():
 
 
 def test_reject_invalid_data_and_boundaries():
-    t, o, h, l, c = _bull_fixture()
+    t, o, h, low_values, c = _bull_fixture()
     with pytest.raises(ValueError):
-        compute_shaakuni(t, o, h[:-1], l, c)
+        compute_shaakuni(t, o, h[:-1], low_values, c)
     with pytest.raises(ValueError):
-        compute_shaakuni(t, o, h, l, c[:-1] + [float("nan")])
+        compute_shaakuni(t, o, h, low_values, c[:-1] + [float("nan")])
     with pytest.raises(ValueError):
-        compute_shaakuni(t[:-1] + [t[-2]], o, h, l, c)
+        compute_shaakuni(t[:-1] + [t[-2]], o, h, low_values, c)
     with pytest.raises(ValueError):
         compute_shaakuni(
-            t, o, h, l, c,
+            t, o, h, low_values, c,
             ShaakuniParams(swing_lookback=2),
         )
 
@@ -100,15 +100,15 @@ def test_ny_clock_reproduces_fixed_session_boundaries_not_live_timenow():
 
 
 def test_completed_zone_ages_out_without_erasing_original_signal():
-    t, o, h, l, c = _bull_fixture()
+    t, o, h, low_values, c = _bull_fixture()
     for i in range(22, 190):
         t.append(t[0] + timedelta(hours=i))
         o.append(100.0)
         h.append(101.0)
-        l.append(99.0)
+        low_values.append(99.0)
         c.append(100.0)
     report = compute_shaakuni(
-        t, o, h, l, c,
+        t, o, h, low_values, c,
         ShaakuniParams(zone_lookback=30),
     )
     assert report.bars[20].created_bull_ids == (1,)

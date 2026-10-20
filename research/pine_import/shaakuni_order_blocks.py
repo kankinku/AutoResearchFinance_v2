@@ -7,10 +7,11 @@ as historical predictive data. No Pine visuals or orders are executed.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from math import isfinite
-from typing import Literal, Sequence
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from core.features.pine_liquidity_levels import CompletedLevels, completed_period_levels
@@ -112,7 +113,7 @@ def compute_shaakuni(
     high: Sequence[float],
     low: Sequence[float],
     close: Sequence[float],
-    params: ShaakuniParams = ShaakuniParams(),
+    params: ShaakuniParams | None = None,
 ) -> ShaakuniResult:
     """Use only completed OHLC bars. Original OB selection/mitigation order.
 
@@ -120,6 +121,8 @@ def compute_shaakuni(
     Boxes are retained by confirmation-bar age. Source weekend/timenow shifting
     is excluded because it would change past values using a future wall clock.
     """
+    if params is None:
+        params = ShaakuniParams()
     params.validate()
     n = len(timestamps)
     if n > 50_000 or any(len(x) != n for x in (opened, high, low, close)):
@@ -129,14 +132,17 @@ def compute_shaakuni(
     if any(timestamps[i] <= timestamps[i-1] for i in range(1, n)):
         raise ValueError("nonmonotonic bar dates")
     if any(
-        not all(isfinite(v) and v > 0 for v in (o, h, l, c))
-        or h < max(o, c) or l > min(o, c)
-        for o, h, l, c in zip(opened, high, low, close, strict=True)
+        not all(isfinite(v) and v > 0 for v in (o, h, low_price, c))
+        or h < max(o, c) or low_price > min(o, c)
+        for o, h, low_price, c in zip(opened, high, low, close, strict=True)
     ):
         raise ValueError("invalid OHLC input")
 
     levels = completed_period_levels(
-        [(t, float(h), float(l)) for t, h, l in zip(timestamps, high, low, strict=True)]
+        [
+            (t, float(h), float(low_price))
+            for t, h, low_price in zip(timestamps, high, low, strict=True)
+        ]
     )
     tr: list[float] = []
     atr: float | None = None

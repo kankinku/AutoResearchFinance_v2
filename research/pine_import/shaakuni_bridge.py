@@ -12,7 +12,8 @@ from typing import Literal
 from core.data.contracts import DataZone, MarketDataSet
 from core.integrity.hashes import content_hash
 from research.pine_import.shaakuni_order_blocks import (
-    ShaakuniParams, compute_shaakuni,
+    ShaakuniParams,
+    compute_shaakuni,
 )
 
 
@@ -39,9 +40,11 @@ _SOURCE_UPLOAD = "54dabcd62a87df46e0b248ef290ccf3f1346d4b2f5f49ec72b6c68148e703f
 def prepare_shaakuni_development_replay(
     dataset: MarketDataSet,
     *,
-    params: ShaakuniParams = ShaakuniParams(),
+    params: ShaakuniParams | None = None,
 ) -> ShaakuniStudyReplay:
     """No next-day or future OB knowledge on prior close-bar observations."""
+    if params is None:
+        params = ShaakuniParams()
     if dataset.zone != DataZone.DEVELOPMENT:
         raise ValueError("Shaakuni research forbids nondevelopment market data")
     if dataset.calendar != "us_equities" or dataset.timeframe != "1d":

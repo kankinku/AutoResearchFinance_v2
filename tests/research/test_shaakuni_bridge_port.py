@@ -53,7 +53,7 @@ def test_mutating_future_bar_cannot_change_previous_signals():
         ),
     )
     current = prepare_shaakuni_development_replay(changed)
-    for (label1, values1), (label2, values2) in zip(previous.signals, current.signals):
+    for (label1, values1), (label2, values2) in zip(previous.signals, current.signals, strict=True):
         assert label1 == label2
         assert values1[:-1] == values2[:-1]
 

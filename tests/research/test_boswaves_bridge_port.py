@@ -55,7 +55,7 @@ def test_bars_with_future_change_do_not_change_previous_feature_values():
         ),
     )
     changed_replay = prepare_boswaves_development_replay(changed)
-    for (_, a), (_, b) in zip(replay.signals, changed_replay.signals):
+    for (_, a), (_, b) in zip(replay.signals, changed_replay.signals, strict=True):
         assert a[:-1] == b[:-1]
 
 

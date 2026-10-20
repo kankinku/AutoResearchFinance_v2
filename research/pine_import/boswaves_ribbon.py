@@ -7,9 +7,9 @@ and no claim of TradingView plot/alert parity or PIT/OOS profitability.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from math import exp, isfinite, sqrt
-from typing import Sequence
 
 
 @dataclass(frozen=True)
@@ -104,7 +104,7 @@ def compute_ribbon(
     low: Sequence[float],
     close: Sequence[float],
     *,
-    params: RibbonParams = RibbonParams(),
+    params: RibbonParams | None = None,
     source: Sequence[float] | None = None,
 ) -> RibbonResult:
     """Compute causal close-bar signals and *visual* stop/target states.
@@ -114,6 +114,8 @@ def compute_ribbon(
     an entry bar (Pine bar_index > entryBar). On a bar touching both an existing
     stop and target, the original renderer processes the stop first.
     """
+    if params is None:
+        params = RibbonParams()
     params.validate()
     n = len(close)
     if n != len(high) or n != len(low) or (source is not None and n != len(source)):
@@ -240,10 +242,12 @@ def compute_ribbon(
 
         stopped_now = False
         newly_hit: list[int] = []
-        if active is not None and active.end_reason is None and i > active.entry_bar:
-            stopped_now = (
-                low[i] <= active.stop_price if active.direction == 1
-                else high[i] >= active.stop_price
+        if active is not None and active.end_reason is None:
+            # Pine only delays the stop check; visual targetHit updates
+            # already run on the confirming flip bar.
+            stopped_now = i > active.entry_bar and (
+                (low[i] <= active.stop_price) if active.direction == 1
+                else (high[i] >= active.stop_price)
             )
             if stopped_now:
                 active = replace(

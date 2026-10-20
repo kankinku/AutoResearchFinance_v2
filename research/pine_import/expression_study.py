@@ -8,9 +8,10 @@ No strategy generation, broker orders, operational MCP change, or OOS access.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Mapping
+from typing import Literal
 
 from core.data.contracts import DataZone, MarketDataSet
 from core.integrity.hashes import content_hash
