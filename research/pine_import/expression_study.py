@@ -98,7 +98,9 @@ def compose_pine_research_expression(
     raw = evaluate_expression(compiled, sources, bar_count=len(market.bars))
     if any(value is not None and type(value) is not bool for value in raw):
         raise ValueError("compiled signal returned unexpected non-boolean data")
-    values = tuple(value if type(value) is bool else None for value in raw)
+    values: tuple[bool | None, ...] = tuple(
+        bool(value) if value is not None else None for value in raw
+    )
     replays = (("boswaves", bos.replay_hash), ("shaakuni", sha.evidence_hash))
     proof = content_hash({
         "market": market.dataset_hash,
