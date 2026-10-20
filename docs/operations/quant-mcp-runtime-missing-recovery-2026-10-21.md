@@ -37,3 +37,11 @@
 호스트 PowerShell에서 비밀값 없이 **목록·마운트 경로만** 확인: `docker ps -a`, `docker inspect project-moon-local --format '{{json .Mounts}}'`, `docker volume ls` 및 이전 Quant 폴더/백업의 존재. 데이터가 보관된 원본 Source가 발견되면, 그 위치를 함부로 move/copy/삭제하지 말고 원래 동일 경로로 연결 가능한지 평가할 것. **Docker image rebuild, docker volume prune, compose down -v, state initialize는 금지.**
 
 **운영 상태:** BLOCKED_MISSING_ORIGINAL_RUNTIME / 공식 신규 완료 **0/100** / 리스크: 잘못된 신규 연구 상태 생성·OAuth 재등록·기존 계보 상실. **다음 작업:** 호스트 원본 데이터 위치 확보 후 읽기 검증부터 복구.
+
+## 추가 Docker 호스트 마운트 증거 (2026-10-21 KST)
+
+사용자가 Windows PowerShell에서 `docker volume ls`, `docker inspect project-moon-local`, `docker ps -a` 결과를 직접 제공. 현재 Docker named volume은 **`tunneling_project-moon-local-state`**, **`tunneling_project-moon-auditor-state`** 두 개. Quant 전용 volume 없음. `project-moon-local`의 `/shared`는 Windows host의 `project-moon/shared` 서브디렉터리를 바인드 마운트하고, 첫 번째 volume은 `/var/lib/project-moon`에 연결된다. Windows username 등 개인식별 정보가 들어간 원본 Source 절대경로는 공개 원장에 반복 기록하지 않음. Moon 자체 state 볼륨을 Quant state로 간주하지 않는다.
+
+현재 같은 `/shared` 추가 검색에서 Git worktree 하나(개발 checkout)만 확인. `.venv`·cache·`.git`를 제외한 원본 `*.sqlite`, `*.parquet`, `*.db`, `*.zip`, `*.tar` 0건. `/shared/nginx/routes.d` 설치 라우트 0개, `127.0.0.1:8787` 연결 거부 재확인. 이는 **현재 마운트에 원본 Quant 운영 데이터가 없다는 뜻**일 뿐 원래 Windows 드라이브 다른 경로나 백업/이전 Docker 환경에 데이터가 존재하지 않는다는 증명은 아님.
+
+다음 비파괴적 단계: Windows 이전 연구 checkout 또는 백업에서 `quant-oauth.sqlite`, `public-base-url`, `state/moon-http/research`, `*.parquet` 및 G350 이후 checkpoint를 **파일 위치·크기만** 찾아 진위/계보 교차 검증. 비밀·토큰 출력 금지. 원본 이전 상태/공식 최신 세대 확인 전 server init, OAuth 재등록, 빈 배치/전략 계보 생성 및 Docker volume 정리는 금지. 현재 상태 **BLOCKED_MISSING_ORIGINAL_RUNTIME**, 신규 공식 **0/100**.
