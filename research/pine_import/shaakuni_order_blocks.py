@@ -192,7 +192,12 @@ def compute_shaakuni(
                 # Original scans offsets middle-1 ... 0 (oldest to newest).
                 for k in range(middle-1, -1, -1):
                     candle_body = close[i-k]-opened[i-k]
-                    if candle_body >= atr*params.impulse_atr_multiple if bullish else -candle_body >= atr*params.impulse_atr_multiple:
+                    impulse_ok = (
+                        candle_body >= atr * params.impulse_atr_multiple
+                        if bullish else
+                        -candle_body >= atr * params.impulse_atr_multiple
+                    )
+                    if impulse_ok:
                         impulse = k
                         break
                 if impulse < 0:
