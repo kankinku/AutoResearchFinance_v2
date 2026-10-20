@@ -65,10 +65,10 @@ def prepare_shaakuni_development_replay(
         ("pine.shaakuni.pwh", tuple(b.levels.previous_week_high for b in study.bars)),
         ("pine.shaakuni.pwl", tuple(b.levels.previous_week_low for b in study.bars)),
         ("pine.shaakuni.bull_ob_confirmed", tuple(
-            float(bool(b.created_ids) and any(
-                z.side == "BULL" and z.block_id in b.created_ids
-                for z in study.retained_blocks
-            )) for b in study.bars
+            float(bool(b.created_bull_ids)) for b in study.bars
+        )),
+        ("pine.shaakuni.bear_ob_confirmed", tuple(
+            float(bool(b.created_bear_ids)) for b in study.bars
         )),
         ("pine.shaakuni.fresh_bull_ob_count", tuple(
             float(b.fresh_bull) for b in study.bars
