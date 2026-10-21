@@ -65,6 +65,7 @@ from research.llm.lineage_selection import (
     replay_lineage_candidate,
 )
 from research.llm.loss_attribution import build_loss_attribution
+from research.llm.parent_portfolio_v2 import choose_parent_lane, shortlist_counted_generations
 from research.llm.s2_execution_preflight import compare_inherited_s2_execution
 from research.llm.trade_cohort_review import (
     build_trade_cohort_review,
@@ -110,10 +111,11 @@ class _SubmittedDiagnosisOnly:
 class AcademicMCPCheckpointService:
     """Binds external ChatGPT proposals to frozen, persistent research input state."""
 
-    def __init__(self, *, project_root: Path, state_dir: Path):
+    def __init__(self, *, project_root: Path, state_dir: Path, parent_portfolio_v2: bool = False):
         self.root = project_root.resolve()
         self.state = state_dir.resolve() / "academic-gpt-checkpoints"
         self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
+        self.parent_portfolio_v2 = parent_portfolio_v2
 
     def _connect(self) -> sqlite3.Connection:
         self.state.mkdir(parents=True, exist_ok=True)
@@ -458,6 +460,89 @@ class AcademicMCPCheckpointService:
             raise CycleStateError("controlled experiment record integrity mismatch")
         return {**body, "record_hash": row["report_hash"]}
 
+    def _choose_counted_generation_portfolio(
+        self,
+        db: sqlite3.Connection,
+        catalog: ResearchCatalog,
+        data: MarketDataSet,
+        status: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Opt-in P1: fully replay a cross-generation, risk-diverse parent pool.
+
+        Cheap stored metrics ONLY shortlist replay candidates; neither those
+        claims nor a dashboard rank is permission to promote. This path does
+        not change source Evidence, S7 thresholds, original market data, or
+        any order-execution flag. Pinning still occurs in the caller.
+        """
+        shortlist = shortlist_counted_generations(status["history"], per_lane=6)
+        candidates: list[dict[str, Any]] = []
+        for original in shortlist:
+            generation = original["generation"]
+            report = self._stored_experiment(db, status["session_id"], generation)
+            if (
+                report is None
+                or report.get("study_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+                or report.get("original_generation_evidence_hash") != original["evidence_hash"]
+            ):
+                raise CycleStateError("counted parent is missing verified S7 evidence")
+            parent = self._inherited_from_evidence(catalog, data, original)
+            audit = audit_inherited_decisions(parent, data)
+            metrics = audit.llm_packet["metrics"]
+            expected = original["metrics"]
+            closed = sum(t.side == "sell" for t in audit.evaluation.trades)
+            if (
+                abs(metrics["total_return"] - expected["total_return"]) > 1e-9
+                or abs(metrics["max_drawdown"] - expected["max_drawdown"]) > 1e-9
+                or closed != expected["trade_count"]
+            ):
+                raise CycleStateError("counted candidate metrics or closed fills changed")
+            proof = {
+                "schema": "counted-generation-parent-origin-v1",
+                "source_generation": generation,
+                "source_evidence_hash": original["evidence_hash"],
+                "source_report_hash": report["record_hash"],
+                "strategy_hash": original["strategy_hash"],
+                "dataset_hash": data.dataset_hash,
+                "audit_hash": original["audit_hash"],
+            }
+            candidates.append(
+                {
+                    "schema": "p1-verified-counted-generation-parent-v1",
+                    "source_kind": "COUNTED_GENERATION",
+                    "source_generation": generation,
+                    "source_evidence_hash": original["evidence_hash"],
+                    "source_report_hash": report["record_hash"],
+                    "lineage_report_hash": content_hash(proof),
+                    "successor_strategy_hash": parent.strategy_hash,
+                    "strategy_equity_hash": audit.evaluation.equity_hash,
+                    "effective_signal_hash": original["effective_signal_hash"],
+                    "parent_quality": {
+                        "total_return": metrics["total_return"],
+                        "max_drawdown": metrics["max_drawdown"],
+                        "closed_trades": closed,
+                        "market_exposure": expected["exposure"],
+                    },
+                    "replay_verified": True,
+                    "independent_oos_approved": False,
+                    "broker_executable": False,
+                }
+            )
+        if not candidates:
+            return None
+        selected, lanes = choose_parent_lane(candidates, status["completed_generations"] + 1)
+        body = {k: v for k, v in selected.items() if k != "selection_hash"}
+        body["selection_basis"] = "P1_COST_REPLAYED_MULTI_OBJECTIVE_DEVELOPMENT_ONLY"
+        body["candidate_review"] = {
+            "shortlisted_count": len(shortlist),
+            "replayed_count": len(candidates),
+            "diverse_parent_count": len(lanes),
+            "lane_source_generations": [x["source_generation"] for x in lanes],
+            "chosen_parent_generation": selected["source_generation"],
+            "selection_reason": "DETERMINISTIC_VERIFIED_PARENT_LANE_ROTATION",
+            "not_sealed_oos": True,
+        }
+        return {**body, "selection_hash": content_hash(body)}
+
     def _selected_development_parent(
         self,
         catalog: ResearchCatalog,
@@ -517,6 +602,28 @@ class AcademicMCPCheckpointService:
                     )
                     if expected_lineage != selection["lineage_report_hash"]:
                         raise CycleStateError("counted S7 selected origin mismatch")
+                elif selection.get("source_kind") == "COUNTED_GENERATION":
+                    original = status["history"][source - 1]
+                    report = self._stored_experiment(db, sid, source)
+                    if (
+                        original.get("strategy_hash") != selection["successor_strategy_hash"]
+                        or report is None
+                        or report["record_hash"] != selection["source_report_hash"]
+                    ):
+                        raise CycleStateError("counted generation parent source changed")
+                    expected_lineage = content_hash(
+                        {
+                            "schema": "counted-generation-parent-origin-v1",
+                            "source_generation": source,
+                            "source_evidence_hash": original["evidence_hash"],
+                            "source_report_hash": report["record_hash"],
+                            "strategy_hash": original["strategy_hash"],
+                            "dataset_hash": data.dataset_hash,
+                            "audit_hash": original["audit_hash"],
+                        }
+                    )
+                    if expected_lineage != selection["lineage_report_hash"]:
+                        raise CycleStateError("counted generation parent lineage mismatch")
                 else:
                     proof = db.execute(
                         "SELECT result_hash FROM successor_lineages "
@@ -527,6 +634,23 @@ class AcademicMCPCheckpointService:
                     if proof is None:
                         raise CycleStateError("parent selection proof disappeared")
                 return selection
+            if self.parent_portfolio_v2:
+                chosen_v2 = self._choose_counted_generation_portfolio(db, catalog, data, status)
+                if chosen_v2 is not None:
+                    db.execute(
+                        "INSERT OR IGNORE INTO parent_selections "
+                        "(session_id,next_generation,lineage_report_hash,"
+                        "selection_hash,selection_json) "
+                        "VALUES(?,?,?,?,?)",
+                        (
+                            sid,
+                            next_generation,
+                            chosen_v2["lineage_report_hash"],
+                            chosen_v2["selection_hash"],
+                            json.dumps(chosen_v2, sort_keys=True),
+                        ),
+                    )
+                    return chosen_v2
             rows = db.execute(
                 "SELECT origin_generation,result_json,result_hash "
                 "FROM successor_lineages WHERE session_id=? "
@@ -725,7 +849,8 @@ class AcademicMCPCheckpointService:
             # later additional sidecars cannot silently replace the parent.
             db.execute(
                 "INSERT OR IGNORE INTO parent_selections "
-                "(session_id,next_generation,lineage_report_hash,selection_hash,selection_json) "
+                "(session_id,next_generation,lineage_report_hash,"
+                        "selection_hash,selection_json) "
                 "VALUES(?,?,?,?,?)",
                 (
                     sid,
@@ -751,7 +876,7 @@ class AcademicMCPCheckpointService:
         original = state["history"][source - 1]
         with self._connect() as db:
             measured = self._stored_experiment(db, state["session_id"], source)
-            if selected.get("source_kind") == "COUNTED_S7_CHILD":
+            if selected.get("source_kind") in ("COUNTED_S7_CHILD", "COUNTED_GENERATION"):
                 saved = None
             else:
                 saved = db.execute(
@@ -789,6 +914,21 @@ class AcademicMCPCheckpointService:
                 )
             ):
                 raise CycleStateError("selected S7 StrategyIR or cost identity mismatch")
+        elif selected.get("source_kind") == "COUNTED_GENERATION":
+            if measured["record_hash"] != selected["source_report_hash"]:
+                raise CycleStateError("counted parent S7 report changed")
+            parent = self._inherited_from_evidence(catalog, data, original)
+            from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
+
+            checked = audit_inherited_decisions(parent, data)
+            expected = selected["parent_quality"]
+            closed = sum(trade.side == "sell" for trade in checked.evaluation.trades)
+            if (
+                closed != expected["closed_trades"]
+                or abs(checked.evaluation.final_equity / 10_000.0 - 1.0 - expected["total_return"])
+                > 1e-9
+            ):
+                raise CycleStateError("counted parent full-fill replay mismatch")
         else:
             if saved is None:
                 raise CycleStateError("selected lineage record missing")
