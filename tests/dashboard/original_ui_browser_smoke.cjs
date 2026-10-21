@@ -1,50 +1,113 @@
-// Mock DOM smoke: runs the exact browser-served original scripts against live SQLite APIs.
-'use strict';
-const assert=require('node:assert/strict');
-const vm=require('node:vm');
-async function test(file) {
- const base='http://127.0.0.1:8082/';
- const els=new Map();const handlers=new Map();const errs=[];
- const el=id=>{
-  if(!els.has(id))els.set(id,{id,style:{},dataset:{},value:'',hidden:false,
-   disabled:false,textContent:'',innerHTML:'',className:'',
-   classList:{toggle(){},add(){},remove(){}},
-   addEventListener(event,fn){handlers.set(id+':'+event,fn);}
+// Mock-DOM browser smoke for actual ORIGINAL+performance JavaScript and live read-only API.
+// Node built-ins only, no untrusted browser plugin/network requests.
+"use strict";
+const assert=require("node:assert/strict");
+const vm=require("node:vm");
+const http=require("node:http");
+
+// Node undici's global fetch is unstable with this HTTP/1.0 local test server.
+// Use an explicit buffered request so the DOM simulation exercises the
+// complete real response deterministically without mutating the server.
+function request(url, options={}) {
+  return new Promise((resolve,reject)=>{
+    const req=http.request(url,{method:options.method||"GET",headers:{"Cache-Control":"no-store"}},res=>{
+      const chunks=[];
+      res.on("data",chunk=>chunks.push(chunk));
+      res.on("error",reject);
+      res.on("end",()=>{
+        const body=Buffer.concat(chunks).toString("utf8");
+        resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode,
+          text:async()=>body,json:async()=>JSON.parse(body)});
+      });
+    });
+    req.on("error",reject);
+    req.end();
   });
-  return els.get(id);
- };
- const ctx=vm.createContext({
-  document:{getElementById:el,querySelectorAll:()=>[]},
-  navigator:{clipboard:{writeText:async()=>undefined}},
-  fetch:async (url,options)=>{
-   const result=await fetch(new URL(url,base),options);
-   if(!result.ok)errs.push(String(result.status)+' '+url);
-   return result;
-  },
-  Date,Math,Number,String,Object,Array,JSON,Promise,
-  console:{log(){},warn(){},error(){}},
-  setTimeout(){},setInterval(){}
- });
- for(const name of ['labels.js',file]){
-  const response=await fetch(new URL('static/'+name,base));
-  assert.equal(response.status,200);
-  vm.runInContext(await response.text(),ctx,{filename:name});
- }
- await new Promise(r=>setTimeout(r,800));
- assert.equal(el('api-state').textContent,'정상 연결');
- if(file==='app.js'){
-  assert.match(el('academic-progress').textContent,/^[0-9]+ \/ 152$/);
-  assert.equal(el('academic-evidence').textContent,'검증 통과');
-  assert.equal(typeof handlers.get('refresh:click'),'function');
-  await handlers.get('refresh:click')();
-  await new Promise(r=>setTimeout(r,200));
-  assert.equal(el('refresh').disabled,false);
- } else {
-  assert.match(el('generation-progress-copy').textContent,/^[0-9]+ \/ 152세대 완료$/);
-  assert.notEqual(el('best-strategy-cagr').textContent,'—');
-  assert.notEqual(el('best-qqq-cagr').textContent,'—');
- }
- assert.deepEqual(errs,[]);
- console.log(file,el('api-state').textContent,el('academic-progress').textContent||el('generation-progress-copy').textContent);
 }
-(async()=>{await test('app.js');await test('backtest.js')})().catch(e=>{console.error(e);process.exitCode=1});
+async function scenario(file) {
+  const base="http://127.0.0.1:8082/";
+  const els=new Map(),handlers=new Map(),errs=[];
+  function make(id) {
+    if(!els.has(id)) {
+      let opened=false;
+      els.set(id,{
+        id,dataset:{},value:"",hidden:false,disabled:false,textContent:"",
+        innerHTML:"",className:"",attributes:{},style:{},
+        classList:{toggle(){},add(){},remove(){}},
+        addEventListener(event,cb){handlers.set(id+":"+event,cb);},
+        setAttribute(k,v){this.attributes[k]=v;},
+        removeAttribute(k){delete this.attributes[k];},
+        showModal(){opened=true;this.attributes.open="";},
+        close(){opened=false;delete this.attributes.open;},
+        get open(){return opened;},
+      });
+    }
+    return els.get(id);
+  }
+  const filters=["all","30","50","100"].map((n)=>{
+    const node=make("filter-"+n);
+    node.dataset.perfWindow=n;
+    return node;
+  });
+  const ctx=vm.createContext({
+    document:{
+      getElementById:make,
+      querySelectorAll:(selector)=>selector==="[data-perf-window]"?filters:[],
+    },
+    navigator:{clipboard:{writeText:async()=>undefined}},
+    fetch:async (url,options)=>{
+      const response=await request(new URL(url,base),options);
+      if(!response.ok)errs.push(response.status+" "+url);
+      return response;
+    },
+    Date,Math,Number,String,Object,Array,JSON,Promise,
+    console:{log(){},warn(...x){errs.push(x.join(" "));},error(...x){errs.push(x.join(" "));}},
+    setTimeout(){},setInterval(){}
+  });
+  const sources=file==="app.js"
+    ?["labels.js","app.js","fresh-performance.js"]
+    :["labels.js","backtest.js"];
+  for(const name of sources){
+    const response=await request(new URL("static/"+name,base));
+    assert.equal(response.status,200,name);
+    vm.runInContext(await response.text(),ctx,{filename:name});
+  }
+  await new Promise(resolve=>setTimeout(resolve,1300));
+  assert.equal(make("api-state").textContent,"정상 연결",file);
+  if(file==="app.js") {
+    assert.match(make("perf-progress").textContent,/^[0-9]+ \/ 152$/);
+    assert.equal(make("perf-best-return").textContent,"73.03%");
+    assert.equal(make("perf-qqq-return").textContent,"187.77%");
+    assert.equal(make("perf-excess").textContent,"−114.74%p");
+    assert.equal(make("perf-cohort").textContent,"추가 100 / 100세대");
+    assert.match(make("perf-best-return").textContent,/%$/);
+    assert.match(make("perf-qqq-return").textContent,/%$/);
+    assert.match(make("perf-excess").textContent,/%p$/);
+    assert.match(make("perf-best-mdd").textContent,/%$/);
+    assert.match(make("perf-return-chart").innerHTML,/<path /);
+    assert.match(make("perf-risk-chart").innerHTML,/<path /);
+    assert.equal(make("perf-status").textContent,"실험 완료");
+    assert.equal(make("connect-evidence").textContent,"연결 정상");
+    assert.equal(typeof handlers.get("connection-toggle:click"),"function");
+    handlers.get("connection-toggle:click")();
+    assert.equal(make("connection-dialog").open,true);
+    handlers.get("connection-close:click")();
+    assert.equal(make("connection-dialog").open,false);
+    handlers.get("filter-30:click")();
+    assert.equal(make("filter-30").attributes["aria-pressed"],"true");
+    assert.match(make("perf-return-summary").textContent,/G123~G152/);
+    assert.equal(typeof handlers.get("refresh:click"),"function");
+    await handlers.get("refresh:click")();
+    await new Promise(resolve=>setTimeout(resolve,300));
+    assert.equal(make("refresh").disabled,false);
+  } else {
+    assert.match(make("generation-progress-copy").textContent,/^[0-9]+ \/ 152세대 완료$/);
+    assert.notEqual(make("best-strategy-cagr").textContent,"—");
+    assert.notEqual(make("best-qqq-cagr").textContent,"—");
+  }
+  assert.deepEqual(errs,[],file);
+  console.log(file,make("api-state").textContent,
+    make("perf-progress").textContent||make("generation-progress-copy").textContent);
+}
+(async()=>{await scenario("app.js");await scenario("backtest.js")})()
+ .catch(error=>{console.error(error);process.exitCode=1;});

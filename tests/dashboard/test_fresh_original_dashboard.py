@@ -22,10 +22,17 @@ def test_original_design_files_unchanged_and_nested_navigation() -> None:
     backtest = original.page("backtest.html").decode()
     assert 'href="static/styles.css"' in html
     assert 'href="backtest"' in html
-    assert 'id="academic-progress"' in html
-    assert 'id="academic-evidence"' in html
-    assert 'id="academic-run-state"' in html
-    assert 'id="academic-progress-bar"' in html
+    assert html.index('id="performance-title"') < html.index('id="safety-banner"')
+    assert html.index('id="perf-best-return"') < html.index('id="runtime-title"')
+    assert 'id="perf-return-chart"' in html
+    assert 'id="perf-risk-chart"' in html
+    assert 'id="perf-progress"' in html
+    assert 'id="connection-toggle"' in html
+    assert 'id="connection-dialog"' in html
+    assert '<details class="operations-collapse">' in html
+    assert 'class="performance-priority"' in html
+    assert 'href="static/fresh-performance.css"' in html
+    assert 'src="static/fresh-performance.js"' in html
     assert 'src="static/app.js"' in html
     assert 'href="static/styles.css?v=20260903"' in backtest
     assert "백테스트" in backtest
@@ -36,8 +43,11 @@ def test_original_design_files_unchanged_and_nested_navigation() -> None:
     js = original.script("app.js").decode()
     assert 'fetch("api/dashboard")' in js
     assert 'method: "POST"' not in js
-    assert "function liveAcademic()" in js
-    assert 'fetch("api/status"' in js
+    perf = (Path("dashboard/static/fresh-performance.js")).read_text()
+    assert 'fetch("api/status"' in perf
+    assert "renderReturns(data,subset)" in perf
+    assert 'setInterval(refresh,5000)' in perf
+    assert 'dialog.showModal()' in perf
 
 
 def test_readonly_sqlite_bridge_matches_original_contracts() -> None:
@@ -66,7 +76,8 @@ def test_readonly_http_bridge_serves_existing_ui(monkeypatch: pytest.MonkeyPatch
     url = "http://127.0.0.1:" + str(server.server_port)
     try:
         for uri in ("/", "/backtest", "/static/styles.css", "/static/app.js",
-                    "/static/backtest.js", "/api/dashboard", "/api/backtest",
+                    "/static/fresh-performance.css", "/static/fresh-performance.js",
+                    "/static/backtest.js", "/api/status", "/api/dashboard", "/api/backtest",
                     "/api/features/catalog", "/api/strategies/catalog"):
             with urllib.request.urlopen(url + uri) as response:
                 assert response.status == 200

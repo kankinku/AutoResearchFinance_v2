@@ -1,0 +1,102 @@
+/* Performance-priority extension for the original Quant dashboard.
+   Scoped to the fresh academic UI. Legacy operations remain collapsible. */
+body.performance-priority { background:#f4f6fa; }
+.performance-priority .topbar { align-items:center; padding:26px 0 22px; }
+.performance-priority .topbar h1 { font-size:29px; }
+.performance-priority .topbar .lede { max-width:540px; }
+.performance-priority .top-actions { align-items:center; }
+.performance-priority .last-read { display:none; }
+.performance-priority main { display:block; }
+.performance-priority .performance-home { display:grid; gap:16px; margin-bottom:18px; }
+.performance-lead { align-items:flex-start; display:flex; justify-content:space-between; gap:20px; }
+.performance-lead h2 { font-size:clamp(24px,3vw,32px); letter-spacing:-.055em; }
+.performance-subtitle { margin-top:5px; color:#687589; font-size:13px; }
+.performance-updated { align-items:flex-end; display:flex; flex-direction:column; gap:5px; text-align:right; font-size:12px; }
+.performance-pill { background:#edf4ff; border:1px solid #cee2ff; border-radius:99px; color:#2459a1; display:inline-flex; font-weight:760; padding:5px 12px; white-space:nowrap; }
+.performance-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.performance-kpi { background:#fff; border:1px solid #e4e9f1; border-radius:14px; box-shadow:0 3px 12px #15233a04; display:grid; gap:8px; min-height:145px; padding:20px; }
+.performance-kpi-featured { background:linear-gradient(145deg,#14395b,#185386); color:#fff; border-color:#1c5688; }
+.performance-kpi-featured .label,.performance-kpi-featured .performance-foot { color:#d0e4f9; }
+.performance-value { font-size:clamp(25px,3vw,36px); line-height:1.15; letter-spacing:-.045em; font-weight:800; font-variant-numeric:tabular-nums; }
+.performance-value.is-negative { color:#b42d3c; }
+.performance-kpi-featured .performance-value { color:#fff; }
+.performance-foot { color:#687589; font-size:12px; }
+.performance-visual { margin:0; padding:24px; border-radius:14px; }
+.performance-panel-head { align-items:flex-start; display:flex; flex-wrap:wrap; justify-content:space-between; gap:18px; margin-bottom:13px; }
+.performance-panel-head h2 { font-size:20px; }
+.performance-note { font-size:12px; margin-top:4px; }
+.performance-filters { display:flex; flex-wrap:wrap; gap:5px; }
+.performance-filter { padding:6px 10px; border-radius:7px; font-size:12px; color:#65748a; }
+.performance-filter.is-active { background:#e7f0ff; border-color:#aac5eb; color:#174e88; font-weight:800; }
+.performance-legend { display:flex; flex-wrap:wrap; gap:20px; font-size:12px; color:#687589; margin:6px 0 10px; }
+.performance-legend span { display:inline-flex; align-items:center; gap:7px; }
+.performance-legend .key { display:inline-block; width:15px; height:3px; border-radius:3px; background:#2364ae; }
+.performance-legend .returns-key { background:#93abc5; }
+.performance-legend .benchmark-key { background:#8f94a1; border-top:1px dashed #8f94a1; }
+.performance-chart-frame { background:#fbfcfe; border:1px solid #e9eef6; border-radius:12px; padding:12px 12px 9px; }
+#perf-return-chart,#perf-risk-chart { display:block; width:100%; height:auto; max-height:330px; }
+#perf-risk-chart { max-height:195px; }
+.performance-chart-caption { font-size:12px; color:#788396; padding:8px 4px 0; line-height:1.5; }
+.performance-compare { border-top:1px solid #e8edf4; display:grid; gap:13px; margin-top:17px; padding-top:17px; }
+.performance-compare-row { align-items:center; display:grid; gap:13px; grid-template-columns:160px 1fr 95px; font-size:12px; color:#607086; }
+.performance-compare-row strong { font-size:14px; color:#34455c; text-align:right; font-variant-numeric:tabular-nums; }
+.performance-bar-track { background:#e9eef6; border-radius:6px; display:block; overflow:hidden; height:11px; }
+.performance-bar-track span { border-radius:6px; display:block; height:100%; width:0; transition:width .25s; }
+.performance-bar-strategy { background:#2667b4; }
+.performance-bar-qqq { background:#9ea7b8; }
+.performance-support-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:14px; }
+.performance-support-grid > .panel { padding:22px; margin:0; border-radius:14px; }
+.performance-run-count { font-size:37px; letter-spacing:-.065em; font-variant-numeric:tabular-nums; }
+.performance-progress-track { background:#e8eef6; border-radius:8px; height:12px; overflow:hidden; margin:8px 0 12px; }
+.performance-progress-fill { background:linear-gradient(90deg,#397fca,#1259a8); height:100%; width:0%; transition:width .3s; }
+.performance-progress-meta { color:#6f7c8f; display:flex; justify-content:space-between; font-size:12px; gap:15px; }
+.performance-small-stats { border-top:1px solid #e6ebf3; display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:20px; padding-top:15px; }
+.performance-small-stats > div { display:grid; gap:3px; }
+.performance-small-stats span { color:#7d8999; font-size:11px; }
+.performance-small-stats strong { color:#293d58; font-size:21px; font-variant-numeric:tabular-nums; }
+.performance-deep-link { border-top:1px solid #e6ebf3; color:#1c5fa1; display:flex; justify-content:space-between; font-weight:750; margin-top:16px; padding-top:13px; text-decoration:none; }
+.performance-deep-link:hover { text-decoration:underline; }
+.performance-disclaimer { color:#737f91; font-size:12px; padding:0 3px; }
+.performance-priority .operations-collapse { border:1px solid #e3e8ef; background:#fff; border-radius:13px; margin:12px 0 24px; }
+.operations-collapse > summary { align-items:center; color:#49627e; cursor:pointer; display:flex; justify-content:space-between; font-weight:750; padding:18px 22px; list-style:none; }
+.operations-collapse > summary::-webkit-details-marker { display:none; }
+.operations-collapse > summary:after { content:"＋"; font-size:18px; }
+.operations-collapse[open] > summary:after { content:"－"; }
+.operations-collapse > .safety-banner,.operations-collapse > .decision-grid,.operations-collapse > .overview-grid,
+.operations-collapse > .panel,.operations-collapse > .two-column,.operations-collapse > .details-section { margin:12px 18px; }
+.connection-dialog { background:#fff; border:1px solid #d7dfeb; border-radius:15px; box-shadow:0 18px 70px #0c25454d; color:#182230; margin:auto; max-width:min(520px,calc(100% - 30px)); padding:25px; width:100%; }
+.connection-dialog::backdrop { background:#12253e91; }
+.connection-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.connection-heading h2 { font-size:21px; }
+.connection-stats { display:grid; grid-template-columns:1.1fr 1.3fr; gap:11px 14px; border-top:1px solid #e4e9f2; margin:18px 0; padding-top:18px; }
+.connection-stats dt { color:#687589; }
+.connection-stats dd { margin:0; font-weight:700; text-align:right; overflow-wrap:anywhere; }
+.connection-stats .ok { color:#087443; }
+.connection-stats .fail { color:#b42318; }
+.connection-dialog #connection-recheck { width:100%; }
+@media (max-width:960px) {
+ .performance-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .performance-support-grid { grid-template-columns:1fr; }
+ .performance-compare-row { grid-template-columns:130px 1fr 90px; }
+}
+@media (max-width:590px) {
+ .performance-priority .topbar { padding-top:15px; }
+ .performance-lead { flex-direction:column; gap:9px; }
+ .performance-updated { align-items:flex-start; text-align:left; }
+ .performance-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+ .performance-kpi { padding:15px; min-height:122px; }
+ .performance-value { font-size:26px; }
+ .performance-visual,.performance-support-grid > .panel { padding:15px; }
+ .performance-filters { width:100%; }
+ .performance-compare-row { grid-template-columns:87px minmax(0,1fr) 75px; gap:7px; font-size:11px; }
+ .performance-compare-row strong { font-size:11px; }
+ .performance-legend { gap:10px; font-size:11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .performance-progress-fill,.performance-bar-track span { transition:none; }
+}
+
+.performance-priority footer #api-state { display:none; }
+
+/* Connectivity metadata lives in the detail dialog, never in the KPI overview. */
+.performance-priority #perf-updated { display:none; }

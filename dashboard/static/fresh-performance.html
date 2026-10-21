@@ -1,0 +1,123 @@
+<section class="performance-home" aria-labelledby="performance-title">
+  <div class="performance-lead">
+    <div>
+      <p class="eyebrow">RESEARCH PERFORMANCE / DEVELOPMENT DATA</p>
+      <h2 id="performance-title">전략 성과를 한눈에</h2>
+      <p class="performance-subtitle">각 세대는 동일한 2020~2025년 QQQ 데이터에 대한 독립 백테스트입니다. 실거래 수익률이 아닙니다.</p>
+    </div>
+    <div class="performance-updated">
+      <span id="perf-status" class="performance-pill">결과 읽는 중</span>
+      <span id="perf-updated" class="muted">데이터 확인 중</span>
+    </div>
+  </div>
+
+  <div class="performance-kpis" aria-label="성과 요약">
+    <article class="performance-kpi performance-kpi-featured">
+      <p class="label">최고 개발 후보 · 누적 수익률</p>
+      <strong id="perf-best-return" class="performance-value">—</strong>
+      <span id="perf-best-generation" class="performance-foot">거래 30건 이상 후보 기준</span>
+    </article>
+    <article class="performance-kpi">
+      <p class="label">동기간 QQQ 단순 보유</p>
+      <strong id="perf-qqq-return" class="performance-value">—</strong>
+      <span class="performance-foot">배당 제외 · 가격 기준</span>
+    </article>
+    <article class="performance-kpi">
+      <p class="label">최고 후보의 QQQ 대비 격차</p>
+      <strong id="perf-excess" class="performance-value">—</strong>
+      <span class="performance-foot">누적 수익률 차이 · %p</span>
+    </article>
+    <article class="performance-kpi">
+      <p class="label">최고 후보 최대 낙폭</p>
+      <strong id="perf-best-mdd" class="performance-value">—</strong>
+      <span id="perf-best-trades" class="performance-foot">완료 거래 기준</span>
+    </article>
+  </div>
+
+  <section class="performance-visual panel" aria-labelledby="perf-chart-title">
+    <div class="performance-panel-head">
+      <div>
+        <p class="eyebrow">GENERATION MONITOR</p>
+        <h2 id="perf-chart-title">세대별 성능 변화</h2>
+        <p class="muted performance-note">연속된 선은 세대별 전략의 평가 점수 추이입니다. 포트폴리오 잔고 곡선이 아닙니다.</p>
+      </div>
+      <div class="performance-filters" role="group" aria-label="그래프 표시 기간">
+        <button type="button" class="performance-filter is-active" data-perf-window="all" aria-pressed="true">전체</button>
+        <button type="button" class="performance-filter" data-perf-window="30" aria-pressed="false">최근 30</button>
+        <button type="button" class="performance-filter" data-perf-window="50" aria-pressed="false">최근 50</button>
+        <button type="button" class="performance-filter" data-perf-window="100" aria-pressed="false">최근 100</button>
+      </div>
+    </div>
+    <div class="performance-legend">
+      <span><i class="key best-key"></i> 누적 최고 후보</span>
+      <span><i class="key returns-key"></i> 세대별 누적 수익률</span>
+      <span><i class="key benchmark-key"></i> QQQ 비교선</span>
+    </div>
+    <div class="performance-chart-frame">
+      <svg id="perf-return-chart" viewBox="0 0 960 320" role="img" aria-label="세대별 전략 누적 수익률, 누적 최고 기록, QQQ 단순 보유 비교"></svg>
+      <div id="perf-return-summary" class="performance-chart-caption" aria-live="polite">세대별 수익률을 불러오는 중입니다.</div>
+    </div>
+    <div class="performance-compare">
+      <div class="performance-compare-row">
+        <span>최고 개발 후보</span>
+        <div class="performance-bar-track"><span id="perf-strategy-bar" class="performance-bar-strategy"></span></div>
+        <strong id="perf-strategy-compare">—</strong>
+      </div>
+      <div class="performance-compare-row">
+        <span>QQQ 단순 보유</span>
+        <div class="performance-bar-track"><span id="perf-qqq-bar" class="performance-bar-qqq"></span></div>
+        <strong id="perf-qqq-compare">—</strong>
+      </div>
+    </div>
+  </section>
+
+  <div class="performance-support-grid">
+    <section class="panel performance-risk-panel" aria-labelledby="perf-risk-title">
+      <div class="performance-panel-head">
+        <div><p class="eyebrow">RISK MONITOR</p><h2 id="perf-risk-title">세대별 최대 낙폭(MDD)</h2></div>
+        <span id="perf-risk-average" class="muted">평균 —</span>
+      </div>
+      <svg id="perf-risk-chart" viewBox="0 0 570 190" role="img" aria-label="세대별 최대 낙폭 그래프"></svg>
+      <p class="performance-chart-caption">값이 작을수록 낙폭이 낮습니다. 세대별 백테스트 MDD를 표시합니다.</p>
+    </section>
+    <section class="panel performance-progress-panel" aria-labelledby="perf-progress-title">
+      <div class="performance-panel-head">
+        <div><p class="eyebrow">RESEARCH RUN</p><h2 id="perf-progress-title">실험 진행 및 결과</h2></div>
+        <span id="perf-progress-pct" class="performance-pill">—</span>
+      </div>
+      <strong id="perf-progress" class="performance-run-count">— / —</strong>
+      <div class="performance-progress-track"><div id="perf-progress-fill" class="performance-progress-fill"></div></div>
+      <div class="performance-progress-meta">
+        <span id="perf-cohort">추가 실험 —</span>
+        <span id="perf-positive">양수 성과 —</span>
+      </div>
+      <p id="perf-mean-mdd" class="performance-chart-caption">전체 평균 MDD —</p>
+      <div class="performance-small-stats">
+        <div><span>최근 세대</span><strong id="perf-last-gen">—</strong></div>
+        <div><span>최근 수익률</span><strong id="perf-last-return">—</strong></div>
+      </div>
+      <a class="performance-deep-link" href="backtest">세대별 백테스트 상세 확인 <span aria-hidden="true">↗</span></a>
+    </section>
+  </div>
+
+  <p class="performance-disclaimer">개발 데이터 반복 테스트 결과 · 독립 OOS/PIT 미검증 · 실거래 비활성 · 세대별 독립 GPT 호출 미검증</p>
+</section>
+
+<dialog id="connection-dialog" class="connection-dialog" aria-labelledby="connection-dialog-title">
+  <div class="connection-heading">
+    <div><p class="eyebrow">SYSTEM &amp; DATA</p><h2 id="connection-dialog-title">연결 상태 및 연구 증거</h2></div>
+    <button id="connection-close" class="button" type="button" aria-label="연결 상태 닫기">닫기</button>
+  </div>
+  <dl class="connection-stats">
+    <dt>대시보드 API</dt><dd id="connect-api">확인 중</dd>
+    <dt>연구 원장</dt><dd id="connect-research">확인 중</dd>
+    <dt>증거 해시 연결</dt><dd id="connect-evidence">확인 중</dd>
+    <dt>연구 프로세스</dt><dd id="connect-runner">확인 중</dd>
+    <dt>독립 GPT 전략 지휘</dt><dd>미검증 · 정적 규칙 탐색</dd>
+    <dt>Quant MCP/OAuth</dt><dd>기존 연결 미복구</dd>
+    <dt>독립 OOS / PIT</dt><dd>미검증</dd>
+    <dt>실거래 주문</dt><dd>비활성화</dd>
+    <dt>최근 조회</dt><dd id="connect-updated">—</dd>
+  </dl>
+  <button id="connection-recheck" type="button" class="button button-primary">지금 다시 확인</button>
+</dialog>
