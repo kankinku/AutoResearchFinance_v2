@@ -75,3 +75,15 @@ def test_reject_unaudited_candidates_and_invalid_bounds():
         shortlist_counted_generations([], per_lane=0)
     with pytest.raises(ValueError, match="next generation"):
         choose_parent_lane([], 1)
+
+
+def test_counted_s7_child_can_win_mixed_verified_portfolio():
+    counted = [
+        {**_verified(_history(248, 1.70, 0.33)), "source_kind": "COUNTED_GENERATION"},
+        {**_verified(_history(68, 0.60, 0.16)), "source_kind": "COUNTED_GENERATION"},
+    ]
+    s7 = {**_verified(_history(304, 1.80, 0.29)), "source_kind": "COUNTED_S7_CHILD"}
+    lanes = verified_parent_lanes([*counted, s7])
+    assert lanes[0]["source_generation"] == 304
+    assert lanes[0]["source_kind"] == "COUNTED_S7_CHILD"
+    assert choose_parent_lane([*counted, s7], 453)[0]["source_kind"] == "COUNTED_S7_CHILD"

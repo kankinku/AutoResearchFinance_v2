@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from core.backtest.engine import _regime_allows, _rules_match
 from core.data.contracts import MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import research_feature_specs
@@ -527,6 +528,101 @@ class AcademicMCPCheckpointService:
                     "broker_executable": False,
                 }
             )
+        # Compete the established S7-successor lane against direct counted
+        # StrategyIR parents. Unlike the legacy bootstrap, this also searches
+        # good outcomes outside an old coarse top-16 fixed source window.
+        # These cheap untrusted S7 scores are only used to select a bounded
+        # list for *full cost/fill replays* and unchanged economic gates.
+        coarse_s7: list[tuple[float, int, str]] = []
+        for historic in status["history"]:
+            report = self._stored_experiment(db, status["session_id"], historic["generation"])
+            if report is None:
+                raise CycleStateError("mixed parent missing S7 report")
+            if report.get("study_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF":
+                continue
+            if report.get("original_generation_evidence_hash") != historic["evidence_hash"]:
+                raise CycleStateError("mixed parent source S7 hash mismatch")
+            for outcome in report["report"]["experiments"]:
+                equity = outcome.get("child_final_equity")
+                parent_eq = outcome.get("parent_final_equity")
+                fills = outcome.get("child_fill_count")
+                if (
+                    type(equity) in (float, int)
+                    and type(parent_eq) in (float, int)
+                    and type(fills) is int
+                    and equity > parent_eq > 0
+                    and fills >= 60
+                    and outcome.get("same_fill_trace") is False
+                    and outcome.get("status")
+                    not in ("NO_OBSERVED_EFFECT", "DEGENERATE_INACTIVE_CHILD")
+                ):
+                    coarse_s7.append(
+                        (float(equity), historic["generation"], outcome["hypothesis_id"])
+                    )
+        coarse_s7.sort(key=lambda row: (-row[0], row[1], row[2]))
+        s7_tested = 0
+        s7_qualified = 0
+        for _, generation, hypothesis_id in coarse_s7[:12]:
+            original = status["history"][generation - 1]
+            report = self._stored_experiment(db, status["session_id"], generation)
+            assert report is not None
+            if original.get("inherited_strategy_ir") is not None:
+                inherited_parent = self._inherited_from_evidence(catalog, data, original)
+            else:
+                inherited_parent = compile_algorithm_plan(
+                    catalog, AlgorithmPlan.model_validate(original["algorithm_plan"]), data
+                ).compiled
+            try:
+                s7_candidate, compiled_s7 = replay_counted_s7_child(
+                    catalog, data, original, report, inherited_parent, hypothesis_id
+                )
+            except IneligibleCountedChild:
+                continue
+            s7_tested += 1
+            if choose_development_parent([s7_candidate]) is None:
+                continue
+            s7_qualified += 1
+            # Both kinds receive the same signal-level identity. A different
+            # JSON hash with identical executed signals is not a new parent.
+            s7_signal = content_hash(
+                {
+                    "dataset_hash": data.dataset_hash,
+                    "entry": tuple(
+                        _rules_match(
+                            compiled_s7.strategy.entry.conditions,
+                            compiled_s7.strategy.entry.logic,
+                            compiled_s7.feature_values,
+                            i,
+                        )
+                        for i in range(len(data.bars))
+                    ),
+                    "exit": tuple(
+                        _rules_match(
+                            compiled_s7.strategy.exit.conditions,
+                            compiled_s7.strategy.exit.logic,
+                            compiled_s7.feature_values,
+                            i,
+                        )
+                        for i in range(len(data.bars))
+                    ),
+                    "regime": tuple(
+                        _regime_allows(compiled_s7.strategy, compiled_s7.feature_values, i)
+                        for i in range(len(data.bars))
+                    ),
+                }
+            )
+            candidates.append(
+                {
+                    **s7_candidate,
+                    "effective_signal_hash": s7_signal,
+                    "parent_quality": {
+                        "total_return": s7_candidate["successor_total_return"],
+                        "max_drawdown": s7_candidate["successor_max_drawdown"],
+                        "closed_trades": s7_candidate["successor_closed_trades"],
+                        "market_exposure": s7_candidate["successor_market_exposure"],
+                    },
+                }
+            )
         if not candidates:
             return None
         selected, lanes = choose_parent_lane(candidates, status["completed_generations"] + 1)
@@ -535,6 +631,9 @@ class AcademicMCPCheckpointService:
         body["candidate_review"] = {
             "shortlisted_count": len(shortlist),
             "replayed_count": len(candidates),
+            "s7_shortlisted_count": min(len(coarse_s7), 12),
+            "s7_replayed_count": s7_tested,
+            "s7_eligible_count": s7_qualified,
             "diverse_parent_count": len(lanes),
             "lane_source_generations": [x["source_generation"] for x in lanes],
             "chosen_parent_generation": selected["source_generation"],
@@ -850,7 +949,7 @@ class AcademicMCPCheckpointService:
             db.execute(
                 "INSERT OR IGNORE INTO parent_selections "
                 "(session_id,next_generation,lineage_report_hash,"
-                        "selection_hash,selection_json) "
+                "selection_hash,selection_json) "
                 "VALUES(?,?,?,?,?)",
                 (
                     sid,
