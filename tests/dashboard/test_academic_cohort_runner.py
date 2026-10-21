@@ -49,11 +49,11 @@ def test_integrity_checked_sqlite_backup(tmp_path: Path) -> None:
         perform_backup(SimpleNamespace(state=source), target, "a" * 32, 152, 252, "b" * 64)
 
 
-def test_rejects_invalid_ids_and_beyond_g400() -> None:
+def test_rejects_invalid_ids_and_beyond_g1000() -> None:
     with pytest.raises(ValueError, match="cohort_id"):
         run("../escape", 152, 100)
     with pytest.raises(ValueError, match="upper bound"):
-        run("next-100", 352, 100)
+        run("next-100", 952, 100)
     with pytest.raises(ValueError, match="size"):
         run("next-100", 152, 101)
 

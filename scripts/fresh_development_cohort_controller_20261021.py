@@ -330,7 +330,7 @@ def main(max_new: int):
     service = AcademicMCPCheckpointService(project_root=ROOT, state_dir=STATE / "research")
     result = service.get({"session_id": SESSION})
     target = result["requested_generations"]
-    assert 3 <= result["completed_generations"] < target <= 400
+    assert 3 <= result["completed_generations"] < target <= 1000
     assert result["completed_generations"] >= 3
     assert result["orders_enabled"] is False and result["independent_oos_approved"] is False
     assert (

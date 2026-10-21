@@ -86,11 +86,11 @@ def perform_backup(
 def run(cohort_id: str, expected_start: int, additional: int) -> None:
     if not re.fullmatch(r"[A-Za-z0-9_-]{4,100}", cohort_id):
         raise ValueError("cohort_id must be a simple stable identifier")
-    if not 1 <= additional <= 100 or not 1 <= expected_start <= 399:
+    if not 1 <= additional <= 100 or not 1 <= expected_start <= 999:
         raise ValueError("invalid cohort size or expected_start")
     target = expected_start + additional
-    if target > 400:
-        raise ValueError("academic checkpoint upper bound is G400")
+    if target > 1000:
+        raise ValueError("academic checkpoint upper bound is G1000")
     JOBS.mkdir(parents=True, exist_ok=True)
     # Held for extension AND generation execution; a second invoker cannot
     # race or double-extend the same research state.
