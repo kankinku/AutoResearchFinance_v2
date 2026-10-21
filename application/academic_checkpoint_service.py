@@ -16,7 +16,11 @@ from typing import Any
 from uuid import uuid4
 
 from core.backtest.engine import _regime_allows, _rules_match
-from core.backtest.p2_policy import ChildRiskBudget, assess_child_risk_metrics
+from core.backtest.p2_policy import (
+    ChildRiskBudget,
+    assess_child_risk,
+    assess_child_risk_metrics,
+)
 from core.data.contracts import MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import research_feature_specs
@@ -120,10 +124,14 @@ class AcademicMCPCheckpointService:
         state_dir: Path,
         parent_portfolio_v2: bool = False,
         child_risk_budget: ChildRiskBudget | None = None,
+        precommit_child_risk_budget: ChildRiskBudget | None = None,
     ):
-        if child_risk_budget is not None and not parent_portfolio_v2:
-            raise ValueError("P2 child risk budget requires opt-in parent portfolio")
+        if (
+            child_risk_budget is not None or precommit_child_risk_budget is not None
+        ) and not parent_portfolio_v2:
+            raise ValueError("P2 child risk budgets require opt-in parent portfolio")
         self.child_risk_budget = child_risk_budget
+        self.precommit_child_risk_budget = precommit_child_risk_budget
         self.root = project_root.resolve()
         self.state = state_dir.resolve() / "academic-gpt-checkpoints"
         self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
@@ -186,6 +194,15 @@ class AcademicMCPCheckpointService:
             evidence_head TEXT NOT NULL, previous_token_hash TEXT NOT NULL,
             new_token_hash TEXT NOT NULL, receipt_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, new_requested)
+        )""")
+        # Development-only rejected child proposals. Never alters immutable
+        # academic cycle Evidence, nor consumes the planning checkpoint token.
+        db.execute("""CREATE TABLE IF NOT EXISTS precommit_risk_rejections (
+            session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+            request_hash TEXT NOT NULL, token_hash TEXT NOT NULL,
+            child_strategy_hash TEXT NOT NULL, review_json TEXT NOT NULL,
+            review_hash TEXT NOT NULL,
+            PRIMARY KEY(session_id, generation, request_hash)
         )""")
         # Old sessions were created with the original catalog. Keep their
         # identity even after new S6 candidates become available.
@@ -1133,6 +1150,50 @@ class AcademicMCPCheckpointService:
         digest = content_hash(child.model_dump(mode="json", by_alias=True))
         if digest != pending.get("strategy_hash"):
             raise CycleStateError("inherited child StrategyIR changed after staging")
+        # Persisted accepted precommit evidence is rechecked on every staging
+        # read, including a later process where the optional flag is off.
+        precommit = pending.get("p2_precommit_approved")
+        if self.precommit_child_risk_budget is not None and precommit is None:
+            raise CycleStateError("P2 precommit enabled but approved proof missing")
+        if precommit is not None:
+            if not isinstance(precommit, dict):
+                raise CycleStateError("invalid P2 precommit risk proof")
+            signed = {k: v for k, v in precommit.items() if k != "review_hash"}
+            if (
+                content_hash(signed) != precommit.get("review_hash")
+                or precommit.get("schema") != "p2-precommit-child-approved-v1"
+                or precommit.get("parent_selection_hash") != selection["selection_hash"]
+                or precommit.get("parent_strategy_hash") != parent.strategy_hash
+                or precommit.get("child_strategy_hash") != digest
+                or precommit.get("dataset_hash") != data.dataset_hash
+                or precommit.get("cost_policy") != "academic-research-cost-v1"
+            ):
+                raise CycleStateError("P2 precommit strategy or provenance mismatch")
+            try:
+                budget = ChildRiskBudget.model_validate(precommit["risk_budget"])
+                parent_checked = audit_inherited_decisions(parent, data)
+                child_compiled = replace(parent, strategy=child, strategy_hash=digest)
+                child_checked = audit_inherited_decisions(child_compiled, data)
+                review = assess_child_risk(
+                    parent_equity=parent_checked.evaluation.equity_curve,
+                    child_equity=child_checked.evaluation.equity_curve,
+                    child_closed_trades=len(child_checked.round_trips),
+                    budget=budget,
+                )
+            except (ValueError, KeyError, TypeError) as exc:
+                raise CycleStateError("P2 precommit proof cannot replay") from exc
+            if (
+                not review["eligible"]
+                or precommit["risk_review"] != review
+                or precommit["parent_equity_hash"] != parent_checked.evaluation.equity_hash
+                or precommit["child_equity_hash"] != child_checked.evaluation.equity_hash
+                or precommit["child_audit_hash"] != child_checked.trace_hash
+                or (
+                    self.precommit_child_risk_budget is not None
+                    and budget != self.precommit_child_risk_budget
+                )
+            ):
+                raise CycleStateError("P2 precommit risk approval no longer replays")
         proof = {
             "schema": "p0-3b-counted-inheritance-input-v1",
             "source_generation": selection["source_generation"],
@@ -1516,6 +1577,99 @@ class AcademicMCPCheckpointService:
             raise ValueError("DUPLICATE_INHERITED_STRATEGY: change next mutation")
         compiled = replace(parent, strategy=child, strategy_hash=digest)
         audit = audit_inherited_decisions(compiled, data)
+        precommit_approved_proof: dict[str, Any] | None = None
+        if self.precommit_child_risk_budget is not None:
+            # Exact same costed, next-open S2 replay for both parent and child.
+            # No estimation from a proposed backtest score or model prose.
+            parent_audit = audit_inherited_decisions(parent, data)
+            review = assess_child_risk(
+                parent_equity=parent_audit.evaluation.equity_curve,
+                child_equity=audit.evaluation.equity_curve,
+                child_closed_trades=len(audit.round_trips),
+                budget=self.precommit_child_risk_budget,
+            )
+            if review["eligible"]:
+                accepted_body = {
+                    "schema": "p2-precommit-child-approved-v1",
+                    "parent_selection_hash": selected["selection_hash"],
+                    "parent_strategy_hash": parent.strategy_hash,
+                    "parent_equity_hash": parent_audit.evaluation.equity_hash,
+                    "child_strategy_hash": digest,
+                    "child_equity_hash": audit.evaluation.equity_hash,
+                    "child_audit_hash": audit.trace_hash,
+                    "dataset_hash": data.dataset_hash,
+                    "cost_policy": "academic-research-cost-v1",
+                    "risk_budget": self.precommit_child_risk_budget.model_dump(mode="json"),
+                    "risk_review": review,
+                }
+                precommit_approved_proof = {
+                    **accepted_body,
+                    "review_hash": content_hash(accepted_body),
+                }
+            else:
+                review_body = {
+                    "schema": "p2-precommit-child-risk-rejection-v1",
+                    "session_id": state["session_id"],
+                    "generation": state["completed_generations"] + 1,
+                    "request_hash": content_hash(
+                        receipt_request if receipt_request is not None else args["plan"]
+                    ),
+                    "token_hash": content_hash(row["token"]),
+                    "source_evidence_hash": (
+                        state["history"][-1]["evidence_hash"] if state["history"] else None
+                    ),
+                    "parent_selection_hash": selected["selection_hash"],
+                    "parent_strategy_hash": parent.strategy_hash,
+                    "parent_equity_hash": parent_audit.evaluation.equity_hash,
+                    "child_strategy_hash": digest,
+                    "child_equity_hash": audit.evaluation.equity_hash,
+                    "child_audit_hash": audit.trace_hash,
+                    "dataset_hash": data.dataset_hash,
+                    "cost_policy": "academic-research-cost-v1",
+                    "risk_budget": self.precommit_child_risk_budget.model_dump(mode="json"),
+                    "risk_review": review,
+                    "study_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF",
+                }
+                review_hash = content_hash(review_body)
+                db.execute(
+                    "INSERT OR IGNORE INTO precommit_risk_rejections "
+                    "(session_id,generation,request_hash,token_hash,child_strategy_hash,"
+                    "review_json,review_hash) VALUES(?,?,?,?,?,?,?)",
+                    (
+                        state["session_id"],
+                        state["completed_generations"] + 1,
+                        review_body["request_hash"],
+                        review_body["token_hash"],
+                        digest,
+                        json.dumps(review_body, sort_keys=True),
+                        review_hash,
+                    ),
+                )
+                saved = db.execute(
+                    "SELECT review_json,review_hash FROM precommit_risk_rejections "
+                    "WHERE session_id=? AND generation=? AND request_hash=?",
+                    (
+                        state["session_id"],
+                        state["completed_generations"] + 1,
+                        review_body["request_hash"],
+                    ),
+                ).fetchone()
+                if (
+                    saved is None
+                    or saved["review_hash"] != review_hash
+                    or json.loads(saved["review_json"]) != review_body
+                ):
+                    raise CycleStateError("P2 rejected precommit evidence conflict")
+                # A raised error would otherwise roll back this INSERT, so
+                # commit the rejection BEFORE returning an operator retry.
+                db.commit()
+                raise ValueError(
+                    "P2_PRECOMMIT_RISK_REJECTED: no generation committed; "
+                    "revise strategy and retry same planning token "
+                    f"(parent MDD {review['parent_mdd_pct']:.2f}%, "
+                    f"child MDD {review['child_mdd_pct']:.2f}%, "
+                    f"closed trades {review['closed_trades']})"
+                )
         preflight = (
             compare_inherited_s2_execution(parent, audit, data)
             if require_execution_change
@@ -1535,6 +1689,8 @@ class AcademicMCPCheckpointService:
         }
         if preflight is not None:
             body["s2_execution_preflight"] = preflight
+        if precommit_approved_proof is not None:
+            body["p2_precommit_approved"] = precommit_approved_proof
         token = uuid4().hex
         updated = db.execute(
             "UPDATE stages SET phase='AWAITING_DIAGNOSIS',token=?,plan_json=?,"
