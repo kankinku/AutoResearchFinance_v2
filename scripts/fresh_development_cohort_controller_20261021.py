@@ -183,6 +183,33 @@ def designs():
             ]
 
 
+    # G158 recovery: the last static 1–2 operation pool was measured and
+    # exhausted. Explore pairwise entry-regime combinations with explicitly
+    # different AND/OR semantics and cost-tested exits. These remain actual
+    # signal-changing controlled experiments, not synthetic performance.
+    # Candidate operations are enumerated deterministically and deduplicated
+    # against all history before a new generation can be committed.
+    from itertools import product
+
+    for logic in ("OR", "AND"):
+        for first, second, exit_spec in product(
+            entry_mechanisms, entry_mechanisms, EXITS
+        ):
+            if first == second:
+                continue
+            for exit_direction in ("less_equal", "greater_than"):
+                yield [
+                    {"op":"CHANGE_AND_OR","path":"entry.logic","logic":logic},
+                    {"op":"REPLACE_RULE","path":"entry.conditions.0",
+                     "condition":rule(first[0],val=first[1])},
+                    {"op":"REPLACE_RULE","path":"entry.conditions.1",
+                     "condition":rule(second[0],val=second[1])},
+                    {"op":"REPLACE_RULE","path":"exit.conditions.0",
+                     "condition":rule(exit_spec[0],val=exit_spec[1],
+                                      op=exit_direction)},
+                ]
+
+
 def get_done_attempts() -> set[str]:
     ret = set()
     if PROGRESS.is_file():
@@ -302,7 +329,8 @@ def main(max_new: int):
     assert 1 <= max_new <= 100
     service = AcademicMCPCheckpointService(project_root=ROOT, state_dir=STATE / "research")
     result = service.get({"session_id": SESSION})
-    assert result["requested_generations"] == 152
+    target = result["requested_generations"]
+    assert 3 <= result["completed_generations"] < target <= 400
     assert result["completed_generations"] >= 3
     assert result["orders_enabled"] is False and result["independent_oos_approved"] is False
     assert (
@@ -310,7 +338,7 @@ def main(max_new: int):
     )
     successes = 0
     tested = get_done_attempts()
-    while successes < max_new and result["completed_generations"] < 152:
+    while successes < max_new and result["completed_generations"] < target:
         assert result["checkpoint_phase"] == "AWAITING_PLAN"
         g = result["completed_generations"] + 1
         c = result["model_context"]

@@ -48,6 +48,8 @@ def _controller_running() -> bool:
             known = (
                 b"state/tools/fresh_batch_controller_20261021.py",
                 b"scripts/fresh_development_cohort_controller_20261021.py",
+                b"scripts.run_academic_cohort",
+                b"scripts/run_academic_cohort.py",
             )
             if not any(arg.endswith(path) for arg in argv[1:] for path in known):
                 continue
