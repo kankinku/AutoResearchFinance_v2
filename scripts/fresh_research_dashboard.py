@@ -10,7 +10,7 @@ import argparse
 import json
 import sqlite3
 import statistics
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -18,6 +18,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "state/moon-http/fresh-20261021"
 QQQ_DEV_RETURN = 1.8777241068917014
+# Price-only benchmark over the same development window (2020-01-02 to 2025-12-31).
+QQQ_DEV_YEARS = (date(2025,12,31) - date(2020,1,2)).days / 365.2425
+QQQ_DEV_CAGR = (1+QQQ_DEV_RETURN) ** (1/QQQ_DEV_YEARS) - 1
 
 
 def _read_db(path: Path) -> sqlite3.Connection:
@@ -42,7 +45,11 @@ def _controller_running() -> bool:
             argv = (item / "cmdline").read_bytes().split(bytes([0]))
             if len(argv) < 3 or b"python" not in Path(argv[0].decode()).name.encode():
                 continue
-            if not any(arg.endswith(b"state/tools/fresh_batch_controller_20261021.py") for arg in argv[1:]):
+            known = (
+                b"state/tools/fresh_batch_controller_20261021.py",
+                b"scripts/fresh_development_cohort_controller_20261021.py",
+            )
+            if not any(arg.endswith(path) for arg in argv[1:] for path in known):
                 continue
             if (item / "cwd").resolve() == ROOT:
                 return True
@@ -88,6 +95,11 @@ def snapshot(state: Path = STATE) -> dict[str, Any]:
             "trades":int(m["trade_count"]),
             "exposure":float(m["exposure"]),
             "sharpe":float(m.get("sharpe",0)),
+            "cagr":float(m["cagr"]),
+            "sortino":float(m.get("sortino",0)),
+            "profit_factor":float(m.get("profit_factor",0)),
+            "turnover":float(m.get("turnover",0)),
+            "win_rate":float(m.get("win_rate",0)),
             "evidence_prefix":prev[:12],
             "eligible":int(m["trade_count"]) >= 30,
         })
@@ -116,8 +128,10 @@ def snapshot(state: Path = STATE) -> dict[str, Any]:
         "fetched_at":datetime.now(timezone.utc).isoformat(),
         "completed":completed,
         "requested":n,
-        "additional_completed":max(0,completed-2),
-        "additional_target":max(0,n-2),
+        # This follow-up cohort is explicitly G53–G152, after G1–G52.
+        "additional_completed":max(0,completed-52),
+        "additional_target":max(0,n-52),
+        "cohort_start_generation":53,
         "status":row["status"],
         "phase":phase["phase"],
         "proof_chain_ok":proof,
@@ -130,6 +144,7 @@ def snapshot(state: Path = STATE) -> dict[str, Any]:
         "avg_mdd":statistics.mean(g["mdd"] for g in seen) if seen else None,
         "positive_count":sum(g["return"] > 0 for g in seen),
         "qqq_dev_bh_return":QQQ_DEV_RETURN,
+        "qqq_dev_bh_cagr":QQQ_DEV_CAGR,
         "orders_enabled":False,
         "independent_oos_approved":False,
         "model_autonomy_verified":False,
@@ -279,7 +294,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy",
-            "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; "
+            "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
             "connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'")
         self.end_headers()
         self.wfile.write(content)

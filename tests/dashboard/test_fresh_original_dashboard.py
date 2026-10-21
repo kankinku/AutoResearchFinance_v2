@@ -22,6 +22,10 @@ def test_original_design_files_unchanged_and_nested_navigation() -> None:
     backtest = original.page("backtest.html").decode()
     assert 'href="static/styles.css"' in html
     assert 'href="backtest"' in html
+    assert 'id="academic-progress"' in html
+    assert 'id="academic-evidence"' in html
+    assert 'id="academic-run-state"' in html
+    assert 'id="academic-progress-bar"' in html
     assert 'src="static/app.js"' in html
     assert 'href="static/styles.css?v=20260903"' in backtest
     assert "백테스트" in backtest
@@ -29,6 +33,11 @@ def test_original_design_files_unchanged_and_nested_navigation() -> None:
         js = original.script(name).decode()
         assert '/api/' not in js
         assert 'fetch(' in js
+    js = original.script("app.js").decode()
+    assert 'fetch("api/dashboard")' in js
+    assert 'method: "POST"' not in js
+    assert "function liveAcademic()" in js
+    assert 'fetch("api/status"' in js
 
 
 def test_readonly_sqlite_bridge_matches_original_contracts() -> None:
@@ -37,6 +46,8 @@ def test_readonly_sqlite_bridge_matches_original_contracts() -> None:
     detail = original.backtest(research, dashboard)
     DashboardSnapshot.model_validate(dashboard)
     BacktestSnapshot.model_validate(detail)
+    assert research["additional_completed"] == max(0,research["completed"]-52)
+    assert research["additional_target"] == max(0,research["requested"]-52)
     assert detail["research"]["completed_generations"] == research["completed"]
     assert detail["research"]["requested_generations"] == research["requested"]
     assert len(detail["generations"]) == research["completed"]
@@ -59,6 +70,9 @@ def test_readonly_http_bridge_serves_existing_ui(monkeypatch: pytest.MonkeyPatch
                     "/api/features/catalog", "/api/strategies/catalog"):
             with urllib.request.urlopen(url + uri) as response:
                 assert response.status == 200
+                csp=response.headers["Content-Security-Policy"]
+                assert "style-src 'self' 'unsafe-inline'" in csp
+                assert "script-src 'self'" in csp
                 assert response.read()
         with urllib.request.urlopen(url + "/api/backtest/runs/fresh-G2") as response:
             assert json.load(response)["generation"] == 2

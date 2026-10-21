@@ -129,6 +129,60 @@ def designs():
             ]
 
 
+    # V2 recovery of G115 exhausted pool: unlike the original generator that
+    # only ADDED entry gates (often producing the exact same entry signal), this
+    # compares different entry mechanisms while holding the second filter and
+    # exit constant. The same complete 1508-bar signal dedup, >=30 closed-trade
+    # gate, net-cost audit and S7 are kept. These are bounded candidate families,
+    # NOT independent LLM reasoning or evidence of causal improvement.
+    entry_mechanisms = (
+        ("ema_direction_20", 0.5),
+        ("previous_range_breakout", 0.5),
+        ("range_low_reclaim_20", 0.5),
+        ("sma_pullback_20", 0.5),
+        ("sma_direction", 0.5),
+        ("dual_sma_trend_50", 0.5),
+        ("plan_vote_score", 0.25),
+        ("plan_vote_score", 0.5),
+        ("plan_vote_score", 0.75),
+        ("plan_branch_index", 1.5),
+    )
+    for path in ("entry.conditions.0", "entry.conditions.1"):
+        for feat, threshold in entry_mechanisms:
+            yield [
+                {"op":"REPLACE_RULE","path":path,
+                 "condition":rule(feat,val=threshold)}
+            ]
+    # Contrast an alternate entry definition and exit mechanism together.
+    for feat, threshold in entry_mechanisms:
+        for xfeat, xval in EXITS:
+            yield [
+                {"op":"REPLACE_RULE","path":"entry.conditions.0",
+                 "condition":rule(feat,val=threshold)},
+                {"op":"REPLACE_RULE","path":"exit.conditions.0",
+                 "condition":rule(xfeat,val=xval,op="less_equal")},
+            ]
+    # Alter the second entry gate instead of always stacking additional gates.
+    for feat, threshold in entry_mechanisms:
+        for xfeat, xval in EXITS:
+            yield [
+                {"op":"REPLACE_RULE","path":"entry.conditions.1",
+                 "condition":rule(feat,val=threshold)},
+                {"op":"REPLACE_RULE","path":"exit.conditions.0",
+                 "condition":rule(xfeat,val=xval,op="less_equal")},
+            ]
+    # If two-condition AND keeps exhausting all eligible unique signals, test
+    # rule disjunction explicitly rather than silently relaxing the trade gate.
+    for logic in ("OR",):
+        yield [{"op":"CHANGE_AND_OR","path":"entry.logic","logic":logic}]
+        for feat, threshold in entry_mechanisms:
+            yield [
+                {"op":"CHANGE_AND_OR","path":"entry.logic","logic":logic},
+                {"op":"REPLACE_RULE","path":"entry.conditions.0",
+                 "condition":rule(feat,val=threshold)},
+            ]
+
+
 def get_done_attempts() -> set[str]:
     ret = set()
     if PROGRESS.is_file():

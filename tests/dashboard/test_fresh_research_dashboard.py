@@ -36,6 +36,7 @@ def _fixture(tmp_path: Path, *, corrupt: bool = False) -> Path:
             obj = {
                 "metrics": {
                     "total_return": 0.1 * i,
+                    "cagr":0.01*i,
                     "max_drawdown": 0.05 * i,
                     "trade_count": 45 if i == 2 else 10,
                     "exposure": 0.3,
@@ -69,6 +70,8 @@ def test_snapshot_reads_live_sqlite_and_30_trade_eligibility(tmp_path: Path) -> 
     assert a["best_eligible"]["generation"] == 2
     assert a["best_eligible"]["trades"] == 45
     assert a["avg_generation_seconds"] == 90.0
+    assert a["generations"][1]["cagr"]==0.02
+    assert 0.18<a["qqq_dev_bh_cagr"]<0.20
     assert a["orders_enabled"] is False
     assert a["model_autonomy_verified"] is False
     assert a["generations"][0]["eligible"] is False
