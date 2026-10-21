@@ -184,13 +184,26 @@ def run(cohort_id: str, expected_start: int, additional: int) -> None:
         try:
             run_generations(target - current["completed_generations"])
         except BaseException as exc:
-            latest = checkpoint(svc, session_id)
             record["state"] = "BLOCKED"
-            record["completed"] = latest["completed_generations"]
-            record["checkpoint_phase"] = latest["checkpoint_phase"]
             record["failure_type"] = type(exc).__name__
             record["failure_message"] = str(exc)[:400]
             record["failed_utc"] = datetime.now(timezone.utc).isoformat()
+            try:
+                latest = checkpoint(svc, session_id)
+            except BaseException as fetch_exc:
+                # The read-only context builder can itself fail due to an
+                # unrelated bug; never lose the original operator failure.
+                with sqlite3.connect(svc.cycle.db_path) as db:
+                    actual = db.execute(
+                        "SELECT COUNT(*), MAX(generation) FROM generations "
+                        "WHERE session_id=?", (session_id,)
+                    ).fetchone()
+                record["completed"] = int(actual[0])
+                record["checkpoint_phase"] = "CONTEXT_READ_FAILED"
+                record["checkpoint_read_error"] = type(fetch_exc).__name__
+            else:
+                record["completed"] = latest["completed_generations"]
+                record["checkpoint_phase"] = latest["checkpoint_phase"]
             atomic_json(record_path, record)
             raise
         final = checkpoint(svc, session_id)
