@@ -27,8 +27,21 @@
 - Unit tests: `tests/research/test_parent_portfolio_v2.py`. Existing selection test suite keeps original defaults unchanged.
 - Some older archived integration tests rely on `/shared/moon-workspace/AutoResearchFinance_v2-phase3-5-1-inventory/state/moon-http/research/audits/phase1-20261017-1950/snapshot-manifest.json`; those fail in this worktree because the historical external snapshot is absent. This is a fixture installation issue, not a pass.
 
+## P1 isolated counted generation end-to-end — PASS
+
+- Harness: `.venv/bin/python -m scripts.test_clone_g453_parent_portfolio_v2`.
+- Cloned all 3 original SQLite files via backup API, validated DBs, extended **clone** from G452 to G454 (2 generations), reused the production deterministic GPT-designed policy but routed its entire service connection and progress log to the cloned session.
+- Pinned full-fill replay of defensive G68 for counted G453: development return **+73.0338%**, MDD **27.9092%**, 103 closed trades, complete S2/S7 evidence.
+- Pinned full-fill replay of return leader G248 for counted G454: development return **+27.9604%**, MDD **41.5825%**, 208 closed trades, complete S2/S7 evidence.
+- The transition **G68 → G248** was verified from `inherited_parent.source_generation`, signed parent selection hash, full-fill child StrategyIR, the prior generation's evidence-hash link, and independent stored S7 reports for each.
+- Clone completed `454/454`, exactly 454 experiment reports (counted G1..G454).
+- Production retained **452/452** generations with identical full original evidence-chain digest `e27c586ccda974438ca7d3ae7c0c2471e935bdaef1aa8dcf446eab1103a8fdf9`; production sqlite integrity check OK.
+- Full cloned trace/result summary was saved separately at `state/moon-http/fresh-20261021/p1-g453-g454-clone-e2e-result.json`.
+- The clone test is NOT live trading, actual GPT reasoning per generation, sealed independent OOS, or evidence of improved return. It uses the same reused DEVELOPMENT_NON_PIT sample as G452.
+- A first single-generation harness attempt committed G453 successfully but its final assertion expected `latest_controlled_experiments` in the closed-session GET response; fixed the harness to audit the persisted S7 report DB. The corrected two-generation run exited 0.
+
 ## Remaining gates BEFORE approving new academic batches
-1. End-to-end **counted generation** G453 on a cloned, separately extended dataset/session, with S2 diagnosis and S7 to confirm this parent mode survives real generation commit. Explicitly wire the cohort runner/controller switch only after clone E2E; its present default must remain unchanged.
+1. Clone G453/G454 end-to-end counted generation was **completed**; next is opt-in wiring for a *new* isolated campaign, with an explicit immutable configuration flag; keep the original production controller default unchanged.
 2. Integrate S7 successor candidates alongside direct counted candidate portfolio, avoid using observed 2026 holdout in selection; baseline (existing S7) and new path must remain comparable.
 3. Broaden StrategyIR/risk/regime and actual GPT planning log (P2/P3): not implemented.
 4. Independent multi-vendor PIT audit, prospective sealed OOS (P4): not implemented.
