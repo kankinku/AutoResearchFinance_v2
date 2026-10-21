@@ -1,0 +1,13 @@
+# G248 and G431 one-shot chronological holdout protocol — frozen 2026-10-21
+
+- **Do not modify candidates after observing forward results.**
+- Original sealed development session: G452/452, original QQQ bar dates 2020-01-02 through 2025-12-31, dataset hash `f637bcf0a8098aa13ed1758308086e8bfb4c3ade264ecb003ae741095ba95f9e`.
+- Candidate G248 original evidence hash `d77f2d50ec1a3cce7c683141a5b96fdeb9a203ee5f6b2ba52fa0d42d134e448d`, frozen StrategyIR hash `087717ce3b126194844cacb119879032569e57fa7d466bb7ff5c307e4df6d2a0`.
+- Candidate G431 original evidence hash `6ab6744fb2b8de5f9021ef8cd657245f339aca2267f4dd93907a22b844ce6a1b`, frozen StrategyIR hash `fedf935bc7e4ef2c456ce05a0b5d3ce8bbb78ed78b721c759b7805b1409630d3`.
+- Predeclared test window: **2026-01-02 through 2026-10-20 inclusive** (last fully closed US exchange daily bar available on the test run); no 2025 bar may contribute to performance or trade opening, only 2020–2025 indicator warmup.
+- Price source for forward period: Yahoo Finance chart API `query1.finance.yahoo.com/v8/finance/chart/QQQ`, daily OHLCV, no dividend reinvestment, vendor's latest revision, not a true sealed PIT data snapshot. Verify source's overlapping 2025-12-31 close with training close and manifest SHA256. Reject gaps, invalid OHLC, duplicate dates and any future/incomplete bar.
+- Replay **exact** original strategy IR from G248/G431, validated SHA256 of canonical StrategyIR against saved strategy hash, original algorithm_plan and verified indicator definitions, same canonical BacktestEngine and the original `academic-research-cost-v1` 1 bp commission + 2 bps spread + 5 bps slippage each side. Long-only, 100% cash per entry, signals confirmed at day close, fill at following day's open, no trading on pre-2026 signals, start 10,000 USD flat at 2026-01-02.
+- First regenerate full 2020–2025 development bar signals and original P&L; refuse forward reporting if candidate source hash, strategy hash, effective signals, return or trade count fail the frozen record.
+- QQQ B&H comparison: invest entire initial cash at the first 2026 OOS daily open, apply the same entry cost once, mark at 2026-10-20 close, no dividend return or exit cost assumed. Report price-only, not a total-return index.
+- Research state remains completely unchanged. Output read-only forward evaluation evidence separately under the ignored `state/moon-http/fresh-20261021/oos-forward-2026/`. One-shot evaluation, do not retune on this test set or call it independent *sealed* OOS without audit.
+- Outcome report: total return, MDD, executed order count, benchmark excess return, sample length, source and strategy fingerprints; clearly flag small sample, survivorship/adjustments, dividends, and lack of prospective verification.
