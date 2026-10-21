@@ -128,7 +128,6 @@ def designs():
                 },
             ]
 
-
     # V2 recovery of G115 exhausted pool: unlike the original generator that
     # only ADDED entry gates (often producing the exact same entry signal), this
     # compares different entry mechanisms while holding the second filter and
@@ -149,39 +148,50 @@ def designs():
     )
     for path in ("entry.conditions.0", "entry.conditions.1"):
         for feat, threshold in entry_mechanisms:
-            yield [
-                {"op":"REPLACE_RULE","path":path,
-                 "condition":rule(feat,val=threshold)}
-            ]
+            yield [{"op": "REPLACE_RULE", "path": path, "condition": rule(feat, val=threshold)}]
     # Contrast an alternate entry definition and exit mechanism together.
     for feat, threshold in entry_mechanisms:
         for xfeat, xval in EXITS:
             yield [
-                {"op":"REPLACE_RULE","path":"entry.conditions.0",
-                 "condition":rule(feat,val=threshold)},
-                {"op":"REPLACE_RULE","path":"exit.conditions.0",
-                 "condition":rule(xfeat,val=xval,op="less_equal")},
+                {
+                    "op": "REPLACE_RULE",
+                    "path": "entry.conditions.0",
+                    "condition": rule(feat, val=threshold),
+                },
+                {
+                    "op": "REPLACE_RULE",
+                    "path": "exit.conditions.0",
+                    "condition": rule(xfeat, val=xval, op="less_equal"),
+                },
             ]
     # Alter the second entry gate instead of always stacking additional gates.
     for feat, threshold in entry_mechanisms:
         for xfeat, xval in EXITS:
             yield [
-                {"op":"REPLACE_RULE","path":"entry.conditions.1",
-                 "condition":rule(feat,val=threshold)},
-                {"op":"REPLACE_RULE","path":"exit.conditions.0",
-                 "condition":rule(xfeat,val=xval,op="less_equal")},
+                {
+                    "op": "REPLACE_RULE",
+                    "path": "entry.conditions.1",
+                    "condition": rule(feat, val=threshold),
+                },
+                {
+                    "op": "REPLACE_RULE",
+                    "path": "exit.conditions.0",
+                    "condition": rule(xfeat, val=xval, op="less_equal"),
+                },
             ]
     # If two-condition AND keeps exhausting all eligible unique signals, test
     # rule disjunction explicitly rather than silently relaxing the trade gate.
     for logic in ("OR",):
-        yield [{"op":"CHANGE_AND_OR","path":"entry.logic","logic":logic}]
+        yield [{"op": "CHANGE_AND_OR", "path": "entry.logic", "logic": logic}]
         for feat, threshold in entry_mechanisms:
             yield [
-                {"op":"CHANGE_AND_OR","path":"entry.logic","logic":logic},
-                {"op":"REPLACE_RULE","path":"entry.conditions.0",
-                 "condition":rule(feat,val=threshold)},
+                {"op": "CHANGE_AND_OR", "path": "entry.logic", "logic": logic},
+                {
+                    "op": "REPLACE_RULE",
+                    "path": "entry.conditions.0",
+                    "condition": rule(feat, val=threshold),
+                },
             ]
-
 
     # G158 recovery: the last static 1–2 operation pool was measured and
     # exhausted. Explore pairwise entry-regime combinations with explicitly
@@ -192,21 +202,27 @@ def designs():
     from itertools import product
 
     for logic in ("OR", "AND"):
-        for first, second, exit_spec in product(
-            entry_mechanisms, entry_mechanisms, EXITS
-        ):
+        for first, second, exit_spec in product(entry_mechanisms, entry_mechanisms, EXITS):
             if first == second:
                 continue
             for exit_direction in ("less_equal", "greater_than"):
                 yield [
-                    {"op":"CHANGE_AND_OR","path":"entry.logic","logic":logic},
-                    {"op":"REPLACE_RULE","path":"entry.conditions.0",
-                     "condition":rule(first[0],val=first[1])},
-                    {"op":"REPLACE_RULE","path":"entry.conditions.1",
-                     "condition":rule(second[0],val=second[1])},
-                    {"op":"REPLACE_RULE","path":"exit.conditions.0",
-                     "condition":rule(exit_spec[0],val=exit_spec[1],
-                                      op=exit_direction)},
+                    {"op": "CHANGE_AND_OR", "path": "entry.logic", "logic": logic},
+                    {
+                        "op": "REPLACE_RULE",
+                        "path": "entry.conditions.0",
+                        "condition": rule(first[0], val=first[1]),
+                    },
+                    {
+                        "op": "REPLACE_RULE",
+                        "path": "entry.conditions.1",
+                        "condition": rule(second[0], val=second[1]),
+                    },
+                    {
+                        "op": "REPLACE_RULE",
+                        "path": "exit.conditions.0",
+                        "condition": rule(exit_spec[0], val=exit_spec[1], op=exit_direction),
+                    },
                 ]
 
 
@@ -357,7 +373,19 @@ def main(max_new: int):
             selected_compiled, _, _ = service._selected_ir(catalog, dataset, current)
         previous_effective = {h.get("effective_signal_hash") for h in result["history"]}
         values = {k: list(v) for k, v in selected_compiled.feature_values.items()}
-        for ops in designs():
+        feedback_active = getattr(service, "precommit_child_risk_budget", None) is not None
+        feedback_holder = [c.get("precommit_rejection_feedback")] if feedback_active else []
+        if feedback_active:
+            if not feedback_holder[0] or feedback_holder[0].get("schema") != "p2-risk-feedback-v1":
+                raise RuntimeError("UNVERIFIED_P2_REJECTION_FEEDBACK")
+            from research.llm.precommit_rejection_feedback import (
+                iter_feedback_adjusted_designs,
+            )
+
+            candidates_iter = iter_feedback_adjusted_designs(list(designs()), feedback_holder)
+        else:
+            candidates_iter = designs()
+        for ops in candidates_iter:
             # Avoid repeating a failed or successful candidate on the same parent.
             digest = hashlib.sha256(
                 json.dumps([parent_hash, ops], sort_keys=True).encode()
@@ -433,15 +461,46 @@ def main(max_new: int):
                 )
                 assert staged["checkpoint_phase"] == "AWAITING_DIAGNOSIS"
             except (ValueError, RuntimeError) as exc:
+                rejection_type = (
+                    "P2_PRECOMMIT_RISK_REJECTED"
+                    if str(exc).startswith("P2_PRECOMMIT_RISK_REJECTED:")
+                    else type(exc).__name__
+                )
                 event(
                     {
                         "kind": "plan_rejected",
                         "generation": g,
                         "signature": digest,
-                        "error_type": type(exc).__name__,
+                        "error_type": rejection_type,
                         "error": str(exc)[:220],
                     }
                 )
+                if rejection_type == "P2_PRECOMMIT_RISK_REJECTED" and feedback_active:
+                    updated = service.get({"session_id": SESSION})
+                    if (
+                        updated["checkpoint_phase"] != "AWAITING_PLAN"
+                        or updated["checkpoint_token"] != result["checkpoint_token"]
+                        or updated["completed_generations"] != result["completed_generations"]
+                    ):
+                        raise RuntimeError("P2_REJECTION_CHANGED_CHECKPOINT") from exc
+                    new_feedback = updated["model_context"]["precommit_rejection_feedback"]
+                    if new_feedback["rejection_count"] <= feedback_holder[0]["rejection_count"]:
+                        raise RuntimeError("P2_REJECTION_NOT_RECORDED") from exc
+                    feedback_holder[0] = new_feedback
+                    event(
+                        {
+                            "kind": "risk_feedback_adaptation",
+                            "generation": g,
+                            "rejection_count": new_feedback["rejection_count"],
+                            "absolute_mdd_failures": new_feedback["absolute_mdd_failures"],
+                            "relative_mdd_failures": new_feedback["relative_mdd_failures"],
+                            "trade_count_failures": new_feedback["trade_count_failures"],
+                            "hypothesis": new_feedback["hypothesis"],
+                            "proposed_domain_order": new_feedback["proposed_domain_order"],
+                            "evidence_digest": new_feedback["evidence_digest"],
+                            "controller": "DETERMINISTIC_SIGNED_EVIDENCE_GUIDANCE_NOT_GPT",
+                        }
+                    )
                 continue
             except Exception as exc:
                 # Catch only known, pre-commit validation errors; unexpected errors should stop.

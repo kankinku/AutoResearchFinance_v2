@@ -1508,6 +1508,29 @@ class AcademicMCPCheckpointService:
                 result["checkpoint_token"] = row["token"]
                 result["model_context"] = self._context(catalog, data, current)
                 result["model_context"]["catalog_version"] = row["catalog_version"]
+                if self.precommit_child_risk_budget is not None:
+                    selected = result["model_context"].get("selected_development_parent")
+                    if selected is None:
+                        raise CycleStateError("P2 precommit parent selection missing")
+                    from research.llm.precommit_rejection_feedback import (
+                        summarize_precommit_rejections,
+                    )
+
+                    old_rejections = db.execute(
+                        "SELECT review_json,review_hash FROM precommit_risk_rejections "
+                        "WHERE session_id=? AND generation=? ORDER BY rowid",
+                        (sid, current["completed_generations"] + 1),
+                    ).fetchall()
+                    result["model_context"]["precommit_rejection_feedback"] = (
+                        summarize_precommit_rejections(
+                            rows=old_rejections,
+                            dataset_hash=data.dataset_hash,
+                            parent_selection_hash=selected["selection_hash"],
+                            parent_strategy_hash=selected["successor_strategy_hash"],
+                            token_hash=content_hash(row["token"]),
+                            budget=self.precommit_child_risk_budget,
+                        )
+                    )
             elif row["phase"] == "AWAITING_DIAGNOSIS":
                 if current["status"] != "AWAITING_PROVIDER":
                     raise CycleStateError("checkpoint phase mismatch")
@@ -1614,6 +1637,7 @@ class AcademicMCPCheckpointService:
                     "request_hash": content_hash(
                         receipt_request if receipt_request is not None else args["plan"]
                     ),
+                    "proposal_operations": intent.model_dump(mode="json")["operations"],
                     "token_hash": content_hash(row["token"]),
                     "source_evidence_hash": (
                         state["history"][-1]["evidence_hash"] if state["history"] else None
