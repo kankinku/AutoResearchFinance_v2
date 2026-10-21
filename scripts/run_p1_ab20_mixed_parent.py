@@ -16,6 +16,7 @@ from statistics import mean, median
 from unittest.mock import patch
 
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
+from core.backtest.p2_policy import ChildRiskBudget
 from core.integrity.hashes import content_hash
 from scripts import fresh_development_cohort_controller_20261021 as controller
 
@@ -130,11 +131,18 @@ def audit(arm: str, svc: AcademicMCPCheckpointService) -> dict:
 
 
 def main(arm: str, *, resume: bool = False) -> None:
-    assert arm in {"baseline", "mixed"}
+    assert arm in {"baseline", "mixed", "risk"}
     assert source_identity()[0] == 452
     clone = STUDY / arm if resume else prepare(arm)
     service = AcademicMCPCheckpointService(
-        project_root=ROOT, state_dir=clone, parent_portfolio_v2=(arm == "mixed")
+        project_root=ROOT,
+        state_dir=clone,
+        parent_portfolio_v2=arm in ("mixed", "risk"),
+        child_risk_budget=(
+            ChildRiskBudget(max_child_mdd_pct=30, max_mdd_increase_pp=15, min_closed_trades=30)
+            if arm == "risk"
+            else None
+        ),
     )
     before = service.get({"session_id": SID})
     if resume:
@@ -179,7 +187,7 @@ def main(arm: str, *, resume: bool = False) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--arm", choices=("baseline", "mixed"), required=True)
+    parser.add_argument("--arm", choices=("baseline", "mixed", "risk"), required=True)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     main(args.arm, resume=args.resume)

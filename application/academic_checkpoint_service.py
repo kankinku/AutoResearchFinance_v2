@@ -16,6 +16,7 @@ from typing import Any
 from uuid import uuid4
 
 from core.backtest.engine import _regime_allows, _rules_match
+from core.backtest.p2_policy import ChildRiskBudget, assess_child_risk_metrics
 from core.data.contracts import MarketDataSet
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import research_feature_specs
@@ -112,7 +113,17 @@ class _SubmittedDiagnosisOnly:
 class AcademicMCPCheckpointService:
     """Binds external ChatGPT proposals to frozen, persistent research input state."""
 
-    def __init__(self, *, project_root: Path, state_dir: Path, parent_portfolio_v2: bool = False):
+    def __init__(
+        self,
+        *,
+        project_root: Path,
+        state_dir: Path,
+        parent_portfolio_v2: bool = False,
+        child_risk_budget: ChildRiskBudget | None = None,
+    ):
+        if child_risk_budget is not None and not parent_portfolio_v2:
+            raise ValueError("P2 child risk budget requires opt-in parent portfolio")
+        self.child_risk_budget = child_risk_budget
         self.root = project_root.resolve()
         self.state = state_dir.resolve() / "academic-gpt-checkpoints"
         self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
@@ -477,6 +488,7 @@ class AcademicMCPCheckpointService:
         """
         shortlist = shortlist_counted_generations(status["history"], per_lane=6)
         candidates: list[dict[str, Any]] = []
+        p2_risk_rejections = 0
         for original in shortlist:
             generation = original["generation"]
             report = self._stored_experiment(db, status["session_id"], generation)
@@ -497,6 +509,32 @@ class AcademicMCPCheckpointService:
                 or closed != expected["trade_count"]
             ):
                 raise CycleStateError("counted candidate metrics or closed fills changed")
+            risk_review = None
+            if self.child_risk_budget is not None:
+                pinned = db.execute(
+                    "SELECT selection_json FROM parent_selections "
+                    "WHERE session_id=? AND next_generation=?",
+                    (status["session_id"], generation),
+                ).fetchone()
+                if pinned is None:
+                    raise CycleStateError("P2 counted child missing inherited parent selection")
+                prior = json.loads(pinned["selection_json"])
+                if (
+                    content_hash({k: v for k, v in prior.items() if k != "selection_hash"})
+                    != prior["selection_hash"]
+                    or prior["selection_hash"]
+                    != original["inherited_parent"]["parent_selection_hash"]
+                ):
+                    raise CycleStateError("P2 counted child parent evidence mismatch")
+                risk_review = assess_child_risk_metrics(
+                    parent_mdd_pct=prior["parent_quality"]["max_drawdown"] * 100,
+                    child_mdd_pct=metrics["max_drawdown"] * 100,
+                    child_closed_trades=closed,
+                    budget=self.child_risk_budget,
+                )
+                if not risk_review["eligible"]:
+                    p2_risk_rejections += 1
+                    continue
             proof = {
                 "schema": "counted-generation-parent-origin-v1",
                 "source_generation": generation,
@@ -524,6 +562,7 @@ class AcademicMCPCheckpointService:
                         "market_exposure": expected["exposure"],
                     },
                     "replay_verified": True,
+                    **({"p2_risk_review": risk_review} if risk_review is not None else {}),
                     "independent_oos_approved": False,
                     "broker_executable": False,
                 }
@@ -582,6 +621,17 @@ class AcademicMCPCheckpointService:
             if choose_development_parent([s7_candidate]) is None:
                 continue
             s7_qualified += 1
+            s7_risk_review = None
+            if self.child_risk_budget is not None:
+                s7_risk_review = assess_child_risk_metrics(
+                    parent_mdd_pct=original["metrics"]["max_drawdown"] * 100,
+                    child_mdd_pct=s7_candidate["successor_max_drawdown"] * 100,
+                    child_closed_trades=s7_candidate["successor_closed_trades"],
+                    budget=self.child_risk_budget,
+                )
+                if not s7_risk_review["eligible"]:
+                    p2_risk_rejections += 1
+                    continue
             # Both kinds receive the same signal-level identity. A different
             # JSON hash with identical executed signals is not a new parent.
             s7_signal = content_hash(
@@ -615,6 +665,7 @@ class AcademicMCPCheckpointService:
                 {
                     **s7_candidate,
                     "effective_signal_hash": s7_signal,
+                    **({"p2_risk_review": s7_risk_review} if s7_risk_review is not None else {}),
                     "parent_quality": {
                         "total_return": s7_candidate["successor_total_return"],
                         "max_drawdown": s7_candidate["successor_max_drawdown"],
@@ -624,6 +675,8 @@ class AcademicMCPCheckpointService:
                 }
             )
         if not candidates:
+            if self.child_risk_budget is not None:
+                raise CycleStateError("P2 risk budget rejected all audited parent candidates")
             return None
         selected, lanes = choose_parent_lane(candidates, status["completed_generations"] + 1)
         body = {k: v for k, v in selected.items() if k != "selection_hash"}
@@ -634,6 +687,14 @@ class AcademicMCPCheckpointService:
             "s7_shortlisted_count": min(len(coarse_s7), 12),
             "s7_replayed_count": s7_tested,
             "s7_eligible_count": s7_qualified,
+            **(
+                {
+                    "p2_risk_budget": self.child_risk_budget.model_dump(mode="json"),
+                    "p2_risk_rejected_count": p2_risk_rejections,
+                }
+                if self.child_risk_budget is not None
+                else {}
+            ),
             "diverse_parent_count": len(lanes),
             "lane_source_generations": [x["source_generation"] for x in lanes],
             "chosen_parent_generation": selected["source_generation"],

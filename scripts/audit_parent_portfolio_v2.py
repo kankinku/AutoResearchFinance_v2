@@ -6,6 +6,7 @@ directories. Production research state and pinned parent choices are untouched.
 
 from __future__ import annotations
 
+import argparse
 import json
 import sqlite3
 import tempfile
@@ -13,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
+from core.backtest.p2_policy import ChildRiskBudget
 from core.integrity.hashes import content_hash
 from research.llm.parent_portfolio_v2 import shortlist_counted_generations
 
@@ -29,7 +31,7 @@ def snapshot_evidence() -> tuple[int, str]:
     return len(rows), content_hash(rows)
 
 
-def main() -> None:
+def main(*, p2_risk: bool = False) -> None:
     before = snapshot_evidence()
     assert before[0] == 452
     with tempfile.TemporaryDirectory(prefix="quant-parent-v2-clone-") as temp:
@@ -41,8 +43,16 @@ def main() -> None:
                     original.backup(target)
         with sqlite3.connect(dst / "gateway.sqlite") as c:
             c.execute("DELETE FROM parent_selections WHERE next_generation=453")
+        risk_budget = (
+            ChildRiskBudget(max_child_mdd_pct=30, max_mdd_increase_pp=15, min_closed_trades=30)
+            if p2_risk
+            else None
+        )
         service = AcademicMCPCheckpointService(
-            project_root=ROOT, state_dir=Path(temp), parent_portfolio_v2=True
+            project_root=ROOT,
+            state_dir=Path(temp),
+            parent_portfolio_v2=True,
+            child_risk_budget=risk_budget,
         )
         with service._connect() as db:
             _, catalog, market, state = service._state(db, SID)
@@ -89,7 +99,9 @@ def main() -> None:
         print("REPLAYED_PINNED_PARENT", original["generation"], ir.strategy_hash, flush=True)
         report = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "mode": "CLONE_ONLY_OPT_IN_P1_DEVELOPMENT_NON_PIT",
+            "mode": "CLONE_ONLY_OPT_IN_P2_RISK_NON_PIT"
+            if p2_risk
+            else "CLONE_ONLY_OPT_IN_P1_DEVELOPMENT_NON_PIT",
             "original_generation_count": before[0],
             "original_evidence_chain_digest": before[1],
             "shortlisted_source_generations": [x["generation"] for x in shortlist],
@@ -100,10 +112,16 @@ def main() -> None:
             "oos_approved": False,
         }
         assert report["original_unchanged"]
-        out = ROOT / "state/moon-http/fresh-20261021/p1-parent-audit-v2.json"
+        out = (
+            ROOT
+            / "state/moon-http/fresh-20261021"
+            / ("p2-parent-risk-audit-v1.json" if p2_risk else "p1-parent-audit-v2.json")
+        )
         out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         print("REPORT", out, content_hash(report), flush=True)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--p2-risk", action="store_true")
+    main(p2_risk=parser.parse_args().p2_risk)

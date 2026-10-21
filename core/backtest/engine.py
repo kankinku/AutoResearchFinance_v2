@@ -6,6 +6,7 @@ from datetime import date, datetime
 from itertools import pairwise
 from math import isfinite
 
+from core.backtest.p2_policy import P2ResearchPolicy
 from core.costs.model import CostModel
 from core.data.contracts import Bar, MarketDataSet, SeriesDataSet
 from core.features.alignment import align_as_of
@@ -32,6 +33,8 @@ class BacktestRequest:
     # Earliest completed bar allowed to generate new entry signals. Previous
     # bars can still warm up indicators, but cannot create any positions.
     signal_start_at: datetime | None = None
+    # Opt-in. Historical StrategyIR serialization, hashes and runs unchanged.
+    p2_policy: P2ResearchPolicy | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,8 @@ class BacktestEngine:
             request.signal_start_at.tzinfo is None or request.signal_start_at.utcoffset() is None
         ):
             raise ValueError("signal start timezone is required")
+        if request.p2_policy is not None and request.strategy is None:
+            raise ValueError("P2 research policy requires an explicit StrategyIR")
         if request.strategy is not None:
             return self._run_strategy(request)
         symbols = tuple(sorted({bar.symbol for bar in request.dataset.bars}))
@@ -135,6 +140,10 @@ class BacktestEngine:
 
     def _run_strategy(self, request: BacktestRequest) -> BacktestResult:
         symbols = tuple(sorted({bar.symbol for bar in request.dataset.bars}))
+        if request.p2_policy is not None and len(symbols) != 1:
+            raise ValueError(
+                "P2 policy requires a single symbol until multi-symbol replay is audited"
+            )
         if len(symbols) > 1:
             return self._run_multi_symbol_strategy(request, symbols)
         return self._run_single_symbol_strategy(request)
@@ -335,6 +344,14 @@ class BacktestEngine:
             )
         )
         strategy_hash = content_hash(strategy.model_dump(mode="json", by_alias=True))
+        if request.p2_policy is not None:
+            strategy_hash = content_hash(
+                {
+                    "base_strategy_hash": strategy_hash,
+                    "p2_policy": request.p2_policy.model_dump(mode="json"),
+                }
+            )
+            _p2_validate_policy(strategy, request.p2_policy, values)
         cash = request.initial_cash
         units = 0.0
         entry_price = 0.0
@@ -342,6 +359,7 @@ class BacktestEngine:
         equity: list[float] = []
         trades: list[Trade] = []
         pending: str | None = None
+        pending_pct: float | None = None
         current_day: date | None = None
         day_start_equity = cash
         daily_loss_blocked = False
@@ -371,7 +389,10 @@ class BacktestEngine:
                 entry_price = 0.0
                 peak_close = 0.0
             elif pending == "entry" and units == 0:
-                notional = cash * strategy.risk.position_size_pct / 100
+                # P2 sizing is frozen at the PREVIOUS close (signal bar);
+                # never recompute ATR or regime at the order's open.
+                pct = strategy.risk.position_size_pct if pending_pct is None else pending_pct
+                notional = cash * pct / 100
                 if (
                     not daily_loss_blocked
                     and not stopped
@@ -390,6 +411,7 @@ class BacktestEngine:
                         peak_close = bar.open
                         trades.append(_trade(bar, "buy", units, cost, price=bar.open))
             pending = None
+            pending_pct = None
 
             if units > 0:
                 peak_close = max(peak_close, bar.close)
@@ -404,10 +426,18 @@ class BacktestEngine:
                 not daily_loss_blocked
                 and not stopped
                 and (request.signal_start_at is None or bar.timestamp >= request.signal_start_at)
-                and _regime_allows(strategy, values, index)
-                and _rules_match(strategy.entry.conditions, strategy.entry.logic, values, index)
             ):
-                pending = "entry"
+                if request.p2_policy is None:
+                    if _regime_allows(strategy, values, index) and _rules_match(
+                        strategy.entry.conditions, strategy.entry.logic, values, index
+                    ):
+                        pending = "entry"
+                else:
+                    pending_pct = _p2_signal_position_size(
+                        strategy, request.p2_policy, values, index, bar.close
+                    )
+                    if pending_pct is not None:
+                        pending = "entry"
             marked_equity = cash + units * bar.close
             if _daily_loss_breached(strategy, day_start_equity, marked_equity):
                 daily_loss_blocked = True
@@ -606,6 +636,80 @@ def _regime_allows(strategy: StrategyIR, values: dict[str, list[float | None]], 
         _condition_match(condition, values, index)
         for condition in strategy.regime_filters
         if condition.enabled
+    )
+
+
+def _p2_validate_policy(
+    strategy: StrategyIR,
+    policy: P2ResearchPolicy,
+    values: dict[str, list[float | None]],
+) -> None:
+    """Reject missing / incorrectly typed dependencies BEFORE simulation."""
+    for route in policy.regimes:
+        for condition in (*route.when.conditions, *route.entry.conditions):
+            if condition.left not in values or (
+                condition.right is not None and condition.right not in values
+            ):
+                raise ValueError(f"P2 unknown condition reference: {condition.left}")
+            if condition.op in ("cross_above", "cross_below"):
+                if condition.right is None or condition.value is not None:
+                    raise ValueError("P2 cross requires a right series without scalar")
+            elif (condition.right is None) == (condition.value is None):
+                raise ValueError("P2 comparison requires exactly one right or value")
+    if policy.atr_sizing is not None:
+        alias = policy.atr_sizing.atr_alias
+        spec = strategy.indicators.get(alias)
+        if spec is None or spec.type != "ATR" or alias not in values:
+            raise ValueError("P2 ATR sizing requires a declared ATR indicator alias")
+
+
+def _p2_signal_position_size(
+    strategy: StrategyIR,
+    policy: P2ResearchPolicy,
+    values: dict[str, list[float | None]],
+    index: int,
+    signal_close: float,
+) -> float | None:
+    """Use only the completed signal bar for regime and ATR; fill NEXT open."""
+    if not _regime_allows(strategy, values, index):
+        return None
+    base_pct = strategy.risk.position_size_pct
+    if policy.regimes:
+        matched = False
+        for route in policy.regimes:
+            if _rules_match(route.when.conditions, route.when.logic, values, index):
+                matched = True
+                # Explicit precedence: first matching regime wins, even if
+                # its entry is false. No fallthrough to other regimes.
+                if not _rules_match(route.entry.conditions, route.entry.logic, values, index):
+                    return None
+                if route.position_size_pct is not None:
+                    base_pct = min(base_pct, route.position_size_pct)
+                break
+        if not matched:
+            return None
+    elif not _rules_match(strategy.entry.conditions, strategy.entry.logic, values, index):
+        return None
+    atr_sizing = policy.atr_sizing
+    if atr_sizing is None:
+        return base_pct
+    atr = values[atr_sizing.atr_alias][index]
+    if (
+        atr is None
+        or not isfinite(atr)
+        or atr <= 0
+        or not isfinite(signal_close)
+        or signal_close <= 0
+    ):
+        return None  # fail closed during warm-up / invalid ATR
+    atr_pct = atr / signal_close * 100
+    if atr_pct <= 0 or not isfinite(atr_pct):
+        return None
+    proposed = base_pct * atr_sizing.target_atr_pct / atr_pct
+    return min(
+        base_pct,
+        atr_sizing.max_position_size_pct,
+        max(atr_sizing.min_position_size_pct, proposed),
     )
 
 
