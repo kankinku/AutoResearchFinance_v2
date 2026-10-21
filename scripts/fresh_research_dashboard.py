@@ -29,6 +29,27 @@ def _read_db(path: Path) -> sqlite3.Connection:
     return db
 
 
+
+def _controller_running() -> bool:
+    """Prove a matching local research Python PID exists; no network or mutation."""
+    proc = Path("/proc")
+    if not proc.is_dir():
+        return False
+    for item in proc.iterdir():
+        if not item.name.isdigit():
+            continue
+        try:
+            argv = (item / "cmdline").read_bytes().split(bytes([0]))
+            if len(argv) < 3 or b"python" not in Path(argv[0].decode()).name.encode():
+                continue
+            if not any(arg.endswith(b"state/tools/fresh_batch_controller_20261021.py") for arg in argv[1:]):
+                continue
+            if (item / "cwd").resolve() == ROOT:
+                return True
+        except (OSError,UnicodeDecodeError,ValueError):
+            continue
+    return False
+
 def snapshot(state: Path = STATE) -> dict[str, Any]:
     sid = (state / "session-id.txt").read_text(encoding="ascii").strip()
     if len(sid) != 32 or any(c not in "0123456789abcdef" for c in sid):
@@ -113,7 +134,7 @@ def snapshot(state: Path = STATE) -> dict[str, Any]:
         "independent_oos_approved":False,
         "model_autonomy_verified":False,
         "data_scope":"NON_PIT_DEVELOPMENT_ONLY",
-        "research_running_confirmed":False,
+        "research_running_confirmed":_controller_running(),
         "controller_note":"G4+ deterministic rule exploration (NOT 1 GPT decision per generation)",
         "generations":seen,
     }

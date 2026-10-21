@@ -1,0 +1,37 @@
+# Original Quant dashboard UI restored; fresh +100 generations STARTED
+
+Date: 2026-10-21 KST. Branch: feat/quant-fresh-research-20261021.
+
+## Why prior dashboard was replaced
+
+The previous deployment used an ad hoc HTML page from scripts/fresh_research_dashboard.py although the repository already contained BOTH the original FastAPI dashboard (dashboard/app.py, dashboard/service.py and dashboard/static/) and a distinct, longer Streamlit dashboard.py. This was a mistake: the original web UI was NOT deleted. Legacy operating datasets/old dashboard state files were missing, while new independent research writes AcademicMCPCheckpointService SQLite under state/moon-http/fresh-20261021/research/academic-gpt-checkpoints/. Only the old FastAPI UI's source survived intact; original authenticated Quant MCP and original G350 operator snapshots remain absent.
+
+## Actual original web UI recovery
+
+- The existing original dashboard/static/index.html and backtest.html, styles.css, labels.js, app.js and backtest.js remain unchanged and are now **actually served** by scripts/fresh_original_dashboard.py. The thin adapter rewrites only root-absolute URL references in memory to maintain the required /quant-research/ prefix behind nginx Basic Auth; no original HTML/JS/CSS source files are modified.
+- A read-only compatibility API maps current canonical SQLite snapshots to the original dashboard's dashboard/contracts.py-shaped dashboard, health, backtest, per-generation run, feature catalog, and research evidence JSON. It uses the *existing* DashboardService.feature_catalog() to expose 173 actual installed indicators. No broker credentials, KIS account, sealed OOS, or live orders involved. The legacy account is UNKNOWN; no fake champion/validated OOS. Backtest records use DEVELOPMENT_ONLY status and current counted generations; independently GPT-authored per generation is NOT claimed.
+- The original pages are under the **same secured URL** https://project-moon.taild689f9.ts.net/quant-research/ with preserved Basic Auth username research and password kept only in user's persistent ignored local file. The original /academic and /academic/ aliases still redirect to the HTTPS canonical URL.
+- New localhost-only 127.0.0.1:8082 server under existing dedicated dashboard supervisor has autostart+autorestart config written to both private supervisor instance and the existing inherited PID1 Supervisor startup include path. No Docker restart tested. The previously created temporary page remains at 127.0.0.1:8081 only as a non-public fallback and data reader; nginx public proxy now points to the **original** UI on 8082. The original Quant MCP /quant/mcp remains HTTP 404; original Moon /health remains HTTP 200. Original OAuth is untouched.
+- A read-only /proc PID check distinguishes an actual local rule-study process from a stale checkpoint, so the dashboard shows RUNNING only with a matching executable and incomplete generation target. Displayed research may pause in AWAITING_PROVIDER between calls. The browser uses existing 15-second polling and original full design, plus the existing backtest page.
+- Public endpoint tests via nginx, authenticated GET: dashboard root, backtest page, styles, JavaScript, /api/backtest, /api/dashboard all HTTP 200; anonymous HTTP 401; local research data corresponded to G53/152 at switching. The original source files remain tracked and unmodified.
+
+## New additional 100 generations
+
+User separately authorized "100세대 추가 테스트 시작" after G42 was stalled. First, we completed the already-requested 50-generation cohort properly through **G52/52** (G43 diagnosis was GPT-authored and S7 measured, G44–G52 deterministic search with canonical costed fills, observed diagnoses, S7 and Evidence). G52 Evidence SHA is **76a3bb838bdc31e063010969e08104452f53397fd59effbfe40c821753184b66**. No previous G1–G52 or original G350 evidence overwritten.
+
+Before further modification, made an integrity-checked, separate SQLite backup at state/moon-http/backups/fresh-pre-G53-additional-100-20261021/ with manifest. The **same** session ID 3eb928535edd4a3c90eea0e937e67973 was extended with additonal_generations=100 from G52/52 to **G52/152**, preserving the research evidence hash parent lineage. Independent new generations are **G53–G152**. The ignored pre-existing academic research controller was configured to continue up to G152 with maximum 100 new, preserving previous controlled costed fills, minimum 30 closed-trades filter, old strategy/effective signal dedup, S7 and immutable evidence. A real Moon-managed host process was started (observed PID 2370) executing that controller. At 14:34 KST we observed counted G83/152 and updated original live dashboard matching the same count. This is **31/100 new generations at that particular moment, not completion**. Process can halt for validation, exhaustion, or container restart; recheck current SQLite rather than claiming it has finished later.
+
+**CRITICAL distinction:** G53 onward is a **deterministic GPT-designed rule-search controller**, not a new independent GPT model reasoning call for every generation. It does run actual canonical backtests, observed diagnostics, S7 and Evidence; but it does **not** establish autonomous algorithm invention, valid 500 generations of LLM learning, independent OOS/Point-in-Time data, or profit. The current publicly sourced QQQ development sample (2020–2025) is different from the lost original Tiingo state; QQQ price-only development buy/hold comparison remains roughly +187.77%; orders_enabled=false and independent_oos_approved=false.
+
+## Verification and follow-up
+
+- The existing original dashboard HTML/CSS/JS served untouched from dashboard/static; separate snapshot adapter is only a bridge; original full FastAPI backend (dashboard/app.py) and Streamlit source (dashboard.py) still exist but neither is running on this secure route. Full legacy backend features relying on missing original state cannot be truthfully recreated without that state.
+- Original compat payload validated against DashboardSnapshot and BacktestSnapshot Pydantic contracts.
+- 12 targeted Pytest tests passed, including real SQLite preservation and fixture bridge tests, old design path handling and POST prevention.
+- nginx -t PASS; no-auth 401, authorized static/JSON 200, direct Moon health 200.
+- Ruff and mypy checks on modified Python sources should be recorded from terminal verification.
+- Git code only, not any credential/market data or SQLite state. The 100-generation process is *running in Moon*, and after a container restart its batch must be explicitly inspected/resumed safely; do not equate dashboard autostart with research persistence or promise unattended completion.
+
+## Verified progress checkpoint 2026-10-21 14:42 KST
+
+Canonical academic session **G107/152** (new additional **55/100**) at snapshot, evidence SHA continuity **PASS**, PID-backed local rule controller **RUNNING**. Eligible highest G99: total return +73.03%, MDD 27.91%, trades 103; last G107: return -41.53%, MDD 50.36%. Repeated same development sample (no PIT/OOS/true GPT-per-generation) invalidates any causal or live performance claim. These values are a time-stamped snapshot, NOT a future completed run. Archived source for the live deterministic controller is scripts/fresh_development_cohort_controller_20261021.py; running controller remains in ignored state/tools and must NOT be launched concurrently.
