@@ -128,6 +128,7 @@
 
   function render(data) {
     latest=data;
+    updateText("perf-cohort-label",data.cohort_label || "개발 연구 원장");
     const records=enrich(Array.isArray(data.generations)
       ? [...data.generations].sort((a,b)=>a.generation-b.generation):[]);
     const best=data.best_eligible, qqq=Number(data.qqq_dev_bh_return);
@@ -147,11 +148,16 @@
     byId("perf-qqq-bar").style.width=(Math.max(0,qqq)/cap*100).toFixed(2)+"%";
     updateText("perf-strategy-compare",best ? pct(bestReturn) : "—");
     updateText("perf-qqq-compare",pct(qqq));
-    updateText("perf-progress",data.completed+" / "+data.requested);
-    const progress=data.requested ? Math.max(0,Math.min(100,data.completed/data.requested*100)):0;
+    const currentCohort=data.source_kind==="ISOLATED_100_GENERATION_DEVELOPMENT";
+    const runCount=currentCohort ? data.additional_completed : data.completed;
+    const runTarget=currentCohort ? data.additional_target : data.requested;
+    updateText("perf-progress",runCount+" / "+runTarget);
+    const progress=runTarget ? Math.max(0,Math.min(100,runCount/runTarget*100)):0;
     byId("perf-progress-fill").style.width=progress.toFixed(1)+"%";
     updateText("perf-progress-pct",progress.toFixed(0)+"% 완료");
-    updateText("perf-cohort","추가 "+data.additional_completed+" / "+data.additional_target+"세대");
+    updateText("perf-cohort",currentCohort
+      ? "전체 원장 G"+data.completed+"/G"+data.requested+" · 기준 G452 보존"
+      : "추가 "+data.additional_completed+" / "+data.additional_target+"세대");
     updateText("perf-positive","양수 "+data.positive_count+" / "+data.completed+"세대");
     updateText("perf-mean-mdd","전체 평균 MDD "+pct(data.avg_mdd));
     updateText("perf-last-gen",data.last?"G"+data.last.generation:"—");

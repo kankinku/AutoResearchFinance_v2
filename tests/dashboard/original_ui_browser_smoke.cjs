@@ -74,19 +74,23 @@ async function scenario(file) {
   }
   await new Promise(resolve=>setTimeout(resolve,1300));
   assert.equal(make("api-state").textContent,"정상 연결",file);
+  const active=await (await request(new URL("api/status",base))).json();
+  assert.equal(active.requested,552);
+  assert.equal(active.additional_target,100);
+  assert.equal(active.source_kind,"ISOLATED_100_GENERATION_DEVELOPMENT");
   if(file==="app.js") {
-    assert.match(make("perf-progress").textContent,/^[0-9]+ \/ 152$/);
-    assert.equal(make("perf-best-return").textContent,"73.03%");
+    assert.match(make("perf-progress").textContent,/^[0-9]+ \/ 100$/);
+    assert.equal(make("perf-cohort").textContent,
+      "전체 원장 G"+(Number(make("perf-progress").textContent.split(" / ")[0])+452)+"/G552 · 기준 G452 보존");
+    assert.match(make("perf-cohort-label").textContent,/G453~G552/);
     assert.equal(make("perf-qqq-return").textContent,"187.77%");
-    assert.equal(make("perf-excess").textContent,"−114.74%p");
-    assert.equal(make("perf-cohort").textContent,"추가 100 / 100세대");
     assert.match(make("perf-best-return").textContent,/%$/);
     assert.match(make("perf-qqq-return").textContent,/%$/);
     assert.match(make("perf-excess").textContent,/%p$/);
     assert.match(make("perf-best-mdd").textContent,/%$/);
     assert.match(make("perf-return-chart").innerHTML,/<path /);
     assert.match(make("perf-risk-chart").innerHTML,/<path /);
-    assert.equal(make("perf-status").textContent,"실험 완료");
+    assert.match(make("perf-status").textContent,/세대 실험 진행 중|실험 완료/);
     assert.equal(make("connect-evidence").textContent,"연결 정상");
     assert.equal(typeof handlers.get("connection-toggle:click"),"function");
     handlers.get("connection-toggle:click")();
@@ -95,13 +99,13 @@ async function scenario(file) {
     assert.equal(make("connection-dialog").open,false);
     handlers.get("filter-30:click")();
     assert.equal(make("filter-30").attributes["aria-pressed"],"true");
-    assert.match(make("perf-return-summary").textContent,/G123~G152/);
+    assert.match(make("perf-return-summary").textContent,/G[0-9]+~G[0-9]+/);
     assert.equal(typeof handlers.get("refresh:click"),"function");
     await handlers.get("refresh:click")();
     await new Promise(resolve=>setTimeout(resolve,300));
     assert.equal(make("refresh").disabled,false);
   } else {
-    assert.match(make("generation-progress-copy").textContent,/^[0-9]+ \/ 152세대 완료$/);
+    assert.match(make("generation-progress-copy").textContent,/^[0-9]+ \/ 552세대 완료$/);
     assert.notEqual(make("best-strategy-cagr").textContent,"—");
     assert.notEqual(make("best-qqq-cagr").textContent,"—");
   }

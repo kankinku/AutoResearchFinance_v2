@@ -56,8 +56,9 @@ def test_readonly_sqlite_bridge_matches_original_contracts() -> None:
     detail = original.backtest(research, dashboard)
     DashboardSnapshot.model_validate(dashboard)
     BacktestSnapshot.model_validate(detail)
-    assert research["additional_completed"] == max(0,research["completed"]-52)
-    assert research["additional_target"] == max(0,research["requested"]-52)
+    baseline = research["cohort_start_generation"] - 1
+    assert research["additional_completed"] == max(0, research["completed"] - baseline)
+    assert research["additional_target"] == max(0, research["requested"] - baseline)
     assert detail["research"]["completed_generations"] == research["completed"]
     assert detail["research"]["requested_generations"] == research["requested"]
     assert len(detail["generations"]) == research["completed"]

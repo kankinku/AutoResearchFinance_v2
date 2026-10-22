@@ -127,3 +127,64 @@ def test_external_bind_denied(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("sys.argv", ["fresh_research_dashboard", "--host", "0.0.0.0"])
     with pytest.raises(SystemExit):
         dash.main()
+
+
+def test_current_100_generation_default_is_pinned_and_keeps_archive(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    archived = _fixture(tmp_path / "original")
+    active = _fixture(tmp_path / "cohort")
+    sid = "1" * 32
+    # A tiny synthetic G452 checkpoint and two appended generations. This test
+    # validates source isolation/manifest pinning, not strategy profitability.
+    with sqlite3.connect(active / "research/academic-gpt-checkpoints/cycles.sqlite") as db:
+        db.execute("UPDATE sessions SET requested=552,completed=454 WHERE id=?", (sid,))
+        db.execute("DELETE FROM generations")
+        prev = None
+        for g in range(1, 455):
+            h = f"{g:064x}"
+            data = {
+                "metrics": {
+                    "total_return": 0.04, "cagr": 0.01,
+                    "max_drawdown": 0.12, "trade_count": 31,
+                    "exposure": 0.3, "sharpe": 0.1,
+                },
+                "previous_evidence_hash": prev,
+            }
+            db.execute(
+                "INSERT INTO generations VALUES (?,?,?,?)",
+                (sid, g, json.dumps(data), h),
+            )
+            prev = h
+    cohort_id = "G453-G552-20261023-moon-stress"
+    (active / "start-manifest.json").write_text(json.dumps({
+        "source_generation": 452,
+        "target_final_generation": 552,
+        "source_evidence_hash": f"{452:064x}",
+    }))
+    (active / "cohorts").mkdir()
+    (active / "cohorts" / (cohort_id + ".json")).write_text(json.dumps({
+        "id": cohort_id,
+        "expected_start": 452,
+        "target": 552,
+        "evidence_head_at_start": f"{452:064x}",
+    }))
+    monkeypatch.setattr(dash, "STATE", archived)
+    monkeypatch.setattr(dash, "ACTIVE_STATE", active)
+    current = dash.snapshot()
+    assert (current["completed"], current["requested"]) == (454, 552)
+    assert (current["additional_completed"], current["additional_target"]) == (2, 100)
+    assert current["cohort_start_generation"] == 453
+    assert current["source_kind"] == "ISOLATED_100_GENERATION_DEVELOPMENT"
+    assert "고정 규칙 기반" in current["cohort_label"]
+    assert current["proof_chain_ok"] is True
+    saved = dash.snapshot(archived)
+    assert (saved["completed"], saved["requested"]) == (2, 12)
+    assert saved["source_kind"] == "ORIGINAL_ACADEMIC_DEVELOPMENT"
+    (active / "start-manifest.json").write_text(json.dumps({
+        "source_generation": 452,
+        "target_final_generation": 552,
+        "source_evidence_hash": "wrong",
+    }))
+    with pytest.raises(ValueError, match="active cohort manifest"):
+        dash.snapshot()

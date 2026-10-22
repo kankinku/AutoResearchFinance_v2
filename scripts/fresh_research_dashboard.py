@@ -16,7 +16,9 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-STATE = ROOT / "state/moon-http/fresh-20261021"
+STATE = ROOT / "state/moon-http/fresh-20261021"  # Preserved original academic ledger.
+ACTIVE_STATE = ROOT / "state/moon-http/quant-moon-bounded-100-20261023"
+ACTIVE_COHORT_ID = "G453-G552-20261023-moon-stress"
 QQQ_DEV_RETURN = 1.8777241068917014
 # Price-only benchmark over the same development window (2020-01-02 to 2025-12-31).
 QQQ_DEV_YEARS = (date(2025,12,31) - date(2020,1,2)).days / 365.2425
@@ -33,7 +35,7 @@ def _read_db(path: Path) -> sqlite3.Connection:
 
 
 
-def _controller_running() -> bool:
+def _controller_running(state: Path = STATE) -> bool:
     """Prove a matching local research Python PID exists; no network or mutation."""
     proc = Path("/proc")
     if not proc.is_dir():
@@ -45,11 +47,16 @@ def _controller_running() -> bool:
             argv = (item / "cmdline").read_bytes().split(bytes([0]))
             if len(argv) < 3 or b"python" not in Path(argv[0].decode()).name.encode():
                 continue
+            # A former study's worker must never masquerade as this cohort.
             known = (
-                b"state/tools/fresh_batch_controller_20261021.py",
-                b"scripts/fresh_development_cohort_controller_20261021.py",
-                b"scripts.run_academic_cohort",
-                b"scripts/run_academic_cohort.py",
+                (b"state/moon-http/quant-moon-bounded-100-20261023/run_bounded_100.py",)
+                if state == ACTIVE_STATE
+                else (
+                    b"state/tools/fresh_batch_controller_20261021.py",
+                    b"scripts/fresh_development_cohort_controller_20261021.py",
+                    b"scripts.run_academic_cohort",
+                    b"scripts/run_academic_cohort.py",
+                )
             )
             if not any(arg.endswith(path) for arg in argv[1:] for path in known):
                 continue
@@ -59,7 +66,28 @@ def _controller_running() -> bool:
             continue
     return False
 
-def snapshot(state: Path = STATE) -> dict[str, Any]:
+def snapshot(state: Path | None = None) -> dict[str, Any]:
+    # Preserve the historical G452 study; promote only the explicitly pinned,
+    # locally verified 100-generation clone to the dashboard's *default* view.
+    state = ACTIVE_STATE if state is None and ACTIVE_STATE.is_dir() else (state or STATE)
+    baseline = 52
+    label = "기존 개발 연구 (보존 원장)"
+    if state == ACTIVE_STATE:
+        manifest = json.loads((state / "start-manifest.json").read_text(encoding="utf-8"))
+        cohort = json.loads(
+            (state / "cohorts" / (ACTIVE_COHORT_ID + ".json")).read_text(encoding="utf-8")
+        )
+        baseline = 452
+        if (
+            manifest.get("source_generation") != baseline
+            or manifest.get("target_final_generation") != 552
+            or manifest.get("source_evidence_hash") != cohort.get("evidence_head_at_start")
+            or cohort.get("id") != ACTIVE_COHORT_ID
+            or cohort.get("expected_start") != baseline
+            or cohort.get("target") != 552
+        ):
+            raise ValueError("active cohort manifest does not match the trusted research clone")
+        label = "현재 G453~G552 · 신규 100세대 연구 (고정 규칙 기반)"
     sid = (state / "session-id.txt").read_text(encoding="ascii").strip()
     if len(sid) != 32 or any(c not in "0123456789abcdef" for c in sid):
         raise ValueError("invalid session id")
@@ -107,6 +135,12 @@ def snapshot(state: Path = STATE) -> dict[str, Any]:
         })
     if len(seen) != int(row["completed"]):
         proof = False
+    if state == ACTIVE_STATE and (
+        int(row["requested"]) != 552
+        or len(recs) < baseline
+        or recs[baseline - 1]["evidence_hash"] != manifest["source_evidence_hash"]
+    ):
+        raise ValueError("active cohort ledger has diverged from pinned G452 source")
     elapsed = []
     last_finished = None
     for rec in timings:
@@ -130,10 +164,12 @@ def snapshot(state: Path = STATE) -> dict[str, Any]:
         "fetched_at":datetime.now(timezone.utc).isoformat(),
         "completed":completed,
         "requested":n,
-        # This follow-up cohort is explicitly G53–G152, after G1–G52.
-        "additional_completed":max(0,completed-52),
-        "additional_target":max(0,n-52),
-        "cohort_start_generation":53,
+        # Running cohorts show *new* generations, not their archived ancestors.
+        "additional_completed":max(0,completed-baseline),
+        "additional_target":max(0,n-baseline),
+        "cohort_start_generation":baseline+1,
+        "cohort_label":label,
+        "source_kind":"ISOLATED_100_GENERATION_DEVELOPMENT" if state == ACTIVE_STATE else "ORIGINAL_ACADEMIC_DEVELOPMENT",
         "status":row["status"],
         "phase":phase["phase"],
         "proof_chain_ok":proof,
@@ -151,7 +187,7 @@ def snapshot(state: Path = STATE) -> dict[str, Any]:
         "independent_oos_approved":False,
         "model_autonomy_verified":False,
         "data_scope":"NON_PIT_DEVELOPMENT_ONLY",
-        "research_running_confirmed":_controller_running(),
+        "research_running_confirmed":_controller_running(state),
         "controller_note":"G4+ deterministic rule exploration (NOT 1 GPT decision per generation)",
         "generations":seen,
     }

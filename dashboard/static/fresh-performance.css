@@ -11,6 +11,7 @@ body.performance-priority { background:#f4f6fa; }
 .performance-lead { align-items:flex-start; display:flex; justify-content:space-between; gap:20px; }
 .performance-lead h2 { font-size:clamp(24px,3vw,32px); letter-spacing:-.055em; }
 .performance-subtitle { margin-top:5px; color:#687589; font-size:13px; }
+.performance-cohort-label { display:inline-block; margin-top:7px; padding:5px 9px; border-radius:6px; background:#e8f0fc; color:#235486; font-size:12px; font-weight:700; }
 .performance-updated { align-items:flex-end; display:flex; flex-direction:column; gap:5px; text-align:right; font-size:12px; }
 .performance-pill { background:#edf4ff; border:1px solid #cee2ff; border-radius:99px; color:#2459a1; display:inline-flex; font-weight:760; padding:5px 12px; white-space:nowrap; }
 .performance-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
