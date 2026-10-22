@@ -4,6 +4,7 @@ Requires OPENAI_API_KEY and explicit model selection. Never stores credentials;
 never spawns background jobs, uses tools, streams data into broker execution or
 claims that a model has produced a profitable strategy.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,15 +22,21 @@ class OpenAIResponsesResearcher:
     ENDPOINT = "https://api.openai.com/v1/responses"
 
     def __init__(
-        self, *, model: str, api_key: str | None = None,
-        transport: httpx.BaseTransport | None = None, timeout: float = 90.0,
+        self,
+        *,
+        model: str,
+        api_key: str | None = None,
+        transport: httpx.BaseTransport | None = None,
+        timeout: float = 90.0,
     ) -> None:
         self.model = model
         self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         if not self._api_key:
             raise RemoteModelError("OPENAI_API_KEY is required for actual model research")
-        if not isinstance(model, str) or not 1 <= len(model) <= 80 or not all(
-            c.isascii() and (c.isalnum() or c in "-._") for c in model
+        if (
+            not isinstance(model, str)
+            or not 1 <= len(model) <= 80
+            or not all(c.isascii() and (c.isalnum() or c in "-._") for c in model)
         ):
             raise RemoteModelError("explicit valid model ID is required")
         if not 5 <= timeout <= 300:
@@ -41,8 +48,13 @@ class OpenAIResponsesResearcher:
         if not isinstance(context, dict):
             raise RemoteModelError("structured research context required")
         contract = context.get("output_contract")
-        stage = "AlgorithmPlan" if contract == "AlgorithmPlan" else (
-            "DiagnosticResponse" if context.get("schema") == "research-diagnostic-context-v1"
+        stage = (
+            "InheritedResearchIntent"
+            if contract == "InheritedResearchIntent"
+            else "AlgorithmPlan"
+            if contract == "AlgorithmPlan"
+            else "DiagnosticResponse"
+            if context.get("schema") == "research-diagnostic-context-v1"
             else "INVALID"
         )
         if stage == "INVALID":
@@ -57,6 +69,11 @@ class OpenAIResponsesResearcher:
             "signal and its next diagnostic must cite authentic observed IDs. "
             "When an exploration direction is provided, weigh it against the "
             "measured evidence and avoid repeating identical strategies. "
+            "In inherited mode use only the pinned inherited_parent_strategy_id, "
+            "using a supported structure/parameter/mixed mode and one to six "
+            "verified typed operations. Treat a "
+            "rejected risk candidate as evidence to consider a new hypothesis; "
+            "never relax risk limits or repeat identical failed operations. "
             f"Requested JSON object contract: {stage}."
         )
         # The diagnostic context is evidence-bound and must remain byte-for-byte
@@ -64,17 +81,26 @@ class OpenAIResponsesResearcher:
         # that context; do not mutate context_hash or the archived trace.
         from research.indicator_engine.algorithm_plan import AlgorithmPlan
         from research.llm.diagnostic_research import DiagnosticResponse
+        from research.llm.director import ResearchIntent
+
         expected_schema = (
-            AlgorithmPlan.model_json_schema() if stage == "AlgorithmPlan"
+            ResearchIntent.model_json_schema()
+            if stage == "InheritedResearchIntent"
+            else AlgorithmPlan.model_json_schema()
+            if stage == "AlgorithmPlan"
             else DiagnosticResponse.model_json_schema()
         )
         payload = {
             "model": self.model,
             "instructions": instructions,
-            "input": json.dumps({
-                "evidence_context": context,
-                "required_output_json_schema": expected_schema,
-            }, sort_keys=True, ensure_ascii=False),
+            "input": json.dumps(
+                {
+                    "evidence_context": context,
+                    "required_output_json_schema": expected_schema,
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ),
             "text": {"format": {"type": "json_object"}},
             "max_output_tokens": 6000,
             "store": False,
@@ -96,9 +122,11 @@ class OpenAIResponsesResearcher:
             if body.get("status") != "completed":
                 raise RemoteModelError("remote model result incomplete or refused")
             chunks = [
-                item["text"] for outer in body["output"]
+                item["text"]
+                for outer in body["output"]
                 if outer.get("type") == "message"
-                for item in outer.get("content", []) if item.get("type") == "output_text"
+                for item in outer.get("content", [])
+                if item.get("type") == "output_text"
             ]
             if len(chunks) != 1:
                 raise RemoteModelError("expected exactly one structured model output")
