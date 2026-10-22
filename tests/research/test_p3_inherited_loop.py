@@ -271,3 +271,67 @@ def test_p3_no_effect_s7_report_changes_next_model_context(tmp_path):
     assert feedback["no_effect_count"] == 1
     assert feedback["hypotheses"][0]["status"] == "NO_OBSERVED_EFFECT"
     assert feedback["not_sealed_oos"] is True
+
+
+class FakeSemanticRejectService(FakeService):
+    def submit_plan(self, args):
+        if self.rejections == 0:
+            self.rejections += 1
+            raise ValueError("P3_SEMANTIC_PREFLIGHT_REJECTED: PROVABLE_CONDITION_SUBSUMPTION")
+        self.phase = "AWAITING_DIAGNOSIS"
+        self.token = "diagnosis-token"
+        return self.get(args)
+
+    def get(self, args):
+        current = super().get(args)
+        if current["checkpoint_phase"] == "AWAITING_PLAN":
+            current["model_context"]["p3_semantic_rejection_feedback"] = {
+                "schema": "p3-semantic-rejection-feedback-v1",
+                "rejection_count": self.rejections,
+                "recent_rejections": [{"reason": "PROVABLE_CONDITION_SUBSUMPTION"}]
+                if self.rejections
+                else [],
+            }
+        return current
+
+
+class FakeSemanticRetryProvider(FakeProvider):
+    def propose(self, context):
+        self.contexts.append(context)
+        if context.get("output_contract") == "InheritedResearchIntent":
+            if context.get("p3_semantic_rejection_feedback", {}).get("rejection_count"):
+                return {
+                    **PLAN,
+                    "operations": [
+                        {
+                            "op": "CHANGE_AND_OR",
+                            "path": "entry.logic",
+                            "logic": "OR",
+                        }
+                    ],
+                }
+            return dict(PLAN)
+        return super().propose(context)
+
+
+def test_p3_semantic_rejected_plan_reprompts_model_with_evidence(tmp_path):
+    svc = FakeSemanticRejectService(reject_once=False)
+    provider = FakeSemanticRetryProvider()
+    result = P3InheritedCheckpointAutopilot(
+        svc,
+        provider,
+        receipts=ModelProposalAudit(tmp_path / "audit.jsonl", session_id="mock"),
+        max_plan_attempts=2,
+    ).run("mock", max_generations=1)
+    assert result["new_generations"] == 1
+    assert result["typed_proposals_rejected"] == 1
+    assert result["planning_proposals"] == 2
+    second = next(
+        c
+        for c in provider.contexts
+        if c.get("p3_semantic_rejection_feedback", {}).get("rejection_count") == 1
+    )
+    assert (
+        second["p3_semantic_rejection_feedback"]["recent_rejections"][0]["reason"]
+        == "PROVABLE_CONDITION_SUBSUMPTION"
+    )

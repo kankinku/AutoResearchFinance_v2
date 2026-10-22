@@ -113,6 +113,7 @@ def main() -> None:
             parent_portfolio_v2=True,
             child_risk_budget=risk,
             precommit_child_risk_budget=risk,
+            p3_semantic_preflight=True,
         )
         state = service.get({"session_id": args.session_id})
         if state["checkpoint_phase"] not in ("AWAITING_PLAN", "AWAITING_DIAGNOSIS"):

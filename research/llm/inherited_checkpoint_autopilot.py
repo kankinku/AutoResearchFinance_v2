@@ -104,6 +104,7 @@ class P3InheritedCheckpointAutopilot:
 
     RETRYABLE_PREFIXES = (
         "P2_PRECOMMIT_RISK_REJECTED:",
+        "P3_SEMANTIC_PREFLIGHT_REJECTED:",
         "DUPLICATE_INHERITED_STRATEGY:",
         "INTENT_",
         "UNCHANGED_",
@@ -249,8 +250,10 @@ class P3InheritedCheckpointAutopilot:
                         previous_model_failure = {
                             "reason": "S2_OR_P2_REJECTED",
                             "guidance": (
-                                "Review the signed precommit rejection evidence "
-                                "and propose distinct operations without relaxing limits."
+                                "Review P2 precommit risk and P3 semantic rejection "
+                                "evidence, including zero signal-change and symbolic "
+                                "subsumption. Propose a distinct executable hypothesis "
+                                "without relaxing the preset risk budget."
                             ),
                         }
                         continue

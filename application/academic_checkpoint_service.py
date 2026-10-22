@@ -71,6 +71,7 @@ from research.llm.lineage_selection import (
     replay_lineage_candidate,
 )
 from research.llm.loss_attribution import build_loss_attribution
+from research.llm.p3_semantic_preflight import inspect_inherited_semantics
 from research.llm.parent_portfolio_v2 import choose_parent_lane, shortlist_counted_generations
 from research.llm.s2_execution_preflight import compare_inherited_s2_execution
 from research.llm.trade_cohort_review import (
@@ -125,13 +126,17 @@ class AcademicMCPCheckpointService:
         parent_portfolio_v2: bool = False,
         child_risk_budget: ChildRiskBudget | None = None,
         precommit_child_risk_budget: ChildRiskBudget | None = None,
+        p3_semantic_preflight: bool = False,
     ):
         if (
-            child_risk_budget is not None or precommit_child_risk_budget is not None
+            child_risk_budget is not None
+            or precommit_child_risk_budget is not None
+            or p3_semantic_preflight
         ) and not parent_portfolio_v2:
             raise ValueError("P2 child risk budgets require opt-in parent portfolio")
         self.child_risk_budget = child_risk_budget
         self.precommit_child_risk_budget = precommit_child_risk_budget
+        self.p3_semantic_preflight = p3_semantic_preflight
         self.root = project_root.resolve()
         self.state = state_dir.resolve() / "academic-gpt-checkpoints"
         self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
@@ -204,6 +209,15 @@ class AcademicMCPCheckpointService:
             review_hash TEXT NOT NULL,
             PRIMARY KEY(session_id, generation, request_hash)
         )""")
+        # Opt-in, append-only P3 semantic rejection sidecar. All prior
+        # canonical evidence, parent hashes and P2 risk receipts are unchanged.
+        if self.p3_semantic_preflight:
+            db.execute("""CREATE TABLE IF NOT EXISTS p3_semantic_rejections (
+                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+                request_hash TEXT NOT NULL, token_hash TEXT NOT NULL,
+                review_json TEXT NOT NULL, review_hash TEXT NOT NULL,
+                PRIMARY KEY(session_id, generation, request_hash)
+            )""")
         # Old sessions were created with the original catalog. Keep their
         # identity even after new S6 candidates become available.
         if "catalog_version" not in {
@@ -1508,6 +1522,54 @@ class AcademicMCPCheckpointService:
                 result["checkpoint_token"] = row["token"]
                 result["model_context"] = self._context(catalog, data, current)
                 result["model_context"]["catalog_version"] = row["catalog_version"]
+                if self.p3_semantic_preflight:
+                    parent_selection = result["model_context"].get("selected_development_parent")
+                    if parent_selection is None:
+                        raise CycleStateError("P3 semantic checkpoint parent missing")
+                    rows = db.execute(
+                        "SELECT review_json,review_hash FROM p3_semantic_rejections "
+                        "WHERE session_id=? AND generation=? ORDER BY rowid",
+                        (sid, current["completed_generations"] + 1),
+                    ).fetchall()
+                    relevant = []
+                    for previous in rows:
+                        receipt = json.loads(previous["review_json"])
+                        if (
+                            content_hash(receipt) != previous["review_hash"]
+                            or receipt["schema"] != "p3-semantic-rejection-receipt-v1"
+                            or receipt["token_hash"] != content_hash(row["token"])
+                            or receipt["parent_selection_hash"]
+                            != parent_selection["selection_hash"]
+                            or receipt["source_evidence_hash"]
+                            != (
+                                current["history"][-1]["evidence_hash"]
+                                if current["history"]
+                                else None
+                            )
+                            or receipt["review"]["dataset_hash"] != data.dataset_hash
+                            or receipt["review"]["reject"] is not True
+                        ):
+                            raise CycleStateError("P3 semantic rejection proof invalid")
+                        relevant.append(
+                            {
+                                "request_hash": receipt["request_hash"],
+                                "reason": receipt["review"]["reason"],
+                                "symbolic_witness": receipt["review"]["symbolic_witness"],
+                                "signal_change_bars": receipt["review"]["signal_change_bars"],
+                                "proposal_operations": receipt["proposal_operations"],
+                                "review_hash": previous["review_hash"],
+                            }
+                        )
+                    result["model_context"]["p3_semantic_rejection_feedback"] = {
+                        "schema": "p3-semantic-rejection-feedback-v1",
+                        "rejection_count": len(relevant),
+                        "recent_rejections": relevant[-8:],
+                        "evidence_digest": content_hash(relevant),
+                        "instruction": (
+                            "Avoid symbolic implication and no-signal-change proposals; "
+                            "submit a genuinely different supported ResearchIntent."
+                        ),
+                    }
                 if self.precommit_child_risk_budget is not None:
                     selected = result["model_context"].get("selected_development_parent")
                     if selected is None:
@@ -1599,6 +1661,57 @@ class AcademicMCPCheckpointService:
         ):
             raise ValueError("DUPLICATE_INHERITED_STRATEGY: change next mutation")
         compiled = replace(parent, strategy=child, strategy_hash=digest)
+        if self.p3_semantic_preflight:
+            semantic = inspect_inherited_semantics(
+                parent, compiled, bars=len(data.bars), dataset_hash=data.dataset_hash
+            )
+            if semantic["reject"]:
+                body = {
+                    "schema": "p3-semantic-rejection-receipt-v1",
+                    "session_id": state["session_id"],
+                    "generation": state["completed_generations"] + 1,
+                    "source_evidence_hash": (
+                        state["history"][-1]["evidence_hash"] if state["history"] else None
+                    ),
+                    "request_hash": content_hash(
+                        receipt_request if receipt_request is not None else args["plan"]
+                    ),
+                    "token_hash": content_hash(row["token"]),
+                    "parent_selection_hash": selected["selection_hash"],
+                    "proposal_operations": intent.model_dump(mode="json")["operations"],
+                    "review": semantic,
+                }
+                proof_hash = content_hash(body)
+                db.execute(
+                    "INSERT OR IGNORE INTO p3_semantic_rejections "
+                    "(session_id,generation,request_hash,token_hash,review_json,review_hash) "
+                    "VALUES(?,?,?,?,?,?)",
+                    (
+                        body["session_id"],
+                        body["generation"],
+                        body["request_hash"],
+                        body["token_hash"],
+                        json.dumps(body, sort_keys=True),
+                        proof_hash,
+                    ),
+                )
+                saved = db.execute(
+                    "SELECT review_json,review_hash FROM p3_semantic_rejections "
+                    "WHERE session_id=? AND generation=? AND request_hash=?",
+                    (body["session_id"], body["generation"], body["request_hash"]),
+                ).fetchone()
+                if (
+                    saved is None
+                    or saved["review_hash"] != proof_hash
+                    or json.loads(saved["review_json"]) != body
+                ):
+                    raise CycleStateError("P3 semantic rejection evidence conflict")
+                db.commit()  # preserve rejection before returning retryable failure
+                raise ValueError(
+                    "P3_SEMANTIC_PREFLIGHT_REJECTED: no new signals; "
+                    f"{semantic['reason']} ({semantic['bars_checked']} development bars). "
+                    "Design distinct executable conditions and retry the same checkpoint."
+                )
         audit = audit_inherited_decisions(compiled, data)
         precommit_approved_proof: dict[str, Any] | None = None
         if self.precommit_child_risk_budget is not None:
