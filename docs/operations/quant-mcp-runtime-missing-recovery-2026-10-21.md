@@ -45,3 +45,14 @@
 현재 같은 `/shared` 추가 검색에서 Git worktree 하나(개발 checkout)만 확인. `.venv`·cache·`.git`를 제외한 원본 `*.sqlite`, `*.parquet`, `*.db`, `*.zip`, `*.tar` 0건. `/shared/nginx/routes.d` 설치 라우트 0개, `127.0.0.1:8787` 연결 거부 재확인. 이는 **현재 마운트에 원본 Quant 운영 데이터가 없다는 뜻**일 뿐 원래 Windows 드라이브 다른 경로나 백업/이전 Docker 환경에 데이터가 존재하지 않는다는 증명은 아님.
 
 다음 비파괴적 단계: Windows 이전 연구 checkout 또는 백업에서 `quant-oauth.sqlite`, `public-base-url`, `state/moon-http/research`, `*.parquet` 및 G350 이후 checkpoint를 **파일 위치·크기만** 찾아 진위/계보 교차 검증. 비밀·토큰 출력 금지. 원본 이전 상태/공식 최신 세대 확인 전 server init, OAuth 재등록, 빈 배치/전략 계보 생성 및 Docker volume 정리는 금지. 현재 상태 **BLOCKED_MISSING_ORIGINAL_RUNTIME**, 신규 공식 **0/100**.
+
+## 2026-10-22 KST — T4 실제 10세대 재개 전 재검증
+
+**결과: BLOCKED_SAME_OPERATIONAL_RUNTIME; 신규 정식 GPT–MCP 0/10, 기존 OAuth/세대·배포 변경 0.** 사용자 요청에 따라 P3 `next_intent` 구현 커밋 `2810b74` 이후 실제 연결로 전환하려 했으나, 등록된 `Qaunt_Autoresearch` 읽기 도구 `get_workspace_status`, `get_research_brief`, `list_market_data`에서 다시 `The tool failed internally.` 확인. 운영 세션 ID·원본 최신 세대·Parquet 해시를 읽을 수 없으므로 실연구 시작 불가.
+
+- 현재 Moon nginx 2999 `/health`는 HTTP 200이나 `/quant/mcp`, `/quant/health`, `/quant/.well-known/oauth-protected-resource`는 HTTP 404. `127.0.0.1:8787/health` 연결 실패. `/etc/nginx/routes.d`에는 Moon 라우트만 있고 Quant 운영 라우트 0개. 현재 supervisor에는 Moon/nginx만 있고 Quant 서버가 실행되지 않음. 개발 저장소의 `deployment/moon/20-quant-autoresearch.conf`와 `quant-mcp.supervisor.conf`는 설치본이 아님.
+- 원본 런처 `run_quant_moon_http.sh`는 기존 key/URL pin/OAuth DB에 의존하며, 세 관련 작업 저장소에서 기대 경로 `state/moon-http/oauth/approval-key`, `state/moon-http/oauth/public-base-url`, `state/moon-http/research/oauth/quant-oauth.sqlite`가 전부 없음. `/shared/moon-workspace`에서 `quant-oauth.sqlite`, approval-key, public-base-url 원본을 못 찾았으나 **Windows 다른 경로·볼륨의 존재 여부는 미확인**. 원본 없는 상태에서 런처 구동 시 새 승인키 또는 새 원장이 만들어질 수 있으므로 **시작하지 않음**.
+- 별도의 개발 학술 G452 원장 확인: `state/moon-http/fresh-20261021/research/academic-gpt-checkpoints/cycles.sqlite`, `generations` **452건**, 각 세대 증거 해시 목록의 SHA-256 **`e27c586ccda974438ca7d3ae7c0c2471e935bdaef1aa8dcf446eab1103a8fdf9`**. 이는 *목록 집계 해시*이지 G452 개별 evidence hash나 공식 운영 원장 증거가 아니다. 개발 G452를 공식 G350→G500 후속으로 지정하지 않음.
+- Moon/Quant 앱의 OAuth 주소 변경, 등록·재인증, state initialize, 배포 nginx 경로 설치, Supervisor 수정/재시작, API 과금, 실주문/봉인 OOS, 새 세대 생성 **일절 미실행**. 저장소 연구 코드 미수정.
+
+**필수 외부 복구 조건:** 기존 승인키·고정 public-base-url·Quant OAuth DB·정식 운영 연구 원장과 Parquet 원본, 기존 런타임 SHA를 동일 출처로 확인하고 크기/해시만 검증. 그 뒤 비파괴 원본 백업→원본 프로세스만 재연결→무인증 `/quant/mcp` 기대 401, 메타데이터 정상, **연결된 기존** Quant 읽기 도구 응답 → 실제 최신 세대·부모·데이터 해시·주문 OFF 검증. 조건 충족 시에만 T4 GPT 계획→검증→진단→S7→계승 **10세대**부터 시작하고 이후 100세대; V05→T4→V01~V04→V06→V07 순서 유지. 단순 문서상의 404 해결만으로 연결 정상이라고 주장 금지.

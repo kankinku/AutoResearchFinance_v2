@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-22 KST T4 실제 GPT–MCP 10세대 착수 전 Read-only 게이트 (Q02/Q06/Q08/Q15/Q17/Q20): BLOCKED_SAME_OPERATIONAL_RUNTIME.** [운영 원본 누락 사고기록 10/22 재검증](quant-mcp-runtime-missing-recovery-2026-10-21.md). 연결된 Qaunt_Autoresearch 읽기 도구가 `The tool failed internally.`, Moon `/quant/mcp` HTTP 404/백엔드 8787 연결 실패/설치된 Quant 라우트 없음, 세 개발 작업본 원래 OAuth 키·DB·URL 핀 없음 확인. 학술 개발 원장 G452/452만 읽기 확인(세대 증거 해시 목록 집계 SHA `e27c586c...`; **공식 운영 최신 G 불명**); 이를 기존 공식 G350→G500 계보로 승계하지 않음. **실제 신규 GPT–MCP 0/10, 공식 연구 0, S7 0, 신규 session/batch 0, OAuth/URL 재등록 0, 과금 0, 주문 0, API/OOS 미접근, 운영 배포 NOT RUN**. 원본 운영 데이터/기존 승인키·URL 핀·OAuth DB와 계보를 안전하게 확보해야 다음 단계 재개 가능. 기존 V05→T4 실제 10→100→V01~V04→V06→V07 승인 순서 변경 없음. 테스트는 현장 read-only 연결/배포 상태 확인(FAIL); 코드 회귀는 문서작업으로 별도 governance PASS/NOT RUN 표시. Git commit/Push 결과는 본 진행표 최종 완료 기록으로 갱신.
+
+
 **2026-10-22 KST T4/P3 진단 `next_intent` S7 사전 중복 차단 (Q02/Q06/Q08/Q09/Q17/Q18/Q20, 개발 브랜치):** [실제 구현·G452 복제 검증](p3_diagnostic_next_intent_preflight_20261022.md). 기존 P3 계획 전 중복 검증에 이어 S7 후속 가설도 불변 세대 커밋 전에 검증: 논리적 포함 관계 및 개발 신호 완전 동일 여부를 판정, 위험정책 변화는 오검출 차단. 같은 가설 두 번 거부해도 gateway 부속 수신증 1건, 세대 G452 유지 및 진단 토큰 보존, 변조 수신증 읽기 차단, 유효한 진단으로 격리 G453 및 S7 생성 확인. 구동 모델은 scripted fixture로 **GPT 실사용/새 투자 알파 입증 아님**; 독립 OOS 및 PIT 검증 미실행. P3 모델의 진단 재제안 횟수 제한 및 실패 원인 다음 컨텍스트 전달·중단 후 재개 지원. 기존 OAuth/MCP·시장원본·G452/452·실거래 OFF 불변. 관련 49개 회귀 PASS, Ruff PASS, P3 3모듈 mypy PASS. 전체 mypy 41건 FAIL(기존 오류), 전체 pytest 이번 변경에서 NOT RUN; 구현 SHA `0e82dbc` GitHub `feat/quant-parent-portfolio-20261021` Push PASS, 운영 배포 NOT RUN; 본 마스터 진행표는 별도 후속 커밋. 다음 상위 승인 순서 V05→T4 실제 MCP 10→100→V01~V04→V06→V07 불변.
 
 
