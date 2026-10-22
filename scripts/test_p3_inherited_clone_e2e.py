@@ -93,6 +93,11 @@ def main() -> None:
         final = svc.get({"session_id": SID})
         assert final["completed_generations"] == final["requested_generations"] == 453
         assert proof["new_generations"] == 1 and proof["planning_proposals"] == 1
+        assert proof["s7_no_effect_hypotheses"] >= 0
+        assert (
+            proof["last_s7_feedback"]["source_generation_evidence_hash"]
+            == final["history"][-1]["evidence_hash"]
+        )
         assert provider.calls == 2
         assert (
             final["history"][-1]["previous_evidence_hash"]
@@ -104,7 +109,7 @@ def main() -> None:
             assert s7["original_generation_evidence_hash"] == final["history"][-1]["evidence_hash"]
             assert db.execute("pragma integrity_check").fetchone()[0] == "ok"
         rows = [json.loads(line) for line in receipts.read_text().splitlines()]
-        assert len(rows) == 2
+        assert len(rows) == 3
         previous = None
         for row in rows:
             assert row["previous_receipt_hash"] == previous

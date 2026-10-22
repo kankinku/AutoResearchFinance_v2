@@ -114,7 +114,20 @@ class FakeService:
         return self.get(args)
 
     def evaluate_experiments(self, args):
-        return {"original_generation_evidence_hash": "new-proof"}
+        return {
+            "original_generation_evidence_hash": "new-proof",
+            "record_hash": "signed-s7-record",
+            "report": {
+                "experiments": [
+                    {
+                        "hypothesis_id": "mock_1",
+                        "status": "NO_OBSERVED_EFFECT",
+                        "same_fill_trace": True,
+                        "delta": 0.0,
+                    }
+                ]
+            },
+        }
 
 
 def test_p3_model_failure_feedback_retry_and_receipt_chain(tmp_path):
@@ -134,12 +147,16 @@ def test_p3_model_failure_feedback_retry_and_receipt_chain(tmp_path):
     assert result["actual_model_invocation_attested"] is False
     assert provider.contexts[1]["precommit_rejection_feedback"]["rejection_count"] == 1
     records = [json.loads(line) for line in path.read_text().splitlines()]
-    assert len(records) == 3
+    assert len(records) == 4
     assert [r["result"] for r in records] == [
         "REJECTED_BY_S2_OR_P2",
         "S2_PLAN_STAGED",
         "COUNTED_GENERATION_COMMITTED",
+        "S7_NO_OBSERVED_EFFECT",
     ]
+    assert result["s7_no_effect_hypotheses"] == 1
+    assert result["s7_measured_effect_hypotheses"] == 0
+    assert result["last_s7_feedback"]["report_hash"] == "signed-s7-record"
     previous = None
     for record in records:
         assert record["previous_receipt_hash"] == previous
@@ -196,3 +213,61 @@ def test_p3_explicit_receipt_resume_is_verified_and_session_bound(tmp_path):
     path.write_text(text)
     with pytest.raises(P3ResearchError, match="chain or session mismatch"):
         ModelProposalAudit(path, session_id="one", resume=True)
+
+
+class FakeTwoGenerationService(FakeService):
+    def submit_diagnosis(self, args):
+        assert self.phase == "AWAITING_DIAGNOSIS"
+        previous = self.history[-1]["evidence_hash"]
+        self.count += 1
+        self.history.append(
+            {
+                "previous_evidence_hash": previous,
+                "evidence_hash": f"generation-{self.count}-evidence",
+            }
+        )
+        self.phase = "AWAITING_PLAN" if self.count == 453 else "COMPLETED"
+        self.token = "plan-token"
+        return self.get(args)
+
+    def evaluate_experiments(self, args):
+        generation = args["generation"]
+        no_effect = generation == 453
+        return {
+            "original_generation_evidence_hash": self.history[-1]["evidence_hash"],
+            "record_hash": f"generation-{generation}-s7-hash",
+            "report": {
+                "experiments": [
+                    {
+                        "hypothesis_id": f"hyp_{generation}",
+                        "status": "NO_OBSERVED_EFFECT" if no_effect else "MEASURED_CHANGE",
+                        "same_fill_trace": no_effect,
+                        "delta": 0 if no_effect else 0.05,
+                    }
+                ]
+            },
+        }
+
+
+def test_p3_no_effect_s7_report_changes_next_model_context(tmp_path):
+    service = FakeTwoGenerationService(reject_once=False)
+    provider = FakeProvider()
+    report = P3InheritedCheckpointAutopilot(
+        service,
+        provider,
+        receipts=ModelProposalAudit(tmp_path / "p3-feedback.jsonl", session_id="mock"),
+        max_plan_attempts=2,
+    ).run("mock", max_generations=2)
+    assert report["new_generations"] == 2
+    assert report["s7_no_effect_hypotheses"] == 1
+    assert report["s7_measured_effect_hypotheses"] == 1
+    followup_context = next(
+        context
+        for context in provider.contexts
+        if context.get("last_s7_measured_feedback") is not None
+    )
+    feedback = followup_context["last_s7_measured_feedback"]
+    assert feedback["generation"] == 453
+    assert feedback["no_effect_count"] == 1
+    assert feedback["hypotheses"][0]["status"] == "NO_OBSERVED_EFFECT"
+    assert feedback["not_sealed_oos"] is True

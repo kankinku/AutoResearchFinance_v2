@@ -139,6 +139,9 @@ class P3InheritedCheckpointAutopilot:
         planning_proposals = 0
         diagnosis_proposals = 0
         rejected = 0
+        s7_no_effect = 0
+        s7_measured_effect = 0
+        last_s7_feedback: dict[str, Any] | None = None
         while completed < max_generations:
             state = self.service.get({"session_id": session_id})
             if state["checkpoint_phase"] == "COMPLETED":
@@ -164,6 +167,8 @@ class P3InheritedCheckpointAutopilot:
                 for _ in range(self.max_plan_attempts):
                     context = self.service.get({"session_id": session_id})["model_context"]
                     model_context = dict(context)
+                    if last_s7_feedback is not None:
+                        model_context["last_s7_measured_feedback"] = last_s7_feedback
                     if previous_model_failure is not None:
                         model_context["model_repair_feedback"] = previous_model_failure
                     raw = self.provider.propose(model_context)
@@ -314,6 +319,58 @@ class P3InheritedCheckpointAutopilot:
                 or current["history"][-1]["previous_evidence_hash"] != prior_evidence
             ):
                 raise P3ResearchError("S7 / chain proof mismatch")
+            reported = proof.get("report", {}).get("experiments")
+            if not isinstance(reported, list) or not reported:
+                raise P3ResearchError("S7 missing evaluated hypothesis outcomes")
+            if any(
+                "hypothesis_id" not in item or "status" not in item or "same_fill_trace" not in item
+                for item in reported
+            ):
+                raise P3ResearchError("S7 hypothesis evidence is incomplete")
+            no_effect = sum(
+                item["status"] == "NO_OBSERVED_EFFECT" or item["same_fill_trace"] is True
+                for item in reported
+            )
+            effect = len(reported) - no_effect
+            s7_no_effect += no_effect
+            s7_measured_effect += effect
+            last_s7_feedback = {
+                "schema": "p3-s7-development-feedback-v1",
+                "generation": generation,
+                "source_generation_evidence_hash": current["history"][-1]["evidence_hash"],
+                "report_hash": proof["record_hash"],
+                "hypotheses": [
+                    {
+                        "hypothesis_id": item["hypothesis_id"],
+                        "status": item["status"],
+                        "same_fill_trace": item["same_fill_trace"],
+                        "measured_delta": item.get("delta"),
+                    }
+                    for item in reported
+                ],
+                "no_effect_count": no_effect,
+                "observed_effect_count": effect,
+                "hypothesis": (
+                    "S7 recorded no effective signal/fill change; select a "
+                    "non-redundant alternative, especially avoiding weaker OR conditions."
+                    if no_effect == len(reported)
+                    else "S7 measured signal changes on reused development data, "
+                    "not independent OOS confirmation."
+                ),
+                "not_sealed_oos": True,
+            }
+            self.receipts.append(
+                phase="S7",
+                generation=generation,
+                context=last_s7_feedback,
+                proposal={"s7_report_hash": proof["record_hash"]},
+                result=(
+                    "S7_NO_OBSERVED_EFFECT"
+                    if no_effect == len(reported)
+                    else "S7_REPLAYED_MEASURED_EFFECT"
+                ),
+                evidence_hash=current["history"][-1]["evidence_hash"],
+            )
             completed += 1
         final = self.service.get({"session_id": session_id})
         return {
@@ -324,6 +381,9 @@ class P3InheritedCheckpointAutopilot:
             "new_generations": completed,
             "planning_proposals": planning_proposals,
             "diagnostic_proposals": diagnosis_proposals,
+            "s7_no_effect_hypotheses": s7_no_effect,
+            "s7_measured_effect_hypotheses": s7_measured_effect,
+            "last_s7_feedback": last_s7_feedback,
             "typed_proposals_rejected": rejected,
             "receipt_head_hash": self.receipts.previous_hash,
             "completed_generations": final["completed_generations"],
