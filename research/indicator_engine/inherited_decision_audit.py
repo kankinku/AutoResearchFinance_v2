@@ -160,12 +160,15 @@ def audit_inherited_decisions(
         incomplete = any(values[c.left][i] is None for c in conditions)
         if held:
             action: DecisionAction = "REQUEST_EXIT" if gate_exit else "HOLD_POSITION"
+        elif gate_regime and gate_entry:
+            # Canonical OR rules can enter while an unrelated entry branch or
+            # an exit feature is still warming up. Do not turn a real next-open
+            # entry into WARMUP simply because another feature is None.
+            action = "REQUEST_ENTRY"
         elif incomplete:
             action = "WARMUP"
         elif not gate_regime:
             action = "FILTERED_REGIME"
-        elif gate_entry:
-            action = "REQUEST_ENTRY"
         else:
             action = "NO_ENTRY_SIGNAL"
         future = market.bars[i + 1].timestamp if i + 1 < len(market.bars) else None
