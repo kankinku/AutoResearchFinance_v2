@@ -38,6 +38,7 @@ class ModelProposalAudit:
         self.session_id = session_id
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.previous_hash: str | None = None
+        self.records: list[dict[str, Any]] = []
         if resume:
             if not self.path.is_file() or not self.path.stat().st_size:
                 raise P3ResearchError("P3 resume requires a nonempty existing audit file")
@@ -55,6 +56,7 @@ class ModelProposalAudit:
                     ):
                         raise P3ResearchError("P3 audit receipt chain or session mismatch")
                     self.previous_hash = receipt["receipt_hash"]
+                    self.records.append(receipt)
         else:
             try:
                 self.path.open("x", encoding="utf-8").close()
@@ -93,6 +95,7 @@ class ModelProposalAudit:
             output.flush()
             os.fsync(output.fileno())
         self.previous_hash = receipt_hash
+        self.records.append({**item, "receipt_hash": receipt_hash})
 
 
 class P3InheritedCheckpointAutopilot:
@@ -128,21 +131,151 @@ class P3InheritedCheckpointAutopilot:
         self.receipts = receipts
         self.max_plan_attempts = max_plan_attempts
 
+    def _measure_s7(
+        self, session_id: str, generation: int,
+    ) -> tuple[dict[str, Any], int, int, dict[str, Any]]:
+        # The canonical service is idempotent for stored S7 reports.
+        proof = self.service.evaluate_experiments({
+            "session_id": session_id, "generation": generation,
+        })
+        current = self.service.get({"session_id": session_id})
+        history = current.get("history") or []
+        if (
+            current.get("completed_generations") != generation
+            or not history
+            or proof["original_generation_evidence_hash"] != history[-1]["evidence_hash"]
+            or (
+                len(history) > 1
+                and history[-1].get("previous_evidence_hash")
+                != history[-2]["evidence_hash"]
+            )
+        ):
+            raise P3ResearchError("S7 / chain proof mismatch")
+        reported = proof.get("report", {}).get("experiments")
+        if not isinstance(reported, list) or not reported:
+            raise P3ResearchError("S7 missing evaluated hypothesis outcomes")
+        if any(
+            "hypothesis_id" not in item or "status" not in item
+            or "same_fill_trace" not in item
+            for item in reported
+        ):
+            raise P3ResearchError("S7 hypothesis evidence is incomplete")
+        no_effect = sum(
+            item["status"] == "NO_OBSERVED_EFFECT" or item["same_fill_trace"] is True
+            for item in reported
+        )
+        effect = len(reported) - no_effect
+        feedback = {
+            "schema": "p3-s7-development-feedback-v1",
+            "generation": generation,
+            "source_generation_evidence_hash": history[-1]["evidence_hash"],
+            "report_hash": proof["record_hash"],
+            "hypotheses": [
+                {
+                    "hypothesis_id": item["hypothesis_id"],
+                    "status": item["status"],
+                    "same_fill_trace": item["same_fill_trace"],
+                    "measured_delta": item.get("delta"),
+                }
+                for item in reported
+            ],
+            "no_effect_count": no_effect,
+            "observed_effect_count": effect,
+            "hypothesis": (
+                "S7 recorded no effective signal/fill change; select a "
+                "non-redundant alternative, especially avoiding weaker OR conditions."
+                if no_effect == len(reported)
+                else "S7 measured signal changes on reused development data, "
+                "not independent OOS confirmation."
+            ),
+            "not_sealed_oos": True,
+        }
+        return feedback, no_effect, effect, proof
+
+    @staticmethod
+    def _s7_result(no_effect: int, effect: int) -> str:
+        return (
+            "S7_NO_OBSERVED_EFFECT"
+            if effect == 0 else "S7_REPLAYED_MEASURED_EFFECT"
+        )
+
+    def _append_s7(
+        self, generation: int, feedback: dict[str, Any],
+        no_effect: int, effect: int,
+    ) -> None:
+        self.receipts.append(
+            phase="S7",
+            generation=generation,
+            context=feedback,
+            proposal={"s7_report_hash": feedback["report_hash"]},
+            result=self._s7_result(no_effect, effect),
+            evidence_hash=feedback["source_generation_evidence_hash"],
+        )
+
     def run(self, session_id: str, *, max_generations: int) -> dict[str, Any]:
         if type(max_generations) is not int or not 1 <= max_generations <= 20:
             raise P3ResearchError("max_generations must be 1..20")
         started = self.service.get({"session_id": session_id})
-        if started["checkpoint_phase"] not in ("AWAITING_PLAN", "AWAITING_DIAGNOSIS"):
+        if started["checkpoint_phase"] not in (
+            "AWAITING_PLAN", "AWAITING_DIAGNOSIS", "COMPLETED"
+        ):
             raise P3ResearchError("require safe waiting phase before P3 run")
         if started["orders_enabled"] or started["independent_oos_approved"]:
             raise P3ResearchError("research-only experiment required")
+        if self.receipts.session_id != session_id:
+            raise P3ResearchError("P3 receipt audit/session mismatch")
         completed = 0
         planning_proposals = 0
         diagnosis_proposals = 0
         rejected = 0
         s7_no_effect = 0
         s7_measured_effect = 0
+        reconciled_s7 = 0
+        verified_s7 = 0
         last_s7_feedback: dict[str, Any] | None = None
+
+        # On explicit receipt resume, inspect the latest committed generation
+        # before proposing again. No new generation can be counted by recovery.
+        if self.receipts.records:
+            receipt = self.receipts.records[-1]
+            generation = started["completed_generations"]
+            if receipt["phase"] in ("DIAGNOSIS", "S7"):
+                if (
+                    generation < 1
+                    or not started["history"]
+                    or receipt["generation"] != generation
+                    or receipt["source_evidence_hash"]
+                    != started["history"][-1]["evidence_hash"]
+                ):
+                    raise P3ResearchError("P3 receipt/generation evidence mismatch")
+                if receipt["phase"] == "DIAGNOSIS" and receipt["result"] != (
+                    "COUNTED_GENERATION_COMMITTED"
+                ):
+                    raise P3ResearchError("P3 committed receipt result mismatch")
+                last_s7_feedback, no_effect, effect, _ = self._measure_s7(
+                    session_id, generation,
+                )
+                if receipt["phase"] == "DIAGNOSIS":
+                    self._append_s7(generation, last_s7_feedback, no_effect, effect)
+                    reconciled_s7 = 1
+                else:
+                    if (
+                        receipt["context_hash"] != content_hash(last_s7_feedback)
+                        or receipt["proposal_hash"] != content_hash({
+                            "s7_report_hash": last_s7_feedback["report_hash"],
+                        })
+                        or receipt["result"] != self._s7_result(no_effect, effect)
+                    ):
+                        raise P3ResearchError("P3 existing S7 receipt/report mismatch")
+                    verified_s7 = 1
+                s7_no_effect += no_effect
+                s7_measured_effect += effect
+            elif started["checkpoint_phase"] == "COMPLETED":
+                raise P3ResearchError("P3 completed checkpoint/receipt mismatch")
+        if started["checkpoint_phase"] == "COMPLETED" and (
+            reconciled_s7 == 0 and verified_s7 == 0
+        ):
+            raise P3ResearchError("P3 completed session requires verified S7 receipt")
         while completed < max_generations:
             state = self.service.get({"session_id": session_id})
             if state["checkpoint_phase"] == "COMPLETED":
@@ -309,71 +442,16 @@ class P3InheritedCheckpointAutopilot:
             )
             if outcome["completed_generations"] != prior_count + 1:
                 raise P3ResearchError("generation commit count unexpected")
-            proof = self.service.evaluate_experiments(
-                {
-                    "session_id": session_id,
-                    "generation": generation,
-                }
+            last_s7_feedback, no_effect, effect, _ = self._measure_s7(
+                session_id, generation,
             )
-            current = self.service.get({"session_id": session_id})
-            if (
-                proof["original_generation_evidence_hash"]
-                != current["history"][-1]["evidence_hash"]
-                or current["history"][-1]["previous_evidence_hash"] != prior_evidence
-            ):
+            if last_s7_feedback["source_generation_evidence_hash"] != (
+                outcome["history"][-1]["evidence_hash"]
+            ) or outcome["history"][-1]["previous_evidence_hash"] != prior_evidence:
                 raise P3ResearchError("S7 / chain proof mismatch")
-            reported = proof.get("report", {}).get("experiments")
-            if not isinstance(reported, list) or not reported:
-                raise P3ResearchError("S7 missing evaluated hypothesis outcomes")
-            if any(
-                "hypothesis_id" not in item or "status" not in item or "same_fill_trace" not in item
-                for item in reported
-            ):
-                raise P3ResearchError("S7 hypothesis evidence is incomplete")
-            no_effect = sum(
-                item["status"] == "NO_OBSERVED_EFFECT" or item["same_fill_trace"] is True
-                for item in reported
-            )
-            effect = len(reported) - no_effect
             s7_no_effect += no_effect
             s7_measured_effect += effect
-            last_s7_feedback = {
-                "schema": "p3-s7-development-feedback-v1",
-                "generation": generation,
-                "source_generation_evidence_hash": current["history"][-1]["evidence_hash"],
-                "report_hash": proof["record_hash"],
-                "hypotheses": [
-                    {
-                        "hypothesis_id": item["hypothesis_id"],
-                        "status": item["status"],
-                        "same_fill_trace": item["same_fill_trace"],
-                        "measured_delta": item.get("delta"),
-                    }
-                    for item in reported
-                ],
-                "no_effect_count": no_effect,
-                "observed_effect_count": effect,
-                "hypothesis": (
-                    "S7 recorded no effective signal/fill change; select a "
-                    "non-redundant alternative, especially avoiding weaker OR conditions."
-                    if no_effect == len(reported)
-                    else "S7 measured signal changes on reused development data, "
-                    "not independent OOS confirmation."
-                ),
-                "not_sealed_oos": True,
-            }
-            self.receipts.append(
-                phase="S7",
-                generation=generation,
-                context=last_s7_feedback,
-                proposal={"s7_report_hash": proof["record_hash"]},
-                result=(
-                    "S7_NO_OBSERVED_EFFECT"
-                    if no_effect == len(reported)
-                    else "S7_REPLAYED_MEASURED_EFFECT"
-                ),
-                evidence_hash=current["history"][-1]["evidence_hash"],
-            )
+            self._append_s7(generation, last_s7_feedback, no_effect, effect)
             completed += 1
         final = self.service.get({"session_id": session_id})
         return {
@@ -386,6 +464,8 @@ class P3InheritedCheckpointAutopilot:
             "diagnostic_proposals": diagnosis_proposals,
             "s7_no_effect_hypotheses": s7_no_effect,
             "s7_measured_effect_hypotheses": s7_measured_effect,
+            "reconciled_s7_generations": reconciled_s7,
+            "verified_existing_s7_receipts": verified_s7,
             "last_s7_feedback": last_s7_feedback,
             "typed_proposals_rejected": rejected,
             "receipt_head_hash": self.receipts.previous_hash,

@@ -335,3 +335,145 @@ def test_p3_semantic_rejected_plan_reprompts_model_with_evidence(tmp_path):
         second["p3_semantic_rejection_feedback"]["recent_rejections"][0]["reason"]
         == "PROVABLE_CONDITION_SUBSUMPTION"
     )
+
+
+class CrashOnceAroundS7(FakeService):
+    def __init__(self, *, after_persist=False):
+        super().__init__(reject_once=False)
+        self.after_persist = after_persist
+        self.calls = 0
+
+    def evaluate_experiments(self, args):
+        self.calls += 1
+        if self.calls == 1 and not self.after_persist:
+            raise RuntimeError("simulated interruption before S7 persistence")
+        proof = super().evaluate_experiments(args)
+        if self.calls == 1 and self.after_persist:
+            raise RuntimeError("simulated interruption after S7 persistence")
+        return proof
+
+
+@pytest.mark.parametrize("after_persist", [False, True])
+def test_p3_resume_reconciles_postcommit_missing_s7_receipt(tmp_path, after_persist):
+    service = CrashOnceAroundS7(after_persist=after_persist)
+    path = tmp_path / "p3-postcommit.jsonl"
+    with pytest.raises(RuntimeError, match="simulated interruption"):
+        P3InheritedCheckpointAutopilot(
+            service, FakeProvider(), receipts=ModelProposalAudit(path, session_id="mock")
+        ).run("mock", max_generations=1)
+    assert service.count == 453
+    assert [json.loads(s)["phase"] for s in path.read_text().splitlines()] == [
+        "PLAN", "DIAGNOSIS"
+    ]
+    provider = FakeProvider()
+    result = P3InheritedCheckpointAutopilot(
+        service,
+        provider,
+        receipts=ModelProposalAudit(path, session_id="mock", resume=True),
+    ).run("mock", max_generations=1)
+    assert result["new_generations"] == 0
+    assert result["reconciled_s7_generations"] == 1
+    assert result["last_s7_feedback"]["report_hash"] == "signed-s7-record"
+    assert service.count == 453
+    assert provider.contexts == []
+    assert len(path.read_text().splitlines()) == 3
+
+
+def test_p3_resume_verifies_existing_s7_without_duplicate_receipt(tmp_path):
+    service = FakeService(reject_once=False)
+    path = tmp_path / "p3-finished.jsonl"
+    first = ModelProposalAudit(path, session_id="mock")
+    original_append = first.append
+
+    def crash_after_s7_receipt(**kwargs):
+        original_append(**kwargs)
+        if kwargs["phase"] == "S7":
+            raise RuntimeError("simulated interruption after receipt flush")
+
+    first.append = crash_after_s7_receipt
+    with pytest.raises(RuntimeError, match="after receipt flush"):
+        P3InheritedCheckpointAutopilot(
+            service, FakeProvider(), receipts=first
+        ).run("mock", max_generations=1)
+    assert len(path.read_text().splitlines()) == 3
+    result = P3InheritedCheckpointAutopilot(
+        service,
+        FakeProvider(),
+        receipts=ModelProposalAudit(path, session_id="mock", resume=True),
+    ).run("mock", max_generations=1)
+    assert result["new_generations"] == 0
+    assert result["verified_existing_s7_receipts"] == 1
+    assert len(path.read_text().splitlines()) == 3
+
+
+def test_p3_recovery_rejects_mismatched_s7_or_generation_evidence(tmp_path):
+    service = FakeService(reject_once=False)
+    path = tmp_path / "p3-proof.jsonl"
+    P3InheritedCheckpointAutopilot(
+        service, FakeProvider(),
+        receipts=ModelProposalAudit(path, session_id="mock"),
+    ).run("mock", max_generations=1)
+    service.history[-1]["evidence_hash"] = "forged-evidence"
+    provider = FakeProvider()
+    with pytest.raises(P3ResearchError, match="S7.*mismatch|receipt.*mismatch"):
+        P3InheritedCheckpointAutopilot(
+            service, provider,
+            receipts=ModelProposalAudit(path, session_id="mock", resume=True),
+        ).run("mock", max_generations=1)
+    assert provider.contexts == []
+    assert len(path.read_text().splitlines()) == 3
+
+
+def test_p3_resume_forwards_signed_s7_feedback_to_next_generation(tmp_path):
+    class FirstS7Failure(FakeTwoGenerationService):
+        s7_failures = 0
+
+        def evaluate_experiments(self, args):
+            if self.s7_failures == 0:
+                self.s7_failures += 1
+                raise RuntimeError("simulated S7 interruption")
+            return super().evaluate_experiments(args)
+
+    service = FirstS7Failure(reject_once=False)
+    path = tmp_path / "two-generations.jsonl"
+    with pytest.raises(RuntimeError, match="S7 interruption"):
+        P3InheritedCheckpointAutopilot(
+            service, FakeProvider(),
+            receipts=ModelProposalAudit(path, session_id="mock"),
+        ).run("mock", max_generations=1)
+    assert service.count == 453 and service.phase == "AWAITING_PLAN"
+    provider = FakeProvider()
+    result = P3InheritedCheckpointAutopilot(
+        service, provider,
+        receipts=ModelProposalAudit(path, session_id="mock", resume=True),
+    ).run("mock", max_generations=1)
+    assert result["new_generations"] == 1
+    assert result["reconciled_s7_generations"] == 1
+    assert service.count == 454
+    assert provider.contexts[0]["last_s7_measured_feedback"]["generation"] == 453
+    assert [json.loads(item)["phase"] for item in path.read_text().splitlines()] == [
+        "PLAN", "DIAGNOSIS", "S7", "PLAN", "DIAGNOSIS", "S7"
+    ]
+
+
+def test_p3_resume_rejects_stale_signed_report_without_new_proposal(tmp_path):
+    service = FakeService(reject_once=False)
+    path = tmp_path / "signed-report.jsonl"
+    P3InheritedCheckpointAutopilot(
+        service, FakeProvider(),
+        receipts=ModelProposalAudit(path, session_id="mock"),
+    ).run("mock", max_generations=1)
+    old_evaluate = service.evaluate_experiments
+
+    def changed_report(args):
+        return {**old_evaluate(args), "record_hash": "changed-record-hash"}
+
+    service.evaluate_experiments = changed_report
+    provider = FakeProvider()
+    with pytest.raises(P3ResearchError, match="receipt/report mismatch"):
+        P3InheritedCheckpointAutopilot(
+            service, provider,
+            receipts=ModelProposalAudit(path, session_id="mock", resume=True),
+        ).run("mock", max_generations=1)
+    assert provider.contexts == []
+    assert len(path.read_text().splitlines()) == 3
