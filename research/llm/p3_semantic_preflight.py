@@ -9,7 +9,7 @@ a proof of out-of-sample or of universal strategy equivalence.
 from __future__ import annotations
 
 from math import isfinite
-from typing import Any
+from typing import Any, cast
 
 from core.backtest.engine import _regime_allows, _rules_match
 from core.integrity.hashes import content_hash
@@ -26,30 +26,31 @@ def _implies(a: Condition, b: Condition) -> bool:
         or b.right is not None
         or type(a.value) not in (int, float)
         or type(b.value) not in (int, float)
-        or not isfinite(a.value)
-        or not isfinite(b.value)
     ):
         return False
-    if a.op == b.op and a.value == b.value:
+    av, bv = cast(float, a.value), cast(float, b.value)
+    if not isfinite(av) or not isfinite(bv):
+        return False
+    if a.op == b.op and av == bv:
         return True
     if a.op == "equal":
-        x = a.value
+        x = av
         return (
-            (b.op == "equal" and x == b.value)
-            or (b.op == "less_equal" and x <= b.value)
-            or (b.op == "less_than" and x < b.value)
-            or (b.op == "greater_equal" and x >= b.value)
-            or (b.op == "greater_than" and x > b.value)
+            (b.op == "equal" and x == bv)
+            or (b.op == "less_equal" and x <= bv)
+            or (b.op == "less_than" and x < bv)
+            or (b.op == "greater_equal" and x >= bv)
+            or (b.op == "greater_than" and x > bv)
         )
     lower = {"greater_than", "greater_equal"}
     upper = {"less_than", "less_equal"}
     if a.op in lower and b.op in lower:
-        return a.value > b.value or (
-            a.value == b.value and (a.op == "greater_than" or b.op == "greater_equal")
+        return av > bv or (
+            av == bv and (a.op == "greater_than" or b.op == "greater_equal")
         )
     if a.op in upper and b.op in upper:
-        return a.value < b.value or (
-            a.value == b.value and (a.op == "less_than" or b.op == "less_equal")
+        return av < bv or (
+            av == bv and (a.op == "less_than" or b.op == "less_equal")
         )
     return False
 
@@ -107,7 +108,10 @@ def inspect_inherited_semantics(
     left = signals(parent)
     right = signals(child)
 
-    def bits(strategy: StrategyIR, values: dict[str, list[float | None]]):
+    def bits(
+        strategy: StrategyIR,
+        values: dict[str, list[float | None]],
+    ) -> list[tuple[bool, bool, bool]]:
         for cond in (
             *strategy.entry.conditions,
             *strategy.exit.conditions,

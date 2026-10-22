@@ -71,6 +71,7 @@ from research.llm.lineage_selection import (
     replay_lineage_candidate,
 )
 from research.llm.loss_attribution import build_loss_attribution
+from research.llm.p3_diagnostic_preflight import inspect_diagnostic_next_intents
 from research.llm.p3_semantic_preflight import inspect_inherited_semantics
 from research.llm.parent_portfolio_v2 import choose_parent_lane, shortlist_counted_generations
 from research.llm.s2_execution_preflight import compare_inherited_s2_execution
@@ -218,6 +219,14 @@ class AcademicMCPCheckpointService:
                 review_json TEXT NOT NULL, review_hash TEXT NOT NULL,
                 PRIMARY KEY(session_id, generation, request_hash)
             )""")
+        if self.p3_semantic_preflight:
+            db.execute("""CREATE TABLE IF NOT EXISTS p3_diagnostic_semantic_rejections (
+                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+                request_hash TEXT NOT NULL, token_hash TEXT NOT NULL,
+                review_json TEXT NOT NULL, review_hash TEXT NOT NULL,
+                PRIMARY KEY(session_id, generation, request_hash)
+            )""")
+        # Additional P3 diagnosis-scoped feedback is kept separate from counted evidence.
         # Old sessions were created with the original catalog. Keep their
         # identity even after new S6 candidates become available.
         if "catalog_version" not in {
@@ -1627,6 +1636,55 @@ class AcademicMCPCheckpointService:
                     result["model_context"]["s2_execution_preflight"] = pending[
                         "s2_execution_preflight"
                     ]
+                if (
+                    self.p3_semantic_preflight
+                    and pending.get("schema") == "p0-3b-inherited-pending-v1"
+                ):
+                    saved = db.execute(
+                        "SELECT review_json,review_hash FROM p3_diagnostic_semantic_rejections "
+                        "WHERE session_id=? AND generation=? ORDER BY rowid",
+                        (sid, current["completed_generations"] + 1),
+                    ).fetchall()
+                    checked = []
+                    for item in saved:
+                        proof = json.loads(item["review_json"])
+                        if (
+                            content_hash(proof) != item["review_hash"]
+                            or proof.get("schema") != "p3-diagnostic-rejection-receipt-v1"
+                            or proof.get("token_hash") != content_hash(row["token"])
+                            or proof.get("context_hash") != row["context_digest"]
+                            or proof.get("plan_hash") != row["plan_digest"]
+                            or proof.get("session_id") != sid
+                            or proof.get("generation") != current["completed_generations"] + 1
+                            or proof.get("source_evidence_hash") != (
+                                current["history"][-1]["evidence_hash"]
+                                if current["history"] else None
+                            )
+                            or proof.get("request_hash") != proof["review"]["diagnosis_hash"]
+                            or content_hash({
+                                k: v for k, v in proof["review"].items()
+                                if k != "review_hash"
+                            }) != proof["review"]["review_hash"]
+                            or proof["review"]["strategy_hash"] != context["strategy_hash"]
+                            or proof["review"]["dataset_hash"] != data.dataset_hash
+                            or not proof["review"]["reject"]
+                        ):
+                            raise CycleStateError("P3 diagnostic rejection proof invalid")
+                        checked.append({
+                            "request_hash": proof["request_hash"],
+                            "review_hash": item["review_hash"],
+                            "rejected_hypothesis_ids": proof["review"]["rejected_hypothesis_ids"],
+                            "reasons": [
+                                v["review"]["reason"]
+                                for v in proof["review"]["reviews"]
+                                if v["review"]["reject"]
+                            ],
+                        })
+                    result["model_context"]["p3_diagnostic_semantic_feedback"] = {
+                        "schema": "p3-diagnostic-semantic-feedback-v1",
+                        "rejection_count": len(checked),
+                        "recent_rejections": checked[-5:],
+                    }
                 result["status"] = "AWAITING_DIAGNOSIS"
             elif row["phase"] not in ("COMPLETED", "INTERRUPTED", "RUNNING", "CANCELLED"):
                 raise CycleStateError("invalid checkpoint state")
@@ -2053,6 +2111,59 @@ class AcademicMCPCheckpointService:
                     + ", ".join(uninformative)
                     + "; edit diagnosis and resubmit using the same checkpoint token"
                 )
+        if self.p3_semantic_preflight:
+            with self._connect() as db:
+                row, catalog, data, current = self._state(db, sid)
+                if row["phase"] != "AWAITING_DIAGNOSIS" or row["token"] != token:
+                    raise CycleStateError("P3 diagnosis checkpoint changed")
+                staged = json.loads(row["plan_json"])
+                if staged.get("schema") == "p0-3b-inherited-pending-v1":
+                    _, inherited, _ = self._materialize_inherited(
+                        catalog, data, current, staged
+                    )
+                    reviewed = inspect_diagnostic_next_intents(
+                        inherited, data, typed_diagnosis.model_dump(mode="json")
+                    )
+                    if reviewed["reject"]:
+                        body = {
+                            "schema": "p3-diagnostic-rejection-receipt-v1",
+                            "session_id": sid,
+                            "generation": current["completed_generations"] + 1,
+                            "request_hash": reviewed["diagnosis_hash"],
+                            "token_hash": content_hash(token),
+                            "context_hash": row["context_digest"],
+                            "plan_hash": row["plan_digest"],
+                            "source_evidence_hash": (
+                                current["history"][-1]["evidence_hash"]
+                                if current["history"] else None
+                            ),
+                            "review": reviewed,
+                        }
+                        checksum = content_hash(body)
+                        db.execute(
+                            "INSERT OR IGNORE INTO p3_diagnostic_semantic_rejections "
+                            "(session_id,generation,request_hash,token_hash,"
+                            "review_json,review_hash) "
+                            "VALUES(?,?,?,?,?,?)",
+                            (sid, body["generation"], body["request_hash"],
+                             body["token_hash"], json.dumps(body, sort_keys=True), checksum),
+                        )
+                        saved = db.execute(
+                            "SELECT review_json,review_hash FROM p3_diagnostic_semantic_rejections "
+                            "WHERE session_id=? AND generation=? AND request_hash=?",
+                            (sid, body["generation"], body["request_hash"]),
+                        ).fetchone()
+                        if (
+                            saved is None or saved["review_hash"] != checksum
+                            or json.loads(saved["review_json"]) != body
+                        ):
+                            raise CycleStateError("P3 diagnostic rejection evidence conflict")
+                        db.commit()
+                        raise ValueError(
+                            "P3_DIAGNOSIS_SEMANTIC_REJECTED: "
+                            "redundant next_intent on reused development signals; "
+                            "revise diagnosis at the same checkpoint"
+                        )
         with self._connect() as db:
             row = db.execute("SELECT * FROM stages WHERE session_id=?", (sid,)).fetchone()
             assert row is not None

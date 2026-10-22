@@ -239,7 +239,19 @@ class P3InheritedCheckpointAutopilot:
         if self.receipts.records:
             receipt = self.receipts.records[-1]
             generation = started["completed_generations"]
-            if receipt["phase"] in ("DIAGNOSIS", "S7"):
+            if receipt["phase"] == "DIAGNOSIS" and receipt["result"] in (
+                "REJECTED_DIAGNOSIS_SEMANTIC", "DUPLICATE_MODEL_DIAGNOSIS",
+            ):
+                if (
+                    started["checkpoint_phase"] != "AWAITING_DIAGNOSIS"
+                    or receipt["generation"] != generation + 1
+                    or receipt["source_evidence_hash"] != (
+                        started["history"][-1]["evidence_hash"]
+                        if started["history"] else None
+                    )
+                ):
+                    raise P3ResearchError("P3 rejected diagnosis receipt checkpoint mismatch")
+            elif receipt["phase"] in ("DIAGNOSIS", "S7"):
                 if (
                     generation < 1
                     or not started["history"]
@@ -407,31 +419,69 @@ class P3InheritedCheckpointAutopilot:
                     raise P3ResearchError(
                         "MAX_MODEL_PROPOSAL_BUDGET_EXHAUSTED; checkpoint unchanged"
                     )
-            context = state["model_context"]
-            raw_diagnosis = self.provider.propose(context)
-            diagnosis_proposals += 1
-            if not isinstance(raw_diagnosis, dict):
-                raise P3ResearchError("model returned non-object diagnosis")
-            try:
-                typed_diagnosis = DiagnosticResponse.model_validate(raw_diagnosis)
-            except ValidationError as exc:
-                self.receipts.append(
-                    phase="DIAGNOSIS",
-                    generation=generation,
-                    context=context,
-                    proposal=raw_diagnosis,
-                    result="INVALID_TYPED_DIAGNOSIS",
-                    evidence_hash=prior_evidence,
+            diagnosed = False
+            seen_diagnoses: set[str] = set()
+            for _ in range(self.max_plan_attempts):
+                state = self.service.get({"session_id": session_id})
+                if (
+                    state["checkpoint_phase"] != "AWAITING_DIAGNOSIS"
+                    or state["completed_generations"] != prior_count
+                ):
+                    raise P3ResearchError("diagnosis checkpoint changed during repair")
+                context = state["model_context"]
+                raw_diagnosis = self.provider.propose(context)
+                diagnosis_proposals += 1
+                if not isinstance(raw_diagnosis, dict):
+                    raise P3ResearchError("model returned non-object diagnosis")
+                proposal_digest = content_hash(raw_diagnosis)
+                if proposal_digest in seen_diagnoses:
+                    rejected += 1
+                    self.receipts.append(
+                        phase="DIAGNOSIS", generation=generation, context=context,
+                        proposal=raw_diagnosis, result="DUPLICATE_MODEL_DIAGNOSIS",
+                        evidence_hash=prior_evidence,
+                    )
+                    continue
+                seen_diagnoses.add(proposal_digest)
+                try:
+                    typed_diagnosis = DiagnosticResponse.model_validate(raw_diagnosis)
+                except ValidationError as exc:
+                    self.receipts.append(
+                        phase="DIAGNOSIS", generation=generation, context=context,
+                        proposal=raw_diagnosis, result="INVALID_TYPED_DIAGNOSIS",
+                        evidence_hash=prior_evidence,
+                    )
+                    raise P3ResearchError("model returned invalid typed diagnosis") from exc
+                try:
+                    outcome = self.service.submit_diagnosis({
+                        "session_id": session_id,
+                        "checkpoint_token": state["checkpoint_token"],
+                        "diagnosis": typed_diagnosis.model_dump(mode="json"),
+                        "require_signal_change": True,
+                    })
+                except ValueError as exc:
+                    if not str(exc).startswith("P3_DIAGNOSIS_SEMANTIC_REJECTED:"):
+                        raise
+                    unchanged = self.service.get({"session_id": session_id})
+                    if (
+                        unchanged["checkpoint_phase"] != "AWAITING_DIAGNOSIS"
+                        or unchanged["completed_generations"] != prior_count
+                        or unchanged["checkpoint_token"] != state["checkpoint_token"]
+                    ):
+                        raise P3ResearchError("semantic rejection changed checkpoint") from exc
+                    rejected += 1
+                    self.receipts.append(
+                        phase="DIAGNOSIS", generation=generation, context=context,
+                        proposal=raw_diagnosis, result="REJECTED_DIAGNOSIS_SEMANTIC",
+                        evidence_hash=prior_evidence,
+                    )
+                    continue
+                diagnosed = True
+                break
+            if not diagnosed:
+                raise P3ResearchError(
+                    "MAX_MODEL_DIAGNOSIS_BUDGET_EXHAUSTED; checkpoint unchanged"
                 )
-                raise P3ResearchError("model returned invalid typed diagnosis") from exc
-            outcome = self.service.submit_diagnosis(
-                {
-                    "session_id": session_id,
-                    "checkpoint_token": state["checkpoint_token"],
-                    "diagnosis": typed_diagnosis.model_dump(mode="json"),
-                    "require_signal_change": True,
-                }
-            )
             self.receipts.append(
                 phase="DIAGNOSIS",
                 generation=generation,

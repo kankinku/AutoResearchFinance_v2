@@ -145,6 +145,61 @@ def main():
             parent={},
             applied_ops=valid["operations"],
         )
+        # P3 next_intent gate: reject an already-subsumed OR-exit before G453.
+        redundant = json.loads(json.dumps(diagnosis))
+        redundant["hypotheses"][0]["next_intent"]["operations"] = [
+            {
+                "op": "ADD_RULE", "path": "exit.conditions",
+                "condition": {"op": "less_equal", "left": "ema_direction_20", "value": 0.25},
+            }
+        ]
+        diagnosis_token = staged["checkpoint_token"]
+        for _ in range(2):
+            try:
+                service.submit_diagnosis({
+                    "session_id": SID, "checkpoint_token": diagnosis_token,
+                    "diagnosis": redundant, "require_signal_change": True,
+                })
+            except ValueError as exc:
+                assert str(exc).startswith("P3_DIAGNOSIS_SEMANTIC_REJECTED:")
+            else:
+                raise AssertionError("redundant next_intent reached counted commit")
+            waiting = service.get({"session_id": SID})
+            assert waiting["completed_generations"] == 452
+            assert waiting["checkpoint_phase"] == "AWAITING_DIAGNOSIS"
+            assert waiting["checkpoint_token"] == diagnosis_token
+            feedback = waiting["model_context"]["p3_diagnostic_semantic_feedback"]
+            assert feedback["rejection_count"] == 1
+            assert feedback["recent_rejections"][0]["rejected_hypothesis_ids"]
+        with service._connect() as db:
+            rejected_rows = db.execute(
+                "SELECT review_json,review_hash FROM p3_diagnostic_semantic_rejections "
+                "WHERE session_id=? AND generation=?", (SID, 453)
+            ).fetchall()
+            assert len(rejected_rows) == 1
+            assert content_hash(json.loads(rejected_rows[0]["review_json"])) == (
+                rejected_rows[0]["review_hash"]
+            )
+        # Tampering with stored semantic feedback must fail closed.
+        with service._connect() as db:
+            db.execute(
+                "UPDATE p3_diagnostic_semantic_rejections SET review_hash=? "
+                "WHERE session_id=? AND generation=?",
+                ("0" * 64, SID, 453),
+            )
+        from research.llm.autonomous_cycle import CycleStateError
+        try:
+            service.get({"session_id": SID})
+        except CycleStateError as exc:
+            assert "P3 diagnostic rejection proof invalid" in str(exc)
+        else:
+            raise AssertionError("tampered diagnostic rejection receipt accepted")
+        with service._connect() as db:
+            db.execute(
+                "UPDATE p3_diagnostic_semantic_rejections SET review_hash=? "
+                "WHERE session_id=? AND generation=?",
+                (rejected_rows[0]["review_hash"], SID, 453),
+            )
         committed = service.submit_diagnosis(
             {
                 "session_id": SID,
@@ -169,6 +224,7 @@ def main():
                     "symbolic_rejections": 1,
                     "development_signal_equivalence_rejections": 1,
                     "stored_rejections": len(records),
+                    "diagnostic_next_intent_rejections": len(rejected_rows),
                     "valid_child_generation": 453,
                     "child_dev_return": committed["history"][-1]["metrics"]["total_return"],
                     "child_dev_mdd": committed["history"][-1]["metrics"]["max_drawdown"],

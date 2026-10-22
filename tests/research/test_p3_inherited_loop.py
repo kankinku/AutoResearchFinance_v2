@@ -477,3 +477,96 @@ def test_p3_resume_rejects_stale_signed_report_without_new_proposal(tmp_path):
         ).run("mock", max_generations=1)
     assert provider.contexts == []
     assert len(path.read_text().splitlines()) == 3
+
+
+class FakeRejectedDiagnosisService(FakeService):
+    def __init__(self):
+        super().__init__(reject_once=False)
+        self.diagnosis_attempts = 0
+
+    def submit_diagnosis(self, args):
+        self.diagnosis_attempts += 1
+        if self.diagnosis_attempts == 1:
+            raise ValueError("P3_DIAGNOSIS_SEMANTIC_REJECTED: DEVELOPMENT_SIGNAL_EQUIVALENCE")
+        return super().submit_diagnosis(args)
+
+    def get(self, args):
+        state = super().get(args)
+        if state["checkpoint_phase"] == "AWAITING_DIAGNOSIS":
+            state["model_context"]["p3_diagnostic_semantic_feedback"] = {
+                "schema": "p3-diagnostic-semantic-feedback-v1",
+                "rejection_count": self.diagnosis_attempts,
+                "recent_rejections": [{"reason": "DEVELOPMENT_SIGNAL_EQUIVALENCE"}]
+                if self.diagnosis_attempts else [],
+            }
+        return state
+
+
+class FakeDiagnosisRevisionProvider(FakeProvider):
+    def propose(self, context):
+        value = super().propose(context)
+        if context.get("p3_diagnostic_semantic_feedback", {}).get("rejection_count"):
+            changed = dict(value)
+            changed["summary"] = (
+                "Updated measured development signals and revised the next hypothesis."
+            )
+            return changed
+        return value
+
+
+def test_p3_retries_semantically_rejected_diagnosis_without_counting_extra_generation(tmp_path):
+    service = FakeRejectedDiagnosisService()
+    provider = FakeDiagnosisRevisionProvider()
+    path = tmp_path / "diagnosis-retry.jsonl"
+    result = P3InheritedCheckpointAutopilot(
+        service, provider, receipts=ModelProposalAudit(path, session_id="mock"),
+        max_plan_attempts=3,
+    ).run("mock", max_generations=1)
+    assert result["new_generations"] == 1
+    assert result["diagnostic_proposals"] == 2
+    assert result["typed_proposals_rejected"] == 1
+    assert service.diagnosis_attempts == 2
+    phases = [(row["phase"], row["result"]) for row in
+              (json.loads(s) for s in path.read_text().splitlines())]
+    assert ("DIAGNOSIS", "REJECTED_DIAGNOSIS_SEMANTIC") in phases
+    assert phases.count(("DIAGNOSIS", "COUNTED_GENERATION_COMMITTED")) == 1
+    assert provider.contexts[-1]["p3_diagnostic_semantic_feedback"]["rejection_count"] == 1
+
+
+def test_p3_exhausts_diagnosis_budget_at_unchanged_waiting_checkpoint(tmp_path):
+    class AlwaysReject(FakeRejectedDiagnosisService):
+        def submit_diagnosis(self, args):
+            self.diagnosis_attempts += 1
+            raise ValueError("P3_DIAGNOSIS_SEMANTIC_REJECTED: redundant")
+
+    service = AlwaysReject()
+    with pytest.raises(P3ResearchError, match="MAX_MODEL_DIAGNOSIS_BUDGET_EXHAUSTED"):
+        P3InheritedCheckpointAutopilot(
+            service, FakeDiagnosisRevisionProvider(),
+            receipts=ModelProposalAudit(tmp_path / "reject.jsonl", session_id="mock"),
+            max_plan_attempts=2,
+        ).run("mock", max_generations=1)
+    assert service.count == 452
+    assert service.phase == "AWAITING_DIAGNOSIS"
+
+
+def test_p3_resume_after_diagnosis_semantic_rejection_uses_same_counted_parent(tmp_path):
+    service = FakeRejectedDiagnosisService()
+    path = tmp_path / "rejected-then-resumed.jsonl"
+    with pytest.raises(P3ResearchError, match="MAX_MODEL_DIAGNOSIS_BUDGET_EXHAUSTED"):
+        P3InheritedCheckpointAutopilot(
+            service, FakeDiagnosisRevisionProvider(),
+            receipts=ModelProposalAudit(path, session_id="mock"),
+            max_plan_attempts=1,
+        ).run("mock", max_generations=1)
+    assert service.count == 452 and service.phase == "AWAITING_DIAGNOSIS"
+    provider = FakeDiagnosisRevisionProvider()
+    outcome = P3InheritedCheckpointAutopilot(
+        service, provider,
+        receipts=ModelProposalAudit(path, session_id="mock", resume=True),
+        max_plan_attempts=2,
+    ).run("mock", max_generations=1)
+    assert outcome["new_generations"] == 1
+    assert outcome["diagnostic_proposals"] == 1
+    assert service.count == 453
+    assert provider.contexts[0]["p3_diagnostic_semantic_feedback"]["rejection_count"] == 1
