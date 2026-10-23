@@ -61,6 +61,7 @@ from research.llm.director import ResearchIntent
 from research.llm.economic_feedback import build_economic_feedback, gate_research_direction
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
+from research.llm.inherited_execution_identity import inherited_effective_signal_hash
 from research.llm.intent_bridge import apply_intent
 from research.llm.lineage_replay import verified_child_successor
 from research.llm.lineage_selection import (
@@ -1741,6 +1742,25 @@ class AcademicMCPCheckpointService:
         ):
             raise ValueError("DUPLICATE_INHERITED_STRATEGY: change next mutation")
         compiled = replace(parent, strategy=child, strategy_hash=digest)
+        # The counted academic cycle already rejects identical entry/exit/regime
+        # vectors. Reuse that exact identity BEFORE consuming a plan token so a
+        # GPT director can repair its proposal without a pointless interrupted
+        # diagnosis and no weakening of the final counted dedup gate.
+        effective_hash = inherited_effective_signal_hash(compiled, data)
+        duplicate = next(
+            (
+                item["generation"]
+                for item in state["history"]
+                if item.get("effective_signal_hash") == effective_hash
+            ),
+            None,
+        )
+        if duplicate is not None:
+            raise ValueError(
+                "DUPLICATE_EFFECTIVE_INHERITED_SIGNALS: "
+                f"same full entry/exit/regime vectors as generation {duplicate}; "
+                "revise the plan and retry with the same checkpoint token"
+            )
         if self.p3_semantic_preflight:
             semantic = inspect_inherited_semantics(
                 parent, compiled, bars=len(data.bars), dataset_hash=data.dataset_hash

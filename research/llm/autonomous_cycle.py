@@ -25,6 +25,7 @@ from research.indicator_engine.algorithm_plan import (
 from research.indicator_engine.catalog import ResearchCatalog
 from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
 from research.llm.diagnostic_research import diagnose_with_provider
+from research.llm.inherited_execution_identity import inherited_effective_signal_hash
 
 
 class CycleStateError(ValueError):
@@ -522,28 +523,7 @@ class AcademicCycleService:
                 "mutated_strategy": compiled.strategy.model_dump(mode="json", by_alias=True),
             }
         )
-        from core.backtest.engine import _regime_allows, _rules_match
-
-        values = {k: list(v) for k, v in compiled.feature_values.items()}
-        active_signals = {
-            "dataset_hash": market.dataset_hash,
-            "entry": tuple(
-                _rules_match(
-                    compiled.strategy.entry.conditions, compiled.strategy.entry.logic, values, i
-                )
-                for i in range(len(market.bars))
-            ),
-            "exit": tuple(
-                _rules_match(
-                    compiled.strategy.exit.conditions, compiled.strategy.exit.logic, values, i
-                )
-                for i in range(len(market.bars))
-            ),
-            "regime": tuple(
-                _regime_allows(compiled.strategy, values, i) for i in range(len(market.bars))
-            ),
-        }
-        effective_hash = content_hash(active_signals)
+        effective_hash = inherited_effective_signal_hash(compiled, market)
         if any(
             item.get("algorithm_semantic_hash") == semantics
             or item.get("strategy_hash") == compiled.strategy_hash
