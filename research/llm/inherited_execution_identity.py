@@ -39,7 +39,7 @@ def inherited_effective_signal_hash(
             "INHERITED_FEATURE_BINDING_MISSING: selected feature was not "
             "compiled and hash-bound into this inherited academic replay"
         )
-    active_signals = {
+    active_signals: dict[str, object] = {
         "dataset_hash": market.dataset_hash,
         "entry": tuple(
             _rules_match(
@@ -63,4 +63,11 @@ def inherited_effective_signal_hash(
             _regime_allows(compiled.strategy, values, i) for i in range(len(market.bars))
         ),
     }
+    # Legacy 100%-cash strategies retain their exact historical identity.
+    # Non-default exposure is an economically executed mutation: a 75% size
+    # changes actual positions, costs and equity even with the same binary
+    # entry/exit signals. It must not be mistakenly deduplicated as unchanged.
+    size = compiled.strategy.risk.position_size_pct
+    if size != 100:
+        active_signals["position_size_pct"] = size
     return content_hash(active_signals)

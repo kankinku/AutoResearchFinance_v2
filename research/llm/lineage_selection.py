@@ -16,6 +16,7 @@ from core.data.contracts import MarketDataSet
 from core.integrity.hashes import content_hash
 from research.indicator_engine.catalog import ResearchCatalog
 from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
+from research.llm.inherited_feature_compiler import bind_inherited_features
 
 
 class LineageSelectionError(ValueError):
@@ -162,7 +163,6 @@ def replay_lineage_candidate(
     Does not use metrics claimed by GPT or a sidecar as ground truth.
     This is read-only and never advances a counted generation.
     """
-    from dataclasses import replace
 
     from core.features.registry import research_feature_specs
     from evaluation.metrics import calculate_metrics
@@ -220,7 +220,7 @@ def replay_lineage_candidate(
     if digest != expected["successor_strategy_hash"]:
         raise LineageSelectionError("reconstructed promoted StrategyIR hash mismatch")
     outcome = evaluate_compiled_development(
-        replace(base.compiled, strategy=successor, strategy_hash=digest), market
+        bind_inherited_features(base.compiled, successor, market), market
     )
     if (
         outcome.equity_hash != expected["successor_equity_hash"]
@@ -289,7 +289,6 @@ def compile_replayed_successor(
     stored_lineage: dict[str, Any],
 ) -> CompiledAcademicStrategy:
     """Return the exact IR after whole lineage and fill replay, never proxy IR."""
-    from dataclasses import replace
 
     from core.features.registry import research_feature_specs
     from research.indicator_engine.algorithm_plan import AlgorithmPlan, compile_algorithm_plan
@@ -320,7 +319,7 @@ def compile_replayed_successor(
     digest = content_hash(successor.model_dump(mode="json", by_alias=True))
     if digest != verified["successor_strategy_hash"]:
         raise LineageSelectionError("source StrategyIR identity mismatch")
-    return replace(base, strategy=successor, strategy_hash=digest)
+    return bind_inherited_features(base, successor, market)
 
 
 def replay_counted_s7_child(
@@ -336,7 +335,7 @@ def replay_counted_s7_child(
     The parent's sealed cycle evidence and the S7 sidecar must already have
     passed their persistent hash chains; we independently reconstruct both.
     """
-    from dataclasses import asdict, replace
+    from dataclasses import asdict
 
     from core.features.registry import research_feature_specs
     from evaluation.metrics import calculate_metrics
@@ -434,7 +433,7 @@ def replay_counted_s7_child(
     digest = content_hash(child_ir.model_dump(mode="json", by_alias=True))
     if digest != outcomes[0]["child_strategy_hash"]:
         raise LineageSelectionError("counted S7 child hash mismatch")
-    compiled = replace(parent, strategy=child_ir, strategy_hash=digest)
+    compiled = bind_inherited_features(parent, child_ir, market)
     child = evaluate_compiled_development(compiled, market)
     if (
         abs(child.final_equity - outcomes[0]["child_final_equity"]) > 1e-6

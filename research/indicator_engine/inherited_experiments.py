@@ -6,7 +6,7 @@ parent, frozen data, next-open fills, fees and S2 diagnosis approval.
 
 from __future__ import annotations
 
-from dataclasses import asdict, replace
+from dataclasses import asdict
 
 from core.data.contracts import DataZone, MarketDataSet
 from core.integrity.hashes import content_hash
@@ -30,6 +30,7 @@ from research.llm.diagnostic_research import (
     approve_diagnostic_plan,
     build_diagnostic_context,
 )
+from research.llm.inherited_feature_compiler import bind_inherited_features
 
 
 def compare_inherited_experiments(
@@ -59,11 +60,7 @@ def compare_inherited_experiments(
     for hypothesis in validated.experiments:
         if hypothesis.expected_metric not in SUPPORTED_CONTROLLED_METRICS:
             raise ControlledExperimentError("unsupported inherited S7 metric")
-        candidate_compiled = replace(
-            parent_compiled,
-            strategy=hypothesis.child,
-            strategy_hash=hypothesis.child_hash,
-        )
+        candidate_compiled = bind_inherited_features(parent_compiled, hypothesis.child, market)
         try:
             child = evaluate_compiled_development(
                 candidate_compiled,

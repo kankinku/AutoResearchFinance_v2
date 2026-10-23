@@ -38,7 +38,9 @@ class CycleResearcher(AlgorithmPlanProvider, Protocol):
 
 class _GenerationPlanProvider:
     def __init__(
-        self, delegate: CycleResearcher, generation: int,
+        self,
+        delegate: CycleResearcher,
+        generation: int,
         prior: dict[str, Any] | None,
     ) -> None:
         self.delegate = delegate
@@ -111,7 +113,8 @@ class AcademicCycleService:
         if market.zone != DataZone.DEVELOPMENT:
             raise CycleStateError("only development research data is allowed")
         if (
-            market.calendar != "us_equities" or market.timeframe != "1d"
+            market.calendar != "us_equities"
+            or market.timeframe != "1d"
             or not 2 <= len(market.bars) <= 1_000_000
             or len({bar.symbol for bar in market.bars}) != 1
         ):
@@ -119,39 +122,43 @@ class AcademicCycleService:
 
     @staticmethod
     def _catalog_hash(catalog: ResearchCatalog) -> str:
-        return content_hash(tuple(
-            indicator.model_dump(mode="json")
-            for indicator in catalog.list_indicators()
-        ))
+        return content_hash(
+            tuple(indicator.model_dump(mode="json") for indicator in catalog.list_indicators())
+        )
 
     def _validate_dataset(
-        self, row: sqlite3.Row,
+        self,
+        row: sqlite3.Row,
         catalog: ResearchCatalog,
         market: MarketDataSet,
     ) -> None:
-        if (market.dataset_hash != row["dataset_hash"]
-                or market.zone != DataZone.DEVELOPMENT):
+        if market.dataset_hash != row["dataset_hash"] or market.zone != DataZone.DEVELOPMENT:
             raise CycleStateError("research dataset identity mismatch")
         if self._catalog_hash(catalog) != row["catalog_hash"]:
             raise CycleStateError("research indicator catalog identity mismatch")
 
     @staticmethod
     def _row_evidence_hash(
-        session_id: str, generation: int,
-        previous_hash: str | None, payload: dict[str, Any],
+        session_id: str,
+        generation: int,
+        previous_hash: str | None,
+        payload: dict[str, Any],
     ) -> str:
-        return content_hash({
-            "schema": "external-gpt-academic-generation-v1",
-            "session_id": session_id,
-            "generation": generation,
-            "previous_hash": previous_hash,
-            "payload": payload,
-        })
+        return content_hash(
+            {
+                "schema": "external-gpt-academic-generation-v1",
+                "session_id": session_id,
+                "generation": generation,
+                "previous_hash": previous_hash,
+                "payload": payload,
+            }
+        )
 
     def _history(self, db: sqlite3.Connection, session_id: str) -> list[dict[str, Any]]:
         rows = db.execute(
             "SELECT generation,evidence_json,evidence_hash FROM generations "
-            "WHERE session_id=? ORDER BY generation", (session_id,),
+            "WHERE session_id=? ORDER BY generation",
+            (session_id,),
         ).fetchall()
         history: list[dict[str, Any]] = []
         predecessor: str | None = None
@@ -165,9 +172,8 @@ class AcademicCycleService:
                 or not isinstance(payload, dict)
                 or payload.get("generation") != expected
                 or payload.get("previous_evidence_hash") != predecessor
-                or row["evidence_hash"] != self._row_evidence_hash(
-                    session_id, expected, predecessor, payload
-                )
+                or row["evidence_hash"]
+                != self._row_evidence_hash(session_id, expected, predecessor, payload)
             ):
                 raise CycleStateError("evidence integrity: broken generation hash chain")
             current = {**payload, "evidence_hash": str(row["evidence_hash"])}
@@ -176,8 +182,11 @@ class AcademicCycleService:
         return history
 
     def start(
-        self, catalog: ResearchCatalog, market: MarketDataSet,
-        *, generations: int,
+        self,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
+        *,
+        generations: int,
     ) -> dict[str, Any]:
         self._check_market(market)
         if type(generations) is not int or not 1 <= generations <= 100:
@@ -193,7 +202,9 @@ class AcademicCycleService:
         return self.get(session_id, catalog, market)
 
     def get(
-        self, session_id: str, catalog: ResearchCatalog,
+        self,
+        session_id: str,
+        catalog: ResearchCatalog,
         market: MarketDataSet,
     ) -> dict[str, Any]:
         with self._connect() as db:
@@ -205,8 +216,7 @@ class AcademicCycleService:
             if (
                 len(history) != row["completed"]
                 or row["completed"] > row["requested"]
-                or (row["status"] == "COMPLETED"
-                    and row["completed"] != row["requested"])
+                or (row["status"] == "COMPLETED" and row["completed"] != row["requested"])
             ):
                 raise CycleStateError("evidence integrity: session counter mismatch")
             return {
@@ -226,7 +236,8 @@ class AcademicCycleService:
 
     @staticmethod
     def _final_report(
-        row: sqlite3.Row, history: list[dict[str, Any]],
+        row: sqlite3.Row,
+        history: list[dict[str, Any]],
     ) -> dict[str, Any] | None:
         """Summarize measured development evidence without causal claims."""
         if row["status"] not in ("COMPLETED", "CANCELLED"):
@@ -235,7 +246,8 @@ class AcademicCycleService:
         last = history[-1] if history else None
         return {
             "completion_reason": (
-                "REQUESTED_GENERATIONS_COMPLETED" if row["status"] == "COMPLETED"
+                "REQUESTED_GENERATIONS_COMPLETED"
+                if row["status"] == "COMPLETED"
                 else "CANCELLED_AT_CHECKPOINT"
             ),
             "generations_requested": row["requested"],
@@ -255,7 +267,10 @@ class AcademicCycleService:
         }
 
     def cancel(
-        self, session_id: str, catalog: ResearchCatalog, market: MarketDataSet,
+        self,
+        session_id: str,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
     ) -> dict[str, Any]:
         state = self.get(session_id, catalog, market)
         if state["status"] not in ("AWAITING_PROVIDER", "INTERRUPTED"):
@@ -272,7 +287,10 @@ class AcademicCycleService:
         return self.get(session_id, catalog, market)
 
     def interrupt_stale(
-        self, session_id: str, catalog: ResearchCatalog, market: MarketDataSet,
+        self,
+        session_id: str,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
     ) -> dict[str, Any]:
         """Explicit reconciliation only after the former process has stopped."""
         state = self.get(session_id, catalog, market)
@@ -290,7 +308,10 @@ class AcademicCycleService:
         return self.get(session_id, catalog, market)
 
     def resume(
-        self, session_id: str, catalog: ResearchCatalog, market: MarketDataSet,
+        self,
+        session_id: str,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
     ) -> dict[str, Any]:
         state = self.get(session_id, catalog, market)
         if state["status"] != "INTERRUPTED":
@@ -298,13 +319,17 @@ class AcademicCycleService:
         with self._connect() as db:
             db.execute(
                 "UPDATE sessions SET status='AWAITING_PROVIDER', error_type=NULL "
-                "WHERE id=? AND status='INTERRUPTED'", (session_id,),
+                "WHERE id=? AND status='INTERRUPTED'",
+                (session_id,),
             )
         return self.get(session_id, catalog, market)
 
     def advance(
-        self, session_id: str, catalog: ResearchCatalog,
-        market: MarketDataSet, provider: CycleResearcher | None,
+        self,
+        session_id: str,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
+        provider: CycleResearcher | None,
     ) -> dict[str, Any]:
         state = self.get(session_id, catalog, market)
         if state["status"] in ("COMPLETED", "CANCELLED"):
@@ -339,9 +364,15 @@ class AcademicCycleService:
             raise
 
     def _execute_claimed(
-        self, session_id: str, generation: int, catalog: ResearchCatalog,
-        market: MarketDataSet, provider: CycleResearcher,
-        prior: dict[str, Any] | None, history: list[dict[str, Any]], token: str,
+        self,
+        session_id: str,
+        generation: int,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
+        provider: CycleResearcher,
+        prior: dict[str, Any] | None,
+        history: list[dict[str, Any]],
+        token: str,
     ) -> dict[str, Any]:
         wrapped = _GenerationPlanProvider(provider, generation, prior)
         compiled = compile_provider_algorithm_plan(catalog, wrapped, market)
@@ -353,11 +384,13 @@ class AcademicCycleService:
         # actual entry/hold actions on the same frozen development data.
         # Distinguish algorithm novelty from observed effective-signal novelty.
         vectors = compiled.compiled.feature_values
-        behavioral_hash = content_hash({
-            "dataset_hash": market.dataset_hash,
-            "entry": vectors["plan_entry"],
-            "regime": vectors["plan_regime"],
-        })
+        behavioral_hash = content_hash(
+            {
+                "dataset_hash": market.dataset_hash,
+                "entry": vectors["plan_entry"],
+                "regime": vectors["plan_regime"],
+            }
+        )
         if any(h["effective_signal_hash"] == behavioral_hash for h in history):
             raise CycleStateError("duplicate effective signals on frozen development data")
         audit = audit_algorithm_plan(catalog, compiled, market)
@@ -405,11 +438,10 @@ class AcademicCycleService:
         )
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                "SELECT * FROM sessions WHERE id=?", (session_id,)
-            ).fetchone()
+            row = db.execute("SELECT * FROM sessions WHERE id=?", (session_id,)).fetchone()
             if (
-                row is None or row["status"] != "EXECUTING"
+                row is None
+                or row["status"] != "EXECUTING"
                 or row["running_token"] != token
                 or row["completed"] != generation - 1
             ):
@@ -427,7 +459,8 @@ class AcademicCycleService:
                 (
                     generation,
                     "COMPLETED" if generation == row["requested"] else "AWAITING_PROVIDER",
-                    session_id, token,
+                    session_id,
+                    token,
                 ),
             )
         return self.get(session_id, catalog, market)
@@ -454,8 +487,12 @@ class AcademicCycleService:
         from core.features.registry import research_feature_specs
         from research.indicator_engine.algorithm_plan import AlgorithmPlan, compile_algorithm_plan
         from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
-        from research.indicator_engine.strategy_adapter import CompiledAcademicStrategy
+        from research.indicator_engine.strategy_adapter import (
+            CompiledAcademicStrategy,
+            evaluate_compiled_development,
+        )
         from research.llm.director import ResearchIntent
+        from research.llm.inherited_feature_compiler import bind_inherited_features
         from research.llm.intent_bridge import apply_intent
 
         if provider is None or not isinstance(compiled, CompiledAcademicStrategy):
@@ -487,15 +524,30 @@ class AcademicCycleService:
             raise CycleStateError("inherited parent source provenance mismatch")
         plan = AlgorithmPlan.model_validate(source_plan)
         base = compile_algorithm_plan(catalog, plan, market)
-        if (
-            base.compiled.feature_values != parent_compiled.feature_values
-            or base.compiled.replay != parent_compiled.replay
-            or parent_compiled.dataset_hash != market.dataset_hash
-            or compiled.dataset_hash != market.dataset_hash
-            or compiled.feature_values != parent_compiled.feature_values
-            or compiled.replay != parent_compiled.replay
-        ):
-            raise CycleStateError("inherited parent source signal replay mismatch")
+        # Legacy sources retain identical replay bytes. Registered inherited
+        # features intentionally add/change vectors; compare their independently
+        # computed *causal values*, not equality to a pre-mutation source.
+        # Both parents and descendants still pass a signed canonical next-bar
+        # replay, including the exact original market data and fee model.
+        try:
+            reconstructed_parent = bind_inherited_features(
+                base.compiled, parent_compiled.strategy, market
+            )
+            reconstructed_child = bind_inherited_features(
+                parent_compiled, compiled.strategy, market
+            )
+            if (
+                parent_compiled.dataset_hash != market.dataset_hash
+                or compiled.dataset_hash != market.dataset_hash
+                or reconstructed_parent.feature_values != parent_compiled.feature_values
+                or reconstructed_child.feature_values != compiled.feature_values
+                or reconstructed_child.replay != compiled.replay
+                or reconstructed_child.hypothesis_hash != compiled.hypothesis_hash
+            ):
+                raise CycleStateError("inherited parent source signal replay mismatch")
+            evaluate_compiled_development(parent_compiled, market)
+        except ValueError as exc:
+            raise CycleStateError("inherited parent source signal replay mismatch") from exc
         typed = ResearchIntent.model_validate(inherited_intent)
         if (
             typed.parent_ids != (parent_compiled.strategy.strategy_id,)
@@ -625,9 +677,13 @@ class AcademicCycleService:
         return self.get(session_id, catalog, market)
 
     def run_bounded(
-        self, session_id: str, catalog: ResearchCatalog,
-        market: MarketDataSet, provider: CycleResearcher | None,
-        *, max_steps: int,
+        self,
+        session_id: str,
+        catalog: ResearchCatalog,
+        market: MarketDataSet,
+        provider: CycleResearcher | None,
+        *,
+        max_steps: int,
     ) -> dict[str, Any]:
         """Run up to N complete cycles without between-generation user prompts.
 

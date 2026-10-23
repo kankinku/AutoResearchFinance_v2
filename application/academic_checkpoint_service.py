@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from copy import deepcopy
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -62,6 +62,7 @@ from research.llm.economic_feedback import build_economic_feedback, gate_researc
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
 from research.llm.inherited_execution_identity import inherited_effective_signal_hash
+from research.llm.inherited_feature_compiler import bind_inherited_features
 from research.llm.intent_bridge import apply_intent
 from research.llm.lineage_replay import verified_child_successor
 from research.llm.lineage_selection import (
@@ -1168,7 +1169,7 @@ class AcademicMCPCheckpointService:
             raise CycleStateError("pending inherited parent selection mismatch")
         intent = ResearchIntent.model_validate(pending["inherited_intent"])
         if (
-            intent.mode != "structure"
+            intent.mode not in ("structure", "parameter", "mixed")
             or intent.parent_ids != (parent.strategy.strategy_id,)
             or intent.feature_proposal is not None
             or intent.primitive_request is not None
@@ -1201,7 +1202,7 @@ class AcademicMCPCheckpointService:
             try:
                 budget = ChildRiskBudget.model_validate(precommit["risk_budget"])
                 parent_checked = audit_inherited_decisions(parent, data)
-                child_compiled = replace(parent, strategy=child, strategy_hash=digest)
+                child_compiled = bind_inherited_features(parent, child, data)
                 child_checked = audit_inherited_decisions(child_compiled, data)
                 review = assess_child_risk(
                     parent_equity=parent_checked.evaluation.equity_curve,
@@ -1231,7 +1232,7 @@ class AcademicMCPCheckpointService:
             "origin_lineage_hash": selection["lineage_report_hash"],
             "parent_selection_hash": selection["selection_hash"],
         }
-        return parent, replace(parent, strategy=child, strategy_hash=digest), proof
+        return parent, bind_inherited_features(parent, child, data), proof
 
     def _inherited_from_evidence(
         self,
@@ -1251,7 +1252,7 @@ class AcademicMCPCheckpointService:
             or base.compiled.dataset_hash != original["dataset_hash"]
         ):
             raise CycleStateError("saved counted inherited StrategyIR integrity mismatch")
-        compiled = replace(base.compiled, strategy=inherited, strategy_hash=digest)
+        compiled = bind_inherited_features(base.compiled, inherited, data)
         audited = audit_inherited_decisions(compiled, data)
         if (
             audited.trace_hash != original["audit_hash"]
@@ -1679,30 +1680,36 @@ class AcademicMCPCheckpointService:
                             or proof.get("plan_hash") != row["plan_digest"]
                             or proof.get("session_id") != sid
                             or proof.get("generation") != current["completed_generations"] + 1
-                            or proof.get("source_evidence_hash") != (
+                            or proof.get("source_evidence_hash")
+                            != (
                                 current["history"][-1]["evidence_hash"]
-                                if current["history"] else None
+                                if current["history"]
+                                else None
                             )
                             or proof.get("request_hash") != proof["review"]["diagnosis_hash"]
-                            or content_hash({
-                                k: v for k, v in proof["review"].items()
-                                if k != "review_hash"
-                            }) != proof["review"]["review_hash"]
+                            or content_hash(
+                                {k: v for k, v in proof["review"].items() if k != "review_hash"}
+                            )
+                            != proof["review"]["review_hash"]
                             or proof["review"]["strategy_hash"] != context["strategy_hash"]
                             or proof["review"]["dataset_hash"] != data.dataset_hash
                             or not proof["review"]["reject"]
                         ):
                             raise CycleStateError("P3 diagnostic rejection proof invalid")
-                        checked.append({
-                            "request_hash": proof["request_hash"],
-                            "review_hash": item["review_hash"],
-                            "rejected_hypothesis_ids": proof["review"]["rejected_hypothesis_ids"],
-                            "reasons": [
-                                v["review"]["reason"]
-                                for v in proof["review"]["reviews"]
-                                if v["review"]["reject"]
-                            ],
-                        })
+                        checked.append(
+                            {
+                                "request_hash": proof["request_hash"],
+                                "review_hash": item["review_hash"],
+                                "rejected_hypothesis_ids": proof["review"][
+                                    "rejected_hypothesis_ids"
+                                ],
+                                "reasons": [
+                                    v["review"]["reason"]
+                                    for v in proof["review"]["reviews"]
+                                    if v["review"]["reject"]
+                                ],
+                            }
+                        )
                     result["model_context"]["p3_diagnostic_semantic_feedback"] = {
                         "schema": "p3-diagnostic-semantic-feedback-v1",
                         "rejection_count": len(checked),
@@ -1728,7 +1735,7 @@ class AcademicMCPCheckpointService:
         parent, original, selected = self._selected_ir(catalog, data, state)
         intent = ResearchIntent.model_validate(args["plan"])
         if (
-            intent.mode != "structure"
+            intent.mode not in ("structure", "parameter", "mixed")
             or intent.parent_ids != (parent.strategy.strategy_id,)
             or intent.feature_proposal is not None
             or intent.primitive_request is not None
@@ -1741,7 +1748,7 @@ class AcademicMCPCheckpointService:
             item["strategy_hash"] == digest for item in state["history"]
         ):
             raise ValueError("DUPLICATE_INHERITED_STRATEGY: change next mutation")
-        compiled = replace(parent, strategy=child, strategy_hash=digest)
+        compiled = bind_inherited_features(parent, child, data)
         # The counted academic cycle already rejects identical entry/exit/regime
         # vectors. Reuse that exact identity BEFORE consuming a plan token so a
         # GPT director can repair its proposal without a pointless interrupted
@@ -2160,9 +2167,7 @@ class AcademicMCPCheckpointService:
                     raise CycleStateError("P3 diagnosis checkpoint changed")
                 staged = json.loads(row["plan_json"])
                 if staged.get("schema") == "p0-3b-inherited-pending-v1":
-                    _, inherited, _ = self._materialize_inherited(
-                        catalog, data, current, staged
-                    )
+                    _, inherited, _ = self._materialize_inherited(catalog, data, current, staged)
                     reviewed = inspect_diagnostic_next_intents(
                         inherited, data, typed_diagnosis.model_dump(mode="json")
                     )
@@ -2177,7 +2182,8 @@ class AcademicMCPCheckpointService:
                             "plan_hash": row["plan_digest"],
                             "source_evidence_hash": (
                                 current["history"][-1]["evidence_hash"]
-                                if current["history"] else None
+                                if current["history"]
+                                else None
                             ),
                             "review": reviewed,
                         }
@@ -2187,8 +2193,14 @@ class AcademicMCPCheckpointService:
                             "(session_id,generation,request_hash,token_hash,"
                             "review_json,review_hash) "
                             "VALUES(?,?,?,?,?,?)",
-                            (sid, body["generation"], body["request_hash"],
-                             body["token_hash"], json.dumps(body, sort_keys=True), checksum),
+                            (
+                                sid,
+                                body["generation"],
+                                body["request_hash"],
+                                body["token_hash"],
+                                json.dumps(body, sort_keys=True),
+                                checksum,
+                            ),
                         )
                         saved = db.execute(
                             "SELECT review_json,review_hash FROM p3_diagnostic_semantic_rejections "
@@ -2196,7 +2208,8 @@ class AcademicMCPCheckpointService:
                             (sid, body["generation"], body["request_hash"]),
                         ).fetchone()
                         if (
-                            saved is None or saved["review_hash"] != checksum
+                            saved is None
+                            or saved["review_hash"] != checksum
                             or json.loads(saved["review_json"]) != body
                         ):
                             raise CycleStateError("P3 diagnostic rejection evidence conflict")
