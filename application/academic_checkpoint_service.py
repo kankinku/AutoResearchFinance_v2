@@ -79,6 +79,7 @@ from research.llm.trade_cohort_review import (
     build_trade_cohort_review,
     link_completed_s7_to_cohort,
 )
+from research.llm.v3_parent_sidecar import ResearchParentSidecar, SidecarIntegrityError
 from research.llm.weakness_feature_matcher import build_weakness_feature_guidance
 from strategy_ir.schema import StrategyIR
 
@@ -128,6 +129,7 @@ class AcademicMCPCheckpointService:
         child_risk_budget: ChildRiskBudget | None = None,
         precommit_child_risk_budget: ChildRiskBudget | None = None,
         p3_semantic_preflight: bool = False,
+        v3_research_memory: tuple[Path, str] | None = None,
     ):
         if (
             child_risk_budget is not None
@@ -142,6 +144,9 @@ class AcademicMCPCheckpointService:
         self.state = state_dir.resolve() / "academic-gpt-checkpoints"
         self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
         self.parent_portfolio_v2 = parent_portfolio_v2
+        # Opt-in research hints only. They never select an executable parent,
+        # modify a counted generation or attest to an LLM model provider.
+        self.v3_research_memory = v3_research_memory
 
     def _connect(self) -> sqlite3.Connection:
         self.state.mkdir(parents=True, exist_ok=True)
@@ -1467,6 +1472,23 @@ class AcademicMCPCheckpointService:
                 )
             if measured is not None:
                 context["prior_research"]["controlled_experiments"] = measured
+        if self.v3_research_memory is not None:
+            sidecar_path, cohort_id = self.v3_research_memory
+            try:
+                context["v3_prior_crossover_research"] = (
+                    ResearchParentSidecar.read_verified_summary(
+                        sidecar_path,
+                        cohort_id,
+                        dataset_hash=data.dataset_hash,
+                        known_ancestor_hashes=tuple(
+                            item["evidence_hash"] for item in status["history"]
+                        ),
+                    )
+                )
+            except (SidecarIntegrityError, sqlite3.Error, OSError) as exc:
+                raise CycleStateError(
+                    "V3 research-memory source integrity or ancestry mismatch"
+                ) from exc
         return context
 
     def _state(

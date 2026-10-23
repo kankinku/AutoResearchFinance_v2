@@ -212,7 +212,8 @@ class ResearchParentSidecar:
         finally:
             db.close()
 
-    def _manifest(self, db: sqlite3.Connection, cohort_id: str) -> dict[str, Any]:
+    @staticmethod
+    def _manifest(db: sqlite3.Connection, cohort_id: str) -> dict[str, Any]:
         row = db.execute(
             "SELECT manifest_json, manifest_hash FROM cohorts WHERE cohort_id=?", (cohort_id,)
         ).fetchone()
@@ -274,8 +275,9 @@ class ResearchParentSidecar:
             db.commit()
         return cohort_id
 
-    def _audit(self, db: sqlite3.Connection, cohort_id: str) -> dict[str, Any]:
-        manifest = self._manifest(db, cohort_id)
+    @staticmethod
+    def _audit(db: sqlite3.Connection, cohort_id: str) -> dict[str, Any]:
+        manifest = ResearchParentSidecar._manifest(db, cohort_id)
         previous_hash: str | None = None
         current_parent = manifest["initial_parent_hash"]
         seen: set[str] = set()
@@ -327,6 +329,80 @@ class ResearchParentSidecar:
     def audit(self, cohort_id: str) -> dict[str, Any]:
         with self._db() as db:
             return self._audit(db, cohort_id)
+
+    @classmethod
+    def read_verified_summary(
+        cls,
+        path: Path,
+        cohort_id: str,
+        *,
+        dataset_hash: str,
+        known_ancestor_hashes: tuple[str, ...],
+    ) -> dict[str, Any]:
+        """Read-only GPT research context; this never changes parent selection.
+
+        Verify the entire local receipt chain and bind the development
+        experiment source to a counted ancestor in the checkpoint state.
+        Sidecar-generated receipts are not an independent model attestation.
+        """
+        existing = Path(path)
+        if not existing.is_file() or existing.is_symlink():
+            raise SidecarIntegrityError("missing or unsafe V3 sidecar path")
+        if not _sha(dataset_hash) or not known_ancestor_hashes:
+            raise SidecarIntegrityError("dataset or ancestry pin missing")
+        with sqlite3.connect(f"file:{existing.resolve()}?mode=ro", uri=True, timeout=10) as db:
+            db.row_factory = sqlite3.Row
+            # Hold one SQLite read snapshot through chain verification and
+            # projection so concurrent writers cannot swap audited events.
+            db.execute("BEGIN")
+            status = cls._audit(db, cohort_id)
+            manifest = cls._manifest(db, cohort_id)
+            if manifest["dataset_hash"] != dataset_hash:
+                raise SidecarIntegrityError("V3 sidecar dataset mismatch")
+            if manifest["source_ledger_head"] not in known_ancestor_hashes:
+                raise SidecarIntegrityError("V3 source not in checkpoint ancestor chain")
+            decisions: dict[str, int] = {}
+            recent: list[dict[str, Any]] = []
+            for row in db.execute(
+                "SELECT event_json FROM candidate_events WHERE cohort_id=? ORDER BY sequence",
+                (cohort_id,),
+            ):
+                event = json.loads(row["event_json"])
+                decision = event["decision"]
+                decisions[decision] = decisions.get(decision, 0) + 1
+                trial = event["trial"]
+                recent.append(
+                    {
+                        "entry_generation": trial["entry_generation"],
+                        "exit_generation": trial["exit_generation"],
+                        "risk_generation": trial["risk_generation"],
+                        "decision": decision,
+                    }
+                )
+            if sum(decisions.values()) != status["attempt_count"]:
+                raise SidecarIntegrityError("V3 projection count mismatch")
+            return {
+                "schema": "v3-checkpoint-research-memory-v1",
+                "cohort_id": cohort_id,
+                "source_ledger_head": manifest["source_ledger_head"],
+                "dataset_hash": manifest["dataset_hash"],
+                "attempt_count": status["attempt_count"],
+                "decisions": decisions,
+                "recent_results": recent[-12:],
+                "last_event_hash": status["last_event_hash"],
+                "selected_parent_hash": status["selected_parent_hash"],
+                "parent_scope": "SIDECAR_PROVISIONAL_ONLY_NOT_EXECUTION_PARENT",
+                "origin": "SCRIPTED_NOT_GPT",
+                "model_autonomy_verified": False,
+                "official_generation_increment": 0,
+                "automatic_parent_adoption": False,
+                "independent_oos_approved": False,
+                "research_guidance": (
+                    "Earlier development crossovers produced no unique risk-qualified "
+                    "successor. Do not re-submit economically identical signals; propose "
+                    "an evidence-linked different entry, exit, risk, or regime hypothesis."
+                ),
+            }
 
     def record_candidate(self, cohort_id: str, trial: dict[str, Any]) -> SidecarRecord:
         """Transactional one-shot candidate event, including rejected attempts.
