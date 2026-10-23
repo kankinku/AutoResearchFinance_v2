@@ -24,6 +24,86 @@ _SERVER_NAME = "quant-autoresearch"
 _SERVER_VERSION = "0.1.0"
 
 
+_ACADEMIC_CHECKPOINT_TOOLS = frozenset(
+    {
+        "start_algorithm_research",
+        "get_algorithm_research",
+        "submit_algorithm_plan",
+        "submit_algorithm_diagnosis",
+        "evaluate_algorithm_experiments",
+        "resume_algorithm_research",
+        "cancel_algorithm_research",
+        "reconcile_algorithm_research",
+    }
+)
+
+# Static, audited messages only: NEVER expose exception text, raw input,
+# checkpoint tokens, OAuth context, private paths, or full model proposals.
+_SAFE_ACADEMIC_REPAIR_MESSAGES = {
+    "INTENT_PATH_TARGET": (
+        "Invalid typed rule target. ADD_RULE needs entry.conditions or "
+        "exit.conditions; REPLACE_RULE requires an indexed condition. "
+        "Correct the operation and retry the same untouched checkpoint."
+    ),
+    "UNCHANGED_CANONICAL_FILLS": (
+        "Candidate produced identical canonical fills and costed equity. "
+        "Revise the executable signal or risk rule, then retry the same checkpoint."
+    ),
+    "DUPLICATE_SEMANTIC_PLAN": (
+        "An existing generation has the same plan semantics; propose a distinct "
+        "entry/regime hypothesis and retry the same checkpoint."
+    ),
+    "DUPLICATE_EFFECTIVE_SIGNALS": (
+        "The new plan has the same effective signals as an existing generation. "
+        "Revise entry or regime conditions before retrying the checkpoint."
+    ),
+    "DUPLICATE_EFFECTIVE_INHERITED_SIGNALS": (
+        "An existing generation has the same inherited entry/exit/regime signals. "
+        "Propose a different executable mutation and retry the checkpoint."
+    ),
+    "DUPLICATE_INHERITED_STRATEGY": (
+        "The inherited strategy is already present in the audited lineage. "
+        "Use a different validated mutation at the same checkpoint."
+    ),
+    "P2_PRECOMMIT_RISK_REJECTED": (
+        "Costed parent-child risk gate rejected this proposal. Revise the "
+        "child without weakening risk limits and retry the same checkpoint."
+    ),
+    "P3_SEMANTIC_PREFLIGHT_REJECTED": (
+        "The submitted mutation has no effective semantic change. "
+        "Revise the operation and retry the same checkpoint."
+    ),
+}
+
+
+def _safe_academic_checkpoint_error(exc: Exception) -> dict[str, object]:
+    """Return an allowlisted model-repair signal, never arbitrary exception details."""
+    signal = getattr(exc, "code", None)
+    if signal not in _SAFE_ACADEMIC_REPAIR_MESSAGES:
+        # Inspect ONLY fixed public discriminator prefixes. Raw text is never returned.
+        problem = str(exc) if isinstance(exc, ValueError) else ""
+        signal = next(
+            (code for code in _SAFE_ACADEMIC_REPAIR_MESSAGES if problem.startswith(code + ":")),
+            None,
+        )
+    if signal in _SAFE_ACADEMIC_REPAIR_MESSAGES:
+        return {
+            "status": "ERROR",
+            "error_code": signal,
+            "message": _SAFE_ACADEMIC_REPAIR_MESSAGES[signal],
+            "retry_same_checkpoint": True,
+            "orders_enabled": False,
+        }
+    return {
+        "status": "ERROR",
+        "error_code": "ACADEMIC_CHECKPOINT_REJECTED",
+        "message": "Academic checkpoint request rejected. Inspect current session "
+        "before retrying; internal failure details are withheld.",
+        "retry_same_checkpoint": False,
+        "orders_enabled": False,
+    }
+
+
 class SDKMCPServerAdapter:
     """Official-SDK adapter sharing the canonical MCP application dispatch."""
 
@@ -71,6 +151,11 @@ class SDKMCPServerAdapter:
             payload = _with_legacy_compatibility(params.name, payload)
             payload = _with_public_contract(params.name, payload)
         except (OSError, PermissionError, TypeError, ValueError) as exc:
+            if params.name in _ACADEMIC_CHECKPOINT_TOOLS:
+                return _sdk_tool_result(
+                    _safe_academic_checkpoint_error(exc),
+                    is_error=True,
+                )
             if isinstance(exc, MarketDataError) and params.name in {
                 "list_market_data",
                 "download_market_data",
