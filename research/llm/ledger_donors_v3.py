@@ -78,7 +78,9 @@ def checkout_counted_donors(
                 or report.get("study_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
             ):
                 raise LedgerDonorError("counted S7 report missing/mismatched")
-            parent = service._inherited_from_evidence(catalog, market, evidence)
+            parent = service._inherited_from_evidence(
+                catalog, market, evidence, history=status["history"]
+            )
             audit = audit_inherited_decisions(parent, market)
             measures = evidence["metrics"]
             observed = cast(dict[str, Any], audit.llm_packet["metrics"])

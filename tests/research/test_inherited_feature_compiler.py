@@ -120,3 +120,89 @@ def test_parameter_position_sizing_has_distinct_costed_identity_without_legacy_c
     child_eval = evaluate_compiled_development(child, market)
     assert original_eval.equity_hash != child_eval.equity_hash
     assert child_eval.broker_executable is False
+
+
+def test_counted_descendant_replays_ancestor_feature_signature_without_rewriting_evidence(
+    tmp_path, monkeypatch
+):
+    """The audited signature must survive an inherited threshold-only mutation."""
+    from types import SimpleNamespace
+
+    import application.academic_checkpoint_service as service_module
+    from application.academic_checkpoint_service import (
+        AcademicMCPCheckpointService,
+        CycleStateError,
+    )
+
+    base, market = _warmup_fixture()
+    ref = FeatureRef(
+        feature_id="normalized_atr_percent",
+        lookback=2,
+        inputs=("high", "low", "close"),
+    )
+    initial_ir = base.strategy.model_copy(
+        update={
+            "features": {**base.strategy.features, "natr_pct_20": ref},
+            "regime_filters": [
+                *base.strategy.regime_filters,
+                Condition(op="less_than", left="natr_pct_20", value=0.035),
+            ],
+        }
+    )
+    source = bind_inherited_features(base, initial_ir, market)
+    source_audit = audit_inherited_decisions(source, market)
+    child_ir = initial_ir.model_copy(
+        update={
+            "regime_filters": [
+                *base.strategy.regime_filters,
+                Condition(op="less_than", left="natr_pct_20", value=0.05),
+            ],
+        }
+    )
+    child = bind_inherited_features(source, child_ir, market)
+    child_audit = audit_inherited_decisions(child, market)
+    direct_child = bind_inherited_features(base, child_ir, market)
+    assert audit_inherited_decisions(direct_child, market).trace_hash != child_audit.trace_hash
+    source_record = {
+        "generation": 1,
+        "base_algorithm_plan": {},
+        "inherited_strategy_ir": initial_ir.model_dump(mode="json"),
+        "strategy_hash": source.strategy_hash,
+        "dataset_hash": market.dataset_hash,
+        "audit_hash": source_audit.trace_hash,
+        "measured_final_equity": source_audit.evaluation.final_equity,
+        "evidence_hash": "1" * 64,
+    }
+    child_record = {
+        "generation": 2,
+        "base_algorithm_plan": {},
+        "inherited_strategy_ir": child_ir.model_dump(mode="json"),
+        "strategy_hash": child.strategy_hash,
+        "dataset_hash": market.dataset_hash,
+        "audit_hash": child_audit.trace_hash,
+        "measured_final_equity": child_audit.evaluation.final_equity,
+        "inherited_parent": {
+            "schema": "p0-3b-counted-inheritance-input-v1",
+            "source_generation": 1,
+            "source_evidence_hash": source_record["evidence_hash"],
+            "parent_strategy_hash": source.strategy_hash,
+        },
+    }
+    monkeypatch.setattr(service_module.AlgorithmPlan, "model_validate", lambda _: object())
+    monkeypatch.setattr(
+        service_module, "compile_algorithm_plan", lambda *args: SimpleNamespace(compiled=base)
+    )
+    svc = AcademicMCPCheckpointService(project_root=tmp_path, state_dir=tmp_path / "state")
+    rebuilt = svc._inherited_from_evidence(
+        None, market, child_record, history=[source_record, child_record]
+    )
+    assert rebuilt.replay == source.replay
+    assert rebuilt.strategy_hash == child.strategy_hash
+    assert audit_inherited_decisions(rebuilt, market).trace_hash == child_audit.trace_hash
+    altered = dict(child_record)
+    altered["inherited_parent"] = {
+        **child_record["inherited_parent"],
+        "source_evidence_hash": "0" * 64,
+    }
+    with pytest.raises(CycleStateError, match="cannot replay"):
+        svc._inherited_from_evidence(None, market, altered, history=[source_record, altered])

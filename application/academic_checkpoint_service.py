@@ -545,7 +545,9 @@ class AcademicMCPCheckpointService:
                 or report.get("original_generation_evidence_hash") != original["evidence_hash"]
             ):
                 raise CycleStateError("counted parent is missing verified S7 evidence")
-            parent = self._inherited_from_evidence(catalog, data, original)
+            parent = self._inherited_from_evidence(
+                catalog, data, original, history=status["history"]
+            )
             audit = audit_inherited_decisions(parent, data)
             metrics = audit.llm_packet["metrics"]
             expected = original["metrics"]
@@ -653,7 +655,9 @@ class AcademicMCPCheckpointService:
             report = self._stored_experiment(db, status["session_id"], generation)
             assert report is not None
             if original.get("inherited_strategy_ir") is not None:
-                inherited_parent = self._inherited_from_evidence(catalog, data, original)
+                inherited_parent = self._inherited_from_evidence(
+                    catalog, data, original, history=status["history"]
+                )
             else:
                 inherited_parent = compile_algorithm_plan(
                     catalog, AlgorithmPlan.model_validate(original["algorithm_plan"]), data
@@ -961,7 +965,9 @@ class AcademicMCPCheckpointService:
                     # The sealed S7 result must be present before next planning.
                     raise CycleStateError("counted generation missing S7 measurement")
                 if original.get("inherited_strategy_ir") is not None:
-                    parent = self._inherited_from_evidence(catalog, data, original)
+                    parent = self._inherited_from_evidence(
+                        catalog, data, original, history=status["history"]
+                    )
                 else:
                     plan = AlgorithmPlan.model_validate(original["algorithm_plan"])
                     parent = compile_algorithm_plan(catalog, plan, data).compiled
@@ -1097,7 +1103,9 @@ class AcademicMCPCheckpointService:
             if measured["record_hash"] != selected["source_report_hash"]:
                 raise CycleStateError("selected S7 report changed")
             if original.get("inherited_strategy_ir") is not None:
-                parent_original = self._inherited_from_evidence(catalog, data, original)
+                parent_original = self._inherited_from_evidence(
+                    catalog, data, original, history=state["history"]
+                )
             else:
                 parent_original = compile_algorithm_plan(
                     catalog, AlgorithmPlan.model_validate(original["algorithm_plan"]), data
@@ -1124,7 +1132,9 @@ class AcademicMCPCheckpointService:
         elif selected.get("source_kind") == "COUNTED_GENERATION":
             if measured["record_hash"] != selected["source_report_hash"]:
                 raise CycleStateError("counted parent S7 report changed")
-            parent = self._inherited_from_evidence(catalog, data, original)
+            parent = self._inherited_from_evidence(
+                catalog, data, original, history=state["history"]
+            )
             from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
 
             checked = audit_inherited_decisions(parent, data)
@@ -1239,7 +1249,17 @@ class AcademicMCPCheckpointService:
         catalog: ResearchCatalog,
         data: MarketDataSet,
         original: dict[str, Any],
+        *,
+        history: list[dict[str, Any]] | None = None,
     ) -> CompiledAcademicStrategy:
+        """Replay a counted StrategyIR with its exact verified inherited feature source.
+
+        Newly added indicators may already be bound and hash-signed in an
+        earlier counted parent. A rule-only child then preserves that vector
+        replay, rather than independently rebinding it from its base plan.
+        Never alter stored Audit/Evidence; try provenance-bound ancestor only
+        when a direct base replay fails its original immutable audit hash.
+        """
         base = compile_algorithm_plan(
             catalog,
             AlgorithmPlan.model_validate(original["base_algorithm_plan"]),
@@ -1255,11 +1275,50 @@ class AcademicMCPCheckpointService:
         compiled = bind_inherited_features(base.compiled, inherited, data)
         audited = audit_inherited_decisions(compiled, data)
         if (
-            audited.trace_hash != original["audit_hash"]
-            or abs(audited.evaluation.final_equity - original["measured_final_equity"]) > 1e-6
+            audited.trace_hash == original["audit_hash"]
+            and abs(audited.evaluation.final_equity - original["measured_final_equity"]) <= 1e-6
         ):
-            raise CycleStateError("saved inherited S2 evidence cannot replay")
-        return compiled
+            return compiled
+
+        # Exact feature-vector evidence can be inherited from a prior COUNTED
+        # strategy whose StrategyIR hash matches the signed selected parent.
+        # The immutable source evidence and the strictly earlier index must
+        # match; no arbitrary rank, new data or claimed GPT metrics can bypass
+        # the original full S2 trace comparison below.
+        proof = original.get("inherited_parent")
+        current_generation = original.get("generation")
+        if history is not None and isinstance(proof, dict):
+            source_generation = proof.get("source_generation")
+            if (
+                proof.get("schema") == "p0-3b-counted-inheritance-input-v1"
+                and type(source_generation) is int
+                and type(current_generation) is int
+                and 1 <= source_generation < current_generation
+                and len(history) >= current_generation
+            ):
+                source = history[source_generation - 1]
+                if (
+                    source.get("generation") == source_generation
+                    and source.get("evidence_hash") == proof.get("source_evidence_hash")
+                    and source.get("strategy_hash") == proof.get("parent_strategy_hash")
+                    and source.get("inherited_strategy_ir") is not None
+                ):
+                    inherited_source = self._inherited_from_evidence(
+                        catalog, data, source, history=history
+                    )
+                    candidate = bind_inherited_features(inherited_source, inherited, data)
+                    candidate_audit = audit_inherited_decisions(candidate, data)
+                    if (
+                        candidate.strategy_hash == original["strategy_hash"]
+                        and candidate_audit.trace_hash == original["audit_hash"]
+                        and abs(
+                            candidate_audit.evaluation.final_equity
+                            - original["measured_final_equity"]
+                        )
+                        <= 1e-6
+                    ):
+                        return candidate
+        raise CycleStateError("saved inherited S2 evidence cannot replay")
 
     def _context(
         self,
@@ -1276,7 +1335,9 @@ class AcademicMCPCheckpointService:
         exposure = None
         if last is not None:
             if last.get("inherited_strategy_ir") is not None:
-                previous_compiled = self._inherited_from_evidence(catalog, data, last)
+                previous_compiled = self._inherited_from_evidence(
+                    catalog, data, last, history=status["history"]
+                )
                 previous_audit = audit_inherited_decisions(previous_compiled, data)
             else:
                 plan = AlgorithmPlan.model_validate(last["algorithm_plan"])
@@ -2509,7 +2570,9 @@ class AcademicMCPCheckpointService:
         original = state["history"][generation - 1]
         inherited_generation = original.get("inherited_strategy_ir") is not None
         if inherited_generation:
-            inherited = self._inherited_from_evidence(catalog, data, original)
+            inherited = self._inherited_from_evidence(
+                catalog, data, original, history=state["history"]
+            )
         else:
             plan = AlgorithmPlan.model_validate(original["algorithm_plan"])
             compiled = compile_algorithm_plan(catalog, plan, data)
