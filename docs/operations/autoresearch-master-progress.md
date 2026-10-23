@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-23 KST T4/V3 연구 기억 입력 연결 (Q02/Q05/Q06/Q07/Q08/Q09/Q14/Q17/Q20):** [G452 임시 복제 체크포인트에서 G453 다음 계획 모델 문맥 연결 실증](quant-v3-gpt-context-integration-20261023.md). V3 교배 6개 실제 S2/P2 실패 기록을 **SQLite 읽기 전용 원장 연쇄·데이터 hash·G452 조상 evidence hash**를 검증하고 다음 GPT 입력 `v3_prior_crossover_research`에 추가. 결과 위험 실패3·부모 경제중복2·이전 후보 중복1, **실행 부모 G68 유지** (연구 sidecar G192 독립·자동 승격 0). G452 원본을 TEMP 백업한 G453 `AWAITING_PLAN` 모델문맥 직접 실험 PASS, 잘못된 sidecar cohort 실패 차단, opt-in이 아니면 이전 출력 불변. 관련 **45 pytest PASS**, Ruff 전수 PASS, 변경 모듈 Mypy PASS. **실제 GPT 모델 호출 0, 신규 counted GPT 세대 0**, 운영 배포/OAuth/URL/주문/OOS 불변. 코드 `bd7fca1` GitHub Push, 다음 고정 게이트 실제 authenticated GPT Plan→S2→진단→S7→후속 계획 10세대.
+
+
 **2026-10-23 KST V3 개발 Sidecar 결과 확정 (Q05/Q07/Q08/Q09/Q14/Q17):** [상세 원장·실측·한계](quant-v3-parent-sidecar-atomic-20261023.md). 코드 **`da1b32d`** 브랜치 origin Push 성공, **기존 G452/G552 보호**, 연구 원장 6개 실제 체결 후보 해시 체인 및 회수 멱등 6/6, 0개 승격, G192 유지. 관련 Pytest 42 PASS·Ruff/Mypy 변경소스 PASS. 이것은 **정식 GPT 세대가 아닌 스크립트 검증 기록**. V05→T4 실제 연결 GPT 10/100→V01~V04→V06→V07 우선순위/권한 불변, 프로덕션 배포 NOT RUN.
 
 
@@ -133,6 +136,7 @@
 
 | ID | 작업 | 현황 (2026-10-15) | 남은 기능 / 검증 |
 |---|---|---|---|
+| 2-2/V3 GPT CONTEXT (T4 종속) | 이전 교배 실패 기록을 GPT 다음 가설 입력에 재사용 (Q02/Q06/Q08/Q09/Q14/Q17) | **개발 opt-in 구현:** V3 읽기 전용 6개 이력/해시/원본 counted 조상 검증, G452 복제 G453 Plan context 노출 PASS. 실행 선택 부모 G68 미변경·자동 승격 금지; 기본 MCP 코드 경로 변경 없음. 새 코드 `bd7fca1` GitHub Push; 45 PASS / Ruff PASS / 변경 Mypy PASS. | 실제 GPT 모델 작성 10/100 세대·부모 교배 정식 typed checkpoint 실행/계승·독립 PIT/OOS 및 운영 배포 **NOT RUN**. 봉인 OOS·실주문 OFF, 기본 OAuth/URL 유지 |
 | 2-2/V3 SIDECAR (T4 종속) | 다중 부모 연구 후보 메모리·잠정 계승 Q05/Q07/Q08/Q09/Q14/Q17 | **개발용 독립 원장 구축**: 기존 G452 증명과 G68/G192/G248 실제 QQQ 1,508봉 6개 교배 후보 costed S2/P2 재생. 위험 실패3·부모 경제중복2·기존 후보 결과중복1 → **실제 선택/승격 0개**, G192 원부모 유지. 별도 SHA 연쇄 SQLite 6건, 재실행 6→6/마지막 SHA 불변, 임의 SQLite 변경 탐지 테스트. 코드 `da1b32d` origin Push; 주문/OOS/운영 OAuth/대시보드 변경 없음. | **정식 GPT 완결 세대 0**, “잠정 부모 후보” 결정을 AcademicMCPCheckpointService에 미연결; 개발 입력 진정성 공급자 증명 미확립. 남은 실제 GPT T4 10→100, C+D 포트폴리오 시계열/독립 NAV, V01~V04 PIT/OOS. 관련 Pytest 42 PASS·Ruff/Mypy 변경 모듈 PASS, full pytest/mypy NOT RUN |
 | 1-1 | Nasdaq 날짜별 실제 원본 | **검증 진행·날짜 조건 BLOCKED:** 실제 보존 QQQ 원본 3본 무결성 통과, 1,508봉/본, 비교 3,016건·수정 관측 0건. 수집일 모두 2026-10-15 UTC, 상태 `INSUFFICIENT_COLLECTION_DAYS`. 동일 일 재수집 생략 검증, 증거 `5297994a…` | 최소 다른 UTC 날짜인 2026-10-16 00:00 UTC(한국 09:00) 이후 실제 독립 신규 수집·재감사. 당일 수집본 복제·날짜 조작 금지. 그 전에는 V02를 병행 |
 | 1-2 | 독립 공급자 발표 시각 | **연구용 일괄 검증 개발 완료·외부 증빙 BLOCKED:** QQQ 3본 원본 재검증 3/3, 공급자 서명 0/3, 독립 공개시각 0, Databento AUTH_REQUIRED; 새 V02 CLI/변조/시각 차단 51 PASS(`4c62d0d`) | 실제 공급자 승인 키·발행/수신시각·이용권 계약·과거 시점 as-of 확인 필요. V03 진행 가능 |
@@ -159,6 +163,7 @@
 
 | 순서 | 작업 ID | 다음 실행 내용 |
 |---|---|---|
+| V3-T4 GPT MEMORY | 2-2/3-3 (Q02/Q05/Q06/Q08/Q14/Q17) | **개발 기능 연결 검증 완료, 실제 LLM 학습 효과 미실행**: 인증 GPT model_context opt-in, 근거 없는/다른 데이터 sidecar 거부. 이제 원본 승인 우선순위 내 **실제 GPT 10세대 완결 제안·진단·후속 계획 검증**으로 진행; 고정 순서 V05→T4→V01~V04→V06→V07 변경 없음 |
 | V3-T4-GATE | 2-2/3-3 (Q02/Q05/Q07/Q08/Q09/Q14/Q17) | **독립 Sidecar 단계 완료 / 공식 모델 세대 연결 미완료**: 중복 후보 검증·체인 메모리 6/6 실측(0 신규 승격), 정식 학술 체크포인트에 연결 전 외부 데이터/LLM 증명 필요. 원래 동결 일정 **V05→T4 실제 GPT 10→100→V01~V04→V06→V07** 유지하며 진화 엔진 종속으로만 편입 |
 | D01 | 2-2 | **코드 구현 완료:** 무거래 진단·동일 Plan/Diagnosis 최근 재제출 멱등 처리(`d9255d9`); 실제 GPT 장기 검증은 T4 보류 |
 | D02 | 2-3 | **부분 기능 완료:** 중단 후 reconcile/resume 멱등 수신증, 누락 S7 복원·무결성 차단(`86c2ccd`); 운영/장기 실행 검증은 T3~T4로 보류 |
@@ -206,6 +211,7 @@ T4/P0-3B 검증 순서(기능 구현 후): T0 정식 S7 전체 재생·해시/�
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-23 KST | T4/V3-GPT-MEMORY (Q02 Q05 Q06 Q07 Q08 Q09 Q14 Q17 Q20) | 기존 V3 연구 후보6개 중복·탈락 결과를 G452 임시 원장 확장 G453 GPT model_context에 실제로 노출. 원본 세대·자료 SHA와 sidecar 자체 해시 체인 검증, 없는 ID fail closed, opted-out service 필드 미노출. G68 실행 부모 고정, sidecar 자체 G192는 별도 참고만; 계승/정식 counted GPT 0. [자세한 리포트](quant-v3-gpt-context-integration-20261023.md) | **45 관련 pytest PASS, Ruff 전체 PASS, 신규 V3 모듈 Mypy PASS**. G452/G552 SQLite hash/integrity PASS. Full pytest/Mypy NOT RUN, 새 GPT 세대/독립 OOS/주문 NOT RUN | `feat/quant-parent-portfolio-20261021` **`bd7fca1` origin Push**, 운영 배포 NOT RUN. 다음 **T4 연결된 GPT 실제 10세대**; 완료 gate 이전 100세대 주장 금지 |
 | 2026-10-23 KST | T4-V3 SIDECAR (Q05 Q07 Q08 Q09 Q14 Q17) | V3 연구 부모 후보 격리 SQLite에 한 세대 GPT로 카운트하지 않는 검증 이력 및 조건부 잠정 선택 저장. 이전 교배 6개 원본 G452 S2 체결·P2 위험·경제 중복을 실제 재실행, 위험탈락3/부모중복2/후보간중복1, 선택 0, G192 유지. 마감 SHA `0306222f9bc442...`, 완전히 같은 명령 두 번에 이벤트 6→6·동일 SHA, 보호된 G452/G552 해시 불변. [상세](quant-v3-parent-sidecar-atomic-20261023.md) | V3+P2+governance **42 PASS**, Ruff PASS, 신규 모듈 Mypy PASS; full pytest/mypy NOT RUN, GPT 10/100·PIT/OOS/주문 NOT RUN | 개발 브랜치 `feat/quant-parent-portfolio-20261021`, **`da1b32d` GitHub Push 성공** (코드·테스트·보고서). 별도 G452/G552, 기존 MCP/OAuth/대시보드 변경·운영 배포 없음. 다음: provider-verified GPT T4 통합/실행 게이트 |
 | 2026-10-18 UTC/KST | T4-CONTEXT (Q02 Q06 Q08 Q16 Q17) | GPT MCP 읽기전용 대시보드·브리프·완료 배치 보고 24KiB 자동 응답 압축·원본 유지·전체 상세 opt-in, 18,308,629→17,838 B 및 69,393→15,834 B 실측. 상세 `quant-mcp-context-budget-20261018.md` | 신규 관련 23 PASS, Ruff/Mypy PASS; T3 1,738 PASS / 0 FAIL | `feat/quant-mcp-context-budget-20261018`, `dd8ccd2` Push, **NOT DEPLOYED** |
 | 2026-10-17 UTC / 10-18 KST | T4/T3 historical FIXTURES (Q02 Q06 Q07 Q08 Q09 Q14 Q17 Q20) | 과거 G33/34/35 실험 검증 테스트는 SHA로 고정한 `phase1-20261017-1950`의 RO SQLite를 TMP clone하여 메모리·S7·부모선택 경로만 G33으로 복원. 실제 G179 운영 서버/원본 DB/동일 URL·OAuth/32도구·실주문 off 건드리지 않음. 유실 vendor QQQ 경로는 테스트 전용 synthetic Parquet 입력으로 독립화. 새 세대 0 | 문제 관련 Pytest **15 PASS**, Ruff 전체 PASS, Mypy 전체 274 source PASS, 릴리스 precheck 보호 코어 drift 없음. **전체 Pytest 1,729 PASS / 0 FAIL**(613.59초 exit 0); 실 GPT/HTTP OAuth/rollback·OOS·페이퍼 Not Run | 기능 `feec3e9` GitHub Push, `fix/t4-immutable-g33-fixtures-20261018` 별도 브랜치, 보고 `quant-t4-g33-immutable-regression-fixtures-20261018.md`, 진행 원장·상세보고 GitHub Push 완료. **운영 배포 아직 미실시**(HTTP OAuth 격리 smoke 및 운영 rollback/cutover 승인 필요) |
