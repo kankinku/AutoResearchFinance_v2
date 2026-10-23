@@ -546,7 +546,7 @@ class AcademicMCPCheckpointService:
             ):
                 raise CycleStateError("counted parent is missing verified S7 evidence")
             parent = self._inherited_from_evidence(
-                catalog, data, original, history=status["history"]
+                catalog, data, original, history=status["history"], session_id=status["session_id"]
             )
             audit = audit_inherited_decisions(parent, data)
             metrics = audit.llm_packet["metrics"]
@@ -656,7 +656,11 @@ class AcademicMCPCheckpointService:
             assert report is not None
             if original.get("inherited_strategy_ir") is not None:
                 inherited_parent = self._inherited_from_evidence(
-                    catalog, data, original, history=status["history"]
+                    catalog,
+                    data,
+                    original,
+                    history=status["history"],
+                    session_id=status["session_id"],
                 )
             else:
                 inherited_parent = compile_algorithm_plan(
@@ -966,7 +970,11 @@ class AcademicMCPCheckpointService:
                     raise CycleStateError("counted generation missing S7 measurement")
                 if original.get("inherited_strategy_ir") is not None:
                     parent = self._inherited_from_evidence(
-                        catalog, data, original, history=status["history"]
+                        catalog,
+                        data,
+                        original,
+                        history=status["history"],
+                        session_id=status["session_id"],
                     )
                 else:
                     plan = AlgorithmPlan.model_validate(original["algorithm_plan"])
@@ -1104,7 +1112,11 @@ class AcademicMCPCheckpointService:
                 raise CycleStateError("selected S7 report changed")
             if original.get("inherited_strategy_ir") is not None:
                 parent_original = self._inherited_from_evidence(
-                    catalog, data, original, history=state["history"]
+                    catalog,
+                    data,
+                    original,
+                    history=state["history"],
+                    session_id=state["session_id"],
                 )
             else:
                 parent_original = compile_algorithm_plan(
@@ -1133,7 +1145,7 @@ class AcademicMCPCheckpointService:
             if measured["record_hash"] != selected["source_report_hash"]:
                 raise CycleStateError("counted parent S7 report changed")
             parent = self._inherited_from_evidence(
-                catalog, data, original, history=state["history"]
+                catalog, data, original, history=state["history"], session_id=state["session_id"]
             )
             from research.indicator_engine.inherited_decision_audit import audit_inherited_decisions
 
@@ -1251,6 +1263,7 @@ class AcademicMCPCheckpointService:
         original: dict[str, Any],
         *,
         history: list[dict[str, Any]] | None = None,
+        session_id: str | None = None,
     ) -> CompiledAcademicStrategy:
         """Replay a counted StrategyIR with its exact verified inherited feature source.
 
@@ -1300,24 +1313,66 @@ class AcademicMCPCheckpointService:
                 if (
                     source.get("generation") == source_generation
                     and source.get("evidence_hash") == proof.get("source_evidence_hash")
-                    and source.get("strategy_hash") == proof.get("parent_strategy_hash")
                     and source.get("inherited_strategy_ir") is not None
                 ):
                     inherited_source = self._inherited_from_evidence(
-                        catalog, data, source, history=history
+                        catalog, data, source, history=history, session_id=session_id
                     )
-                    candidate = bind_inherited_features(inherited_source, inherited, data)
-                    candidate_audit = audit_inherited_decisions(candidate, data)
-                    if (
-                        candidate.strategy_hash == original["strategy_hash"]
-                        and candidate_audit.trace_hash == original["audit_hash"]
-                        and abs(
-                            candidate_audit.evaluation.final_equity
-                            - original["measured_final_equity"]
-                        )
-                        <= 1e-6
-                    ):
-                        return candidate
+                    permitted_parents = []
+                    if source.get("strategy_hash") == proof.get("parent_strategy_hash"):
+                        permitted_parents.append(inherited_source)
+
+                    # A feature-bearing S7 child has a different StrategyIR
+                    # hash, but intentionally retains the signed source replay
+                    # vectors. Verify the saved S7 report, original evidence
+                    # and exact child lineage before using it as the parent.
+                    if session_id is not None and not permitted_parents:
+                        with self._connect() as db:
+                            saved = self._stored_experiment(db, session_id, source_generation)
+                        if (
+                            saved is not None
+                            and saved.get("original_generation_evidence_hash")
+                            == source["evidence_hash"]
+                        ):
+                            for proposal in source.get("experiments", ()):
+                                hypothesis_id = proposal.get("hypothesis_id")
+                                if not isinstance(hypothesis_id, str):
+                                    continue
+                                expected_lineage = content_hash(
+                                    {
+                                        "schema": "counted-s7-child-origin-v1",
+                                        "source_generation": source_generation,
+                                        "source_evidence_hash": source["evidence_hash"],
+                                        "source_report_hash": saved["record_hash"],
+                                        "hypothesis_id": hypothesis_id,
+                                        "child_strategy_hash": proof["parent_strategy_hash"],
+                                    }
+                                )
+                                if expected_lineage != proof.get("origin_lineage_hash"):
+                                    continue
+                                signed_s7, s7_parent = replay_counted_s7_child(
+                                    catalog, data, source, saved, inherited_source, hypothesis_id
+                                )
+                                if (
+                                    signed_s7["lineage_report_hash"] == expected_lineage
+                                    and signed_s7["successor_strategy_hash"]
+                                    == proof["parent_strategy_hash"]
+                                ):
+                                    permitted_parents.append(s7_parent)
+
+                    for verified_parent in permitted_parents:
+                        candidate = bind_inherited_features(verified_parent, inherited, data)
+                        candidate_audit = audit_inherited_decisions(candidate, data)
+                        if (
+                            candidate.strategy_hash == original["strategy_hash"]
+                            and candidate_audit.trace_hash == original["audit_hash"]
+                            and abs(
+                                candidate_audit.evaluation.final_equity
+                                - original["measured_final_equity"]
+                            )
+                            <= 1e-6
+                        ):
+                            return candidate
         raise CycleStateError("saved inherited S2 evidence cannot replay")
 
     def _context(
@@ -1336,7 +1391,7 @@ class AcademicMCPCheckpointService:
         if last is not None:
             if last.get("inherited_strategy_ir") is not None:
                 previous_compiled = self._inherited_from_evidence(
-                    catalog, data, last, history=status["history"]
+                    catalog, data, last, history=status["history"], session_id=status["session_id"]
                 )
                 previous_audit = audit_inherited_decisions(previous_compiled, data)
             else:
@@ -2571,7 +2626,7 @@ class AcademicMCPCheckpointService:
         inherited_generation = original.get("inherited_strategy_ir") is not None
         if inherited_generation:
             inherited = self._inherited_from_evidence(
-                catalog, data, original, history=state["history"]
+                catalog, data, original, history=state["history"], session_id=state["session_id"]
             )
         else:
             plan = AlgorithmPlan.model_validate(original["algorithm_plan"])

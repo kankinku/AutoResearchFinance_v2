@@ -79,7 +79,7 @@ def checkout_counted_donors(
             ):
                 raise LedgerDonorError("counted S7 report missing/mismatched")
             parent = service._inherited_from_evidence(
-                catalog, market, evidence, history=status["history"]
+                catalog, market, evidence, history=status["history"], session_id=session_id
             )
             audit = audit_inherited_decisions(parent, market)
             measures = evidence["metrics"]
