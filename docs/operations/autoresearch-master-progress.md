@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-23 T4/Q02/Q06/Q15/Q17 Windows Docker bind 진단 업데이트:** 사용자 Windows Desktop/Documents/Downloads 8,342개 폴더에서 원본 Quant OAuth 3파일 발견 0건. project-moon-local 및 merge-auditor 컨테이너 healthy. Docker Mounts를 PowerShell ConvertFrom-Json/Select-Object로 표시한 빈 표는 Mounts=[] 확증이 아님. Windows OAuth 읽기 전용 탐색기에 JSON 배열 이중 순회와 Docker Desktop Linux VM 경로의 Windows 드라이브 변환을 추가, 실제 빈 Mounts와 호스트 경로 접근 실패 경고 분리. [근거·다음 절차](quant-t4-windows-original-oauth-locator-20261023.md). 관련 테스트 27 PASS, 전체 Ruff PASS, Windows 런타임 검증 NOT RUN. 코드 **164057a** GitHub push; 운영 MCP·OAuth·URL·G452/G552·거래/OOS 변경 없음. 인증된 GPT 신규 세대 **0/10**, 연결 여전히 BLOCKED. **다음:** 사용자 Windows Docker inspect raw .Mounts/.HostConfig.Binds, docker context show, docker volume ls로 원래 바인드·볼륨 저장 위치 확인 → 기존 OAuth 동일 신원 복구 → 실제 GPT 10세대. V05→T4→V01~V04→V06→V07 고정.
+
+
 **2026-10-23 KST T4 Quant MCP Windows 원본 OAuth 위치 탐색 경로 확장 (Q02/Q06/Q15/Q17):** [Windows 호스트 원본 OAuth 읽기 전용 탐색기와 한계](quant-t4-windows-original-oauth-locator-20261023.md). 연결된 Quant MCP는 여전히 internal error, 현 Moon Linux가 접근할 수 있는 Docker mount와 컨테이너 내부에서 원본 OAuth 승인키/URL pin/client DB 확인 실패. pytest 임시 OAuth DB는 픽스처이지 원래 승인 정보가 아님. Windows Docker Desktop 호스트에서 **기존 /shared bind mount 및 사용자 지정 원래 연구 폴더만** 탐색하는 `scripts/find_original_quant_oauth.ps1` 추가: 동일 state/moon-http 아래 인증 3파일의 존재 여부 확인, 비밀값 내용/복사/재발급/서비스 재시작 없음; 부분 원본을 정상 상태로 오판하지 않음. 새 static 계약+기존 안전 검사 **26 pytest PASS**, 전체 Ruff PASS, G452/552 증거 SHA·DB 무결성 유지. **Windows PowerShell 실제 실행은 본 Linux Moon에서 NOT RUN** (pwsh/docker host 접근 없음), 인증 MCP 신규 GPT 0/10, 운영 서비스/OAuth 변경 0. 코드 `49f9fb3` origin Push 성공. **다음 조치:** Windows Docker 호스트에서 원본 위치 확인·동일 client/issuer/원장 진정성 대조 후 기존 Quant MCP 인증 복구, 이후 실제 T4 GPT 10세대. 고정 순서 V05→T4→V01~V04→V06→V07 불변.
 
 
