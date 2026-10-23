@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -84,16 +86,31 @@ class CodexMCPServer:
         )
         self.dashboard = self.services.dashboard
         self.system = self.services.system.controller
+        # Deliberately scoped to ONE approved existing session. No global
+        # alteration to new users, protected legacy sessions or prior pins.
+        opt_in = os.environ.get("QUANT_MCP_PARENT_PORTFOLIO_V2_SESSION_ID", "")
+        if opt_in and re.fullmatch(r"[0-9a-f]{32}", opt_in) is None:
+            raise ValueError("invalid scoped Quant parent portfolio session")
+        self.parent_portfolio_v2_session_id = opt_in
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
         if name in {
-            "start_algorithm_research", "get_algorithm_research",
-            "submit_algorithm_plan", "submit_algorithm_diagnosis",
-            "resume_algorithm_research", "cancel_algorithm_research",
-            "reconcile_algorithm_research", "evaluate_algorithm_experiments",
+            "start_algorithm_research",
+            "get_algorithm_research",
+            "submit_algorithm_plan",
+            "submit_algorithm_diagnosis",
+            "resume_algorithm_research",
+            "cancel_algorithm_research",
+            "reconcile_algorithm_research",
+            "evaluate_algorithm_experiments",
         }:
             academic = AcademicMCPCheckpointService(
-                project_root=self.project_root, state_dir=self.state_dir
+                project_root=self.project_root,
+                state_dir=self.state_dir,
+                parent_portfolio_v2=(
+                    bool(self.parent_portfolio_v2_session_id)
+                    and arguments.get("session_id") == self.parent_portfolio_v2_session_id
+                ),
             )
             if name == "start_algorithm_research":
                 return academic.start(arguments)

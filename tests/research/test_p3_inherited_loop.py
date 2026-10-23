@@ -362,9 +362,7 @@ def test_p3_resume_reconciles_postcommit_missing_s7_receipt(tmp_path, after_pers
             service, FakeProvider(), receipts=ModelProposalAudit(path, session_id="mock")
         ).run("mock", max_generations=1)
     assert service.count == 453
-    assert [json.loads(s)["phase"] for s in path.read_text().splitlines()] == [
-        "PLAN", "DIAGNOSIS"
-    ]
+    assert [json.loads(s)["phase"] for s in path.read_text().splitlines()] == ["PLAN", "DIAGNOSIS"]
     provider = FakeProvider()
     result = P3InheritedCheckpointAutopilot(
         service,
@@ -392,9 +390,9 @@ def test_p3_resume_verifies_existing_s7_without_duplicate_receipt(tmp_path):
 
     first.append = crash_after_s7_receipt
     with pytest.raises(RuntimeError, match="after receipt flush"):
-        P3InheritedCheckpointAutopilot(
-            service, FakeProvider(), receipts=first
-        ).run("mock", max_generations=1)
+        P3InheritedCheckpointAutopilot(service, FakeProvider(), receipts=first).run(
+            "mock", max_generations=1
+        )
     assert len(path.read_text().splitlines()) == 3
     result = P3InheritedCheckpointAutopilot(
         service,
@@ -410,14 +408,16 @@ def test_p3_recovery_rejects_mismatched_s7_or_generation_evidence(tmp_path):
     service = FakeService(reject_once=False)
     path = tmp_path / "p3-proof.jsonl"
     P3InheritedCheckpointAutopilot(
-        service, FakeProvider(),
+        service,
+        FakeProvider(),
         receipts=ModelProposalAudit(path, session_id="mock"),
     ).run("mock", max_generations=1)
     service.history[-1]["evidence_hash"] = "forged-evidence"
     provider = FakeProvider()
     with pytest.raises(P3ResearchError, match="S7.*mismatch|receipt.*mismatch"):
         P3InheritedCheckpointAutopilot(
-            service, provider,
+            service,
+            provider,
             receipts=ModelProposalAudit(path, session_id="mock", resume=True),
         ).run("mock", max_generations=1)
     assert provider.contexts == []
@@ -438,13 +438,15 @@ def test_p3_resume_forwards_signed_s7_feedback_to_next_generation(tmp_path):
     path = tmp_path / "two-generations.jsonl"
     with pytest.raises(RuntimeError, match="S7 interruption"):
         P3InheritedCheckpointAutopilot(
-            service, FakeProvider(),
+            service,
+            FakeProvider(),
             receipts=ModelProposalAudit(path, session_id="mock"),
         ).run("mock", max_generations=1)
     assert service.count == 453 and service.phase == "AWAITING_PLAN"
     provider = FakeProvider()
     result = P3InheritedCheckpointAutopilot(
-        service, provider,
+        service,
+        provider,
         receipts=ModelProposalAudit(path, session_id="mock", resume=True),
     ).run("mock", max_generations=1)
     assert result["new_generations"] == 1
@@ -452,7 +454,12 @@ def test_p3_resume_forwards_signed_s7_feedback_to_next_generation(tmp_path):
     assert service.count == 454
     assert provider.contexts[0]["last_s7_measured_feedback"]["generation"] == 453
     assert [json.loads(item)["phase"] for item in path.read_text().splitlines()] == [
-        "PLAN", "DIAGNOSIS", "S7", "PLAN", "DIAGNOSIS", "S7"
+        "PLAN",
+        "DIAGNOSIS",
+        "S7",
+        "PLAN",
+        "DIAGNOSIS",
+        "S7",
     ]
 
 
@@ -460,7 +467,8 @@ def test_p3_resume_rejects_stale_signed_report_without_new_proposal(tmp_path):
     service = FakeService(reject_once=False)
     path = tmp_path / "signed-report.jsonl"
     P3InheritedCheckpointAutopilot(
-        service, FakeProvider(),
+        service,
+        FakeProvider(),
         receipts=ModelProposalAudit(path, session_id="mock"),
     ).run("mock", max_generations=1)
     old_evaluate = service.evaluate_experiments
@@ -472,7 +480,8 @@ def test_p3_resume_rejects_stale_signed_report_without_new_proposal(tmp_path):
     provider = FakeProvider()
     with pytest.raises(P3ResearchError, match="receipt/report mismatch"):
         P3InheritedCheckpointAutopilot(
-            service, provider,
+            service,
+            provider,
             receipts=ModelProposalAudit(path, session_id="mock", resume=True),
         ).run("mock", max_generations=1)
     assert provider.contexts == []
@@ -497,7 +506,8 @@ class FakeRejectedDiagnosisService(FakeService):
                 "schema": "p3-diagnostic-semantic-feedback-v1",
                 "rejection_count": self.diagnosis_attempts,
                 "recent_rejections": [{"reason": "DEVELOPMENT_SIGNAL_EQUIVALENCE"}]
-                if self.diagnosis_attempts else [],
+                if self.diagnosis_attempts
+                else [],
             }
         return state
 
@@ -519,15 +529,19 @@ def test_p3_retries_semantically_rejected_diagnosis_without_counting_extra_gener
     provider = FakeDiagnosisRevisionProvider()
     path = tmp_path / "diagnosis-retry.jsonl"
     result = P3InheritedCheckpointAutopilot(
-        service, provider, receipts=ModelProposalAudit(path, session_id="mock"),
+        service,
+        provider,
+        receipts=ModelProposalAudit(path, session_id="mock"),
         max_plan_attempts=3,
     ).run("mock", max_generations=1)
     assert result["new_generations"] == 1
     assert result["diagnostic_proposals"] == 2
     assert result["typed_proposals_rejected"] == 1
     assert service.diagnosis_attempts == 2
-    phases = [(row["phase"], row["result"]) for row in
-              (json.loads(s) for s in path.read_text().splitlines())]
+    phases = [
+        (row["phase"], row["result"])
+        for row in (json.loads(s) for s in path.read_text().splitlines())
+    ]
     assert ("DIAGNOSIS", "REJECTED_DIAGNOSIS_SEMANTIC") in phases
     assert phases.count(("DIAGNOSIS", "COUNTED_GENERATION_COMMITTED")) == 1
     assert provider.contexts[-1]["p3_diagnostic_semantic_feedback"]["rejection_count"] == 1
@@ -542,7 +556,8 @@ def test_p3_exhausts_diagnosis_budget_at_unchanged_waiting_checkpoint(tmp_path):
     service = AlwaysReject()
     with pytest.raises(P3ResearchError, match="MAX_MODEL_DIAGNOSIS_BUDGET_EXHAUSTED"):
         P3InheritedCheckpointAutopilot(
-            service, FakeDiagnosisRevisionProvider(),
+            service,
+            FakeDiagnosisRevisionProvider(),
             receipts=ModelProposalAudit(tmp_path / "reject.jsonl", session_id="mock"),
             max_plan_attempts=2,
         ).run("mock", max_generations=1)
@@ -555,14 +570,16 @@ def test_p3_resume_after_diagnosis_semantic_rejection_uses_same_counted_parent(t
     path = tmp_path / "rejected-then-resumed.jsonl"
     with pytest.raises(P3ResearchError, match="MAX_MODEL_DIAGNOSIS_BUDGET_EXHAUSTED"):
         P3InheritedCheckpointAutopilot(
-            service, FakeDiagnosisRevisionProvider(),
+            service,
+            FakeDiagnosisRevisionProvider(),
             receipts=ModelProposalAudit(path, session_id="mock"),
             max_plan_attempts=1,
         ).run("mock", max_generations=1)
     assert service.count == 452 and service.phase == "AWAITING_DIAGNOSIS"
     provider = FakeDiagnosisRevisionProvider()
     outcome = P3InheritedCheckpointAutopilot(
-        service, provider,
+        service,
+        provider,
         receipts=ModelProposalAudit(path, session_id="mock", resume=True),
         max_plan_attempts=2,
     ).run("mock", max_generations=1)
@@ -570,3 +587,26 @@ def test_p3_resume_after_diagnosis_semantic_rejection_uses_same_counted_parent(t
     assert outcome["diagnostic_proposals"] == 1
     assert service.count == 453
     assert provider.contexts[0]["p3_diagnostic_semantic_feedback"]["rejection_count"] == 1
+
+
+def test_p3_feature_bind_failure_is_retryable_without_checkpoint_consumption(tmp_path):
+    class RejectedFeatureService(FakeService):
+        def submit_plan(self, args):
+            self.rejections += 1
+            if self.rejections == 1:
+                raise ValueError(
+                    "INHERITED_FEATURE_BINDING_MISSING: canonical feature vector missing"
+                )
+            return super().submit_plan(args)
+
+    service = RejectedFeatureService(reject_once=False)
+    provider = FakeProvider()
+    answer = P3InheritedCheckpointAutopilot(
+        service,
+        provider,
+        receipts=ModelProposalAudit(tmp_path / "p3-model-receipts.jsonl", session_id="mock"),
+    ).run("mock", max_generations=1)
+    assert answer["new_generations"] == 1
+    assert answer["planning_proposals"] == 2
+    assert answer["typed_proposals_rejected"] == 1
+    assert service.count == 453

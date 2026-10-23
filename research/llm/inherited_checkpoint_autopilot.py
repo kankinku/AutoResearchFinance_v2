@@ -112,6 +112,7 @@ class P3InheritedCheckpointAutopilot:
         "INTENT_",
         "UNCHANGED_",
         "DUPLICATE_",
+        "INHERITED_FEATURE_",
     )
 
     def __init__(
@@ -132,12 +133,17 @@ class P3InheritedCheckpointAutopilot:
         self.max_plan_attempts = max_plan_attempts
 
     def _measure_s7(
-        self, session_id: str, generation: int,
+        self,
+        session_id: str,
+        generation: int,
     ) -> tuple[dict[str, Any], int, int, dict[str, Any]]:
         # The canonical service is idempotent for stored S7 reports.
-        proof = self.service.evaluate_experiments({
-            "session_id": session_id, "generation": generation,
-        })
+        proof = self.service.evaluate_experiments(
+            {
+                "session_id": session_id,
+                "generation": generation,
+            }
+        )
         current = self.service.get({"session_id": session_id})
         history = current.get("history") or []
         if (
@@ -146,8 +152,7 @@ class P3InheritedCheckpointAutopilot:
             or proof["original_generation_evidence_hash"] != history[-1]["evidence_hash"]
             or (
                 len(history) > 1
-                and history[-1].get("previous_evidence_hash")
-                != history[-2]["evidence_hash"]
+                and history[-1].get("previous_evidence_hash") != history[-2]["evidence_hash"]
             )
         ):
             raise P3ResearchError("S7 / chain proof mismatch")
@@ -155,8 +160,7 @@ class P3InheritedCheckpointAutopilot:
         if not isinstance(reported, list) or not reported:
             raise P3ResearchError("S7 missing evaluated hypothesis outcomes")
         if any(
-            "hypothesis_id" not in item or "status" not in item
-            or "same_fill_trace" not in item
+            "hypothesis_id" not in item or "status" not in item or "same_fill_trace" not in item
             for item in reported
         ):
             raise P3ResearchError("S7 hypothesis evidence is incomplete")
@@ -194,14 +198,14 @@ class P3InheritedCheckpointAutopilot:
 
     @staticmethod
     def _s7_result(no_effect: int, effect: int) -> str:
-        return (
-            "S7_NO_OBSERVED_EFFECT"
-            if effect == 0 else "S7_REPLAYED_MEASURED_EFFECT"
-        )
+        return "S7_NO_OBSERVED_EFFECT" if effect == 0 else "S7_REPLAYED_MEASURED_EFFECT"
 
     def _append_s7(
-        self, generation: int, feedback: dict[str, Any],
-        no_effect: int, effect: int,
+        self,
+        generation: int,
+        feedback: dict[str, Any],
+        no_effect: int,
+        effect: int,
     ) -> None:
         self.receipts.append(
             phase="S7",
@@ -216,9 +220,7 @@ class P3InheritedCheckpointAutopilot:
         if type(max_generations) is not int or not 1 <= max_generations <= 20:
             raise P3ResearchError("max_generations must be 1..20")
         started = self.service.get({"session_id": session_id})
-        if started["checkpoint_phase"] not in (
-            "AWAITING_PLAN", "AWAITING_DIAGNOSIS", "COMPLETED"
-        ):
+        if started["checkpoint_phase"] not in ("AWAITING_PLAN", "AWAITING_DIAGNOSIS", "COMPLETED"):
             raise P3ResearchError("require safe waiting phase before P3 run")
         if started["orders_enabled"] or started["independent_oos_approved"]:
             raise P3ResearchError("research-only experiment required")
@@ -240,15 +242,14 @@ class P3InheritedCheckpointAutopilot:
             receipt = self.receipts.records[-1]
             generation = started["completed_generations"]
             if receipt["phase"] == "DIAGNOSIS" and receipt["result"] in (
-                "REJECTED_DIAGNOSIS_SEMANTIC", "DUPLICATE_MODEL_DIAGNOSIS",
+                "REJECTED_DIAGNOSIS_SEMANTIC",
+                "DUPLICATE_MODEL_DIAGNOSIS",
             ):
                 if (
                     started["checkpoint_phase"] != "AWAITING_DIAGNOSIS"
                     or receipt["generation"] != generation + 1
-                    or receipt["source_evidence_hash"] != (
-                        started["history"][-1]["evidence_hash"]
-                        if started["history"] else None
-                    )
+                    or receipt["source_evidence_hash"]
+                    != (started["history"][-1]["evidence_hash"] if started["history"] else None)
                 ):
                     raise P3ResearchError("P3 rejected diagnosis receipt checkpoint mismatch")
             elif receipt["phase"] in ("DIAGNOSIS", "S7"):
@@ -256,8 +257,7 @@ class P3InheritedCheckpointAutopilot:
                     generation < 1
                     or not started["history"]
                     or receipt["generation"] != generation
-                    or receipt["source_evidence_hash"]
-                    != started["history"][-1]["evidence_hash"]
+                    or receipt["source_evidence_hash"] != started["history"][-1]["evidence_hash"]
                 ):
                     raise P3ResearchError("P3 receipt/generation evidence mismatch")
                 if receipt["phase"] == "DIAGNOSIS" and receipt["result"] != (
@@ -265,7 +265,8 @@ class P3InheritedCheckpointAutopilot:
                 ):
                     raise P3ResearchError("P3 committed receipt result mismatch")
                 last_s7_feedback, no_effect, effect, _ = self._measure_s7(
-                    session_id, generation,
+                    session_id,
+                    generation,
                 )
                 if receipt["phase"] == "DIAGNOSIS":
                     self._append_s7(generation, last_s7_feedback, no_effect, effect)
@@ -273,9 +274,12 @@ class P3InheritedCheckpointAutopilot:
                 else:
                     if (
                         receipt["context_hash"] != content_hash(last_s7_feedback)
-                        or receipt["proposal_hash"] != content_hash({
-                            "s7_report_hash": last_s7_feedback["report_hash"],
-                        })
+                        or receipt["proposal_hash"]
+                        != content_hash(
+                            {
+                                "s7_report_hash": last_s7_feedback["report_hash"],
+                            }
+                        )
                         or receipt["result"] != self._s7_result(no_effect, effect)
                     ):
                         raise P3ResearchError("P3 existing S7 receipt/report mismatch")
@@ -284,9 +288,7 @@ class P3InheritedCheckpointAutopilot:
                 s7_measured_effect += effect
             elif started["checkpoint_phase"] == "COMPLETED":
                 raise P3ResearchError("P3 completed checkpoint/receipt mismatch")
-        if started["checkpoint_phase"] == "COMPLETED" and (
-            reconciled_s7 == 0 and verified_s7 == 0
-        ):
+        if started["checkpoint_phase"] == "COMPLETED" and (reconciled_s7 == 0 and verified_s7 == 0):
             raise P3ResearchError("P3 completed session requires verified S7 receipt")
         while completed < max_generations:
             state = self.service.get({"session_id": session_id})
@@ -437,8 +439,11 @@ class P3InheritedCheckpointAutopilot:
                 if proposal_digest in seen_diagnoses:
                     rejected += 1
                     self.receipts.append(
-                        phase="DIAGNOSIS", generation=generation, context=context,
-                        proposal=raw_diagnosis, result="DUPLICATE_MODEL_DIAGNOSIS",
+                        phase="DIAGNOSIS",
+                        generation=generation,
+                        context=context,
+                        proposal=raw_diagnosis,
+                        result="DUPLICATE_MODEL_DIAGNOSIS",
                         evidence_hash=prior_evidence,
                     )
                     continue
@@ -447,18 +452,23 @@ class P3InheritedCheckpointAutopilot:
                     typed_diagnosis = DiagnosticResponse.model_validate(raw_diagnosis)
                 except ValidationError as exc:
                     self.receipts.append(
-                        phase="DIAGNOSIS", generation=generation, context=context,
-                        proposal=raw_diagnosis, result="INVALID_TYPED_DIAGNOSIS",
+                        phase="DIAGNOSIS",
+                        generation=generation,
+                        context=context,
+                        proposal=raw_diagnosis,
+                        result="INVALID_TYPED_DIAGNOSIS",
                         evidence_hash=prior_evidence,
                     )
                     raise P3ResearchError("model returned invalid typed diagnosis") from exc
                 try:
-                    outcome = self.service.submit_diagnosis({
-                        "session_id": session_id,
-                        "checkpoint_token": state["checkpoint_token"],
-                        "diagnosis": typed_diagnosis.model_dump(mode="json"),
-                        "require_signal_change": True,
-                    })
+                    outcome = self.service.submit_diagnosis(
+                        {
+                            "session_id": session_id,
+                            "checkpoint_token": state["checkpoint_token"],
+                            "diagnosis": typed_diagnosis.model_dump(mode="json"),
+                            "require_signal_change": True,
+                        }
+                    )
                 except ValueError as exc:
                     if not str(exc).startswith("P3_DIAGNOSIS_SEMANTIC_REJECTED:"):
                         raise
@@ -471,17 +481,18 @@ class P3InheritedCheckpointAutopilot:
                         raise P3ResearchError("semantic rejection changed checkpoint") from exc
                     rejected += 1
                     self.receipts.append(
-                        phase="DIAGNOSIS", generation=generation, context=context,
-                        proposal=raw_diagnosis, result="REJECTED_DIAGNOSIS_SEMANTIC",
+                        phase="DIAGNOSIS",
+                        generation=generation,
+                        context=context,
+                        proposal=raw_diagnosis,
+                        result="REJECTED_DIAGNOSIS_SEMANTIC",
                         evidence_hash=prior_evidence,
                     )
                     continue
                 diagnosed = True
                 break
             if not diagnosed:
-                raise P3ResearchError(
-                    "MAX_MODEL_DIAGNOSIS_BUDGET_EXHAUSTED; checkpoint unchanged"
-                )
+                raise P3ResearchError("MAX_MODEL_DIAGNOSIS_BUDGET_EXHAUSTED; checkpoint unchanged")
             self.receipts.append(
                 phase="DIAGNOSIS",
                 generation=generation,
@@ -493,11 +504,14 @@ class P3InheritedCheckpointAutopilot:
             if outcome["completed_generations"] != prior_count + 1:
                 raise P3ResearchError("generation commit count unexpected")
             last_s7_feedback, no_effect, effect, _ = self._measure_s7(
-                session_id, generation,
+                session_id,
+                generation,
             )
-            if last_s7_feedback["source_generation_evidence_hash"] != (
-                outcome["history"][-1]["evidence_hash"]
-            ) or outcome["history"][-1]["previous_evidence_hash"] != prior_evidence:
+            if (
+                last_s7_feedback["source_generation_evidence_hash"]
+                != (outcome["history"][-1]["evidence_hash"])
+                or outcome["history"][-1]["previous_evidence_hash"] != prior_evidence
+            ):
                 raise P3ResearchError("S7 / chain proof mismatch")
             s7_no_effect += no_effect
             s7_measured_effect += effect

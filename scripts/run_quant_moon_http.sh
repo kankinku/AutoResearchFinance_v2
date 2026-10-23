@@ -31,6 +31,22 @@ if [[ -n "${QUANT_MCP_PUBLIC_BASE:-}" && "$QUANT_MCP_PUBLIC_BASE" != "$PINNED_BA
     exit 1
 fi
 export QUANT_MCP_PUBLIC_BASE="$PINNED_BASE"
+# Optional one-session P2 parent portfolio. This is an operator-owned
+# non-secret routing choice, not a new OAuth identity or a forced migration.
+# Existing pinned selections retain precedence over the new policy.
+PARENT_PORTFOLIO_OPT_IN="$STATE/research/config/parent-portfolio-v2-session-id"
+if [[ -e "$PARENT_PORTFOLIO_OPT_IN" ]]; then
+    if [[ -L "$PARENT_PORTFOLIO_OPT_IN" || ! -f "$PARENT_PORTFOLIO_OPT_IN" ]]; then
+        echo 'Unsafe Quant parent portfolio opt-in path' >&2
+        exit 78
+    fi
+    PARENT_SID="$(cat -- "$PARENT_PORTFOLIO_OPT_IN")"
+    if [[ ! "$PARENT_SID" =~ ^[a-f0-9]{32}$ ]]; then
+        echo 'Invalid Quant parent portfolio session opt-in' >&2
+        exit 78
+    fi
+    export QUANT_MCP_PARENT_PORTFOLIO_V2_SESSION_ID="$PARENT_SID"
+fi
 exec "$ROOT/.venv/bin/python" -m integrations.chatgpt_mcp_http \
  --project-root "$ROOT" --state-dir "$STATE/research" \
  --host 127.0.0.1 --port 8787 \
