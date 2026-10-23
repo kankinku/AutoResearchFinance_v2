@@ -106,3 +106,27 @@ def test_composite_supports_typed_indicator_and_logic_mutations():
     assert candidate.strategy.strategy_id in mutated.strategy.parents
     assert mutated.strategy.provenance.source_hash == mutated.genome_hash
     assert mutated.source_hashes == candidate.source_hashes
+
+
+def test_distinct_legacy_sources_with_shared_strategy_id_do_not_collapse():
+    # Historical counted variants can share the base StrategyIR id/generation
+    # even though their source generation and actual strategy hashes differ.
+    d1, d2, d3 = donor(10, 100), donor(20, 60), donor(30, 30)
+    same_base_id = "legacy-plan-base"
+    vals = []
+    for source in (d1, d2, d3):
+        strategy = source.strategy.model_copy(update={
+            "strategy_id": same_base_id,
+            "generation": 4,
+        })
+        vals.append(replace(
+            source, strategy=strategy,
+            strategy_hash=content_hash(strategy.model_dump(mode="json", by_alias=True)),
+        ))
+    result = compose(entry=vals[0], exit=vals[1], risk=vals[2])
+    assert len(result.strategy.parents) == 3
+    assert len(set(result.strategy.parents)) == 3
+    assert all("@G" in value for value in result.strategy.parents)
+    assert [p["source_generation"] for p in result.provenance["lineage"]] == [
+        10, 20, 30,
+    ]

@@ -50,7 +50,8 @@ def audit_inherited_decisions(
         or strategy.risk.stop_loss_pct != 0
         or strategy.risk.take_profit_pct != 0
         or strategy.risk.trailing_stop_pct not in (None, 0)
-        or strategy.risk.position_size_pct != 100
+        # Positive <=100% fixed sizing is executed by the canonical engine;
+        # the independently audited fills retain its true quantities/costs.
         or strategy.risk.daily_loss_action != "none"
         or strategy.risk.daily_loss_limit_pct is not None
         or strategy.risk.max_total_exposure_pct is not None

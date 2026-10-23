@@ -7,6 +7,7 @@ donor against its immutable stored evidence before constructing a candidate.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
@@ -46,7 +47,9 @@ def _check_donor(donor: VerifiedDonor) -> None:
     if (
         type(donor.generation) is not int
         or donor.generation < 1
-        or donor.strategy.generation != donor.generation
+        or donor.strategy.generation < 0
+        # Historical counted children can retain the BASE StrategyIR generation;
+        # the source ledger generation is separately bound by donor evidence.
     ):
         raise CrossoverRejected("donor generation mismatch")
     for digest in (donor.evidence_hash, donor.report_hash, donor.strategy_hash):
@@ -67,6 +70,22 @@ def _merged_definitions(donors: tuple[VerifiedDonor, ...], name: str) -> dict[st
                 raise CrossoverRejected(f"conflicting {kind} alias: {alias}")
             result[alias] = spec
     return result
+
+
+def donor_parent_ids(donors: tuple[VerifiedDonor, ...]) -> list[str]:
+    """Retain distinct counted ancestors even if historical IR IDs were reused."""
+    unique: dict[str, VerifiedDonor] = {}
+    for donor in donors:
+        unique.setdefault(donor.strategy_hash, donor)
+    counts = Counter(d.strategy.strategy_id for d in unique.values())
+    return [
+        (
+            f"{d.strategy.strategy_id}@G{d.generation}-{d.strategy_hash[:12]}"
+            if counts[d.strategy.strategy_id] > 1
+            else d.strategy.strategy_id
+        )
+        for d in unique.values()
+    ]
 
 
 def _component_hash(role: str, donor: VerifiedDonor) -> str:
@@ -128,7 +147,7 @@ def compose(
         "strategy_id": "cross_v3_" + genome_hash[:20],
         "family": "research_composite_v3",
         "generation": max(d.generation for d in ordered) + 1,
-        "parents": [d.strategy.strategy_id for d in ordered],
+        "parents": donor_parent_ids(ordered),
         "indicators": {k: v.model_dump(mode="json") for k, v in indicators.items()},
         "features": {k: v.model_dump(mode="json") for k, v in features.items()},
         "entry": entry.strategy.entry.model_dump(mode="json"),

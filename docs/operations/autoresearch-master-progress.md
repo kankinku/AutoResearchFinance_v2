@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-23 KST Quant V3 C+D 두 번째 실행 Adapter 작업 (개발 전용, 운영 배포 아님):** [C S2/P2/S7 검증기, D shared-cash portfolio 시뮬레이터 및 독립 장부 검증 결과](quant-v3-cd-execution-adapters-20261023.md). 새 `composite_validation_v3.py`: A.entry+B.exit+C.risk 실전 백테스터 S2 체결 대조, 위험 심사 및 실제 S7 대조연구 연결, 복수 서로 다른 feature replay union, 위조된 자식 component 원천 차단. `composite_crossover_v3.py`: G68/G192 같은 과거 동일 StrategyIR.id여도 counted generation + source strategy hash로 부모를 별개로 보존. `inherited_decision_audit.py`: 기존 100% 고정 크기 외 35%/40% 등 고정 포지션 크기 S2 검사 허용, 미감사 stop/trailing 등의 fail-closed 정책은 보존. 새 `regime_portfolio_v3.py`: close(t) 조건으로 next-open(t+1), 개별 long/cash 전략 진입·청산·리스크·국면 전환, 국면별 exclusive/weighted 전략 운용, 한 종목 **공유 현금과 순주문 수수료만** 반영. 새 `regime_ledger_audit_v3.py` 장부: 현금·외부 순주문·cost allocation·구성 전략별 포지션·시장가치와 소급 검증 해시. C 자식을 D의 한 route에 연결한 40% 투자 예산 검증. 관련 **36개 pytest PASS**, Ruff PASS, 변경 소스 Mypy PASS. 실제 과거 동일 오류 서명 **50/50 원장 기반 S2 replay 재검증 PASS**, 원본 G452/452 및 기존 G552/552 해시·무결성 불변. **한계**: 연구용 소규모 봉 회귀 검증이며 원본 G452 1,508봉의 서로 다른 실제 부모 세 개를 교배한 정식 실험, checkpoint 세대 커밋, 10/100 실제 GPT 세대, 고유 모델 공급자 증명, OOS, 실거래는 NOT RUN. Donor 수용부의 original 원장 증거 조회/보증 및 C+D checkpoint 라우팅 통합이 다음 작업. OAuth/고정 URL/Orders OFF 그대로 유지.
+
+
 **2026-10-23 V3 Git 검증 기록:** 신규 V3 코드·테스트·계획·구현 보고서 커밋 `f52b957` (`feat/quant-parent-portfolio-20261021`) **origin push 성공**. 누락되어 있던 과거 G552 완료 보고서는 독립 문서 커밋 `7ef59b6`으로 별도 푸시 완료. 두 건 모두 실제 Quant 운영 MCP 또는 기존 대시보드 서비스를 배포·재시작한 것이 아니며 **운영 배포 NOT RUN**. 검증: 신규 연관 테스트 22 PASS, 전체 Ruff PASS, 새/수정 소스 mypy PASS, 저장소 전체 mypy 기존 13파일/41오류 FAIL, 전체 pytest 624 PASS 후 인터럽트(잔여 테스트 미검증). 신규 C는 typed genome·canonical 비용 실행 검증까지만, D는 국면 선택 계약까지만 구현되었고 **C+D 실제 포트폴리오 통합 엔진·GPT 실호출 T4는 NOT DONE**.
 
 

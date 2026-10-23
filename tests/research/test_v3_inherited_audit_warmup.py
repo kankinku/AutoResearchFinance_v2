@@ -117,3 +117,37 @@ def test_or_entry_one_ready_signal_even_if_other_entry_is_unready() -> None:
     audit = audit_inherited_decisions(compiled, dataset)
     assert audit.decisions[0].action == "REQUEST_ENTRY"
     assert audit.decisions[0].evaluated_gates[0] == ("entry_positive", True)
+
+
+
+def test_partial_position_risk_s2_matches_canonical_fills() -> None:
+    from dataclasses import replace
+
+    compiled, data = _warmup_fixture()
+    risk = compiled.strategy.risk.model_copy(update={"position_size_pct": 35.0})
+    ir = compiled.strategy.model_copy(update={"risk": risk})
+    half = replace(compiled, strategy=ir, strategy_hash=content_hash(
+        ir.model_dump(mode="json", by_alias=True)
+    ))
+    canonical = evaluate_compiled_development(half, data)
+    assert canonical.trades[0].notional < 10_000
+    audited = audit_inherited_decisions(half, data)
+    assert audited.evaluation == canonical
+    assert len(audited.fills) == canonical.trades_count
+    assert audited.fills[0].trade_id == audited.fills[1].trade_id
+
+
+def test_unaudited_stop_risk_still_fails_closed() -> None:
+    from dataclasses import replace
+
+    import pytest
+
+    compiled, data = _warmup_fixture()
+    ir = compiled.strategy.model_copy(update={
+        "risk": compiled.strategy.risk.model_copy(update={"stop_loss_pct": 3.0}),
+    })
+    changed = replace(compiled, strategy=ir, strategy_hash=content_hash(
+        ir.model_dump(mode="json", by_alias=True)
+    ))
+    with pytest.raises(ValueError, match="unsupported inherited execution policy"):
+        audit_inherited_decisions(changed, data)
