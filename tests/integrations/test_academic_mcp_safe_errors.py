@@ -38,6 +38,10 @@ from research.llm.intent_bridge import IntentEligibilityError
             ValueError("P3_SEMANTIC_PREFLIGHT_REJECTED: omitted details"),
             "P3_SEMANTIC_PREFLIGHT_REJECTED",
         ),
+        (
+            ValueError("INHERITED_FEATURE_BINDING_MISSING: /var/lib/secrets"),
+            "INHERITED_FEATURE_BINDING_MISSING",
+        ),
     ],
 )
 def test_safe_checkpoint_retry_reasons_do_not_echo_raw_exception(

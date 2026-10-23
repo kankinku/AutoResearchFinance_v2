@@ -9,9 +9,11 @@ from tests.research.test_v3_inherited_audit_warmup import _warmup_fixture
 def test_effective_identity_changes_when_executable_rule_changes():
     compiled, market = _warmup_fixture()
     baseline = inherited_effective_signal_hash(compiled, market)
-    ir = compiled.strategy.model_copy(update={
-        "entry": compiled.strategy.entry.model_copy(update={"logic": "AND"}),
-    })
+    ir = compiled.strategy.model_copy(
+        update={
+            "entry": compiled.strategy.entry.model_copy(update={"logic": "AND"}),
+        }
+    )
     changed = replace(compiled, strategy=ir)
     assert baseline != inherited_effective_signal_hash(changed, market)
 
@@ -26,15 +28,19 @@ def test_effective_identity_ignores_nonexecuted_metadata():
 
 def test_effective_identity_not_just_entry_and_regime():
     compiled, market = _warmup_fixture()
-    modified = compiled.strategy.model_copy(update={
-        "exit": compiled.strategy.exit.model_copy(update={
-            "conditions": [
-                compiled.strategy.exit.conditions[0].model_copy(
-                    update={"op": "greater_than", "value": 0.5}
-                )
-            ]
-        })
-    })
+    modified = compiled.strategy.model_copy(
+        update={
+            "exit": compiled.strategy.exit.model_copy(
+                update={
+                    "conditions": [
+                        compiled.strategy.exit.conditions[0].model_copy(
+                            update={"op": "greater_than", "value": 0.5}
+                        )
+                    ]
+                }
+            )
+        }
+    )
     assert inherited_effective_signal_hash(compiled, market) != (
         inherited_effective_signal_hash(replace(compiled, strategy=modified), market)
     )
@@ -49,33 +55,77 @@ def test_stage_rejects_full_history_signal_duplicate_before_diagnosis(tmp_path, 
     from research.llm.intent_bridge import apply_intent
 
     parent, market = _warmup_fixture()
-    intent = ResearchIntent.model_validate({
-        "mode": "structure",
-        "parent_ids": [parent.strategy.strategy_id],
-        "operations": [{"op": "CHANGE_AND_OR", "path": "entry.logic", "logic": "AND"}],
-        "rationale": "Test an executable AND entry while preserving exit.",
-    })
+    intent = ResearchIntent.model_validate(
+        {
+            "mode": "structure",
+            "parent_ids": [parent.strategy.strategy_id],
+            "operations": [{"op": "CHANGE_AND_OR", "path": "entry.logic", "logic": "AND"}],
+            "rationale": "Test an executable AND entry while preserving exit.",
+        }
+    )
     child = apply_intent(parent.strategy, intent, research_feature_specs())
     successor = replace(parent, strategy=child)
     duplicate_signal = inherited_effective_signal_hash(successor, market)
     state = {
         "session_id": "1" * 32,
         "completed_generations": 88,
-        "history": [{
-            "generation": 88,
-            "strategy_hash": "0" * 64,
-            "effective_signal_hash": duplicate_signal,
-        }],
+        "history": [
+            {
+                "generation": 88,
+                "strategy_hash": "0" * 64,
+                "effective_signal_hash": duplicate_signal,
+            }
+        ],
     }
     checkpoint = AcademicMCPCheckpointService(
-        project_root=tmp_path, state_dir=tmp_path / "research",
+        project_root=tmp_path,
+        state_dir=tmp_path / "research",
     )
     monkeypatch.setattr(
-        checkpoint, "_selected_ir",
+        checkpoint,
+        "_selected_ir",
         lambda *_: (parent, {"algorithm_plan": {}}, {"selection_hash": "3" * 64}),
     )
     with pytest.raises(ValueError, match="DUPLICATE_EFFECTIVE_INHERITED_SIGNALS.*88"):
         checkpoint._stage_inherited_plan(
-            None, None, None, market, state,
-            {"plan": intent.model_dump(mode="json")}, require_execution_change=True,
+            None,
+            None,
+            None,
+            market,
+            state,
+            {"plan": intent.model_dump(mode="json")},
+            require_execution_change=True,
         )
+
+
+def test_unreplayed_new_registered_feature_rejected_as_retryable_not_keyerror():
+    import pytest
+
+    from strategy_ir.schema import Condition
+
+    compiled, market = _warmup_fixture()
+    missing = Condition(op="less_than", left="natr_pct_20", value=0.035)
+    strategy = compiled.strategy.model_copy(
+        update={"regime_filters": [*compiled.strategy.regime_filters, missing]}
+    )
+    mutated = replace(compiled, strategy=strategy)
+    with pytest.raises(ValueError, match="INHERITED_FEATURE_BINDING_MISSING"):
+        inherited_effective_signal_hash(mutated, market)
+
+
+def test_declared_feature_without_replayed_vector_also_fails_closed():
+    import pytest
+
+    from strategy_ir.schema import FeatureRef
+
+    compiled, market = _warmup_fixture()
+    strategy = compiled.strategy.model_copy(
+        update={
+            "features": {
+                **compiled.strategy.features,
+                "natr_pct_20": FeatureRef(feature_id="normalized_atr_percent"),
+            }
+        }
+    )
+    with pytest.raises(ValueError, match="INHERITED_FEATURE_BINDING_MISSING"):
+        inherited_effective_signal_hash(replace(compiled, strategy=strategy), market)

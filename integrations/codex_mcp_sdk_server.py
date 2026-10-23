@@ -40,6 +40,12 @@ _ACADEMIC_CHECKPOINT_TOOLS = frozenset(
 # Static, audited messages only: NEVER expose exception text, raw input,
 # checkpoint tokens, OAuth context, private paths, or full model proposals.
 _SAFE_ACADEMIC_REPAIR_MESSAGES = {
+    "INHERITED_FEATURE_BINDING_MISSING": (
+        "A newly declared feature has no canonical costed replay vector in "
+        "this inherited session. No generation was consumed. Retry the same "
+        "checkpoint with existing audited feature aliases; independent new "
+        "feature replay support requires a separately verified compiler."
+    ),
     "INTENT_PATH_TARGET": (
         "Invalid typed rule target. ADD_RULE needs entry.conditions or "
         "exit.conditions; REPLACE_RULE requires an indexed condition. "

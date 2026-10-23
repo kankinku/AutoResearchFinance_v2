@@ -22,6 +22,23 @@ def inherited_effective_signal_hash(
     values = {key: list(val) for key, val in compiled.feature_values.items()}
     if not values or any(len(v) != len(market.bars) for v in values.values()):
         raise ValueError("inherited feature vectors missing or unaligned")
+    # The v1 inherited academic replay is pinned to precomputed, signed
+    # features. Merely declaring a new registered FeatureRef does NOT compute
+    # its series; never pass a missing alias into the protected backtest engine.
+    # A future feature-aware replay compiler must bind and hash the new vector
+    # before the full S2/S7 audit can accept it.
+    conditions = (
+        *compiled.strategy.entry.conditions,
+        *compiled.strategy.exit.conditions,
+        *compiled.strategy.regime_filters,
+    )
+    feature_names = set(compiled.strategy.features)
+    used_names = {c.left for c in conditions} | {c.right for c in conditions if c.right is not None}
+    if feature_names != set(values) or not used_names <= set(values):
+        raise ValueError(
+            "INHERITED_FEATURE_BINDING_MISSING: selected feature was not "
+            "compiled and hash-bound into this inherited academic replay"
+        )
     active_signals = {
         "dataset_hash": market.dataset_hash,
         "entry": tuple(
@@ -30,7 +47,8 @@ def inherited_effective_signal_hash(
                 compiled.strategy.entry.logic,
                 values,
                 i,
-            ) for i in range(len(market.bars))
+            )
+            for i in range(len(market.bars))
         ),
         "exit": tuple(
             _rules_match(
@@ -38,11 +56,11 @@ def inherited_effective_signal_hash(
                 compiled.strategy.exit.logic,
                 values,
                 i,
-            ) for i in range(len(market.bars))
+            )
+            for i in range(len(market.bars))
         ),
         "regime": tuple(
-            _regime_allows(compiled.strategy, values, i)
-            for i in range(len(market.bars))
+            _regime_allows(compiled.strategy, values, i) for i in range(len(market.bars))
         ),
     }
     return content_hash(active_signals)
