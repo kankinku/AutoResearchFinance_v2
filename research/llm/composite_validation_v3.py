@@ -71,6 +71,7 @@ def validate_composite(
 
     verified_compiled: dict[str, CompiledAcademicStrategy] = {}
     hashes: list[str] = []
+    source_fingerprints: list[tuple[str, object]] = []
     for proof in roles:
         if not isinstance(proof, dict):
             raise CompositeValidationError("invalid donor proof")
@@ -150,6 +151,9 @@ def validate_composite(
             raise CompositeValidationError("donor dataset mismatch")
         checked = audit_inherited_decisions(parent, market)
         hashes.append(checked.trace_hash)
+        source_fingerprints.append((
+            checked.evaluation.equity_hash, checked.evaluation.trades,
+        ))
         source_replay_hashes.append(parent.replay.replay_hash)
         for alias, series in parent.feature_values.items():
             if alias in union and union[alias] != series:
@@ -203,6 +207,17 @@ def validate_composite(
         strategy_hash=content_hash(candidate.strategy.model_dump(mode="json", by_alias=True)),
     )
     child = audit_inherited_decisions(compiled_child, market)
+    # Different StrategyIR IDs, genome hashes or unused exit rules must not
+    # masquerade as a new economically independent experiment. Test both the
+    # entire equity curve and all paid fills, not rounded summary statistics.
+    if any(
+        child.evaluation.equity_hash == parent_equity_hash
+        and child.evaluation.trades == parent_trades
+        for parent_equity_hash, parent_trades in source_fingerprints
+    ):
+        raise CompositeValidationError(
+            "crossover economic duplicate of a verified parent"
+        )
     review = assess_child_risk(
         parent_equity=original.evaluation.equity_curve,
         child_equity=child.evaluation.equity_curve,
