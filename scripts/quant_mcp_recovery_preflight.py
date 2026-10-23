@@ -11,27 +11,17 @@ import argparse
 import json
 import re
 import socket
-import sqlite3
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
+if not __package__:
+    # Preserve `python scripts/quant_mcp_recovery_preflight.py` for operators.
+    # The same module is also invoked as `python -m scripts...` in tests/MCP.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-def _valid_url(value: str) -> bool:
-    parsed = urlsplit(value)
-    return (
-        parsed.scheme == "https"
-        and parsed.hostname is not None
-        and parsed.hostname.endswith(".ts.net")
-        and parsed.path == "/quant"
-        and parsed.port is None
-        and parsed.query == ""
-        and parsed.fragment == ""
-        and parsed.username is None
-        and parsed.password is None
-        and value == f"https://{parsed.hostname}/quant"
-    )
+from scripts.quant_mcp_identity_guard import check_existing_identity
 
 
 def _include_paths(text: str) -> list[Path]:
@@ -84,31 +74,17 @@ def check_recovery(
     if listener_ready is not True:
         problems.append("MCP_LISTENER_DOWN")
 
-    state = root / "state/moon-http"
-    key = state / "oauth/approval-key"
-    pin = state / "oauth/public-base-url"
-    db_file = state / "research/oauth/quant-oauth.sqlite"
-    if key.is_symlink() or not key.is_file() or not key.stat().st_size:
-        problems.append("OAUTH_APPROVAL_KEY_MISSING")
-    if pin.is_symlink() or not pin.is_file() or not pin.stat().st_size:
-        problems.append("OAUTH_PUBLIC_URL_PIN_MISSING")
-    else:
-        try:
-            if not _valid_url(pin.read_text(encoding="utf-8").strip()):
-                problems.append("OAUTH_PUBLIC_URL_PIN_INVALID")
-        except (OSError, ValueError, UnicodeError):
-            problems.append("OAUTH_PUBLIC_URL_PIN_INVALID")
-    if db_file.is_symlink() or not db_file.is_file() or not db_file.stat().st_size:
-        problems.append("OAUTH_DATABASE_MISSING")
-    else:
-        try:
-            with sqlite3.connect(db_file.resolve().as_uri() + "?mode=ro", uri=True) as db:
-                integrity = db.execute("PRAGMA integrity_check").fetchone()
-                clients = db.execute("SELECT count(*) FROM clients").fetchone()
-                if integrity is None or integrity[0] != "ok" or clients is None or clients[0] < 1:
-                    problems.append("OAUTH_DATABASE_INVALID")
-        except (sqlite3.Error, OSError):
-            problems.append("OAUTH_DATABASE_INVALID")
+    identity_aliases = {
+        "APPROVAL_KEY_MISSING": "OAUTH_APPROVAL_KEY_MISSING",
+        "PUBLIC_URL_PIN_MISSING": "OAUTH_PUBLIC_URL_PIN_MISSING",
+        "PUBLIC_URL_PIN_INVALID": "OAUTH_PUBLIC_URL_PIN_INVALID",
+        "OAUTH_DATABASE_MISSING": "OAUTH_DATABASE_MISSING",
+        "OAUTH_DATABASE_SCHEMA_INVALID": "OAUTH_DATABASE_INVALID",
+        "OAUTH_REGISTERED_CLIENTS_MISSING": "OAUTH_DATABASE_INVALID",
+        "OAUTH_DATABASE_INVALID": "OAUTH_DATABASE_INVALID",
+    }
+    for code in check_existing_identity(root):
+        problems.append(identity_aliases.get(code, code))
     blockers = sorted(set(problems))
     return {
         "status": "BLOCKED_PRESERVE_OAUTH" if blockers else "PRECHECK_PASS_NOT_AUTHENTICATED",

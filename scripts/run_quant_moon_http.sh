@@ -3,25 +3,27 @@
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 STATE="$ROOT/state/moon-http"
-install -d -m 0700 "$STATE/oauth"
+KEY="$STATE/oauth/approval-key"
+PIN="$STATE/oauth/public-base-url"
+OAUTH_DB="$STATE/research/oauth/quant-oauth.sqlite"
+# Existing-identity recovery ONLY. Never bootstrap an OAuth approval key, issuer
+# pin, or client database on a fresh/partial mount. Check BEFORE any mkdir or
+# Python imports that could create state. Provisioning requires a separate,
+# explicitly authorized workflow; this production launcher never provisions.
+if [[ -L "$KEY" || -L "$PIN" || -L "$OAUTH_DB" ||
+      ! -s "$KEY" || ! -s "$PIN" || ! -s "$OAUTH_DB" ]]; then
+    echo 'Original Quant OAuth key, URL pin, or database missing; refusing startup without existing identity' >&2
+    exit 78
+fi
 if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
     echo 'Quant virtual environment missing' >&2
     exit 1
 fi
-# Never silently reissue OAuth identity when a persistent approval database exists.
-KEY="$STATE/oauth/approval-key"
-OAUTH_DB="$STATE/research/oauth/quant-oauth.sqlite"
-if [[ ! -s "$KEY" ]]; then
-    if [[ -e "$OAUTH_DB" ]]; then
-        echo 'Quant OAuth key missing; refusing to rotate existing authentication' >&2
-        exit 1
-    fi
-    umask 077
-    openssl rand -hex 32 > "$KEY"
-    chmod 600 "$KEY"
-fi
 cd -- "$ROOT"
 export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
+# Validate existing OAuth DB schema, pinned issuer URL and file permissions
+# using read-only I/O before the service can instantiate its OAuth store.
+"$ROOT/.venv/bin/python" -m scripts.quant_mcp_identity_guard --root "$ROOT" >/dev/null
 PINNED_BASE="$("$ROOT/.venv/bin/python" -m scripts.quant_public_url \
  --pin "$STATE/oauth/public-base-url" --oauth-db "$OAUTH_DB")"
 if [[ -n "${QUANT_MCP_PUBLIC_BASE:-}" && "$QUANT_MCP_PUBLIC_BASE" != "$PINNED_BASE" ]]; then

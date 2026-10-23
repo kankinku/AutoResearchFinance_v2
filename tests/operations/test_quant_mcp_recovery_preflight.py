@@ -23,12 +23,20 @@ def _setup(tmp_path: Path):
     state = root / "state/moon-http"
     (state / "oauth").mkdir(parents=True)
     (state / "research/oauth").mkdir(parents=True)
-    (state / "oauth/approval-key").write_text("example-existing-secret")
-    (state / "oauth/public-base-url").write_text("https://existing-host.ts.net/quant\n")
+    key = state / "oauth/approval-key"
+    pin = state / "oauth/public-base-url"
+    key.write_text("example-existing-secret")
+    pin.write_text("https://existing-host.ts.net/quant\n")
+    key.chmod(0o600)
+    pin.chmod(0o600)
     db = state / "research/oauth/quant-oauth.sqlite"
     with sqlite3.connect(db) as handle:
-        handle.execute("CREATE TABLE clients (client_id TEXT)")
-        handle.execute("INSERT INTO clients VALUES ('existing')")
+        handle.execute("CREATE TABLE clients (id TEXT PRIMARY KEY, data TEXT NOT NULL)")
+        handle.execute(
+            "CREATE TABLE grants (digest TEXT PRIMARY KEY, kind TEXT NOT NULL, "
+            "client_id TEXT NOT NULL, payload TEXT NOT NULL, expires REAL NOT NULL)"
+        )
+        handle.execute("INSERT INTO clients VALUES ('existing','{}')")
     return root, supervisor, nginx
 
 
@@ -129,3 +137,33 @@ def test_checked_in_restore_template_points_to_existing_runner():
     assert f"directory={root}" in template
     assert runner.is_file()
     assert "Do not activate until the ORIGINAL OAuth" in template
+
+
+def test_direct_script_and_module_entrypoints_remain_compatible(tmp_path: Path):
+    import json
+    import subprocess
+    import sys
+
+    root, supervisor, _ = _setup(tmp_path)
+    config = tmp_path / "supervisor.conf"
+    config.write_text(supervisor)
+    project = Path(__file__).resolve().parents[2]
+    script = project / "scripts/quant_mcp_recovery_preflight.py"
+    for args in (
+        [sys.executable, str(script)],
+        [sys.executable, "-m", "scripts.quant_mcp_recovery_preflight"],
+    ):
+        completed = subprocess.run(
+            args + ["--root", str(root), "--active-supervisor", str(config)],
+            cwd=project,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+        assert completed.returncode == 2
+        report = json.loads(completed.stdout)
+        assert report["status"] == "BLOCKED_PRESERVE_OAUTH"
+        assert report["authenticated_mcp_verified"] is False
+        assert "MCP_LISTENER_DOWN" in report["blockers"]
+        assert "Traceback" not in completed.stderr
