@@ -14,6 +14,24 @@ from pathlib import Path
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
 
 
+def checkpoint_backup_sources(checkpoint_dir: Path) -> tuple[Path, ...]:
+    """Discover historical optional catalog stores; require the active v2 catalog.
+
+    Validate BEFORE creating a backup target to avoid misleading partial
+    backup directories. Never create missing old catalogs or substitute mocks.
+    """
+    required = ("gateway.sqlite", "cycles.sqlite", "catalog-s6-v2.sqlite")
+    optional = ("catalog.sqlite", "catalog-s6-v1.sqlite")
+    missing = [name for name in required if not (checkpoint_dir / name).is_file()]
+    if missing:
+        raise RuntimeError(f"missing required checkpoint database: {', '.join(missing)}")
+    return tuple(
+        checkpoint_dir / name
+        for name in (*required[:2], *optional, required[2])
+        if (checkpoint_dir / name).is_file()
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-root", type=Path, required=True)
@@ -43,8 +61,9 @@ def main() -> None:
         raise RuntimeError("precondition failed: exact idle/sealed session required")
     if args.backup_dir.exists():
         raise RuntimeError("backup target already exists; refusing overwrite")
-    args.backup_dir.mkdir(parents=True, mode=0o700)
     checkpoint_dir = args.state_dir / "academic-gpt-checkpoints"
+    sources = checkpoint_backup_sources(checkpoint_dir)
+    args.backup_dir.mkdir(parents=True, mode=0o700)
     manifest: dict[str, str | int] = {
         "session_id": args.session_id,
         "old_requested": before["requested_generations"],
@@ -52,20 +71,11 @@ def main() -> None:
         "completed": before["completed_generations"],
         "last_evidence_hash": before["history"][-1]["evidence_hash"],
     }
-    for filename in (
-        "gateway.sqlite",
-        "cycles.sqlite",
-        "catalog.sqlite",
-        "catalog-s6-v1.sqlite",
-        "catalog-s6-v2.sqlite",
-    ):
-        source = checkpoint_dir / filename
-        if not source.is_file():
-            raise RuntimeError(f"missing required database: {filename}")
-        with sqlite3.connect(f"file:{source}?mode=ro", uri=True) as source_db:
-            with sqlite3.connect(args.backup_dir / filename) as target_db:
+    for source in sources:
+        with sqlite3.connect(source.resolve().as_uri() + "?mode=ro", uri=True) as source_db:
+            with sqlite3.connect(args.backup_dir / source.name) as target_db:
                 source_db.backup(target_db)
-        (args.backup_dir / filename).chmod(0o600)
+        (args.backup_dir / source.name).chmod(0o600)
     manifest_file = args.backup_dir / "extension-manifest.json"
     manifest_file.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     manifest_file.chmod(0o600)
