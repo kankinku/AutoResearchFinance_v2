@@ -7,6 +7,8 @@ It is a local bootstrap guard, not a claim of successful external OAuth login.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import sqlite3
 import stat
 from pathlib import Path
@@ -18,6 +20,7 @@ def check_existing_identity(project_root: Path) -> tuple[str, ...]:
     key = state / "oauth/approval-key"
     pin = state / "oauth/public-base-url"
     database = state / "research/oauth/quant-oauth.sqlite"
+    fresh_marker = state / "oauth/new-registration-approved.json"
     missing: list[str] = []
     for name, path in (
         ("APPROVAL_KEY_MISSING", key),
@@ -52,6 +55,26 @@ def check_existing_identity(project_root: Path) -> tuple[str, ...]:
     except (OSError, UnicodeError, ValueError):
         missing.append("PUBLIC_URL_PIN_INVALID")
 
+    authorized_fresh = False
+    if fresh_marker.exists() or fresh_marker.is_symlink():
+        if fresh_marker.is_symlink() or not fresh_marker.is_file():
+            missing.append("NEW_REGISTRATION_MARKER_MISMATCH")
+        else:
+            try:
+                document = json.loads(fresh_marker.read_text(encoding="utf-8"))
+                marker_valid = (
+                    fresh_marker.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO) == 0
+                    and document.get("schema") == "approved-fresh-quant-oauth-v1"
+                    and document.get("original_reused") is False
+                    and document.get("key_digest") == hashlib.sha256(key.read_bytes()).hexdigest()
+                    and document.get("pin_digest") == hashlib.sha256(pin.read_bytes()).hexdigest()
+                )
+                if marker_valid:
+                    authorized_fresh = True
+                else:
+                    missing.append("NEW_REGISTRATION_MARKER_MISMATCH")
+            except (OSError, UnicodeError, ValueError, TypeError, AttributeError):
+                missing.append("NEW_REGISTRATION_MARKER_MISMATCH")
     try:
         with sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True) as db:
             db.execute("PRAGMA query_only=ON")
@@ -74,7 +97,10 @@ def check_existing_identity(project_root: Path) -> tuple[str, ...]:
                     "expires",
                 }.issubset(grants):
                     missing.append("OAUTH_DATABASE_SCHEMA_INVALID")
-                elif db.execute("SELECT COUNT(*) FROM clients").fetchone()[0] < 1:
+                elif (
+                    db.execute("SELECT COUNT(*) FROM clients").fetchone()[0] < 1
+                    and not authorized_fresh
+                ):
                     missing.append("OAUTH_REGISTERED_CLIENTS_MISSING")
     except (OSError, sqlite3.Error):
         missing.append("OAUTH_DATABASE_INVALID")

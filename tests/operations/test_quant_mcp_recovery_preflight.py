@@ -136,7 +136,8 @@ def test_checked_in_restore_template_points_to_existing_runner():
     assert f"command=/bin/bash {runner}" in template
     assert f"directory={root}" in template
     assert runner.is_file()
-    assert "Do not activate until the ORIGINAL OAuth" in template
+    assert "user-explicitly-provisioned NEW identity" in template
+    assert "Never generate credentials from a supervisor startup" in template
 
 
 def test_direct_script_and_module_entrypoints_remain_compatible(tmp_path: Path):
@@ -145,6 +146,9 @@ def test_direct_script_and_module_entrypoints_remain_compatible(tmp_path: Path):
     import sys
 
     root, supervisor, _ = _setup(tmp_path)
+    # Make the CLI test independent of a currently running host service.
+    # A missing approval key must fail closed even when 8787 is listening.
+    (root / "state/moon-http/oauth/approval-key").unlink()
     config = tmp_path / "supervisor.conf"
     config.write_text(supervisor)
     project = Path(__file__).resolve().parents[2]
@@ -165,5 +169,5 @@ def test_direct_script_and_module_entrypoints_remain_compatible(tmp_path: Path):
         report = json.loads(completed.stdout)
         assert report["status"] == "BLOCKED_PRESERVE_OAUTH"
         assert report["authenticated_mcp_verified"] is False
-        assert "MCP_LISTENER_DOWN" in report["blockers"]
+        assert "OAUTH_APPROVAL_KEY_MISSING" in report["blockers"]
         assert "Traceback" not in completed.stderr
