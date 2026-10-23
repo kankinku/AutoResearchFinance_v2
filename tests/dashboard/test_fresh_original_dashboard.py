@@ -1,4 +1,5 @@
 """Checks that the user's original dashboard UI is served without altering it."""
+
 from __future__ import annotations
 
 import json
@@ -38,16 +39,16 @@ def test_original_design_files_unchanged_and_nested_navigation() -> None:
     assert "백테스트" in backtest
     for name in ("app.js", "backtest.js"):
         js = original.script(name).decode()
-        assert '/api/' not in js
-        assert 'fetch(' in js
+        assert "/api/" not in js
+        assert "fetch(" in js
     js = original.script("app.js").decode()
     assert 'fetch("api/dashboard")' in js
     assert 'method: "POST"' not in js
     perf = (Path("dashboard/static/fresh-performance.js")).read_text()
     assert 'fetch("api/status"' in perf
     assert "renderReturns(data,subset)" in perf
-    assert 'setInterval(refresh,5000)' in perf
-    assert 'dialog.showModal()' in perf
+    assert "setInterval(refresh,5000)" in perf
+    assert "dialog.showModal()" in perf
 
 
 def test_readonly_sqlite_bridge_matches_original_contracts() -> None:
@@ -65,6 +66,9 @@ def test_readonly_sqlite_bridge_matches_original_contracts() -> None:
     assert len(dashboard["tests"]) == research["completed"]
     assert not dashboard["mode"]["live_enabled"]
     assert "NON_PIT_DEVELOPMENT_ONLY" in dashboard["warning_codes"]
+    assert ("GPT_PROVENANCE_NOT_ATTESTED" in dashboard["warning_codes"]) == (
+        research["source_kind"] == "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
+    )
     assert detail["summary"]["passing_generation_count"] == 0
 
 
@@ -76,27 +80,33 @@ def test_readonly_http_bridge_serves_existing_ui(monkeypatch: pytest.MonkeyPatch
     thread.start()
     url = "http://127.0.0.1:" + str(server.server_port)
     try:
-        for uri in ("/", "/backtest", "/static/styles.css", "/static/app.js",
-                    "/static/fresh-performance.css", "/static/fresh-performance.js",
-                    "/static/backtest.js", "/api/status", "/api/dashboard", "/api/backtest",
-                    "/api/features/catalog", "/api/strategies/catalog"):
+        for uri in (
+            "/",
+            "/backtest",
+            "/static/styles.css",
+            "/static/app.js",
+            "/static/fresh-performance.css",
+            "/static/fresh-performance.js",
+            "/static/backtest.js",
+            "/api/status",
+            "/api/dashboard",
+            "/api/backtest",
+            "/api/features/catalog",
+            "/api/strategies/catalog",
+        ):
             with urllib.request.urlopen(url + uri) as response:
                 assert response.status == 200
-                csp=response.headers["Content-Security-Policy"]
+                csp = response.headers["Content-Security-Policy"]
                 assert "style-src 'self' 'unsafe-inline'" in csp
                 assert "script-src 'self'" in csp
                 assert response.read()
         with urllib.request.urlopen(url + "/api/backtest/runs/fresh-G2") as response:
             assert json.load(response)["generation"] == 2
-        req = urllib.request.Request(
-            url + "/api/refresh", method="POST", data=b""
-        )
+        req = urllib.request.Request(url + "/api/refresh", method="POST", data=b"")
         with urllib.request.urlopen(req) as response:
             assert response.status == 200
             assert json.load(response)["tests"]
-        req = urllib.request.Request(
-            url + "/api/backtest", method="POST", data=b""
-        )
+        req = urllib.request.Request(url + "/api/backtest", method="POST", data=b"")
         with pytest.raises(urllib.error.HTTPError) as exc:
             urllib.request.urlopen(req)
         assert exc.value.code == 405

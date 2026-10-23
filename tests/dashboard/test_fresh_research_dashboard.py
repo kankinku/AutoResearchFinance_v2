@@ -1,4 +1,5 @@
 """Read-only fresh academic dashboard uses canonical source records, never writes."""
+
 from __future__ import annotations
 
 import json
@@ -29,25 +30,25 @@ def _fixture(tmp_path: Path, *, corrupt: bool = False) -> Path:
             "CREATE TABLE generations (session_id TEXT,generation INTEGER,"
             "evidence_json TEXT,evidence_hash TEXT)"
         )
-        db.execute("INSERT INTO sessions VALUES (?,?,?,?,?)",
-                   (sid, 12, 2, "AWAITING_PROVIDER", "c" * 64))
+        db.execute(
+            "INSERT INTO sessions VALUES (?,?,?,?,?)", (sid, 12, 2, "AWAITING_PROVIDER", "c" * 64)
+        )
         for i in (1, 2):
             evidence = "a" * 64 if i == 1 else "b" * 64
             obj = {
                 "metrics": {
                     "total_return": 0.1 * i,
-                    "cagr":0.01*i,
+                    "cagr": 0.01 * i,
                     "max_drawdown": 0.05 * i,
                     "trade_count": 45 if i == 2 else 10,
                     "exposure": 0.3,
                     "sharpe": 1.2,
                 },
-                "previous_evidence_hash": None if i == 1 else (
-                    "z" * 64 if corrupt else "a" * 64
-                ),
+                "previous_evidence_hash": None if i == 1 else ("z" * 64 if corrupt else "a" * 64),
             }
-            db.execute("INSERT INTO generations VALUES (?,?,?,?)",
-                       (sid, i, json.dumps(obj), evidence))
+            db.execute(
+                "INSERT INTO generations VALUES (?,?,?,?)", (sid, i, json.dumps(obj), evidence)
+            )
     with sqlite3.connect(data / "gateway.sqlite") as db:
         db.execute("CREATE TABLE stages (session_id TEXT, phase TEXT)")
         db.execute(
@@ -55,8 +56,10 @@ def _fixture(tmp_path: Path, *, corrupt: bool = False) -> Path:
             "start_utc TEXT,end_utc TEXT)"
         )
         db.execute("INSERT INTO stages VALUES (?,?)", (sid, "AWAITING_PLAN"))
-        db.execute("INSERT INTO generation_timings VALUES (?,?,?,?)", (
-            sid, 1, "2026-10-20T00:00:00+00:00", "2026-10-20T00:01:30+00:00"))
+        db.execute(
+            "INSERT INTO generation_timings VALUES (?,?,?,?)",
+            (sid, 1, "2026-10-20T00:00:00+00:00", "2026-10-20T00:01:30+00:00"),
+        )
     return root
 
 
@@ -70,16 +73,17 @@ def test_snapshot_reads_live_sqlite_and_30_trade_eligibility(tmp_path: Path) -> 
     assert a["best_eligible"]["generation"] == 2
     assert a["best_eligible"]["trades"] == 45
     assert a["avg_generation_seconds"] == 90.0
-    assert a["generations"][1]["cagr"]==0.02
-    assert 0.18<a["qqq_dev_bh_cagr"]<0.20
+    assert a["generations"][1]["cagr"] == 0.02
+    assert 0.18 < a["qqq_dev_bh_cagr"] < 0.20
     assert a["orders_enabled"] is False
     assert a["model_autonomy_verified"] is False
     assert a["generations"][0]["eligible"] is False
     assert a["generations"][1]["eligible"] is True
     # A read-only dashboard never creates -wal or -shm as a side effect.
-    assert sorted(p.name for p in (
-        state / "research/academic-gpt-checkpoints"
-    ).iterdir()) == ["cycles.sqlite", "gateway.sqlite"]
+    assert sorted(p.name for p in (state / "research/academic-gpt-checkpoints").iterdir()) == [
+        "cycles.sqlite",
+        "gateway.sqlite",
+    ]
 
 
 def test_snapshot_surfaces_broken_evidence_chain(tmp_path: Path) -> None:
@@ -145,9 +149,12 @@ def test_current_100_generation_default_is_pinned_and_keeps_archive(
             h = f"{g:064x}"
             data = {
                 "metrics": {
-                    "total_return": 0.04, "cagr": 0.01,
-                    "max_drawdown": 0.12, "trade_count": 31,
-                    "exposure": 0.3, "sharpe": 0.1,
+                    "total_return": 0.04,
+                    "cagr": 0.01,
+                    "max_drawdown": 0.12,
+                    "trade_count": 31,
+                    "exposure": 0.3,
+                    "sharpe": 0.1,
                 },
                 "previous_evidence_hash": prev,
             }
@@ -157,20 +164,30 @@ def test_current_100_generation_default_is_pinned_and_keeps_archive(
             )
             prev = h
     cohort_id = "G453-G552-20261023-moon-stress"
-    (active / "start-manifest.json").write_text(json.dumps({
-        "source_generation": 452,
-        "target_final_generation": 552,
-        "source_evidence_hash": f"{452:064x}",
-    }))
+    (active / "start-manifest.json").write_text(
+        json.dumps(
+            {
+                "source_generation": 452,
+                "target_final_generation": 552,
+                "source_evidence_hash": f"{452:064x}",
+            }
+        )
+    )
     (active / "cohorts").mkdir()
-    (active / "cohorts" / (cohort_id + ".json")).write_text(json.dumps({
-        "id": cohort_id,
-        "expected_start": 452,
-        "target": 552,
-        "evidence_head_at_start": f"{452:064x}",
-    }))
+    (active / "cohorts" / (cohort_id + ".json")).write_text(
+        json.dumps(
+            {
+                "id": cohort_id,
+                "expected_start": 452,
+                "target": 552,
+                "evidence_head_at_start": f"{452:064x}",
+            }
+        )
+    )
     monkeypatch.setattr(dash, "STATE", archived)
     monkeypatch.setattr(dash, "ACTIVE_STATE", active)
+    # Explicitly simulate an environment before the new live GPT cohort.
+    monkeypatch.setattr(dash, "LIVE_STATE", tmp_path / "not_started")
     current = dash.snapshot()
     assert (current["completed"], current["requested"]) == (454, 552)
     assert (current["additional_completed"], current["additional_target"]) == (2, 100)
@@ -181,10 +198,50 @@ def test_current_100_generation_default_is_pinned_and_keeps_archive(
     saved = dash.snapshot(archived)
     assert (saved["completed"], saved["requested"]) == (2, 12)
     assert saved["source_kind"] == "ORIGINAL_ACADEMIC_DEVELOPMENT"
-    (active / "start-manifest.json").write_text(json.dumps({
-        "source_generation": 452,
-        "target_final_generation": 552,
-        "source_evidence_hash": "wrong",
-    }))
+    (active / "start-manifest.json").write_text(
+        json.dumps(
+            {
+                "source_generation": 452,
+                "target_final_generation": 552,
+                "source_evidence_hash": "wrong",
+            }
+        )
+    )
     with pytest.raises(ValueError, match="active cohort manifest"):
         dash.snapshot()
+
+
+def test_pinned_authenticated_mcp_checkpoint_default_and_legacy_archive(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old = _fixture(tmp_path / "older")
+    live = _fixture(tmp_path / "live")
+    sid = "1" * 32
+    (live / "session-id.txt").unlink()
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "LIVE_SESSION_ID", sid)
+    monkeypatch.setattr(dash, "STATE", old)
+    monkeypatch.setattr(dash, "ACTIVE_STATE", tmp_path / "no_legacy_clone")
+    current = dash.snapshot()
+    assert current["source_kind"] == "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
+    assert current["completed"] == 2
+    assert current["requested"] == 12
+    assert current["cohort_start_generation"] == 1
+    assert current["additional_completed"] == 2
+    assert current["proof_chain_ok"] is True
+    assert current["session"] == sid[:8]
+    archived = dash.snapshot(old)
+    assert archived["source_kind"] == "ORIGINAL_ACADEMIC_DEVELOPMENT"
+    assert archived["proof_chain_ok"] is True
+    with sqlite3.connect(live / "research/academic-gpt-checkpoints/cycles.sqlite") as db:
+        db.execute("DELETE FROM generations WHERE generation=2")
+    corrupted = dash.snapshot()
+    assert corrupted["proof_chain_ok"] is False
+
+
+def test_original_html_dashboard_has_readonly_archived_link() -> None:
+    from scripts.fresh_original_dashboard import page
+
+    html = page("index.html").decode("utf-8")
+    assert 'href="api/status?cohort=historical"' in html

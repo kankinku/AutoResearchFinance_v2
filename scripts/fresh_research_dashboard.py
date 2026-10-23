@@ -4,6 +4,7 @@
 Only bind 127.0.0.1. The nginx public route must enforce HTTP Basic auth.
 No write connection or hidden research/OAuth keys are exposed to browsers.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,20 +20,24 @@ ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "state/moon-http/fresh-20261021"  # Preserved original academic ledger.
 ACTIVE_STATE = ROOT / "state/moon-http/quant-moon-bounded-100-20261023"
 ACTIVE_COHORT_ID = "G453-G552-20261023-moon-stress"
+# Pinned from actual authenticated ChatGPT MCP 10-generation cohort. The GPT
+# worker writes this *separate* root while historical G452/G552 stay immutable.
+# This is a model-authored checkpoint channel, not unattended model attestation.
+LIVE_STATE = ROOT / "state/moon-http"
+LIVE_SESSION_ID = "14626d55fb2b461faa485df911920071"
 QQQ_DEV_RETURN = 1.8777241068917014
 # Price-only benchmark over the same development window (2020-01-02 to 2025-12-31).
-QQQ_DEV_YEARS = (date(2025,12,31) - date(2020,1,2)).days / 365.2425
-QQQ_DEV_CAGR = (1+QQQ_DEV_RETURN) ** (1/QQQ_DEV_YEARS) - 1
+QQQ_DEV_YEARS = (date(2025, 12, 31) - date(2020, 1, 2)).days / 365.2425
+QQQ_DEV_CAGR = (1 + QQQ_DEV_RETURN) ** (1 / QQQ_DEV_YEARS) - 1
 
 
 def _read_db(path: Path) -> sqlite3.Connection:
     if not path.is_file():
         raise FileNotFoundError("missing read-only research DB")
-    db = sqlite3.connect(path.resolve().as_uri()+"?mode=ro", uri=True, timeout=3)
+    db = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=3)
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA query_only=ON")
     return db
-
 
 
 def _controller_running(state: Path = STATE) -> bool:
@@ -62,16 +67,27 @@ def _controller_running(state: Path = STATE) -> bool:
                 continue
             if (item / "cwd").resolve() == ROOT:
                 return True
-        except (OSError,UnicodeDecodeError,ValueError):
+        except (OSError, UnicodeDecodeError, ValueError):
             continue
     return False
+
 
 def snapshot(state: Path | None = None) -> dict[str, Any]:
     # Preserve the historical G452 study; promote only the explicitly pinned,
     # locally verified 100-generation clone to the dashboard's *default* view.
-    state = ACTIVE_STATE if state is None and ACTIVE_STATE.is_dir() else (state or STATE)
+    if state is None:
+        state = (
+            LIVE_STATE
+            if (LIVE_STATE / "research/academic-gpt-checkpoints/cycles.sqlite").is_file()
+            else ACTIVE_STATE
+            if ACTIVE_STATE.is_dir()
+            else STATE
+        )
     baseline = 52
     label = "기존 개발 연구 (보존 원장)"
+    if state == LIVE_STATE:
+        baseline = 0
+        label = "현재 GPT 작성 MCP 전략 연구 · 실측 체크포인트 (독립 개발 검증)"
     if state == ACTIVE_STATE:
         manifest = json.loads((state / "start-manifest.json").read_text(encoding="utf-8"))
         cohort = json.loads(
@@ -88,7 +104,11 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
         ):
             raise ValueError("active cohort manifest does not match the trusted research clone")
         label = "현재 G453~G552 · 신규 100세대 연구 (고정 규칙 기반)"
-    sid = (state / "session-id.txt").read_text(encoding="ascii").strip()
+    sid = (
+        LIVE_SESSION_ID
+        if state == LIVE_STATE
+        else (state / "session-id.txt").read_text(encoding="ascii").strip()
+    )
     if len(sid) != 32 or any(c not in "0123456789abcdef" for c in sid):
         raise ValueError("invalid session id")
     base = state / "research/academic-gpt-checkpoints"
@@ -99,7 +119,8 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
         phase = gate.execute("SELECT phase FROM stages WHERE session_id=?", (sid,)).fetchone()
         recs = cycle.execute(
             "SELECT generation,evidence_json,evidence_hash FROM generations "
-            "WHERE session_id=? ORDER BY generation", (sid,)
+            "WHERE session_id=? ORDER BY generation",
+            (sid,),
         ).fetchall()
         timings = gate.execute(
             "SELECT start_utc,end_utc FROM generation_timings WHERE session_id=?", (sid,)
@@ -112,27 +133,30 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
     for i, rec in enumerate(recs, 1):
         ev = json.loads(rec["evidence_json"])
         m = ev["metrics"]
-        if (rec["generation"] != i or
-            ev.get("previous_evidence_hash") != prev or
-            (ev.get("evidence_hash") is not None and
-             ev["evidence_hash"] != rec["evidence_hash"])):
+        if (
+            rec["generation"] != i
+            or ev.get("previous_evidence_hash") != prev
+            or (ev.get("evidence_hash") is not None and ev["evidence_hash"] != rec["evidence_hash"])
+        ):
             proof = False
         prev = rec["evidence_hash"]
-        seen.append({
-            "generation":i,
-            "return":float(m["total_return"]),
-            "mdd":float(m["max_drawdown"]),
-            "trades":int(m["trade_count"]),
-            "exposure":float(m["exposure"]),
-            "sharpe":float(m.get("sharpe",0)),
-            "cagr":float(m["cagr"]),
-            "sortino":float(m.get("sortino",0)),
-            "profit_factor":float(m.get("profit_factor",0)),
-            "turnover":float(m.get("turnover",0)),
-            "win_rate":float(m.get("win_rate",0)),
-            "evidence_prefix":prev[:12],
-            "eligible":int(m["trade_count"]) >= 30,
-        })
+        seen.append(
+            {
+                "generation": i,
+                "return": float(m["total_return"]),
+                "mdd": float(m["max_drawdown"]),
+                "trades": int(m["trade_count"]),
+                "exposure": float(m["exposure"]),
+                "sharpe": float(m.get("sharpe", 0)),
+                "cagr": float(m["cagr"]),
+                "sortino": float(m.get("sortino", 0)),
+                "profit_factor": float(m.get("profit_factor", 0)),
+                "turnover": float(m.get("turnover", 0)),
+                "win_rate": float(m.get("win_rate", 0)),
+                "evidence_prefix": prev[:12],
+                "eligible": int(m["trade_count"]) >= 30,
+            }
+        )
     if len(seen) != int(row["completed"]):
         proof = False
     if state == ACTIVE_STATE and (
@@ -149,7 +173,7 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
         try:
             start = datetime.fromisoformat(rec["start_utc"])
             end = datetime.fromisoformat(rec["end_utc"])
-            d = (end-start).total_seconds()
+            d = (end - start).total_seconds()
             if 0 < d < 7200:
                 elapsed.append(d)
             if last_finished is None or end > last_finished:
@@ -160,36 +184,46 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
     n = int(row["requested"])
     completed = int(row["completed"])
     return {
-        "session":sid[:8],
-        "fetched_at":datetime.now(timezone.utc).isoformat(),
-        "completed":completed,
-        "requested":n,
+        "session": sid[:8],
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "completed": completed,
+        "requested": n,
         # Running cohorts show *new* generations, not their archived ancestors.
-        "additional_completed":max(0,completed-baseline),
-        "additional_target":max(0,n-baseline),
-        "cohort_start_generation":baseline+1,
-        "cohort_label":label,
-        "source_kind":"ISOLATED_100_GENERATION_DEVELOPMENT" if state == ACTIVE_STATE else "ORIGINAL_ACADEMIC_DEVELOPMENT",
-        "status":row["status"],
-        "phase":phase["phase"],
-        "proof_chain_ok":proof,
-        "head_evidence_prefix":prev[:12] if prev else None,
-        "last_end_utc":last_finished.isoformat() if last_finished else None,
-        "avg_generation_seconds":round(statistics.mean(elapsed),1) if elapsed else None,
-        "last":seen[-1] if seen else None,
-        "best_eligible":max(eligible,key=lambda g:g["return"]) if eligible else None,
-        "avg_return":statistics.mean(g["return"] for g in seen) if seen else None,
-        "avg_mdd":statistics.mean(g["mdd"] for g in seen) if seen else None,
-        "positive_count":sum(g["return"] > 0 for g in seen),
-        "qqq_dev_bh_return":QQQ_DEV_RETURN,
-        "qqq_dev_bh_cagr":QQQ_DEV_CAGR,
-        "orders_enabled":False,
-        "independent_oos_approved":False,
-        "model_autonomy_verified":False,
-        "data_scope":"NON_PIT_DEVELOPMENT_ONLY",
-        "research_running_confirmed":_controller_running(state),
-        "controller_note":"G4+ deterministic rule exploration (NOT 1 GPT decision per generation)",
-        "generations":seen,
+        "additional_completed": max(0, completed - baseline),
+        "additional_target": max(0, n - baseline),
+        "cohort_start_generation": baseline + 1,
+        "cohort_label": label,
+        "source_kind": (
+            "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
+            if state == LIVE_STATE
+            else "ISOLATED_100_GENERATION_DEVELOPMENT"
+            if state == ACTIVE_STATE
+            else "ORIGINAL_ACADEMIC_DEVELOPMENT"
+        ),
+        "status": row["status"],
+        "phase": phase["phase"],
+        "proof_chain_ok": proof,
+        "head_evidence_prefix": prev[:12] if prev else None,
+        "last_end_utc": last_finished.isoformat() if last_finished else None,
+        "avg_generation_seconds": round(statistics.mean(elapsed), 1) if elapsed else None,
+        "last": seen[-1] if seen else None,
+        "best_eligible": max(eligible, key=lambda g: g["return"]) if eligible else None,
+        "avg_return": statistics.mean(g["return"] for g in seen) if seen else None,
+        "avg_mdd": statistics.mean(g["mdd"] for g in seen) if seen else None,
+        "positive_count": sum(g["return"] > 0 for g in seen),
+        "qqq_dev_bh_return": QQQ_DEV_RETURN,
+        "qqq_dev_bh_cagr": QQQ_DEV_CAGR,
+        "orders_enabled": False,
+        "independent_oos_approved": False,
+        "model_autonomy_verified": False,
+        "data_scope": "NON_PIT_DEVELOPMENT_ONLY",
+        "research_running_confirmed": _controller_running(state),
+        "controller_note": (
+            "ChatGPT-authored proposals via MCP, NOT unattended model-autonomy attestation"
+            if state == LIVE_STATE
+            else "G4+ deterministic rule exploration (NOT 1 GPT decision per generation)"
+        ),
+        "generations": seen,
     }
 
 
@@ -302,6 +336,7 @@ show(await r.json());e('error').textContent='';
 poll();setInterval(poll,5000);
 """
 
+
 class DashboardHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0]
@@ -313,15 +348,26 @@ class DashboardHandler(BaseHTTPRequestHandler):
             try:
                 view = snapshot()
                 if path == "/health":
-                    view = {"status":"ok","completed":view["completed"],"requested":view["requested"]}
-                self._respond(200,"application/json; charset=utf-8",
-                              json.dumps(view,ensure_ascii=False).encode("utf-8"))
-            except (OSError,ValueError,KeyError,sqlite3.Error) as exc:
-                self._respond(503,"application/json",json.dumps(
-                    {"error":"research_data_unavailable","kind":type(exc).__name__}
-                ).encode("utf-8"))
+                    view = {
+                        "status": "ok",
+                        "completed": view["completed"],
+                        "requested": view["requested"],
+                    }
+                self._respond(
+                    200,
+                    "application/json; charset=utf-8",
+                    json.dumps(view, ensure_ascii=False).encode("utf-8"),
+                )
+            except (OSError, ValueError, KeyError, sqlite3.Error) as exc:
+                self._respond(
+                    503,
+                    "application/json",
+                    json.dumps(
+                        {"error": "research_data_unavailable", "kind": type(exc).__name__}
+                    ).encode("utf-8"),
+                )
         else:
-            self._respond(404,"text/plain",b"not found")
+            self._respond(404, "text/plain", b"not found")
 
     def _respond(self, code: int, mime: str, content: bytes) -> None:
         self.send_response(code)
@@ -331,24 +377,28 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Content-Security-Policy",
+        self.send_header(
+            "Content-Security-Policy",
             "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+            "connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'",
+        )
         self.end_headers()
         self.wfile.write(content)
 
     def log_message(self, format: str, *args: object) -> None:
         pass
 
+
 def main() -> None:
-    parser=argparse.ArgumentParser()
-    parser.add_argument("--port",type=int,default=8081)
-    parser.add_argument("--host",default="127.0.0.1")
-    args=parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8081)
+    parser.add_argument("--host", default="127.0.0.1")
+    args = parser.parse_args()
     if args.host != "127.0.0.1":
         parser.error("dashboard can only bind to loopback")
-    server=ThreadingHTTPServer((args.host,args.port),DashboardHandler)
+    server = ThreadingHTTPServer((args.host, args.port), DashboardHandler)
     server.serve_forever(poll_interval=0.25)
+
 
 if __name__ == "__main__":
     main()

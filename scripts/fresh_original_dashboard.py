@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from dashboard.service import DashboardService
-from scripts.fresh_research_dashboard import DashboardHandler, snapshot
+from scripts.fresh_research_dashboard import ACTIVE_STATE, STATE, DashboardHandler, snapshot
 
 STATIC = Path(__file__).resolve().parents[1] / "dashboard/static"
 
@@ -44,7 +44,14 @@ def compat(view: dict[str, Any]) -> dict[str, Any]:
         for g in view["generations"]
     ]
     best = view["best_eligible"]
-    warnings = ["NON_PIT_DEVELOPMENT_ONLY", "NO_OOS", "GPT_NOT_CONNECTED"]
+    warnings = ["NON_PIT_DEVELOPMENT_ONLY", "NO_OOS"]
+    warnings.append(
+        "GPT_PROVENANCE_NOT_ATTESTED"
+        if view["source_kind"] == "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
+        else "GPT_PER_GENERATION_NOT_VERIFIED"
+    )
+    if not view["proof_chain_ok"]:
+        warnings.append("EVIDENCE_CHAIN_INVALID")
     if view["phase"] == "AWAITING_DIAGNOSIS":
         warnings.append("RESEARCH_AWAITING_DIAGNOSIS")
     return {
@@ -94,9 +101,17 @@ def compat(view: dict[str, Any]) -> dict[str, Any]:
         ],
         "workers": [],
         "llm": {
-            "provider": "codex_desktop",
+            "provider": (
+                "authenticated_chatgpt_mcp_client"
+                if view["source_kind"] == "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
+                else "rule_policy_not_gpt_at_every_generation"
+            ),
             "status": "NOT_VERIFIED",
-            "last_result": "RULE_POLICY_NOT_PER_GENERATION_GPT",
+            "last_result": (
+                "GPT_AUTHORSHIP_OBSERVED_AUTONOMY_NOT_ATTESTED"
+                if view["source_kind"] == "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
+                else "RULE_POLICY_NOT_PER_GENERATION_GPT"
+            ),
         },
         "research": {
             "frontier_count": 0,
@@ -221,6 +236,17 @@ def page(name: str) -> bytes:
         )
         panel = (STATIC / "fresh-performance.html").read_text(encoding="utf-8")
         text = text.replace("<main>", "<main>\n" + panel, 1)
+        # Keep the original UI and make historical source auditable without
+        # permitting dashboard-controlled research writes or exposing OAuth.
+        text = text.replace(
+            "<main>",
+            '<main><p class="muted">현재 GPT 연구 원장 표시 중 · '
+            '<a href="api/status?cohort=historical" target="_blank" '
+            'rel="noopener noreferrer">기존 G453~G552 연구 원장(JSON)</a> · '
+            '<a href="api/status?cohort=original" target="_blank" '
+            'rel="noopener noreferrer">기존 G452 원장(JSON)</a></p>',
+            1,
+        )
         mark = '<section id="safety-banner"'
         assert mark in text
         text = text.replace(
@@ -286,7 +312,17 @@ class OriginalDashboardHandler(DashboardHandler):
             "/api/strategies/catalog",
         ):
             try:
-                view = snapshot()
+                # Read-only opt-in history. The default is the live MCP
+                # checkpoint, even while G3 waits for GPT input.
+                cohort = self.path.partition("?")[2]
+                if cohort == "cohort=historical":
+                    view = snapshot(ACTIVE_STATE)
+                elif cohort == "cohort=original":
+                    view = snapshot(STATE)
+                elif not cohort:
+                    view = snapshot()
+                else:
+                    return self._respond(400, "application/json", b'{"error":"BAD_COHORT"}')
                 dash = compat(view)
                 data: Any = view
                 if path == "/api/status":
