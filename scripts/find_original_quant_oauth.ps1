@@ -31,6 +31,20 @@ function Add-ExistingRoot {
     }
 }
 
+function Convert-DockerDesktopHostPath {
+    param([string] $Source)
+    # Docker Desktop may return a Linux-VM host path even when run on Windows.
+    # Convert only known Windows-drive mapping prefixes, never invent a path.
+    if ($Source -match '^/(?:run/desktop/mnt/host|host_mnt|mnt/host)/([A-Za-z])(?:/(.*))?$') {
+        $root = $Matches[1].ToUpperInvariant() + ':\'
+        if ($Matches[2]) {
+            return $root + $Matches[2].Replace('/', '\')
+        }
+        return $root
+    }
+    return $Source
+}
+
 function Read-DockerBindRoots {
     param([string] $ContainerName)
     $result = [System.Collections.Generic.List[string]]::new()
@@ -41,15 +55,29 @@ function Read-DockerBindRoots {
         $mountJson = (& docker inspect --format '{{json .Mounts}}' $ContainerName 2>$null |
             Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or -not $mountJson) { return $result }
+        if ($mountJson -eq '[]') {
+            Write-Warning 'Docker inspect .Mounts returned []; check the raw .Mounts and .HostConfig.Binds output and Docker context.'
+            return $result
+        }
         $mounts = ConvertFrom-Json -InputObject $mountJson
-        foreach ($mount in @($mounts)) {
-            # Do not mistake the Moon's separate /var/lib/project-moon identity
-            # for Quant's original state. Only use a real Windows bind mount.
-            if ($mount.Type -ne "bind" -or $mount.Destination -ne "/shared") { continue }
-            if (-not (Test-Path -LiteralPath $mount.Source -PathType Container)) { continue }
-            Add-ExistingRoot -Roots $result -Candidate $mount.Source
-            $parent = Split-Path -Path $mount.Source -Parent
-            Add-ExistingRoot -Roots $result -Candidate $parent
+        $sharedBindCount = 0
+        # Explicitly flatten the array because Windows PowerShell 5.1 can
+        # preserve a JSON-array wrapper in pipelines/Select-Object output.
+        foreach ($element in @($mounts)) {
+            foreach ($mount in @($element)) {
+                if ($null -eq $mount) { continue }
+                # Moon's /var/lib/project-moon is a DIFFERENT OAuth identity.
+                if ($mount.Type -ne "bind" -or $mount.Destination -ne "/shared") { continue }
+                $sharedBindCount++
+                $hostPath = Convert-DockerDesktopHostPath -Source $mount.Source
+                if (-not (Test-Path -LiteralPath $hostPath -PathType Container)) { continue }
+                Add-ExistingRoot -Roots $result -Candidate $hostPath
+                $parent = Split-Path -Path $hostPath -Parent
+                Add-ExistingRoot -Roots $result -Candidate $parent
+            }
+        }
+        if ($sharedBindCount -gt 0 -and $result.Count -eq 0) {
+            Write-Warning 'Docker /shared bind exists, but its host Source is inaccessible as a Windows directory. Inspect raw .Mounts and .HostConfig.Binds.'
         }
     } catch {
         # Missing host Docker state is a BLOCKED result, never permission to

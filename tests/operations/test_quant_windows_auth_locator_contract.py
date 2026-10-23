@@ -2,6 +2,7 @@
 
 PowerShell host execution is separately required and is not claimed here.
 """
+
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[2] / "scripts/find_original_quant_oauth.ps1"
@@ -47,3 +48,16 @@ def test_windows_locator_has_no_automatic_recovery_flow():
     assert "exit 2" in source
     assert "exit 3" in source
     assert "exit 0" in source
+
+
+def test_windows_docker_mount_json_is_flattened_and_vm_host_source_translated():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "Convert-DockerDesktopHostPath" in source
+    assert "run/desktop/mnt/host" in source
+    assert "host_mnt" in source
+    assert "mnt/host" in source
+    assert "foreach ($element in @($mounts))" in source
+    assert "foreach ($mount in @($element))" in source
+    assert "$mountJson -eq '[]'" in source
+    assert "$sharedBindCount -gt 0 -and $result.Count -eq 0" in source
+    assert "if (-not (Test-Path -LiteralPath $hostPath -PathType Container))" in source

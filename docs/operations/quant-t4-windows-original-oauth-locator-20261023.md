@@ -40,3 +40,26 @@ Windows Docker Desktop 호스트 PowerShell에서 기존 프로젝트 체크아�
 
 ## 다음 게이트
 Windows 호스트 원본 인증 파일 경로 확인 → 기존 issuer/클라이언트/원장 보존 검증 → 동일 Quant MCP 정상 응답 확인 → 실제 GPT 계획·백테스트·진단·S7·후속 세대 원장 10세대 검증.
+
+## Windows 실행 결과와 Docker Mounts 확인 방식 개선 (2026-10-23)
+
+실제 Windows PowerShell에서 Desktop/Documents/Downloads 8,342개 디렉터리를 검색한 결과 BLOCKED_ORIGINAL_QUANT_OAUTH_NOT_FOUND. 이는 해당 검색 경로에 정확한 Quant 인증 3파일이 없다는 의미이며 Windows 전체나 비연결 백업에서 삭제됐다는 증거는 아님. project-moon-local / project-moon-merge-auditor는 Docker ps상 healthy 상태.
+
+Docker inspect의 .Mounts JSON을 ConvertFrom-Json | Select-Object로 표시하자 빈 표가 출력됐지만 이것만으로 .Mounts=[]임을 단정할 수 없음. PowerShell 5.1 JSON 배열 래핑 및 Docker Desktop Linux VM host 경로의 Windows 변환 실패 가능성을 구분해야 함.
+
+수정한 Windows 탐색 스크립트:
+- JSON 배열을 명시적으로 이중 순회해 실제 bind Type/Source/Destination을 검사.
+- /run/desktop/mnt/host/, /host_mnt/, /mnt/host/ 계열 Docker Desktop Windows 드라이브 매핑을 Windows 경로로 변환하여 접근 여부를 확인.
+- .Mounts가 진짜 []인지, /shared bind가 있으나 Windows 경로가 접근 불가능한지 경고를 분리. 내용 읽기, OAuth 복사·생성, 서비스 재시작은 없음.
+
+다음 Windows에서 변환하지 않은 원본 메타데이터를 확인:
+    docker inspect project-moon-local --format '{{json .Mounts}}'
+    docker inspect project-moon-local --format '{{json .HostConfig.Binds}}'
+    docker context show
+    docker volume ls
+
+개인 경로는 가려도 됨. 이 결과는 OAuth 키/토큰/승인 DB 내용이 아니므로 비밀값은 별도 전달 불필요. 원본 metadata 확인 전 Docker context/원본 볼륨 위치 문제 vs 변환 표시 문제를 확정하지 않는다.
+
+주의: 사용자 TEMP에 다운로드한 이전 PowerShell 스크립트는 GitHub 새 커밋으로 자동 교체되지 않음. 최신 스크립트 사용을 원하면 GitHub 파일을 다시 다운로드해야 함.
+
+검증은 PowerShell 계약의 추가 정적 테스트만 가능; 이 Linux Moon에는 Windows PowerShell 실행기가 없으며 실제 Windows 호스트 실행은 NOT RUN. Quant MCP 실제 인증 연결 BLOCKED, GPT 신규 0/10, G452/G552·OAuth·운영 컨테이너·URL·거래/OOS 미변경.
