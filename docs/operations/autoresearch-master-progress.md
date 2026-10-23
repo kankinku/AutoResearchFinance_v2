@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-23 KST V3 개발 Sidecar 결과 확정 (Q05/Q07/Q08/Q09/Q14/Q17):** [상세 원장·실측·한계](quant-v3-parent-sidecar-atomic-20261023.md). 코드 **`da1b32d`** 브랜치 origin Push 성공, **기존 G452/G552 보호**, 연구 원장 6개 실제 체결 후보 해시 체인 및 회수 멱등 6/6, 0개 승격, G192 유지. 관련 Pytest 42 PASS·Ruff/Mypy 변경소스 PASS. 이것은 **정식 GPT 세대가 아닌 스크립트 검증 기록**. V05→T4 실제 연결 GPT 10/100→V01~V04→V06→V07 우선순위/권한 불변, 프로덕션 배포 NOT RUN.
+
+
 **2026-10-23 KST V3 실제 G452 부모 3개 원장 인증 + 6개 교배 성능 평가 / 중복 교정 (Q02/Q05/Q06/Q07/Q08/Q09/Q10/Q14/Q17/Q20):** [원장 인증·실데이터 교배·S7 대조·손상 거부 근거](quant-v3-ledger-certified-crossovers-20261023.md). 신규 `ledger_donors_v3.py`에서 기존 원장의 전세대 Evidence SHA 체인과 각 후보 G68/G192/G248 S7 보고서 해시를 재검산하고, 실제 감사 체결/S2와 수익·MDD·거래수를 동일 QQQ 1508봉에서 재생. 실데이터 3! 조합 6개 모두 실제 S2 비교 계산; 위험 제한(MDD<=30%, 부모 대비 +15%p, >=30거래) 통과는 **1/6**(G192 entry + G248 exit + G68 risk, +168.37%, MDD26.04%, 36거래). 그러나 이 후보는 **기존 G192 부모의 equity SHA·fill tuple까지 완전히 동일**하여 경제적 중복으로 탈락하도록 `composite_validation_v3.py`를 fail closed 강화. 최종 **위험·경제적 신규성 동시 적격 0/6**, 계승 0개. 스크립트 기반 S7 청산 임곗값 가설 한 건은 실제 대조 결과 `NO_OBSERVED_EFFECT`, GPT 실 호출 0. 격리 SQLite 복제본에 고의로 Evidence 또는 S7 record 위조 시 각각 연쇄·보고서 hash 오류로 차단 PASS. 기준 G452/452/G552/552 원본 세대·최종 SHA·SQLite 무결성 불변. **기존 저장된 부모의 risk position 비율이 모두 100%이므로 C risk donor 기여의 개량 효과도 입증되지 않음.** 실제 정식 Academic checkpoint V3 합성 부모 계승, D 국면 route 공동 NAV 성과, 10세대 GPT 실판단/OOS/실거래는 미진행. feature scripts/검증 결과가 새 브랜치 커밋으로 기록될 예정이며 배포 전 검증 게이트는 별도.
 
 
@@ -130,6 +133,7 @@
 
 | ID | 작업 | 현황 (2026-10-15) | 남은 기능 / 검증 |
 |---|---|---|---|
+| 2-2/V3 SIDECAR (T4 종속) | 다중 부모 연구 후보 메모리·잠정 계승 Q05/Q07/Q08/Q09/Q14/Q17 | **개발용 독립 원장 구축**: 기존 G452 증명과 G68/G192/G248 실제 QQQ 1,508봉 6개 교배 후보 costed S2/P2 재생. 위험 실패3·부모 경제중복2·기존 후보 결과중복1 → **실제 선택/승격 0개**, G192 원부모 유지. 별도 SHA 연쇄 SQLite 6건, 재실행 6→6/마지막 SHA 불변, 임의 SQLite 변경 탐지 테스트. 코드 `da1b32d` origin Push; 주문/OOS/운영 OAuth/대시보드 변경 없음. | **정식 GPT 완결 세대 0**, “잠정 부모 후보” 결정을 AcademicMCPCheckpointService에 미연결; 개발 입력 진정성 공급자 증명 미확립. 남은 실제 GPT T4 10→100, C+D 포트폴리오 시계열/독립 NAV, V01~V04 PIT/OOS. 관련 Pytest 42 PASS·Ruff/Mypy 변경 모듈 PASS, full pytest/mypy NOT RUN |
 | 1-1 | Nasdaq 날짜별 실제 원본 | **검증 진행·날짜 조건 BLOCKED:** 실제 보존 QQQ 원본 3본 무결성 통과, 1,508봉/본, 비교 3,016건·수정 관측 0건. 수집일 모두 2026-10-15 UTC, 상태 `INSUFFICIENT_COLLECTION_DAYS`. 동일 일 재수집 생략 검증, 증거 `5297994a…` | 최소 다른 UTC 날짜인 2026-10-16 00:00 UTC(한국 09:00) 이후 실제 독립 신규 수집·재감사. 당일 수집본 복제·날짜 조작 금지. 그 전에는 V02를 병행 |
 | 1-2 | 독립 공급자 발표 시각 | **연구용 일괄 검증 개발 완료·외부 증빙 BLOCKED:** QQQ 3본 원본 재검증 3/3, 공급자 서명 0/3, 독립 공개시각 0, Databento AUTH_REQUIRED; 새 V02 CLI/변조/시각 차단 51 PASS(`4c62d0d`) | 실제 공급자 승인 키·발행/수신시각·이용권 계약·과거 시점 as-of 확인 필요. V03 진행 가능 |
 | 1-3 | 배당·분할·가격 수정 게이트 | **V03 연구용 as-of 차단 구현:** 실제 QQQ Nasdaq 배당 25본(총 25건)과 보존 Invesco 액수 25/25 일치·선언일 누락 24. 2025-03-24 당시 원본은 2026-10-10/14 획득으로 미래정보 차단. 주 연구 디렉터리 조정가격 원본 부재, 2차 분할 카탈로그만 보유. 40 PASS (`be563c4`) | 역사 거래시점의 공식 배당 공지/보유·지급 시각, 1차 분할·수정 원본, 조정가격 소스 복구와 독립 PIT 증빙 필요; 실거래 불가 |
@@ -155,6 +159,7 @@
 
 | 순서 | 작업 ID | 다음 실행 내용 |
 |---|---|---|
+| V3-T4-GATE | 2-2/3-3 (Q02/Q05/Q07/Q08/Q09/Q14/Q17) | **독립 Sidecar 단계 완료 / 공식 모델 세대 연결 미완료**: 중복 후보 검증·체인 메모리 6/6 실측(0 신규 승격), 정식 학술 체크포인트에 연결 전 외부 데이터/LLM 증명 필요. 원래 동결 일정 **V05→T4 실제 GPT 10→100→V01~V04→V06→V07** 유지하며 진화 엔진 종속으로만 편입 |
 | D01 | 2-2 | **코드 구현 완료:** 무거래 진단·동일 Plan/Diagnosis 최근 재제출 멱등 처리(`d9255d9`); 실제 GPT 장기 검증은 T4 보류 |
 | D02 | 2-3 | **부분 기능 완료:** 중단 후 reconcile/resume 멱등 수신증, 누락 S7 복원·무결성 차단(`86c2ccd`); 운영/장기 실행 검증은 T3~T4로 보류 |
 | D03 | 3-2 | **기능 개발 완료(실제 원문 검토 미진행):** DOI 검토 큐, 권리/방법론 기록, 비실행 수식 AST 제안 및 무결성 검사(`52c5bfb`) |
@@ -201,6 +206,7 @@ T4/P0-3B 검증 순서(기능 구현 후): T0 정식 S7 전체 재생·해시/�
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-23 KST | T4-V3 SIDECAR (Q05 Q07 Q08 Q09 Q14 Q17) | V3 연구 부모 후보 격리 SQLite에 한 세대 GPT로 카운트하지 않는 검증 이력 및 조건부 잠정 선택 저장. 이전 교배 6개 원본 G452 S2 체결·P2 위험·경제 중복을 실제 재실행, 위험탈락3/부모중복2/후보간중복1, 선택 0, G192 유지. 마감 SHA `0306222f9bc442...`, 완전히 같은 명령 두 번에 이벤트 6→6·동일 SHA, 보호된 G452/G552 해시 불변. [상세](quant-v3-parent-sidecar-atomic-20261023.md) | V3+P2+governance **42 PASS**, Ruff PASS, 신규 모듈 Mypy PASS; full pytest/mypy NOT RUN, GPT 10/100·PIT/OOS/주문 NOT RUN | 개발 브랜치 `feat/quant-parent-portfolio-20261021`, **`da1b32d` GitHub Push 성공** (코드·테스트·보고서). 별도 G452/G552, 기존 MCP/OAuth/대시보드 변경·운영 배포 없음. 다음: provider-verified GPT T4 통합/실행 게이트 |
 | 2026-10-18 UTC/KST | T4-CONTEXT (Q02 Q06 Q08 Q16 Q17) | GPT MCP 읽기전용 대시보드·브리프·완료 배치 보고 24KiB 자동 응답 압축·원본 유지·전체 상세 opt-in, 18,308,629→17,838 B 및 69,393→15,834 B 실측. 상세 `quant-mcp-context-budget-20261018.md` | 신규 관련 23 PASS, Ruff/Mypy PASS; T3 1,738 PASS / 0 FAIL | `feat/quant-mcp-context-budget-20261018`, `dd8ccd2` Push, **NOT DEPLOYED** |
 | 2026-10-17 UTC / 10-18 KST | T4/T3 historical FIXTURES (Q02 Q06 Q07 Q08 Q09 Q14 Q17 Q20) | 과거 G33/34/35 실험 검증 테스트는 SHA로 고정한 `phase1-20261017-1950`의 RO SQLite를 TMP clone하여 메모리·S7·부모선택 경로만 G33으로 복원. 실제 G179 운영 서버/원본 DB/동일 URL·OAuth/32도구·실주문 off 건드리지 않음. 유실 vendor QQQ 경로는 테스트 전용 synthetic Parquet 입력으로 독립화. 새 세대 0 | 문제 관련 Pytest **15 PASS**, Ruff 전체 PASS, Mypy 전체 274 source PASS, 릴리스 precheck 보호 코어 drift 없음. **전체 Pytest 1,729 PASS / 0 FAIL**(613.59초 exit 0); 실 GPT/HTTP OAuth/rollback·OOS·페이퍼 Not Run | 기능 `feec3e9` GitHub Push, `fix/t4-immutable-g33-fixtures-20261018` 별도 브랜치, 보고 `quant-t4-g33-immutable-regression-fixtures-20261018.md`, 진행 원장·상세보고 GitHub Push 완료. **운영 배포 아직 미실시**(HTTP OAuth 격리 smoke 및 운영 rollback/cutover 승인 필요) |
 | 2026-10-17 UTC / 10-17 KST | T4 G180_SHADOW_INTEGRATION (Q02 Q06 Q07 Q08 Q09 Q14 Q15 Q17 Q20) | 실제 복제 G179 기록에서 79세대 증거 해시 보존, S7 79개·증거 기반 문맥 4종 실물 검증, 미리 지정된 QA-only 상속 전략 수정→S2 진단→S7 실제 정식 엔진 결과 1→복사본 G180·80 S7 memory·반복 get 무결성 PASS. 신규 실제 공식 세대 0. 가상 결과 SHA `a772649a...`; 릴리스 사전 심사 보호 모듈 drift 없음/NOT_DEPLOYED | Shadow 1 PASS, MCP/복구/진단/거버넌스 관련 **51 PASS**, 전체 Pytest 1,719 PASS / 7 FAIL, launcher 단독 환경 준비 후 1 PASS, Ruff 전체 PASS, 대상 Mypy py3.12 PASS. **FULL T3 FAILED**: 고정 G33 레거시 5, feature 폴더 누락 Parquet 1, 초기 .venv launcher 1. 실제 GPT 모델 E2E, HTTP/OAuth 재배포·롤백·OOS/실주문 NOT RUN | 기능 `0f3fa3f` GitHub Push, 신규 진행 원장 별도 커밋/Push, 보고 `quant-t4-integration-shadow-g180-20261017.md`, 코드·운영 MCP **미배포**, 공식 179/300 유지. **다음 T4: immutable historical-fixture test fixes + full T3 PASS → isolated smoke → rollback-ready code cutover → genuine GPT generation** |
