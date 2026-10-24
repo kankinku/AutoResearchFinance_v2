@@ -86,6 +86,39 @@ def test_snapshot_reads_live_sqlite_and_30_trade_eligibility(tmp_path: Path) -> 
     ]
 
 
+def test_snapshot_preserves_undefined_risk_statistics_without_crashing(
+    tmp_path: Path,
+) -> None:
+    state = _fixture(tmp_path)
+    path = state / "research/academic-gpt-checkpoints/cycles.sqlite"
+    with sqlite3.connect(path) as db:
+        evidence = json.loads(
+            db.execute("SELECT evidence_json FROM generations WHERE generation=1").fetchone()[0]
+        )
+        evidence["metrics"].update(
+            {
+                "trade_count": 0,
+                "sharpe": None,
+                "sortino": None,
+                "profit_factor": None,
+                "win_rate": None,
+            }
+        )
+        db.execute(
+            "UPDATE generations SET evidence_json=? WHERE generation=1",
+            (json.dumps(evidence),),
+        )
+    view = dash.snapshot(state)
+    first = view["generations"][0]
+    assert view["proof_chain_ok"] is True
+    assert first["trades"] == 0
+    assert first["sharpe"] is None
+    assert first["sortino"] is None
+    assert first["profit_factor"] is None
+    assert first["win_rate"] is None
+    assert '"sharpe": null' in json.dumps(view)
+
+
 def test_snapshot_surfaces_broken_evidence_chain(tmp_path: Path) -> None:
     a = dash.snapshot(_fixture(tmp_path, corrupt=True))
     assert a["proof_chain_ok"] is False

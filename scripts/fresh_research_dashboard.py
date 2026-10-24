@@ -72,6 +72,12 @@ def _controller_running(state: Path = STATE) -> bool:
     return False
 
 
+def _measured_metric(metrics: dict[str, Any], key: str) -> float | None:
+    """Preserve unavailable statistical estimates instead of fabricating zero."""
+    value = metrics.get(key)
+    return None if value is None else float(value)
+
+
 def snapshot(state: Path | None = None) -> dict[str, Any]:
     # Preserve the historical G452 study; promote only the explicitly pinned,
     # locally verified 100-generation clone to the dashboard's *default* view.
@@ -147,12 +153,12 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
                 "mdd": float(m["max_drawdown"]),
                 "trades": int(m["trade_count"]),
                 "exposure": float(m["exposure"]),
-                "sharpe": float(m.get("sharpe", 0)),
+                "sharpe": _measured_metric(m, "sharpe"),
                 "cagr": float(m["cagr"]),
-                "sortino": float(m.get("sortino", 0)),
-                "profit_factor": float(m.get("profit_factor", 0)),
-                "turnover": float(m.get("turnover", 0)),
-                "win_rate": float(m.get("win_rate", 0)),
+                "sortino": _measured_metric(m, "sortino"),
+                "profit_factor": _measured_metric(m, "profit_factor"),
+                "turnover": _measured_metric(m, "turnover"),
+                "win_rate": _measured_metric(m, "win_rate"),
                 "evidence_prefix": prev[:12],
                 "eligible": int(m["trade_count"]) >= 30,
             }
@@ -358,7 +364,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "application/json; charset=utf-8",
                     json.dumps(view, ensure_ascii=False).encode("utf-8"),
                 )
-            except (OSError, ValueError, KeyError, sqlite3.Error) as exc:
+            except (OSError, ValueError, TypeError, KeyError, sqlite3.Error) as exc:
                 self._respond(
                     503,
                     "application/json",

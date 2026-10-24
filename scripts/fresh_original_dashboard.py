@@ -7,6 +7,7 @@ No research or account writes, no order API. nginx Basic Auth stays upstream.
 from __future__ import annotations
 
 import json
+import sqlite3
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -370,7 +371,7 @@ class OriginalDashboardHandler(DashboardHandler):
                     data = {}
                 payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
                 return self._respond(200, "application/json; charset=utf-8", payload)
-            except (OSError, ValueError, KeyError) as exc:
+            except (OSError, ValueError, TypeError, KeyError, sqlite3.Error) as exc:
                 return self._respond(
                     503, "application/json", json.dumps({"error": type(exc).__name__}).encode()
                 )
@@ -396,7 +397,7 @@ class OriginalDashboardHandler(DashboardHandler):
                 return self._respond(
                     200, "application/json", json.dumps(data, ensure_ascii=False).encode("utf-8")
                 )
-            except (OSError, ValueError, KeyError):
+            except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
                 return self._respond(503, "application/json", b'{"error":"not available"}')
         self._respond(405, "text/plain", b"read only")
 
