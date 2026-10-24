@@ -85,6 +85,7 @@ from research.llm.p3_diagnostic_preflight import inspect_diagnostic_next_intents
 from research.llm.p3_semantic_preflight import inspect_inherited_semantics
 from research.llm.parent_portfolio_v2 import choose_parent_lane, shortlist_counted_generations
 from research.llm.s2_execution_preflight import compare_inherited_s2_execution
+from research.llm.s7_quality_gate_p4_3 import P4S7Rejected, assess_p4_s7_quality
 from research.llm.trade_cohort_review import (
     build_trade_cohort_review,
     link_completed_s7_to_cohort,
@@ -139,6 +140,7 @@ class AcademicMCPCheckpointService:
         generalization_parent_v1: bool = False,
         p4_quality_gate_v1: bool = False,
         p4_model_capture_v1: bool = False,
+        p4_s7_quality_v1: bool = False,
         p4_capture_public_key_hex: str | None = None,
         child_risk_budget: ChildRiskBudget | None = None,
         precommit_child_risk_budget: ChildRiskBudget | None = None,
@@ -164,6 +166,9 @@ class AcademicMCPCheckpointService:
             raise ValueError("P4 quality gate requires scoped generalization")
         self.generalization_parent_v1 = generalization_parent_v1
         self.p4_quality_gate_v1 = p4_quality_gate_v1
+        if p4_s7_quality_v1 and not p4_quality_gate_v1:
+            raise ValueError("P4-3 requires P4-1 quality opt-in")
+        self.p4_s7_quality_v1 = p4_s7_quality_v1
         if p4_model_capture_v1 and not p4_quality_gate_v1:
             raise ValueError("P4-2 requires P4-1 opt-in quality gate")
         if p4_model_capture_v1 and p4_capture_public_key_hex is None:
@@ -194,6 +199,21 @@ class AcademicMCPCheckpointService:
                 session_id TEXT PRIMARY KEY NOT NULL,
                 dataset_hash TEXT NOT NULL,
                 policy TEXT NOT NULL
+            )""")
+        if self.p4_s7_quality_v1:
+            db.execute("""CREATE TABLE IF NOT EXISTS p4_s7_enrollments (
+                session_id TEXT PRIMARY KEY NOT NULL, policy TEXT NOT NULL
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS p4_s7_rejections (
+                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+                request_hash TEXT NOT NULL, token_hash TEXT NOT NULL,
+                review_json TEXT NOT NULL, review_hash TEXT NOT NULL,
+                PRIMARY KEY(session_id,generation,request_hash)
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS p4_s7_approvals (
+                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+                review_json TEXT NOT NULL, review_hash TEXT NOT NULL,
+                PRIMARY KEY(session_id,generation)
             )""")
         if self.p4_model_capture_v1:
             db.execute("""CREATE TABLE IF NOT EXISTS model_capture_enrollments (
@@ -555,6 +575,124 @@ class AcademicMCPCheckpointService:
         if (record is None or json.loads(record["record_json"])["receipt"] != assertion):
             raise ModelCaptureError("P4-2 checkpoint replay capture conflicts with original")
 
+    def _p43_enrollment(self, db: sqlite3.Connection, sid: str) -> None:
+        if not self.p4_s7_quality_v1:
+            return
+        row = db.execute(
+            "SELECT policy FROM p4_s7_enrollments WHERE session_id=?", (sid,),
+        ).fetchone()
+        if row is None or row["policy"] != "P4_S7_PRECOMMIT_QUALITY_V1":
+            raise ValueError("P4-3 session lacks original P4-3 enrollment")
+
+    def _p43_preflight(
+        self, sid: str, token: str, diagnosis: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Fully measure S7 on frozen development BEFORE claiming the token."""
+        with self._connect() as db:
+            row, catalog, data, current = self._state(db, sid)
+            self._p43_enrollment(db, sid)
+            if row["phase"] != "AWAITING_DIAGNOSIS" or row["token"] != token:
+                raise CycleStateError("P4-3 diagnosis checkpoint changed")
+            staged = json.loads(row["plan_json"])
+            if content_hash(staged) != row["plan_digest"]:
+                raise CycleStateError("P4-3 staged strategy hash changed")
+            if staged.get("schema") == "p0-3b-inherited-pending-v1":
+                _, compiled, _ = self._materialize_inherited(
+                    catalog, data, current, staged,
+                )
+                report = compare_inherited_experiments(
+                    compiled, data, diagnosis,
+                    parent_proof_hash=staged["parent_selection_hash"],
+                )
+            else:
+                plan = AlgorithmPlan.model_validate(staged)
+                compiled = compile_algorithm_plan(catalog, plan, data)
+                report = compare_controlled_experiments(
+                    catalog, compiled, data, diagnosis,
+                )
+            try:
+                return assess_p4_s7_quality(report)
+            except P4S7Rejected as exc:
+                body = {
+                    "schema": "p4-s7-rejected-attempt-v1",
+                    "session_id": sid,
+                    "generation": current["completed_generations"] + 1,
+                    "token_hash": content_hash(token),
+                    "request_hash": content_hash(diagnosis),
+                    "dataset_hash": data.dataset_hash,
+                    "context_hash": row["context_digest"],
+                    "candidate_report_hash": report.evidence_hash,
+                    "reasons": list(exc.reasons),
+                    "research_only": True,
+                    "orders_enabled": False,
+                }
+                digest = content_hash(body)
+                db.execute(
+                    "INSERT OR IGNORE INTO p4_s7_rejections "
+                    "(session_id,generation,request_hash,token_hash,review_json,review_hash) "
+                    "VALUES(?,?,?,?,?,?)",
+                    (sid, body["generation"], body["request_hash"],
+                     body["token_hash"], json.dumps(body, sort_keys=True), digest),
+                )
+                saved = db.execute(
+                    "SELECT review_json,review_hash FROM p4_s7_rejections "
+                    "WHERE session_id=? AND generation=? AND request_hash=?",
+                    (sid, body["generation"], body["request_hash"]),
+                ).fetchone()
+                if (saved is None or saved["review_hash"] != digest
+                    or json.loads(saved["review_json"]) != body):
+                    raise CycleStateError("P4-3 rejection receipt was tampered") from exc
+                db.commit()
+                raise
+
+    def _p43_audit(
+        self, db: sqlite3.Connection, sid: str,
+        current: dict[str, Any],
+    ) -> dict[str, Any]:
+        self._p43_enrollment(db, sid)
+        approvals = db.execute(
+            "SELECT generation,review_json,review_hash FROM p4_s7_approvals "
+            "WHERE session_id=? ORDER BY generation", (sid,),
+        ).fetchall()
+        rejected = db.execute(
+            "SELECT generation,request_hash,token_hash,review_json,review_hash "
+            "FROM p4_s7_rejections WHERE session_id=? ORDER BY generation,rowid",
+            (sid,),
+        ).fetchall()
+        for index, item in enumerate(approvals, 1):
+            record = json.loads(item["review_json"])
+            if (item["generation"] != index or index > current["completed_generations"]
+                or item["review_hash"] != content_hash(record)
+                or record.get("generation") != index
+                or record.get("counted_evidence_hash")
+                != current["history"][index-1]["evidence_hash"]
+                or record.get("review", {}).get("eligible") is not True):
+                raise CycleStateError("P4-3 approved S7 sidecar hash/lineage mismatch")
+        if len(approvals) != current["completed_generations"]:
+            raise CycleStateError("P4-3 completed generation lacks quality proof")
+        reviewed = []
+        for item in rejected:
+            record = json.loads(item["review_json"])
+            if (item["review_hash"] != content_hash(record)
+                or item["generation"] != record.get("generation")
+                or item["request_hash"] != record.get("request_hash")
+                or item["token_hash"] != record.get("token_hash")
+                or record.get("session_id") != sid
+                or record.get("research_only") is not True):
+                raise CycleStateError("P4-3 rejection history corrupt")
+            reviewed.append(record)
+        return {
+            "schema": "p4-s7-quality-audit-v1",
+            "approved_count": len(approvals),
+            "rejection_count": len(reviewed),
+            "approved_evidence_hashes": [
+                json.loads(item["review_json"])["counted_evidence_hash"] for item in approvals
+            ],
+            "rejections": reviewed,
+            "independent_oos_approved": False,
+            "orders_enabled": False,
+        }
+
     def start(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(args, {"data_path", "generations"}, {"data_path", "generations"})
         if type(args["generations"]) is not int or not 1 <= args["generations"] <= 100:
@@ -588,6 +726,11 @@ class AcademicMCPCheckpointService:
                         "AUDITED_EX_POST_PARENT_P4_QUALITY_V1"
                         if self.p4_quality_gate_v1 else "AUDITED_EX_POST_PARENT_V1"
                     )),
+                )
+            if self.p4_s7_quality_v1:
+                db.execute(
+                    "INSERT INTO p4_s7_enrollments VALUES(?,?)",
+                    (sid, "P4_S7_PRECOMMIT_QUALITY_V1"),
                 )
             if self.p4_model_capture_v1:
                 assert self.p4_capture_key is not None
@@ -1895,6 +2038,15 @@ class AcademicMCPCheckpointService:
                 "SELECT 1 FROM model_capture_enrollments WHERE session_id=?", (sid,),
             ).fetchone() is not None:
                 raise ModelCaptureError("P4-2 enrolled session requires pinned capture policy")
+        if not self.p4_s7_quality_v1 and db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='p4_s7_enrollments'"
+        ).fetchone() is not None and db.execute(
+            "SELECT 1 FROM p4_s7_enrollments WHERE session_id=?", (sid,),
+        ).fetchone() is not None:
+            raise CycleStateError("P4-3 enrolled session cannot disable quality policy")
+        if self.p4_s7_quality_v1:
+            self._p43_enrollment(db, sid)
         catalog, data = self._catalog(row["catalog_version"]), self._data(row["data_path"])
         return row, catalog, data, self.cycle.get(sid, catalog, data)
 
@@ -2050,6 +2202,26 @@ class AcademicMCPCheckpointService:
                     **context,
                     "experiment_quality_guidance": academic_diagnostic_quality_hint(),
                 }
+                if self.p4_s7_quality_v1:
+                    checked = self._p43_audit(db, sid, current)
+                    relevant = [
+                        x for x in checked["rejections"]
+                        if x["generation"] == current["completed_generations"] + 1
+                        and x["token_hash"] == content_hash(row["token"])
+                        and x["context_hash"] == row["context_digest"]
+                        and x["dataset_hash"] == data.dataset_hash
+                    ]
+                    result["model_context"]["p4_s7_rejection_feedback"] = {
+                        "schema": "p4-s7-rejection-feedback-v1",
+                        "rejection_count": len(relevant),
+                        "recent_rejections": [
+                            {"request_hash": x["request_hash"],
+                             "candidate_report_hash": x["candidate_report_hash"],
+                             "reasons": x["reasons"]} for x in relevant[-5:]
+                        ],
+                        "supported_metrics": sorted(SUPPORTED_CONTROLLED_METRICS),
+                        "instruction": "Revise measured ineffective experiment; preserve token.",
+                    }
                 if pending.get("s2_execution_preflight") is not None:
                     result["model_context"]["s2_execution_preflight"] = pending[
                         "s2_execution_preflight"
@@ -2112,6 +2284,11 @@ class AcademicMCPCheckpointService:
                 result["status"] = "AWAITING_DIAGNOSIS"
             elif row["phase"] not in ("COMPLETED", "INTERRUPTED", "RUNNING", "CANCELLED"):
                 raise CycleStateError("invalid checkpoint state")
+            if self.p4_s7_quality_v1:
+                quality_audit = self._p43_audit(db, sid, current)
+                result["p4_s7_quality_audit"] = {
+                    key: val for key, val in quality_audit.items() if key != "rejections"
+                }
             if self.p4_model_capture_v1:
                 self._p42_enrollment(db, sid)
                 assert self.p4_capture_key is not None
@@ -2550,6 +2727,13 @@ class AcademicMCPCheckpointService:
         # Reject unsupported response metrics while the checkpoint is still
         # unclaimed, so the model can correct its diagnosis without creating
         # a committed generation lacking an experiment report.
+        for proposed in diagnosis.get("hypotheses", ()):
+            if isinstance(proposed, dict) and proposed.get("expected_metric") not in (
+                SUPPORTED_CONTROLLED_METRICS
+            ):
+                raise ValueError(
+                    f"unsupported S7 metric: {proposed.get('expected_metric')}"
+                )
         typed_diagnosis = DiagnosticResponse.model_validate(diagnosis)
         for hypothesis in typed_diagnosis.hypotheses:
             if hypothesis.expected_metric not in SUPPORTED_CONTROLLED_METRICS:
@@ -2584,6 +2768,10 @@ class AcademicMCPCheckpointService:
                     + ", ".join(uninformative)
                     + "; edit diagnosis and resubmit using the same checkpoint token"
                 )
+        p43_review = (
+            self._p43_preflight(sid, token, diagnosis)
+            if self.p4_s7_quality_v1 else None
+        )
         if self.p3_semantic_preflight:
             with self._connect() as db:
                 row, catalog, data, current = self._state(db, sid)
@@ -2709,6 +2897,20 @@ class AcademicMCPCheckpointService:
                 next_phase,
                 completed["completed_generations"],
             )
+            if p43_review is not None:
+                quality_receipt = {
+                    "schema": "p4-s7-accepted-generation-v1",
+                    "session_id": sid,
+                    "generation": completed["completed_generations"],
+                    "counted_evidence_hash": completed["history"][-1]["evidence_hash"],
+                    "review": p43_review,
+                }
+                db.execute(
+                    "INSERT INTO p4_s7_approvals VALUES(?,?,?,?)",
+                    (sid, quality_receipt["generation"],
+                     json.dumps(quality_receipt, sort_keys=True),
+                     content_hash(quality_receipt)),
+                )
             if capture is not None:
                 store_capture(
                     db, capture,
@@ -2760,6 +2962,11 @@ class AcademicMCPCheckpointService:
                 if self._is_recovery_replay(db, row, current, "reconcile"):
                     return self._recovery_reply(sid, current["completed_generations"])
                 raise CycleStateError("reconcile only stalled running gateway checkpoint")
+            # P4-3 counted evidence and the quality approval live in
+            # different SQLite databases. On a crash between those writes,
+            # refuse to resume with a fabricated post-hoc quality review.
+            if self.p4_s7_quality_v1:
+                self._p43_audit(db, sid, current)
             # A cross-DB crash may leave a counted generation without its
             # signed diagnostic receipt. Never reconcile this to a fresh GPT
             # planning checkpoint: the missing evidence cannot be fabricated
