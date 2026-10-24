@@ -45,6 +45,7 @@ from mutation.engine import MutationOperation, apply_operations
 from mutation.parameter import ParameterDomain
 from orchestration.evaluation_runner import (
     ALLOWED_STRATEGY_SUFFIXES,
+    _benchmark_data,
     parse_parameter_domains,
     resolve_project_input,
 )
@@ -333,6 +334,16 @@ class ResearchBatchService:
             raise BatchRequestError(
                 "INVALID_DATASET", "Research data is not a valid development OHLCV Parquet."
             ) from exc
+        # Fail closed before queuing an entire batch if its mandatory QQQ
+        # comparison cannot be computed. Optional comparator-free exploration
+        # remains supported; no benchmark value is synthesized from OHLCV.
+        needs_qqq = request["min_qqq_cagr_delta"] is not None
+        if needs_qqq and request["series_data_path"] is None:
+            raise BatchRequestError(
+                "BENCHMARK_SERIES_REQUIRED",
+                "QQQ CAGR target requires a development series_data_path containing "
+                "both QQQ and NASDAQ benchmark series. No batch was queued.",
+            )
         # Reject corrupted series data before queuing, without exposing its rows.
         if request["series_data_path"] is not None:
             try:
@@ -344,6 +355,21 @@ class ResearchBatchService:
                     raise BatchRequestError(
                         "DATA_ZONE_DENIED", "Research series must be development-only."
                     )
+                if needs_qqq:
+                    try:
+                        benchmark = _benchmark_data(data, series)
+                        if benchmark is None or any(
+                            value <= 0
+                            for prices in (benchmark.qqq_prices, benchmark.nasdaq_prices)
+                            for value in prices
+                        ):
+                            raise ValueError("benchmark observations must be positive")
+                    except ValueError as exc:
+                        raise BatchRequestError(
+                            "BENCHMARK_SERIES_INCOMPLETE",
+                            "The development series lacks complete, positive QQQ and NASDAQ "
+                            "as-of benchmark values for the research dates. No batch was queued.",
+                        ) from exc
             except BatchRequestError:
                 raise
             except EvidenceIntegrityError as exc:
