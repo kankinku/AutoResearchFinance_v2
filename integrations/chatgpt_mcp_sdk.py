@@ -367,6 +367,29 @@ def chatgpt_tools() -> list[dict[str, object]]:
             },
         }
 
+    # Opt-in P4-2 signed external collector capture; canonical legacy tools
+    # keep identical names/required arguments. A model cannot mint its own
+    # trusted receipt without the separate collector's private signing key.
+    p4_capture_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            **{k: {"type": "string"} for k in (
+                "schema", "session_id", "phase", "provider", "model",
+                "collector_id", "invocation_id", "prompt_hash", "response_hash",
+                "checkpoint_context_hash", "checkpoint_token_hash", "prior_receipt_hash",
+                "decision_log_hash", "decision_summary", "captured_at", "claim_scope",
+                "signature_b64",
+            )},
+            "generation": {"type": "integer", "minimum": 1},
+        },
+        "required": [
+            "schema", "session_id", "phase", "provider", "model", "collector_id",
+            "invocation_id", "prompt_hash", "response_hash", "checkpoint_context_hash",
+            "checkpoint_token_hash", "prior_receipt_hash", "decision_log_hash",
+            "decision_summary", "captured_at", "claim_scope", "signature_b64", "generation",
+        ],
+    }
     custom.extend(
         [
             _academic_tool(
@@ -398,6 +421,7 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "checkpoint_token": token_field,
                     "plan": {"type": "object"},
                     "require_execution_change": {"type": "boolean", "default": False},
+                    "model_capture": p4_capture_schema,
                 },
                 ["session_id", "checkpoint_token", "plan"],
             ),
@@ -412,6 +436,7 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "checkpoint_token": token_field,
                     "diagnosis": {"type": "object"},
                     "require_signal_change": {"type": "boolean", "default": False},
+                    "model_capture": p4_capture_schema,
                 },
                 ["session_id", "checkpoint_token", "diagnosis"],
             ),

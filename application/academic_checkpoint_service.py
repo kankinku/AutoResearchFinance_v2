@@ -73,6 +73,14 @@ from research.llm.lineage_selection import (
     replay_lineage_candidate,
 )
 from research.llm.loss_attribution import build_loss_attribution
+from research.llm.model_provenance_v1 import (
+    ModelCaptureError,
+    audit_capture_chain,
+    last_hash,
+    parse_public_key,
+    store_capture,
+    verify_capture,
+)
 from research.llm.p3_diagnostic_preflight import inspect_diagnostic_next_intents
 from research.llm.p3_semantic_preflight import inspect_inherited_semantics
 from research.llm.parent_portfolio_v2 import choose_parent_lane, shortlist_counted_generations
@@ -130,6 +138,8 @@ class AcademicMCPCheckpointService:
         parent_portfolio_v2: bool = False,
         generalization_parent_v1: bool = False,
         p4_quality_gate_v1: bool = False,
+        p4_model_capture_v1: bool = False,
+        p4_capture_public_key_hex: str | None = None,
         child_risk_budget: ChildRiskBudget | None = None,
         precommit_child_risk_budget: ChildRiskBudget | None = None,
         p3_semantic_preflight: bool = False,
@@ -154,6 +164,15 @@ class AcademicMCPCheckpointService:
             raise ValueError("P4 quality gate requires scoped generalization")
         self.generalization_parent_v1 = generalization_parent_v1
         self.p4_quality_gate_v1 = p4_quality_gate_v1
+        if p4_model_capture_v1 and not p4_quality_gate_v1:
+            raise ValueError("P4-2 requires P4-1 opt-in quality gate")
+        if p4_model_capture_v1 and p4_capture_public_key_hex is None:
+            raise ValueError("P4-2 needs independently configured capture public key")
+        self.p4_model_capture_v1 = p4_model_capture_v1
+        self.p4_capture_key = (
+            parse_public_key(p4_capture_public_key_hex or "")
+            if p4_model_capture_v1 else None
+        )
         # Opt-in research hints only. They never select an executable parent,
         # modify a counted generation or attest to an LLM model provider.
         self.v3_research_memory = v3_research_memory
@@ -175,6 +194,17 @@ class AcademicMCPCheckpointService:
                 session_id TEXT PRIMARY KEY NOT NULL,
                 dataset_hash TEXT NOT NULL,
                 policy TEXT NOT NULL
+            )""")
+        if self.p4_model_capture_v1:
+            db.execute("""CREATE TABLE IF NOT EXISTS model_capture_enrollments (
+                session_id TEXT PRIMARY KEY NOT NULL, key_hash TEXT NOT NULL,
+                policy TEXT NOT NULL
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS model_capture_receipts (
+                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
+                phase_order INTEGER NOT NULL, record_json TEXT NOT NULL,
+                receipt_hash TEXT NOT NULL,
+                PRIMARY KEY(session_id,generation,phase_order)
             )""")
         db.execute("""CREATE TABLE IF NOT EXISTS generation_timings (
             session_id TEXT NOT NULL, generation INTEGER NOT NULL,
@@ -476,6 +506,55 @@ class AcademicMCPCheckpointService:
         if set(args) - allowed or not required <= set(args):
             raise ValueError("unexpected or missing academic checkpoint arguments")
 
+    def _p42_enrollment(self, db: sqlite3.Connection, sid: str) -> None:
+        if not self.p4_model_capture_v1:
+            return
+        assert self.p4_capture_key is not None
+        row = db.execute(
+            "SELECT key_hash,policy FROM model_capture_enrollments WHERE session_id=?",
+            (sid,),
+        ).fetchone()
+        if (row is None or row["key_hash"] != content_hash(self.p4_capture_key.hex())
+            or row["policy"] != "SIGNED_EXTERNAL_COLLECTOR_ONLY_V1"):
+            raise ModelCaptureError("P4-2 session lacks original pinned capture enrollment")
+
+    def _p42_verify(
+        self, db: sqlite3.Connection, *, sid: str, gen: int, phase: str,
+        token: str, payload: object, context_hash: str, assertion: object,
+    ) -> dict[str, Any] | None:
+        if not self.p4_model_capture_v1:
+            if assertion is not None:
+                raise ModelCaptureError("P4-2 signed assertions require explicit opt-in")
+            return None
+        self._p42_enrollment(db, sid)
+        if not isinstance(assertion, dict):
+            raise ModelCaptureError("P4-2 missing signed external capture assertion")
+        assert self.p4_capture_key is not None
+        return verify_capture(
+            assertion, self.p4_capture_key, session_id=sid, generation=gen,
+            phase=phase, response=payload, context_hash=context_hash,
+            checkpoint_token=token, prior_receipt_hash=last_hash(db, sid),
+        )
+
+    def _p42_replay(
+        self, db: sqlite3.Connection, *, sid: str, gen: int,
+        phase: str, assertion: object,
+    ) -> None:
+        if not self.p4_model_capture_v1:
+            if assertion is not None:
+                raise ModelCaptureError("P4-2 signed assertions require explicit opt-in")
+            return
+        self._p42_enrollment(db, sid)
+        if not isinstance(assertion, dict):
+            raise ModelCaptureError("P4-2 signed capture missing in replay")
+        record = db.execute(
+            "SELECT record_json FROM model_capture_receipts "
+            "WHERE session_id=? AND generation=? AND phase_order=?",
+            (sid, gen, 0 if phase == "plan" else 1),
+        ).fetchone()
+        if (record is None or json.loads(record["record_json"])["receipt"] != assertion):
+            raise ModelCaptureError("P4-2 checkpoint replay capture conflicts with original")
+
     def start(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(args, {"data_path", "generations"}, {"data_path", "generations"})
         if type(args["generations"]) is not int or not 1 <= args["generations"] <= 100:
@@ -509,6 +588,13 @@ class AcademicMCPCheckpointService:
                         "AUDITED_EX_POST_PARENT_P4_QUALITY_V1"
                         if self.p4_quality_gate_v1 else "AUDITED_EX_POST_PARENT_V1"
                     )),
+                )
+            if self.p4_model_capture_v1:
+                assert self.p4_capture_key is not None
+                db.execute(
+                    "INSERT INTO model_capture_enrollments VALUES(?,?,?)",
+                    (sid, content_hash(self.p4_capture_key.hex()),
+                     "SIGNED_EXTERNAL_COLLECTOR_ONLY_V1"),
                 )
             db.execute(
                 "INSERT INTO stages(session_id,data_path,phase,token,catalog_version) "
@@ -1798,6 +1884,17 @@ class AcademicMCPCheckpointService:
         row = db.execute("SELECT * FROM stages WHERE session_id=?", (sid,)).fetchone()
         if row is None:
             raise CycleStateError("unknown academic MCP session")
+        # An externally signed session cannot be downgraded merely by
+        # restarting the MCP service with its provenance environment OFF.
+        if not self.p4_model_capture_v1:
+            enrolled_table = db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='model_capture_enrollments'"
+            ).fetchone()
+            if enrolled_table is not None and db.execute(
+                "SELECT 1 FROM model_capture_enrollments WHERE session_id=?", (sid,),
+            ).fetchone() is not None:
+                raise ModelCaptureError("P4-2 enrolled session requires pinned capture policy")
         catalog, data = self._catalog(row["catalog_version"]), self._data(row["data_path"])
         return row, catalog, data, self.cycle.get(sid, catalog, data)
 
@@ -2015,6 +2112,15 @@ class AcademicMCPCheckpointService:
                 result["status"] = "AWAITING_DIAGNOSIS"
             elif row["phase"] not in ("COMPLETED", "INTERRUPTED", "RUNNING", "CANCELLED"):
                 raise CycleStateError("invalid checkpoint state")
+            if self.p4_model_capture_v1:
+                self._p42_enrollment(db, sid)
+                assert self.p4_capture_key is not None
+                result["model_capture_audit"] = audit_capture_chain(
+                    db, session_id=sid, public_key=self.p4_capture_key,
+                    history=current["history"], phase=row["phase"],
+                )
+                if "model_context" in result:
+                    result["model_capture_context_hash"] = content_hash(result["model_context"])
             return result
 
     def _stage_inherited_plan(
@@ -2271,7 +2377,7 @@ class AcademicMCPCheckpointService:
     def submit_plan(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {"session_id", "checkpoint_token", "plan", "require_execution_change"},
+            {"session_id", "checkpoint_token", "plan", "require_execution_change", "model_capture"},
             {"session_id", "checkpoint_token", "plan"},
         )
         sid, token = args["session_id"], args["checkpoint_token"]
@@ -2288,18 +2394,26 @@ class AcademicMCPCheckpointService:
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
             if self._is_recent_replay(
-                db,
-                row,
-                current,
-                "plan",
-                token,
-                receipt_request,
+                db, row, current, "plan", token, receipt_request,
             ):
+                self._p42_replay(
+                    db, sid=sid, gen=current["completed_generations"] + 1,
+                    phase="plan", assertion=args.get("model_capture"),
+                )
                 return self.get({"session_id": sid})
             if row["phase"] != "AWAITING_PLAN" or current["status"] != "AWAITING_PROVIDER":
                 raise CycleStateError("plan cannot be submitted in current state")
             if row["token"] != token:
                 raise CycleStateError("invalid checkpoint token")
+            capture = self._p42_verify(
+                db, sid=sid, gen=current["completed_generations"] + 1,
+                phase="plan", token=token, payload=args["plan"],
+                context_hash=(
+                    self.get({"session_id": sid})["model_capture_context_hash"]
+                    if self.p4_model_capture_v1 else ""
+                ),
+                assertion=args.get("model_capture"),
+            )
             if self._selected_development_parent(catalog, data, current) is not None:
                 self._stage_inherited_plan(
                     db,
@@ -2311,6 +2425,8 @@ class AcademicMCPCheckpointService:
                     require_execution_change=strict_execution,
                     receipt_request=receipt_request,
                 )
+                if capture is not None:
+                    store_capture(db, capture, evidence_hash=None)
                 db.commit()
                 return self.get({"session_id": sid})
             if strict_execution:
@@ -2383,12 +2499,17 @@ class AcademicMCPCheckpointService:
                 "(session_id,generation,start_utc) VALUES(?,?,?)",
                 (sid, current["completed_generations"] + 1, datetime.now(timezone.utc).isoformat()),
             )
+            if capture is not None:
+                store_capture(db, capture, evidence_hash=None)
         return self.get({"session_id": sid})
 
     def submit_diagnosis(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {"session_id", "checkpoint_token", "diagnosis", "require_signal_change"},
+            {
+                "session_id", "checkpoint_token", "diagnosis",
+                "require_signal_change", "model_capture",
+            },
             {"session_id", "checkpoint_token", "diagnosis"},
         )
         strict_signal = args.get("require_signal_change", False)
@@ -2402,13 +2523,12 @@ class AcademicMCPCheckpointService:
         with self._connect() as db:
             row, _, _, current = self._state(db, sid)
             if self._is_recent_replay(
-                db,
-                row,
-                current,
-                "diagnosis",
-                token,
-                replay_request,
+                db, row, current, "diagnosis", token, replay_request,
             ):
+                self._p42_replay(
+                    db, sid=sid, gen=current["completed_generations"],
+                    phase="diagnosis", assertion=args.get("model_capture"),
+                )
                 return self._evaluated_reply(sid, current["completed_generations"])
         # Recompute all observed evidence before any generation can be committed.
         pending = self.get({"session_id": sid})
@@ -2419,6 +2539,13 @@ class AcademicMCPCheckpointService:
             raise CycleStateError("invalid diagnosis checkpoint token or state")
         if diagnosis.get("context_hash") != pending["model_context"]["context_hash"]:
             raise CycleStateError("invalid diagnosis context hash")
+        with self._connect() as db:
+            capture = self._p42_verify(
+                db, sid=sid, gen=pending["completed_generations"] + 1,
+                phase="diagnosis", token=token, payload=diagnosis,
+                context_hash=pending.get("model_capture_context_hash", ""),
+                assertion=args.get("model_capture"),
+            )
         # S7 is automatically evaluated after the generation is committed.
         # Reject unsupported response metrics while the checkpoint is still
         # unclaimed, so the model can correct its diagnosis without creating
@@ -2582,6 +2709,11 @@ class AcademicMCPCheckpointService:
                 next_phase,
                 completed["completed_generations"],
             )
+            if capture is not None:
+                store_capture(
+                    db, capture,
+                    evidence_hash=completed["history"][-1]["evidence_hash"],
+                )
         # MCP-first shortcut: a complete research generation must carry its
         # measured experiment evidence into the NEXT LLM planning prompt.
         # Previously ChatGPT had to make an extra evaluate_* call and could
@@ -2628,6 +2760,17 @@ class AcademicMCPCheckpointService:
                 if self._is_recovery_replay(db, row, current, "reconcile"):
                     return self._recovery_reply(sid, current["completed_generations"])
                 raise CycleStateError("reconcile only stalled running gateway checkpoint")
+            # A cross-DB crash may leave a counted generation without its
+            # signed diagnostic receipt. Never reconcile this to a fresh GPT
+            # planning checkpoint: the missing evidence cannot be fabricated
+            # afterward. An independent recovery protocol is required.
+            if self.p4_model_capture_v1:
+                self._p42_enrollment(db, sid)
+                assert self.p4_capture_key is not None
+                audit_capture_chain(
+                    db, session_id=sid, public_key=self.p4_capture_key,
+                    history=current["history"], phase=row["phase"],
+                )
             # Check the previously recorded receipt too, fail closed on damage.
             self._is_recovery_replay(db, row, current, "reconcile")
             cycle_status = current["status"]

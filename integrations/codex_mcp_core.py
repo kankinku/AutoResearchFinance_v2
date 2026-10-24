@@ -110,6 +110,20 @@ class CodexMCPServer:
             raise ValueError("P4 session and P3 scoped session differ")
         self.p4_quality_new_session = p4_new == "1"
         self.p4_quality_session_id = p4_session
+        p42_new = os.environ.get("QUANT_MCP_P4_MODEL_CAPTURE_NEW_SESSION", "0")
+        p42_session = os.environ.get("QUANT_MCP_P4_MODEL_CAPTURE_SESSION_ID", "")
+        p42_key = os.environ.get("QUANT_MCP_P4_CAPTURE_PUBLIC_KEY_HEX", "")
+        if p42_new not in ("0", "1") or (p42_new == "1" and p4_new != "1"):
+            raise ValueError("P4-2 requires P4-1 new-session enrollment")
+        if p42_session and re.fullmatch(r"[0-9a-f]{32}", p42_session) is None:
+            raise ValueError("P4-2 invalid scoped model capture session")
+        if p42_session and p4_session and p42_session != p4_session:
+            raise ValueError("P4-2 and P4-1 sessions must match")
+        if (p42_new == "1" or p42_session) and re.fullmatch(r"[0-9a-f]{64}", p42_key) is None:
+            raise ValueError("P4-2 requires trusted external capture public key")
+        self.p4_model_capture_new = p42_new == "1"
+        self.p4_model_capture_session_id = p42_session
+        self.p4_capture_public_key = p42_key
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
         if name in {
@@ -122,7 +136,11 @@ class CodexMCPServer:
             "reconcile_algorithm_research",
             "evaluate_algorithm_experiments",
         }:
-            p4_scoped = (
+            p42_scoped = (
+                bool(self.p4_model_capture_session_id)
+                and arguments.get("session_id") == self.p4_model_capture_session_id
+            ) or (name == "start_algorithm_research" and self.p4_model_capture_new)
+            p4_scoped = p42_scoped or (
                 bool(self.p4_quality_session_id)
                 and arguments.get("session_id") == self.p4_quality_session_id
             ) or (name == "start_algorithm_research" and self.p4_quality_new_session)
@@ -142,6 +160,8 @@ class CodexMCPServer:
                 ),
                 generalization_parent_v1=p3_scoped,
                 p4_quality_gate_v1=p4_scoped,
+                p4_model_capture_v1=p42_scoped,
+                p4_capture_public_key_hex=(self.p4_capture_public_key if p42_scoped else None),
             )
             if name == "start_algorithm_research":
                 return academic.start(arguments)
