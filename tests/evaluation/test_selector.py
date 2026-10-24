@@ -151,6 +151,7 @@ def test_funnel_applies_qqq_annualized_excess_target_when_configured() -> None:
     qqq_gate = next(gate for gate in result.gates if gate.name == "qqq_cagr_delta")
     assert qqq_gate.passed is False
     assert qqq_gate.threshold == 0.10
+    assert qqq_gate.reason == "qqq_target_not_met"
 
 
 def test_funnel_rejects_year_with_exactly_30_completed_trades() -> None:
