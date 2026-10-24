@@ -36,7 +36,7 @@
 | **P4-3** | **S7 지원 metric 일치·무효 실험 사전거절** | exposure 실측, 미지원 지표 선거절, 신규 세션 전용 무효 진단·재제출 로그 | **개발 구현 / 회귀 검증, 운영 미배포. [P4-3 기록](quant-generalization-p4-3-s7-contract-quality-20261024.md)** |
 | **P4-4** | **실제 10개 counted 전략 비용·연도·전일 국면별 사후 진단** | 기존 증거 재검증 후 commission/spread/slippage 전부 2배, 연도별/전일 국면별 QQQ, 독립 OOS 차단 | **10/10 개발 스트레스 재실행/52 관련 테스트 PASS·운영 미배포·독립 OOS 및 PIT BLOCKED. [P4-4 보고서](quant-generalization-p4-4-cost-regime-research-20261024.md)** |
 | **T4-R1** | **10개 무작위 후보·S7 시도 예산 설명 대조** | 단일 사전고정 시드·검증된 지표/동일 QQQ 비용·후보 10 + S7 10, LLM 계승 차이 명시 | **실제 10후보 재현 비교 PASS, 인과·동등 연구세대 효과 NOT PROVEN, 신규 100세대 HOLD. [T4-R1 보고서](quant-t4-r1-preregistered-random-comparator-20261024.md)** |
-| P5 | **신규 별도 session의 연속 GPT 100/100** | G1~G100 uninterrupted inherited plan path+S7; 이전 68/100 DB 절대 리셋/재계수 없음 | 미실행 |
+| **P5** | **신규 별도 GPT 실제 연구 목표 100세대** | G1~G100 GPT 직접 알고리즘 설계→정식 비용 backtest→근거 있는 진단→S7→원장; 기존 68/100 DB 리셋/재계수 금지 | **2026-10-24 사용자 요청으로 신규 격리세션 `3b44e05e52b3497db6fa035681ed0a5d` 시작 및 GPT 작성 실제 G1~G10 (10/100) S7 10건 완료. 남은 90 미실행; 검증 적격 부모 0/10, 자동 계승 미검증; OOS·실주문 비활성. [P5 초기 10세대 보고서](quant-p5-new-100-session-first-10-20261024.md)** |
 | P6 | 최종 후보 사전잠금 + 데이터 공급 재현성 + 미래 전진 검증 | 사용자가 확인한 2026 EXPOSED 구분, 2026 실제 시점 자료/독립 PIT 봉인 승인 전 OOS BLOCKED, 새 미래 자료로 진짜 검증 | 미구현 |
 
 ## 4. 실험 정책 (차기 신규 100세대 시작 전 확정할 항목)
