@@ -100,6 +100,16 @@ class CodexMCPServer:
             raise ValueError("invalid Quant generalization new-session enrollment toggle")
         self.generalization_parent_v1_session_id = p3_session
         self.generalization_parent_v1_new_session = p3_new == "1"
+        p4_new = os.environ.get("QUANT_MCP_P4_QUALITY_NEW_SESSION", "0")
+        p4_session = os.environ.get("QUANT_MCP_P4_QUALITY_SESSION_ID", "")
+        if p4_new not in ("0", "1") or (p4_new == "1" and p3_new != "1"):
+            raise ValueError("P4 requires explicit new P3 research enrollment")
+        if p4_session and re.fullmatch(r"[0-9a-f]{32}", p4_session) is None:
+            raise ValueError("invalid scoped P4 quality research session")
+        if p4_session and p3_session and p4_session != p3_session:
+            raise ValueError("P4 session and P3 scoped session differ")
+        self.p4_quality_new_session = p4_new == "1"
+        self.p4_quality_session_id = p4_session
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
         if name in {
@@ -112,7 +122,11 @@ class CodexMCPServer:
             "reconcile_algorithm_research",
             "evaluate_algorithm_experiments",
         }:
-            p3_scoped = (
+            p4_scoped = (
+                bool(self.p4_quality_session_id)
+                and arguments.get("session_id") == self.p4_quality_session_id
+            ) or (name == "start_algorithm_research" and self.p4_quality_new_session)
+            p3_scoped = p4_scoped or (
                 bool(self.generalization_parent_v1_session_id)
                 and arguments.get("session_id") == self.generalization_parent_v1_session_id
             ) or (name == "start_algorithm_research" and self.generalization_parent_v1_new_session)
@@ -127,6 +141,7 @@ class CodexMCPServer:
                     )
                 ),
                 generalization_parent_v1=p3_scoped,
+                p4_quality_gate_v1=p4_scoped,
             )
             if name == "start_algorithm_research":
                 return academic.start(arguments)

@@ -173,3 +173,89 @@ def test_verified_s7_child_competes_and_tamper_blocks():
     with pytest.raises(GeneralizationParentError, match="S7 lineage"):
         select([(broken, report)])
     assert choice.independent_oos_approved is False
+
+
+def _p4_fixture(generation: int, value: float, dd: float,
+                exposure: float, trades: int, benchmark_return: float = 1.88):
+    candidate, report = example(
+        generation, value, dd, (-.12, .40, .18), (.12, .16, .13),
+    )
+    record = {
+        "schema": "p4-costed-qqq-proxies-v1",
+        "dataset_hash": report.development_hash,
+        "realized_exposure": exposure,
+        "qqq_costed_return": benchmark_return,
+        "exposure_proxy_return": exposure*benchmark_return,
+        "exposure_proxy_mdd": exposure*.35,
+        "risk_proxy_return": 0.7,
+        "risk_proxy_mdd": .15,
+        "risk_proxy_capped": False,
+        "equity_curve_hash": "e"*64,
+        "forward_selection_allowed": False,
+        "independent_oos_approved": False,
+    }
+    return ({**candidate,
+             "parent_quality": {**candidate["parent_quality"],
+                                "market_exposure": exposure,
+                                "closed_trades": trades},
+             "p4_quality_benchmark": {**record,
+                                      "benchmark_hash": content_hash(record)}}, report)
+
+
+def _select_p4(items, generation=100):
+    return select_generalization_parent(
+        [c for c, _ in items], {r.strategy_hash:r for _,r in items},
+        next_generation=generation, p4_quality_gate=True,
+    )
+
+
+def test_p4_cash_heavy_low_mdd_is_excluded_from_parent_lanes():
+    # P4's real G4-like failure mode: tiny exposure artificially deflates MDD.
+    low = _p4_fixture(4, .021, .0743, .0219, 27)
+    growth = _p4_fixture(7, .4477, .3092, .7042, 15)
+    moderate = _p4_fixture(9, .3288, .3496, .5272, 58)
+    choice = _select_p4([low, growth, moderate])
+    assert choice.p4_quality_gate_enabled
+    assert choice.p4_quality_reviews[0].reason == "LOW_EXPOSURE_LT_20_PERCENT"
+    assert choice.p4_quality_reviews[0].eligible_as_research_parent is False
+    assert 4 not in choice.lane_generations
+    assert 4 not in choice.frontier_generations
+    assert choice.p4_quality_reviews[1].strategy_excess_vs_exposure_proxy < 0
+    assert choice.p4_quality_reviews[1].full_qqq_return == 1.88
+    assert choice == _select_p4([moderate, growth, low])
+    # Previous P3 policy, once pinned, retains its original ranking contract.
+    old = select([low, growth, moderate])
+    assert not old.p4_quality_gate_enabled
+    assert old.p4_quality_reviews == ()
+
+
+def test_p4_rejects_all_cash_and_insufficient_trades():
+    cash = _p4_fixture(4, .021, .07, .0219, 27)
+    with pytest.raises(GeneralizationParentError, match="no eligible"):
+        _select_p4([cash])
+    rare = _p4_fixture(8, .4, .1, .8, 2)
+    with pytest.raises(GeneralizationParentError, match="no eligible"):
+        _select_p4([rare])
+
+
+def test_p4_costed_benchmark_identity_and_exposure_are_fail_closed():
+    good = _p4_fixture(7, .45, .30, .7, 15)
+    broken = good[0]
+    bench = broken["p4_quality_benchmark"]
+    for tampered in (
+        {**broken, "p4_quality_benchmark": {**bench, "exposure_proxy_return": 10}},
+        {**broken, "p4_quality_benchmark": {**bench, "dataset_hash": "b"*64}},
+        {**broken, "parent_quality": {**broken["parent_quality"],
+                                       "market_exposure": .2}},
+        {**broken, "p4_quality_benchmark": {}},
+        {**broken, "p4_quality_benchmark": {**bench,
+            "forward_selection_allowed": True,
+            "benchmark_hash": content_hash({**{k: v for k,v in bench.items()
+                                              if k != "benchmark_hash"},
+                                            "forward_selection_allowed": True})}},
+    ):
+        with pytest.raises(GeneralizationParentError):
+            _select_p4([(tampered, good[1])])
+    mismatch = _p4_fixture(8, .5, .2, .65, 15, benchmark_return=1.50)
+    with pytest.raises(GeneralizationParentError, match="cross-candidate"):
+        _select_p4([good, mismatch])

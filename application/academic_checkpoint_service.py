@@ -129,6 +129,7 @@ class AcademicMCPCheckpointService:
         state_dir: Path,
         parent_portfolio_v2: bool = False,
         generalization_parent_v1: bool = False,
+        p4_quality_gate_v1: bool = False,
         child_risk_budget: ChildRiskBudget | None = None,
         precommit_child_risk_budget: ChildRiskBudget | None = None,
         p3_semantic_preflight: bool = False,
@@ -149,7 +150,10 @@ class AcademicMCPCheckpointService:
         if generalization_parent_v1 and not parent_portfolio_v2:
             raise ValueError("generalization selection requires scoped parent portfolio")
         self.parent_portfolio_v2 = parent_portfolio_v2
+        if p4_quality_gate_v1 and not generalization_parent_v1:
+            raise ValueError("P4 quality gate requires scoped generalization")
         self.generalization_parent_v1 = generalization_parent_v1
+        self.p4_quality_gate_v1 = p4_quality_gate_v1
         # Opt-in research hints only. They never select an executable parent,
         # modify a counted generation or attest to an LLM model provider.
         self.v3_research_memory = v3_research_memory
@@ -501,7 +505,10 @@ class AcademicMCPCheckpointService:
                 db.execute(
                     "INSERT INTO generalization_enrollments(session_id,dataset_hash,policy) "
                     "VALUES(?,?,?)",
-                    (sid, data.dataset_hash, "AUDITED_EX_POST_PARENT_V1"),
+                    (sid, data.dataset_hash, (
+                        "AUDITED_EX_POST_PARENT_P4_QUALITY_V1"
+                        if self.p4_quality_gate_v1 else "AUDITED_EX_POST_PARENT_V1"
+                    )),
                 )
             db.execute(
                 "INSERT INTO stages(session_id,data_path,phase,token,catalog_version) "
@@ -620,6 +627,7 @@ class AcademicMCPCheckpointService:
                 sources=sources, years=year_set,
                 last_development_date=data.bars[-1].timestamp.date(),
                 next_generation=status["completed_generations"] + 1,
+                p4_quality_gate=self.p4_quality_gate_v1,
             )
         original_by_hash = {x["successor_strategy_hash"]: x for x in candidates}
         reviewed = {x.strategy_hash: x for x in result.candidate_reviews}
@@ -638,6 +646,16 @@ class AcademicMCPCheckpointService:
         receipt = {
             "schema": "scoped-ex-post-parent-selection-v1",
             "preview_hash": result.selection_hash,
+            **({
+                "p4_quality_gate": "P4_QUALITY_V1_RESEARCH_ONLY",
+                "p4_quality_reviews": [asdict(q) for q in result.p4_quality_reviews],
+                "p4_eligible_count": sum(
+                    q.eligible_as_research_parent for q in result.p4_quality_reviews
+                ),
+                "p4_rejected_count": sum(
+                    not q.eligible_as_research_parent for q in result.p4_quality_reviews
+                ),
+            } if self.p4_quality_gate_v1 else {}),
             "sampled_generations": [x["source_generation"] for x in subset],
             "sampled_strategy_hashes": [x["successor_strategy_hash"] for x in subset],
             "lane_names": list(result.lane_names),
@@ -874,7 +892,10 @@ class AcademicMCPCheckpointService:
             if (
                 enrolled is None
                 or enrolled["dataset_hash"] != data.dataset_hash
-                or enrolled["policy"] != "AUDITED_EX_POST_PARENT_V1"
+                or enrolled["policy"] != (
+                    "AUDITED_EX_POST_PARENT_P4_QUALITY_V1"
+                    if self.p4_quality_gate_v1 else "AUDITED_EX_POST_PARENT_V1"
+                )
             ):
                 raise CycleStateError("generalization policy not enrolled at session creation")
             selected, lanes, generalization_receipt = self._scoped_generalization_selection(

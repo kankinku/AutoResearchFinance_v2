@@ -27,10 +27,13 @@ def test_p3_needs_scoped_portfolio(tmp_path: Path):
         )
 
 
-def test_explicit_new_session_policy_records_dataset_hash(tmp_path: Path, monkeypatch):
+@pytest.mark.parametrize("p4_quality", [False, True])
+def test_explicit_new_session_policy_records_dataset_hash(tmp_path: Path, monkeypatch,
+                                                          p4_quality: bool):
     service=AcademicMCPCheckpointService(
         project_root=tmp_path, state_dir=tmp_path/"state",
         parent_portfolio_v2=True, generalization_parent_v1=True,
+        p4_quality_gate_v1=p4_quality,
     )
     market=_market()
     expected_id="c"*32
@@ -62,7 +65,10 @@ def test_explicit_new_session_policy_records_dataset_hash(tmp_path: Path, monkey
         ).fetchone()
         assert row is not None
         assert row["dataset_hash"] == market.dataset_hash
-        assert row["policy"] == "AUDITED_EX_POST_PARENT_V1"
+        assert row["policy"] == (
+            "AUDITED_EX_POST_PARENT_P4_QUALITY_V1"
+            if p4_quality else "AUDITED_EX_POST_PARENT_V1"
+        )
         assert db.execute(
             "SELECT COUNT(*) FROM generalization_enrollments"
         ).fetchone()[0] == 1
@@ -87,4 +93,12 @@ def test_p3_cannot_optimize_on_already_exposed_2026_data(tmp_path: Path):
     with pytest.raises(CycleStateError, match="exposed 2026"):
         service._scoped_generalization_selection(
             [], future, {"session_id": "b"*32, "completed_generations": 0}
+        )
+
+
+def test_p4_cannot_be_enabled_without_p3_opt_in(tmp_path: Path):
+    with pytest.raises(ValueError, match="requires scoped generalization"):
+        AcademicMCPCheckpointService(
+            project_root=tmp_path, state_dir=tmp_path / "state",
+            parent_portfolio_v2=True, p4_quality_gate_v1=True,
         )

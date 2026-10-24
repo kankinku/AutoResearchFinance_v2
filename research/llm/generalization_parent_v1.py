@@ -46,6 +46,69 @@ class ParentRobustnessReview:
 
 
 @dataclass(frozen=True)
+class P4QualityReview:
+    """Post-hoc QQQ comparators are diagnostics, never independent OOS alpha."""
+    source_generation: int
+    strategy_hash: str
+    market_exposure: float
+    completed_trades: int
+    full_qqq_return: float
+    exposure_matched_qqq_return: float
+    risk_matched_qqq_return: float
+    strategy_excess_vs_exposure_proxy: float
+    strategy_excess_vs_risk_proxy: float
+    drawdown_advantage_vs_exposure_proxy: float
+    eligible_as_research_parent: bool
+    reason: str
+    benchmark_hash: str
+
+
+def _p4_quality(candidate: Mapping[str, Any], review: ParentRobustnessReview,
+                dataset_hash: str) -> P4QualityReview:
+    quality = candidate.get("parent_quality")
+    benchmark = candidate.get("p4_quality_benchmark")
+    if not isinstance(quality, dict) or not isinstance(benchmark, dict):
+        raise GeneralizationParentError("P4 missing canonical replay and costed benchmark")
+    if (benchmark.get("schema") != "p4-costed-qqq-proxies-v1"
+        or benchmark.get("dataset_hash") != dataset_hash
+        or not _valid_sha(benchmark.get("benchmark_hash"))
+        or content_hash({k: v for k, v in benchmark.items() if k != "benchmark_hash"})
+        != benchmark["benchmark_hash"]
+        or benchmark.get("forward_selection_allowed") is not False
+        or benchmark.get("independent_oos_approved") is not False
+        or not _valid_sha(benchmark.get("equity_curve_hash"))
+        or type(benchmark.get("risk_proxy_capped")) is not bool):
+        raise GeneralizationParentError("P4 costed benchmark provenance mismatch")
+    exposure = _numeric(quality.get("market_exposure"), "market_exposure")
+    trades = quality.get("closed_trades")
+    if not 0 <= exposure <= 1 or type(trades) is not int or trades < 0:
+        raise GeneralizationParentError("P4 invalid audited exposure or trade count")
+    if abs(_numeric(benchmark.get("realized_exposure"), "benchmark_exposure") - exposure) > 1e-9:
+        raise GeneralizationParentError("P4 benchmark exposure mismatch")
+    qqq = _numeric(benchmark.get("qqq_costed_return"), "qqq_costed_return")
+    matched = _numeric(benchmark.get("exposure_proxy_return"), "exposure_proxy_return")
+    risk = _numeric(benchmark.get("risk_proxy_return"), "risk_proxy_return")
+    matched_mdd = _numeric(benchmark.get("exposure_proxy_mdd"), "exposure_proxy_mdd")
+    if any(v <= -1 for v in (qqq, matched, risk)) or not 0 <= matched_mdd <= 1:
+        raise GeneralizationParentError("P4 invalid costed QQQ comparator")
+    # This predeclared research eligibility rule excludes near-cash strategies
+    # from the defense lane; it makes NO claim of statistical significance.
+    reason = ("LOW_EXPOSURE_LT_20_PERCENT" if exposure < 0.20 else
+              "LOW_TRADES_LT_10" if trades < 10 else "RESEARCH_ONLY_ELIGIBLE")
+    return P4QualityReview(
+        source_generation=review.source_generation, strategy_hash=review.strategy_hash,
+        market_exposure=exposure, completed_trades=trades,
+        full_qqq_return=qqq, exposure_matched_qqq_return=matched,
+        risk_matched_qqq_return=risk,
+        strategy_excess_vs_exposure_proxy=review.full_development_return-matched,
+        strategy_excess_vs_risk_proxy=review.full_development_return-risk,
+        drawdown_advantage_vs_exposure_proxy=matched_mdd-review.full_development_mdd,
+        eligible_as_research_parent=reason == "RESEARCH_ONLY_ELIGIBLE",
+        reason=reason, benchmark_hash=benchmark["benchmark_hash"],
+    )
+
+
+@dataclass(frozen=True)
 class GeneralizationParentChoice:
     chosen_generation: int
     chosen_strategy_hash: str
@@ -57,6 +120,8 @@ class GeneralizationParentChoice:
     candidate_reviews: tuple[ParentRobustnessReview, ...]
     frontier_generations: tuple[int, ...]
     selection_hash: str
+    p4_quality_reviews: tuple[P4QualityReview, ...] = ()
+    p4_quality_gate_enabled: bool = False
     status: Literal["EX_POST_DEVELOPMENT_SELECTION_ONLY"] = (
         "EX_POST_DEVELOPMENT_SELECTION_ONLY"
     )
@@ -234,6 +299,7 @@ def select_generalization_parent(
     reports: Mapping[str, InheritedRobustnessReport],
     *,
     next_generation: int,
+    p4_quality_gate: bool = False,
 ) -> GeneralizationParentChoice:
     """Rotate audited growth/defense/consistency lanes on shared ex-post years.
 
@@ -267,12 +333,43 @@ def select_generalization_parent(
     ):
         raise GeneralizationParentError("incomparable development years or market dataset")
     reviews.sort(key=lambda p: (p.source_generation, p.strategy_hash))
+    quality_reviews: tuple[P4QualityReview, ...] = ()
+    diagnostics: dict[str, P4QualityReview] = {}
+    if p4_quality_gate:
+        original = {str(c["successor_strategy_hash"]): c for c in candidates}
+        quality_reviews = tuple(
+            _p4_quality(original[rev.strategy_hash], rev, baseline_data)
+            for rev in reviews
+        )
+        if len({q.full_qqq_return for q in quality_reviews}) != 1:
+            raise GeneralizationParentError("P4 cross-candidate QQQ comparison differs")
+        diagnostics = {q.strategy_hash: q for q in quality_reviews}
+        reviews = [r for r in reviews if diagnostics[r.strategy_hash].eligible_as_research_parent]
+        if not reviews:
+            raise GeneralizationParentError("P4 no eligible non-cash audited research parent")
     frontier = [
         a for a in reviews
         if not any(_dominates(b, a) for b in reviews if b is not a)
     ]
     # Strictly deterministic ties, so equal-score runs don't change parents.
-    lanes = (
+    if p4_quality_gate:
+        # The defensive lane rewards actual drawdown reduction relative to a
+        # costed, fixed initial QQQ allocation at the SAME observed exposure.
+        # No division by tiny exposure or implied prospective alpha.
+        lanes = (
+            ("GROWTH", sorted(frontier, key=lambda x: (
+                -diagnostics[x.strategy_hash].strategy_excess_vs_exposure_proxy,
+                -x.full_development_return, x.source_generation))),
+            ("DOWNSIDE", sorted(frontier, key=lambda x: (
+                -diagnostics[x.strategy_hash].drawdown_advantage_vs_exposure_proxy,
+                x.full_development_mdd, x.source_generation))),
+            ("CONSISTENCY", sorted(frontier, key=lambda x: (
+                -x.worst_year_excess_vs_qqq, -x.median_year_excess_vs_qqq,
+                -diagnostics[x.strategy_hash].strategy_excess_vs_risk_proxy,
+                x.source_generation))),
+        )
+    else:
+        lanes = (
         ("GROWTH", sorted(frontier, key=lambda x: (
             -x.full_development_return, x.full_development_mdd, x.source_generation))),
         ("DOWNSIDE", sorted(frontier, key=lambda x: (
@@ -309,6 +406,13 @@ def select_generalization_parent(
         "candidate_reviews": [asdict(r) for r in reviews],
         "oos_approved": False,
     }
+    if p4_quality_gate:
+        body.update({
+            "schema": "counted-inherited-ex-post-parent-comparison-p4-quality-v1",
+            "quality_gate": "RESEARCH_ONLY_MIN_20_PERCENT_EXPOSURE_MIN_10_TRADES",
+            "quality_reviews": [asdict(q) for q in quality_reviews],
+            "matched_proxies": "EX_POST_FIXED_INITIAL_QQQ_ALLOCATION_NOT_CAUSAL",
+        })
     return GeneralizationParentChoice(
         chosen_generation=selected.source_generation,
         chosen_strategy_hash=selected.strategy_hash,
@@ -320,4 +424,6 @@ def select_generalization_parent(
         candidate_reviews=tuple(reviews),
         frontier_generations=tuple(r.source_generation for r in frontier),
         selection_hash=content_hash(body),
+        p4_quality_reviews=quality_reviews,
+        p4_quality_gate_enabled=p4_quality_gate,
     )

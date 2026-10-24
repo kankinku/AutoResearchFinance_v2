@@ -23,6 +23,38 @@ from research.llm.generalization_parent_v1 import (
 )
 
 
+def _p4_benchmark(market: MarketDataSet, exposure: float,
+                  equity_curve: tuple[float, ...]) -> dict[str, object]:
+    """Canonical costed QQQ, fixed-exposure and hindsight risk proxy evidence."""
+    from core.integrity.hashes import content_hash
+    from research.indicator_engine.development_benchmark import (
+        compare_qqq_development_benchmarks,
+    )
+
+    compared = compare_qqq_development_benchmarks(
+        market, realized_exposure=exposure, strategy_equity_curve=equity_curve,
+    )
+    fixed = compared["qqq_fixed_initial_allocation_proxy"]
+    risk = compared["qqq_realized_volatility_matched_diagnostic"]
+    if fixed is None or risk is None:
+        raise ResearchCatalogError("P4 exposure and realized-risk comparator missing")
+    proof = {
+        "schema": "p4-costed-qqq-proxies-v1",
+        "dataset_hash": market.dataset_hash,
+        "realized_exposure": exposure,
+        "qqq_costed_return": compared["qqq_costed_buy_and_hold"]["total_return"],
+        "exposure_proxy_return": fixed["total_return"],
+        "exposure_proxy_mdd": fixed["max_drawdown"],
+        "risk_proxy_return": risk["total_return"],
+        "risk_proxy_mdd": risk["max_drawdown"],
+        "risk_proxy_capped": risk["volatility_match_capped_no_leverage"],
+        "equity_curve_hash": content_hash(equity_curve),
+        "forward_selection_allowed": False,
+        "independent_oos_approved": False,
+    }
+    return {**proof, "benchmark_hash": content_hash(proof)}
+
+
 def preview_counted_parent_generalization(
     service: AcademicMCPCheckpointService,
     catalog: ResearchCatalog,
@@ -33,6 +65,7 @@ def preview_counted_parent_generalization(
     years: Sequence[int],
     last_development_date: date,
     next_generation: int,
+    p4_quality_gate: bool = False,
 ) -> GeneralizationParentChoice:
     """Audit and compare only explicit counted parents in an ISOLATED service.
 
@@ -74,7 +107,16 @@ def preview_counted_parent_generalization(
         )
         reports[compiled.strategy_hash] = review
         metrics = evidence["metrics"]
+        if p4_quality_gate:
+            from research.indicator_engine.inherited_decision_audit import (
+                audit_inherited_decisions,
+            )
+            p4_benchmark = _p4_benchmark(
+                market, metrics["exposure"],
+                audit_inherited_decisions(compiled, market).evaluation.equity_curve,
+            )
         candidates.append({
+            **({"p4_quality_benchmark": p4_benchmark} if p4_quality_gate else {}),
             "source_generation": generation,
             "source_kind": "COUNTED_GENERATION",
             "source_evidence_hash": evidence["evidence_hash"],
@@ -93,6 +135,7 @@ def preview_counted_parent_generalization(
         })
     return select_generalization_parent(
         candidates, reports, next_generation=next_generation,
+        p4_quality_gate=p4_quality_gate,
     )
 
 
@@ -106,6 +149,7 @@ def preview_mixed_parent_generalization(
     years: Sequence[int],
     last_development_date: date,
     next_generation: int,
+    p4_quality_gate: bool = False,
 ) -> GeneralizationParentChoice:
     """Replay counted parents AND authenticated S7 children in an isolated clone.
 
@@ -255,6 +299,12 @@ def preview_mixed_parent_generalization(
                     "market_exposure": signed["successor_market_exposure"],
                 },
             }
+        if p4_quality_gate:
+            audited_run = audited_parent if hypothesis_id is None else audited_child
+            candidate["p4_quality_benchmark"] = _p4_benchmark(
+                market, candidate["parent_quality"]["market_exposure"],
+                audited_run.evaluation.equity_curve,
+            )
         report = evaluate_inherited_historical_robustness(
             compiled, child_evidence, market, years=years,
             last_development_date=last_development_date,
@@ -265,4 +315,5 @@ def preview_mixed_parent_generalization(
         reports[compiled.strategy_hash] = report
     return select_generalization_parent(
         candidates, reports, next_generation=next_generation,
+        p4_quality_gate=p4_quality_gate,
     )
