@@ -27,7 +27,7 @@
 | P0 | 별도 Git worktree/브랜치, 운영 DB 원장·OAuth·대시보드 불변 확인 | 활성 68/100 checkpoint 원장 quick_check PASS, G452/G552 보존, OAuth/OOS/orders 그대로 | 기준선 확인 |
 | P1 | 데이터 지표/비용/TradingView 동등성 audit | G64의 native RSI SMA·ADX SMA·다음 봉 시가와 TV 값/거래 ID 바 단위 재현. 분할/배당 원시 vs 조정 가격 일치 | 일부 자료·코드 확인, TV 독립 검증 미완료 |
 | **P2-A** | **연속 100세대와 무관한 ex-post period diagnostic**: `historical_robustness.py`, 기존 forward_window·costed benchmark 재사용 | 여러 연도 반복·상태 명칭 non-OOS, 미래 데이터 컷오프 거부, 이후 연도 가격변경→이전 연도 불변, 기간별 비용·fill 추적 | **구현/테스트 단계** |
-| P2-B | G64 등 **변이/부모로 계승된 실제 StrategyIR 및 feature vector** 리플레이 지원, 알고리즘 원본/해시·수식 보존 | 컴파일된 vector·StrategyIR 감사 일치, 실제 G64 체결 재생, 로그 및 비용/수량 parity | 미구현 |
+| **P2-B** | G64 등 **변이/부모로 계승된 실제 StrategyIR 및 feature vector** 리플레이 지원, 알고리즘 원본/해시·수식 보존 | 컴파일된 vector·StrategyIR 감사 일치, 실제 G64 전체 감사 SHA·40건 완료 거래 재생, 2021~2025 연도별 비용 수익 비교 | **구현·테스트 65 PASS / 개발 브랜치 한정. [실측 보고서](quant-generalization-p2b-g64-20261024.md)** |
 | P3 | 평가 결과 통합 및 다목적 부모 선정 | 수익/MDD·최악 연도·시장 노출·동일 기간 QQQ 기준, 중복 시험/표본 부족 명시, PBO/DSR 조건 검증, 임의 고정 성과 문턱으로 유망 장세 전략 억압 금지 | 미구현 |
 | P4 | 진짜 GPT 완결 연구/계승 10세대 리허설 | 매 세대 GPT plan·S7 진단·측정/결정 해시·실행 호출 증명/중단재개, 성공/실패 사유 | 미실행 |
 | P5 | **신규 별도 session의 연속 GPT 100/100** | G1~G100 uninterrupted inherited plan path+S7; 이전 68/100 DB 절대 리셋/재계수 없음 | 미실행 |
@@ -65,9 +65,9 @@
 - 미실행/미검증: 전체 repository tests, 운영 대시보드 GUI 인증, TradingView G64 1:1, 새 GPT 루프/100세대, 2026 OOS, 실제 미래 순수익. 새 코드 **운영 미배포**.
 
 ## 8. 다음 작업
-1. 실제 QQQ 2020~2025 데이터에서 동결된 typed AlgorithmPlan 사용해 2021~2025 실측 결과 단순 회귀검증. 실제 최고 G64 **변이된 StrategyIR** 재생은 P2-B 지원을 구축한 뒤에만 G64 성과라고 표기.
+1. 실제 QQQ 2020~2025 데이터에서 동결된 typed AlgorithmPlan 및 실제 최고 G64 **변이된 StrategyIR** 2021~2025 연도별 비용·체결 진단 **완료**([P2-B 실측 기록](quant-generalization-p2b-g64-20261024.md)). G64 원본 full-audit SHA 일치, 기존 운영 원장 불변.
 2. 2026 데이터 공급이 현재 없다면 UNAVAILABLE 상태를 유지하며 누적 Pine 성적만으로 강제 손익 판정하지 않는다.
-3. P2-B 진입 전 StrategyIR 메타데이터/지표 벡터 감사 계약, 두 코드의 구현 동등성을 테스트.
+3. 다음 P3: 기간별 강건성 진단을 다양한 후보의 Pareto/부모 선정 점수에 반영할 때 **동일 개발 데이터 EX_POST**와 독립 미래 검증을 엄격히 구분. StrategyIR 계승 벡터는 원본 감사 통과를 선행 조건으로 유지.
 4. 10세대 이후 실제 100세대 연속 진화. 비용·진단 및 안전 게이트 실패하면 우선 해결.
 
 **이 문서는 기존 20Q 결정 및 V05→T4→V01~V04→V06→V07 승인 순서를 변경하지 않으며, 범위 확대 항목은 추가 승인 필요.**
