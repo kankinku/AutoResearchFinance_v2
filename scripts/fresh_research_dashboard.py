@@ -25,10 +25,18 @@ ACTIVE_COHORT_ID = "G453-G552-20261023-moon-stress"
 # This is a model-authored checkpoint channel, not unattended model attestation.
 LIVE_STATE = ROOT / "state/moon-http"
 LIVE_SESSION_ID = "14626d55fb2b461faa485df911920071"
+# Pin the opt-in 100-generation GPT checkpoint by ID, never by latest DB file.
+P5_STATE = Path("/shared/moon-workspace/AutoResearchFinance_v2-p5-gpt-100-20261024")
+P5_SESSION_ID = "3b44e05e52b3497db6fa035681ed0a5d"
 QQQ_DEV_RETURN = 1.8777241068917014
 # Price-only benchmark over the same development window (2020-01-02 to 2025-12-31).
 QQQ_DEV_YEARS = (date(2025, 12, 31) - date(2020, 1, 2)).days / 365.2425
 QQQ_DEV_CAGR = (1 + QQQ_DEV_RETURN) ** (1 / QQQ_DEV_YEARS) - 1
+
+
+def _measured_metric(m: dict[str, Any], k: str) -> float | None:
+    v = m.get(k)
+    return None if v is None else float(v)
 
 
 def _read_db(path: Path) -> sqlite3.Connection:
@@ -77,14 +85,21 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
     # locally verified 100-generation clone to the dashboard's *default* view.
     if state is None:
         state = (
-            LIVE_STATE
-            if (LIVE_STATE / "research/academic-gpt-checkpoints/cycles.sqlite").is_file()
-            else ACTIVE_STATE
-            if ACTIVE_STATE.is_dir()
-            else STATE
+            P5_STATE
+            if (P5_STATE / "academic-gpt-checkpoints/cycles.sqlite").is_file()
+            else (
+                LIVE_STATE
+                if (LIVE_STATE / "research/academic-gpt-checkpoints/cycles.sqlite").is_file()
+                else ACTIVE_STATE
+                if ACTIVE_STATE.is_dir()
+                else STATE
+            )
         )
     baseline = 52
     label = "기존 개발 연구 (보존 원장)"
+    if state == P5_STATE:
+        baseline = 0
+        label = "P5 신규 GPT 연구 (목표 100세대, 개발 전용)"
     if state == LIVE_STATE:
         baseline = 0
         label = "현재 GPT 작성 MCP 전략 연구 · 실측 체크포인트 (독립 개발 검증)"
@@ -105,13 +120,19 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
             raise ValueError("active cohort manifest does not match the trusted research clone")
         label = "현재 G453~G552 · 신규 100세대 연구 (고정 규칙 기반)"
     sid = (
-        LIVE_SESSION_ID
-        if state == LIVE_STATE
-        else (state / "session-id.txt").read_text(encoding="ascii").strip()
+        P5_SESSION_ID
+        if state == P5_STATE
+        else (
+            LIVE_SESSION_ID
+            if state == LIVE_STATE
+            else (state / "session-id.txt").read_text(encoding="ascii").strip()
+        )
     )
     if len(sid) != 32 or any(c not in "0123456789abcdef" for c in sid):
         raise ValueError("invalid session id")
-    base = state / "research/academic-gpt-checkpoints"
+    base = state / (
+        "academic-gpt-checkpoints" if state == P5_STATE else "research/academic-gpt-checkpoints"
+    )
     with _read_db(base / "cycles.sqlite") as cycle, _read_db(base / "gateway.sqlite") as gate:
         row = cycle.execute(
             "SELECT requested,completed,status,dataset_hash FROM sessions WHERE id=?", (sid,)
@@ -147,12 +168,12 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
                 "mdd": float(m["max_drawdown"]),
                 "trades": int(m["trade_count"]),
                 "exposure": float(m["exposure"]),
-                "sharpe": float(m.get("sharpe", 0)),
+                "sharpe": _measured_metric(m, "sharpe"),
                 "cagr": float(m["cagr"]),
-                "sortino": float(m.get("sortino", 0)),
-                "profit_factor": float(m.get("profit_factor", 0)),
-                "turnover": float(m.get("turnover", 0)),
-                "win_rate": float(m.get("win_rate", 0)),
+                "sortino": _measured_metric(m, "sortino"),
+                "profit_factor": _measured_metric(m, "profit_factor"),
+                "turnover": _measured_metric(m, "turnover"),
+                "win_rate": _measured_metric(m, "win_rate"),
                 "evidence_prefix": prev[:12],
                 "eligible": int(m["trade_count"]) >= 30,
             }
@@ -195,7 +216,7 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
         "cohort_label": label,
         "source_kind": (
             "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
-            if state == LIVE_STATE
+            if state in (LIVE_STATE, P5_STATE)
             else "ISOLATED_100_GENERATION_DEVELOPMENT"
             if state == ACTIVE_STATE
             else "ORIGINAL_ACADEMIC_DEVELOPMENT"
@@ -220,7 +241,7 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
         "research_running_confirmed": _controller_running(state),
         "controller_note": (
             "ChatGPT-authored proposals via MCP, NOT unattended model-autonomy attestation"
-            if state == LIVE_STATE
+            if state in (LIVE_STATE, P5_STATE)
             else "G4+ deterministic rule exploration (NOT 1 GPT decision per generation)"
         ),
         "generations": seen,
