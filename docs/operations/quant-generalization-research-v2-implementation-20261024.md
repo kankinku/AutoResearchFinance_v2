@@ -30,7 +30,7 @@
 | **P2-B** | G64 등 **변이/부모로 계승된 실제 StrategyIR 및 feature vector** 리플레이 지원, 알고리즘 원본/해시·수식 보존 | 컴파일된 vector·StrategyIR 감사 일치, 실제 G64 전체 감사 SHA·40건 완료 거래 재생, 2021~2025 연도별 비용 수익 비교 | **구현·테스트 65 PASS / 개발 브랜치 한정. [실측 보고서](quant-generalization-p2b-g64-20261024.md)** |
 | **P3-A** | 실제 audited counted 후보의 연도별 강건성 기반 Pareto/부모 순환 **별도 진단 선택기** | 원본 계보 해시/연도 QQQ 비용/최악 MDD, G64/G61/G45 실측, 운영 state 접근 거부, ex-post로만 표시 | **구현 / 실제 원장 복제본 검증 완료. [P3 보고서](quant-generalization-p3-parent-review-20261024.md)** |
 | **P3-B** | **실제 counted S7 자식** 감사 및 새 세션 opt-in parent selector 코드 통합 | 원본 S7 실측·signed source/child 계보, 개발부모·S7 동등 평가, 기존 pinned 우선보존 | **개발 구현 및 오프라인 실원장 평가 검증 완료; 운영 미배포. [P3-B 보고서](quant-generalization-p3b-s7-scoped-integration-20261024.md)** |
-| P4 | 진짜 GPT 완결 연구/계승 10세대 리허설 | 매 세대 GPT plan·S7 진단·측정/결정 해시·실행 호출 증명/중단재개, 성공/실패 사유 | 미실행 |
+| **P4** | GPT 작성 계획·진단 기반 격리 연구 10세대 + S7 실측 + 부모 계승 | 10세대 Evidence·10 S7·2 부모 pin, 오류 시 재제출 후 동일 token·해시 보존. 모델 호출 ID·투자 성능 미달 | **실제 10/10 기술 통합 PASS, 경제성 FAIL, 모델 invocation receipt 미구현. [P4 보고서](quant-generalization-p4-10gen-actual-study-20261024.md)** |
 | P5 | **신규 별도 session의 연속 GPT 100/100** | G1~G100 uninterrupted inherited plan path+S7; 이전 68/100 DB 절대 리셋/재계수 없음 | 미실행 |
 | P6 | 최종 후보 사전잠금 + 데이터 공급 재현성 + 미래 전진 검증 | 사용자가 확인한 2026 EXPOSED 구분, 2026 실제 시점 자료/독립 PIT 봉인 승인 전 OOS BLOCKED, 새 미래 자료로 진짜 검증 | 미구현 |
 
