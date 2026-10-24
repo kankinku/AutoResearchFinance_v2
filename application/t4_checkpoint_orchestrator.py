@@ -93,6 +93,16 @@ def run_checkpoint_loop(
         raise ModelUnavailable("authenticated external ChatGPT/MCP model callback is unavailable")
     if mode not in ("TEST_ONLY", "EXTERNAL_MCP_UNVERIFIED"):
         raise ValueError("unrecognized model invocation mode")
+    if mode == "EXTERNAL_MCP_UNVERIFIED":
+        raise ModelUnavailable(
+            "unverified external model callback cannot write counted research; "
+            "per-invocation provider proof and approved host integration required"
+        )
+    if getattr(service, "_t4_fixture_only", False) is not True:
+        raise ModelUnavailable(
+            "TEST_ONLY requires explicitly marked isolated fixture service; "
+            "operational research sessions cannot run mock generations"
+        )
     if type(max_retries_per_checkpoint) is not int or not 0 <= max_retries_per_checkpoint <= 8:
         raise ValueError("retry budget out of range")
     if max_model_calls is not None and (type(max_model_calls) is not int or max_model_calls < 1):

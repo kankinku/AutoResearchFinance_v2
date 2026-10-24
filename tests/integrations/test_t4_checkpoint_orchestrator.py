@@ -18,6 +18,7 @@ class FakeCheckpoint:
     def __init__(self, count: int = 20, target: int = 100):
         self.completed = count
         self.target = target
+        self._t4_fixture_only = True
         self.phase = "AWAITING_PLAN"
         self.token_serial = 10
         self.plan_calls = 0
@@ -213,6 +214,7 @@ def test_real_isolated_service_checkpoint_completes_only_after_s7(tmp_path):
     from tests.research.test_autonomous_academic_cycle import ScriptedResearcher
 
     service = _svc(tmp_path)
+    service._t4_fixture_only = True
     started = service.start({"data_path": "data/study.parquet", "generations": 1})
 
     class LabOnlyModel:
@@ -251,3 +253,81 @@ def test_real_isolated_service_checkpoint_completes_only_after_s7(tmp_path):
     assert state["p4_s7_quality_audit"]["approved_count"] == 1
     assert report["model_calls"] == 2
     assert report["real_provider_verified"] is False
+
+
+def test_externally_supplied_callback_without_verified_provider_is_blocked():
+    """Actual runtime must never submit fake decisions as GPT generations."""
+    svc, model = FakeCheckpoint(target=23), FakeModel()
+    with pytest.raises(ModelUnavailable, match="unverified|provider"):
+        run_checkpoint_loop(
+            svc,
+            session_id="1" * 32,
+            model=model,
+            mode="EXTERNAL_MCP_UNVERIFIED",
+        )
+    assert svc.completed == 20
+    assert svc.plan_calls == svc.diagnosis_calls == 0
+    assert model.calls == []
+
+
+def test_forged_model_verified_attribute_does_not_bypass_provenance_gate():
+    svc, model = FakeCheckpoint(target=21), FakeModel()
+    model.provider_signed_receipt_verified = True
+    model.independent_model_invocation_verified = True
+    with pytest.raises(ModelUnavailable):
+        run_checkpoint_loop(
+            svc,
+            session_id="1" * 32,
+            model=model,
+            mode="EXTERNAL_MCP_UNVERIFIED",
+        )
+    assert svc.completed == 20 and not model.calls
+
+
+def test_past_provider_capture_does_not_authorize_next_generation():
+    svc, model = FakeCheckpoint(target=21), FakeModel()
+    old = svc.get
+
+    def previously_signed(args):
+        data = old(args)
+        data["model_capture_audit"] = {
+            "provider_signed_receipt_verified": True,
+            "independent_model_invocation_verified": True,
+        }
+        return data
+
+    svc.get = previously_signed
+    with pytest.raises(ModelUnavailable):
+        run_checkpoint_loop(
+            svc,
+            session_id="1" * 32,
+            model=model,
+            mode="EXTERNAL_MCP_UNVERIFIED",
+        )
+    assert svc.completed == 20 and not model.calls
+
+
+def test_fixture_mode_refuses_unmarked_service_even_with_mock_model():
+    svc, model = FakeCheckpoint(target=21), FakeModel()
+    svc._t4_fixture_only = False
+    with pytest.raises(ModelUnavailable, match="fixture"):
+        run_checkpoint_loop(
+            svc,
+            session_id="1" * 32,
+            model=model,
+            mode="TEST_ONLY",
+        )
+    assert svc.completed == 20 and not model.calls
+
+
+def test_fixture_marker_does_not_override_production_provider_gate():
+    svc, model = FakeCheckpoint(target=21), FakeModel()
+    svc._t4_fixture_only = True
+    with pytest.raises(ModelUnavailable, match="unverified"):
+        run_checkpoint_loop(
+            svc,
+            session_id="1" * 32,
+            model=model,
+            mode="EXTERNAL_MCP_UNVERIFIED",
+        )
+    assert svc.completed == 20 and not model.calls
