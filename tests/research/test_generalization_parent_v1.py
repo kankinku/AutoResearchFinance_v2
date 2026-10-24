@@ -140,3 +140,36 @@ def test_fallback_diversity_is_never_mislabeled_as_best_consistency():
     assert answer.lane_generations == (64,61,45)
     assert answer.lane_names == ("GROWTH","DOWNSIDE","PARETO_DIVERSITY")
     assert answer.chosen_generation == 45
+
+
+def test_verified_s7_child_competes_and_tamper_blocks():
+    counted, old = fixtures()[0]
+    child, report = example(9, 1.85, .20, (-.12, .56, .25), (.12, .15, .13))
+    lineage = {
+        "schema": "counted-s7-child-origin-v1",
+        "source_generation": child["source_generation"],
+        "source_evidence_hash": child["source_evidence_hash"],
+        "source_report_hash": "a" * 64,
+        "hypothesis_id": "signed_child_study",
+        "child_strategy_hash": child["successor_strategy_hash"],
+    }
+    child = {
+        **child, "source_kind": "COUNTED_S7_CHILD",
+        "source_report_hash": lineage["source_report_hash"],
+        "hypothesis_id": lineage["hypothesis_id"],
+        "lineage_report_hash": content_hash(lineage),
+    }
+    choice = select([(counted, old), (child, report)])
+    assert any(x.source_kind == "COUNTED_S7_CHILD" for x in choice.candidate_reviews)
+    assert any(x.lineage_report_hash == child["lineage_report_hash"]
+               for x in choice.candidate_reviews)
+    broken = {**child, "hypothesis_id": "unverified_study"}
+    with pytest.raises(GeneralizationParentError, match="S7 lineage"):
+        select([(broken, report)])
+    broken = {**child, "source_report_hash": "b" * 64}
+    with pytest.raises(GeneralizationParentError, match="S7 lineage"):
+        select([(broken, report)])
+    broken = {**child, "lineage_report_hash": "b" * 64}
+    with pytest.raises(GeneralizationParentError, match="S7 lineage"):
+        select([(broken, report)])
+    assert choice.independent_oos_approved is False

@@ -10,7 +10,7 @@ import json
 import sqlite3
 from copy import deepcopy
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -128,6 +128,7 @@ class AcademicMCPCheckpointService:
         project_root: Path,
         state_dir: Path,
         parent_portfolio_v2: bool = False,
+        generalization_parent_v1: bool = False,
         child_risk_budget: ChildRiskBudget | None = None,
         precommit_child_risk_budget: ChildRiskBudget | None = None,
         p3_semantic_preflight: bool = False,
@@ -145,7 +146,10 @@ class AcademicMCPCheckpointService:
         self.root = project_root.resolve()
         self.state = state_dir.resolve() / "academic-gpt-checkpoints"
         self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
+        if generalization_parent_v1 and not parent_portfolio_v2:
+            raise ValueError("generalization selection requires scoped parent portfolio")
         self.parent_portfolio_v2 = parent_portfolio_v2
+        self.generalization_parent_v1 = generalization_parent_v1
         # Opt-in research hints only. They never select an executable parent,
         # modify a counted generation or attest to an LLM model provider.
         self.v3_research_memory = v3_research_memory
@@ -162,6 +166,12 @@ class AcademicMCPCheckpointService:
           plan_json TEXT, plan_digest TEXT, context_digest TEXT
         )""")
         # Supplemental timing; original canonical evidence remains unchanged.
+        if self.generalization_parent_v1:
+            db.execute("""CREATE TABLE IF NOT EXISTS generalization_enrollments (
+                session_id TEXT PRIMARY KEY NOT NULL,
+                dataset_hash TEXT NOT NULL,
+                policy TEXT NOT NULL
+            )""")
         db.execute("""CREATE TABLE IF NOT EXISTS generation_timings (
             session_id TEXT NOT NULL, generation INTEGER NOT NULL,
             start_utc TEXT NOT NULL, end_utc TEXT, evidence_hash TEXT,
@@ -470,6 +480,8 @@ class AcademicMCPCheckpointService:
             raise ValueError("data_path must be a string")
         path = resolve_project_input(self.root, args["data_path"], frozenset({".parquet"}))
         data = ParquetDataProvider.read(path)
+        if self.generalization_parent_v1 and data.bars[-1].timestamp.date() > date(2025, 12, 31):
+            raise CycleStateError("P3 new development session excludes exposed 2026 data")
         catalog_version = "s6-v2"
         catalog = self._catalog(catalog_version)
         # Preserve existing replay, but reject newly started sessions after
@@ -485,6 +497,12 @@ class AcademicMCPCheckpointService:
         token = uuid4().hex
         sid = str(started["session_id"])
         with self._connect() as db:
+            if self.generalization_parent_v1:
+                db.execute(
+                    "INSERT INTO generalization_enrollments(session_id,dataset_hash,policy) "
+                    "VALUES(?,?,?)",
+                    (sid, data.dataset_hash, "AUDITED_EX_POST_PARENT_V1"),
+                )
             db.execute(
                 "INSERT INTO stages(session_id,data_path,phase,token,catalog_version) "
                 "VALUES(?,?,?,?,?)",
@@ -518,6 +536,120 @@ class AcademicMCPCheckpointService:
         if not isinstance(body, dict) or content_hash(body) != row["report_hash"]:
             raise CycleStateError("controlled experiment record integrity mismatch")
         return {**body, "record_hash": row["report_hash"]}
+
+    def _scoped_generalization_selection(
+        self,
+        candidates: list[dict[str, Any]],
+        data: MarketDataSet,
+        status: dict[str, Any],
+    ) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
+        """Choose from canonical vetted parents using isolated ex-post replays.
+
+        ONLY a session explicitly enrolled at start() can call this method.
+        The source S7 proof/strategy/audit is validated AGAIN from a consistent
+        cloned snapshot. This never changes a prior pinned parent or OOS flag.
+        """
+        import sqlite3
+        from tempfile import TemporaryDirectory
+
+        from application.generalization_parent_preview import (
+            preview_mixed_parent_generalization,
+        )
+        from research.llm.parent_portfolio_v2 import verified_parent_lanes
+
+        if data.bars[-1].timestamp.date() > date(2025, 12, 31):
+            raise CycleStateError("P3 exposed 2026 market data is not eligible for research")
+        initial_lanes = verified_parent_lanes(candidates)
+        subset = list(initial_lanes)
+        seen = {x["effective_signal_hash"] for x in subset}
+        # Bounded 8 deep canonical replays: sample growth, downside and S7,
+        # without silently treating the stale full-period return as an OOS
+        # grade. Selection among them is the new period-aware Pareto policy.
+        for kind in ("COUNTED_GENERATION", "COUNTED_S7_CHILD"):
+            ranked = sorted(
+                (c for c in candidates if c.get("source_kind") == kind),
+                key=lambda x: (
+                    -x["parent_quality"]["total_return"],
+                    x["parent_quality"]["max_drawdown"],
+                    x["source_generation"],
+                ),
+            )
+            for row in ranked:
+                if len(subset) >= 8:
+                    break
+                if row["effective_signal_hash"] not in seen:
+                    subset.append(row)
+                    seen.add(row["effective_signal_hash"])
+        for item in subset:
+            if item.get("source_kind") not in ("COUNTED_GENERATION", "COUNTED_S7_CHILD"):
+                raise CycleStateError("P3 unverified parent source kind")
+        if not subset:
+            raise CycleStateError("P3 no qualified parent candidates")
+        sources = tuple(
+            (row["source_generation"], (
+                row["hypothesis_id"]
+                if row["source_kind"] == "COUNTED_S7_CHILD" else None
+            ))
+            for row in subset
+        )
+        with TemporaryDirectory(prefix="quant-p3-scoped-selection-") as work:
+            sandbox = Path(work) / "academic-gpt-checkpoints"
+            sandbox.mkdir()
+            for name in ("cycles.sqlite", "gateway.sqlite", "catalog-s6-v2.sqlite"):
+                source_db = (self.state / name).resolve()
+                with sqlite3.connect(source_db.as_uri() + "?mode=ro", uri=True) as origin:
+                    with sqlite3.connect(sandbox / name) as cloned:
+                        origin.backup(cloned)
+            clone = AcademicMCPCheckpointService(
+                project_root=self.root, state_dir=Path(work),
+                parent_portfolio_v2=False, generalization_parent_v1=False,
+            )
+            clone_catalog = clone._catalog("s6-v2")
+            # Complete years only, never 2026 or exposed/held-out price.
+            year_set = tuple(
+                y for y in sorted({bar.timestamp.year for bar in data.bars})
+                if y >= 2021 and y <= data.bars[-1].timestamp.year
+                and any(bar.timestamp.year == y and bar.timestamp.month == 12
+                        for bar in data.bars)
+            )
+            if len(year_set) < 3:
+                raise CycleStateError("P3 insufficient completed development years")
+            result = preview_mixed_parent_generalization(
+                clone, clone_catalog, data,
+                session_id=status["session_id"],
+                sources=sources, years=year_set,
+                last_development_date=data.bars[-1].timestamp.date(),
+                next_generation=status["completed_generations"] + 1,
+            )
+        original_by_hash = {x["successor_strategy_hash"]: x for x in candidates}
+        reviewed = {x.strategy_hash: x for x in result.candidate_reviews}
+        if any(
+            row["successor_strategy_hash"] not in reviewed
+            or reviewed[row["successor_strategy_hash"]].effective_signal_hash
+            != row["effective_signal_hash"]
+            for row in subset
+        ):
+            raise CycleStateError("P3 canonical S7 / counted signal proof drift")
+        try:
+            selected = original_by_hash[result.chosen_strategy_hash]
+            lanes = [original_by_hash[x] for x in result.lane_strategy_hashes]
+        except KeyError as exc:
+            raise CycleStateError("P3 selected strategy not canonical audited candidate") from exc
+        receipt = {
+            "schema": "scoped-ex-post-parent-selection-v1",
+            "preview_hash": result.selection_hash,
+            "sampled_generations": [x["source_generation"] for x in subset],
+            "sampled_strategy_hashes": [x["successor_strategy_hash"] for x in subset],
+            "lane_names": list(result.lane_names),
+            "lane_generations": list(result.lane_generations),
+            "lane_strategy_hashes": list(result.lane_strategy_hashes),
+            "chosen_strategy_hash": result.chosen_strategy_hash,
+            "source_kind": result.chosen_source_kind,
+            "dev_dataset_hash": data.dataset_hash,
+            "independent_oos_approved": False,
+            "broker_executable": False,
+        }
+        return selected, lanes, receipt
 
     def _choose_counted_generation_portfolio(
         self,
@@ -733,9 +865,33 @@ class AcademicMCPCheckpointService:
             if self.child_risk_budget is not None:
                 raise CycleStateError("P2 risk budget rejected all audited parent candidates")
             return None
-        selected, lanes = choose_parent_lane(candidates, status["completed_generations"] + 1)
+        generalization_receipt = None
+        if self.generalization_parent_v1:
+            enrolled = db.execute(
+                "SELECT dataset_hash,policy FROM generalization_enrollments "
+                "WHERE session_id=?", (status["session_id"],),
+            ).fetchone()
+            if (
+                enrolled is None
+                or enrolled["dataset_hash"] != data.dataset_hash
+                or enrolled["policy"] != "AUDITED_EX_POST_PARENT_V1"
+            ):
+                raise CycleStateError("generalization policy not enrolled at session creation")
+            selected, lanes, generalization_receipt = self._scoped_generalization_selection(
+                candidates, data, status,
+            )
+        else:
+            selected, lanes = choose_parent_lane(
+                candidates, status["completed_generations"] + 1,
+            )
         body = {k: v for k, v in selected.items() if k != "selection_hash"}
-        body["selection_basis"] = "P1_COST_REPLAYED_MULTI_OBJECTIVE_DEVELOPMENT_ONLY"
+        body["selection_basis"] = (
+            "P3_AUDITED_EX_POST_GENERALIZATION_OPT_IN"
+            if generalization_receipt is not None
+            else "P1_COST_REPLAYED_MULTI_OBJECTIVE_DEVELOPMENT_ONLY"
+        )
+        if generalization_receipt is not None:
+            body["generalization_receipt"] = generalization_receipt
         body["candidate_review"] = {
             "shortlisted_count": len(shortlist),
             "replayed_count": len(candidates),
@@ -753,7 +909,11 @@ class AcademicMCPCheckpointService:
             "diverse_parent_count": len(lanes),
             "lane_source_generations": [x["source_generation"] for x in lanes],
             "chosen_parent_generation": selected["source_generation"],
-            "selection_reason": "DETERMINISTIC_VERIFIED_PARENT_LANE_ROTATION",
+            "selection_reason": (
+                "P3_AUDITED_EX_POST_VERIFIED_PARENT_ROTATION"
+                if generalization_receipt is not None
+                else "DETERMINISTIC_VERIFIED_PARENT_LANE_ROTATION"
+            ),
             "not_sealed_oos": True,
         }
         return {**body, "selection_hash": content_hash(body)}

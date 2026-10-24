@@ -25,6 +25,8 @@ class GeneralizationParentError(ValueError):
 @dataclass(frozen=True)
 class ParentRobustnessReview:
     source_generation: int
+    source_kind: str
+    lineage_report_hash: str
     strategy_hash: str
     source_evidence_hash: str
     effective_signal_hash: str
@@ -47,8 +49,11 @@ class ParentRobustnessReview:
 class GeneralizationParentChoice:
     chosen_generation: int
     chosen_strategy_hash: str
+    chosen_source_kind: str
+    chosen_lineage_report_hash: str
     lane_names: tuple[str, ...]
     lane_generations: tuple[int, ...]
+    lane_strategy_hashes: tuple[str, ...]
     candidate_reviews: tuple[ParentRobustnessReview, ...]
     frontier_generations: tuple[int, ...]
     selection_hash: str
@@ -90,9 +95,29 @@ def _review(
         "cutoff": report.cutoff_date,
         "oos_approved": False,
     })
+    kind = candidate.get("source_kind")
+    proof = ""
+    if kind == "COUNTED_S7_CHILD":
+        lineage = {
+            "schema": "counted-s7-child-origin-v1",
+            "source_generation": candidate.get("source_generation"),
+            "source_evidence_hash": candidate.get("source_evidence_hash"),
+            "source_report_hash": candidate.get("source_report_hash"),
+            "hypothesis_id": candidate.get("hypothesis_id"),
+            "child_strategy_hash": candidate.get("successor_strategy_hash"),
+        }
+        proof = content_hash(lineage)
+        if (
+            not _valid_sha(candidate.get("source_report_hash"))
+            or not isinstance(candidate.get("hypothesis_id"), str)
+            or not candidate.get("hypothesis_id")
+            or candidate.get("lineage_report_hash") != proof
+        ):
+            raise GeneralizationParentError("S7 lineage proof invalid")
+    elif kind != "COUNTED_GENERATION":
+        raise GeneralizationParentError("unsupported parent source kind")
     if (
         candidate.get("replay_verified") is not True
-        or candidate.get("source_kind") != "COUNTED_GENERATION"
         or candidate.get("independent_oos_approved") is not False
         or candidate.get("broker_executable") is not False
         or report.status != "INHERITED_IR_EX_POST_DEVELOPMENT_ONLY"
@@ -165,6 +190,8 @@ def _review(
         raise GeneralizationParentError("insufficient completed annual trades")
     return ParentRobustnessReview(
         source_generation=gen,
+        source_kind=kind,
+        lineage_report_hash=proof,
         strategy_hash=report.strategy_hash,
         source_evidence_hash=report.source_evidence_hash,
         effective_signal_hash=signal,
@@ -275,6 +302,8 @@ def select_generalization_parent(
         "year_set": baseline_years,
         "chosen_generation": selected.source_generation,
         "chosen_strategy_hash": selected.strategy_hash,
+        "chosen_source_kind": selected.source_kind,
+        "chosen_lineage_report_hash": selected.lineage_report_hash,
         "lanes": [(name, row.source_generation) for name, row in picked],
         "frontier_generations": [r.source_generation for r in frontier],
         "candidate_reviews": [asdict(r) for r in reviews],
@@ -283,8 +312,11 @@ def select_generalization_parent(
     return GeneralizationParentChoice(
         chosen_generation=selected.source_generation,
         chosen_strategy_hash=selected.strategy_hash,
+        chosen_source_kind=selected.source_kind,
+        chosen_lineage_report_hash=selected.lineage_report_hash,
         lane_names=tuple(n for n, _ in picked),
         lane_generations=tuple(r.source_generation for _, r in picked),
+        lane_strategy_hashes=tuple(r.strategy_hash for _, r in picked),
         candidate_reviews=tuple(reviews),
         frontier_generations=tuple(r.source_generation for r in frontier),
         selection_hash=content_hash(body),

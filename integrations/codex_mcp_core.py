@@ -92,6 +92,14 @@ class CodexMCPServer:
         if opt_in and re.fullmatch(r"[0-9a-f]{32}", opt_in) is None:
             raise ValueError("invalid scoped Quant parent portfolio session")
         self.parent_portfolio_v2_session_id = opt_in
+        p3_session = os.environ.get("QUANT_MCP_GENERALIZATION_PARENT_V1_SESSION_ID", "")
+        if p3_session and re.fullmatch(r"[0-9a-f]{32}", p3_session) is None:
+            raise ValueError("invalid scoped Quant generalization parent session")
+        p3_new = os.environ.get("QUANT_MCP_GENERALIZATION_PARENT_V1_NEW_SESSION", "0")
+        if p3_new not in ("0", "1"):
+            raise ValueError("invalid Quant generalization new-session enrollment toggle")
+        self.generalization_parent_v1_session_id = p3_session
+        self.generalization_parent_v1_new_session = p3_new == "1"
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
         if name in {
@@ -104,13 +112,21 @@ class CodexMCPServer:
             "reconcile_algorithm_research",
             "evaluate_algorithm_experiments",
         }:
+            p3_scoped = (
+                bool(self.generalization_parent_v1_session_id)
+                and arguments.get("session_id") == self.generalization_parent_v1_session_id
+            ) or (name == "start_algorithm_research" and self.generalization_parent_v1_new_session)
             academic = AcademicMCPCheckpointService(
                 project_root=self.project_root,
                 state_dir=self.state_dir,
                 parent_portfolio_v2=(
-                    bool(self.parent_portfolio_v2_session_id)
-                    and arguments.get("session_id") == self.parent_portfolio_v2_session_id
+                    p3_scoped
+                    or (
+                        bool(self.parent_portfolio_v2_session_id)
+                        and arguments.get("session_id") == self.parent_portfolio_v2_session_id
+                    )
                 ),
+                generalization_parent_v1=p3_scoped,
             )
             if name == "start_algorithm_research":
                 return academic.start(arguments)

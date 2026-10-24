@@ -29,7 +29,7 @@
 | **P2-A** | **연속 100세대와 무관한 ex-post period diagnostic**: `historical_robustness.py`, 기존 forward_window·costed benchmark 재사용 | 여러 연도 반복·상태 명칭 non-OOS, 미래 데이터 컷오프 거부, 이후 연도 가격변경→이전 연도 불변, 기간별 비용·fill 추적 | **구현/테스트 단계** |
 | **P2-B** | G64 등 **변이/부모로 계승된 실제 StrategyIR 및 feature vector** 리플레이 지원, 알고리즘 원본/해시·수식 보존 | 컴파일된 vector·StrategyIR 감사 일치, 실제 G64 전체 감사 SHA·40건 완료 거래 재생, 2021~2025 연도별 비용 수익 비교 | **구현·테스트 65 PASS / 개발 브랜치 한정. [실측 보고서](quant-generalization-p2b-g64-20261024.md)** |
 | **P3-A** | 실제 audited counted 후보의 연도별 강건성 기반 Pareto/부모 순환 **별도 진단 선택기** | 원본 계보 해시/연도 QQQ 비용/최악 MDD, G64/G61/G45 실측, 운영 state 접근 거부, ex-post로만 표시 | **구현 / 실제 원장 복제본 검증 완료. [P3 보고서](quant-generalization-p3-parent-review-20261024.md)** |
-| **P3-B** | **실제 counted S7 자식** 감사 및 production parent selector의 명시적 opt-in 통합 | 원본 S7 실측·서명 해시·위험 기준/중단재개·기존 pinned 증거 불변 | **미구현** |
+| **P3-B** | **실제 counted S7 자식** 감사 및 새 세션 opt-in parent selector 코드 통합 | 원본 S7 실측·signed source/child 계보, 개발부모·S7 동등 평가, 기존 pinned 우선보존 | **개발 구현 및 오프라인 실원장 평가 검증 완료; 운영 미배포. [P3-B 보고서](quant-generalization-p3b-s7-scoped-integration-20261024.md)** |
 | P4 | 진짜 GPT 완결 연구/계승 10세대 리허설 | 매 세대 GPT plan·S7 진단·측정/결정 해시·실행 호출 증명/중단재개, 성공/실패 사유 | 미실행 |
 | P5 | **신규 별도 session의 연속 GPT 100/100** | G1~G100 uninterrupted inherited plan path+S7; 이전 68/100 DB 절대 리셋/재계수 없음 | 미실행 |
 | P6 | 최종 후보 사전잠금 + 데이터 공급 재현성 + 미래 전진 검증 | 사용자가 확인한 2026 EXPOSED 구분, 2026 실제 시점 자료/독립 PIT 봉인 승인 전 OOS BLOCKED, 새 미래 자료로 진짜 검증 | 미구현 |
@@ -68,7 +68,7 @@
 ## 8. 다음 작업
 1. 실제 QQQ 2020~2025 데이터에서 동결된 typed AlgorithmPlan 및 실제 최고 G64 **변이된 StrategyIR** 2021~2025 연도별 비용·체결 진단 **완료**([P2-B 실측 기록](quant-generalization-p2b-g64-20261024.md)). G64 원본 full-audit SHA 일치, 기존 운영 원장 불변.
 2. 2026 데이터 공급이 현재 없다면 UNAVAILABLE 상태를 유지하며 누적 Pine 성적만으로 강제 손익 판정하지 않는다.
-3. 다음 P3: 기간별 강건성 진단을 다양한 후보의 Pareto/부모 선정 점수에 반영할 때 **동일 개발 데이터 EX_POST**와 독립 미래 검증을 엄격히 구분. StrategyIR 계승 벡터는 원본 감사 통과를 선행 조건으로 유지.
+3. P3-B에서 S7 자식 원본 보고서/계보/전체 감사 해시 재현 → 동일 개발 기간별 평가 → 신규 세션 등록 시 선택기 opt-in 코드를 구현했다. 이제 P4 **격리 신규 연구 세션 실제 GPT 10세대** 계획→S7→부모 선정→계승/중단재개→증거해시 검증. 현재 개발 코드 운영 미배포이며 독립 미래 데이터 OOS 성능 실증은 별개다.
 4. 10세대 이후 실제 100세대 연속 진화. 비용·진단 및 안전 게이트 실패하면 우선 해결.
 
 **이 문서는 기존 20Q 결정 및 V05→T4→V01~V04→V06→V07 승인 순서를 변경하지 않으며, 범위 확대 항목은 추가 승인 필요.**
