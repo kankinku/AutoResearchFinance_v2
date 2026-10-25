@@ -47,3 +47,5 @@ PYTHONPATH=. .venv/bin/python scripts/codex_account_probe.py
 ## 확인된 검사
 
 D4 단독·기존 T4 model host **17/17 pytest PASS**, D3/P4-2/S7·MCP·거버넌스 포함 독립 `.venv` **54/54 pytest PASS**, 실제 account-only CLI PASS. 포크 전체 `ruff check .` PASS, `mypy application/t4_codex_host_preflight.py` PASS, `pip check` PASS, `git diff --check` PASS. **전체 pytest/전체 mypy는 NOT RUN**. GitHub 동기화는 실제 push/원격 확인 후에만 완료 표시.
+
+**원격 동기화 보충:** 독립 GitHub `main`에 이전 D3 두 커밋과 D4 구현 `bd9339d`까지 `git push origin main` 성공 확인. 기존 원본 Moon·Quant의 Git/인증은 변경하지 않았다.
