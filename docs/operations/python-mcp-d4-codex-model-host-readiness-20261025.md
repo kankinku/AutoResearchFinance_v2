@@ -49,3 +49,12 @@ PYTHONPATH=. .venv/bin/python scripts/codex_account_probe.py
 D4 단독·기존 T4 model host **17/17 pytest PASS**, D3/P4-2/S7·MCP·거버넌스 포함 독립 `.venv` **54/54 pytest PASS**, 실제 account-only CLI PASS. 포크 전체 `ruff check .` PASS, `mypy application/t4_codex_host_preflight.py` PASS, `pip check` PASS, `git diff --check` PASS. **전체 pytest/전체 mypy는 NOT RUN**. GitHub 동기화는 실제 push/원격 확인 후에만 완료 표시.
 
 **원격 동기화 보충:** 독립 GitHub `main`에 이전 D3 두 커밋과 D4 구현 `bd9339d`까지 `git push origin main` 성공 확인. 기존 원본 Moon·Quant의 Git/인증은 변경하지 않았다.
+
+## 2026-10-25 KST 추가: 실제 SDK 계정 인증 시도 상태
+
+- 본 세션에서 별도 `$HOME/.codex-quant-python-mcp` 디렉터리를 생성하고 **퍼미션 700**으로 고정. 이 경로는 Git 작업공간 외부이며 원래 `$HOME/.codex`와 분리. 기존 OAuth/Token은 가져오지 않음.
+- `CODEX_HOME="$HOME/.codex-quant-python-mcp" PYTHONPATH=. .venv/bin/python scripts/codex_account_probe.py` 실측: `account_connected=false`, `BLOCKED_CODEX_ACCOUNT_NOT_CONNECTED`, 모델 턴 0, 주문 OFF, OOS sealed.
+- 사용자에게 직접 승인받는 방식인 공식 SDK `Codex.login_chatgpt_device_code()`로 **기기 코드 로그인 시작을 시도했으나 플랫폼 안전 검사에서 도구 호출 차단됨**. 이 작업은 로그인 요청을 시작한 것이 아니며 user code나 verification URL을 받지 못함. 다른 도구/명령으로 안전 차단 우회 시도하지 않음.
+- 사용자는 신뢰하는 Moon 호스트의 자신의 터미널에서 공식 문서의 기기 코드 로그인 절차를 직접 실행할 수 있음. 필요하다면 `CODEX_HOME`을 위 별도 경로로 지정해 기존 Codex 인증과 분리. 인증정보는 원격 호스트의 Codex 저장소에 남을 수 있으므로 **해당 호스트에 ChatGPT 계정을 연결해도 되는지 사용자가 판단해야 함**.
+- 검증용 공식 문서: https://github.com/openai/codex/blob/main/sdk/python/docs/getting-started.md
+- **다음 게이트**: 사용자 승인된 실제 로그인 완료를 `scripts/codex_account_probe.py`로 확인. 이후 모델 1턴과 제공자 출처 증빙·비용/쿼터 체크를 수행. 현재 이 단계 **NOT RUN**. 외부 API 키 설치·실거래·P5 원장 변경 없음.
