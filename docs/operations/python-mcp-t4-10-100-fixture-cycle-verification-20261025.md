@@ -26,4 +26,4 @@
 - **NON-GOALS:** OAuth/고정 URL 변경, 다른 모델 API 무단 활성화, 운영 P5 원장 수정, OOS 해제, 주문 실행, synthetic 성과로 수익성 주장.
 - **재현 명령:** `PYTHONPATH=. .venv/bin/python -m pytest -q tests/integrations/test_t4_checkpoint_orchestrator.py tests/integrations/test_t4_codex_host_preflight.py tests/integrations/test_t4_codex_account_probe.py tests/research/test_codex_provider.py tests/governance/test_autoresearch_scope_lock.py` (31 PASS); `PYTHONPATH=. .venv/bin/python -m pytest -q tests/integrations/test_t4_checkpoint_orchestrator.py::test_real_isolated_service_checkpoint_completes_only_after_s7` (1 PASS). 10/100 메모리상 별도 직접 호출은 현재 Moon 작업의 기록으로만 존재.
 
-**상태 기준 커밋:** `f67576c`; 본 세션 신규 소스코드 변경 없음. 배포 변경 없음. 문서 GitHub push 상태는 별도 확인.
+**상태 기준 커밋:** `f67576c`; 보고서 문서 최초 커밋 `2382cbc10a41454da83676049b7d185c19fa418d`, `origin/main` push 및 원격 SHA 일치 확인. 신규 소스코드/배포 변경 없음.
