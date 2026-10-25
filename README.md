@@ -1,3 +1,23 @@
+# AutoResearchFinance Python MCP — independent experimental fork
+
+**Separate Git repository and Moon workspace** for a Python-driven MCP execution layer.
+Moon is only the development host; Quant AutoResearch remains the research engine.
+This fork does not replace the original Moon or Quant ChatGPT plugins and does not
+share the original P5 generation ledger.
+
+- **Python→Quant MCP:** real, read-only STDIO communication; no GPT usage.
+- **Repository:** `kankinku/AutoResearchFinance_PythonMCP` (private).
+- **Local state:** `state/python-mcp/`; must remain inside this clone.
+- **Quick test:** `PYTHONPATH=. python scripts/python_mcp_probe.py` from the repository root, using
+  a Python environment with `mcp>=2.2,<3` and other project dependencies.
+- **Result:** registered tools and features, status and no-trading flags.
+- **Next:** verified GPT plans/diagnoses→costed canonical backtests/S7 via a separate
+  authenticated model host; **not yet enabled**.
+
+[Read the implementation, isolation and verification report](docs/operations/python-mcp-hybrid-fork-bootstrap-20261025.md).
+
+---
+
 # Quant Autoresearch Harness
 
 
