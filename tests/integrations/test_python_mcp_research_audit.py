@@ -179,3 +179,179 @@ def test_mutated_dataset_is_rejected(tmp_path: Path):
     p.write_bytes(p.read_bytes() + b"tampered")
     with pytest.raises(ValueError, match="source data hash"):
         audit_python_mcp_cohort(root, work)
+
+
+def _add_gateway(work: Path, *, valid: bool = True) -> None:
+    from core.integrity.hashes import content_hash
+
+    folder = work / "checkpoint/academic-gpt-checkpoints"
+    cycles = sqlite3.connect(folder / "cycles.sqlite")
+    items = cycles.execute("SELECT generation,evidence_hash FROM generations").fetchall()
+    cycles.close()
+    with sqlite3.connect(folder / "gateway.sqlite") as db:
+        db.execute("CREATE TABLE stages (session_id text, phase text)")
+        db.execute("INSERT INTO stages VALUES (?,?)", ("a" * 32, "COMPLETED"))
+        db.execute(
+            "CREATE TABLE generation_timings ("
+            "session_id text,generation integer,start_utc text,end_utc text,evidence_hash text)"
+        )
+        db.execute(
+            "CREATE TABLE p4_s7_approvals ("
+            "session_id text,generation integer,review_json text,review_hash text)"
+        )
+        for generation, evidence_hash in items:
+            db.execute(
+                "INSERT INTO generation_timings VALUES (?,?,?,?,?)",
+                (
+                    "a" * 32,
+                    generation,
+                    "2026-10-25T12:00:00+00:00",
+                    "2026-10-25T12:01:00+00:00",
+                    evidence_hash,
+                ),
+            )
+            review = {
+                "generation": generation,
+                "counted_evidence_hash": evidence_hash,
+                "review": {"eligible": True},
+            }
+            if not valid and generation == 1:
+                review["counted_evidence_hash"] = "f" * 64
+            db.execute(
+                "INSERT INTO p4_s7_approvals VALUES (?,?,?,?)",
+                ("a" * 32, generation, json.dumps(review), content_hash(review)),
+            )
+
+
+def test_missing_diagnosis_ack_has_separate_corroboration_not_log_rewrite(tmp_path: Path):
+    from application.python_mcp_checkpoint_reconciliation import reconcile_python_mcp_cohort
+
+    root, work = _study(tmp_path)
+    _add_gateway(work)
+    log = work / "model-audit.jsonl"
+    original = log.read_bytes()
+    log.write_text(
+        "\n".join(
+            line
+            for line in original.decode().splitlines()
+            if not (
+                "CANONICAL_ACCEPTED" in line
+                and '"generation": 1' in line
+                and '"stage": "diagnosis"' in line
+            )
+        )
+        + "\n"
+    )
+    before = log.read_bytes()
+    result = reconcile_python_mcp_cohort(root, work)
+    assert result["missing_canonical_acceptance_markers"] == ["G1:diagnosis"]
+    assert (
+        result["missing_marker_corroboration"][0]["status"] == "CORROBORATED_CANONICAL_SQLITE_ONLY"
+    )
+    assert result["missing_marker_corroboration"][0]["provider_attested"] is False
+    assert result["resume_gate"] == "NOOP_COMPLETED"
+    assert log.read_bytes() == before
+    assert result["new_generations"] == 0
+
+
+def test_corrupt_s7_cannot_corroborate_missing_ack(tmp_path: Path):
+    from application.python_mcp_checkpoint_reconciliation import reconcile_python_mcp_cohort
+
+    root, work = _study(tmp_path)
+    _add_gateway(work, valid=False)
+    log = work / "model-audit.jsonl"
+    rows = [json.loads(x) for x in log.read_text().splitlines()]
+    log.write_text(
+        "\n".join(
+            json.dumps(x)
+            for x in rows
+            if not (
+                x["event"] == "CANONICAL_ACCEPTED"
+                and x["stage"] == "diagnosis"
+                and x["generation"] == 1
+            )
+        )
+        + "\n"
+    )
+    result = reconcile_python_mcp_cohort(root, work)
+    assert result["missing_marker_corroboration"][0]["status"] == "UNRESOLVED"
+    assert result["resume_gate"] == "NOOP_COMPLETED"
+
+
+def test_incomplete_session_never_auto_advance(tmp_path: Path):
+    from application.python_mcp_checkpoint_reconciliation import reconcile_python_mcp_cohort
+
+    root, work = _study(tmp_path)
+    _add_gateway(work)
+    gateway = work / "checkpoint/academic-gpt-checkpoints/gateway.sqlite"
+    cycle = work / "checkpoint/academic-gpt-checkpoints/cycles.sqlite"
+    with sqlite3.connect(cycle) as db:
+        db.execute("UPDATE sessions SET requested=3, status=?", ("AWAITING_PROVIDER",))
+    with sqlite3.connect(gateway) as db:
+        db.execute("UPDATE stages SET phase=?", ("AWAITING_PLAN",))
+    result = reconcile_python_mcp_cohort(root, work)
+    assert result["resume_gate"] == "REQUIRES_AUTHENTICATED_MODEL_DECISION"
+    assert result["new_generations"] == 0
+
+
+def test_unexpected_checkpoint_phase_blocks_resume(tmp_path: Path):
+    from application.python_mcp_checkpoint_reconciliation import reconcile_python_mcp_cohort
+
+    root, work = _study(tmp_path)
+    _add_gateway(work)
+    cycle = work / "checkpoint/academic-gpt-checkpoints/cycles.sqlite"
+    with sqlite3.connect(cycle) as db:
+        db.execute("UPDATE sessions SET requested=3, status=?", ("EXECUTING",))
+    result = reconcile_python_mcp_cohort(root, work)
+    assert result["resume_gate"] == "BLOCKED_CHECKPOINT_UNCERTAIN"
+    assert result["new_generations"] == 0
+
+
+def test_completed_with_mismatched_gateway_phase_is_blocked(tmp_path: Path):
+    from application.python_mcp_checkpoint_reconciliation import reconcile_python_mcp_cohort
+
+    root, work = _study(tmp_path)
+    _add_gateway(work)
+    gateway = work / "checkpoint/academic-gpt-checkpoints/gateway.sqlite"
+    with sqlite3.connect(gateway) as db:
+        db.execute("UPDATE stages SET phase=?", ("AWAITING_PLAN",))
+    report = reconcile_python_mcp_cohort(root, work)
+    assert report["resume_gate"] == "BLOCKED_CHECKPOINT_UNCERTAIN"
+    assert report["new_generations"] == 0
+
+
+def test_gateway_symlink_cannot_access_another_project(tmp_path: Path):
+    from application.python_mcp_checkpoint_reconciliation import reconcile_python_mcp_cohort
+
+    root, work = _study(tmp_path)
+    external = tmp_path / "external.db"
+    external.touch()
+    (work / "checkpoint/academic-gpt-checkpoints/gateway.sqlite").symlink_to(external)
+    with pytest.raises(ValueError, match="symlinked"):
+        reconcile_python_mcp_cohort(root, work)
+
+
+def test_invalid_s7_review_hash_is_unresolved(tmp_path: Path):
+    from application.python_mcp_checkpoint_reconciliation import reconcile_python_mcp_cohort
+
+    root, work = _study(tmp_path)
+    _add_gateway(work)
+    gateway = work / "checkpoint/academic-gpt-checkpoints/gateway.sqlite"
+    with sqlite3.connect(gateway) as db:
+        db.execute("UPDATE p4_s7_approvals SET review_hash=? WHERE generation=1", ("0" * 64,))
+    log = work / "model-audit.jsonl"
+    rows = [json.loads(x) for x in log.read_text().splitlines()]
+    log.write_text(
+        "\n".join(
+            json.dumps(x)
+            for x in rows
+            if not (
+                x["event"] == "CANONICAL_ACCEPTED"
+                and x["stage"] == "diagnosis"
+                and x["generation"] == 1
+            )
+        )
+        + "\n"
+    )
+    result = reconcile_python_mcp_cohort(root, work)
+    assert result["missing_marker_corroboration"][0]["status"] == "UNRESOLVED"
