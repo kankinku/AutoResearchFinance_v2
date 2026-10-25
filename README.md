@@ -20,6 +20,8 @@ share the original P5 generation ledger.
 
 **D3 signed academic MCP handoff:** [signer-bound plan/diagnosis bridge and test results](docs/operations/python-mcp-d3-signed-academic-handoff-20261025.md). This is a fork-local testable handoff only: no model/provider invocation proof or real GPT generations.
 
+**D4 Codex SDK readiness (account-only, no model calls):** [current preflight and blockers](docs/operations/python-mcp-d4-codex-model-host-readiness-20261025.md). The opt-in fork-local dependency is pinned in `requirements-codex-host.txt`. To inspect without logging in or spending model usage: `PYTHONPATH=. .venv/bin/python scripts/codex_account_probe.py`. At the 2026-10-25 check no Codex account was connected. Do not confuse installing the SDK with an authenticated model call or evidence.
+
 **Before any new development:** [complete repository source map, ownership and duplication-prevention checklist](docs/architecture/python-mcp-predevelopment-source-map-v1-20261025.md), [all 1,107 tracked files](docs/architecture/python-mcp-file-inventory-20261025.tsv) and [2,051 static Python import edges](docs/architecture/python-mcp-python-import-edges-20261025.tsv).
 
 ---

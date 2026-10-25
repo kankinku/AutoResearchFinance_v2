@@ -1,0 +1,3 @@
+# Opt-in, fork-local model host only; core Quant / Moon envs stay unchanged.
+# Install explicitly: .venv/bin/python -m pip install -r requirements-codex-host.txt
+openai-codex==0.163.0
