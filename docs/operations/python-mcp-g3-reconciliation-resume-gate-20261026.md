@@ -1,9 +1,9 @@
 # PythonMCP G3 diagnosis corroboration and fail-closed resume gate
 
-**Date:** 2026-10-26 KST  
-**Stage / Q IDs:** T4-PY-MCP-RECONCILE-RESUME-01 / Q02, Q06, Q08, Q09, Q11, Q15, Q16, Q17, Q20.  
-**User value:** recover defensible insight when an auxiliary model-audit acknowledgment was lost and prevent an already-completed study from consuming further model turns or duplicating evidence.  
-**Boundaries:** read-only, isolated PythonMCP `state/python-mcp/` only; no model invocation, login, market download, OAuth change, order, sealed OOS access, or change to original Moon/P5 and shared parallel development files. Existing frozen V05→T4→V01–V04→V06→V07 order remains in force.  
+**Date:** 2026-10-26 KST
+**Stage / Q IDs:** T4-PY-MCP-RECONCILE-RESUME-01 / Q02, Q06, Q08, Q09, Q11, Q15, Q16, Q17, Q20.
+**User value:** recover defensible insight when an auxiliary model-audit acknowledgment was lost and prevent an already-completed study from consuming further model turns or duplicating evidence.
+**Boundaries:** read-only, isolated PythonMCP `state/python-mcp/` only; no model invocation, login, market download, OAuth change, order, sealed OOS access, or change to original Moon/P5 and shared parallel development files. Existing frozen V05→T4→V01–V04→V06→V07 order remains in force.
 **Acceptance:** demonstrate G3 canonical evidence corroboration from *independent DB tables within the same local checkpoint* while preserving the missing auxiliary log marker, and fail-closed no-op for completed or uncertain checkpoints. These same-host SQLite records are **not** independent provider proof.
 
 ## Implementation and actual check
