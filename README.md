@@ -24,6 +24,8 @@ share the original P5 generation ledger.
 
 **D4 structured decision host (offline validated, opt-in only):** [adapter design and verification](docs/operations/python-mcp-d4-structured-model-adapter-20261025.md). `application/t4_codex_structured_model.py` validates SDK JSON schema, turn/usage and hashes but **does not sign, submit, or count actual GPT generations**. It defaults to refusing all model calls. Authorization and independently verifiable GPT invocation remain pending.
 
+**First actual Codex-authored synthetic research-cycle smoke:** [3 real SDK turns, 1 costed synthetic checkpoint with S7 and audit replay](docs/operations/python-mcp-real-gpt-synthetic-checkpoint-smoke-20261025.md). **NOT** a real-market/T4 production generation or independent provider provenance; local collector signature is test-only. No live orders or unsealed OOS.
+
 **Before any new development:** [complete repository source map, ownership and duplication-prevention checklist](docs/architecture/python-mcp-predevelopment-source-map-v1-20261025.md), [all 1,107 tracked files](docs/architecture/python-mcp-file-inventory-20261025.tsv) and [2,051 static Python import edges](docs/architecture/python-mcp-python-import-edges-20261025.tsv).
 
 ---
