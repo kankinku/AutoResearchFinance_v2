@@ -37,6 +37,7 @@ class QuantMCPSettings:
     state_dir: Path
     scope_session: str | None = None
     surface: str = "codex"
+    capture_public_key_hex: str | None = None
     python_executable: str = sys.executable
 
     def __post_init__(self) -> None:
@@ -48,6 +49,11 @@ class QuantMCPSettings:
             raise ValueError("MCP state must be inside the project's state/ directory")
         if self.surface not in ("codex", "chatgpt_academic"):
             raise ValueError("invalid MCP surface")
+        if self.capture_public_key_hex is not None:
+            if re.fullmatch(r"[0-9a-f]{64}", self.capture_public_key_hex) is None:
+                raise ValueError("capture public key must be a 32-byte lowercase hex string")
+            if self.surface != "chatgpt_academic" or self.scope_session is None:
+                raise ValueError("capture public key requires an academic scoped session")
         if self.scope_session is not None and re.fullmatch(
             r"[0-9a-f]{32}", self.scope_session
         ) is None:
@@ -95,6 +101,12 @@ class QuantMCPDirectClient:
                 "QUANT_MCP_P4_S7_QUALITY_SESSION_ID",
             ):
                 environment[name] = session
+            if self.settings.capture_public_key_hex is not None:
+                # Public key only. The private signing key remains external.
+                environment["QUANT_MCP_P4_MODEL_CAPTURE_SESSION_ID"] = session
+                environment["QUANT_MCP_P4_CAPTURE_PUBLIC_KEY_HEX"] = (
+                    self.settings.capture_public_key_hex
+                )
         return StdioServerParameters(
             command=self.settings.python_executable,
             args=[

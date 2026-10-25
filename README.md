@@ -18,6 +18,8 @@ share the original P5 generation ledger.
 
 **D1/D2 implementation (isolated Python / existing 13 + 32 MCP surfaces):** [verified integration report](docs/operations/python-mcp-d1-d2-implementation-20261025.md). Run `PYTHONPATH=. .venv/bin/python scripts/python_mcp_probe.py --surface chatgpt_academic` for a fork-local read-only academic MCP discovery. No GPT generations are created.
 
+**D3 signed academic MCP handoff:** [signer-bound plan/diagnosis bridge and test results](docs/operations/python-mcp-d3-signed-academic-handoff-20261025.md). This is a fork-local testable handoff only: no model/provider invocation proof or real GPT generations.
+
 **Before any new development:** [complete repository source map, ownership and duplication-prevention checklist](docs/architecture/python-mcp-predevelopment-source-map-v1-20261025.md), [all 1,107 tracked files](docs/architecture/python-mcp-file-inventory-20261025.tsv) and [2,051 static Python import edges](docs/architecture/python-mcp-python-import-edges-20261025.tsv).
 
 ---
