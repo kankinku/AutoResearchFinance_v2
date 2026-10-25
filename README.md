@@ -16,6 +16,8 @@ share the original P5 generation ledger.
 
 [Read the implementation, isolation and verification report](docs/operations/python-mcp-hybrid-fork-bootstrap-20261025.md).
 
+**Before any new development:** [complete repository source map, ownership and duplication-prevention checklist](docs/architecture/python-mcp-predevelopment-source-map-v1-20261025.md), [all 1,107 tracked files](docs/architecture/python-mcp-file-inventory-20261025.tsv) and [2,051 static Python import edges](docs/architecture/python-mcp-python-import-edges-20261025.tsv).
+
 ---
 
 # Quant Autoresearch Harness
