@@ -36,6 +36,7 @@ class QuantMCPSettings:
     project_root: Path
     state_dir: Path
     scope_session: str | None = None
+    surface: str = "codex"
     python_executable: str = sys.executable
 
     def __post_init__(self) -> None:
@@ -45,6 +46,8 @@ class QuantMCPSettings:
             raise ValueError("project root must be an existing directory")
         if not state.is_relative_to(root / "state"):
             raise ValueError("MCP state must be inside the project's state/ directory")
+        if self.surface not in ("codex", "chatgpt_academic"):
+            raise ValueError("invalid MCP surface")
         if self.scope_session is not None and re.fullmatch(
             r"[0-9a-f]{32}", self.scope_session
         ) is None:
@@ -62,8 +65,11 @@ class QuantMCPDirectClient:
     def require_read_only_tool(self, name: str) -> None:
         if name not in PUBLIC_READ_TOOLS:
             raise ReadOnlyToolRejected("MCP read-only policy rejects tool " + name)
-        if name == "get_algorithm_research" and self.settings.scope_session is None:
-            raise ReadOnlyToolRejected("research status requires an exact scoped session")
+        if name == "get_algorithm_research":
+            if self.settings.surface != "chatgpt_academic":
+                raise ReadOnlyToolRejected("research status requires ChatGPT academic MCP surface")
+            if self.settings.scope_session is None:
+                raise ReadOnlyToolRejected("research status requires an exact scoped session")
 
     def assert_session(self, session_id: str) -> None:
         if self.settings.scope_session != session_id:
@@ -92,7 +98,11 @@ class QuantMCPDirectClient:
         return StdioServerParameters(
             command=self.settings.python_executable,
             args=[
-                "-m", "integrations.codex_mcp_server",
+                "-m", (
+                    "integrations.chatgpt_mcp_stdio"
+                    if self.settings.surface == "chatgpt_academic"
+                    else "integrations.codex_mcp_server"
+                ),
                 "--project-root", str(self.settings.project_root),
                 "--state-dir", str(self.settings.state_dir),
             ],
@@ -121,6 +131,47 @@ class QuantMCPDirectClient:
             raise QuantMCPResponseError("orders disabled flag missing or unsafe")
         return value
 
+    async def read_academic_checkpoint(self, session_id: str) -> dict[str, Any]:
+        """Read the exact fork-local session; never submit or count a generation."""
+        self.require_read_only_tool("get_algorithm_research")
+        self.assert_session(session_id)
+        self.settings.state_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            async with stdio_client(self._server_params()) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    advertised = {
+                        item.name for item in (await session.list_tools()).tools
+                    }
+                    if "get_algorithm_research" not in advertised:
+                        raise QuantMCPResponseError("academic read tool is unavailable")
+                    result = self._validated_payload(
+                        await session.call_tool(
+                            "get_algorithm_research",
+                            arguments={"session_id": session_id},
+                        )
+                    )
+                    if result.get("session_id") != session_id:
+                        raise QuantMCPResponseError("academic session identity mismatch")
+                    if result.get("independent_oos_approved") is not False:
+                        raise QuantMCPResponseError("independent OOS must remain sealed")
+                    count = result.get("completed_generations")
+                    if type(count) is not int or count < 0:
+                        raise QuantMCPResponseError("invalid academic generation count")
+                    return result
+
+        except Exception as exc:
+            # Python 3.10 compatibility: official MCP may raise a nested
+            # exception group (3.11+); never mask unrelated transport errors.
+            splitter = getattr(exc, "split", None)
+            if callable(splitter):
+                matching, unrelated = splitter(QuantMCPResponseError)
+                if matching is not None and unrelated is None:
+                    raise QuantMCPResponseError(
+                        "academic MCP read rejected; inspect fork-local session"
+                    ) from exc
+            raise
+
     async def probe(self) -> dict[str, Any]:
         """Real MCP IO, purely local computation, never submits research."""
         self.require_read_only_tool("get_workspace_status")
@@ -148,6 +199,7 @@ class QuantMCPDirectClient:
                 )
                 return {
                     "transport": "stdio",
+                    "surface": self.settings.surface,
                     "server": "quant-autoresearch",
                     "host_role": "moon_workspace_only",
                     "model_calls": 0,

@@ -70,3 +70,6 @@ state/moon-http/
 
 # Python MCP fork: completely isolated local runtime and checkpoints
 /state/python-mcp/
+
+# Fork-local dependency-install and MCP regression logs (never commit)
+/state/python-mcp-*.log

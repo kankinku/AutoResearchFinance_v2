@@ -22,8 +22,14 @@ def main() -> int:
         default=checkout / "state" / "python-mcp",
         help="State under this fork's state/ directory; never the source P5",
     )
+    parser.add_argument(
+        "--surface", choices=("codex", "chatgpt_academic"), default="codex",
+        help="Explicit MCP tool contract; academic is still read-only",
+    )
     args = parser.parse_args()
-    settings = QuantMCPSettings(project_root=checkout, state_dir=args.state_dir)
+    settings = QuantMCPSettings(
+        project_root=checkout, state_dir=args.state_dir, surface=args.surface
+    )
     result = asyncio.run(QuantMCPDirectClient(settings).probe())
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

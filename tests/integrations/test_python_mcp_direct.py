@@ -62,7 +62,7 @@ def test_exact_session_read_scope(tmp_path: Path):
     client = QuantMCPDirectClient(
         QuantMCPSettings(
             project_root=root, state_dir=root / "state" / "python-mcp",
-            scope_session=sid,
+            scope_session=sid, surface="chatgpt_academic",
         )
     )
     assert client.require_read_only_tool("get_algorithm_research") is None
