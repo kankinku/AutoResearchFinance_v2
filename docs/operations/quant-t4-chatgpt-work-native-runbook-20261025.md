@@ -37,7 +37,7 @@
 >
 > 사용되는 실제 ROOT는 `/shared/moon-workspace/AutoResearchFinance_v2-fresh-research-20261021`, STATE는 `/shared/moon-workspace/AutoResearchFinance_v2-p5-gpt-100-20261024`이다. `AcademicMCPCheckpointService(project_root=ROOT,state_dir=STATE,parent_portfolio_v2=True,generalization_parent_v1=True,p4_quality_gate_v1=True,p4_s7_quality_v1=True)` 및 저장된 원본 session id로 매 단계 `get` 상태를 확인하라.
 >
-> **각 세대의 모델 판단은 Work의 GPT가 직접 작성해야 한다**. `AWAITING_PLAN`에서는 제공된 `model_context`와 부모·실제 이전 증거를 읽어 `output_contract`에 맞는 AlgorithmPlan 또는 `InheritedResearchIntent`를 새로 설계하고 `submit_plan`으로 제출하라. 검증된 부모 계승일 때 `require_execution_change=True`를 적용하라. `AWAITING_DIAGNOSIS`에서는 그 세대의 비용후 백테스트 실측 거래 ID, 손실/성과, 당시 신호와 한계를 바탕으로 반증 가능한 기전·대안·S7 실험계획을 **GPT가 분석·작성**하여 `submit_diagnosis`하라.
+> **각 세대의 모델 판단은 Work의 GPT가 직접 작성해야 한다**. `AWAITING_PLAN`에서는 제공된 `model_context`와 부모·실제 이전 증거를 읽어 `output_contract`에 맞는 AlgorithmPlan 또는 `InheritedResearchIntent`를 새로 설계하고 `submit_plan`으로 제출하라. 검증된 부모 계승일 때 `require_execution_change=True`를 적용하고, G29 이후 신규 실험은 선택형 `require_trade_activity=True`도 사용해 비용 반영 청산 거래가 0건이면 같은 계획 토큰에서 수정하라. 신규 등록 지표의 임계치는 `model_context.feature_unit_guidance`의 검증된 계산기 출력 단위를 우선 확인하며, 범위를 확인하지 못한 지표는 임의로 0~100을 가정하지 말라. `AWAITING_DIAGNOSIS`에서는 그 세대의 비용후 백테스트 실측 거래 ID, 손실/성과, 당시 신호와 한계를 바탕으로 반증 가능한 기전·대안·S7 실험계획을 **GPT가 분석·작성**하여 `submit_diagnosis`하라.
 >
 > **승인된 evidence commit을 확인해야만 한 세대로 집계**하고 바로 다음 checkpoint를 읽어 이어가라. 시도 횟수나 임의 파라미터 루프를 GPT 세대라고 계산하지 말라. 단계별 모델 컨텍스트에서 지원하지 않는 지표/metric, 중복 체결, 변형 효과가 없는 제출은 동일 토큰과 거절 피드백으로 재설계하라. 실패 가설과 효과 없는 S7의 원인을 다음 계획에 전달하고 우수 부모 자동 계승 정책은 그대로 유지하라.
 >

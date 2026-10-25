@@ -86,6 +86,11 @@ from research.llm.p3_semantic_preflight import inspect_inherited_semantics
 from research.llm.parent_portfolio_v2 import choose_parent_lane, shortlist_counted_generations
 from research.llm.s2_execution_preflight import compare_inherited_s2_execution
 from research.llm.s7_quality_gate_p4_3 import P4S7Rejected, assess_p4_s7_quality
+from research.llm.t4_feature_units import (
+    require_nonempty_executions,
+    verified_feature_unit_guidance,
+    verify_feature_condition_ranges,
+)
 from research.llm.trade_cohort_review import (
     build_trade_cohort_review,
     link_completed_s7_to_cohort,
@@ -1793,6 +1798,9 @@ class AcademicMCPCheckpointService:
     ) -> dict[str, Any]:
         context = build_algorithm_plan_context(catalog, data)
         context["generation"] = status["completed_generations"] + 1
+        # Advisory from registered calculator semantics, never market/OOS fitted.
+        if self.p4_s7_quality_v1:
+            context["feature_unit_guidance"] = verified_feature_unit_guidance()
         # Verified QQQ costed B&H and historical, non-tradable risk proxies.
         # Replay the latest audited strategy; never trust LLM-claimed metrics.
         last = status["history"][-1] if status["history"] else None
@@ -2310,6 +2318,7 @@ class AcademicMCPCheckpointService:
         args: dict[str, Any],
         *,
         require_execution_change: bool = False,
+        require_trade_activity: bool = False,
         receipt_request: dict[str, Any] | None = None,
     ) -> None:
         parent, original, selected = self._selected_ir(catalog, data, state)
@@ -2323,6 +2332,7 @@ class AcademicMCPCheckpointService:
         ):
             raise ValueError("inherited plan requires a registered, bounded ResearchIntent")
         child = apply_intent(parent.strategy, intent, research_feature_specs())
+        verify_feature_condition_ranges(child)
         digest = content_hash(child.model_dump(mode="json", by_alias=True))
         if digest == parent.strategy_hash or any(
             item["strategy_hash"] == digest for item in state["history"]
@@ -2400,6 +2410,7 @@ class AcademicMCPCheckpointService:
                     "Design distinct executable conditions and retry the same checkpoint."
                 )
         audit = audit_inherited_decisions(compiled, data)
+        require_nonempty_executions(audit, required=require_trade_activity)
         precommit_approved_proof: dict[str, Any] | None = None
         if self.precommit_child_risk_budget is not None:
             # Exact same costed, next-open S2 replay for both parent and child.
@@ -2554,19 +2565,28 @@ class AcademicMCPCheckpointService:
     def submit_plan(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {"session_id", "checkpoint_token", "plan", "require_execution_change", "model_capture"},
+            {
+                "session_id", "checkpoint_token", "plan", "require_execution_change",
+                "require_trade_activity", "model_capture",
+            },
             {"session_id", "checkpoint_token", "plan"},
         )
         sid, token = args["session_id"], args["checkpoint_token"]
         strict_execution = args.get("require_execution_change", False)
         if type(strict_execution) is not bool:
             raise ValueError("require_execution_change must be a boolean")
+        require_trade_activity = args.get("require_trade_activity", False)
+        if type(require_trade_activity) is not bool:
+            raise ValueError("require_trade_activity must be a boolean")
         # Bind the stricter preflight to the submission receipt. A later caller
         # cannot replay an already-staged unguarded plan as a guarded one.
         receipt_request = (
-            {"plan": args["plan"], "require_execution_change": True}
-            if strict_execution
-            else args["plan"]
+            {"plan": args["plan"],
+             "require_execution_change": strict_execution,
+             "require_trade_activity": True}
+            if require_trade_activity
+            else ({"plan": args["plan"], "require_execution_change": True}
+                  if strict_execution else args["plan"])
         )
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
@@ -2600,6 +2620,7 @@ class AcademicMCPCheckpointService:
                     current,
                     args,
                     require_execution_change=strict_execution,
+                    require_trade_activity=require_trade_activity,
                     receipt_request=receipt_request,
                 )
                 if capture is not None:
@@ -2643,6 +2664,7 @@ class AcademicMCPCheckpointService:
                         "the plan and resubmit using the same checkpoint token"
                     )
             audit = audit_algorithm_plan(catalog, compiled, data)
+            require_nonempty_executions(audit, required=require_trade_activity)
             context = build_diagnostic_context(audit, compiled.compiled.strategy)
             pending = plan.model_dump(mode="json")
             new_token = uuid4().hex
