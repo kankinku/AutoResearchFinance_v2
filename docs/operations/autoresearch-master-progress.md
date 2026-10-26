@@ -302,3 +302,5 @@ T4/P0-3B 검증 순서(기능 구현 후): T0 정식 S7 전체 재생·해시/�
 ## 문서 관리 작업 이력
 
 - 2026-10-15: 15개 작업 현황, 개발·테스트 순서, 완료 시 갱신 절차를 문서화. 기준 커밋 `0bff84f` 원격 저장 성공. 문서 검사 15/15 ID 및 T0~T6 PASS, 전체 회귀 미실행(문서 변경).
+
+**2026-10-26 KST G69–G71 실제 ChatGPT 채팅형 연구/캐시 스키마 우회 검증:** [세대별 실제 측정·원장 기록·제한](quant-chat-direct-g69-g71-bridge-audit-20261026.md). 기존 ChatGPT 앱 Quant 도구 입력 스키마는 `response_mode`를 여전히 거부하지만, 현재 대화 `functions.exec`에서 **기존 MCP get/submit 호출→전체 원본 JSON을 실행 컨텍스트에서 파싱→필요 필드만 모델에 출력**하여 현재 GPT의 직접 판단과 Quant 원장 정상 사용을 검증. **별도 Codex SDK 모델 호출 없음**. 선택 부모 G60/G64/G53에서 각각 G69 ADX>20→18 (+64.46%, MDD11.17%, 62건), G70 RSI exit<45→48 (+118.40%, MDD23.66%, 60건), G71 RSI entry upper<60→57 (+100.99%, MDD14.84%, 60건) 완료. 모든 진단·S7 정식 원장 커밋 완료: S7 trade_count 변화 -6/-15/+4, 방향 일치는 causal/OOS alpha 증명이 아님. G69의 최초 잘못된 typed rule target 거절 후 동일 체크포인트에서 수정하여 **중복 세대 없음**. 원본 SQLite read-only 확인 **71/100 `AWAITING_PROVIDER`, 다음 `AWAITING_PLAN`, S7 71개**, 새 실제 GPT-채팅 연구 3개. 주문/OOS 봉인 유지, OAuth/기존 32개/SDK Fork/대시보드 WIP 변경 없음. **핵심 남은 문제:** cached installed-plugin tool schema 자체 미해결, GPT 10/20/100세대 단일 요청/정량 토큰 절감 미검증. 다음 G72 및 원장 근거 기반 부모 품질 개선은 이 채팅에서 계속 진행 가능.
