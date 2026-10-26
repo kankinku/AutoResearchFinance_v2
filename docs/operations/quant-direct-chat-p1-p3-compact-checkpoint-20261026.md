@@ -48,7 +48,8 @@
 
 - 신규 `tests/integrations/test_chat_quant_compact_checkpoint_p1_p3.py`: 도구 32개 보존, 기본값 full/compact opt-in, 요청 스키마 변경 제한, 정확한 타입드 계획/진단 컨텍스트와 토큰·부모·증거 해시 유지, 무결성 원본 미변경, 68세대 합성 전송 스케일링, 알 수 없는 phase 또는 실주문/OOS 위험 거절, byte-budget 초과 거절, 실제 adapter get parity, 복구 오류 문자·토큰 비유출.
 - 격리된 학술 fixture는 진짜 Quant 코어 테스트 백테스트/S7을 구동하지만 **ScriptedResearcher 테스트 작성 판단**이므로 실제 ChatGPT 신규 세대나 모델 비용 개선 증거가 아니다.
-- 신규 `pytest` 7/7 PASS, 기존 MCP/학술/보안/복구 포함 확대 회귀 **71/71 PASS** (148.26s), `ruff check .` PASS, 변경 모듈 3개 `mypy` PASS, `git diff --check` PASS. 전체 저장소 pytest/mypy·실운영 GPT 턴·서버 배포 **NOT RUN**. **실제 68세대 서비스의 압축 byte 감소량, 유료 GPT token 절감률, 100세대 단일 채팅 완결은 아직 측정/증명하지 않았다.** 68세대 합성 history 성능 시험은 실제 68세대 GPT 문맥 품질 시험이 아님.
+- 신규 `pytest` 7/7 PASS, 기존 MCP/학술/보안/복구 포함 확대 회귀 **71/71 PASS** (148.26s). 이후 128KiB 상한 수정 후 12/12 선택 재회귀 PASS. `ruff check .` PASS, 변경 모듈 3개 `mypy` PASS, `git diff --check` PASS. 전체 저장소 pytest/mypy·실운영 GPT 턴·서버 배포 **NOT RUN**.
+- 구현 커밋 `f721aca`, 68세대 복제본 측정/128KiB 보정 커밋 `bd9443c` 모두 원격 Push 완료. 운영 코드 롤백/서버 재시작은 이 태스크에서 하지 않음. **실제 68세대 서비스의 압축 byte 감소량, 유료 GPT token 절감률, 100세대 단일 채팅 완결은 아직 측정/증명하지 않았다.** 68세대 합성 history 성능 시험은 실제 68세대 GPT 문맥 품질 시험이 아님.
 - 운영 서버는 여전히 보호된 기존 `/shared/moon-workspace/AutoResearchFinance_v2-fresh-research-20261021`, 기존 공용 고정 URL/기존 OAuth/기존 68/100 증거 DB/32 tools 고정. **이번 개발은 통합 개발 브랜치만 수정**; 프로덕션 MCP 재시작·배포·등록·토큰/원장/데이터 변경 없음.
 
 ## 채팅형 사용 예시 (개발 도구 배포 후)
