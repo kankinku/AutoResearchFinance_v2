@@ -86,6 +86,39 @@ def test_snapshot_reads_live_sqlite_and_30_trade_eligibility(tmp_path: Path) -> 
     ]
 
 
+def test_snapshot_preserves_undefined_risk_statistics_without_crashing(
+    tmp_path: Path,
+) -> None:
+    state = _fixture(tmp_path)
+    path = state / "research/academic-gpt-checkpoints/cycles.sqlite"
+    with sqlite3.connect(path) as db:
+        evidence = json.loads(
+            db.execute("SELECT evidence_json FROM generations WHERE generation=1").fetchone()[0]
+        )
+        evidence["metrics"].update(
+            {
+                "trade_count": 0,
+                "sharpe": None,
+                "sortino": None,
+                "profit_factor": None,
+                "win_rate": None,
+            }
+        )
+        db.execute(
+            "UPDATE generations SET evidence_json=? WHERE generation=1",
+            (json.dumps(evidence),),
+        )
+    view = dash.snapshot(state)
+    first = view["generations"][0]
+    assert view["proof_chain_ok"] is True
+    assert first["trades"] == 0
+    assert first["sharpe"] is None
+    assert first["sortino"] is None
+    assert first["profit_factor"] is None
+    assert first["win_rate"] is None
+    assert '"sharpe": null' in json.dumps(view)
+
+
 def test_snapshot_surfaces_broken_evidence_chain(tmp_path: Path) -> None:
     a = dash.snapshot(_fixture(tmp_path, corrupt=True))
     assert a["proof_chain_ok"] is False
@@ -188,6 +221,7 @@ def test_current_100_generation_default_is_pinned_and_keeps_archive(
     monkeypatch.setattr(dash, "ACTIVE_STATE", active)
     # Explicitly simulate an environment before the new live GPT cohort.
     monkeypatch.setattr(dash, "LIVE_STATE", tmp_path / "not_started")
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "no_p5_clone")
     current = dash.snapshot()
     assert (current["completed"], current["requested"]) == (454, 552)
     assert (current["additional_completed"], current["additional_target"]) == (2, 100)
@@ -221,6 +255,7 @@ def test_pinned_authenticated_mcp_checkpoint_default_and_legacy_archive(
     (live / "session-id.txt").unlink()
     monkeypatch.setattr(dash, "LIVE_STATE", live)
     monkeypatch.setattr(dash, "LIVE_SESSION_ID", sid)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "no_p5_clone")
     monkeypatch.setattr(dash, "STATE", old)
     monkeypatch.setattr(dash, "ACTIVE_STATE", tmp_path / "no_legacy_clone")
     current = dash.snapshot()
@@ -245,3 +280,82 @@ def test_original_html_dashboard_has_readonly_archived_link() -> None:
 
     html = page("index.html").decode("utf-8")
     assert 'href="api/status?cohort=historical"' in html
+    assert 'href="api/status?cohort=p5"' in html
+    assert "현재 ChatGPT Quant MCP 실시간 연구 원장" in html
+
+
+def test_live_quant_is_default_even_when_stale_p5_clone_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import shutil
+
+    live = _fixture(tmp_path / "live")
+    p5_fixture = _fixture(tmp_path / "other_p5")
+    p5 = tmp_path / "p5-clone"
+    (p5 / "academic-gpt-checkpoints").mkdir(parents=True)
+    for name in ("cycles.sqlite", "gateway.sqlite"):
+        shutil.copy2(
+            p5_fixture / "research/academic-gpt-checkpoints" / name,
+            p5 / "academic-gpt-checkpoints" / name,
+        )
+    with sqlite3.connect(p5 / "academic-gpt-checkpoints/cycles.sqlite") as db:
+        db.execute("UPDATE sessions SET requested=100")
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "LIVE_SESSION_ID", "1" * 32)
+    monkeypatch.setattr(dash, "P5_STATE", p5)
+    monkeypatch.setattr(dash, "P5_SESSION_ID", "1" * 32)
+    current = dash.snapshot()
+    assert (current["completed"], current["requested"]) == (2, 12)
+    assert current["cohort_label"].startswith("현재 GPT 작성 MCP")
+    assert current["source_kind"] == "GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT"
+    archived = dash.snapshot(p5)
+    assert (archived["completed"], archived["requested"]) == (2, 100)
+    assert "P5" in archived["cohort_label"]
+    assert archived["proof_chain_ok"] is True
+
+
+def test_live_dashboard_reflects_new_generation_on_next_poll_without_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The actual HTTP handler re-reads SQLite, not a pinned snapshot."""
+    state = _fixture(tmp_path)
+    monkeypatch.setattr(dash, "LIVE_STATE", state)
+    monkeypatch.setattr(dash, "LIVE_SESSION_ID", "1" * 32)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "unused_p5")
+    server = ThreadingHTTPServer(("127.0.0.1", 0), dash.DashboardHandler)
+    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    url = f"http://127.0.0.1:{server.server_port}/api/status"
+    try:
+        with urllib.request.urlopen(url) as r:
+            before = json.load(r)
+        assert before["completed"] == 2
+        assert before["head_evidence_prefix"] == "b" * 12
+        dbpath = state / "research/academic-gpt-checkpoints/cycles.sqlite"
+        with sqlite3.connect(dbpath) as db:
+            db.execute("UPDATE sessions SET completed=3")
+            third = {
+                "metrics": {
+                    "total_return": 0.25,
+                    "cagr": 0.03,
+                    "max_drawdown": 0.08,
+                    "trade_count": 51,
+                    "exposure": 0.4,
+                    "sharpe": 0.7,
+                },
+                "previous_evidence_hash": "b" * 64,
+            }
+            db.execute(
+                "INSERT INTO generations VALUES (?,?,?,?)",
+                ("1" * 32, 3, json.dumps(third), "c" * 64),
+            )
+        with urllib.request.urlopen(url) as r:
+            after = json.load(r)
+        assert after["completed"] == 3
+        assert after["last"]["generation"] == 3
+        assert after["head_evidence_prefix"] == "c" * 12
+        assert after["proof_chain_ok"] is True
+    finally:
+        server.shutdown()
+        server.server_close()
+        worker.join(timeout=3)
