@@ -56,7 +56,10 @@ def test_schema_adds_opt_in_compact_but_preserves_full_default() -> None:
     assert get["properties"]["response_mode"]["default"] == "full"
     assert get["additionalProperties"] is False
     for name in ("submit_algorithm_plan", "submit_algorithm_diagnosis"):
-        assert "response_mode" not in tools[name]["inputSchema"]["properties"]
+        opts = tools[name]["inputSchema"]["properties"]["response_mode"]
+        assert opts["enum"] == ["full", "compact"]
+        assert opts["default"] == "full"
+        assert "response_mode" not in tools[name]["inputSchema"]["required"]
 
 
 def test_compact_retains_exact_parent_schema_token_and_evidence(tmp_path: Path) -> None:
@@ -199,3 +202,114 @@ def test_repair_guidance_is_static_and_never_leaks_token() -> None:
     assert unexpected["retry_same_checkpoint"] is False
     assert unexpected["recovery"]["next_step"] == "READ_CURRENT_CHECKPOINT_STOP_IF_UNCERTAIN"
     assert "secret-token-xyz" not in json.dumps(unexpected)
+
+
+def test_opt_in_compact_plan_and_diagnosis_avoid_big_write_results(tmp_path: Path) -> None:
+    server, started = _setup(tmp_path)
+    adapter = create_chatgpt_sdk_adapter(state_dir=tmp_path / "adapter", project_root=tmp_path)
+    adapter.dispatcher._dispatch = server._dispatch  # type: ignore[method-assign]
+    scripted = ScriptedResearcher()
+
+    async def check() -> None:
+        context = cast(ServerRequestContext[Any], None)
+
+        async def call(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+            result = await adapter.call_tool(
+                context,
+                types.CallToolRequestParams(
+                    name=name,
+                    arguments=arguments,
+                ),
+            )
+            assert result.is_error is False
+            first = result.content[0]
+            assert isinstance(first, types.TextContent)
+            return json.loads(first.text)
+
+        plan = scripted.propose(started["model_context"])
+        staged = await call(
+            "submit_algorithm_plan",
+            {
+                "session_id": started["session_id"],
+                "checkpoint_token": started["checkpoint_token"],
+                "plan": plan,
+                "response_mode": "compact",
+            },
+        )
+        assert staged["checkpoint_phase"] == "AWAITING_DIAGNOSIS"
+        assert staged["continuation"]["required_model_action"] == "AUTHOR_AND_SUBMIT_DIAGNOSIS"
+        assert staged["model_context"]["schema"] == "research-diagnostic-context-v1"
+        assert staged["completed_generations"] == 0
+        assert staged["history"] == []
+        diagnosis = scripted.propose(staged["model_context"])
+        finished = await call(
+            "submit_algorithm_diagnosis",
+            {
+                "session_id": started["session_id"],
+                "checkpoint_token": staged["checkpoint_token"],
+                "diagnosis": diagnosis,
+                "response_mode": "compact",
+            },
+        )
+        assert finished["completed_generations"] == 1
+        assert finished["checkpoint_phase"] == "AWAITING_PLAN"
+        assert finished["continuation"]["required_model_action"] == "AUTHOR_AND_SUBMIT_PLAN"
+        assert len(finished["history"]) == 1
+        authoritative = server._dispatch(
+            "get_algorithm_research",
+            {
+                "session_id": started["session_id"],
+            },
+        )
+        assert finished["checkpoint_token"] == authoritative["checkpoint_token"]
+        assert (
+            finished["last_completed_evidence_hash"]
+            == authoritative["history"][-1]["evidence_hash"]
+        )
+        assert authoritative["completed_generations"] == 1
+
+    asyncio.run(check())
+
+
+def test_after_successful_write_compact_failure_never_returns_false_execution_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import integrations.chatgpt_mcp_sdk as direct
+
+    server, started = _setup(tmp_path)
+    adapter = create_chatgpt_sdk_adapter(state_dir=tmp_path / "adapter", project_root=tmp_path)
+    adapter.dispatcher._dispatch = server._dispatch  # type: ignore[method-assign]
+
+    def impossible(_payload: dict[str, Any]) -> dict[str, Any]:
+        raise ChatCheckpointCompressionError("oversized synthetic fixture")
+
+    monkeypatch.setattr(direct, "compact_academic_checkpoint", impossible)
+
+    async def check() -> None:
+        result = await adapter.call_tool(
+            cast(ServerRequestContext[Any], None),
+            types.CallToolRequestParams(
+                name="submit_algorithm_plan",
+                arguments={
+                    "session_id": started["session_id"],
+                    "checkpoint_token": started["checkpoint_token"],
+                    "plan": ScriptedResearcher().propose(started["model_context"]),
+                    "response_mode": "compact",
+                },
+            ),
+        )
+        assert result.is_error is False  # committed successfully, never misreport ERROR
+        data = json.loads(cast(types.TextContent, result.content[0]).text)
+        assert data["checkpoint_phase"] == "AWAITING_DIAGNOSIS"
+        assert data["compact_submission_status"] == "FULL_FALLBACK_AFTER_SUCCESSFUL_WRITE"
+        assert data["completed_generations"] == 0
+        authoritative = server._dispatch(
+            "get_algorithm_research",
+            {
+                "session_id": started["session_id"],
+            },
+        )
+        assert authoritative["checkpoint_phase"] == "AWAITING_DIAGNOSIS"
+
+    asyncio.run(check())
