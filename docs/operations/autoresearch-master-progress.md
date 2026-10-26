@@ -304,3 +304,5 @@ T4/P0-3B 검증 순서(기능 구현 후): T0 정식 S7 전체 재생·해시/�
 ## 문서 관리 작업 이력
 
 - 2026-10-15: 15개 작업 현황, 개발·테스트 순서, 완료 시 갱신 절차를 문서화. 기준 커밋 `0bff84f` 원격 저장 성공. 문서 검사 15/15 ID 및 T0~T6 PASS, 전체 회귀 미실행(문서 변경).
+
+**2026-10-26 KST 추가 운영 적용 검증 — T4-CHAT-DIRECT-ROUNDTRIP-OPTIN:** 운영 Quant 코드 커밋 `e6a5719`, 진행원장 `6a561ff`, 각각 원격 Push 검증. 서버 Quant 프로세스만 재시작. 설치된 Quant 연결의 기존 인증 full GET 정상, 원장 **68/100 AWAITING_PLAN**, 32개 MCP 도구, 실주문/OOS OFF. 운영 코드 직접 API 검증에서 FULL **701,520 bytes** → COMPACT **110,663 bytes** (**84.2% 감소**), 토큰·계승 부모·계획 스키마·세대 최신 해시 일치. 현재 연결된 ChatGPT 플러그인의 도구 인자 스키마가 캐시된 구버전이라 `response_mode`를 서버 전달 전에 거부: **BLOCKED_CLIENT_SCHEMA_CACHE**. 사용자 채팅에서 압축 요청 종단 시험 미완료, 실제 GPT 새 세대 0, 인증 교체/재등록 0, SDK Fork/대시보드 WIP 불변. 다음: 기존 연결을 보존하는 도구 스키마 갱신 검증, 이 채팅의 GPT를 사용하는 G69 이후 실제 단계 연구 및 품질 테스트. 원래 V05→T4→V01~V04→V06→V07 유지. [상세 보고](quant-chat-complete-roundtrip-compact-rollout-20261026.md).
