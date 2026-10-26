@@ -421,6 +421,7 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "checkpoint_token": token_field,
                     "plan": {"type": "object"},
                     "require_execution_change": {"type": "boolean", "default": False},
+                    "require_trade_activity": {"type": "boolean", "default": False},
                     "model_capture": p4_capture_schema,
                 },
                 ["session_id", "checkpoint_token", "plan"],

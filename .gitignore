@@ -67,3 +67,9 @@ state/moon-http/
 
 # Immutable externally collected Nasdaq source bytes (private local archival state)
 /state/vintages/
+
+# Python MCP fork: completely isolated local runtime and checkpoints
+/state/python-mcp/
+
+# Fork-local dependency-install and MCP regression logs (never commit)
+/state/python-mcp-*.log

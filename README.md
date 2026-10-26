@@ -1,3 +1,35 @@
+# AutoResearchFinance Python MCP — independent experimental fork
+
+**Separate Git repository and Moon workspace** for a Python-driven MCP execution layer.
+Moon is only the development host; Quant AutoResearch remains the research engine.
+This fork does not replace the original Moon or Quant ChatGPT plugins and does not
+share the original P5 generation ledger.
+
+- **Python→Quant MCP:** real, read-only STDIO communication; no GPT usage.
+- **Repository:** `kankinku/AutoResearchFinance_PythonMCP` (private).
+- **Local state:** `state/python-mcp/`; must remain inside this clone.
+- **Quick test:** `PYTHONPATH=. python scripts/python_mcp_probe.py` from the repository root, using
+  a Python environment with `mcp>=2.2,<3` and other project dependencies.
+- **Result:** registered tools and features, status and no-trading flags.
+- **Next:** verified GPT plans/diagnoses→costed canonical backtests/S7 via a separate
+  authenticated model host; **not yet enabled**.
+
+[Read the implementation, isolation and verification report](docs/operations/python-mcp-hybrid-fork-bootstrap-20261025.md).
+
+**D1/D2 implementation (isolated Python / existing 13 + 32 MCP surfaces):** [verified integration report](docs/operations/python-mcp-d1-d2-implementation-20261025.md). Run `PYTHONPATH=. .venv/bin/python scripts/python_mcp_probe.py --surface chatgpt_academic` for a fork-local read-only academic MCP discovery. No GPT generations are created.
+
+**D3 signed academic MCP handoff:** [signer-bound plan/diagnosis bridge and test results](docs/operations/python-mcp-d3-signed-academic-handoff-20261025.md). This is a fork-local testable handoff only: no model/provider invocation proof or real GPT generations.
+
+**D4 Codex SDK readiness (account-only, no model calls):** [current preflight and blockers](docs/operations/python-mcp-d4-codex-model-host-readiness-20261025.md). The opt-in fork-local dependency is pinned in `requirements-codex-host.txt`. To inspect without logging in or spending model usage: `PYTHONPATH=. .venv/bin/python scripts/codex_account_probe.py`. At the 2026-10-25 check no Codex account was connected. Do not confuse installing the SDK with an authenticated model call or evidence.
+
+**D4 structured decision host (offline validated, opt-in only):** [adapter design and verification](docs/operations/python-mcp-d4-structured-model-adapter-20261025.md). `application/t4_codex_structured_model.py` validates SDK JSON schema, turn/usage and hashes but **does not sign, submit, or count actual GPT generations**. It defaults to refusing all model calls. Authorization and independently verifiable GPT invocation remain pending.
+
+**First actual Codex-authored synthetic research-cycle smoke:** [3 real SDK turns, 1 costed synthetic checkpoint with S7 and audit replay](docs/operations/python-mcp-real-gpt-synthetic-checkpoint-smoke-20261025.md). **NOT** a real-market/T4 production generation or independent provider provenance; local collector signature is test-only. No live orders or unsealed OOS.
+
+**Before any new development:** [complete repository source map, ownership and duplication-prevention checklist](docs/architecture/python-mcp-predevelopment-source-map-v1-20261025.md), [all 1,107 tracked files](docs/architecture/python-mcp-file-inventory-20261025.tsv) and [2,051 static Python import edges](docs/architecture/python-mcp-python-import-edges-20261025.tsv).
+
+---
+
 # Quant Autoresearch Harness
 
 
