@@ -14,6 +14,7 @@ from typing import Any
 
 from core.integrity.hashes import content_hash
 from research.llm.autonomous_cycle import AcademicCycleService
+from research.llm.cross_generation_memory import intervention_identity
 from research.llm.experiment_learning import (
     ExperimentLearningError,
     build_experiment_learning,
@@ -119,9 +120,14 @@ def _event(
     experiments = []
     for trial in receipt["report"]["experiments"]:
         proposal = hypotheses[trial["hypothesis_id"]]
+        typed_intervention = intervention_identity(
+            proposal, parent_strategy_hash=generation.get("strategy_hash")
+        )
         experiments.append(
             {
                 "hypothesis_id": trial["hypothesis_id"],
+                "parent_strategy_hash": generation.get("strategy_hash"),
+                "typed_intervention": typed_intervention,
                 "finding": trial["status"],
                 "prediction": proposal.get("predicted_direction"),
                 "measured_delta": trial.get("delta"),
