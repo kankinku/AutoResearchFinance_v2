@@ -1,0 +1,100 @@
+diff_status	path	category
+M	.gitignore	설정/기타
+M	README.md	설정/기타
+M	application/academic_checkpoint_service.py	Quant 연구엔진/품질검증
+A	application/generalization_parent_preview.py	Quant 연구엔진/품질검증
+A	application/python_mcp_checkpoint_reconciliation.py	PythonMCP 연결/재개/데이터
+A	application/python_mcp_development_data.py	PythonMCP 연결/재개/데이터
+A	application/python_mcp_research_audit.py	PythonMCP 연결/재개/데이터
+A	application/t4_checkpoint_orchestrator.py	PythonMCP 연결/재개/데이터
+A	application/t4_codex_host_preflight.py	별도 Codex SDK 모델호출
+A	application/t4_codex_structured_model.py	별도 Codex SDK 모델호출
+A	application/t4_model_host_preflight.py	PythonMCP 연결/재개/데이터
+A	docs/architecture/python-mcp-file-inventory-20261025.tsv	설계/운영문서
+A	docs/architecture/python-mcp-predevelopment-source-map-v1-20261025.md	설계/운영문서
+A	docs/architecture/python-mcp-python-import-edges-20261025.tsv	설계/운영문서
+A	docs/decisions/2026-10-24-t4-model-host-options-proposed.md	설계/운영문서
+M	docs/operations/autoresearch-master-progress.md	설계/운영문서
+A	docs/operations/python-mcp-20gen-real-codex-development-audit-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-d1-d2-implementation-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-d3-signed-academic-handoff-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-d4-codex-model-host-readiness-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-d4-structured-model-adapter-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-g3-reconciliation-resume-gate-20261026.md	설계/운영문서
+A	docs/operations/python-mcp-hybrid-fork-bootstrap-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-real-gpt-synthetic-checkpoint-smoke-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-real-qqq-development-snapshot-20261025.md	설계/운영문서
+A	docs/operations/python-mcp-t4-10-100-fixture-cycle-verification-20261025.md	설계/운영문서
+A	docs/operations/quant-generalization-p2b-g64-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-p3-parent-review-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-p3b-s7-scoped-integration-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-p4-1-research-quality-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-p4-10gen-actual-study-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-p4-2-model-provenance-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-p4-3-s7-contract-quality-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-p4-4-cost-regime-research-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-research-v1-plan-20261024.md	설계/운영문서
+A	docs/operations/quant-generalization-research-v2-implementation-20261024.md	설계/운영문서
+A	docs/operations/quant-p5-dashboard-g11-20261024.md	설계/운영문서
+A	docs/operations/quant-p5-g12-g15-restart-20261024.md	설계/운영문서
+A	docs/operations/quant-p5-g16-g20-genuine-research-20261024.md	설계/운영문서
+A	docs/operations/quant-p5-g21-g27-model-research-20261025.md	설계/운영문서
+A	docs/operations/quant-p5-g28-feature-unit-and-activity-preflight-20261025.md	설계/운영문서
+A	docs/operations/quant-p5-new-100-session-first-10-20261024.md	설계/운영문서
+A	docs/operations/quant-t4-chatgpt-work-native-runbook-20261025.md	설계/운영문서
+A	docs/operations/quant-t4-p0-host-readiness-20261024.md	설계/운영문서
+A	docs/operations/quant-t4-p0-p1-continuous-checkpoint-20261024.md	설계/운영문서
+A	docs/operations/quant-t4-r1-preregistered-random-comparator-20261024.md	설계/운영문서
+A	docs/operations/quant-t4-unverified-provider-write-gate-20261025.md	설계/운영문서
+M	integrations/chatgpt_mcp_sdk.py	MCP 기존 인터페이스 수정
+M	integrations/codex_mcp_core.py	MCP 기존 인터페이스 수정
+A	integrations/python_mcp_academic_handoff.py	PythonMCP 연결/재개/데이터
+A	integrations/python_mcp_direct.py	PythonMCP 연결/재개/데이터
+A	requirements-codex-host.txt	별도 Codex SDK 모델호출
+M	research/indicator_engine/controlled_experiments.py	Quant 연구엔진/품질검증
+A	research/indicator_engine/historical_robustness.py	Quant 연구엔진/품질검증
+M	research/indicator_engine/inherited_experiments.py	Quant 연구엔진/품질검증
+A	research/indicator_engine/inherited_historical_robustness.py	Quant 연구엔진/품질검증
+A	research/indicator_engine/p4_cost_regime_stress.py	Quant 연구엔진/품질검증
+M	research/llm/diagnostic_research.py	Quant 연구엔진/품질검증
+A	research/llm/generalization_parent_v1.py	Quant 연구엔진/품질검증
+A	research/llm/model_provenance_v1.py	Quant 연구엔진/품질검증
+A	research/llm/p4_random_candidate_control.py	Quant 연구엔진/품질검증
+A	research/llm/s7_quality_gate_p4_3.py	Quant 연구엔진/품질검증
+A	research/llm/t4_feature_units.py	Quant 연구엔진/품질검증
+A	scripts/audit_python_mcp_cohort.py	PythonMCP 연결/재개/데이터
+A	scripts/codex_account_probe.py	별도 Codex SDK 모델호출
+M	scripts/fresh_original_dashboard.py	대시보드
+M	scripts/fresh_research_dashboard.py	대시보드
+A	scripts/prepare_python_mcp_development_data.py	PythonMCP 연결/재개/데이터
+A	scripts/python_mcp_probe.py	PythonMCP 연결/재개/데이터
+A	scripts/quant_p4_cost_regime_10gen.py	Quant 연구엔진/품질검증
+A	scripts/quant_p4_random_control_10slots.py	Quant 연구엔진/품질검증
+A	scripts/quant_p4_verify_10gen.py	Quant 연구엔진/품질검증
+A	scripts/quant_t4_host_readiness.py	진단/측정 스크립트
+A	scripts/reconcile_python_mcp_cohort.py	PythonMCP 연결/재개/데이터
+M	tests/dashboard/test_fresh_research_dashboard.py	테스트/회귀검증
+A	tests/integrations/test_python_mcp_academic_handoff.py	테스트/회귀검증
+A	tests/integrations/test_python_mcp_development_data_import.py	테스트/회귀검증
+A	tests/integrations/test_python_mcp_direct.py	테스트/회귀검증
+A	tests/integrations/test_python_mcp_research_audit.py	테스트/회귀검증
+A	tests/integrations/test_python_mcp_surface_parity.py	테스트/회귀검증
+A	tests/integrations/test_quant_generalization_p3_b_enrollment.py	테스트/회귀검증
+A	tests/integrations/test_quant_p4_model_capture.py	테스트/회귀검증
+A	tests/integrations/test_quant_p4_s7_precommit.py	테스트/회귀검증
+M	tests/integrations/test_quant_scoped_parent_portfolio.py	테스트/회귀검증
+A	tests/integrations/test_t4_checkpoint_orchestrator.py	테스트/회귀검증
+A	tests/integrations/test_t4_codex_account_probe.py	테스트/회귀검증
+A	tests/integrations/test_t4_codex_host_preflight.py	테스트/회귀검증
+A	tests/integrations/test_t4_codex_structured_model.py	테스트/회귀검증
+A	tests/integrations/test_t4_model_host_preflight.py	테스트/회귀검증
+A	tests/research/test_academic_historical_robustness.py	테스트/회귀검증
+A	tests/research/test_academic_inherited_historical_robustness.py	테스트/회귀검증
+A	tests/research/test_generalization_parent_preview_guard.py	테스트/회귀검증
+A	tests/research/test_generalization_parent_v1.py	테스트/회귀검증
+A	tests/research/test_model_provenance_v1.py	테스트/회귀검증
+A	tests/research/test_p4_cost_regime_stress.py	테스트/회귀검증
+A	tests/research/test_p4_random_candidate_control.py	테스트/회귀검증
+A	tests/research/test_s7_contract_p4_3.py	테스트/회귀검증
+A	tests/research/test_s7_quality_gate_p4_3.py	테스트/회귀검증
+A	tests/research/test_t4_feature_unit_gate.py	테스트/회귀검증
