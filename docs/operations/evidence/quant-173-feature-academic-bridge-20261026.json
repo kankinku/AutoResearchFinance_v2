@@ -1,0 +1,3096 @@
+{
+  "schema": "quant-feature-academic-bridge-readonly-audit-v1",
+  "registry_total": 173,
+  "registry_status_counts": {
+    "REGISTERED": 173
+  },
+  "bridge_stage_counts": {
+    "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE": 147,
+    "REQUIRES_ALIGNED_EXTERNAL_INPUTS": 21,
+    "REQUIRES_SPECIALIZED_DATA_ALIGNMENT": 5
+  },
+  "academic_catalog_total": 11,
+  "academic_verified": 8,
+  "academic_proposed": 3,
+  "academic_quarantined": 0,
+  "academic_eligible_by_name": 0,
+  "academic_verified_signals": [
+    "dual_sma_trend_50",
+    "ema_direction_20",
+    "parkinson_variance",
+    "previous_range_breakout",
+    "range_low_reclaim_20",
+    "sma_direction",
+    "sma_pullback_20",
+    "time_series_momentum"
+  ],
+  "source_catalog_hash": "5cd550aa8f18468497b7fb3834a5aaf90a93735b01e5939f6faeed8bde3ff813",
+  "features": [
+    {
+      "name": "adaptive_cycle_divergence",
+      "family": "cycles",
+      "calculator": "adaptive_cycle_divergence",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "adl",
+      "family": "volume",
+      "calculator": "adl",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "aroon",
+      "family": "trend",
+      "calculator": "aroon",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "atr",
+      "family": "volatility",
+      "calculator": "atr",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "atr_percent",
+      "family": "volatility",
+      "calculator": "atr_percent",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "bandpass_filter",
+      "family": "cycles",
+      "calculator": "bandpass_filter",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "bar_range_ratio",
+      "family": "price_action",
+      "calculator": "bar_range_ratio",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "close",
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "bollinger",
+      "family": "volatility",
+      "calculator": "bollinger",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "cci",
+      "family": "momentum",
+      "calculator": "cci",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "center_of_gravity",
+      "family": "cycles",
+      "calculator": "center_of_gravity",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "chaikin_volatility",
+      "family": "volatility",
+      "calculator": "chaikin_volatility",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "cmf",
+      "family": "volume",
+      "calculator": "cmf",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "cmo",
+      "family": "momentum",
+      "calculator": "cmo",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "connors_rsi",
+      "family": "momentum",
+      "calculator": "connors_rsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "cusum",
+      "family": "statistics",
+      "calculator": "cusum",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "cyber_cycle",
+      "family": "cycles",
+      "calculator": "cyber_cycle",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "day_of_week",
+      "family": "session",
+      "calculator": "day_of_week",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "session"
+      ],
+      "data_contract": "session",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "dc_based_rsi",
+      "family": "cycles",
+      "calculator": "dc_based_rsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "dema",
+      "family": "trend",
+      "calculator": "dema",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "detect_marubozu",
+      "family": "price_action",
+      "calculator": "detect_marubozu",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "close",
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "detect_three_bar_reversal",
+      "family": "price_action",
+      "calculator": "detect_three_bar_reversal",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "dmi_adx",
+      "family": "trend",
+      "calculator": "dmi_adx",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "doji",
+      "family": "price_action",
+      "calculator": "doji",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "dominant_cycle",
+      "family": "cycles",
+      "calculator": "dominant_cycle",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "donchian",
+      "family": "volatility",
+      "calculator": "donchian",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "donchian_channel_width",
+      "family": "volatility",
+      "calculator": "donchian_channel_width",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "dpo",
+      "family": "cycles",
+      "calculator": "dpo",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "dti",
+      "family": "momentum",
+      "calculator": "dti",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "dxy_returns",
+      "family": "macro",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "DXY.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 20,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "ease_of_movement",
+      "family": "volume",
+      "calculator": "ease_of_movement",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "ema",
+      "family": "trend",
+      "calculator": "ema",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "engulfing",
+      "family": "price_action",
+      "calculator": "engulfing",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "entropy",
+      "family": "statistics",
+      "calculator": "entropy",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "evening_star",
+      "family": "price_action",
+      "calculator": "evening_star",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "fama",
+      "family": "trend",
+      "calculator": "fama",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "fisher",
+      "family": "cycles",
+      "calculator": "fisher",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "force_index",
+      "family": "volume",
+      "calculator": "force_index",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "fractal",
+      "family": "price_action",
+      "calculator": "fractal",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "fractal_dimension",
+      "family": "statistics",
+      "calculator": "fractal_dimension",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "fractional_difference",
+      "family": "statistics",
+      "calculator": "fractional_difference",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "garman_klass",
+      "family": "volatility",
+      "calculator": "garman_klass",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "gold_returns",
+      "family": "macro",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "GOLD.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 20,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "guppy_mma",
+      "family": "trend",
+      "calculator": "guppy_mma",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "hammer",
+      "family": "price_action",
+      "calculator": "hammer",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "heikin_ashi",
+      "family": "price_action",
+      "calculator": "heikin_ashi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "high_low_breakout",
+      "family": "price_action",
+      "calculator": "high_low_breakout",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "higher_high_lower_low",
+      "family": "price_action",
+      "calculator": "higher_high_lower_low",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "hilbert_phase",
+      "family": "cycles",
+      "calculator": "hilbert_phase",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "hilbert_sine",
+      "family": "cycles",
+      "calculator": "hilbert_sine",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "hilbert_transform",
+      "family": "cycles",
+      "calculator": "hilbert_transform",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "hilbert_trendline",
+      "family": "cycles",
+      "calculator": "hilbert_trendline",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "historical_volatility",
+      "family": "volatility",
+      "calculator": "historical_volatility",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "hma",
+      "family": "trend",
+      "calculator": "hma",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "hurst",
+      "family": "statistics",
+      "calculator": "hurst",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "ichimoku",
+      "family": "trend",
+      "calculator": "ichimoku",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "inside_bar",
+      "family": "price_action",
+      "calculator": "inside_bar",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "intraday_intensity",
+      "family": "volume",
+      "calculator": "intraday_intensity",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "high",
+        "low",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "inverse_fisher_transform",
+      "family": "cycles",
+      "calculator": "inverse_fisher_transform",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "itrend",
+      "family": "cycles",
+      "calculator": "itrend",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "japan_10y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "JP10Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "japan_20y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "JP20Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "japan_2y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "JP2Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "kalman_slope",
+      "family": "statistics",
+      "calculator": "kalman_slope",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "kama",
+      "family": "trend",
+      "calculator": "kama",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "keltner",
+      "family": "volatility",
+      "calculator": "keltner",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "kl_divergence",
+      "family": "statistics",
+      "calculator": "kl_divergence",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "klinger",
+      "family": "volume",
+      "calculator": "klinger",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "korea_10y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "KR10Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "korea_20y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "KR20Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "korea_2y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "KR2Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "laguerre",
+      "family": "cycles",
+      "calculator": "laguerre",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "laguerre_rsi",
+      "family": "momentum",
+      "calculator": "laguerre_rsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "linear_regression",
+      "family": "trend",
+      "calculator": "linear_regression",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "log_returns",
+      "family": "statistics",
+      "calculator": "log_returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "macd",
+      "family": "momentum",
+      "calculator": "macd",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "macd_histogram",
+      "family": "momentum",
+      "calculator": "macd_histogram",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "macd_signal",
+      "family": "momentum",
+      "calculator": "macd_signal",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "mad",
+      "family": "statistics",
+      "calculator": "mad",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "mass_index",
+      "family": "volatility",
+      "calculator": "mass_index",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "mcginley",
+      "family": "trend",
+      "calculator": "mcginley",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "median_price",
+      "family": "trend",
+      "calculator": "median_price",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "mfi",
+      "family": "volume",
+      "calculator": "mfi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "minmax_scale",
+      "family": "statistics",
+      "calculator": "minmax_scale",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "momentum",
+      "family": "momentum",
+      "calculator": "momentum",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "morning_star",
+      "family": "price_action",
+      "calculator": "morning_star",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "moving_average_envelope",
+      "family": "trend",
+      "calculator": "moving_average_envelope",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "nasdaq_returns",
+      "family": "benchmark",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "NASDAQ.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 20,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "normalized_atr",
+      "family": "volatility",
+      "calculator": "normalized_atr",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "normalized_atr_percent",
+      "family": "volatility",
+      "calculator": "normalized_atr_percent",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "normalized_time_of_day",
+      "family": "session",
+      "calculator": "normalized_time_of_day",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "session"
+      ],
+      "data_contract": "session",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "nvi",
+      "family": "volume",
+      "calculator": "nvi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "obv",
+      "family": "volume",
+      "calculator": "obv",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "order_flow_delta",
+      "family": "order_flow",
+      "calculator": "order_flow_delta",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "order_flow",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_SPECIALIZED_DATA_ALIGNMENT",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "order_flow_imbalance",
+      "family": "order_flow",
+      "calculator": "order_flow_imbalance",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "order_flow",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_SPECIALIZED_DATA_ALIGNMENT",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "outside_bar",
+      "family": "price_action",
+      "calculator": "outside_bar",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "parabolic_sar",
+      "family": "trend",
+      "calculator": "parabolic_sar",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "parkinson",
+      "family": "volatility",
+      "calculator": "parkinson",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "percentile_rank",
+      "family": "statistics",
+      "calculator": "percentile_rank",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "phase_accumulation_cycle",
+      "family": "cycles",
+      "calculator": "phase_accumulation_cycle",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "pin_bar",
+      "family": "price_action",
+      "calculator": "pin_bar",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "pivot_points",
+      "family": "price_action",
+      "calculator": "pivot_points",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "price_action_score",
+      "family": "price_action",
+      "calculator": "price_action_score",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "price_roc",
+      "family": "price_action",
+      "calculator": "price_roc",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "pvi",
+      "family": "volume",
+      "calculator": "pvi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "pvt",
+      "family": "volume",
+      "calculator": "pvt",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "qqq_returns",
+      "family": "benchmark",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "QQQ.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 20,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "qstick",
+      "family": "momentum",
+      "calculator": "qstick",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "range_volatility",
+      "family": "volatility",
+      "calculator": "range_volatility",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "relative_volatility_index",
+      "family": "volatility",
+      "calculator": "relative_volatility_index",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "renko",
+      "family": "price_action",
+      "calculator": "renko",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "returns",
+      "family": "statistics",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "robust_scale",
+      "family": "statistics",
+      "calculator": "robust_scale",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "roc",
+      "family": "momentum",
+      "calculator": "roc",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "rolling_kurtosis",
+      "family": "statistics",
+      "calculator": "rolling_kurtosis",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "rolling_skewness",
+      "family": "statistics",
+      "calculator": "rolling_skewness",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "roofing_filter",
+      "family": "cycles",
+      "calculator": "roofing_filter",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "rsi",
+      "family": "momentum",
+      "calculator": "rsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "rsi.ema",
+      "family": "momentum",
+      "calculator": "rsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "rsi.wilder",
+      "family": "momentum",
+      "calculator": "rsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "rsx",
+      "family": "momentum",
+      "calculator": "rsx",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "rvi",
+      "family": "momentum",
+      "calculator": "rvi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "schaff_trend_cycle",
+      "family": "momentum",
+      "calculator": "schaff_trend_cycle",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "session_flag",
+      "family": "session",
+      "calculator": "session_flag",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "session"
+      ],
+      "data_contract": "session",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "session_high",
+      "family": "session",
+      "calculator": "session_high",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "session"
+      ],
+      "data_contract": "session",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "session_low",
+      "family": "session",
+      "calculator": "session_low",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "session"
+      ],
+      "data_contract": "session",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "session_overlay_flags",
+      "family": "session",
+      "calculator": "session_overlay_flags",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "session"
+      ],
+      "data_contract": "session",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "shannon_entropy",
+      "family": "statistics",
+      "calculator": "shannon_entropy",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "shooting_star",
+      "family": "price_action",
+      "calculator": "shooting_star",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "slope_of_ema",
+      "family": "trend",
+      "calculator": "slope_of_ema",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "sma",
+      "family": "trend",
+      "calculator": "sma",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "smi",
+      "family": "momentum",
+      "calculator": "smi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "smoothed_obv",
+      "family": "volume",
+      "calculator": "smoothed_obv",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "standard_deviation",
+      "family": "volatility",
+      "calculator": "standard_deviation",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "stoch_rsi",
+      "family": "momentum",
+      "calculator": "stoch_rsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "stochastic",
+      "family": "momentum",
+      "calculator": "stochastic",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "super_smoother",
+      "family": "cycles",
+      "calculator": "super_smoother",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "supertrend",
+      "family": "trend",
+      "calculator": "supertrend",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "support_resistance",
+      "family": "price_action",
+      "calculator": "support_resistance",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "tema",
+      "family": "trend",
+      "calculator": "tema",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "time_of_day",
+      "family": "session",
+      "calculator": "time_of_day",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "session"
+      ],
+      "data_contract": "session",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "time_since_extreme",
+      "family": "session",
+      "calculator": "time_since_extreme",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "tma",
+      "family": "trend",
+      "calculator": "tma",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "tpo_profile",
+      "family": "profile",
+      "calculator": "tpo_profile",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "profile",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_SPECIALIZED_DATA_ALIGNMENT",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "trend_candle_strength",
+      "family": "price_action",
+      "calculator": "trend_candle_strength",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "trix",
+      "family": "momentum",
+      "calculator": "trix",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "true_range",
+      "family": "volatility",
+      "calculator": "true_range",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "tsf",
+      "family": "trend",
+      "calculator": "tsf",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "tsi",
+      "family": "momentum",
+      "calculator": "tsi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "typical_price",
+      "family": "trend",
+      "calculator": "typical_price",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "ulcer_index",
+      "family": "volatility",
+      "calculator": "ulcer_index",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "ultimate_oscillator",
+      "family": "momentum",
+      "calculator": "ultimate_oscillator",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "us_10y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "US10Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "us_20y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "US20Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "us_2y_change",
+      "family": "rates",
+      "calculator": "returns",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "US2Y.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 5,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "vfi",
+      "family": "volume",
+      "calculator": "vfi",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "vidya",
+      "family": "trend",
+      "calculator": "vidya",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "vix_percentile",
+      "family": "macro",
+      "calculator": "percentile",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "VIX.close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 20,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_ALIGNED_EXTERNAL_INPUTS",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "volatility_ratio",
+      "family": "volatility",
+      "calculator": "volatility_ratio",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "volume_delta",
+      "family": "volume",
+      "calculator": "volume_delta",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "volume_oscillator",
+      "family": "volume",
+      "calculator": "volume_oscillator",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "volume_profile",
+      "family": "profile",
+      "calculator": "volume_profile",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "profile",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_SPECIALIZED_DATA_ALIGNMENT",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "volume_roc",
+      "family": "volume",
+      "calculator": "volume_roc",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "vortex",
+      "family": "trend",
+      "calculator": "vortex",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "vw_macd",
+      "family": "volume",
+      "calculator": "vw_macd",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "vwap",
+      "family": "volume",
+      "calculator": "vwap",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "vwma",
+      "family": "trend",
+      "calculator": "vwma",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close",
+        "volume"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "weis_wyckoff",
+      "family": "order_flow",
+      "calculator": "weis_wyckoff",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "order_flow",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "REQUIRES_SPECIALIZED_DATA_ALIGNMENT",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "wick_ratio",
+      "family": "price_action",
+      "calculator": "wick_ratio",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "open",
+        "close",
+        "high",
+        "low"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "williams_r",
+      "family": "momentum",
+      "calculator": "williams_r",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "wma",
+      "family": "trend",
+      "calculator": "wma",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "zero_lag_ema",
+      "family": "trend",
+      "calculator": "zero_lag_ema",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "zigzag",
+      "family": "price_action",
+      "calculator": "zigzag",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    },
+    {
+      "name": "zscore",
+      "family": "statistics",
+      "calculator": "zscore",
+      "registry_status": "REGISTERED",
+      "required_inputs": [
+        "close"
+      ],
+      "data_contract": "scalar",
+      "lookback": 14,
+      "lag_bars": 0,
+      "implementation_hash": "",
+      "academic_signal_id_exact_match": null,
+      "academic_verified": false,
+      "bridge_stage": "LOCAL_FEATURE_REQUIRES_TYPED_ACADEMIC_BRIDGE",
+      "eligible_for_counted_academic_research": false
+    }
+  ],
+  "model_calls": 0,
+  "orders_enabled": false,
+  "independent_oos_approved": false,
+  "note": "Generic registry and academic signal IDs are not interchangeable; no automatic promotion"
+}
