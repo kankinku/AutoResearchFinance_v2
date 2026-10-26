@@ -33,6 +33,19 @@ The original GitHub `AutoResearchFinance_v2` remote contains **129 visible branc
 
 The targeted source integration addressed all local modern branches with shared common ancestry, plus PythonMCP `main` with shared source lineage. Tracked features like 173 generic indicators, direct 32-tool MCP, F1–F3/S7/S8, V3 development adapters and QQQ benchmark repair were preserved. The disconnected old Git histories are now listed as an **outstanding review scope**, not as missing/stolen/deleted project work.
 
+**Full 129-branch machine-readable inventory:** [branch-by-branch source census](evidence/quant-unified-branch-census-20261026.tsv). Results: **8 history-merged**, **108 disjoint Python historical heads**, **12 independent May TypeScript (AF v1) heads**, **1 other disjoint old Python v1 head**. The 108 historical Python heads contain **19 distinct legacy module source paths absent** from the modern integrated tree (some recurring across multiple heads), not 108 independently missing capabilities. The 12 TS histories use a different `src/automation/` architecture rather than the current Python packages and are not suitable for an automatic history merge.
+
+**Legacy Python source paths requiring semantic replacement audit:**
+
+| Legacy capability family | Paths not present under the modern layout | Status |
+|---|---|---|
+| Academic dashboard variants | `dashboard/academic_monitor.py`, `academic_routes.py`, `academic_run.py`, `academic_benchmark.py`, `academic_worker_status.py`, `academic_timing.py`, `dashboard/static/academic.js` | 7 legacy files; modern `scripts/fresh_*dashboard.py` and dashboard API exist, equivalence **not yet fully proven** |
+| Old checkpoint execution/recovery | `research/llm/safe_checkpoint_recovery.py`, `supervised_checkpoint_runner.py`, `scripts/control_academic_research.py` | 3 legacy files; modern academic checkpoints/T4 orchestrator provide overlapping contracts, behavioral parity **not yet proven** |
+| Alternate G0–G2 strategy-policy design | `strategy_ir/policy_decision.py`, `policy_program.py`, `feature_receipt.py`, `receipt_manifest.py`, `calculated_policy.py` | 5 legacy files; modern typed StrategyIR + expression/state machine research modules do not guarantee identical semantics |
+| Extra research provenance, PIT and early test driver | `research/llm/lineage_bootstrap_guidance.py`, `decision_provenance.py`, `research/indicator_engine/benchmark_pit.py`, `scripts/t4_p05_real_session_three_arm.py` | 4 legacy files; modern candidate/lineage, P4 and PIT safety components overlap, E2E replacement not yet proven |
+
+**Do not claim all historical functionality is fully integrated until these 19 legacy modules have each been either proven superseded by an exact test or separately adapted behind typed/replay-verifiable gates.** No legacy code was silently deleted from its source Git branch.
+
 ## Capability levels are separate
 
 1. **Code presence / executable unit tests**: 173 generic feature specifications, V3 compositional crossover and regime shared-NAV simulation, Pine import research modules, F1/F2/F3 weakness/contribution, generalization P4 and normalized-unit gates are retained.
