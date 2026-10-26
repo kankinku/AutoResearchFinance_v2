@@ -24,7 +24,6 @@ from research.indicator_engine.strategy_adapter import (
     evaluate_compiled_development,
 )
 from research.llm.diagnostic_research import (
-    SUPPORTED_S7_METRICS,
     DiagnosisContractError,
     approve_diagnostic_plan,
     build_diagnostic_context,
@@ -35,7 +34,9 @@ class ControlledExperimentError(ValueError):
     """Unmeasurable or unverified controlled development experiment."""
 
 
-SUPPORTED_CONTROLLED_METRICS = frozenset(SUPPORTED_S7_METRICS)
+SUPPORTED_CONTROLLED_METRICS = frozenset(
+    {"total_return", "cagr", "max_drawdown", "sharpe", "sortino", "trade_count"}
+)
 
 
 @dataclass(frozen=True)
@@ -194,33 +195,7 @@ class ControlledExperimentReport:
     causal_status: Literal["NOT_ESTABLISHED"] = "NOT_ESTABLISHED"
 
 
-def _measured_metric(
-    result: AcademicDevelopmentResult, key: str,
-    market: MarketDataSet | None = None,
-) -> float | None:
-    if key == "exposure":
-        if market is None or not market.bars:
-            raise ControlledExperimentError("exposure requires canonical market timestamps")
-        fills = {t.timestamp: t.side for t in result.trades}
-        if len(fills) != len(result.trades):
-            raise ControlledExperimentError("duplicated canonical fill timestamps")
-        position_open = False
-        held = 0
-        seen: set[str] = set()
-        for bar in market.bars:
-            timestamp = bar.timestamp.isoformat()
-            side = fills.get(timestamp)
-            if side is not None:
-                if (side == "buy" and position_open) or (side == "sell" and not position_open):
-                    raise ControlledExperimentError("invalid fill order for market exposure")
-                if side not in ("buy", "sell"):
-                    raise ControlledExperimentError("unsupported exposure fill")
-                position_open = side == "buy"
-                seen.add(timestamp)
-            held += position_open
-        if len(seen) != len(fills):
-            raise ControlledExperimentError("fill outside market exposure calendar")
-        return held / len(market.bars)
+def _measured_metric(result: AcademicDevelopmentResult, key: str) -> float | None:
     if key == "trade_count":
         # This reviewed long-only adapter reports fills separately. Only a
         # completed entry/exit round trip counts as a closed trade, even if a
@@ -264,11 +239,6 @@ def compare_controlled_experiments(
         raise ControlledExperimentError("compiled plan integrity mismatch")
     audit = audit_algorithm_plan(catalog, checked, market, initial_cash=initial_cash)
     context = build_diagnostic_context(audit, checked.compiled.strategy)
-    if any(
-        h.get("expected_metric") not in SUPPORTED_CONTROLLED_METRICS
-        for h in diagnostic_response.get("hypotheses", ()) if isinstance(h, dict)
-    ):
-        raise ControlledExperimentError("unsupported S7 metric in diagnostic response")
     try:
         validated = approve_diagnostic_plan(
             audit, checked.compiled.strategy, context, diagnostic_response,
@@ -301,8 +271,8 @@ def compare_controlled_experiments(
                 "candidate could not run under canonical policy"
             ) from exc
         metric = hypothesis.expected_metric
-        baseline = _measured_metric(parent, metric, market)
-        candidate = _measured_metric(child, metric, market)
+        baseline = _measured_metric(parent, metric)
+        candidate = _measured_metric(child, metric)
         identical = (parent.trades == child.trades and parent.equity_curve == child.equity_curve)
         delta = candidate - baseline if candidate is not None and baseline is not None else None
         if identical:

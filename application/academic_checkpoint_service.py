@@ -10,7 +10,7 @@ import json
 import sqlite3
 from copy import deepcopy
 from dataclasses import asdict
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -61,7 +61,6 @@ from research.llm.director import ResearchIntent
 from research.llm.economic_feedback import build_economic_feedback, gate_research_direction
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
-from research.llm.generalization_parent_v1 import GeneralizationParentError
 from research.llm.inherited_execution_identity import inherited_effective_signal_hash
 from research.llm.inherited_feature_compiler import bind_inherited_features
 from research.llm.intent_bridge import apply_intent
@@ -74,24 +73,10 @@ from research.llm.lineage_selection import (
     replay_lineage_candidate,
 )
 from research.llm.loss_attribution import build_loss_attribution
-from research.llm.model_provenance_v1 import (
-    ModelCaptureError,
-    audit_capture_chain,
-    last_hash,
-    parse_public_key,
-    store_capture,
-    verify_capture,
-)
 from research.llm.p3_diagnostic_preflight import inspect_diagnostic_next_intents
 from research.llm.p3_semantic_preflight import inspect_inherited_semantics
 from research.llm.parent_portfolio_v2 import choose_parent_lane, shortlist_counted_generations
 from research.llm.s2_execution_preflight import compare_inherited_s2_execution
-from research.llm.s7_quality_gate_p4_3 import P4S7Rejected, assess_p4_s7_quality
-from research.llm.t4_feature_units import (
-    require_nonempty_executions,
-    verified_feature_unit_guidance,
-    verify_feature_condition_ranges,
-)
 from research.llm.trade_cohort_review import (
     build_trade_cohort_review,
     link_completed_s7_to_cohort,
@@ -143,11 +128,6 @@ class AcademicMCPCheckpointService:
         project_root: Path,
         state_dir: Path,
         parent_portfolio_v2: bool = False,
-        generalization_parent_v1: bool = False,
-        p4_quality_gate_v1: bool = False,
-        p4_model_capture_v1: bool = False,
-        p4_s7_quality_v1: bool = False,
-        p4_capture_public_key_hex: str | None = None,
         child_risk_budget: ChildRiskBudget | None = None,
         precommit_child_risk_budget: ChildRiskBudget | None = None,
         p3_semantic_preflight: bool = False,
@@ -165,25 +145,7 @@ class AcademicMCPCheckpointService:
         self.root = project_root.resolve()
         self.state = state_dir.resolve() / "academic-gpt-checkpoints"
         self.cycle = AcademicCycleService(self.state / "cycles.sqlite")
-        if generalization_parent_v1 and not parent_portfolio_v2:
-            raise ValueError("generalization selection requires scoped parent portfolio")
         self.parent_portfolio_v2 = parent_portfolio_v2
-        if p4_quality_gate_v1 and not generalization_parent_v1:
-            raise ValueError("P4 quality gate requires scoped generalization")
-        self.generalization_parent_v1 = generalization_parent_v1
-        self.p4_quality_gate_v1 = p4_quality_gate_v1
-        if p4_s7_quality_v1 and not p4_quality_gate_v1:
-            raise ValueError("P4-3 requires P4-1 quality opt-in")
-        self.p4_s7_quality_v1 = p4_s7_quality_v1
-        if p4_model_capture_v1 and not p4_quality_gate_v1:
-            raise ValueError("P4-2 requires P4-1 opt-in quality gate")
-        if p4_model_capture_v1 and p4_capture_public_key_hex is None:
-            raise ValueError("P4-2 needs independently configured capture public key")
-        self.p4_model_capture_v1 = p4_model_capture_v1
-        self.p4_capture_key = (
-            parse_public_key(p4_capture_public_key_hex or "")
-            if p4_model_capture_v1 else None
-        )
         # Opt-in research hints only. They never select an executable parent,
         # modify a counted generation or attest to an LLM model provider.
         self.v3_research_memory = v3_research_memory
@@ -200,38 +162,6 @@ class AcademicMCPCheckpointService:
           plan_json TEXT, plan_digest TEXT, context_digest TEXT
         )""")
         # Supplemental timing; original canonical evidence remains unchanged.
-        if self.generalization_parent_v1:
-            db.execute("""CREATE TABLE IF NOT EXISTS generalization_enrollments (
-                session_id TEXT PRIMARY KEY NOT NULL,
-                dataset_hash TEXT NOT NULL,
-                policy TEXT NOT NULL
-            )""")
-        if self.p4_s7_quality_v1:
-            db.execute("""CREATE TABLE IF NOT EXISTS p4_s7_enrollments (
-                session_id TEXT PRIMARY KEY NOT NULL, policy TEXT NOT NULL
-            )""")
-            db.execute("""CREATE TABLE IF NOT EXISTS p4_s7_rejections (
-                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
-                request_hash TEXT NOT NULL, token_hash TEXT NOT NULL,
-                review_json TEXT NOT NULL, review_hash TEXT NOT NULL,
-                PRIMARY KEY(session_id,generation,request_hash)
-            )""")
-            db.execute("""CREATE TABLE IF NOT EXISTS p4_s7_approvals (
-                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
-                review_json TEXT NOT NULL, review_hash TEXT NOT NULL,
-                PRIMARY KEY(session_id,generation)
-            )""")
-        if self.p4_model_capture_v1:
-            db.execute("""CREATE TABLE IF NOT EXISTS model_capture_enrollments (
-                session_id TEXT PRIMARY KEY NOT NULL, key_hash TEXT NOT NULL,
-                policy TEXT NOT NULL
-            )""")
-            db.execute("""CREATE TABLE IF NOT EXISTS model_capture_receipts (
-                session_id TEXT NOT NULL, generation INTEGER NOT NULL,
-                phase_order INTEGER NOT NULL, record_json TEXT NOT NULL,
-                receipt_hash TEXT NOT NULL,
-                PRIMARY KEY(session_id,generation,phase_order)
-            )""")
         db.execute("""CREATE TABLE IF NOT EXISTS generation_timings (
             session_id TEXT NOT NULL, generation INTEGER NOT NULL,
             start_utc TEXT NOT NULL, end_utc TEXT, evidence_hash TEXT,
@@ -532,173 +462,6 @@ class AcademicMCPCheckpointService:
         if set(args) - allowed or not required <= set(args):
             raise ValueError("unexpected or missing academic checkpoint arguments")
 
-    def _p42_enrollment(self, db: sqlite3.Connection, sid: str) -> None:
-        if not self.p4_model_capture_v1:
-            return
-        assert self.p4_capture_key is not None
-        row = db.execute(
-            "SELECT key_hash,policy FROM model_capture_enrollments WHERE session_id=?",
-            (sid,),
-        ).fetchone()
-        if (row is None or row["key_hash"] != content_hash(self.p4_capture_key.hex())
-            or row["policy"] != "SIGNED_EXTERNAL_COLLECTOR_ONLY_V1"):
-            raise ModelCaptureError("P4-2 session lacks original pinned capture enrollment")
-
-    def _p42_verify(
-        self, db: sqlite3.Connection, *, sid: str, gen: int, phase: str,
-        token: str, payload: object, context_hash: str, assertion: object,
-    ) -> dict[str, Any] | None:
-        if not self.p4_model_capture_v1:
-            if assertion is not None:
-                raise ModelCaptureError("P4-2 signed assertions require explicit opt-in")
-            return None
-        self._p42_enrollment(db, sid)
-        if not isinstance(assertion, dict):
-            raise ModelCaptureError("P4-2 missing signed external capture assertion")
-        assert self.p4_capture_key is not None
-        return verify_capture(
-            assertion, self.p4_capture_key, session_id=sid, generation=gen,
-            phase=phase, response=payload, context_hash=context_hash,
-            checkpoint_token=token, prior_receipt_hash=last_hash(db, sid),
-        )
-
-    def _p42_replay(
-        self, db: sqlite3.Connection, *, sid: str, gen: int,
-        phase: str, assertion: object,
-    ) -> None:
-        if not self.p4_model_capture_v1:
-            if assertion is not None:
-                raise ModelCaptureError("P4-2 signed assertions require explicit opt-in")
-            return
-        self._p42_enrollment(db, sid)
-        if not isinstance(assertion, dict):
-            raise ModelCaptureError("P4-2 signed capture missing in replay")
-        record = db.execute(
-            "SELECT record_json FROM model_capture_receipts "
-            "WHERE session_id=? AND generation=? AND phase_order=?",
-            (sid, gen, 0 if phase == "plan" else 1),
-        ).fetchone()
-        if (record is None or json.loads(record["record_json"])["receipt"] != assertion):
-            raise ModelCaptureError("P4-2 checkpoint replay capture conflicts with original")
-
-    def _p43_enrollment(self, db: sqlite3.Connection, sid: str) -> None:
-        if not self.p4_s7_quality_v1:
-            return
-        row = db.execute(
-            "SELECT policy FROM p4_s7_enrollments WHERE session_id=?", (sid,),
-        ).fetchone()
-        if row is None or row["policy"] != "P4_S7_PRECOMMIT_QUALITY_V1":
-            raise ValueError("P4-3 session lacks original P4-3 enrollment")
-
-    def _p43_preflight(
-        self, sid: str, token: str, diagnosis: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Fully measure S7 on frozen development BEFORE claiming the token."""
-        with self._connect() as db:
-            row, catalog, data, current = self._state(db, sid)
-            self._p43_enrollment(db, sid)
-            if row["phase"] != "AWAITING_DIAGNOSIS" or row["token"] != token:
-                raise CycleStateError("P4-3 diagnosis checkpoint changed")
-            staged = json.loads(row["plan_json"])
-            if content_hash(staged) != row["plan_digest"]:
-                raise CycleStateError("P4-3 staged strategy hash changed")
-            if staged.get("schema") == "p0-3b-inherited-pending-v1":
-                _, compiled, _ = self._materialize_inherited(
-                    catalog, data, current, staged,
-                )
-                report = compare_inherited_experiments(
-                    compiled, data, diagnosis,
-                    parent_proof_hash=staged["parent_selection_hash"],
-                )
-            else:
-                plan = AlgorithmPlan.model_validate(staged)
-                compiled = compile_algorithm_plan(catalog, plan, data)
-                report = compare_controlled_experiments(
-                    catalog, compiled, data, diagnosis,
-                )
-            try:
-                return assess_p4_s7_quality(report)
-            except P4S7Rejected as exc:
-                body = {
-                    "schema": "p4-s7-rejected-attempt-v1",
-                    "session_id": sid,
-                    "generation": current["completed_generations"] + 1,
-                    "token_hash": content_hash(token),
-                    "request_hash": content_hash(diagnosis),
-                    "dataset_hash": data.dataset_hash,
-                    "context_hash": row["context_digest"],
-                    "candidate_report_hash": report.evidence_hash,
-                    "reasons": list(exc.reasons),
-                    "research_only": True,
-                    "orders_enabled": False,
-                }
-                digest = content_hash(body)
-                db.execute(
-                    "INSERT OR IGNORE INTO p4_s7_rejections "
-                    "(session_id,generation,request_hash,token_hash,review_json,review_hash) "
-                    "VALUES(?,?,?,?,?,?)",
-                    (sid, body["generation"], body["request_hash"],
-                     body["token_hash"], json.dumps(body, sort_keys=True), digest),
-                )
-                saved = db.execute(
-                    "SELECT review_json,review_hash FROM p4_s7_rejections "
-                    "WHERE session_id=? AND generation=? AND request_hash=?",
-                    (sid, body["generation"], body["request_hash"]),
-                ).fetchone()
-                if (saved is None or saved["review_hash"] != digest
-                    or json.loads(saved["review_json"]) != body):
-                    raise CycleStateError("P4-3 rejection receipt was tampered") from exc
-                db.commit()
-                raise
-
-    def _p43_audit(
-        self, db: sqlite3.Connection, sid: str,
-        current: dict[str, Any],
-    ) -> dict[str, Any]:
-        self._p43_enrollment(db, sid)
-        approvals = db.execute(
-            "SELECT generation,review_json,review_hash FROM p4_s7_approvals "
-            "WHERE session_id=? ORDER BY generation", (sid,),
-        ).fetchall()
-        rejected = db.execute(
-            "SELECT generation,request_hash,token_hash,review_json,review_hash "
-            "FROM p4_s7_rejections WHERE session_id=? ORDER BY generation,rowid",
-            (sid,),
-        ).fetchall()
-        for index, item in enumerate(approvals, 1):
-            record = json.loads(item["review_json"])
-            if (item["generation"] != index or index > current["completed_generations"]
-                or item["review_hash"] != content_hash(record)
-                or record.get("generation") != index
-                or record.get("counted_evidence_hash")
-                != current["history"][index-1]["evidence_hash"]
-                or record.get("review", {}).get("eligible") is not True):
-                raise CycleStateError("P4-3 approved S7 sidecar hash/lineage mismatch")
-        if len(approvals) != current["completed_generations"]:
-            raise CycleStateError("P4-3 completed generation lacks quality proof")
-        reviewed = []
-        for item in rejected:
-            record = json.loads(item["review_json"])
-            if (item["review_hash"] != content_hash(record)
-                or item["generation"] != record.get("generation")
-                or item["request_hash"] != record.get("request_hash")
-                or item["token_hash"] != record.get("token_hash")
-                or record.get("session_id") != sid
-                or record.get("research_only") is not True):
-                raise CycleStateError("P4-3 rejection history corrupt")
-            reviewed.append(record)
-        return {
-            "schema": "p4-s7-quality-audit-v1",
-            "approved_count": len(approvals),
-            "rejection_count": len(reviewed),
-            "approved_evidence_hashes": [
-                json.loads(item["review_json"])["counted_evidence_hash"] for item in approvals
-            ],
-            "rejections": reviewed,
-            "independent_oos_approved": False,
-            "orders_enabled": False,
-        }
-
     def start(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(args, {"data_path", "generations"}, {"data_path", "generations"})
         if type(args["generations"]) is not int or not 1 <= args["generations"] <= 100:
@@ -707,8 +470,6 @@ class AcademicMCPCheckpointService:
             raise ValueError("data_path must be a string")
         path = resolve_project_input(self.root, args["data_path"], frozenset({".parquet"}))
         data = ParquetDataProvider.read(path)
-        if self.generalization_parent_v1 and data.bars[-1].timestamp.date() > date(2025, 12, 31):
-            raise CycleStateError("P3 new development session excludes exposed 2026 data")
         catalog_version = "s6-v2"
         catalog = self._catalog(catalog_version)
         # Preserve existing replay, but reject newly started sessions after
@@ -724,27 +485,6 @@ class AcademicMCPCheckpointService:
         token = uuid4().hex
         sid = str(started["session_id"])
         with self._connect() as db:
-            if self.generalization_parent_v1:
-                db.execute(
-                    "INSERT INTO generalization_enrollments(session_id,dataset_hash,policy) "
-                    "VALUES(?,?,?)",
-                    (sid, data.dataset_hash, (
-                        "AUDITED_EX_POST_PARENT_P4_QUALITY_V1"
-                        if self.p4_quality_gate_v1 else "AUDITED_EX_POST_PARENT_V1"
-                    )),
-                )
-            if self.p4_s7_quality_v1:
-                db.execute(
-                    "INSERT INTO p4_s7_enrollments VALUES(?,?)",
-                    (sid, "P4_S7_PRECOMMIT_QUALITY_V1"),
-                )
-            if self.p4_model_capture_v1:
-                assert self.p4_capture_key is not None
-                db.execute(
-                    "INSERT INTO model_capture_enrollments VALUES(?,?,?)",
-                    (sid, content_hash(self.p4_capture_key.hex()),
-                     "SIGNED_EXTERNAL_COLLECTOR_ONLY_V1"),
-                )
             db.execute(
                 "INSERT INTO stages(session_id,data_path,phase,token,catalog_version) "
                 "VALUES(?,?,?,?,?)",
@@ -778,131 +518,6 @@ class AcademicMCPCheckpointService:
         if not isinstance(body, dict) or content_hash(body) != row["report_hash"]:
             raise CycleStateError("controlled experiment record integrity mismatch")
         return {**body, "record_hash": row["report_hash"]}
-
-    def _scoped_generalization_selection(
-        self,
-        candidates: list[dict[str, Any]],
-        data: MarketDataSet,
-        status: dict[str, Any],
-    ) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
-        """Choose from canonical vetted parents using isolated ex-post replays.
-
-        ONLY a session explicitly enrolled at start() can call this method.
-        The source S7 proof/strategy/audit is validated AGAIN from a consistent
-        cloned snapshot. This never changes a prior pinned parent or OOS flag.
-        """
-        import sqlite3
-        from tempfile import TemporaryDirectory
-
-        from application.generalization_parent_preview import (
-            preview_mixed_parent_generalization,
-        )
-        from research.llm.parent_portfolio_v2 import verified_parent_lanes
-
-        if data.bars[-1].timestamp.date() > date(2025, 12, 31):
-            raise CycleStateError("P3 exposed 2026 market data is not eligible for research")
-        initial_lanes = verified_parent_lanes(candidates)
-        subset = list(initial_lanes)
-        seen = {x["effective_signal_hash"] for x in subset}
-        # Bounded 8 deep canonical replays: sample growth, downside and S7,
-        # without silently treating the stale full-period return as an OOS
-        # grade. Selection among them is the new period-aware Pareto policy.
-        for kind in ("COUNTED_GENERATION", "COUNTED_S7_CHILD"):
-            ranked = sorted(
-                (c for c in candidates if c.get("source_kind") == kind),
-                key=lambda x: (
-                    -x["parent_quality"]["total_return"],
-                    x["parent_quality"]["max_drawdown"],
-                    x["source_generation"],
-                ),
-            )
-            for row in ranked:
-                if len(subset) >= 8:
-                    break
-                if row["effective_signal_hash"] not in seen:
-                    subset.append(row)
-                    seen.add(row["effective_signal_hash"])
-        for item in subset:
-            if item.get("source_kind") not in ("COUNTED_GENERATION", "COUNTED_S7_CHILD"):
-                raise CycleStateError("P3 unverified parent source kind")
-        if not subset:
-            raise CycleStateError("P3 no qualified parent candidates")
-        sources = tuple(
-            (row["source_generation"], (
-                row["hypothesis_id"]
-                if row["source_kind"] == "COUNTED_S7_CHILD" else None
-            ))
-            for row in subset
-        )
-        with TemporaryDirectory(prefix="quant-p3-scoped-selection-") as work:
-            sandbox = Path(work) / "academic-gpt-checkpoints"
-            sandbox.mkdir()
-            for name in ("cycles.sqlite", "gateway.sqlite", "catalog-s6-v2.sqlite"):
-                source_db = (self.state / name).resolve()
-                with sqlite3.connect(source_db.as_uri() + "?mode=ro", uri=True) as origin:
-                    with sqlite3.connect(sandbox / name) as cloned:
-                        origin.backup(cloned)
-            clone = AcademicMCPCheckpointService(
-                project_root=self.root, state_dir=Path(work),
-                parent_portfolio_v2=False, generalization_parent_v1=False,
-            )
-            clone_catalog = clone._catalog("s6-v2")
-            # Complete years only, never 2026 or exposed/held-out price.
-            year_set = tuple(
-                y for y in sorted({bar.timestamp.year for bar in data.bars})
-                if y >= 2021 and y <= data.bars[-1].timestamp.year
-                and any(bar.timestamp.year == y and bar.timestamp.month == 12
-                        for bar in data.bars)
-            )
-            if len(year_set) < 3:
-                raise CycleStateError("P3 insufficient completed development years")
-            result = preview_mixed_parent_generalization(
-                clone, clone_catalog, data,
-                session_id=status["session_id"],
-                sources=sources, years=year_set,
-                last_development_date=data.bars[-1].timestamp.date(),
-                next_generation=status["completed_generations"] + 1,
-                p4_quality_gate=self.p4_quality_gate_v1,
-            )
-        original_by_hash = {x["successor_strategy_hash"]: x for x in candidates}
-        reviewed = {x.strategy_hash: x for x in result.candidate_reviews}
-        if any(
-            row["successor_strategy_hash"] not in reviewed
-            or reviewed[row["successor_strategy_hash"]].effective_signal_hash
-            != row["effective_signal_hash"]
-            for row in subset
-        ):
-            raise CycleStateError("P3 canonical S7 / counted signal proof drift")
-        try:
-            selected = original_by_hash[result.chosen_strategy_hash]
-            lanes = [original_by_hash[x] for x in result.lane_strategy_hashes]
-        except KeyError as exc:
-            raise CycleStateError("P3 selected strategy not canonical audited candidate") from exc
-        receipt = {
-            "schema": "scoped-ex-post-parent-selection-v1",
-            "preview_hash": result.selection_hash,
-            **({
-                "p4_quality_gate": "P4_QUALITY_V1_RESEARCH_ONLY",
-                "p4_quality_reviews": [asdict(q) for q in result.p4_quality_reviews],
-                "p4_eligible_count": sum(
-                    q.eligible_as_research_parent for q in result.p4_quality_reviews
-                ),
-                "p4_rejected_count": sum(
-                    not q.eligible_as_research_parent for q in result.p4_quality_reviews
-                ),
-            } if self.p4_quality_gate_v1 else {}),
-            "sampled_generations": [x["source_generation"] for x in subset],
-            "sampled_strategy_hashes": [x["successor_strategy_hash"] for x in subset],
-            "lane_names": list(result.lane_names),
-            "lane_generations": list(result.lane_generations),
-            "lane_strategy_hashes": list(result.lane_strategy_hashes),
-            "chosen_strategy_hash": result.chosen_strategy_hash,
-            "source_kind": result.chosen_source_kind,
-            "dev_dataset_hash": data.dataset_hash,
-            "independent_oos_approved": False,
-            "broker_executable": False,
-        }
-        return selected, lanes, receipt
 
     def _choose_counted_generation_portfolio(
         self,
@@ -1118,36 +733,9 @@ class AcademicMCPCheckpointService:
             if self.child_risk_budget is not None:
                 raise CycleStateError("P2 risk budget rejected all audited parent candidates")
             return None
-        generalization_receipt = None
-        if self.generalization_parent_v1:
-            enrolled = db.execute(
-                "SELECT dataset_hash,policy FROM generalization_enrollments "
-                "WHERE session_id=?", (status["session_id"],),
-            ).fetchone()
-            if (
-                enrolled is None
-                or enrolled["dataset_hash"] != data.dataset_hash
-                or enrolled["policy"] != (
-                    "AUDITED_EX_POST_PARENT_P4_QUALITY_V1"
-                    if self.p4_quality_gate_v1 else "AUDITED_EX_POST_PARENT_V1"
-                )
-            ):
-                raise CycleStateError("generalization policy not enrolled at session creation")
-            selected, lanes, generalization_receipt = self._scoped_generalization_selection(
-                candidates, data, status,
-            )
-        else:
-            selected, lanes = choose_parent_lane(
-                candidates, status["completed_generations"] + 1,
-            )
+        selected, lanes = choose_parent_lane(candidates, status["completed_generations"] + 1)
         body = {k: v for k, v in selected.items() if k != "selection_hash"}
-        body["selection_basis"] = (
-            "P3_AUDITED_EX_POST_GENERALIZATION_OPT_IN"
-            if generalization_receipt is not None
-            else "P1_COST_REPLAYED_MULTI_OBJECTIVE_DEVELOPMENT_ONLY"
-        )
-        if generalization_receipt is not None:
-            body["generalization_receipt"] = generalization_receipt
+        body["selection_basis"] = "P1_COST_REPLAYED_MULTI_OBJECTIVE_DEVELOPMENT_ONLY"
         body["candidate_review"] = {
             "shortlisted_count": len(shortlist),
             "replayed_count": len(candidates),
@@ -1165,11 +753,7 @@ class AcademicMCPCheckpointService:
             "diverse_parent_count": len(lanes),
             "lane_source_generations": [x["source_generation"] for x in lanes],
             "chosen_parent_generation": selected["source_generation"],
-            "selection_reason": (
-                "P3_AUDITED_EX_POST_VERIFIED_PARENT_ROTATION"
-                if generalization_receipt is not None
-                else "DETERMINISTIC_VERIFIED_PARENT_LANE_ROTATION"
-            ),
+            "selection_reason": "DETERMINISTIC_VERIFIED_PARENT_LANE_ROTATION",
             "not_sealed_oos": True,
         }
         return {**body, "selection_hash": content_hash(body)}
@@ -1266,20 +850,7 @@ class AcademicMCPCheckpointService:
                         raise CycleStateError("parent selection proof disappeared")
                 return selection
             if self.parent_portfolio_v2:
-                try:
-                    chosen_v2 = self._choose_counted_generation_portfolio(
-                        db, catalog, data, status,
-                    )
-                except GeneralizationParentError as exc:
-                    if (
-                        not self.p4_quality_gate_v1
-                        or str(exc) != "P4 no eligible non-cash audited research parent"
-                    ):
-                        raise
-                    # No eligible verified parent is not permission to inherit
-                    # a weaker candidate. Return to independent AlgorithmPlan
-                    # exploration without relaxing P4 / S7 acceptance gates.
-                    return None
+                chosen_v2 = self._choose_counted_generation_portfolio(db, catalog, data, status)
                 if chosen_v2 is not None:
                     db.execute(
                         "INSERT OR IGNORE INTO parent_selections "
@@ -1812,9 +1383,6 @@ class AcademicMCPCheckpointService:
     ) -> dict[str, Any]:
         context = build_algorithm_plan_context(catalog, data)
         context["generation"] = status["completed_generations"] + 1
-        # Advisory from registered calculator semantics, never market/OOS fitted.
-        if self.p4_s7_quality_v1:
-            context["feature_unit_guidance"] = verified_feature_unit_guidance()
         # Verified QQQ costed B&H and historical, non-tradable risk proxies.
         # Replay the latest audited strategy; never trust LLM-claimed metrics.
         last = status["history"][-1] if status["history"] else None
@@ -2049,26 +1617,6 @@ class AcademicMCPCheckpointService:
         row = db.execute("SELECT * FROM stages WHERE session_id=?", (sid,)).fetchone()
         if row is None:
             raise CycleStateError("unknown academic MCP session")
-        # An externally signed session cannot be downgraded merely by
-        # restarting the MCP service with its provenance environment OFF.
-        if not self.p4_model_capture_v1:
-            enrolled_table = db.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' "
-                "AND name='model_capture_enrollments'"
-            ).fetchone()
-            if enrolled_table is not None and db.execute(
-                "SELECT 1 FROM model_capture_enrollments WHERE session_id=?", (sid,),
-            ).fetchone() is not None:
-                raise ModelCaptureError("P4-2 enrolled session requires pinned capture policy")
-        if not self.p4_s7_quality_v1 and db.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' "
-            "AND name='p4_s7_enrollments'"
-        ).fetchone() is not None and db.execute(
-            "SELECT 1 FROM p4_s7_enrollments WHERE session_id=?", (sid,),
-        ).fetchone() is not None:
-            raise CycleStateError("P4-3 enrolled session cannot disable quality policy")
-        if self.p4_s7_quality_v1:
-            self._p43_enrollment(db, sid)
         catalog, data = self._catalog(row["catalog_version"]), self._data(row["data_path"])
         return row, catalog, data, self.cycle.get(sid, catalog, data)
 
@@ -2224,26 +1772,6 @@ class AcademicMCPCheckpointService:
                     **context,
                     "experiment_quality_guidance": academic_diagnostic_quality_hint(),
                 }
-                if self.p4_s7_quality_v1:
-                    checked = self._p43_audit(db, sid, current)
-                    relevant = [
-                        x for x in checked["rejections"]
-                        if x["generation"] == current["completed_generations"] + 1
-                        and x["token_hash"] == content_hash(row["token"])
-                        and x["context_hash"] == row["context_digest"]
-                        and x["dataset_hash"] == data.dataset_hash
-                    ]
-                    result["model_context"]["p4_s7_rejection_feedback"] = {
-                        "schema": "p4-s7-rejection-feedback-v1",
-                        "rejection_count": len(relevant),
-                        "recent_rejections": [
-                            {"request_hash": x["request_hash"],
-                             "candidate_report_hash": x["candidate_report_hash"],
-                             "reasons": x["reasons"]} for x in relevant[-5:]
-                        ],
-                        "supported_metrics": sorted(SUPPORTED_CONTROLLED_METRICS),
-                        "instruction": "Revise measured ineffective experiment; preserve token.",
-                    }
                 if pending.get("s2_execution_preflight") is not None:
                     result["model_context"]["s2_execution_preflight"] = pending[
                         "s2_execution_preflight"
@@ -2306,20 +1834,6 @@ class AcademicMCPCheckpointService:
                 result["status"] = "AWAITING_DIAGNOSIS"
             elif row["phase"] not in ("COMPLETED", "INTERRUPTED", "RUNNING", "CANCELLED"):
                 raise CycleStateError("invalid checkpoint state")
-            if self.p4_s7_quality_v1:
-                quality_audit = self._p43_audit(db, sid, current)
-                result["p4_s7_quality_audit"] = {
-                    key: val for key, val in quality_audit.items() if key != "rejections"
-                }
-            if self.p4_model_capture_v1:
-                self._p42_enrollment(db, sid)
-                assert self.p4_capture_key is not None
-                result["model_capture_audit"] = audit_capture_chain(
-                    db, session_id=sid, public_key=self.p4_capture_key,
-                    history=current["history"], phase=row["phase"],
-                )
-                if "model_context" in result:
-                    result["model_capture_context_hash"] = content_hash(result["model_context"])
             return result
 
     def _stage_inherited_plan(
@@ -2332,7 +1846,6 @@ class AcademicMCPCheckpointService:
         args: dict[str, Any],
         *,
         require_execution_change: bool = False,
-        require_trade_activity: bool = False,
         receipt_request: dict[str, Any] | None = None,
     ) -> None:
         parent, original, selected = self._selected_ir(catalog, data, state)
@@ -2346,7 +1859,6 @@ class AcademicMCPCheckpointService:
         ):
             raise ValueError("inherited plan requires a registered, bounded ResearchIntent")
         child = apply_intent(parent.strategy, intent, research_feature_specs())
-        verify_feature_condition_ranges(child)
         digest = content_hash(child.model_dump(mode="json", by_alias=True))
         if digest == parent.strategy_hash or any(
             item["strategy_hash"] == digest for item in state["history"]
@@ -2424,7 +1936,6 @@ class AcademicMCPCheckpointService:
                     "Design distinct executable conditions and retry the same checkpoint."
                 )
         audit = audit_inherited_decisions(compiled, data)
-        require_nonempty_executions(audit, required=require_trade_activity)
         precommit_approved_proof: dict[str, Any] | None = None
         if self.precommit_child_risk_budget is not None:
             # Exact same costed, next-open S2 replay for both parent and child.
@@ -2579,52 +2090,35 @@ class AcademicMCPCheckpointService:
     def submit_plan(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {
-                "session_id", "checkpoint_token", "plan", "require_execution_change",
-                "require_trade_activity", "model_capture",
-            },
+            {"session_id", "checkpoint_token", "plan", "require_execution_change"},
             {"session_id", "checkpoint_token", "plan"},
         )
         sid, token = args["session_id"], args["checkpoint_token"]
         strict_execution = args.get("require_execution_change", False)
         if type(strict_execution) is not bool:
             raise ValueError("require_execution_change must be a boolean")
-        require_trade_activity = args.get("require_trade_activity", False)
-        if type(require_trade_activity) is not bool:
-            raise ValueError("require_trade_activity must be a boolean")
         # Bind the stricter preflight to the submission receipt. A later caller
         # cannot replay an already-staged unguarded plan as a guarded one.
         receipt_request = (
-            {"plan": args["plan"],
-             "require_execution_change": strict_execution,
-             "require_trade_activity": True}
-            if require_trade_activity
-            else ({"plan": args["plan"], "require_execution_change": True}
-                  if strict_execution else args["plan"])
+            {"plan": args["plan"], "require_execution_change": True}
+            if strict_execution
+            else args["plan"]
         )
         with self._connect() as db:
             row, catalog, data, current = self._state(db, sid)
             if self._is_recent_replay(
-                db, row, current, "plan", token, receipt_request,
+                db,
+                row,
+                current,
+                "plan",
+                token,
+                receipt_request,
             ):
-                self._p42_replay(
-                    db, sid=sid, gen=current["completed_generations"] + 1,
-                    phase="plan", assertion=args.get("model_capture"),
-                )
                 return self.get({"session_id": sid})
             if row["phase"] != "AWAITING_PLAN" or current["status"] != "AWAITING_PROVIDER":
                 raise CycleStateError("plan cannot be submitted in current state")
             if row["token"] != token:
                 raise CycleStateError("invalid checkpoint token")
-            capture = self._p42_verify(
-                db, sid=sid, gen=current["completed_generations"] + 1,
-                phase="plan", token=token, payload=args["plan"],
-                context_hash=(
-                    self.get({"session_id": sid})["model_capture_context_hash"]
-                    if self.p4_model_capture_v1 else ""
-                ),
-                assertion=args.get("model_capture"),
-            )
             if self._selected_development_parent(catalog, data, current) is not None:
                 self._stage_inherited_plan(
                     db,
@@ -2634,11 +2128,8 @@ class AcademicMCPCheckpointService:
                     current,
                     args,
                     require_execution_change=strict_execution,
-                    require_trade_activity=require_trade_activity,
                     receipt_request=receipt_request,
                 )
-                if capture is not None:
-                    store_capture(db, capture, evidence_hash=None)
                 db.commit()
                 return self.get({"session_id": sid})
             if strict_execution:
@@ -2678,7 +2169,6 @@ class AcademicMCPCheckpointService:
                         "the plan and resubmit using the same checkpoint token"
                     )
             audit = audit_algorithm_plan(catalog, compiled, data)
-            require_nonempty_executions(audit, required=require_trade_activity)
             context = build_diagnostic_context(audit, compiled.compiled.strategy)
             pending = plan.model_dump(mode="json")
             new_token = uuid4().hex
@@ -2712,17 +2202,12 @@ class AcademicMCPCheckpointService:
                 "(session_id,generation,start_utc) VALUES(?,?,?)",
                 (sid, current["completed_generations"] + 1, datetime.now(timezone.utc).isoformat()),
             )
-            if capture is not None:
-                store_capture(db, capture, evidence_hash=None)
         return self.get({"session_id": sid})
 
     def submit_diagnosis(self, args: dict[str, Any]) -> dict[str, Any]:
         self._one(
             args,
-            {
-                "session_id", "checkpoint_token", "diagnosis",
-                "require_signal_change", "model_capture",
-            },
+            {"session_id", "checkpoint_token", "diagnosis", "require_signal_change"},
             {"session_id", "checkpoint_token", "diagnosis"},
         )
         strict_signal = args.get("require_signal_change", False)
@@ -2736,12 +2221,13 @@ class AcademicMCPCheckpointService:
         with self._connect() as db:
             row, _, _, current = self._state(db, sid)
             if self._is_recent_replay(
-                db, row, current, "diagnosis", token, replay_request,
+                db,
+                row,
+                current,
+                "diagnosis",
+                token,
+                replay_request,
             ):
-                self._p42_replay(
-                    db, sid=sid, gen=current["completed_generations"],
-                    phase="diagnosis", assertion=args.get("model_capture"),
-                )
                 return self._evaluated_reply(sid, current["completed_generations"])
         # Recompute all observed evidence before any generation can be committed.
         pending = self.get({"session_id": sid})
@@ -2752,24 +2238,10 @@ class AcademicMCPCheckpointService:
             raise CycleStateError("invalid diagnosis checkpoint token or state")
         if diagnosis.get("context_hash") != pending["model_context"]["context_hash"]:
             raise CycleStateError("invalid diagnosis context hash")
-        with self._connect() as db:
-            capture = self._p42_verify(
-                db, sid=sid, gen=pending["completed_generations"] + 1,
-                phase="diagnosis", token=token, payload=diagnosis,
-                context_hash=pending.get("model_capture_context_hash", ""),
-                assertion=args.get("model_capture"),
-            )
         # S7 is automatically evaluated after the generation is committed.
         # Reject unsupported response metrics while the checkpoint is still
         # unclaimed, so the model can correct its diagnosis without creating
         # a committed generation lacking an experiment report.
-        for proposed in diagnosis.get("hypotheses", ()):
-            if isinstance(proposed, dict) and proposed.get("expected_metric") not in (
-                SUPPORTED_CONTROLLED_METRICS
-            ):
-                raise ValueError(
-                    f"unsupported S7 metric: {proposed.get('expected_metric')}"
-                )
         typed_diagnosis = DiagnosticResponse.model_validate(diagnosis)
         for hypothesis in typed_diagnosis.hypotheses:
             if hypothesis.expected_metric not in SUPPORTED_CONTROLLED_METRICS:
@@ -2804,10 +2276,6 @@ class AcademicMCPCheckpointService:
                     + ", ".join(uninformative)
                     + "; edit diagnosis and resubmit using the same checkpoint token"
                 )
-        p43_review = (
-            self._p43_preflight(sid, token, diagnosis)
-            if self.p4_s7_quality_v1 else None
-        )
         if self.p3_semantic_preflight:
             with self._connect() as db:
                 row, catalog, data, current = self._state(db, sid)
@@ -2933,25 +2401,6 @@ class AcademicMCPCheckpointService:
                 next_phase,
                 completed["completed_generations"],
             )
-            if p43_review is not None:
-                quality_receipt = {
-                    "schema": "p4-s7-accepted-generation-v1",
-                    "session_id": sid,
-                    "generation": completed["completed_generations"],
-                    "counted_evidence_hash": completed["history"][-1]["evidence_hash"],
-                    "review": p43_review,
-                }
-                db.execute(
-                    "INSERT INTO p4_s7_approvals VALUES(?,?,?,?)",
-                    (sid, quality_receipt["generation"],
-                     json.dumps(quality_receipt, sort_keys=True),
-                     content_hash(quality_receipt)),
-                )
-            if capture is not None:
-                store_capture(
-                    db, capture,
-                    evidence_hash=completed["history"][-1]["evidence_hash"],
-                )
         # MCP-first shortcut: a complete research generation must carry its
         # measured experiment evidence into the NEXT LLM planning prompt.
         # Previously ChatGPT had to make an extra evaluate_* call and could
@@ -2998,22 +2447,6 @@ class AcademicMCPCheckpointService:
                 if self._is_recovery_replay(db, row, current, "reconcile"):
                     return self._recovery_reply(sid, current["completed_generations"])
                 raise CycleStateError("reconcile only stalled running gateway checkpoint")
-            # P4-3 counted evidence and the quality approval live in
-            # different SQLite databases. On a crash between those writes,
-            # refuse to resume with a fabricated post-hoc quality review.
-            if self.p4_s7_quality_v1:
-                self._p43_audit(db, sid, current)
-            # A cross-DB crash may leave a counted generation without its
-            # signed diagnostic receipt. Never reconcile this to a fresh GPT
-            # planning checkpoint: the missing evidence cannot be fabricated
-            # afterward. An independent recovery protocol is required.
-            if self.p4_model_capture_v1:
-                self._p42_enrollment(db, sid)
-                assert self.p4_capture_key is not None
-                audit_capture_chain(
-                    db, session_id=sid, public_key=self.p4_capture_key,
-                    history=current["history"], phase=row["phase"],
-                )
             # Check the previously recorded receipt too, fail closed on damage.
             self._is_recovery_replay(db, row, current, "reconcile")
             cycle_status = current["status"]

@@ -24,14 +24,6 @@ from research.llm.director import ResearchIntent
 from research.llm.intent_bridge import IntentEligibilityError, apply_intent
 from strategy_ir.schema import StrategyIR
 
-# One executable S7 metric contract shared with the gateway and experiment engine.
-# Win rate and profit factor still require round-trip semantics not uniformly
-# available from every supported inherited replay; do not advertise them.
-SUPPORTED_S7_METRICS = (
-    "total_return", "cagr", "max_drawdown", "sharpe", "sortino",
-    "trade_count", "exposure",
-)
-
 
 class DiagnosisContractError(ValueError):
     """Reject unverifiable LLM diagnoses and malformed evidence without executing."""
@@ -49,8 +41,8 @@ class ExperimentHypothesis(BaseModel):
     mechanism: str = Field(min_length=12, max_length=1200)
     alternative: str = Field(min_length=12, max_length=1200)
     expected_metric: Literal[
-        "total_return", "cagr", "max_drawdown", "sharpe", "sortino",
-        "trade_count", "exposure",
+        "total_return", "cagr", "max_drawdown", "win_rate", "profit_factor",
+        "trade_count", "exposure", "sharpe", "sortino",
     ]
     predicted_direction: Literal["INCREASE", "DECREASE"]
     test_design: Literal["ABLATION", "PARAMETER", "RULE_STRUCTURE", "REGIME"]

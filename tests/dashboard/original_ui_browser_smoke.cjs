@@ -75,15 +75,14 @@ async function scenario(file) {
   await new Promise(resolve=>setTimeout(resolve,1300));
   assert.equal(make("api-state").textContent,"정상 연결",file);
   const active=await (await request(new URL("api/status",base))).json();
-  assert.equal(active.requested,100);
+  assert.equal(active.requested,552);
   assert.equal(active.additional_target,100);
-  assert.equal(active.source_kind,"GPT_AUTHORED_MCP_CHECKPOINT_DEVELOPMENT");
-  assert.ok(active.completed>=68 && active.completed<=100);
+  assert.equal(active.source_kind,"ISOLATED_100_GENERATION_DEVELOPMENT");
   if(file==="app.js") {
-    assert.equal(make("perf-progress").textContent,active.completed+" / "+active.requested);
+    assert.match(make("perf-progress").textContent,/^[0-9]+ \/ 100$/);
     assert.equal(make("perf-cohort").textContent,
-      "추가 "+active.additional_completed+" / "+active.additional_target+"세대");
-    assert.match(make("perf-cohort-label").textContent,/GPT 작성 MCP/);
+      "전체 원장 G"+(Number(make("perf-progress").textContent.split(" / ")[0])+452)+"/G552 · 기준 G452 보존");
+    assert.match(make("perf-cohort-label").textContent,/G453~G552/);
     assert.equal(make("perf-qqq-return").textContent,"187.77%");
     assert.match(make("perf-best-return").textContent,/%$/);
     assert.match(make("perf-qqq-return").textContent,/%$/);
@@ -91,7 +90,7 @@ async function scenario(file) {
     assert.match(make("perf-best-mdd").textContent,/%$/);
     assert.match(make("perf-return-chart").innerHTML,/<path /);
     assert.match(make("perf-risk-chart").innerHTML,/<path /);
-    assert.match(make("perf-status").textContent,/세대 실험 진행 중|실험 완료|GPT 전략 계획 대기|GPT 진단 대기/);
+    assert.match(make("perf-status").textContent,/세대 실험 진행 중|실험 완료/);
     assert.equal(make("connect-evidence").textContent,"연결 정상");
     assert.equal(typeof handlers.get("connection-toggle:click"),"function");
     handlers.get("connection-toggle:click")();
@@ -106,8 +105,7 @@ async function scenario(file) {
     await new Promise(resolve=>setTimeout(resolve,300));
     assert.equal(make("refresh").disabled,false);
   } else {
-    assert.equal(make("generation-progress-copy").textContent,
-      active.completed+" / "+active.requested+"세대 완료");
+    assert.match(make("generation-progress-copy").textContent,/^[0-9]+ \/ 552세대 완료$/);
     assert.notEqual(make("best-strategy-cagr").textContent,"—");
     assert.notEqual(make("best-qqq-cagr").textContent,"—");
   }

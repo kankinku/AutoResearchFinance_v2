@@ -172,13 +172,7 @@ def select_candidate(candidate: FunnelInput, config: FunnelConfig) -> FunnelResu
             qqq_target_passed,
             config.min_qqq_cagr_delta,
             qqq_cagr_delta,
-            (
-                None
-                if qqq_target_passed
-                else "benchmark_not_measured"
-                if qqq_cagr_delta is None
-                else "qqq_target_not_met"
-            ),
+            None if qqq_target_passed else "qqq_target_not_met",
         ),
         GateDecision(
             "annual_trade_count",

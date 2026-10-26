@@ -70,8 +70,8 @@ def compare_inherited_experiments(
         except (ValueError, ResearchCatalogError) as exc:
             raise ControlledExperimentError("inherited child failed canonical replay") from exc
         metric = hypothesis.expected_metric
-        original = _measured_metric(parent, metric, market)
-        measured = _measured_metric(child, metric, market)
+        original = _measured_metric(parent, metric)
+        measured = _measured_metric(child, metric)
         delta = measured - original if measured is not None and original is not None else None
         identical = parent.trades == child.trades and parent.equity_curve == child.equity_curve
         if identical:

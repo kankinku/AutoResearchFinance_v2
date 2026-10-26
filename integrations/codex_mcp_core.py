@@ -92,50 +92,6 @@ class CodexMCPServer:
         if opt_in and re.fullmatch(r"[0-9a-f]{32}", opt_in) is None:
             raise ValueError("invalid scoped Quant parent portfolio session")
         self.parent_portfolio_v2_session_id = opt_in
-        p3_session = os.environ.get("QUANT_MCP_GENERALIZATION_PARENT_V1_SESSION_ID", "")
-        if p3_session and re.fullmatch(r"[0-9a-f]{32}", p3_session) is None:
-            raise ValueError("invalid scoped Quant generalization parent session")
-        p3_new = os.environ.get("QUANT_MCP_GENERALIZATION_PARENT_V1_NEW_SESSION", "0")
-        if p3_new not in ("0", "1"):
-            raise ValueError("invalid Quant generalization new-session enrollment toggle")
-        self.generalization_parent_v1_session_id = p3_session
-        self.generalization_parent_v1_new_session = p3_new == "1"
-        p4_new = os.environ.get("QUANT_MCP_P4_QUALITY_NEW_SESSION", "0")
-        p4_session = os.environ.get("QUANT_MCP_P4_QUALITY_SESSION_ID", "")
-        if p4_new not in ("0", "1") or (p4_new == "1" and p3_new != "1"):
-            raise ValueError("P4 requires explicit new P3 research enrollment")
-        if p4_session and re.fullmatch(r"[0-9a-f]{32}", p4_session) is None:
-            raise ValueError("invalid scoped P4 quality research session")
-        if p4_session and p3_session and p4_session != p3_session:
-            raise ValueError("P4 session and P3 scoped session differ")
-        self.p4_quality_new_session = p4_new == "1"
-        self.p4_quality_session_id = p4_session
-        p42_new = os.environ.get("QUANT_MCP_P4_MODEL_CAPTURE_NEW_SESSION", "0")
-        p42_session = os.environ.get("QUANT_MCP_P4_MODEL_CAPTURE_SESSION_ID", "")
-        p42_key = os.environ.get("QUANT_MCP_P4_CAPTURE_PUBLIC_KEY_HEX", "")
-        if p42_new not in ("0", "1") or (p42_new == "1" and p4_new != "1"):
-            raise ValueError("P4-2 requires P4-1 new-session enrollment")
-        if p42_session and re.fullmatch(r"[0-9a-f]{32}", p42_session) is None:
-            raise ValueError("P4-2 invalid scoped model capture session")
-        if p42_session and p4_session and p42_session != p4_session:
-            raise ValueError("P4-2 and P4-1 sessions must match")
-        if (p42_new == "1" or p42_session) and re.fullmatch(r"[0-9a-f]{64}", p42_key) is None:
-            raise ValueError("P4-2 requires trusted external capture public key")
-        self.p4_model_capture_new = p42_new == "1"
-        self.p4_model_capture_session_id = p42_session
-        self.p4_capture_public_key = p42_key
-        p43_new = os.environ.get("QUANT_MCP_P4_S7_QUALITY_NEW_SESSION", "0")
-        p43_session = os.environ.get("QUANT_MCP_P4_S7_QUALITY_SESSION_ID", "")
-        if p43_new not in ("0", "1") or (p43_new == "1" and p4_new != "1"):
-            raise ValueError("P4-3 requires P4-1 new-session enrollment")
-        if p43_session and re.fullmatch(r"[0-9a-f]{32}", p43_session) is None:
-            raise ValueError("invalid scoped P4-3 S7 research session")
-        if p43_session and any(
-            x and x != p43_session for x in (p4_session, p42_session, p3_session)
-        ):
-            raise ValueError("P4-3 scoped ID must match other research session IDs")
-        self.p4_s7_quality_new_session = p43_new == "1"
-        self.p4_s7_quality_session_id = p43_session
 
     def _dispatch(self, name: str, arguments: dict[str, Any]) -> object:
         if name in {
@@ -148,37 +104,13 @@ class CodexMCPServer:
             "reconcile_algorithm_research",
             "evaluate_algorithm_experiments",
         }:
-            p42_scoped = (
-                bool(self.p4_model_capture_session_id)
-                and arguments.get("session_id") == self.p4_model_capture_session_id
-            ) or (name == "start_algorithm_research" and self.p4_model_capture_new)
-            p43_scoped = (
-                bool(self.p4_s7_quality_session_id)
-                and arguments.get("session_id") == self.p4_s7_quality_session_id
-            ) or (name == "start_algorithm_research" and self.p4_s7_quality_new_session)
-            p4_scoped = p43_scoped or p42_scoped or (
-                bool(self.p4_quality_session_id)
-                and arguments.get("session_id") == self.p4_quality_session_id
-            ) or (name == "start_algorithm_research" and self.p4_quality_new_session)
-            p3_scoped = p4_scoped or (
-                bool(self.generalization_parent_v1_session_id)
-                and arguments.get("session_id") == self.generalization_parent_v1_session_id
-            ) or (name == "start_algorithm_research" and self.generalization_parent_v1_new_session)
             academic = AcademicMCPCheckpointService(
                 project_root=self.project_root,
                 state_dir=self.state_dir,
                 parent_portfolio_v2=(
-                    p3_scoped
-                    or (
-                        bool(self.parent_portfolio_v2_session_id)
-                        and arguments.get("session_id") == self.parent_portfolio_v2_session_id
-                    )
+                    bool(self.parent_portfolio_v2_session_id)
+                    and arguments.get("session_id") == self.parent_portfolio_v2_session_id
                 ),
-                generalization_parent_v1=p3_scoped,
-                p4_quality_gate_v1=p4_scoped,
-                p4_model_capture_v1=p42_scoped,
-                p4_s7_quality_v1=p43_scoped,
-                p4_capture_public_key_hex=(self.p4_capture_public_key if p42_scoped else None),
             )
             if name == "start_algorithm_research":
                 return academic.start(arguments)

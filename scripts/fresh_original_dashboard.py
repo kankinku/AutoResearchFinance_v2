@@ -7,19 +7,12 @@ No research or account writes, no order API. nginx Basic Auth stays upstream.
 from __future__ import annotations
 
 import json
-import sqlite3
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
 from dashboard.service import DashboardService
-from scripts.fresh_research_dashboard import (
-    ACTIVE_STATE,
-    LIVE_STATE,
-    STATE,
-    DashboardHandler,
-    snapshot,
-)
+from scripts.fresh_research_dashboard import ACTIVE_STATE, STATE, DashboardHandler, snapshot
 
 STATIC = Path(__file__).resolve().parents[1] / "dashboard/static"
 
@@ -247,10 +240,9 @@ def page(name: str) -> bytes:
         # permitting dashboard-controlled research writes or exposing OAuth.
         text = text.replace(
             "<main>",
-            '<main><p class="muted">현재 P5 GPT 연구 원장 표시 중 · '
+            '<main><p class="muted">현재 GPT 연구 원장 표시 중 · '
             '<a href="api/status?cohort=historical" target="_blank" '
             'rel="noopener noreferrer">기존 G453~G552 연구 원장(JSON)</a> · '
-            '<a href="api/status?cohort=prior_mcp">이전 GPT 68세대(JSON)</a> · '
             '<a href="api/status?cohort=original" target="_blank" '
             'rel="noopener noreferrer">기존 G452 원장(JSON)</a></p>',
             1,
@@ -325,8 +317,6 @@ class OriginalDashboardHandler(DashboardHandler):
                 cohort = self.path.partition("?")[2]
                 if cohort == "cohort=historical":
                     view = snapshot(ACTIVE_STATE)
-                elif cohort == "cohort=prior_mcp":
-                    view = snapshot(LIVE_STATE)
                 elif cohort == "cohort=original":
                     view = snapshot(STATE)
                 elif not cohort:
@@ -380,7 +370,7 @@ class OriginalDashboardHandler(DashboardHandler):
                     data = {}
                 payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
                 return self._respond(200, "application/json; charset=utf-8", payload)
-            except (OSError, ValueError, TypeError, KeyError, sqlite3.Error) as exc:
+            except (OSError, ValueError, KeyError) as exc:
                 return self._respond(
                     503, "application/json", json.dumps({"error": type(exc).__name__}).encode()
                 )
@@ -406,7 +396,7 @@ class OriginalDashboardHandler(DashboardHandler):
                 return self._respond(
                     200, "application/json", json.dumps(data, ensure_ascii=False).encode("utf-8")
                 )
-            except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
+            except (OSError, ValueError, KeyError):
                 return self._respond(503, "application/json", b'{"error":"not available"}')
         self._respond(405, "text/plain", b"read only")
 

@@ -17,7 +17,6 @@ def _request(*, generations: int = 2) -> dict[str, object]:
     return {
         "source_path": "strategy.yaml",
         "data_path": "bars.parquet",
-        "series_data_path": "series.parquet",
         "intent": {
             "mode": "structure",
             "parent_ids": ["runner-test"],

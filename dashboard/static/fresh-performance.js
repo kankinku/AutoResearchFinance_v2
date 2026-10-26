@@ -163,9 +163,7 @@
     updateText("perf-last-gen",data.last?"G"+data.last.generation:"—");
     updateText("perf-last-return",data.last?pct(data.last.return):"—");
     const finished=data.completed>=data.requested && data.requested>0;
-    updateText("perf-status",finished?"실험 완료":data.research_running_confirmed?"세대 실험 진행 중":
-      data.phase==="AWAITING_PLAN"?"GPT 전략 계획 대기":
-      data.phase==="AWAITING_DIAGNOSIS"?"GPT 진단 대기":"연구 상태 확인 필요");
+    updateText("perf-status",finished?"실험 완료":data.research_running_confirmed?"세대 실험 진행 중":"연구 중단 · 확인 필요");
     updateText("perf-updated","자료 동기화 "+new Date(data.fetched_at).toLocaleTimeString("ko-KR"));
     const subset=windowSize==="all" ? records : records.slice(-Number(windowSize));
     renderReturns(data,subset);
@@ -180,10 +178,7 @@
     put("connect-research","G"+data.completed+"/"+data.requested+" · "+data.phase);
     put("connect-evidence",data.proof_chain_ok?"연결 정상":"검증 실패 · 점검 필요");
     put("connect-runner",data.completed>=data.requested?"완료 · 실행 불필요":
-      data.research_running_confirmed?"실행 프로세스 확인":
-      data.phase==="AWAITING_PLAN"?"GPT 계획 제출 대기 · 자동 실행 미확인":
-      data.phase==="AWAITING_DIAGNOSIS"?"GPT 진단 제출 대기 · 자동 실행 미확인":
-      "연구 프로세스 미실행");
+      data.research_running_confirmed?"실행 프로세스 확인":"연구 프로세스 미실행");
     put("connect-updated",new Date(data.fetched_at).toLocaleString("ko-KR"));
   }
 

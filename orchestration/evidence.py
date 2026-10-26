@@ -160,7 +160,6 @@ def candidate_evidence(result: FunnelResult) -> dict[str, Any]:
                 "passed": gate.passed,
                 "threshold": _number(gate.threshold),
                 "actual": _number(gate.actual),
-                "reason": gate.reason,
             }
             for gate in result.gates
         ],
