@@ -1,10 +1,10 @@
 # Quant AutoResearch M1 — 불변 S7 조회·장기 연구 기억 검색·근거 필드 감사
 
-**Date:** 2026-10-26 KST  
-**Stage ID:** `T4-MEMORY-M1-READONLY-S7-RETRIEVAL-20261026`  
-**Q IDs:** Q02/Q06/Q08/Q09/Q11/Q15/Q16/Q17/Q20  
-**Status:** `DEV_IMPLEMENTED_READONLY_REPLAY_PASS / PRODUCTION_MCP_UNCHANGED / GPT_QUALITY_UNTESTED`  
-**Goal:** 사용자 확정 5단계 기억개선에서 다음 세대 인계 이전에, 현재 Quant 원장에 있는 *실제 68세대*의 S7 증거를 쓰기 없이 검증하고 부모·개입·실패·가설별 검색 결과를 만들기.  
+**Date:** 2026-10-26 KST
+**Stage ID:** `T4-MEMORY-M1-READONLY-S7-RETRIEVAL-20261026`
+**Q IDs:** Q02/Q06/Q08/Q09/Q11/Q15/Q16/Q17/Q20
+**Status:** `DEV_IMPLEMENTED_READONLY_REPLAY_PASS / PRODUCTION_MCP_UNCHANGED / GPT_QUALITY_UNTESTED`
+**Goal:** 사용자 확정 5단계 기억개선에서 다음 세대 인계 이전에, 현재 Quant 원장에 있는 *실제 68세대*의 S7 증거를 쓰기 없이 검증하고 부모·개입·실패·가설별 검색 결과를 만들기.
 **Frozen delivery:** V05 bounded cost/statistics → T4 real GPT MCP generations → V01–V04 protected PIT/OOS → V06 paper only → V07 GO/NO-GO. 이 작업은 V05와 실제 GPT E2E의 대체물이 아님.
 
 ## Delivered: three linked pieces
