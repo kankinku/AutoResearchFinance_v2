@@ -16,6 +16,10 @@ from pydantic import Field, field_serializer
 
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.research_batch_service import MAX_CANDIDATES, MAX_GENERATIONS
+from integrations.academic_chat_compact import (
+    ChatCheckpointCompressionError,
+    compact_academic_checkpoint,
+)
 from integrations.codex_mcp_core import _chat_directed_step_schema, _tools
 from integrations.codex_mcp_sdk_server import (
     SDKMCPServerAdapter,
@@ -381,8 +385,20 @@ def chatgpt_tools() -> list[dict[str, object]]:
             ),
             _academic_tool(
                 "get_algorithm_research",
-                "Read verified research history and current GPT planning or diagnostic checkpoint.",
-                {"session_id": session_field},
+                "Read canonical GPT planning/diagnostic checkpoint. For direct chat-driven "
+                "multi-generation research, prefer response_mode=compact; full returns "
+                "all historical evidence without projection.",
+                {
+                    "session_id": session_field,
+                    "response_mode": {
+                        "type": "string",
+                        "enum": ["full", "compact"],
+                        "default": "full",
+                        "description": (
+                            "Opt-in phase-aware GPT view; full preserves original evidence."
+                        ),
+                    },
+                },
                 ["session_id"],
             ),
             _academic_tool(
@@ -398,6 +414,12 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "checkpoint_token": token_field,
                     "plan": {"type": "object"},
                     "require_execution_change": {"type": "boolean", "default": False},
+                    "response_mode": {
+                        "type": "string",
+                        "enum": ["full", "compact"],
+                        "default": "full",
+                        "description": "Compact successful reply; plan unchanged.",
+                    },
                 },
                 ["session_id", "checkpoint_token", "plan"],
             ),
@@ -412,6 +434,12 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "checkpoint_token": token_field,
                     "diagnosis": {"type": "object"},
                     "require_signal_change": {"type": "boolean", "default": False},
+                    "response_mode": {
+                        "type": "string",
+                        "enum": ["full", "compact"],
+                        "default": "full",
+                        "description": "Compact the successful reply only; commit unchanged.",
+                    },
                 },
                 ["session_id", "checkpoint_token", "diagnosis"],
             ),
@@ -560,9 +588,12 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
                 is_error=True,
             )
         response_mode = str(arguments.get("response_mode", "summary"))
+        checkpoint_view_tools = frozenset(
+            {"get_algorithm_research", "submit_algorithm_plan", "submit_algorithm_diagnosis"}
+        )
         dispatch_arguments = (
             {key: value for key, value in arguments.items() if key != "response_mode"}
-            if params.name in COMPACTABLE_TOOLS
+            if params.name in COMPACTABLE_TOOLS or params.name in checkpoint_view_tools
             else arguments
         )
         result = await super().call_tool(
@@ -604,6 +635,29 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
             payload["_contract"] = PublicToolContractMetadata(
                 tool=params.name, plane=_CHATGPT_CUSTOM[params.name], orders_enabled=False
             ).model_dump(mode="json")
+        if params.name in checkpoint_view_tools and response_mode == "compact":
+            try:
+                payload = compact_academic_checkpoint(payload)
+            except ChatCheckpointCompressionError:
+                if params.name != "get_algorithm_research":
+                    # The server has already accepted this write. Returning an
+                    # error would encourage a duplicate plan/diagnosis retry.
+                    # Preserve the authoritative FULL successful response.
+                    payload["compact_submission_status"] = "FULL_FALLBACK_AFTER_SUCCESSFUL_WRITE"
+                else:
+                    return _sdk_tool_result(
+                        {
+                            "status": "ERROR",
+                            "error_code": "COMPACT_CHECKPOINT_UNAVAILABLE",
+                            "message": (
+                                "Read the full checkpoint to inspect evidence. "
+                                "No research mutation occurred."
+                            ),
+                            "retry_same_checkpoint": False,
+                            "orders_enabled": False,
+                        },
+                        is_error=True,
+                    )
         if params.name in COMPACTABLE_TOOLS:
             original_bytes = encoded_size(payload)
             payload = compact_mcp_context(params.name, payload, response_mode=response_mode)
