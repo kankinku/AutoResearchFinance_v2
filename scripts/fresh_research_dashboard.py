@@ -80,6 +80,12 @@ def _controller_running(state: Path = STATE) -> bool:
     return False
 
 
+def _measured_metric(metrics: dict[str, Any], key: str) -> float | None:
+    """Preserve unavailable statistical estimates instead of fabricating zero."""
+    value = metrics.get(key)
+    return None if value is None else float(value)
+
+
 def snapshot(state: Path | None = None) -> dict[str, Any]:
     # Preserve the historical G452 study; promote only the explicitly pinned,
     # locally verified 100-generation clone to the dashboard's *default* view.
@@ -379,7 +385,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     "application/json; charset=utf-8",
                     json.dumps(view, ensure_ascii=False).encode("utf-8"),
                 )
-            except (OSError, ValueError, KeyError, sqlite3.Error) as exc:
+            except (OSError, ValueError, TypeError, KeyError, sqlite3.Error) as exc:
                 self._respond(
                     503,
                     "application/json",
