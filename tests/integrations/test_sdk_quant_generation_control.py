@@ -12,6 +12,7 @@ from application.sdk_quant_generation_control import (
     analyze_checkpoint,
     run_sdk_generation_loop,
 )
+from application.sdk_quant_run_lease import BusySDKRun, scoped_sdk_run_lease
 
 SID = "a" * 32
 
@@ -207,3 +208,17 @@ def test_existing_generation_head_rewrite_is_blocked():
         run_sdk_generation_loop(
             service, session_id=SID, target=2, host=Tampering(service), fixture_mode=True
         )
+
+
+def test_lease_is_observed_by_controller(tmp_path):
+    service = Service(snapshot())
+    with scoped_sdk_run_lease(tmp_path, SID):
+        with pytest.raises(BusySDKRun):
+            run_sdk_generation_loop(
+                service, session_id=SID, target=3, host=None, lease_state_dir=tmp_path
+            )
+    result = run_sdk_generation_loop(
+        service, session_id=SID, target=3, host=None, lease_state_dir=tmp_path
+    )
+    assert result["status"] == "BLOCKED_MODEL_HOST_DISPATCH"
+    assert result["new_generations"] == 0

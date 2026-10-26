@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any, Protocol
+
+from application.sdk_quant_run_lease import scoped_sdk_run_lease
 
 
 class UnsafeCheckpoint(ValueError):
@@ -93,7 +96,7 @@ def analyze_checkpoint(state: Mapping[str, Any], *, expected_session: str) -> di
     }
 
 
-def run_sdk_generation_loop(
+def _run_sdk_generation_loop_unlocked(
     service: CheckpointReader,
     *,
     session_id: str,
@@ -196,3 +199,34 @@ def run_sdk_generation_loop(
         "orders_enabled": False,
         "independent_oos_approved": False,
     }
+
+
+def run_sdk_generation_loop(
+    service: CheckpointReader,
+    *,
+    session_id: str,
+    target: int,
+    host: TestFixtureHost | None = None,
+    fixture_mode: bool = False,
+    max_dispatches: int = 10,
+    lease_state_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Optionally serialize this local dispatcher; server-side fencing still required."""
+    if lease_state_dir is not None:
+        with scoped_sdk_run_lease(lease_state_dir, session_id):
+            return _run_sdk_generation_loop_unlocked(
+                service,
+                session_id=session_id,
+                target=target,
+                host=host,
+                fixture_mode=fixture_mode,
+                max_dispatches=max_dispatches,
+            )
+    return _run_sdk_generation_loop_unlocked(
+        service,
+        session_id=session_id,
+        target=target,
+        host=host,
+        fixture_mode=fixture_mode,
+        max_dispatches=max_dispatches,
+    )

@@ -1,0 +1,100 @@
+{
+  "schema": "quant-feature-semantic-parity-report-v1",
+  "academic_verified_catalog_count": 8,
+  "synthetic_parity_pass": 3,
+  "untested_or_not_equivalent": 5,
+  "no_automatic_catalog_promotion": true,
+  "orders_enabled": false,
+  "independent_oos_approved": false,
+  "model_calls": 0,
+  "results": [
+    {
+      "academic_signal_id": "dual_sma_trend_50",
+      "status": "NOT_EQUIVALENCE_VERIFIED",
+      "reason": "no reviewed unit/semantic transform for calculator"
+    },
+    {
+      "academic_signal_id": "ema_direction_20",
+      "status": "SYNTHETIC_EQUIVALENCE_VERIFIED_NOT_PROMOTED",
+      "evidence": {
+        "schema": "quant-academic-feature-parity-v1",
+        "academic_signal_id": "ema_direction_20",
+        "generic_feature": "ema",
+        "conversion": "price_greater_than_ema",
+        "generic_output_unit": "price",
+        "academic_output_unit": "binary",
+        "sample_count": 611,
+        "max_absolute_difference": 0.0,
+        "generic_identity": "5356de1f8818cfb30d5e2c03e7c97283334e4b0ba90f90ab8ff5f13439c65fa4",
+        "academic_definition_hash": "5e4734c48da905efd9919b5e50709f2b455f2fd05e9a0c198c1b6c2d7cd08033",
+        "source_observations_hash": "c348ff9b317b8662b84f7d1094a0c90927aad98da8c2d5b80421388defaebaee",
+        "equivalent_on_tested_development_samples": true,
+        "eligible_for_automatic_academic_promotion": false,
+        "orders_enabled": false,
+        "independent_oos_approved": false
+      }
+    },
+    {
+      "academic_signal_id": "parkinson_variance",
+      "status": "SYNTHETIC_EQUIVALENCE_VERIFIED_NOT_PROMOTED",
+      "evidence": {
+        "schema": "quant-academic-feature-parity-v1",
+        "academic_signal_id": "parkinson_variance",
+        "generic_feature": "parkinson",
+        "conversion": "square_standard_deviation",
+        "generic_output_unit": "volatility",
+        "academic_output_unit": "variance",
+        "sample_count": 611,
+        "max_absolute_difference": 4.160625836913123e-18,
+        "generic_identity": "ca46a073ea6726f6db141a2ff38d8d33a2705494ce85f2ec0ee85056852f8fe0",
+        "academic_definition_hash": "385a0c3935a04cae65096d1000009046de627c0d0158039106420568c525170a",
+        "source_observations_hash": "7a7fa2b4eb38c432aa01e91825d4abe4b72855d9799abb8ffbcd14fb1ff74c3f",
+        "equivalent_on_tested_development_samples": true,
+        "eligible_for_automatic_academic_promotion": false,
+        "orders_enabled": false,
+        "independent_oos_approved": false
+      }
+    },
+    {
+      "academic_signal_id": "previous_range_breakout",
+      "status": "NOT_EQUIVALENCE_VERIFIED",
+      "reason": "no reviewed unit/semantic transform for calculator"
+    },
+    {
+      "academic_signal_id": "range_low_reclaim_20",
+      "status": "NOT_EQUIVALENCE_VERIFIED",
+      "reason": "no reviewed unit/semantic transform for calculator"
+    },
+    {
+      "academic_signal_id": "sma_direction",
+      "status": "SYNTHETIC_EQUIVALENCE_VERIFIED_NOT_PROMOTED",
+      "evidence": {
+        "schema": "quant-academic-feature-parity-v1",
+        "academic_signal_id": "sma_direction",
+        "generic_feature": "sma",
+        "conversion": "price_greater_than_sma",
+        "generic_output_unit": "price",
+        "academic_output_unit": "binary",
+        "sample_count": 611,
+        "max_absolute_difference": 0.0,
+        "generic_identity": "1a9324c93e588ba5c797c692a3512fce487a225f62e91d69b63f8fcaceca2243",
+        "academic_definition_hash": "fa01e916594e63a3d63014b73c66c73e6e38743469c9c8860adf8ecac72384dd",
+        "source_observations_hash": "c348ff9b317b8662b84f7d1094a0c90927aad98da8c2d5b80421388defaebaee",
+        "equivalent_on_tested_development_samples": true,
+        "eligible_for_automatic_academic_promotion": false,
+        "orders_enabled": false,
+        "independent_oos_approved": false
+      }
+    },
+    {
+      "academic_signal_id": "sma_pullback_20",
+      "status": "NOT_EQUIVALENCE_VERIFIED",
+      "reason": "no reviewed unit/semantic transform for calculator"
+    },
+    {
+      "academic_signal_id": "time_series_momentum",
+      "status": "NOT_EQUIVALENCE_VERIFIED",
+      "reason": "no reviewed unit/semantic transform for calculator"
+    }
+  ]
+}
