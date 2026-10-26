@@ -3,6 +3,7 @@
 - **날짜:** 2026-10-26 KST
 - **단계:** `T4-CHECKPOINT-HANDOFF-ADR-20261026`
 - **상태:** `ADOPT_DESIGN_FOR_EXISTING_USER_TRIGGERED_MCP; IMPLEMENTATION_NOT_DEPLOYED`
+- **후속 세부 로드맵 v2:** `../plans/quant-evidence-memory-compression-and-unified-research-roadmap-v2-20261026.md` — 압축 예산, 기억 계층, F4/F5, 173 지표·V3/Pine·레거시·V05/OOS 통합 평가 게이트. **v1의 고정 8–20천 문자 목표는 v2에서 적응형 S/M/L+REPLAY 실험 가설로 구체화되며 단일 하드 한도로 확정하지 않음.**
 - **관련 범위:** Q02/Q06/Q07/Q08/Q09/Q11/Q15/Q16/Q17/Q18/Q20
 - **기준 브랜치:** `feat/quant-unified-mcp-20261026`, 직전 `6d69a9e`
 - **사용자 요청:** 한 세대 결과/다음 실행 계획을 문서화하여 다음 SDK 또는 ChatGPT MCP 호출에서 이어서 진화하는, 지속 프로세스가 불필요한 연구 방식의 타당성·결정

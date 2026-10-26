@@ -3,6 +3,7 @@
 **작성:** 2026-10-26 KST
 **기준:** `feat/quant-unified-mcp-20261026` (`f8524cf`, 통합 소스; 운영 미배포)
 **상태:** `PROPOSED_DESIGN_ONLY` — 실행기/호스트 변경 및 운영 배포는 이번 문서에 포함하지 않음
+**연구기억·압축·모든 미통합 기능 세부 설계:** [v2 통합 로드맵](quant-evidence-memory-compression-and-unified-research-roadmap-v2-20261026.md), [21개 수락 게이트](quant-evidence-memory-gate-matrix-v2-20261026.csv). v1의 단순 압축 제안은 v2의 정본 보존·증거 검색·적응형 예산·A/B 통제로 대체. 기존 T4/SDK 권한 경계 유지.
 **작업 범위:** T4의 SDK/호스트/Quant 분리 + 미통합 기능 회수 (Q02/Q04–Q12/Q14–Q17/Q19/Q20). 사용자의 기존 직접 ChatGPT↔Quant MCP 선택, V05→T4→V01–V04→V06→V07 순서, 운영 OAuth/고정 URL/원장 보존 및 orders=OFF/OOS=SEALED가 우선한다. 변경 승인 없이 모델 제공자·MCP 기본 경로·거래 권한 전환 금지.
 
 ## 1. 확정 목표와 엄밀한 역할
