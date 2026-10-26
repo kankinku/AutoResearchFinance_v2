@@ -61,6 +61,7 @@ from research.llm.director import ResearchIntent
 from research.llm.economic_feedback import build_economic_feedback, gate_research_direction
 from research.llm.execution_policy import research_execution_policy
 from research.llm.experiment_learning import build_experiment_learning
+from research.llm.generalization_parent_v1 import GeneralizationParentError
 from research.llm.inherited_execution_identity import inherited_effective_signal_hash
 from research.llm.inherited_feature_compiler import bind_inherited_features
 from research.llm.intent_bridge import apply_intent
@@ -1265,7 +1266,20 @@ class AcademicMCPCheckpointService:
                         raise CycleStateError("parent selection proof disappeared")
                 return selection
             if self.parent_portfolio_v2:
-                chosen_v2 = self._choose_counted_generation_portfolio(db, catalog, data, status)
+                try:
+                    chosen_v2 = self._choose_counted_generation_portfolio(
+                        db, catalog, data, status,
+                    )
+                except GeneralizationParentError as exc:
+                    if (
+                        not self.p4_quality_gate_v1
+                        or str(exc) != "P4 no eligible non-cash audited research parent"
+                    ):
+                        raise
+                    # No eligible verified parent is not permission to inherit
+                    # a weaker candidate. Return to independent AlgorithmPlan
+                    # exploration without relaxing P4 / S7 acceptance gates.
+                    return None
                 if chosen_v2 is not None:
                     db.execute(
                         "INSERT OR IGNORE INTO parent_selections "
