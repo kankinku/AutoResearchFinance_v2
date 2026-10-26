@@ -38,7 +38,7 @@ def _serialized(value: object) -> bytes:
 def compact_academic_checkpoint(
     source: dict[str, Any],
     *,
-    max_bytes: int = 96 * 1024,
+    max_bytes: int = 128 * 1024,
 ) -> dict[str, Any]:
     """Present a verified server checkpoint without duplicating all history.
 

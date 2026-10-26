@@ -26,6 +26,24 @@
 - 기존의 계획 중복/동일체결/P2 위험/P3 의미 중복 수정 코드 유지. `P3_DIAGNOSIS_SEMANTIC_REJECTED`를 추가해 다음 연구계획이 중복일 때 **현재 토큰으로 새로운 진단 제안**이 필요하다는 정적 안내 제공.
 - `recovery.next_step`, 전체/축약 재조회 모드를 오류 반환에 추가. 예외 본문, 민감정보, 원래 토큰은 사용자 응답으로 그대로 반환하지 않는다. 알 수 없는 실패는 `retry_same_checkpoint=false`; 진짜 새 세대나 모델 판단을 자동 생성하지 않는다.
 
+## 실제 운영 68세대 원장 복제본 측정 (원본 DB 변경 없음)
+
+개발 체크아웃에서 운영 원본 3개 SQLite 데이터베이스를 **읽기 전용** `mode=ro` + `PRAGMA query_only=ON` + SQLite backup API로 임시 격리 폴더에 복제. `AcademicMCPCheckpointService.get`을 복제본에만 실행하고 같은 canonical 출력에서 FULL/COMPACT를 측정:
+
+| 내용 | 검증 결과 |
+|---|---:|
+| 실제 저장 세대 | 68/100, 다음 `AWAITING_PLAN` |
+| 원본 FULL JSON 응답 | **701,397 bytes** |
+| 압축 COMPACT JSON 응답 | **110,540 bytes** |
+| 응답 크기 감소 | **약 84.2%** (JSON 직렬화 바이트 기준) |
+| retained model context | 98,900 bytes |
+| 원본 체크포인트 토큰 일치 | PASS |
+| 부모 선택·typed 연구 계획 schema 동일 | PASS |
+| 68세대 최신 증거 해시 일치 | PASS |
+| GPT 모델 호출·새 세대·원본 DB 수정 | **0** |
+
+최초 96KiB 제한은 실제 원장에서 `compact checkpoint exceeds byte budget` 오류를 발생시켰으므로, 필요한 필드를 임의로 버리지 않고 **128KiB로 수정**했다. 이는 현재 68세대의 측정값을 수용하는 제한이며, 미래 100세대에서 같은 크기/정확도를 자동 보장하지 않는다. 실패하면 명시 오류로 처리한다. 응답 바이트 감소는 **GPT 토큰 절감률이나 최적화된 전략 수익률 측정이 아님**.
+
 ## 실제 검증 범위
 
 - 신규 `tests/integrations/test_chat_quant_compact_checkpoint_p1_p3.py`: 도구 32개 보존, 기본값 full/compact opt-in, 요청 스키마 변경 제한, 정확한 타입드 계획/진단 컨텍스트와 토큰·부모·증거 해시 유지, 무결성 원본 미변경, 68세대 합성 전송 스케일링, 알 수 없는 phase 또는 실주문/OOS 위험 거절, byte-budget 초과 거절, 실제 adapter get parity, 복구 오류 문자·토큰 비유출.
