@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from application.sdk_quant_run_lease import scoped_sdk_run_lease
+from core.integrity.hashes import content_hash
 
 
 class UnsafeCheckpoint(ValueError):
@@ -31,7 +32,7 @@ class CheckpointReader(Protocol):
 class TestFixtureHost(Protocol):
     fixture_only: bool
 
-    def dispatch(self, request: dict[str, Any]) -> None: ...
+    def dispatch(self, request: dict[str, Any]) -> dict[str, Any] | None: ...
 
 
 _ALLOWED = {"AWAITING_PLAN", "AWAITING_DIAGNOSIS", "COMPLETED"}
@@ -59,22 +60,35 @@ def analyze_checkpoint(state: Mapping[str, Any], *, expected_session: str) -> di
         raise UnsafeCheckpoint("unexpected checkpoint phase")
     if (done == requested) != (phase == "COMPLETED"):
         raise UnsafeCheckpoint("checkpoint completion mismatch")
-    if state.get("status") != ("COMPLETED" if done == requested else "AWAITING_PROVIDER"):
+    allowed_statuses = (
+        {"COMPLETED"}
+        if done == requested
+        else (
+            {"AWAITING_PROVIDER", "AWAITING_DIAGNOSIS"}
+            if phase == "AWAITING_DIAGNOSIS"
+            else {"AWAITING_PROVIDER"}
+        )
+    )
+    if state.get("status") not in allowed_statuses:
         raise UnsafeCheckpoint("checkpoint session status mismatch")
     if done < requested:
         token = state.get("checkpoint_token")
         context = state.get("model_context")
-        if (
-            not isinstance(token, str)
-            or not token
-            or not isinstance(context, Mapping)
-            or not isinstance(context.get("context_hash"), str)
-            or not context["context_hash"]
-        ):
+        if not isinstance(token, str) or not token or not isinstance(context, Mapping):
             raise UnsafeCheckpoint("missing phase token or model context")
+        # Quant planning contexts have NO context_hash field: only the sealed
+        # diagnosis response has a server-defined context_hash. The SDK's local
+        # hash is a consistency fingerprint, never a substitute for the latter.
+        if phase == "AWAITING_DIAGNOSIS" and (
+            not isinstance(context.get("context_hash"), str)
+            or not _SHA.fullmatch(context["context_hash"])
+        ):
+            raise UnsafeCheckpoint("missing canonical Quant diagnosis context digest")
     history = state.get("history")
     if not isinstance(history, list) or len(history) != done:
         raise UnsafeCheckpoint("history count mismatch")
+    predecessor: str | None = None
+    chain_is_present = bool(history and "previous_evidence_hash" in history[0])
     for gen, row in enumerate(history, start=1):
         if (
             not isinstance(row, Mapping)
@@ -83,7 +97,16 @@ def analyze_checkpoint(state: Mapping[str, Any], *, expected_session: str) -> di
             or not _SHA.fullmatch(row["evidence_hash"])
         ):
             raise UnsafeCheckpoint("generation evidence sequence invalid")
+        if chain_is_present and row.get("previous_evidence_hash") != predecessor:
+            raise UnsafeCheckpoint("generation evidence predecessor chain mismatch")
+        predecessor = row["evidence_hash"]
     head = history[-1]["evidence_hash"] if history else None
+    source_hash = state["model_context"].get("context_hash") if done < requested else None
+    planning_fingerprint = (
+        content_hash(state["model_context"])
+        if done < requested and source_hash is None
+        else source_hash
+    )
     return {
         "session_id": expected_session,
         "completed": done,
@@ -92,7 +115,70 @@ def analyze_checkpoint(state: Mapping[str, Any], *, expected_session: str) -> di
         "token": state.get("checkpoint_token"),
         "dataset_hash": dataset,
         "head_hash": head,
-        "context_hash": (state["model_context"]["context_hash"] if done < requested else None),
+        "context_hash": planning_fingerprint,
+        "source_context_hash": source_hash,
+        "context_fingerprint_is_local": bool(done < requested and source_hash is None),
+    }
+
+
+def verify_diagnosis_acceptance(
+    response: Mapping[str, Any],
+    reread: Mapping[str, Any],
+    *,
+    prior_completed: int,
+) -> dict[str, Any]:
+    """Verify canonical S7 receipt returned by Quant, not a terminal report.
+
+    A mid-session `get_algorithm_research` intentionally has final_report=None;
+    the accepted diagnosis tool response carries the immutable S7 receipt.
+    This checks both the response and an independent fresh Quant state read.
+    """
+    sid = reread.get("session_id")
+    if not isinstance(sid, str):
+        raise UnsafeCheckpoint("S7 response missing research session")
+    proof = analyze_checkpoint(reread, expected_session=sid)
+    if type(prior_completed) is not int or proof["completed"] != prior_completed + 1:
+        raise UnsafeCheckpoint("expected exactly one new generation")
+    if (
+        response.get("session_id") != sid
+        or response.get("completed_generations") != proof["completed"]
+        or response.get("controlled_experiments_automatically_evaluated") is not True
+    ):
+        raise UnsafeCheckpoint("S7 automatic evaluation acceptance missing")
+    receipt = response.get("latest_controlled_experiments")
+    if not isinstance(receipt, Mapping):
+        raise UnsafeCheckpoint("S7 report missing")
+    record_hash = receipt.get("record_hash")
+    if not isinstance(record_hash, str) or not _SHA.fullmatch(record_hash):
+        raise UnsafeCheckpoint("S7 record hash missing")
+    body = {key: value for key, value in receipt.items() if key != "record_hash"}
+    if content_hash(body) != record_hash:
+        raise UnsafeCheckpoint("S7 record hash integrity mismatch")
+    last_row = reread["history"][-1]
+    if (
+        receipt.get("session_id") != sid
+        or receipt.get("generation") != proof["completed"]
+        or receipt.get("original_generation_evidence_hash") != proof["head_hash"]
+        or response["history"][-1].get("evidence_hash") != proof["head_hash"]
+        or receipt.get("study_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+    ):
+        raise UnsafeCheckpoint("S7 generation evidence linkage mismatch")
+    report = receipt.get("report")
+    if not isinstance(report, Mapping):
+        raise UnsafeCheckpoint("S7 experiments report malformed")
+    experiments = report.get("experiments")
+    hypothesis_ids = last_row.get("hypothesis_ids")
+    if not isinstance(experiments, list) or not isinstance(hypothesis_ids, list):
+        raise UnsafeCheckpoint("S7 hypothesis evidence missing")
+    if sorted(item.get("hypothesis_id") for item in experiments) != sorted(hypothesis_ids):
+        raise UnsafeCheckpoint("S7 measured hypotheses differ from committed plan")
+    return {
+        "session_id": sid,
+        "generation": proof["completed"],
+        "head_hash": proof["head_hash"],
+        "s7_record_hash": record_hash,
+        "independent_provider_attested": False,
+        "research_scope": "NON_PIT_DEVELOPMENT_ONLY",
     }
 
 
@@ -138,12 +224,15 @@ def _run_sdk_generation_loop_unlocked(
             "generation": prior["completed"] + 1,
             "checkpoint_phase": prior["phase"],
             "checkpoint_token": prior["token"],
-            "context_hash": prior["context_hash"],
+            # Only diagnostic phase carries a server-defined context hash.
+            "context_hash": prior["source_context_hash"],
+            "model_context_fingerprint": prior["context_hash"],
+            "model_context_fingerprint_is_local": prior["context_fingerprint_is_local"],
             "dataset_hash": prior["dataset_hash"],
         }
         turns += 1
         try:
-            host.dispatch(request)
+            host_reply = host.dispatch(request)
         except Exception as exc:
             # Some backend writes may have succeeded; do not replay a turn.
             raise BlockedHostDispatch(
@@ -172,14 +261,9 @@ def _run_sdk_generation_loop_unlocked(
         ):
             raise UnsafeCheckpoint("diagnosis did not commit one new unique generation")
         if diff == 1:
-            report = raw_after.get("final_report")
-            if (
-                not isinstance(report, Mapping)
-                or report.get("gateway_s7_count_source")
-                != "HASH_VERIFIED_IMMUTABLE_GATEWAY_REPORTS"
-                or report.get("all_proposed_hypotheses_measured") is not True
-            ):
-                raise UnsafeCheckpoint("S7 evidence or complete measured hypotheses missing")
+            if not isinstance(host_reply, Mapping):
+                raise UnsafeCheckpoint("S7 Quant tool acceptance reply missing")
+            verify_diagnosis_acceptance(host_reply, raw_after, prior_completed=prior["completed"])
         if after["token"] == prior["token"] and after["phase"] != "COMPLETED":
             raise UnsafeCheckpoint("checkpoint token did not rotate")
         prior = after

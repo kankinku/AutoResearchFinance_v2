@@ -13,6 +13,7 @@ from application.sdk_quant_generation_control import (
     run_sdk_generation_loop,
 )
 from application.sdk_quant_run_lease import BusySDKRun, scoped_sdk_run_lease
+from core.integrity.hashes import content_hash
 
 SID = "a" * 32
 
@@ -60,7 +61,7 @@ class FixtureHost:
         self.calls = 0
         self.fail = fail
 
-    def dispatch(self, request: dict) -> None:
+    def dispatch(self, request: dict) -> dict | None:
         self.calls += 1
         if self.fail:
             raise ConnectionError("lost response")
@@ -68,12 +69,14 @@ class FixtureHost:
         if request["checkpoint_phase"] == "AWAITING_PLAN":
             state["checkpoint_phase"] = "AWAITING_DIAGNOSIS"
             state["checkpoint_token"] = "diagnosis-token"
+            state["model_context"] = {"context_hash": "d" * 64}
         else:
             state["completed_generations"] += 1
             state["history"].append(
                 {
                     "generation": state["completed_generations"],
                     "evidence_hash": f"{state['completed_generations']:064x}",
+                    "hypothesis_ids": ["hypothesis_1"],
                 }
             )
             if state["completed_generations"] == state["requested_generations"]:
@@ -83,6 +86,24 @@ class FixtureHost:
             else:
                 state["checkpoint_phase"] = "AWAITING_PLAN"
                 state["checkpoint_token"] = "next-plan-token"
+            body = {
+                "session_id": SID,
+                "generation": state["completed_generations"],
+                "original_generation_evidence_hash": state["history"][-1]["evidence_hash"],
+                "study_scope": "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF",
+                "report": {"experiments": [{"hypothesis_id": "hypothesis_1"}]},
+            }
+            return {
+                "session_id": SID,
+                "completed_generations": state["completed_generations"],
+                "controlled_experiments_automatically_evaluated": True,
+                "latest_controlled_experiments": {
+                    **body,
+                    "record_hash": content_hash(body),
+                },
+                "history": deepcopy(state["history"]),
+            }
+        return None
 
 
 def test_no_model_host_means_no_work_and_no_fabricated_generations():
