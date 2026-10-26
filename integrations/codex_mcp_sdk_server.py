@@ -79,6 +79,10 @@ _SAFE_ACADEMIC_REPAIR_MESSAGES = {
         "The submitted mutation has no effective semantic change. "
         "Revise the operation and retry the same checkpoint."
     ),
+    "P3_DIAGNOSIS_SEMANTIC_REJECTED": (
+        "The proposed next research intent is redundant on the audited signals. "
+        "Revise the diagnosis at the same checkpoint without weakening quality gates."
+    ),
 }
 
 
@@ -99,6 +103,12 @@ def _safe_academic_checkpoint_error(exc: Exception) -> dict[str, object]:
             "message": _SAFE_ACADEMIC_REPAIR_MESSAGES[signal],
             "retry_same_checkpoint": True,
             "orders_enabled": False,
+            "recovery": {
+                "next_step": "READ_CURRENT_CHECKPOINT_THEN_REVISE",
+                "tool": "get_algorithm_research",
+                "response_mode": "compact",
+                "never_reuse_stale_checkpoint_token": True,
+            },
         }
     return {
         "status": "ERROR",
@@ -107,6 +117,12 @@ def _safe_academic_checkpoint_error(exc: Exception) -> dict[str, object]:
         "before retrying; internal failure details are withheld.",
         "retry_same_checkpoint": False,
         "orders_enabled": False,
+        "recovery": {
+            "next_step": "READ_CURRENT_CHECKPOINT_STOP_IF_UNCERTAIN",
+            "tool": "get_algorithm_research",
+            "response_mode": "full",
+            "never_reuse_stale_checkpoint_token": True,
+        },
     }
 
 
