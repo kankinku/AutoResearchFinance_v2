@@ -15,6 +15,7 @@ from application.research_batch_service import ResearchBatchService
 from application.services import ApplicationServices, create_application_services
 from memory.trial_inventory import research_trial_inventory
 from orchestration.evaluation_runner import parse_parameter_domains
+from research.llm.batch_learning_handoff import recent_batch_learning
 from research.llm.codex_schema import research_intent_schema
 from research.llm.director import ResearchIntent
 from research.policy import default_evaluation_thresholds
@@ -115,7 +116,15 @@ class CodexMCPServer:
             if name == "start_algorithm_research":
                 return academic.start(arguments)
             if name == "get_algorithm_research":
-                return academic.get(arguments)
+                checkpoint = academic.get(arguments)
+                # An advisory from independently verified fast-batch Evidence,
+                # not a canonical model context, executable parent or generation.
+                # Preserve the existing signed context/hash and academic state.
+                if checkpoint.get("checkpoint_phase") in {"AWAITING_PLAN", "AWAITING_DIAGNOSIS"}:
+                    checkpoint["bounded_batch_research_memory"] = recent_batch_learning(
+                        self.state_dir
+                    )
+                return checkpoint
             if name == "submit_algorithm_plan":
                 return academic.submit_plan(arguments)
             if name == "submit_algorithm_diagnosis":
@@ -264,6 +273,7 @@ class CodexMCPServer:
                     ),
                 },
                 **self.services.research.brief(),
+                "bounded_batch_research_memory": recent_batch_learning(self.state_dir),
                 "research_execution_policy": research_execution_policy(),
                 "research_inputs": ResearchBatchService(
                     project_root=self.project_root, state_dir=self.state_dir
