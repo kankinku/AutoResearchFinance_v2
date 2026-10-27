@@ -386,16 +386,16 @@ def chatgpt_tools() -> list[dict[str, object]]:
             _academic_tool(
                 "get_algorithm_research",
                 "Read canonical GPT planning/diagnostic checkpoint. For direct chat-driven "
-                "multi-generation research, prefer response_mode=compact; full returns "
+                "multi-generation research defaults to compact; full returns "
                 "all historical evidence without projection.",
                 {
                     "session_id": session_field,
                     "response_mode": {
                         "type": "string",
                         "enum": ["full", "compact"],
-                        "default": "full",
+                        "default": "compact",
                         "description": (
-                            "Opt-in phase-aware GPT view; full preserves original evidence."
+                            "Default bounded GPT view; full preserves original evidence."
                         ),
                     },
                 },
@@ -417,7 +417,7 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "response_mode": {
                         "type": "string",
                         "enum": ["full", "compact"],
-                        "default": "full",
+                        "default": "compact",
                         "description": "Compact successful reply; plan unchanged.",
                     },
                 },
@@ -437,7 +437,7 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "response_mode": {
                         "type": "string",
                         "enum": ["full", "compact"],
-                        "default": "full",
+                        "default": "compact",
                         "description": "Compact the successful reply only; commit unchanged.",
                     },
                 },
@@ -587,9 +587,16 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
                 },
                 is_error=True,
             )
-        response_mode = str(arguments.get("response_mode", "summary"))
         checkpoint_view_tools = frozenset(
             {"get_algorithm_research", "submit_algorithm_plan", "submit_algorithm_diagnosis"}
+        )
+        # Old ChatGPT clients may cache schemas without response_mode.
+        # Bound only these three academic transport views when omitted;
+        # explicit full still returns the exact canonical checkpoint.
+        response_mode = str(
+            arguments.get(
+                "response_mode", "compact" if params.name in checkpoint_view_tools else "summary"
+            )
         )
         dispatch_arguments = (
             {key: value for key, value in arguments.items() if key != "response_mode"}

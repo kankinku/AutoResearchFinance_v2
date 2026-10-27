@@ -47,18 +47,18 @@ def _one_generation(tmp_path: Path) -> tuple[Any, dict[str, Any]]:
     return server, finished
 
 
-def test_schema_adds_opt_in_compact_but_preserves_full_default() -> None:
+def test_schema_adds_compact_default_but_preserves_explicit_full() -> None:
     tools = {item["name"]: item for item in chatgpt_tools()}
     assert len(tools) == 32
     get = tools["get_algorithm_research"]["inputSchema"]
     assert get["required"] == ["session_id"]
     assert get["properties"]["response_mode"]["enum"] == ["full", "compact"]
-    assert get["properties"]["response_mode"]["default"] == "full"
+    assert get["properties"]["response_mode"]["default"] == "compact"
     assert get["additionalProperties"] is False
     for name in ("submit_algorithm_plan", "submit_algorithm_diagnosis"):
         opts = tools[name]["inputSchema"]["properties"]["response_mode"]
         assert opts["enum"] == ["full", "compact"]
-        assert opts["default"] == "full"
+        assert opts["default"] == "compact"
         assert "response_mode" not in tools[name]["inputSchema"]["required"]
 
 
@@ -156,7 +156,8 @@ def test_full_and_compact_adapter_dispatch_keep_same_original_checkpoint(tmp_pat
             await adapter.call_tool(
                 context,
                 types.CallToolRequestParams(
-                    name="get_algorithm_research", arguments={"session_id": source["session_id"]}
+                    name="get_algorithm_research",
+                    arguments={"session_id": source["session_id"], "response_mode": "full"},
                 ),
             )
         )
