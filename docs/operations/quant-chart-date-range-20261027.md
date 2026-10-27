@@ -15,3 +15,13 @@
 - 기존 원본 Quant 대시보드 통합 테스트 26건 통과 (Ruff/Mypy 검사 통과).
 - 광범위 Lab 통합에서 P10 원본 연구 세션 목표 변경에 따른 별도 원장 상태 검사가 실패할 수 있음. D7 기능과 무관하므로 원본 연구 상태를 강제로 고치지 않음. 차트 및 P0~P9 관련 회귀는 별도 결과 참고.
 - 실사용 배포(8082 재시작) 및 공식 HTTPS 인증 점검은 완료 후 보고할 것.
+
+## 배포 완료 및 사후 확인
+
+- 독립 차트 Lab 커밋: 37c8d8a. 원본 Quant 대시보드 통합 커밋: 408592a.
+- 기존 대시보드 8082 프로세스만 재시작(PID 242107), nginx·연구 엔진·OAuth·MCP URL 불변.
+- 운영 경로 "/", "/research", "/chart", "/backtest" 및 차트/연구 GET API 모두 HTTP 200.
+- 배포 후 Chromium 데스크톱 1440×900, 모바일 390×844: G124, 2024-01-02~2024-03-29의 61거래일로 확대, G146 비교 가능, 전체 기간 복원 성공. JS/HTTP 오류 없음.
+- 스크린샷 및 시험 로그: Lab/state/d7-date-range-20261027/d7_production_browser_results.json 및 d7_deployed_desktop.png, d7_deployed_mobile.png.
+- HTTPS 공개 경로 /academic/, /academic/chart, /quant-research/는 비인가 요청에 기존 HTTP 401 Basic 인증 유지. Quant PythonMCP 원본 HEAD d0c0862 그대로 보존.
+- 관련 Lab 차트 회귀 402건, 기존 대시보드 통합 회귀 26건 통과. 별도 P10 원본 연구 세션 상태 검사는 연구 원장 상태가 변경되어 독립적으로 실패하며 D7 기능 범위와 관계 없음.
