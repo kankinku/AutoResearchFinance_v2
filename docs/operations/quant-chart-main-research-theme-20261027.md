@@ -24,3 +24,15 @@
 ## 적용·롤백
 - 배포 범위는 소스 scripts/quant_chart_lab_bridge.py, scripts/quant-chart-primary.css, tests/dashboard/test_quant_chart_lab_integration.py 및 본 보고서에 한정.
 - 기존 8082 프로세스만 재시작하면 적용. 문제가 있으면 직전 대시보드 커밋으로 소스 롤백 후 8082만 재시작.
+
+
+## 실제 운영 배포 확인
+
+- D4 소스 커밋: bef7611. 8082 대시보드만 PID 203515로 재기동.
+- 변경 후 /, /backtest, /chart, /api/dashboard, /api/backtest, /api/chart/backtest, /api/chart/backtest/original-lineage, /chart-assets/quant-chart-primary.css 모두 HTTP 200.
+- 실제 운영 8082의 Chromium 데스크톱(1440×900), 모바일(390×844) 최종 확인: **차트 첫 패널**, 원본 연구 영역은 아래 접힘, 감사 원본 요약은 아래, 가격 차트 높이 각각 576px·380px.
+- 연구 운영 배경 #f5f7fb, 브랜드 강조 #2563eb 정확히 일치.
+- G146 체결 148건 및 G94 비교 COMPARABLE. JavaScript 오류 0, HTTP 오류 0, 문서 가로 넘침 0.
+- 실브라우저 검증 로그: Lab/state/d4-chart-first-theme-20261027/deployed_d4_browser_results.json 및 deployed_d4_chart_main_desktop.png, deployed_d4_chart_main_mobile.png.
+- 외부 /academic/chart 및 /quant-research/chart은 기존 인증 없이는 401 Basic 유지. nginx·OAuth·MCP·개발 원본·트레이스 변경 없음.
+- 연구 상태 카드 등 기존 DOM ID를 모두 유지했으므로 닫힌 상태에서도 기존 데이터 로딩/상호작용 보존. 실제 로그인 후 사용자 UI 확인은 별도.
