@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-27 TRACK1-V3 (Q02/Q05/Q06/Q07/Q08/Q09/Q14/Q17/Q20): 전략 진화 독립 브랜치 준비. 검증 V3 공통 태그에서 파생, 연구원장 150/150 변경 없음. 단계 T1-01~T1-04는 [독립 실행 계획](../plans/v3-track1-strategy-evolution-20261027.md)에 명시. 아직 신규 세대/코드 작업 NOT RUN. 다음은 기존 계승·S7 중복 분석 후 GPT 실제 계측 검증. 봉인 OOS/주문/OAuth 변경 금지.**
+
+
 **2026-10-27 KST V3-RELEASE-SPLIT (Q02/Q05/Q06/Q07/Q08/Q09/Q13/Q14/Q15/Q17/Q18/Q20):** 사용자 명시 요청으로 현행 Quant 연구 150/150 COMPLETED 및 S7 150건을 V3 체크포인트로 고정하고 Git main 신설, Track1 기존 전략 발전 / Track2 특수상황 예측·탐지 / Track3 독립 OOS 검증의 세 별도 브랜치로 분리. [V3 릴리스 기록](../releases/quant-v3.0.0-checkpoint-20261027.md)과 [승인 ADR](../decisions/2026-10-27-quant-v3-three-lanes-approved.md). 원격에는 기존 main이 없고 master가 기본 브랜치였으므로 master 강제변경·무관한 Git 이력 결합 없이 현 운영 cda8e7695ea9... 기반으로 main을 신설. 운영 3개 SQLite 온라인 백업 생성 및 integrity_check 3/3 PASS, G150 마지막 증거 23925180a366..., 오리지널 연구/인증/OAuth/고정 MCP URL/orders OFF/sealed OOS 불변. Track3의 최종 검증 결과를 Track1/2 훈련 데이터로 되돌리지 않음. 3개 브랜치는 문서화·준비만 진행; 별도 새로운 실험/실주문/독립 OOS 검증은 이 작업에서 실행하지 않음. 원래 V05→T4→V01–V04→V06→V07 승인 순서는 변경하지 않음. Git tag/branch refs 검증 후 결과 보고.
 
 
