@@ -129,6 +129,12 @@
   function render(data) {
     latest=data;
     updateText("perf-cohort-label",data.cohort_label || "개발 연구 원장");
+    const archive=data.archived_best;
+    const archived=archive && archive.best_eligible;
+    updateText("perf-archive-note",archived
+      ? "별도 이전 연구 최고 G"+archived.generation+" · "+pct(archived.return)+
+        " · 세션 "+archive.session_id.slice(0,8)+" (현재 연구와 계보 별도, 과거 결과 보존)"
+      : "현재 연구 세션 기준 성과 · 다른 세션 결과는 합산하지 않음");
     const records=enrich(Array.isArray(data.generations)
       ? [...data.generations].sort((a,b)=>a.generation-b.generation):[]);
     const best=data.best_eligible, qqq=Number(data.qqq_dev_bh_return);

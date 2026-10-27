@@ -15,6 +15,7 @@ from typing import Any
 from dashboard.service import DashboardService
 from scripts.fresh_research_dashboard import (
     ACTIVE_STATE,
+    LIVE_SESSION_ID,
     LIVE_STATE,
     P5_STATE,
     STATE,
@@ -30,7 +31,7 @@ def compat(view: dict[str, Any]) -> dict[str, Any]:
     when = view.get("last_end_utc") or view["fetched_at"]
     rows = [
         {
-            "run_id": "fresh-G" + str(g["generation"]),
+            "run_id": "fresh-" + view["session"] + "-G" + str(g["generation"]),
             "generation": g["generation"],
             "timestamp": when,
             "strategy_hash": g["evidence_prefix"],
@@ -175,7 +176,10 @@ def backtest(view: dict[str, Any], dash: dict[str, Any]) -> dict[str, Any]:
             "generation_count": count,
             "passing_generation_count": 0,
             "latest_run_at": view.get("last_end_utc"),
-            "best_run_id": "fresh-G" + str(best["generation"]) if best else None,
+            "best_run_id": (
+                "fresh-" + view["session"] + "-G" + str(best["generation"])
+                if best else None
+            ),
             "best_total_return": best["return"] if best else None,
             "best_max_drawdown": best["mdd"] if best else None,
             "best_sharpe": best["sharpe"] if best else None,
@@ -194,7 +198,7 @@ def backtest(view: dict[str, Any], dash: dict[str, Any]) -> dict[str, Any]:
                 "generation": g["generation"],
                 "status": "MEASURED_DEVELOPMENT_NOT_APPROVED",
                 "candidate_count": 1,
-                "best_run_id": "fresh-G" + str(g["generation"]),
+                "best_run_id": "fresh-" + view["session"] + "-G" + str(g["generation"]),
                 "best_total_return": g["return"],
                 "best_max_drawdown": g["mdd"],
                 "best_sharpe": g["sharpe"],
@@ -251,6 +255,8 @@ def page(name: str) -> bytes:
         text = text.replace(
             "<main>",
             '<main><p class="muted">현재 ChatGPT Quant MCP 실시간 연구 원장 표시 중 · '
+            '<a href="api/status?cohort=prior_mcp" target="_blank" '
+            'rel="noopener noreferrer">기존 G94 최고 후보 보존 원장(JSON)</a> · '
             '<a href="api/status?cohort=p5" target="_blank" '
             'rel="noopener noreferrer">별도 P5 연구 원장(JSON)</a> · '
             '<a href="api/status?cohort=historical" target="_blank" '
@@ -346,10 +352,12 @@ class OriginalDashboardHandler(DashboardHandler):
                 elif cohort == "cohort=p5":
                     view = snapshot(P5_STATE)
                 elif cohort == "cohort=prior_mcp":
-                    # Backwards-compatible alias, always the live Quant MCP.
-                    view = snapshot(LIVE_STATE)
+                    # Preserve the historical G94/100 cohort, not newest research.
+                    view = snapshot(LIVE_STATE, session_id=LIVE_SESSION_ID)
                 elif cohort == "cohort=original":
                     view = snapshot(STATE)
+                elif cohort == "cohort=current":
+                    view = snapshot()
                 elif not cohort:
                     view = snapshot()
                 else:

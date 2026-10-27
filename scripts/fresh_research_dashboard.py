@@ -24,7 +24,7 @@ ACTIVE_COHORT_ID = "G453-G552-20261023-moon-stress"
 # worker writes this *separate* root while historical G452/G552 stay immutable.
 # This is a model-authored checkpoint channel, not unattended model attestation.
 LIVE_STATE = ROOT / "state/moon-http"
-LIVE_SESSION_ID = "14626d55fb2b461faa485df911920071"
+LIVE_SESSION_ID = "14626d55fb2b461faa485df911920071"  # Archived G94 cohort only.
 # Pin the opt-in 100-generation GPT checkpoint by ID, never by latest DB file.
 P5_STATE = Path("/shared/moon-workspace/AutoResearchFinance_v2-p5-gpt-100-20261024")
 P5_SESSION_ID = "3b44e05e52b3497db6fa035681ed0a5d"
@@ -80,7 +80,23 @@ def _controller_running(state: Path = STATE) -> bool:
     return False
 
 
-def snapshot(state: Path | None = None) -> dict[str, Any]:
+def _latest_live_session(state: Path) -> str:
+    """Resolve the last registered MCP research session, never a previous pinned ID.
+
+    The MCP service creates sessions in its canonical cycles ledger. Query that
+    ledger on EVERY request so new N-generation sessions appear without deploys.
+    A broken/unready newest session fails closed instead of displaying stale data.
+    """
+    with _read_db(state / "research/academic-gpt-checkpoints/cycles.sqlite") as db:
+        row = db.execute("SELECT id FROM sessions ORDER BY rowid DESC LIMIT 1").fetchone()
+    if row is None:
+        raise ValueError("no live research session exists")
+    return str(row["id"])
+
+
+def snapshot(
+    state: Path | None = None, *, session_id: str | None = None,
+) -> dict[str, Any]:
     # The installed ChatGPT Quant MCP session is the LIVE default. An older
     # standalone P5 clone must NEVER hijack the real-time dashboard; it is
     # accessible only through an explicit archived cohort request.
@@ -118,14 +134,13 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
         ):
             raise ValueError("active cohort manifest does not match the trusted research clone")
         label = "현재 G453~G552 · 신규 100세대 연구 (고정 규칙 기반)"
+    if session_id is not None and state != LIVE_STATE:
+        raise ValueError("explicit session selection is available only for live MCP ledger")
     sid = (
-        P5_SESSION_ID
-        if state == P5_STATE
-        else (
-            LIVE_SESSION_ID
-            if state == LIVE_STATE
-            else (state / "session-id.txt").read_text(encoding="ascii").strip()
-        )
+        session_id or _latest_live_session(state)
+        if state == LIVE_STATE
+        else P5_SESSION_ID if state == P5_STATE
+        else (state / "session-id.txt").read_text(encoding="ascii").strip()
     )
     if len(sid) != 32 or any(c not in "0123456789abcdef" for c in sid):
         raise ValueError("invalid session id")
@@ -203,8 +218,9 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
     eligible = [g for g in seen if g["eligible"]]
     n = int(row["requested"])
     completed = int(row["completed"])
-    return {
+    view = {
         "session": sid[:8],
+        "session_id": sid,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "completed": completed,
         "requested": n,
@@ -245,6 +261,29 @@ def snapshot(state: Path | None = None) -> dict[str, Any]:
         ),
         "generations": seen,
     }
+    if state == LIVE_STATE:
+        view["cohort_label"] = (
+            "이전 GPT 100세대 연구 · 읽기 전용 보존 원장"
+            if session_id is not None and sid == LIVE_SESSION_ID
+            else "현재 GPT 작성 MCP 연구 · 세션 " + sid[:8] + " · 개발 전용"
+        )
+        # Archive G94 as a separate labelled comparison, never merge its
+        # generation numbers into the current session or claim parent ancestry.
+        view["archived_best"] = None
+        if session_id is None and sid != LIVE_SESSION_ID:
+            with _read_db(base / "cycles.sqlite") as db:
+                prior = db.execute(
+                    "SELECT id FROM sessions WHERE id=?", (LIVE_SESSION_ID,)
+                ).fetchone()
+            if prior is not None:
+                archive = snapshot(state, session_id=LIVE_SESSION_ID)
+                if archive["proof_chain_ok"]:
+                    view["archived_best"] = {
+                        "session_id": LIVE_SESSION_ID,
+                        "completed": archive["completed"],
+                        "best_eligible": archive["best_eligible"],
+                    }
+    return view
 
 
 HTML = """<!doctype html><html lang="ko"><head><meta charset="utf-8">

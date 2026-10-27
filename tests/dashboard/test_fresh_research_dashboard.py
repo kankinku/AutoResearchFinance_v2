@@ -359,3 +359,142 @@ def test_live_dashboard_reflects_new_generation_on_next_poll_without_restart(
         server.shutdown()
         server.server_close()
         worker.join(timeout=3)
+
+
+def _add_independent_live_session(state: Path, sid: str, *, completed: int = 1) -> None:
+    """Register a second MCP session on the same unmodified academic DB."""
+    base = state / "research/academic-gpt-checkpoints"
+    with sqlite3.connect(base / "cycles.sqlite") as db:
+        db.execute("INSERT INTO sessions VALUES (?,?,?,?,?)", (
+            sid, 50, completed, "AWAITING_PROVIDER", "c" * 64,
+        ))
+        prev = None
+        for generation in range(1, completed + 1):
+            digest = f"{generation + 100:064x}"
+            evidence = {
+                "metrics": {
+                    "total_return": 0.25 + generation * 0.01,
+                    "cagr": 0.04,
+                    "max_drawdown": 0.11,
+                    "trade_count": 40,
+                    "exposure": 0.5,
+                    "sharpe": 0.8,
+                },
+                "previous_evidence_hash": prev,
+            }
+            db.execute("INSERT INTO generations VALUES (?,?,?,?)", (
+                sid, generation, json.dumps(evidence), digest,
+            ))
+            prev = digest
+    with sqlite3.connect(base / "gateway.sqlite") as db:
+        db.execute("INSERT INTO stages VALUES (?,?)", (sid, "AWAITING_PLAN"))
+
+
+def test_default_selects_newest_registered_live_session_and_archived_remains(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    live = _fixture(tmp_path)
+    old = "1" * 32
+    new = "2" * 32
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "LIVE_SESSION_ID", old)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "unused")
+    before = dash.snapshot()
+    assert before["session_id"] == old
+    assert before["completed"] == 2
+    _add_independent_live_session(live, new, completed=3)
+    latest = dash.snapshot()
+    archive = dash.snapshot(live, session_id=old)
+    assert latest["session_id"] == new
+    assert latest["completed"] == 3
+    assert latest["requested"] == 50
+    assert latest["proof_chain_ok"] is True
+    assert archive["session_id"] == old
+    assert archive["completed"] == 2
+    assert latest["archived_best"]["session_id"] == old
+    assert latest["archived_best"]["best_eligible"]["generation"] == 2
+    assert latest["cohort_label"] != archive["cohort_label"]
+
+
+def test_latest_session_is_requeried_without_server_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from scripts import fresh_original_dashboard as original
+
+    live = _fixture(tmp_path)
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "LIVE_SESSION_ID", "1" * 32)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "unused")
+    monkeypatch.setattr(original, "snapshot", dash.snapshot)
+    monkeypatch.setattr(original, "LIVE_STATE", live)
+    monkeypatch.setattr(original, "LIVE_SESSION_ID", "1" * 32)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), original.OriginalDashboardHandler)
+    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    url = f"http://127.0.0.1:{server.server_port}"
+    try:
+        with urllib.request.urlopen(url + "/api/status") as response:
+            assert json.load(response)["session_id"] == "1" * 32
+        _add_independent_live_session(live, "2" * 32)
+        with urllib.request.urlopen(url + "/api/status") as response:
+            body = json.load(response)
+            assert body["session_id"] == "2" * 32
+            assert body["completed"] == 1
+        with urllib.request.urlopen(url + "/api/dashboard") as response:
+            payload = json.load(response)
+            assert len(payload["tests"]) == 1
+            assert payload["strategy"]["generation"] == 1
+        with urllib.request.urlopen(url + "/api/status?cohort=prior_mcp") as response:
+            assert json.load(response)["session_id"] == "1" * 32
+    finally:
+        server.shutdown()
+        server.server_close()
+        worker.join(timeout=3)
+
+
+def test_invalid_live_session_id_fails_closed_without_untrusted_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    live = _fixture(tmp_path)
+    with sqlite3.connect(live / "research/academic-gpt-checkpoints/cycles.sqlite") as db:
+        db.execute("INSERT INTO sessions VALUES (?,?,?,?,?)", (
+            "invalid-session", 50, 0, "AWAITING_PROVIDER", "c" * 64,
+        ))
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "unused")
+    with pytest.raises(ValueError, match="invalid session id"):
+        dash.snapshot()
+
+
+def test_backtest_run_ids_are_namespaced_to_the_research_session(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from scripts.fresh_original_dashboard import backtest, compat
+
+    live = _fixture(tmp_path)
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "LIVE_SESSION_ID", "1" * 32)
+    old = dash.snapshot()
+    _add_independent_live_session(live, "2" * 32)
+    new = dash.snapshot()
+    old_runs = compat(old)["tests"]
+    new_runs = compat(new)["tests"]
+    assert old_runs[0]["run_id"] != new_runs[0]["run_id"]
+    assert "11111111" in old_runs[0]["run_id"]
+    assert "22222222" in new_runs[0]["run_id"]
+    assert backtest(new, compat(new))["summary"]["best_run_id"] == new_runs[0]["run_id"]
+    assert backtest(old, compat(old))["summary"]["best_run_id"] == old_runs[0]["run_id"]
+
+
+def test_current_cohort_rejects_uncommitted_newest_session(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    live = _fixture(tmp_path)
+    with sqlite3.connect(live / "research/academic-gpt-checkpoints/cycles.sqlite") as db:
+        db.execute("INSERT INTO sessions VALUES (?,?,?,?,?)", (
+            "2" * 32, 50, 0, "AWAITING_PROVIDER", "c" * 64,
+        ))
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "unused")
+    with pytest.raises(ValueError, match="session not found"):
+        dash.snapshot()

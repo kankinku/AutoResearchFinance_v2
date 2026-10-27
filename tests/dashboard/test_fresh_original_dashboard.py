@@ -100,8 +100,9 @@ def test_readonly_http_bridge_serves_existing_ui(monkeypatch: pytest.MonkeyPatch
                 assert "style-src 'self' 'unsafe-inline'" in csp
                 assert "script-src 'self'" in csp
                 assert response.read()
-        with urllib.request.urlopen(url + "/api/backtest/runs/fresh-G2") as response:
-            assert json.load(response)["generation"] == 2
+        chosen_run_id = original.compat(base_view)["tests"][0]["run_id"]
+        with urllib.request.urlopen(url + "/api/backtest/runs/" + chosen_run_id) as response:
+            assert json.load(response)["generation"] == base_view["completed"]
         req = urllib.request.Request(url + "/api/refresh", method="POST", data=b"")
         with urllib.request.urlopen(req) as response:
             assert response.status == 200
