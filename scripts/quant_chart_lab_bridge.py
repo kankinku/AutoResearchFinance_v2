@@ -96,8 +96,8 @@ def chart_page() -> bytes:
         1,
     )
     html = html.replace(
-        'href="chart-assets/styles.css?v=20260903">',
-        'href="chart-assets/styles.css?v=20260903">\n'
+        'href="chart-assets/styles.css?v=d5">',
+        'href="chart-assets/styles.css?v=d5">\n'
         '  <link rel="stylesheet" href="chart-assets/quant-chart-primary.css?v=d4">',
         1,
     )
@@ -107,8 +107,8 @@ def chart_page() -> bytes:
         'href="chart">매매 차트</a><a href="backtest">연구 백테스트</a>',
         1,
     )
-    assert 'src="chart-assets/backtest-chart.js?v=p3"' in html
-    assert 'href="chart-assets/styles.css?v=20260903"' in html
+    assert 'src="chart-assets/backtest-chart.js?v=d5"' in html
+    assert 'href="chart-assets/styles.css?v=d5"' in html
     return html.encode("utf-8")
 
 
