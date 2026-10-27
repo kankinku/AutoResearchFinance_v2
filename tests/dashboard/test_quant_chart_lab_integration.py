@@ -37,6 +37,10 @@ def get(base: str, route: str) -> tuple[int, bytes]:
 
 
 def test_chart_page_is_inside_existing_dashboard_navigation() -> None:
+    main = bridge.chart_page(main=True).decode("utf-8")
+    assert 'id="trade-visualization"' in main
+    assert 'href="research"' in main
+    assert "Quant 연구 운영 · 매매 차트" in main
     home = original.page("index.html").decode("utf-8")
     backtest = original.page("backtest.html").decode("utf-8")
     chart = bridge.chart_page().decode("utf-8")
@@ -116,6 +120,9 @@ def test_real_48_run_audit_api_with_original_dashboard(
     base = connected_chart_dashboard
     status, home = get(base, "/")
     assert status == 200 and b"chart" in home
+    assert b"trace-price" in home
+    status, research = get(base, "/research")
+    assert status == 200 and b"api/dashboard" not in research[:500]
     status, chart = get(base, "/chart")
     assert status == 200 and b"chart-assets" in chart
     status, original_data = get(base, "/api/backtest")

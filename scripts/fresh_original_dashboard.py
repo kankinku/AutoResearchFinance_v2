@@ -307,6 +307,13 @@ def script(name: str) -> bytes:
 class OriginalDashboardHandler(DashboardHandler):
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0]
+        if path in ("/", "/index.html"):
+            try:
+                return self._respond(200, "text/html; charset=utf-8", chart_page(main=True))
+            except (OSError, ValueError, AssertionError):
+                return self._respond(503, "text/plain", b"chart unavailable")
+        if path == "/research":
+            return self._respond(200, "text/html; charset=utf-8", page("index.html"))
         if path == "/chart":
             try:
                 return self._respond(200, "text/html; charset=utf-8", chart_page())
@@ -329,8 +336,6 @@ class OriginalDashboardHandler(DashboardHandler):
                 return self._respond(400, "application/json", b'{"error":"INVALID_CHART_REQUEST"}')
             except ConnectionError:
                 return self._respond(503, "application/json", b'{"error":"CHART_OFFLINE"}')
-        if path in ("/", "/index.html"):
-            return self._respond(200, "text/html; charset=utf-8", page("index.html"))
         if path == "/backtest":
             return self._respond(200, "text/html; charset=utf-8", page("backtest.html"))
         if path.startswith("/static/"):

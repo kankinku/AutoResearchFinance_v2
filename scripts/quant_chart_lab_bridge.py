@@ -44,7 +44,7 @@ _OPTION_KEYS = {"symbol", "offset", "limit"}
 _COMPARE_KEYS = {"run_a", "run_b"}
 
 
-def chart_page() -> bytes:
+def chart_page(*, main: bool = False) -> bytes:
     """Render the exact Lab chart with prefixed, same-origin URLs."""
     html = (STATIC / "backtest.html").read_text(encoding="utf-8")
     html = html.replace('href="/static/', 'href="chart-assets/')
@@ -107,6 +107,12 @@ def chart_page() -> bytes:
         'href="chart">매매 차트</a><a href="backtest">연구 백테스트</a>',
         1,
     )
+    if main:
+        html = html.replace('href="./"', 'href="research"', 1)
+        html = html.replace('href="chart">매매 차트</a>', 'href="./">매매 차트</a>', 1)
+        html = html.replace(
+            "<h1>백테스트 매매 차트</h1>", "<h1>Quant 연구 운영 · 매매 차트</h1>", 1
+        )
     assert 'src="chart-assets/backtest-chart.js?v=d5"' in html
     assert 'href="chart-assets/styles.css?v=d5"' in html
     return html.encode("utf-8")
