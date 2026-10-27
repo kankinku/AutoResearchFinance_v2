@@ -49,7 +49,7 @@ def test_chart_page_is_inside_existing_dashboard_navigation() -> None:
     assert 'href="chart">매매 차트</a>' in chart
     assert 'href="./"' in chart
     assert 'href="backtest"' in chart
-    assert 'src="chart-assets/backtest-chart.js?v=d6"' in chart
+    assert 'src="chart-assets/backtest-chart.js?v=d7"' in chart
     assert 'src="chart-assets/vendor/lightweight-charts-5.2.1.standalone.production.js"' in chart
     assert "독립 OOS 검증 및 실거래는 포함되지 않습니다" in chart
     assert "확정된 매매 순손익" in chart
@@ -60,6 +60,13 @@ def test_chart_page_is_inside_existing_dashboard_navigation() -> None:
     assert chart.index('id="trade-visualization"') < chart.index('class="research-hero panel"')
     assert chart.index('id="trade-visualization"') < chart.index('class="panel bridge-history"')
     assert 'class="quant-chart-research-details"' in chart
+    assert 'id="chart-date-start"' in chart
+    assert 'id="chart-date-end"' in chart
+    assert 'id="chart-date-apply"' in chart
+    assert 'id="chart-date-status"' in chart
+    assert "손익 지표는 전체 기간 기준" in bridge.chart_asset("backtest-chart.js")[1].decode(
+        "utf-8"
+    )
     assert '<link rel="stylesheet" href="chart-assets/quant-chart-primary.css?v=d4">' in chart
     assert "백테스트 매매 차트" in chart
     assert 'src="/static/' not in chart
