@@ -7,6 +7,7 @@ No research or account writes, no order API. nginx Basic Auth stays upstream.
 from __future__ import annotations
 
 import json
+import sqlite3
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from scripts.fresh_research_dashboard import (
     DashboardHandler,
     snapshot,
 )
+from scripts.quant_batch_live_bridge import BATCH_DB_PATH, batch_snapshot
 
 STATIC = Path(__file__).resolve().parents[1] / "dashboard/static"
 
@@ -242,7 +244,8 @@ def page(name: str) -> bytes:
             1,
         )
         panel = (STATIC / "fresh-performance.html").read_text(encoding="utf-8")
-        text = text.replace("<main>", "<main>\n" + panel, 1)
+        text = text.replace("<main>", "<main>\n" + panel + "\n" +
+            (STATIC / "fresh-batch.html").read_text(encoding="utf-8"), 1)
         # Keep the original UI and make historical source auditable without
         # permitting dashboard-controlled research writes or exposing OAuth.
         text = text.replace(
@@ -266,7 +269,8 @@ def page(name: str) -> bytes:
         )
         text = text.replace("  </main>", "  </details>\n  </main>", 1)
         text = text.replace(
-            "</body>", '  <script src="static/fresh-performance.js"></script>\n</body>', 1
+            "</body>", '  <script src="static/fresh-performance.js"></script>\n'
+            '  <script src="static/fresh-batch.js"></script>\n</body>', 1
         )
     return text.encode("utf-8")
 
@@ -302,14 +306,27 @@ class OriginalDashboardHandler(DashboardHandler):
                 "labels.js",
                 "fresh-performance.css",
                 "fresh-performance.js",
+                "fresh-batch.js",
             ):
                 return self._respond(404, "text/plain", b"not found")
             if name.endswith(".js"):
                 javascript_bytes = (
-                    (STATIC / name).read_bytes() if name == "fresh-performance.js" else script(name)
+                    (STATIC / name).read_bytes()
+                    if name in ("fresh-performance.js", "fresh-batch.js")
+                    else script(name)
                 )
                 return self._respond(200, "text/javascript; charset=utf-8", javascript_bytes)
             return self._respond(200, "text/css; charset=utf-8", (STATIC / name).read_bytes())
+        if path == "/api/research-batches/latest":
+            try:
+                payload = json.dumps(
+                    batch_snapshot(BATCH_DB_PATH), ensure_ascii=False
+                ).encode("utf-8")
+                return self._respond(200, "application/json; charset=utf-8", payload)
+            except (OSError, ValueError, sqlite3.Error):
+                return self._respond(
+                    503, "application/json", b'{"error":"BATCH_STATUS_UNAVAILABLE"}'
+                )
         if path in (
             "/api/status",
             "/api/health",

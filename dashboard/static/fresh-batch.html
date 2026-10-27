@@ -1,0 +1,26 @@
+<section class="performance-home batch-monitor" aria-labelledby="batch-title">
+  <div class="performance-lead">
+    <div>
+      <p class="eyebrow">BOUNDED QUANT BATCH / READ-ONLY</p>
+      <h2 id="batch-title">최근 Quant 배치 자동 갱신</h2>
+      <p class="performance-subtitle">위의 GPT 연구와 별도의 고정 파라미터 백테스트입니다. 세대별 GPT 자율 진화 및 OOS 성능이 아닙니다.</p>
+    </div>
+    <div class="performance-updated">
+      <span id="batch-status" class="performance-pill">상태 읽는 중</span>
+      <span id="batch-updated" class="muted">자료 확인 중</span>
+    </div>
+  </div>
+  <div class="performance-kpis batch-kpis">
+    <article class="performance-kpi performance-kpi-featured"><p class="label">완료된 배치 세대</p><strong class="performance-value" id="batch-progress">—</strong><span id="batch-source" class="performance-foot">연구 배치 ID 확인 중</span></article>
+    <article class="performance-kpi"><p class="label">측정한 후보</p><strong class="performance-value" id="batch-candidates">—</strong><span class="performance-foot">신규 평가 인스턴스</span></article>
+    <article class="performance-kpi"><p class="label">중복 제외</p><strong class="performance-value" id="batch-duplicates">—</strong><span class="performance-foot">평가를 생략한 후보</span></article>
+    <article class="performance-kpi"><p class="label">검증 통과</p><strong class="performance-value" id="batch-promoted">—</strong><span id="batch-rejected" class="performance-foot">결과 확인 중</span></article>
+  </div>
+  <div class="performance-progress-track"><div id="batch-progress-fill" class="performance-progress-fill"></div></div>
+  <p id="batch-integrity" class="performance-chart-caption">세대 원장 일치 확인 중</p>
+  <div class="performance-visual panel batch-chart-panel">
+    <h3>세대별 평가 후보 수</h3>
+    <svg id="batch-candidate-chart" viewBox="0 0 900 140" role="img" aria-label="각 세대별 신규 평가 후보 수 차트"></svg>
+    <p class="performance-chart-caption">현재 배치의 세대별 평가 수를 표시합니다. 전략 수익률이나 GPT 학습 성과가 아닙니다.</p>
+  </div>
+</section>

@@ -101,3 +101,10 @@ body.performance-priority { background:#f4f6fa; }
 
 /* Connectivity metadata lives in the detail dialog, never in the KPI overview. */
 .performance-priority #perf-updated { display:none; }
+
+/* A different SQLite source: bounded deterministic batches, not GPT cohort. */
+.batch-monitor { margin-top:16px; }
+.batch-monitor .batch-kpis { margin:15px 0; }
+.batch-monitor .batch-chart-panel { margin-top:15px; padding:16px; }
+.batch-monitor .batch-chart-panel svg { width:100%; height:auto; display:block; }
+.batch-monitor .batch-chart-panel h3 { margin:0 0 8px; font-size:16px; }
