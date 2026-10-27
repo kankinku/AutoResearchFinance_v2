@@ -18,3 +18,10 @@
 ## 미완료와 다음 단계
 
 이는 **연구 기억의 안전한 인계** 단계다. 실제 모델의 세대별 GPT Plan→백테스트→손실 진단→후속 Plan→부모 승격까지 검증된 것은 아님. 기존 GPT 진화의 83/100대기 세대를 배치로 대체하지 않는다. 다음 T4 단계는 원래 엔진의 모델 판단·증거기반 부모 승계를 소규모 1→3→10세대에서 실증하고, 그 이후 100세대 확대한다. 독립 OOS/PIT 및 실거래는 비활성 유지.
+
+## 운영 적용 및 보존 검증
+
+- 구현 커밋 `f15f71d`, 브랜치 `feat/quant-parent-portfolio-20261021`, GitHub Push PASS.
+- Quant MCP 프로세스만 8787에서 재기동(이전 PID22 → 신규 PID3314), Nginx/대시보드/독립 GPT 원장/원래 OAuth 승인 정보 변경 없음. 공개 MCP의 비인증 요청은 계속 HTTP 401.
+- 기존 설치된 Quant 플러그인 실호출 `get_algorithm_research` PASS: 원래 GPT 체크포인트 **83/100 AWAITING_DIAGNOSIS**, 기존 모델 컨텍스트 해시 유지, 최신 두 배치 검증 메모리 수신. `get_research_brief(response_mode=summary)` PASS: 검증된 최신 두 배치와 기존 32개 MCP 도구, 간소화 응답 약 18 KB. 기존 학술 cycles.sqlite SHA-256 `4294635268f6d1cff867c081413730a1793edf808d00a864082447d6ccd34f0b` 보존.
+- **미진행**: 실제 GPT 판단을 한 세대 더 생성·진단하여 부모 계승까지 검증하는 T4 후속 단계. 코드 통합으로 해당 기능의 성능을 입증했다고 주장하지 않음.
