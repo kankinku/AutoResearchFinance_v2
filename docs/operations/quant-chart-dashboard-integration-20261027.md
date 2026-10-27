@@ -27,3 +27,16 @@
 
 ## 롤백
 - Git 대시보드 커밋 이전 버전으로 대시보드 프로세스(8082)만 교체. 연구 8787과 nginx 불변.
+
+
+## 실제 배포 및 사후 검증
+
+- 실제 배포 소스 커밋 12d1f71, 기존 Quant 소스 브랜치 fix/quant-g100-to-g150-continuation-20261027.
+- 기존 8082 원본 대시보드 프로세스만 재시작, 새 PID 191471. 8081 연구 화면 PID 93996, Quant MCP 8787 PID 167970, Lab 8096 PID 151839는 재시작하지 않음.
+- 운영 내부 GET /, /backtest, /chart, /api/dashboard, /api/backtest, /api/chart/backtest, /api/chart/backtest/original-lineage, G146 verification, chart-assets JS 모두 HTTP 200.
+- 실제 운영 8082 Chromium 데스크톱(1440x900)·모바일(390x844)에서 기존 홈→차트 메뉴→G146 체결 148건→G94 비교 COMPARABLE, 검증 차트 48개/원본 146세대 확인. JS/HTTP 오류 0, 가로 넘침 0.
+- 브라우저 증거: 독립 Lab의 state/d123-integration-browser-20261027/production_dashboard_d123_browser.json 및 production_8082_desktop.png, production_8082_mobile.png.
+- 공개 HTTPS /academic/, /academic/chart, /academic/api/chart/backtest, /academic/chart-assets/backtest-chart.js, /quant-research/chart는 인증 없는 접근에 HTTP 401 Basic 반환. 기존 인증 계정을 유지하며 비밀번호를 조회하거나 교체하지 않음.
+- nginx -t 정상. Quant MCP 8787 /mcp 응답 401(기존 OAuth 독립), URL/비밀키/실주문 설정 변경 없음. PythonMCP Git HEAD d0c0862 불변.
+- 실제 사용자 자격증명으로 Basic 인증을 통과한 브라우저 검사는 계정 정보를 사용하지 않아 미수행. 내부 Chromium 렌더링 및 외부 무인증 차단은 각각 검증.
+- 8082와 8096은 독립 장기 실행 프로세스. 현재 정상이나 재부팅 자동 복구 체계는 별도 운영 개선 사항.
