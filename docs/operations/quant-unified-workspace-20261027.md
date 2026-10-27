@@ -34,3 +34,15 @@
 ## 롤백
 - 기존 Quant 대시보드의 마지막 통합 커밋 전으로 해당 UI 관련 파일만 롤백한 후 8082 프로세스만 교체.
 - OAuth/MCP/nginx/원본 연구 데이터에는 롤백할 변경이 없다.
+
+## 실제 운영 배포 검증 (2026-10-27 KST)
+
+- 통합 코드 커밋 `9b2dedb`. 기존 8082 Quant UI 프로세스만 재기동 (새 PID `269541`). 원본 8787 MCP, nginx 및 Tailscale 인증 설정 변경 없음.
+- 통합 기본 경로 `/`, `/?view=oos`, `/?view=operations`의 HTML HTTP 200. 이전 `/chart`, `/oos`, `/research`, `/backtest` 및 독립 개발/OOS 검증 JSON API도 모두 200.
+- Chromium 실제 운영 서버 127.0.0.1:8082에서 데스크톱 1440×900와 모바일 390×844 통합 플로우 통과. G124 원본 감사 +201.1%, G124 2026 -5.2%, QQQ 2026 +14.8%를 계보가 일치한 경우에만 표시.
+- G124 개발 증거 48개 중 선택 → 날짜 빠른 확대 → 2026 OOS(20개 체결) → 연구운영 현황 → 개발차트 복귀 시 선택 세대와 확대 상태 보존. JS 및 HTTP 오류 모두 0, iframe 0, 가로 overflow 0.
+- 연구운영 패널은 동적 원본 Quant 운영 데이터를 읽음; 배포 실브라우저 검사 시 세대 `G169` (P9 고정 개발 차트 146세대 캡처와 엄격히 구별).
+- 최종 레이아웃: 데스크톱 실제 차트 패널 시작 432px, 모바일 552px로 기본 화면 상단에서 캔들을 빠르게 볼 수 있음.
+- 자동 테스트 35건 PASS, Ruff/format/Mypy/JS static check PASS. 검증 로그 및 스크린샷: `state/unified-workspace-browser-20261027/production_unified_browser_results.json`, `production_unified_desktop.png`, `production_unified_mobile.png`.
+- 외부 HTTPS `/academic/`, `/academic/?view=oos`, `/academic/?view=operations`, `/academic/api/chart/backtest`, `/quant-research/` 모두 비인증 시 HTTP 401 Basic 인증 유지. 사용자 실제 로그인 세션은 별도 검증하지 않았음.
+- Quant PythonMCP 원본 Git HEAD `d0c0862` 유지. Lab 자체 검증 및 증거는 별도 읽기 전용 서비스(127.0.0.1:8096)에서 제공하므로 서비스 재부팅 시 프로세스 가용성 관리는 여전히 운영 개선 사항임.
