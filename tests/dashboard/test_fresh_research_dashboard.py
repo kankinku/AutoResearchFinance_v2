@@ -498,3 +498,43 @@ def test_current_cohort_rejects_uncommitted_newest_session(
     monkeypatch.setattr(dash, "P5_STATE", tmp_path / "unused")
     with pytest.raises(ValueError, match="session not found"):
         dash.snapshot()
+
+
+def test_operator_activated_existing_session_precedes_newer_separate_experiment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    live = _fixture(tmp_path)
+    old = "1" * 32
+    experimental = "2" * 32
+    _add_independent_live_session(live, experimental)
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "LIVE_SESSION_ID", old)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "absent")
+    assert dash.snapshot()["session_id"] == experimental
+    # The operator's same-session G100→G150 extension is explicit active intent.
+    pin = live / "research/config/active-dashboard-session.json"
+    pin.parent.mkdir(parents=True)
+    pin.write_text(json.dumps({"session_id": old, "max_session_rowid_at_selection": 2}))
+    assert dash.snapshot()["session_id"] == old
+    # New sessions started after operator activation can take over automatically.
+    _add_independent_live_session(live, "3" * 32)
+    assert dash.snapshot()["session_id"] == "3" * 32
+    assert dash.snapshot(live, session_id=old)["session_id"] == old
+
+
+def test_stale_or_tampered_operator_selection_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    live = _fixture(tmp_path)
+    monkeypatch.setattr(dash, "LIVE_STATE", live)
+    monkeypatch.setattr(dash, "P5_STATE", tmp_path / "absent")
+    pin = live / "research/config/active-dashboard-session.json"
+    pin.parent.mkdir(parents=True)
+    for bad in [
+        {"session_id": "x" * 32, "max_session_rowid_at_selection": 1},
+        {"session_id": "a" * 32, "max_session_rowid_at_selection": 1},
+        {"session_id": "1" * 32, "max_session_rowid_at_selection": 90},
+    ]:
+        pin.write_text(json.dumps(bad))
+        with pytest.raises(ValueError, match="dashboard session selection"):
+            dash.snapshot()

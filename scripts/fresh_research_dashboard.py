@@ -88,10 +88,34 @@ def _latest_live_session(state: Path) -> str:
     A broken/unready newest session fails closed instead of displaying stale data.
     """
     with _read_db(state / "research/academic-gpt-checkpoints/cycles.sqlite") as db:
-        row = db.execute("SELECT id FROM sessions ORDER BY rowid DESC LIMIT 1").fetchone()
-    if row is None:
-        raise ValueError("no live research session exists")
-    return str(row["id"])
+        row = db.execute("SELECT rowid,id FROM sessions ORDER BY rowid DESC LIMIT 1").fetchone()
+        if row is None:
+            raise ValueError("no live research session exists")
+        pin = state / "research/config/active-dashboard-session.json"
+        if not pin.exists() and not pin.is_symlink():
+            return str(row["id"])
+        if pin.is_symlink() or not pin.is_file():
+            raise ValueError("unsafe dashboard session selection")
+        try:
+            activated = json.loads(pin.read_text(encoding="utf-8"))
+            selected = activated["session_id"]
+            ceiling = activated["max_session_rowid_at_selection"]
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise ValueError("invalid dashboard session selection") from exc
+        if (
+            not isinstance(selected, str)
+            or len(selected) != 32
+            or any(c not in "0123456789abcdef" for c in selected)
+            or type(ceiling) is not int
+            or not 1 <= ceiling <= row["rowid"]
+        ):
+            raise ValueError("invalid dashboard session selection")
+        original = db.execute("SELECT rowid FROM sessions WHERE id=?", (selected,)).fetchone()
+        if original is None or original["rowid"] > ceiling:
+            raise ValueError("stale dashboard session selection")
+        if row["rowid"] > ceiling:
+            return str(row["id"])
+        return selected
 
 
 def snapshot(
