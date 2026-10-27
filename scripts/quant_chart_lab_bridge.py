@@ -29,6 +29,8 @@ ASSETS: Final = {
     "backtest-history.js": "text/javascript; charset=utf-8",
     "vendor/lightweight-charts-5.2.1.standalone.production.js": "text/javascript; charset=utf-8",
     "quant-chart-primary.css": "text/css; charset=utf-8",
+    "quant-oos-2026.js": "text/javascript; charset=utf-8",
+    "quant-oos-2026.css": "text/css; charset=utf-8",
 }
 _RUN_RE = r"[A-Za-z0-9_-]{1,160}"
 _RUN_ENDPOINT = re.compile(
@@ -107,6 +109,7 @@ def chart_page(*, main: bool = False) -> bytes:
         'href="chart">매매 차트</a><a href="backtest">연구 백테스트</a>',
         1,
     )
+    html = html.replace("</nav>", '<a href="oos">2026 미학습 구간</a></nav>', 1)
     if main:
         html = html.replace('href="./"', 'href="research"', 1)
         html = html.replace('href="chart">매매 차트</a>', 'href="./">매매 차트</a>', 1)
@@ -123,7 +126,11 @@ def chart_asset(asset: str) -> tuple[str, bytes] | None:
     mime = ASSETS.get(asset)
     if mime is None:
         return None
-    root = Path(__file__).resolve().parent if asset == "quant-chart-primary.css" else STATIC
+    root = (
+        Path(__file__).resolve().parent
+        if asset in {"quant-chart-primary.css", "quant-oos-2026.js", "quant-oos-2026.css"}
+        else STATIC
+    )
     path = root / asset
     if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
         raise ValueError("unsafe chart asset")

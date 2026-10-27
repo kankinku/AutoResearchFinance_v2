@@ -24,6 +24,8 @@ from scripts.fresh_research_dashboard import (
 )
 from scripts.quant_batch_live_bridge import BATCH_DB_PATH, batch_snapshot
 from scripts.quant_chart_lab_bridge import chart_api, chart_asset, chart_page
+from scripts.quant_chart_oos_bridge import evidence as retrospective_oos_evidence
+from scripts.quant_chart_oos_bridge import page as retrospective_oos_page
 
 STATIC = Path(__file__).resolve().parents[1] / "dashboard/static"
 
@@ -312,6 +314,21 @@ class OriginalDashboardHandler(DashboardHandler):
                 return self._respond(200, "text/html; charset=utf-8", chart_page(main=True))
             except (OSError, ValueError, AssertionError):
                 return self._respond(503, "text/plain", b"chart unavailable")
+        if path == "/oos":
+            try:
+                return self._respond(200, "text/html; charset=utf-8", retrospective_oos_page())
+            except (OSError, ValueError):
+                return self._respond(503, "text/plain", b"retrospective view unavailable")
+        if path == "/api/oos/2026-g124":
+            try:
+                body = json.dumps(
+                    retrospective_oos_evidence(), ensure_ascii=False, allow_nan=False
+                ).encode("utf-8")
+                return self._respond(200, "application/json; charset=utf-8", body)
+            except (OSError, ValueError, TypeError, KeyError, IndexError):
+                return self._respond(
+                    503, "application/json", b'{"error":"OOS_EVIDENCE_UNAVAILABLE"}'
+                )
         if path == "/research":
             return self._respond(200, "text/html; charset=utf-8", page("index.html"))
         if path == "/chart":
