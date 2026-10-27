@@ -17,3 +17,6 @@ A separate, read-only GET `/api/research-batches/latest` now reads the bounded-w
 
 ## Limits and next
 Actual logged-in user browser was not visually inspected. Auto-update transition was exercised with fixture and JS DOM, not a new live worker. No new investment-performance/OOS/PIT claims. Resume planned T4 GPT-directed end-to-end evolution and preserve existing evidence.
+
+## Source and deployment
+- Implementation commit `1328c9a`, branch `feat/quant-parent-portfolio-20261021`, pushed to origin successfully; source deployed in active read-only 8082 process.
