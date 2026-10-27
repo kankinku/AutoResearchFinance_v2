@@ -23,6 +23,7 @@ from scripts.fresh_research_dashboard import (
     snapshot,
 )
 from scripts.quant_batch_live_bridge import BATCH_DB_PATH, batch_snapshot
+from scripts.quant_chart_lab_bridge import chart_api, chart_asset, chart_page
 
 STATIC = Path(__file__).resolve().parents[1] / "dashboard/static"
 
@@ -177,8 +178,7 @@ def backtest(view: dict[str, Any], dash: dict[str, Any]) -> dict[str, Any]:
             "passing_generation_count": 0,
             "latest_run_at": view.get("last_end_utc"),
             "best_run_id": (
-                "fresh-" + view["session"] + "-G" + str(best["generation"])
-                if best else None
+                "fresh-" + view["session"] + "-G" + str(best["generation"]) if best else None
             ),
             "best_total_return": best["return"] if best else None,
             "best_max_drawdown": best["mdd"] if best else None,
@@ -248,8 +248,11 @@ def page(name: str) -> bytes:
             1,
         )
         panel = (STATIC / "fresh-performance.html").read_text(encoding="utf-8")
-        text = text.replace("<main>", "<main>\n" + panel + "\n" +
-            (STATIC / "fresh-batch.html").read_text(encoding="utf-8"), 1)
+        text = text.replace(
+            "<main>",
+            "<main>\n" + panel + "\n" + (STATIC / "fresh-batch.html").read_text(encoding="utf-8"),
+            1,
+        )
         # Keep the original UI and make historical source auditable without
         # permitting dashboard-controlled research writes or exposing OAuth.
         text = text.replace(
@@ -275,9 +278,14 @@ def page(name: str) -> bytes:
         )
         text = text.replace("  </main>", "  </details>\n  </main>", 1)
         text = text.replace(
-            "</body>", '  <script src="static/fresh-performance.js"></script>\n'
-            '  <script src="static/fresh-batch.js"></script>\n</body>', 1
+            "</body>",
+            '  <script src="static/fresh-performance.js"></script>\n'
+            '  <script src="static/fresh-batch.js"></script>\n</body>',
+            1,
         )
+    if name in ("index.html", "backtest.html"):
+        assert "</nav>" in text
+        text = text.replace("</nav>", '<a href="chart">검증 매매 차트</a></nav>', 1)
     return text.encode("utf-8")
 
 
@@ -299,6 +307,28 @@ def script(name: str) -> bytes:
 class OriginalDashboardHandler(DashboardHandler):
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0]
+        if path == "/chart":
+            try:
+                return self._respond(200, "text/html; charset=utf-8", chart_page())
+            except (OSError, ValueError, AssertionError):
+                return self._respond(503, "text/plain", b"chart unavailable")
+        if path.startswith("/chart-assets/"):
+            try:
+                resource = chart_asset(path.removeprefix("/chart-assets/"))
+                if resource is None:
+                    return self._respond(404, "text/plain", b"not found")
+                mime, body = resource
+                return self._respond(200, mime, body)
+            except (OSError, ValueError, AssertionError):
+                return self._respond(503, "text/plain", b"chart asset unavailable")
+        if path == "/api/chart/backtest" or path.startswith("/api/chart/backtest/"):
+            try:
+                status, body = chart_api(self.path)
+                return self._respond(status, "application/json; charset=utf-8", body)
+            except ValueError:
+                return self._respond(400, "application/json", b'{"error":"INVALID_CHART_REQUEST"}')
+            except ConnectionError:
+                return self._respond(503, "application/json", b'{"error":"CHART_OFFLINE"}')
         if path in ("/", "/index.html"):
             return self._respond(200, "text/html; charset=utf-8", page("index.html"))
         if path == "/backtest":
@@ -325,9 +355,9 @@ class OriginalDashboardHandler(DashboardHandler):
             return self._respond(200, "text/css; charset=utf-8", (STATIC / name).read_bytes())
         if path == "/api/research-batches/latest":
             try:
-                payload = json.dumps(
-                    batch_snapshot(BATCH_DB_PATH), ensure_ascii=False
-                ).encode("utf-8")
+                payload = json.dumps(batch_snapshot(BATCH_DB_PATH), ensure_ascii=False).encode(
+                    "utf-8"
+                )
                 return self._respond(200, "application/json; charset=utf-8", payload)
             except (OSError, ValueError, sqlite3.Error):
                 return self._respond(
