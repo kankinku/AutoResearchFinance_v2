@@ -113,7 +113,7 @@ def chart_page(*, main: bool = False) -> bytes:
         html = html.replace(
             "<h1>백테스트 매매 차트</h1>", "<h1>Quant 연구 운영 · 매매 차트</h1>", 1
         )
-    assert 'src="chart-assets/backtest-chart.js?v=d5"' in html
+    assert 'src="chart-assets/backtest-chart.js?v=d6"' in html
     assert 'href="chart-assets/styles.css?v=d5"' in html
     return html.encode("utf-8")
 

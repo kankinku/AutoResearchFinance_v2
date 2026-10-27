@@ -49,13 +49,14 @@ def test_chart_page_is_inside_existing_dashboard_navigation() -> None:
     assert 'href="chart">매매 차트</a>' in chart
     assert 'href="./"' in chart
     assert 'href="backtest"' in chart
-    assert 'src="chart-assets/backtest-chart.js?v=d5"' in chart
+    assert 'src="chart-assets/backtest-chart.js?v=d6"' in chart
     assert 'src="chart-assets/vendor/lightweight-charts-5.2.1.standalone.production.js"' in chart
     assert "독립 OOS 검증 및 실거래는 포함되지 않습니다" in chart
     assert "확정된 매매 순손익" in chart
     assert "총 거래비용" in chart
     assert "다시 빼지 않습니다" in chart
     assert "backtest-history.js?v=d5" in chart
+    assert "검증할 백테스트 · G세대" in chart
     assert chart.index('id="trade-visualization"') < chart.index('class="research-hero panel"')
     assert chart.index('id="trade-visualization"') < chart.index('class="panel bridge-history"')
     assert 'class="quant-chart-research-details"' in chart
