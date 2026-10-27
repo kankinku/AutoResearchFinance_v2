@@ -28,6 +28,7 @@ ASSETS: Final = {
     "backtest-chart.js": "text/javascript; charset=utf-8",
     "backtest-history.js": "text/javascript; charset=utf-8",
     "vendor/lightweight-charts-5.2.1.standalone.production.js": "text/javascript; charset=utf-8",
+    "quant-chart-primary.css": "text/css; charset=utf-8",
 }
 _RUN_RE = r"[A-Za-z0-9_-]{1,160}"
 _RUN_ENDPOINT = re.compile(
@@ -61,6 +62,45 @@ def chart_page() -> bytes:
         "원본 PythonMCP 연구 세대 성과 요약 보기 · 체결 위치 없음",
         "원본 세대별 성과와 매매 증거 확인",
     )
+    # Make the actual candle chart the FIRST substantial section after safety.
+    # All existing IDs remain in the DOM so the proven backtest UI keeps updating.
+    usage = html.index('    <details class="usage-help">')
+    source_history = html.index('    <section class="panel bridge-history"')
+    trade_chart = html.index('    <section class="panel backtest-trace-panel"')
+    exploration = html.index('    <section class="panel" aria-labelledby="trend-title">')
+    if not usage < source_history < trade_chart < exploration:
+        raise ValueError("Quant Lab chart layout changed; cannot safely reorder")
+    research_sections = html[usage:source_history]
+    source_evidence = html[source_history:trade_chart]
+    chart = html[trade_chart:exploration]
+    html = (
+        html[:usage]
+        + chart
+        + source_evidence
+        + '<details class="quant-chart-research-details">'
+        + "<summary>연구 진행률·성과 지표 펼치기 "
+        + '<span class="summary-meta">기존 연구 운영 기록</span></summary>'
+        + '<div class="quant-chart-research-content">'
+        + research_sections
+        + "</div></details>\n"
+        + html[exploration:]
+    )
+    html = html.replace(
+        "<h1>매매 체결 검증 차트</h1>",
+        "<h1>백테스트 매매 차트</h1>",
+        1,
+    )
+    html = html.replace(
+        '<p class="lede">세대별 최고 후보의 수익성·안정성·근거를 한 화면에서 확인합니다.</p>',
+        '<p class="lede">원본 감사가 일치한 매수·매도 체결과 자산곡선을 먼저 확인합니다.</p>',
+        1,
+    )
+    html = html.replace(
+        'href="chart-assets/styles.css?v=20260903">',
+        'href="chart-assets/styles.css?v=20260903">\n'
+        '  <link rel="stylesheet" href="chart-assets/quant-chart-primary.css?v=d4">',
+        1,
+    )
     # Explicit link back to the original dashboard's existing backtest summary.
     html = html.replace(
         'href="chart">전략 성과</a>',
@@ -77,12 +117,9 @@ def chart_asset(asset: str) -> tuple[str, bytes] | None:
     mime = ASSETS.get(asset)
     if mime is None:
         return None
-    path = STATIC / asset
-    if (
-        path.is_symlink()
-        or not path.is_file()
-        or not path.resolve().is_relative_to(STATIC.resolve())
-    ):
+    root = Path(__file__).resolve().parent if asset == "quant-chart-primary.css" else STATIC
+    path = root / asset
+    if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
         raise ValueError("unsafe chart asset")
     if path.stat().st_size > MAX_ASSET:
         raise ValueError("chart asset exceeds size bound")

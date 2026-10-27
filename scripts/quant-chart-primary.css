@@ -1,0 +1,170 @@
+/* D4 — Primary audited trade chart; visual tokens match Research Operations.
+ * Only served on /academic/chart or /quant-research/chart.
+ * Retains the original light theme; no unverified execution charts.
+ */
+:root {
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --panel: #fff;
+  --border: #e4e8ef;
+  --text: #182230;
+  --muted: #667085;
+  --blue: #2563eb;
+  --blue-soft: #eff6ff;
+  --green: #087443;
+  --green-soft: #ecfdf3;
+  --yellow: #a15c00;
+  --yellow-soft: #fff7e6;
+  --red: #b42318;
+  --red-soft: #fff1f0;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.55 Inter,"Segoe UI","Malgun Gothic",Arial,sans-serif;
+}
+.topbar, main, footer {
+  width: min(1520px, calc(100% - 48px));
+}
+.topbar {
+  padding: 23px 0 16px;
+  align-items: center;
+}
+.topbar h1 { font-size: clamp(26px, 3vw, 36px); }
+.topbar .lede { font-size: 13px; }
+.page-nav a.active {
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-color: #bfdbfe;
+}
+.safety-banner {
+  padding: 9px 15px;
+  margin-bottom: 12px;
+  background: var(--green-soft);
+  border-color: #b7ebce;
+}
+.backtest-trace-panel {
+  border: 1px solid #cbd9f6;
+  border-top: 4px solid var(--blue);
+  box-shadow: 0 6px 22px #1018280a;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.backtest-trace-panel .trace-heading {
+  margin-bottom: 12px;
+}
+.backtest-trace-panel .trace-heading h2 {
+  font-size: 23px;
+  letter-spacing: -.04em;
+}
+.backtest-trace-panel .trace-heading .eyebrow {
+  color: var(--blue);
+}
+.backtest-trace-panel .trace-subhead {
+  max-width: 1000px;
+}
+.backtest-trace-panel .trace-toolbar {
+  align-items: end;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+}
+.backtest-trace-panel .trace-toolbar select {
+  min-height: 39px;
+  background: #fff;
+}
+.backtest-trace-panel .trace-toolbar button {
+  min-height: 39px;
+}
+.backtest-trace-panel .trace-toolbar label:first-child {
+  flex: 2 1 360px;
+  max-width: none;
+}
+.backtest-trace-panel .trace-canvas-shell {
+  padding: 10px;
+  border: 1px solid #dce5f2;
+  box-shadow: inset 0 1px 2px #10182805;
+  border-radius: 9px;
+}
+.backtest-trace-panel .trace-price-header {
+  padding: 8px 10px;
+  border-bottom: 1px solid #edf1f5;
+}
+.backtest-trace-panel .trace-price-canvas {
+  height: min(64vh, 680px);
+  min-height: 465px;
+}
+.backtest-trace-panel .trace-equity-canvas {
+  height: 195px;
+}
+.backtest-trace-panel .trace-audit {
+  background: #f8fafc;
+}
+.backtest-trace-panel .trace-audit-grid > div {
+  border-color: #e4e8ef;
+}
+.backtest-trace-panel .trace-message {
+  background: #f8fafc;
+}
+.bridge-history {
+  border-left: 3px solid #64748b;
+  box-shadow: none;
+}
+.quant-chart-research-details {
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px #10182806;
+}
+.quant-chart-research-details > summary {
+  cursor: pointer;
+  padding: 15px 19px;
+  list-style: none;
+  font-weight: 750;
+  color: var(--text);
+}
+.quant-chart-research-details > summary::-webkit-details-marker { display: none; }
+.quant-chart-research-details > summary::before {
+  content: "＋";
+  color: var(--blue);
+  margin-right: 8px;
+}
+.quant-chart-research-details[open] > summary::before { content: "－"; }
+.quant-chart-research-content {
+  border-top: 1px solid var(--border);
+  padding: 16px;
+}
+.quant-chart-research-content .research-hero { margin-bottom: 14px; }
+.quant-chart-research-content .kpi-grid { margin-bottom: 0; }
+.quant-chart-research-details:not([open]) .quant-chart-research-content { display: none; }
+button:focus-visible, select:focus-visible, .quant-chart-research-details summary:focus-visible {
+  outline: 3px solid #2563eb45;
+  outline-offset: 2px;
+}
+@media (max-width: 860px) {
+  .topbar, main, footer { width: calc(100% - 30px); }
+  .backtest-trace-panel .trace-price-canvas { height: 480px; min-height: 0; }
+  .backtest-trace-panel .trace-equity-canvas { height: 160px; }
+}
+@media (max-width: 560px) {
+  .topbar, main, footer { width: calc(100% - 24px); }
+  .topbar { padding-top: 17px; padding-bottom: 13px; }
+  .backtest-trace-panel { padding: 13px 12px; }
+  .backtest-trace-panel .trace-heading h2 { font-size: 20px; }
+  .backtest-trace-panel .trace-toolbar { padding: 9px; }
+  .backtest-trace-panel .trace-toolbar label {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .backtest-trace-panel .trace-toolbar label:first-child { flex-basis: 100%; }
+  .backtest-trace-panel .trace-price-canvas { height: 380px; }
+  .backtest-trace-panel .trace-equity-canvas { height: 145px; }
+  .backtest-trace-panel .trace-canvas-shell { padding: 5px; }
+  .quant-chart-research-details .summary-meta { font-size: 11px; }
+  .quant-chart-research-content { padding: 11px; }
+}

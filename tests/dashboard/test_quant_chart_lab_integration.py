@@ -48,6 +48,11 @@ def test_chart_page_is_inside_existing_dashboard_navigation() -> None:
     assert 'src="chart-assets/backtest-chart.js?v=p3"' in chart
     assert 'src="chart-assets/vendor/lightweight-charts-5.2.1.standalone.production.js"' in chart
     assert "독립 OOS 검증 및 실거래는 포함되지 않습니다" in chart
+    assert chart.index('id="trade-visualization"') < chart.index('class="research-hero panel"')
+    assert chart.index('id="trade-visualization"') < chart.index('class="panel bridge-history"')
+    assert 'class="quant-chart-research-details"' in chart
+    assert '<link rel="stylesheet" href="chart-assets/quant-chart-primary.css?v=d4">' in chart
+    assert "백테스트 매매 차트" in chart
     assert 'src="/static/' not in chart
     assert 'href="/static/' not in chart
 
@@ -64,6 +69,11 @@ def test_chart_assets_are_vendored_and_never_call_other_apis() -> None:
             assert b"api/chart/backtest" in content
     assert bridge.chart_asset("../../../../etc/passwd") is None
     assert bridge.chart_asset("app.js") is None
+    theme = bridge.chart_asset("quant-chart-primary.css")
+    assert theme is not None
+    assert b"--bg: #f5f7fb" in theme[1]
+    assert b"--blue: #2563eb" in theme[1]
+    assert b"min(1520px" in theme[1]
     assert bridge.chart_asset("secrets.json") is None
 
 
@@ -133,7 +143,7 @@ def test_real_48_run_audit_api_with_original_dashboard(
     )
     assert status == 200
     assert json.loads(compare_data)["status"] == "COMPARABLE"
-    for file in ("styles.css", "backtest-chart.js", "backtest.js"):
+    for file in ("styles.css", "quant-chart-primary.css", "backtest-chart.js", "backtest.js"):
         status, content = get(base, "/chart-assets/" + file)
         assert status == 200 and len(content) > 100
     for path in ("/chart-assets/../../etc/passwd", "/api/chart/backtest/refresh"):
