@@ -1,0 +1,113 @@
+/* Quant unified workspace v1 — single application shell. No iframes. */
+body { background:#f5f7fb }
+[hidden] {display:none !important}
+.topbar { display:flex; align-items:start; gap:18px; }
+.topbar > div:first-child {min-width:0;flex:1}
+.topbar h1 {font-size:clamp(24px,2.8vw,36px);margin-bottom:3px}
+.topbar .lede {font-size:13px}
+.quant-workspace-switch {margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.quant-mode-tabs {display:flex;gap:5px;padding:5px;background:#e9eef6;border:1px solid #dbe3ee;border-radius:11px;flex:1 1 555px;max-width:790px}
+.quant-mode-tabs button {appearance:none;border:1px solid transparent;border-radius:8px;background:transparent;color:#344054;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;padding:10px 12px;cursor:pointer;flex:1 1 0;font-weight:750;font:inherit;min-width:0}
+.quant-mode-tabs button[aria-selected=true] {background:#fff;border-color:#c9d7ef;box-shadow:0 1px 5px #10182813;color:#1d4ed8;font-weight:750}
+.quant-mode-tabs button small {font-size:10px;color:#667085;font-weight:450;white-space:nowrap}
+.quant-mode-tabs button[aria-selected=true] small {color:#344054}
+.quant-mode-tabs button:focus-visible {outline:3px solid #2563eb80;outline-offset:1px}
+.quant-workspace-actions {display:flex;gap:14px;font-size:12px;align-items:center}
+.quant-link-secondary {color:#475467;text-decoration:underline;text-underline-offset:3px}
+.quant-link-secondary:hover {color:#1d4ed8}
+.quant-period-overview {background:#fff;border:1px solid #e4e8ef;border-radius:12px;padding:15px 19px;margin-bottom:16px;box-shadow:0 2px 10px #10182805}
+.quant-period-intro {display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+.quant-period-intro h2 {font-size:18px;margin:2px 0}
+.quant-period-intro p:not(.eyebrow) {font-size:12px;margin:3px 0;color:#667085}
+.quant-caution {padding:4px 9px;border-radius:20px;background:#fff7e6;color:#955c10;border:1px solid #f7d48b;font-size:10px;font-weight:650;white-space:normal}
+.quant-period-metrics {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 8px}
+.quant-period-metric {display:flex;flex-direction:column;text-align:left;align-items:flex-start;gap:5px;border:1px solid #e4e8ef;background:#f8fafc;border-radius:9px;padding:11px 13px;min-width:0;overflow-wrap:anywhere;color:#182230;font:inherit}
+button.quant-period-metric {cursor:pointer}
+button.quant-period-metric:hover {background:#eff6ff;border-color:#bfdbfe}
+.quant-period-metric span {font-size:11px;font-weight:650;color:#475467}
+.quant-period-metric strong {font-size:24px;font-weight:790;line-height:1.2;letter-spacing:-.035em}
+.quant-period-metric small {font-size:10px;color:#667085;line-height:1.4}
+#quant-metric-oos {color:#b42318}
+.quant-period-benchmark strong {color:#087443}
+#quant-period-message {margin:5px 0 0;font-size:11px}
+.quant-view-status {margin:0 0 10px;font-size:11px;color:#667085}
+#quant-panel-development,#quant-panel-oos,#quant-panel-operations {min-width:0}
+#quant-panel-oos .backtest-trace-panel {border-top-color:#d97706}
+#quant-panel-oos .safety-banner {background:#fff7e6;border-color:#f7d48b}
+.quant-ops-heading {display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:15px}
+.quant-ops-heading h2{font-size:22px}
+.quant-operations-panel {border:1px solid #e4e8ef;border-top:4px solid #2563eb;background:#fff;border-radius:11px;padding:20px}
+.quant-ops-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}
+.quant-ops-grid >div {border:1px solid #e4e8ef;background:#f8fafc;padding:14px;border-radius:9px;display:flex;flex-direction:column;gap:5px}
+.quant-ops-grid span {font-size:12px;color:#667085}
+.quant-ops-grid strong {font-size:23px;color:#182230}
+.quant-ops-grid small {font-size:11px;color:#667085}
+.quant-quick-range {display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:9px}
+.quant-quick-range span {font-size:11px;color:#667085;margin-right:3px}
+.quant-quick-range button {border:1px solid #d0d5dd;border-radius:7px;background:#fff;color:#344054;font:inherit;font-size:11px;padding:5px 11px;cursor:pointer}
+.quant-quick-range button:hover {border-color:#2563eb;color:#1d4ed8;background:#eff6ff}
+@media(max-width:860px) {
+ .quant-period-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .quant-ops-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .quant-workspace-switch{gap:8px}
+}
+@media(max-width:580px) {
+ .quant-workspace-switch{margin-top:12px}
+ .quant-mode-tabs{flex:1 1 100%;padding:3px;gap:2px}
+ .quant-mode-tabs button{font-size:12px;padding:8px 3px;flex-direction:column;gap:1px}
+ .quant-mode-tabs button small{font-size:9px}
+ .quant-period-overview{padding:10px 11px}
+ .quant-period-intro h2{font-size:16px}
+ .quant-period-metrics{gap:5px}
+ .quant-period-metric{padding:8px;gap:4px}
+ .quant-period-metric span{font-size:10px}
+ .quant-period-metric strong{font-size:18px}
+ .quant-period-metric small{font-size:9px}
+ .quant-period-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .quant-ops-grid{gap:7px}
+ .quant-operations-panel{padding:12px}
+}
+/* Chart-first density: show the actual candle surface earlier on small screens. */
+.topbar {padding-top:13px;padding-bottom:8px}
+.quant-period-overview {padding:10px 14px;margin-bottom:10px}
+.quant-period-intro h2 {font-size:16px;margin:0}
+.quant-period-intro p:not(.eyebrow) {margin:0;font-size:11px}
+.quant-period-metrics {margin:7px 0 5px;gap:8px}
+.quant-period-metric {padding:9px 11px;gap:3px}
+.quant-period-metric strong {font-size:21px}
+.quant-period-metric small {font-size:10px}
+@media(max-width:580px) {
+ .topbar {padding-top:9px;padding-bottom:6px}
+ .topbar h1 {font-size:22px}
+ .topbar .lede {font-size:11px}
+ .quant-workspace-switch {margin-top:8px}
+ .quant-workspace-actions {font-size:11px}
+ .quant-period-overview {padding:9px 10px;margin-bottom:8px}
+ .quant-period-intro {gap:3px}
+ .quant-period-intro .eyebrow {display:none}
+ .quant-period-intro h2 {font-size:14px}
+ .quant-period-intro p:not(.eyebrow) {display:none}
+ .quant-caution {font-size:9px;padding:3px 7px}
+ .quant-period-metrics {gap:4px;margin:5px 0 4px}
+ .quant-period-metric {padding:7px;gap:3px}
+ .quant-period-metric span {font-size:9px}
+ .quant-period-metric strong {font-size:18px}
+ .quant-period-metric small {display:none}
+ #quant-period-message {font-size:10px;line-height:1.35}
+ .quant-view-status {margin-bottom:5px}
+}
+/* Keep the price chart prominent rather than pushing it below the fold. */
+.quant-period-intro .eyebrow,
+.quant-period-intro p:not(.eyebrow),
+.quant-period-metric small {display:none}
+.quant-period-intro h2 {font-size:15px}
+.quant-period-overview {padding:9px 13px}
+.quant-period-metrics {margin:6px 0 3px}
+.quant-period-metric {padding:9px 11px}
+.quant-period-metric strong {font-size:20px}
+@media(max-width:580px){
+ .quant-period-overview{padding:8px 10px}
+ .quant-period-intro h2{font-size:14px}
+ .quant-period-metric{padding:7px 6px}
+ .quant-period-metric strong{font-size:17px}
+}

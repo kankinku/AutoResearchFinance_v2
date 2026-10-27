@@ -31,6 +31,8 @@ ASSETS: Final = {
     "quant-chart-primary.css": "text/css; charset=utf-8",
     "quant-oos-2026.js": "text/javascript; charset=utf-8",
     "quant-oos-2026.css": "text/css; charset=utf-8",
+    "quant-unified.js": "text/javascript; charset=utf-8",
+    "quant-unified.css": "text/css; charset=utf-8",
 }
 _RUN_RE = r"[A-Za-z0-9_-]{1,160}"
 _RUN_ENDPOINT = re.compile(
@@ -116,6 +118,10 @@ def chart_page(*, main: bool = False) -> bytes:
         html = html.replace(
             "<h1>백테스트 매매 차트</h1>", "<h1>Quant 연구 운영 · 매매 차트</h1>", 1
         )
+    if main:
+        from scripts.quant_unified_workspace import compose_unified_workspace
+
+        html = compose_unified_workspace(html)
     assert 'src="chart-assets/backtest-chart.js?v=d7"' in html
     assert 'href="chart-assets/styles.css?v=d7"' in html
     return html.encode("utf-8")
@@ -128,7 +134,14 @@ def chart_asset(asset: str) -> tuple[str, bytes] | None:
         return None
     root = (
         Path(__file__).resolve().parent
-        if asset in {"quant-chart-primary.css", "quant-oos-2026.js", "quant-oos-2026.css"}
+        if asset
+        in {
+            "quant-chart-primary.css",
+            "quant-oos-2026.js",
+            "quant-oos-2026.css",
+            "quant-unified.js",
+            "quant-unified.css",
+        }
         else STATIC
     )
     path = root / asset

@@ -351,6 +351,10 @@ class OriginalDashboardHandler(DashboardHandler):
                 return self._respond(status, "application/json; charset=utf-8", body)
             except ValueError:
                 return self._respond(400, "application/json", b'{"error":"INVALID_CHART_REQUEST"}')
+            except BrokenPipeError:
+                # Browser canceled a large chart response during a tab switch.
+                # Its socket is closed: replying again would just raise twice.
+                return
             except ConnectionError:
                 return self._respond(503, "application/json", b'{"error":"CHART_OFFLINE"}')
         if path == "/backtest":

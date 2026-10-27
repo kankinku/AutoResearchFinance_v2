@@ -69,7 +69,7 @@ def test_same_origin_oos_page_and_evidence_get(http_chart: str) -> None:
     assert result["metrics"]["fill_count"] == 20
     assert result["orders_enabled"] is False
     status, home = get(http_chart, "/")
-    assert status == 200 and b'href="oos"' in home
+    assert status == 200 and b'data-quant-tab="oos"' in home
 
 
 def test_oos_frontend_static_assets_allowlist() -> None:

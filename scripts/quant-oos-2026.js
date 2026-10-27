@@ -161,5 +161,16 @@
       note("검증 가능한 2026년 데이터가 없어 차트를 표시하지 않습니다.", true);
     }
   }
-  document.addEventListener("DOMContentLoaded", init);
+  // Hidden panels cannot initialize Lightweight Charts at zero width.
+  // Standalone /oos keeps the previous eager behavior for older bookmarks.
+  document.addEventListener("DOMContentLoaded", () => {
+    if (document.getElementById("quant-panel-oos")) {
+      window.addEventListener("quant:activate-oos", () => {
+        if (evidence || charts) return;
+        void init();
+      }, {once: true});
+    } else {
+      void init();
+    }
+  });
 })();
