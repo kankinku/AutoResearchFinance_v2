@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isfinite
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, cast
 
 PATTERNS = (
     "elliott_impulse_5",
@@ -33,6 +33,15 @@ class ConfirmedPivot:
     value: float
     kind: str
     known_at: int
+
+
+def _valid_candle(
+    high: float | None, low: float | None, close: float | None
+) -> bool:
+    if high is None or low is None or close is None:
+        return False
+    h, l, c = float(high), float(low), float(close)
+    return all(isfinite(v) for v in (h, l, c)) and h >= max(l, c) and l <= c
 
 
 def _signs(pivots: Sequence[ConfirmedPivot]) -> tuple[int, ...]:
@@ -204,17 +213,11 @@ def calculate_chart_pattern(
             continue
         first = candidate - confirmation_bars
         interval = range(first, t + 1)
-        if any(
-            high[j] is None or low[j] is None or close[j] is None
-            or not all(isfinite(float(z)) for z in (high[j], low[j], close[j]))
-            or float(high[j]) < max(float(low[j]), float(close[j]))
-            or float(low[j]) > float(close[j])
-            for j in interval
-        ):
+        if not all(_valid_candle(high[j], low[j], close[j]) for j in interval):
             pivots.clear()
             continue
-        highs = [float(high[j]) for j in interval]
-        lows = [float(low[j]) for j in interval]
+        highs = [float(cast(float, high[j])) for j in interval]
+        lows = [float(cast(float, low[j])) for j in interval]
         center = confirmation_bars
         is_high = highs[center] == max(highs) and highs.count(highs[center]) == 1
         is_low = lows[center] == min(lows) and lows.count(lows[center]) == 1
