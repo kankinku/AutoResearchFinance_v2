@@ -413,6 +413,45 @@ def imported_feature_catalog() -> FeatureCatalog:
         )
         for feature in features
     ]
+    # V3 source-verified additive ports: do not shadow existing features.
+    external_source = (
+        "https://github.com/xgboosted/pandas-ta-classic"
+        "@7c669b033582d53b70aa68b6388796d19ce33979"
+    )
+    new_numeric: tuple[
+        tuple[str, str, tuple[str, ...], int, dict[str, int | float | str | bool]], ...
+    ] = (
+        ("choppiness_index", "trend", ("high", "low", "close"), 14, {}),
+        ("squeeze_on", "volatility", ("high", "low", "close"), 20,
+         {"bb_mult": 2.0, "kc_mult": 1.5}),
+        ("chandelier_exit_long", "volatility", ("high", "low", "close"), 22,
+         {"atr_multiplier": 3.0}),
+        ("awesome_oscillator", "momentum", ("high", "low"), 34, {"fast": 5}),
+        ("kst", "momentum", ("close",), 30, {}),
+        ("coppock_curve", "momentum", ("close",), 14,
+         {"fast": 11, "slow": 14, "smoothing": 10}),
+        ("efficiency_ratio", "trend", ("close",), 10, {}),
+        ("vertical_horizontal_filter", "trend", ("close",), 28, {}),
+        ("correlation_trend_indicator", "momentum", ("close",), 14, {}),
+        ("balance_of_power", "momentum", ("open", "high", "low", "close"), 1, {}),
+    )
+    new_candles = (
+        "harami", "piercing_pattern", "dark_cloud_cover", "three_white_soldiers",
+        "three_black_crows", "spinning_top", "dragonfly_doji", "gravestone_doji",
+    )
+    for name, family, inputs, lookback, params in new_numeric:
+        spec = _spec(name, family, name, inputs=inputs, lookback=lookback,
+                     parameters=params, status="REGISTERED")
+        features.append(spec.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
+    for name in new_candles:
+        spec = _spec(name, "price_action", name,
+                     inputs=("open", "high", "low", "close"),
+                     lookback=3, status="REGISTERED")
+        features.append(spec.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
     return FeatureCatalog(tuple(features))
 
 

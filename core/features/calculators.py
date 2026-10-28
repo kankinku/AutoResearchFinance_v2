@@ -27,6 +27,10 @@ def calculate_feature(
 
     series = _validate_inputs(spec, inputs)
     calculator = spec.calculator.lower()
+    from core.features.source_indicator_ports import SOURCE_PORTS, calculate_source_port
+
+    if calculator in SOURCE_PORTS:
+        return calculate_source_port(calculator, inputs, spec.lookback, spec.parameters)
     if calculator == "sma":
         return _single_rolling(series[0], spec.lookback, fmean)
     if calculator == "ema":
