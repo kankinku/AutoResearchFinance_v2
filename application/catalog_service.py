@@ -27,8 +27,27 @@ class FeatureCatalogService:
         """Read-only bounded caveats for the GPT, not execution authorization."""
         rows = audit_native_capabilities()
         reasons = Counter(row["reason"] for row in rows)
+        specs = research_feature_specs()
+        fields = frozenset({"open", "high", "low", "close", "volume"})
+        external = sorted(
+            spec.name
+            for spec in specs
+            if spec.data_contract == "scalar" and not set(spec.inputs) <= fields
+        )
+        specialized = sorted(spec.name for spec in specs if spec.data_contract != "scalar")
+        inherited_candidates = [
+            spec for spec in specs if spec.data_contract == "scalar" and set(spec.inputs) <= fields
+        ]
         return {
             "source": "SYNTHETIC_OHLCV_PRIMITIVE_AUDIT_ONLY",
+            "inherited_same_symbol_ohlcv_candidates": len(inherited_candidates),
+            "external_asof_not_ready": external,
+            "specialized_adapter_not_ready": specialized,
+            "inherited_candidate_policy": (
+                "OHLCV input compatibility is a candidate count, not a guarantee of "
+                "source numerical parity, real-market profitability, arbitrary lookbacks, "
+                "or LLM academic provider exposure. External features remain blocked."
+            ),
             "registered_count": len(rows),
             "observed_scalar_calculation_count": sum(row["calculation_observed"] for row in rows),
             "reasons": dict(sorted(reasons.items())),

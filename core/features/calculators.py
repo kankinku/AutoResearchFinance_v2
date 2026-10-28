@@ -260,23 +260,23 @@ def _single_rolling(values: NumberSeries, period: int, reducer: object) -> tuple
 
 
 def _ema(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    """SMA-seeded EMA, supporting leading warmup None and reseeding after gaps.
+
+    Chained EMA indicators have intentional unavailable observations at their
+    beginning. Never treat that prefix as a permanently broken calculation.
+    """
     result: list[float | None] = [None] * len(values)
-    if len(values) < period:
-        return tuple(result)
-    initial = values[:period]
-    if any(value is None for value in initial):
-        return tuple(result)
-    current = fmean(float(value) for value in initial if value is not None)
-    result[period - 1] = current
     alpha = 2.0 / (period + 1)
-    for index in range(period, len(values)):
-        value = values[index]
-        if value is None:
-            current = math.nan
-            result[index] = None
+    current: float | None = None
+    for index, value in enumerate(values):
+        if value is None or not math.isfinite(float(value)):
+            current = None
             continue
-        if not math.isfinite(current):
-            current = float(value)
+        if current is None:
+            window = _window(values, index, period)
+            if window is None or any(not math.isfinite(v) for v in window):
+                continue
+            current = fmean(window)
         else:
             current += alpha * (float(value) - current)
         result[index] = current
@@ -347,9 +347,7 @@ def _previous_rolling_maximum(values: NumberSeries, period: int) -> tuple[float 
     return tuple(result)
 
 
-def _ibs(
-    closes: NumberSeries, highs: NumberSeries, lows: NumberSeries
-) -> tuple[float | None, ...]:
+def _ibs(closes: NumberSeries, highs: NumberSeries, lows: NumberSeries) -> tuple[float | None, ...]:
     result: list[float | None] = []
     for close, high, low in zip(closes, highs, lows, strict=True):
         if close is None or high is None or low is None:
@@ -629,25 +627,21 @@ def _wma(values: NumberSeries, period: int) -> tuple[float | None, ...]:
 
 
 def _wilder(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    """Wilder/RMA smoothing: seed at first complete window after any missing prefix."""
     result: list[float | None] = [None] * len(values)
-    if len(values) < period:
-        return tuple(result)
-    initial = _window(values, period - 1, period)
-    if initial is None:
-        return tuple(result)
-    current = fmean(initial)
-    result[period - 1] = current
-    for index in range(period, len(values)):
-        value = values[index]
-        if value is None:
-            current = math.nan
-            result[index] = None
+    current: float | None = None
+    for index, value in enumerate(values):
+        if value is None or not math.isfinite(float(value)):
+            current = None
+            continue
+        if current is None:
+            window = _window(values, index, period)
+            if window is None or any(not math.isfinite(v) for v in window):
+                continue
+            current = fmean(window)
         else:
-            if not math.isfinite(current):
-                current = float(value)
-            else:
-                current += (float(value) - current) / period
-            result[index] = current
+            current += (float(value) - current) / period
+        result[index] = current
     return tuple(result)
 
 
@@ -818,8 +812,12 @@ def _additional_indicator(
     values, period = series[0], spec.lookback
     if calculator == "tma":
         return _single_rolling(_single_rolling(values, period, fmean), period, fmean)
-    if calculator in {"vidya", "fama", "laguerre_rsi"}:
-        return _ema(values, period) if calculator == "fama" else _rsi(values, period)
+    if calculator == "vidya":
+        return _vidya(values, period)
+    if calculator == "fama":
+        return _ema(values, period)
+    if calculator == "laguerre_rsi":
+        return _rsi(values, period)
     if calculator == "cmo":
         return _cmo(values, period)
     if calculator == "vwma":
@@ -827,13 +825,16 @@ def _additional_indicator(
     if calculator == "mcginley":
         return _mcginley(values, period)
     if calculator == "zero_lag_ema":
-        first = _ema(values, period)
-        return tuple(
+        # ZLEMA = EMA of the price de-lagged by floor((period - 1) / 2).
+        # Previous implementation accidentally returned 2*EMA2 - EMA1.
+        lag = (period - 1) // 2
+        corrected = tuple(
             None
-            if value is None or first[index] is None
-            else 2.0 * _as_float(value) - _as_float(first[index])
-            for index, value in enumerate(_ema(first, period))
+            if value is None or index < lag or values[index - lag] is None
+            else 2.0 * _as_float(value) - _as_float(values[index - lag])
+            for index, value in enumerate(values)
         )
+        return _ema(corrected, period)
     if calculator == "stoch_rsi":
         return _percentile(_rsi(values, period), period)
     if calculator == "rvi":
@@ -955,7 +956,7 @@ def _additional_indicator(
         )
         return _returns(_ema(ranges, period), 1)
     if calculator == "connors_rsi":
-        return _rsi(values, min(3, period))
+        return _connors_rsi(values, period)
     if calculator in {"evening_star", "morning_star", "pin_bar", "shooting_star"}:
         return _price_action(calculator, series)
     if calculator == "fractional_difference":
@@ -1274,10 +1275,11 @@ def _cycle_indicator(
         return _single_rolling(
             values,
             period,
-            lambda window: sum((index + 1) * value for index, value in enumerate(window))
-            / sum(window)
-            if sum(window)
-            else 0.0,
+            lambda window: (
+                sum((index + 1) * value for index, value in enumerate(window)) / sum(window)
+                if sum(window)
+                else 0.0
+            ),
         )
     if calculator == "bandpass_filter":
         return _momentum(_ema(values, period), max(1, period // 2))
@@ -1799,6 +1801,66 @@ def _cusum(values: NumberSeries, threshold: float) -> tuple[float | None, ...]:
     return tuple(result)
 
 
+def _vidya(values: NumberSeries, period: int) -> tuple[float | None, ...]:
+    """Chande's Variable Index Dynamic Average, driven by absolute CMO.
+
+    A trend receives higher smoothing weight; a flat series keeps its seed.
+    """
+    result: list[float | None] = [None] * len(values)
+    momentum = _cmo(values, period)
+    alpha = 2.0 / (period + 1)
+    current: float | None = None
+    for i, value in enumerate(values):
+        if value is None or not math.isfinite(float(value)):
+            current = None
+            continue
+        if current is None:
+            initial = _window(values, i, period)
+            if initial is None:
+                continue
+            current = fmean(initial)
+        elif momentum[i] is not None:
+            current += alpha * abs(_as_float(momentum[i]) / 100.0) * (float(value) - current)
+        result[i] = current
+    return tuple(result)
+
+
+def _connors_rsi(values: NumberSeries, rank_period: int) -> tuple[float | None, ...]:
+    """3-period price RSI + 2-period streak RSI + ROC percent rank.
+
+    Uses Wilder RSI and an inclusive trailing rank window; no future bars.
+    The catalog lookback is the return-rank period.
+    """
+    out: list[float | None] = [None] * len(values)
+    streaks: list[float | None] = [None] * len(values)
+    consecutive = 0.0
+    for i in range(1, len(values)):
+        prior, current = values[i - 1], values[i]
+        if prior is None or current is None:
+            consecutive = 0.0
+            continue
+        delta = float(current) - float(prior)
+        consecutive = (
+            max(consecutive, 0.0) + 1
+            if delta > 0
+            else min(consecutive, 0.0) - 1
+            if delta < 0
+            else 0.0
+        )
+        streaks[i] = consecutive
+    price_rsi = _rsi(values, 3, "wilder")
+    streak_rsi = _rsi(streaks, 2, "wilder")
+    changes = _returns(values, 1)
+    for i in range(rank_period, len(values)):
+        window = _window(changes, i, rank_period)
+        if window is None or price_rsi[i] is None or streak_rsi[i] is None:
+            continue
+        current_return = window[-1]
+        rank = 100.0 * sum(value < current_return for value in window) / len(window)
+        out[i] = (_as_float(price_rsi[i]) + _as_float(streak_rsi[i]) + rank) / 3.0
+    return tuple(out)
+
+
 def _cmo(values: NumberSeries, period: int) -> tuple[float | None, ...]:
     result: list[float | None] = [None] * len(values)
     for index in range(period, len(values)):
@@ -1933,6 +1995,15 @@ def _step_transform(
 def _price_action(calculator: str, series: tuple[NumberSeries, ...]) -> tuple[float | None, ...]:
     result: list[float | None] = [None] * len(series[0])
     for index in range(len(result)):
+        # Bar-close patterns must not read missing previous candles, nor invent
+        # a synthetic fill for a gap in the last two-bar fractal window.
+        history = 2 if calculator == "fractal" else 0 if calculator in {"doji", "hammer"} else 1
+        if index < history or any(
+            series[position][bar_index] is None
+            for position in range(len(series))
+            for bar_index in range(index - history, index + 1)
+        ):
+            continue
         if calculator in {"inside_bar", "outside_bar", "higher_high_lower_low", "fractal"}:
             if index == 0 or any(
                 series[position][index] is None for position in range(len(series))
