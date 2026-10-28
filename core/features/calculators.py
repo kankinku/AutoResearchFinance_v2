@@ -27,6 +27,16 @@ def calculate_feature(
 
     series = _validate_inputs(spec, inputs)
     calculator = spec.calculator.lower()
+    if calculator == "chart_geometry":
+        from core.features.chart_patterns import calculate_chart_pattern
+
+        return calculate_chart_pattern(
+            inputs,
+            pattern=str(spec.parameters.get("pattern_name", "")),
+            lookback=spec.lookback,
+            confirmation_bars=int(spec.parameters.get("confirmation_bars", 2)),
+            minimum_swing=float(spec.parameters.get("minimum_swing", 0.015)),
+        )
     if calculator == "pandas_ta_pinned":
         from core.features.pandas_ta_pinned import calculate_pinned
 
