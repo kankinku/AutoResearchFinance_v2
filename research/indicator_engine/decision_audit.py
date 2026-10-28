@@ -104,20 +104,34 @@ def calculate_audit_hash(
             "replay": evaluation.replay_hash,
             "equity_hash": evaluation.equity_hash,
             "equity_curve": evaluation.equity_curve,
-            "trades": [asdict(t) for t in evaluation.trades],
+            # Trade consists exclusively of immutable JSON primitives.
+            # dataclasses.asdict recursively deep-copies these thousands of
+            # times during inherited S2/S7 lineage replay; a shallow snapshot
+            # has identical canonical bytes without the copy overhead.
+            "trades": [vars(t).copy() for t in evaluation.trades],
             "initial_cash": evaluation.initial_cash,
             "final_equity": evaluation.final_equity,
             "paid_costs": evaluation.total_paid_costs,
         },
+        # Tuples of scalars are JSON lists in canonical_bytes, just as the
+        # nested asdict representation was. Keep the existing v2 audit schema
+        # and every field/ISO timestamp byte-for-byte compatible.
         "decisions": [
-            {**asdict(d), "signal_time": d.signal_time.isoformat(),
-             "earliest_execution": (
-                 d.earliest_execution.isoformat() if d.earliest_execution else None
-             )}
+            {
+                **vars(d),
+                "signal_time": d.signal_time.isoformat(),
+                "earliest_execution": (
+                    d.earliest_execution.isoformat() if d.earliest_execution else None
+                ),
+            }
             for d in decisions
         ],
         "fills": [
-            {**asdict(f), "execution_time": f.execution_time.isoformat()}
+            {
+                **vars(f),
+                "execution_time": f.execution_time.isoformat(),
+                "trade": vars(f.trade).copy(),
+            }
             for f in fills
         ],
         "round_trips": [
