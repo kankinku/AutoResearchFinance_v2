@@ -1,5 +1,7 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-28 KST T1-02/S6/S9 OPEN-INDICATOR-PORT (Q05/Q10/Q11/Q12/Q18):** V3 전략 브랜치에 한정해 MIT·BSD·LGPL·Apache 오픈소스 4개를 외부 격리 디렉터리로 SHA 고정 clone, 711개 소스 파일명→정규화 442종/기존 이름·별칭 충돌 검토 72종/미이식 후보 352종의 중복 후보 인벤토리를 생성. MIT Pandas TA Classic 수학 공식을 참조한 **신규 추세/변동성/모멘텀 지표 10개와 캔들 패턴 8개**를 독립 구현·출처 명시·StrategyIR inherited feature 계산 경로에 추가. 전체 연구 카탈로그 173→191개; 기존 지표 및 연구원장 G1–150·부모 계보/해시/OAuth/고정 MCP/봉인 OOS·주문 OFF 유지, 운영 배포 없음. 원본 소스 저장소는 Git 추적하지 않고 4개 SHA 및 MIT 원문 보관. 연구 단계 첫 코드 커밋 **`f624c55`**, 원격 Push 완료 to `origin/research/v3-strategy-evolution`; 상세 자료 [이식 보고서](quant-v3-opensource-indicator-import-20261028.md)·[전체 후보 JSON](quant-v3-opensource-indicator-candidates-20261028.json). 새+기존 지정 테스트 **31 PASS**, governance 포함 지정 검사 **33 PASS**, 전체 Ruff PASS, 변경 4파일 scoped mypy PASS. 전체 mypy는 60초 제한 **INTERRUPTED**, 전체 pytest는 기존 누락된 `state/moon-http/fresh-20261021/session-id.txt` 때문에 수집 단계 **ERROR**(별도 결함; 테스트 통과 주장 불가). 버전관리/개발 배포는 브랜치 Git push만 완료. **미해결:** 나머지 352개 수식·시차·라이선스 검토/이식, 72개 이름 충돌의 실제 수학적 동등성 미검증, 광역 테스트 환경 복구. 기존 V05→T4→V01–V04→V06→V07 순서 유지; 신규 탐색 세대/독립 OOS/실주문 미실행.
+
 **2026-10-27 TRACK1-V3 (Q02/Q05/Q06/Q07/Q08/Q09/Q14/Q17/Q20): 전략 진화 독립 브랜치 준비. 검증 V3 공통 태그에서 파생, 연구원장 150/150 변경 없음. 단계 T1-01~T1-04는 [독립 실행 계획](../plans/v3-track1-strategy-evolution-20261027.md)에 명시. 아직 신규 세대/코드 작업 NOT RUN. 다음은 기존 계승·S7 중복 분석 후 GPT 실제 계측 검증. 봉인 OOS/주문/OAuth 변경 금지.**
 
 
