@@ -544,6 +544,9 @@ def imported_feature_catalog() -> FeatureCatalog:
     from core.features.source_remaining import feature_specs as remaining_specs
 
     features.extend(remaining_specs())
+    from core.features.bulk100_ta import buk_specs
+
+    features.extend(buk_specs())
     return FeatureCatalog(tuple(features))
 
 

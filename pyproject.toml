@@ -43,10 +43,12 @@ include = [
     "strategy_import*",
     "strategy_ir*",
     "pandas_ta_classic*",
+    "ta*",
 ]
 
 [tool.setuptools.package-data]
 pandas_ta_classic = ["LICENSE", "PINNED_SOURCE"]
+ta = ["LICENSE", "PINNED_SOURCE"]
 exclude = ["docs*", "runs*", "scripts*", "state*", "strategies*", "tests*"]
 
 [project.optional-dependencies]
@@ -65,7 +67,7 @@ addopts = "-ra"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-extend-exclude = ["state", "runs", "results", "pandas_ta_classic"]
+extend-exclude = ["state", "runs", "results", "pandas_ta_classic", "ta"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
@@ -74,4 +76,4 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.10"
 strict = true
 packages = ["application", "strategy_ir", "mutation", "experiments", "foundation", "runtime", "core", "evaluation", "memory", "research", "orchestration", "integrations"]
-exclude = "(^tests/|^state/|^pandas_ta_classic/|dashboard_backup\\.py$)"
+exclude = "(^tests/|^state/|^pandas_ta_classic/|^ta/|dashboard_backup\\.py$)"

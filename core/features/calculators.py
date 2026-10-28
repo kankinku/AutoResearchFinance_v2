@@ -31,6 +31,10 @@ def calculate_feature(
         from core.features.pandas_ta_pinned import calculate_pinned
 
         return calculate_pinned(spec, {key: tuple(val) for key, val in inputs.items()})
+    if calculator == "bukosabino_pinned":
+        from core.features.bulk100_ta import calculate_buk
+
+        return calculate_buk(spec, inputs)
     if calculator == "external_formula_verified":
         from core.features.source_multi_backend import calculate_additional_source
 

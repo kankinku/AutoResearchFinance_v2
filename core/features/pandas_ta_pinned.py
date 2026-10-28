@@ -130,6 +130,14 @@ def calculate_pinned(
             float(value) if value is not None and math.isfinite(float(value)) else None
             for value in data
         )
+        # The pinned rainbow source refuses to calculate until it receives
+        # ten full source windows. Do not leak earlier values when a later
+        # historical backtest loads more observations than were known at t.
+        minimum_history = int(entry.get("minimum_history_bars", 1))
+        if not 1 <= minimum_history <= 5000:
+            raise ValueError("unapproved minimum source history")
+        if minimum_history > 1:
+            result = tuple(None if i < minimum_history - 1 else v for i, v in enumerate(result))
         return result
     except (KeyError, TypeError, ValueError, ArithmeticError, IndexError) as exc:
         raise ValueError(f"pinned upstream feature failed: {spec.name}") from exc

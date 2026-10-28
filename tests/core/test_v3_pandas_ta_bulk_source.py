@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from core.features.bulk100_ta import buk_specs
 from core.features.calculators import calculate_feature
 from core.features.catalog import imported_feature_catalog
 from core.features.registry import research_feature_specs
@@ -47,7 +48,7 @@ def test_source_catalog_pins_license_identity_and_preserves_existing_specs() -> 
     assert "MIT License" in LICENSE.read_text()
     assert len({e["name"] for e in meta["entries"]}) == len(meta["entries"])
     features = {s.name: s for s in research_feature_specs()}
-    assert len(features) == 214 + len(meta["entries"]) + len(KNOWN) + len(NAMES)
+    assert len(features) == 214 + len(meta["entries"]) + len(KNOWN) + len(NAMES) + len(buk_specs())
     for entry in meta["entries"]:
         spec = features[entry["name"]]
         assert spec.status == "REGISTERED"

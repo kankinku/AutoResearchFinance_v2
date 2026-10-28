@@ -20,6 +20,38 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_aberration_out1",
+      "source": "aberration",
+      "category": "volatility",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "ABER_SG_20_15",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_aberration_out2",
+      "source": "aberration",
+      "category": "volatility",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "ABER_XG_20_15",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_alma",
       "source": "alma",
       "category": "overlap",
@@ -69,6 +101,96 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_aobv_out1",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "OBV_min_2",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_aobv_out2",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "OBV_max_2",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_aobv_out3",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "OBVe_4",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_aobv_out4",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 4,
+      "output_label": "OBVe_12",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_aobv_out5",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 5,
+      "output_label": "AOBV_LR_2",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_aobv_out6",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 6,
+      "output_label": "AOBV_SR_2",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_avolume",
@@ -652,6 +774,22 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_cksp_out1",
+      "source": "cksp",
+      "category": "trend",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "CKSPs_10_1_9",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_cpr",
       "source": "cpr",
       "category": "trend",
@@ -665,6 +803,159 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_cpr_out1",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "CPR_PIVOT",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out10",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 10,
+      "output_label": "CPR_POSITION",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out2",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "CPR_BC",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out3",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "CPR_R1",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out4",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 4,
+      "output_label": "CPR_R2",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out5",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 5,
+      "output_label": "CPR_S1",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out6",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 6,
+      "output_label": "CPR_S2",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out7",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 7,
+      "output_label": "CPR_WIDTH",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_cpr_out8",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 8,
+      "output_label": "CPR_WIDTH_PCT",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_cvi",
@@ -782,6 +1073,22 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_eri_out1",
+      "source": "eri",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "BEARP_20",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_fosc",
       "source": "fosc",
       "category": "momentum",
@@ -820,6 +1127,38 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_hilo_out1",
+      "source": "hilo",
+      "category": "overlap",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HILOl_13_21",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_hilo_out2",
+      "source": "hilo",
+      "category": "overlap",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "HILOs_13_21",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_ht_phasor",
       "source": "ht_phasor",
       "category": "cycles",
@@ -832,6 +1171,20 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_ht_phasor_out1",
+      "source": "ht_phasor",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HT_PHASOR_QUAD",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_ht_sine",
       "source": "ht_sine",
       "category": "cycles",
@@ -842,6 +1195,20 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_ht_sine_out1",
+      "source": "ht_sine",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HT_LEADSINE",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_ht_trendmode",
@@ -866,6 +1233,34 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_hwc_out1",
+      "source": "hwc",
+      "category": "volatility",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HWU",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_hwc_out2",
+      "source": "hwc",
+      "category": "volatility",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "HWL",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_hwma",
@@ -932,6 +1327,23 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_kvo_out1",
+      "source": "kvo",
+      "category": "volume",
+      "inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "KVOs_34_55_13",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_linregangle",
       "source": "linregangle",
       "category": "overlap",
@@ -982,6 +1394,20 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_mama_out1",
+      "source": "mama",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "FAMA_0.5_0.05",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_median",
       "source": "median",
       "category": "statistics",
@@ -1017,6 +1443,20 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_msw_out1",
+      "source": "msw",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "MSW_LEAD_5",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_ohlc4",
@@ -1100,6 +1540,34 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_pvo_out1",
+      "source": "pvo",
+      "category": "momentum",
+      "inputs": [
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "PVOh_12_26_9",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_pvo_out2",
+      "source": "pvo",
+      "category": "momentum",
+      "inputs": [
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "PVOs_12_26_9",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_pvol",
       "source": "pvol",
       "category": "volume",
@@ -1137,6 +1605,62 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_qqe_out1",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "QQE_20_5_4.236_RSIMA",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_qqe_out2",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "QQEl_20_5_4.236",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_qqe_out3",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "QQEs_20_5_4.236",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_qqe_out6",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 6,
+      "output_label": "QQEd_20_5_4.236",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_quantile",
       "source": "quantile",
       "category": "statistics",
@@ -1158,7 +1682,23 @@
       "lookback": 20,
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
-      "source_license": "MIT"
+      "source_license": "MIT",
+      "minimum_history_bars": 200
+    },
+    {
+      "name": "pta_rainbow_out1",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "RAINBOW_2",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained",
+      "minimum_history_bars": 200
     },
     {
       "name": "pta_rvgi",
@@ -1174,6 +1714,40 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_rvgi_out1",
+      "source": "rvgi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "RVGI_20_4",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_rvgi_out2",
+      "source": "rvgi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "RVGIs_20_4",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_sinwma",
@@ -1229,6 +1803,38 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_squeeze_pro_out2",
+      "source": "squeeze_pro",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "SQZPRO_ON_NORMAL",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_squeeze_pro_out3",
+      "source": "squeeze_pro",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "SQZPRO_ON_NARROW",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_ssf",
       "source": "ssf",
       "category": "overlap",
@@ -1253,6 +1859,22 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_stochf_out1",
+      "source": "stochf",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "STOCHFd_5_3",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_swma",
@@ -1291,6 +1913,20 @@
       "source_license": "MIT"
     },
     {
+      "name": "pta_td_seq_out1",
+      "source": "td_seq",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "TD_SEQ_DNa",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
       "name": "pta_trixh",
       "source": "trixh",
       "category": "momentum",
@@ -1301,6 +1937,34 @@
       "output_index": 0,
       "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
       "source_license": "MIT"
+    },
+    {
+      "name": "pta_trixh_out1",
+      "source": "trixh",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "TRIXs_20_9",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
+    },
+    {
+      "name": "pta_trixh_out2",
+      "source": "trixh",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "TRIXh_20_9",
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Pinned MIT source additional distinct scalar output; original source program retained"
     },
     {
       "name": "pta_zlma",

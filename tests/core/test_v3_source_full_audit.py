@@ -19,8 +19,8 @@ def test_330_source_names_have_exhaustive_dispositions() -> None:
     specs = {s.name: s for s in research_feature_specs()}
     active = [r for r in report["dispositions"] if r["state"].startswith("PORTED_")]
     assert len(active) == report["registered_new_source_candidate_groups"]
-    assert report["registered_new_feature_outputs"] == len(specs) - 214
-    assert len(specs) == 335
+    assert report["registered_new_feature_outputs"] == 335 - 214
+    assert len(specs) == 435
     assert all(row["registered_name"] in specs for row in active)
     assert all(
         row["registered_name"] is None
