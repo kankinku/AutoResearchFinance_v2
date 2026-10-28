@@ -1,0 +1,1359 @@
+{
+  "schema": "quant-v3-pta-verified-manifest-v1",
+  "source_repo": "https://github.com/xgboosted/pandas-ta-classic",
+  "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+  "license": "MIT",
+  "selection": "source formulas, pinned implementations, causal suffix probe 410/409, no known synonym or math utility",
+  "entries": [
+    {
+      "name": "pta_aberration",
+      "source": "aberration",
+      "category": "volatility",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_alma",
+      "source": "alma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_amat",
+      "source": "amat",
+      "category": "trend",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Require optional close series explicitly"
+    },
+    {
+      "name": "pta_aobv",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_avolume",
+      "source": "avolume",
+      "category": "volatility",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_2crows",
+      "source": "cdl_2crows",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_3linestrike",
+      "source": "cdl_3linestrike",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_3outside",
+      "source": "cdl_3outside",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_3starsinsouth",
+      "source": "cdl_3starsinsouth",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_abandonedbaby",
+      "source": "cdl_abandonedbaby",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_advanceblock",
+      "source": "cdl_advanceblock",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_breakaway",
+      "source": "cdl_breakaway",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_closingmarubozu",
+      "source": "cdl_closingmarubozu",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_concealbabyswall",
+      "source": "cdl_concealbabyswall",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_counterattack",
+      "source": "cdl_counterattack",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_dojistar",
+      "source": "cdl_dojistar",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_eveningdojistar",
+      "source": "cdl_eveningdojistar",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_gapsidesidewhite",
+      "source": "cdl_gapsidesidewhite",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_hikkake",
+      "source": "cdl_hikkake",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_hikkakemod",
+      "source": "cdl_hikkakemod",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_homingpigeon",
+      "source": "cdl_homingpigeon",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_identical3crows",
+      "source": "cdl_identical3crows",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_inneck",
+      "source": "cdl_inneck",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_kicking",
+      "source": "cdl_kicking",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_kickingbylength",
+      "source": "cdl_kickingbylength",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_ladderbottom",
+      "source": "cdl_ladderbottom",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_longline",
+      "source": "cdl_longline",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_mathold",
+      "source": "cdl_mathold",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_morningdojistar",
+      "source": "cdl_morningdojistar",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_onneck",
+      "source": "cdl_onneck",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_risefall3methods",
+      "source": "cdl_risefall3methods",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_separatinglines",
+      "source": "cdl_separatinglines",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_shortline",
+      "source": "cdl_shortline",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_stalledpattern",
+      "source": "cdl_stalledpattern",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_sticksandwich",
+      "source": "cdl_sticksandwich",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_takuri",
+      "source": "cdl_takuri",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_tasukigap",
+      "source": "cdl_tasukigap",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_thrusting",
+      "source": "cdl_thrusting",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_tristar",
+      "source": "cdl_tristar",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_unique3river",
+      "source": "cdl_unique3river",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_upsidegap2crows",
+      "source": "cdl_upsidegap2crows",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cdl_xsidegap3methods",
+      "source": "cdl_xsidegap3methods",
+      "category": "candles",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cksp",
+      "source": "cksp",
+      "category": "trend",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cpr",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_cvi",
+      "source": "cvi",
+      "category": "volatility",
+      "inputs": [
+        "high",
+        "low"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_decay",
+      "source": "decay",
+      "category": "trend",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_decreasing",
+      "source": "decreasing",
+      "category": "trend",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_dm",
+      "source": "dm",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_dsp",
+      "source": "dsp",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_dx",
+      "source": "dx",
+      "category": "trend",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_ebsw",
+      "source": "ebsw",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 40,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Input is optional in signature but required by this verified OHLCV adapter; EBSW requires >=39-bar length"
+    },
+    {
+      "name": "pta_edecay",
+      "source": "edecay",
+      "category": "trend",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_eri",
+      "source": "eri",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_fosc",
+      "source": "fosc",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_fwma",
+      "source": "fwma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_hilo",
+      "source": "hilo",
+      "category": "overlap",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_ht_phasor",
+      "source": "ht_phasor",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_ht_sine",
+      "source": "ht_sine",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_ht_trendmode",
+      "source": "ht_trendmode",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_hwc",
+      "source": "hwc",
+      "category": "volatility",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_hwma",
+      "source": "hwma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_increasing",
+      "source": "increasing",
+      "category": "trend",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_inertia",
+      "source": "inertia",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Require optional close series explicitly"
+    },
+    {
+      "name": "pta_jma",
+      "source": "jma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_kvo",
+      "source": "kvo",
+      "category": "volume",
+      "inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_linregangle",
+      "source": "linregangle",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_linregintercept",
+      "source": "linregintercept",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Require optional close series explicitly"
+    },
+    {
+      "name": "pta_linregslope",
+      "source": "linregslope",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "Require optional close series explicitly"
+    },
+    {
+      "name": "pta_mama",
+      "source": "mama",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_median",
+      "source": "median",
+      "category": "statistics",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_minus_dm",
+      "source": "minus_dm",
+      "category": "trend",
+      "inputs": [
+        "high",
+        "low"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_msw",
+      "source": "msw",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_ohlc4",
+      "source": "ohlc4",
+      "category": "overlap",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_pdist",
+      "source": "pdist",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_plus_dm",
+      "source": "plus_dm",
+      "category": "trend",
+      "inputs": [
+        "high",
+        "low"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_pmax",
+      "source": "pmax",
+      "category": "trend",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_po",
+      "source": "po",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_pvo",
+      "source": "pvo",
+      "category": "momentum",
+      "inputs": [
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_pvol",
+      "source": "pvol",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_pwma",
+      "source": "pwma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_qqe",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_quantile",
+      "source": "quantile",
+      "category": "statistics",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_rainbow",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_rvgi",
+      "source": "rvgi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_sinwma",
+      "source": "sinwma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_slope",
+      "source": "slope",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_smc_sweep",
+      "source": "smc_sweep",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_squeeze_pro",
+      "source": "squeeze_pro",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_ssf",
+      "source": "ssf",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_stochf",
+      "source": "stochf",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_swma",
+      "source": "swma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_t3",
+      "source": "t3",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_td_seq",
+      "source": "td_seq",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_trixh",
+      "source": "trixh",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    },
+    {
+      "name": "pta_zlma",
+      "source": "zlma",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 0,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT"
+    }
+  ],
+  "excluded_semantic_overlap": {
+    "cdl_inside": "SAME_PATTERN_FAMILY_AS_INSIDE_BAR",
+    "cdl_marubozu": "SAME_PATTERN_FAMILY_AS_DETECT_MARUBOZU",
+    "cdl_morningstar": "SAME_PATTERN_FAMILY_AS_MORNING_STAR",
+    "cdl_eveningstar": "SAME_PATTERN_FAMILY_AS_EVENING_STAR",
+    "cdl_shootingstar": "SAME_PATTERN_FAMILY_AS_SHOOTING_STAR",
+    "cg": "EXISTING_CENTER_OF_GRAVITY",
+    "lrsi": "EXISTING_LAGUERRE_RSI",
+    "stc": "EXISTING_SCHAFF_TREND_CYCLE",
+    "vwmacd": "EXISTING_VW_MACD",
+    "md": "SAME_MEAN_ABSOLUTE_DEVIATION_AS_MAD",
+    "stderr": "LINEAR_RESCALE_OF_STANDARD_DEVIATION",
+    "variance": "DETERMINISTIC_SQUARE_OF_STANDARD_DEVIATION",
+    "ht_dcperiod": "EXISTING_DOMINANT_CYCLE",
+    "ht_dcphase": "EXISTING_HILBERT_PHASE",
+    "ht_trendline": "EXISTING_HILBERT_TRENDLINE",
+    "sarext": "EXISTING_PARABOLIC_SAR_EXTENDED_VARIANT",
+    "wcp": "PRICE_ONLY_WEIGHTING_VARIANT_REVIEW",
+    "cdl_rickshawman": "SUBTYPE_EXISTING_LONG_LEGGED_DOJI_REVIEW"
+  },
+  "failed_probe": [
+    {
+      "name": "beta",
+      "category": "statistics",
+      "reason": "ValueError: beta() requires a 'benchmark' Series; it has no default"
+    },
+    {
+      "name": "correl",
+      "category": "statistics",
+      "reason": "ValueError: correl() requires a 'benchmark' Series; it has no default"
+    },
+    {
+      "name": "ebsw",
+      "category": "cycles",
+      "reason": "ValueError: ebsw() length must be an integer > 38, got 20"
+    },
+    {
+      "name": "tos_stdevall",
+      "category": "statistics",
+      "reason": "badlen 20"
+    },
+    {
+      "name": "vp",
+      "category": "volume",
+      "reason": "badlen 10"
+    }
+  ],
+  "manual_review": [
+    "amat",
+    "inertia",
+    "linregintercept",
+    "linregslope",
+    "ebsw"
+  ]
+}

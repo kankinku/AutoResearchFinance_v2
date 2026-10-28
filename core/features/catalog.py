@@ -495,6 +495,52 @@ def imported_feature_catalog() -> FeatureCatalog:
         features.append(item.model_copy(update={
             "source_repositories": (external_source,), "source_licenses": ("MIT",),
         }))
+    from core.features.pandas_ta_pinned import pinned_specs
+
+    features.extend(pinned_specs())
+    source_group_specs: tuple[
+        tuple[str, str, tuple[str, ...], int], ...
+    ] = (
+        ("talib_adr", "volatility", ("high", "low"), 20),
+        ("talib_rvol", "volume", ("volume",), 20),
+        ("talib_imi", "momentum", ("open", "close"), 14),
+        ("talib_ac", "momentum", ("high", "low"), 34),
+        ("talib_rogers_satchell", "volatility", ("open", "high", "low", "close"), 20),
+        ("stock_elder_bull", "momentum", ("high", "close"), 13),
+        ("stock_elder_bear", "momentum", ("low", "close"), 13),
+        ("stock_starc_upper", "volatility", ("high", "low", "close"), 20),
+        ("stock_starc_lower", "volatility", ("high", "low", "close"), 20),
+        ("stock_alligator_jaw", "trend", ("high", "low"), 13),
+        ("stock_alligator_teeth", "trend", ("high", "low"), 8),
+        ("stock_alligator_lips", "trend", ("high", "low"), 5),
+    )
+    for name, family, inputs, lookback in source_group_specs:
+        if name.startswith("talib_"):
+            origin = (
+                "https://github.com/TA-Lib/ta-lib"
+                "@4334163d3a1f5019aa9051342316b936a4dfb994"
+            )
+            license_name = "BSD-3-Clause"
+        else:
+            origin = (
+                "https://github.com/DaveSkender/Stock.Indicators"
+                "@da428182d0e222339b662bc8ac645596102260bd"
+            )
+            license_name = "Apache-2.0"
+        features.append(
+            FeatureSpec(
+                name=name,
+                family=family,
+                inputs=inputs,
+                calculator="external_formula_verified",
+                lookback=lookback,
+                formula=f"{name}({', '.join(inputs)}, {lookback})",
+                source_repositories=(origin,),
+                source_licenses=(license_name,),
+                status="REGISTERED",
+                duplicate_group=name,
+            )
+        )
     return FeatureCatalog(tuple(features))
 
 

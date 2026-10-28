@@ -1,0 +1,397 @@
+import math
+import sys
+from numbers import Real
+from typing import Any
+
+from pandas import DataFrame, Series, concat
+
+from ._core import _bool_param, _pos_int, _require_input, apply_fill, apply_offset, get_offset, verify_series
+from ._math import _zero_small
+
+
+def _require_number(value: Any, label: str) -> None:
+    """Raise ValueError naming the caller unless *value* is a finite real number (numpy numbers included, bools not)."""
+    if not (isinstance(value, Real) and not isinstance(value, bool) and math.isfinite(value)):
+        caller = sys._getframe(1).f_code.co_name
+        raise ValueError(f"{caller}() {label} must be a number, got {value!r}")
+
+
+def _above_below(
+    series_a: Series,
+    series_b: Series,
+    above: bool = True,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    series_a = verify_series(series_a)
+    series_b = verify_series(series_b)
+
+    if series_a is None or series_b is None:
+        return None
+
+    offset = get_offset(offset)
+
+    series_a = _zero_small(series_a)
+    series_b = _zero_small(series_b)
+
+    # Calculate Result
+    current = series_a >= series_b if above else series_a <= series_b
+
+    if asint:
+        current = current.astype(int)
+
+    # Offset
+    current = apply_offset(current, offset)
+
+    # Name & Category
+    current.name = f"{series_a.name}_{'A' if above else 'B'}_{series_b.name}"
+    current.category = "utility"
+
+    return current
+
+
+def above(
+    series_a: Series,
+    series_b: Series,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series:
+    return _above_below(series_a, series_b, above=True, asint=asint, offset=offset, **kwargs)
+
+
+def above_value(
+    series_a: Series,
+    value: float,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    _require_number(value, "value")
+    series_a = verify_series(series_a)
+    if series_a is None:
+        return None
+    series_b = Series(value, index=series_a.index, name=f"{value}".replace(".", "_"))
+
+    return _above_below(series_a, series_b, above=True, asint=asint, offset=offset, **kwargs)
+
+
+def below(
+    series_a: Series,
+    series_b: Series,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series:
+    return _above_below(series_a, series_b, above=False, asint=asint, offset=offset, **kwargs)
+
+
+def below_value(
+    series_a: Series,
+    value: float,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    _require_number(value, "value")
+    series_a = verify_series(series_a)
+    if series_a is None:
+        return None
+    series_b = Series(value, index=series_a.index, name=f"{value}".replace(".", "_"))
+    return _above_below(series_a, series_b, above=False, asint=asint, offset=offset, **kwargs)
+
+
+def cross_value(
+    series_a: Series,
+    value: float,
+    above: bool = True,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    # Like above_value/below_value: a non-number used to reach zero() and fail
+    # as "bad operand type for abs()", naming neither the function nor the
+    # argument.
+    _require_number(value, "value")
+    series_a = verify_series(series_a)
+    if series_a is None:
+        return None
+    series_b = Series(value, index=series_a.index, name=f"{value}".replace(".", "_"))
+
+    return cross(series_a, series_b, above, asint, offset, **kwargs)
+
+
+def cross(
+    series_a: Series,
+    series_b: Series,
+    above: bool = True,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    series_a = verify_series(series_a)
+    series_b = verify_series(series_b)
+
+    if series_a is None or series_b is None:
+        return None
+
+    offset = get_offset(offset)
+
+    series_a = _zero_small(series_a)
+    series_b = _zero_small(series_b)
+
+    # Calculate Result
+    # A cross is a strict transition through the other series: above-cross is
+    # "was at-or-below, now strictly above"; below-cross is its mirror "was
+    # at-or-above, now strictly below".  NaN comparisons are False, so neither
+    # cross fires on a NaN bar or on a bar where the two series are equal.  The
+    # previous below-cross used ~current & ~previous, which is not the mirror
+    # and fired on every NaN and tie bar.
+    current_above = series_a > series_b
+    current_below = series_a < series_b
+    was_at_or_below = series_a.shift(1) <= series_b.shift(1)
+    was_at_or_above = series_a.shift(1) >= series_b.shift(1)
+    cross = current_above & was_at_or_below if above else current_below & was_at_or_above
+
+    if asint:
+        cross = cross.astype(int)
+
+    # Offset
+    cross = apply_offset(cross, offset)
+
+    # Name & Category
+    cross.name = f"{series_a.name}_{'XA' if above else 'XB'}_{series_b.name}"
+    cross.category = "utility"
+
+    return cross
+
+
+def _add_scalar_threshold_signals(df, indicator, value, cross_values, use_above, offset):
+    """Add scalar-value threshold signals to *df* in-place.
+
+    When *cross_values* is ``True`` two cross columns are added (above=True
+    and above=False).  Otherwise a single above/below column is appended.
+
+    Args:
+        df (DataFrame): Target frame; mutated in-place.
+        indicator (Series): The indicator series.
+        value (float): Scalar threshold value.
+        cross_values (bool): Emit cross columns rather than a simple level flag.
+        use_above (bool): ``True`` → above-value; ``False`` → below-value when
+            *cross_values* is ``False``.
+        offset (int): Series offset forwarded to the signal helpers.
+    """
+    if cross_values:
+        s_start = cross_value(indicator, value, above=True, offset=offset)
+        s_end = cross_value(indicator, value, above=False, offset=offset)
+        df[s_start.name] = s_start
+        df[s_end.name] = s_end
+    elif use_above:
+        s = above_value(indicator, value, offset=offset)
+        df[s.name] = s
+    else:
+        s = below_value(indicator, value, offset=offset)
+        df[s.name] = s
+
+
+def _add_series_signals(df, indicator, xserie, cross_series, is_above, offset):
+    """Add series-comparison signals to *df* in-place.
+
+    No-op when *xserie* is ``None`` or fails :func:`verify_series`.
+
+    Args:
+        df (DataFrame): Target frame; mutated in-place.
+        indicator (Series): The indicator series.
+        xserie (Series | None): Comparison series.
+        cross_series (bool): Emit cross columns rather than above/below flags.
+        is_above (bool): Direction of the comparison.
+        offset (int): Series offset forwarded to the signal helpers.
+    """
+    if xserie is not None:
+        xserie_v = verify_series(xserie)
+        if xserie_v is not None:
+            if cross_series:
+                s = cross(indicator, xserie_v, above=is_above, offset=offset)
+            elif is_above:
+                s = above(indicator, xserie_v, offset=offset)
+            else:
+                s = below(indicator, xserie_v, offset=offset)
+            df[s.name] = s
+
+
+def signals(
+    indicator: Series,
+    xa: float | None,
+    xb: float | None,
+    cross_values: bool,
+    xserie: Series | None,
+    xserie_a: Series | None,
+    xserie_b: Series | None,
+    cross_series: bool,
+    offset: int | None,
+    *,
+    caller: str | None = None,
+) -> DataFrame:
+    _require_input(indicator, "signals", "indicator")
+    # A non-number threshold used to be skipped, silently dropping its column
+    # (and numpy integers were skipped with it). Keep the caller's value: it
+    # names the column (RSI_14_A_70).
+    # The indicator that asked for signals: the frame above, unless a helper
+    # calls on its behalf and names it (attach_signals).
+    indicator_name = caller or sys._getframe(1).f_code.co_name
+    for label, value in (("xa", xa), ("xb", xb)):
+        if value is not None and not (isinstance(value, Real) and not isinstance(value, bool) and math.isfinite(value)):
+            raise ValueError(f"{indicator_name}() {label} must be a number, got {value!r}")
+
+    df = DataFrame()
+
+    if xa is not None:
+        _add_scalar_threshold_signals(df, indicator, xa, cross_values, True, offset)
+
+    if xb is not None:
+        _add_scalar_threshold_signals(df, indicator, xb, cross_values, False, offset)
+
+    # xserie is the default value for both xserie_a and xserie_b
+    if xserie_a is None:
+        xserie_a = xserie
+    if xserie_b is None:
+        xserie_b = xserie
+
+    _add_series_signals(df, indicator, xserie_a, cross_series, True, offset)
+    _add_series_signals(df, indicator, xserie_b, cross_series, False, offset)
+
+    return df
+
+
+def attach_signals(
+    indicator: Series,
+    *,
+    category: str,
+    offset: int,
+    kwargs: dict[str, Any],
+    xa_default: float = 80,
+    xb_default: float = 20,
+) -> Series | DataFrame:
+    """Offset *indicator*, append its signal columns on request, then fill.
+
+    ``er``, ``rsi`` and ``rsx`` share this order; they differ in their name and,
+    for ``er``, in their default thresholds (``xa_default``/``xb_default``, since
+    ER is a ratio in [0, 1] rather than a percentage). Three things it gets
+    right that the three of them each got wrong:
+
+    * the signals read the unoffset, unfilled indicator and are offset once,
+      inside ``signals()`` -- reading the shifted series shifted them twice;
+    * ``concat`` builds a new frame, so ``name`` and ``category`` are set on it
+      rather than inherited;
+    * the fill runs last: the indicator takes the caller's ``fillna`` value and
+      the 0/1 signal columns fill with 0 (their "no signal" value) instead.
+
+    *indicator* arrives named, because the signal columns take their names from
+    it. The indicator function itself is read off the frame above, as
+    ``_bool_param`` and ``signals()`` do when they are called directly, and
+    passed down so their messages keep naming it (``rsi() xa must be ...``)
+    rather than this helper. ``indicator.name`` cannot serve: it is a column
+    name (``RSI_14``), not a function name.
+    """
+    caller = sys._getframe(1).f_code.co_name
+    signal_indicators = _bool_param(kwargs.pop("signal_indicators", None), False, "signal_indicators", caller=caller)
+
+    # Read and validate every signal option regardless of signal_indicators: a
+    # bad value is a caller error, not a request to skip the signals. signals()
+    # re-validates xa/xb, but it only runs when the signals are wanted.
+    xa = kwargs.pop("xa", xa_default)
+    xb = kwargs.pop("xb", xb_default)
+    xserie = kwargs.pop("xserie", None)
+    xserie_a = kwargs.pop("xserie_a", None)
+    xserie_b = kwargs.pop("xserie_b", None)
+    cross_values = _bool_param(kwargs.pop("cross_values", None), False, "cross_values", caller=caller)
+    cross_series = _bool_param(kwargs.pop("cross_series", None), True, "cross_series", caller=caller)
+    for label, value in (("xa", xa), ("xb", xb)):
+        if value is not None and not (isinstance(value, Real) and not isinstance(value, bool) and math.isfinite(value)):
+            raise ValueError(f"{caller}() {label} must be a number, got {value!r}")
+
+    signal_df = (
+        signals(
+            indicator=indicator,
+            xa=xa,
+            xb=xb,
+            xserie=xserie,
+            xserie_a=xserie_a,
+            xserie_b=xserie_b,
+            cross_values=cross_values,
+            cross_series=cross_series,
+            offset=offset,
+            caller=caller,
+        )
+        if signal_indicators
+        else None
+    )
+
+    name = indicator.name
+    indicator = apply_offset(indicator, offset)
+    indicator.category = category
+
+    if signal_df is None:
+        return apply_fill(indicator, **kwargs)
+
+    # fillna fills the indicator column with the caller's value; the 0/1 signal
+    # columns must not take it -- a flag of 50 is neither "no signal" nor
+    # "signal" -- so they fill with 0 (their "no signal" value) instead, and
+    # the same fill_method.
+    apply_fill(indicator, **kwargs)
+    signal_kwargs = {"fillna": 0} if "fillna" in kwargs else {}
+    if "fill_method" in kwargs:
+        signal_kwargs["fill_method"] = kwargs["fill_method"]
+    apply_fill(signal_df, **signal_kwargs)
+
+    result = concat([DataFrame({name: indicator}), signal_df], axis=1)
+    result.name = name
+    result.category = category
+    return result
+
+
+def crossover(
+    series_a: Series,
+    series_b: Series,
+    asint: bool = True,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Crossover: series_a crosses above series_b (tulipy: CROSSOVER).
+
+    Returns 1 on bars where series_a crosses from below to above series_b,
+    0 otherwise.  Equivalent to cross(series_a, series_b, above=True).
+    """
+    result = cross(series_a, series_b, above=True, asint=asint, offset=offset)
+    if result is None:
+        return None
+    result.name = f"{series_a.name}_XA_{series_b.name}"
+    result.category = "utility"
+    return result
+
+
+def lag(
+    close: Series,
+    period: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Lag / Shift (tulipy: LAG).
+
+    Returns close shifted back by *period* bars.  Equivalent to
+    close.shift(period).
+    """
+    period = _pos_int(period, 1, "period")
+    close = verify_series(close)
+    offset = get_offset(offset)
+    if close is None:
+        return None
+
+    result = close.shift(period)
+
+    result = apply_offset(result, offset)
+
+    result.name = f"LAG_{period}"
+    result.category = "utility"
+    return result

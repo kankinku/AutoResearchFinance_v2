@@ -27,6 +27,14 @@ def calculate_feature(
 
     series = _validate_inputs(spec, inputs)
     calculator = spec.calculator.lower()
+    if calculator == "pandas_ta_pinned":
+        from core.features.pandas_ta_pinned import calculate_pinned
+
+        return calculate_pinned(spec, {key: tuple(val) for key, val in inputs.items()})
+    if calculator == "external_formula_verified":
+        from core.features.source_multi_backend import calculate_additional_source
+
+        return calculate_additional_source(spec.name, inputs, spec.lookback)
     from core.features.source_indicator_ports import SOURCE_PORTS, calculate_source_port
 
     if calculator in SOURCE_PORTS:

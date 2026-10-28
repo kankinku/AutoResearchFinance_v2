@@ -1,0 +1,119 @@
+# Variable Index Dynamic Average (VIDYA)
+from typing import Any
+
+import numpy as np
+from pandas import Series
+
+from pandas_ta_classic.utils import (
+    apply_fill,
+    apply_offset,
+    get_drift,
+    get_offset,
+    verify_series,
+)
+from pandas_ta_classic.utils._core import _pos_int, nan_on_short_input, skip_leading_nan
+from pandas_ta_classic.utils._njit import njit
+
+
+@njit(cache=True)
+def _vidya_loop(c_arr, cmo_arr, out, length, alpha):
+    for i in range(length, out.shape[0]):
+        out[i] = alpha * cmo_arr[i] * c_arr[i] + out[i - 1] * (1 - alpha * cmo_arr[i])
+    return out
+
+
+@nan_on_short_input
+@skip_leading_nan("close", interior=True)
+def vidya(
+    close: Series,
+    length: int | None = None,
+    drift: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Indicator: Variable Index Dynamic Average (VIDYA)"""
+    # Validate Arguments
+    length = _pos_int(length, 14, "length")
+    close = verify_series(close, length)
+    drift = get_drift(drift)
+    offset = get_offset(offset)
+
+    if close is None:
+        return None
+
+    def _cmo(source: Series, n: int, d: int) -> Series:
+        """Chande Momentum Oscillator (CMO) - Inlined to avoid circular import
+
+        Note: This is inlined rather than imported from pandas_ta_classic.momentum.cmo
+        to prevent a circular import issue:
+        ma -> vidya -> cmo -> (momentum/__init__) -> apo -> ma
+        """
+        mom = source.diff(d)
+        positive = mom.copy().clip(lower=0)
+        negative = mom.copy().clip(upper=0).abs()
+        pos_sum = positive.rolling(n).sum()
+        neg_sum = negative.rolling(n).sum()
+        # A window with no movement at all divides 0/0, and the NaN then rides
+        # the vidya recursion forward over every later bar. TA-Lib's CMO reads
+        # 0.0 for that window; see tests/test_degenerate_input.py.
+        denominator = pos_sum + neg_sum
+        return ((pos_sum - neg_sum) / denominator).mask(denominator == 0, 0.0)
+
+    # Calculate Result
+    m = close.size
+    alpha = 2 / (length + 1)
+    abs_cmo = _cmo(close, length, drift).abs()
+    vidya_arr = np.full(m, np.nan)
+    vidya_arr[length - 1] = close.iloc[:length].mean()  # SMA seed
+    vidya_arr = _vidya_loop(close.to_numpy(dtype=float), abs_cmo.to_numpy(dtype=float), vidya_arr, length, alpha)
+    vidya = Series(vidya_arr, index=close.index)
+
+    # Offset
+    vidya = apply_offset(vidya, offset)
+
+    vidya = apply_fill(vidya, **kwargs)
+
+    # Name & Category
+    vidya.name = f"VIDYA_{length}"
+    vidya.category = "overlap"
+
+    return vidya
+
+
+vidya.__doc__ = """Variable Index Dynamic Average (VIDYA)
+
+Variable Index Dynamic Average (VIDYA) was developed by Tushar Chande. It is
+similar to an Exponential Moving Average but it has a dynamically adjusted
+lookback period dependent on relative price volatility as measured by Chande
+Momentum Oscillator (CMO). When volatility is high, VIDYA reacts faster to
+price changes. It is often used as moving average or trend identifier.
+
+Sources:
+    Tushar Chande, "The New Technical Trader" (1994).
+    https://www.tradingview.com/script/hdrf0fXV-Variable-Index-Dynamic-Average-VIDYA/
+    (that script, like Chande's original, measures CMO over a fixed 9 bars;
+    this implementation uses `length` for both, as most implementations do)
+    https://www.perfecttrendsystem.com/blog_mt4_2/en/vidya-indicator-for-mt4
+
+Calculation:
+    Default Inputs:
+        length=14, drift=1
+    alpha = 2 / (length + 1)
+    mom = close.diff(drift)
+    CMO = (sum(up moves, length) - sum(down moves, length)) / (sum of both)
+    k = abs(CMO)
+    VIDYA[length - 1] = SMA(close, length)          # seed
+    VIDYA = alpha * k * close + (1 - alpha * k) * VIDYA[-1]
+
+Args:
+    close (pd.Series): Series of 'close's
+    length (int): It's period. Default: 14
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.Series: New feature generated.
+"""

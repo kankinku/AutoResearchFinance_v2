@@ -1,0 +1,106 @@
+# Decreasing (DECREASING)
+from typing import Any
+
+from pandas import Series
+
+from pandas_ta_classic.utils import (
+    apply_fill,
+    apply_offset,
+    get_drift,
+    get_offset,
+    verify_series,
+)
+from pandas_ta_classic.utils._core import _bool_param, _number, _pos_int, nan_on_short_input
+
+
+@nan_on_short_input
+def decreasing(
+    close: Series,
+    length: int | None = None,
+    strict: bool | None = None,
+    asint: bool | None = None,
+    percent: float | None = None,
+    drift: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Indicator: Decreasing"""
+    # Validate Arguments
+    length = _pos_int(length, 1, "length")
+    strict = _bool_param(strict, False, "strict")
+    asint = _bool_param(asint, True, "asint")
+    close = verify_series(close, length)
+    drift = get_drift(drift)
+    offset = get_offset(offset)
+    percent = _number(percent, None, "percent", ge=0)
+
+    if close is None:
+        return None
+
+    # Calculate Result
+    close_ = (1 - 0.01 * percent) * close if percent else close
+    if strict:
+        # Returns value as float64? Have to cast to bool
+        decreasing = close < close_.shift(drift)
+        known = close.notna() & close_.shift(drift).notna()
+        for x in range(3, length + 1):
+            decreasing = decreasing & (close.shift(x - (drift + 1)) < close_.shift(x - drift))
+            known &= close.shift(x - (drift + 1)).notna() & close_.shift(x - drift).notna()
+
+        decreasing.fillna(0, inplace=True)
+        decreasing = decreasing.astype(bool)
+    else:
+        decreasing = close_.diff(length) < 0
+        known = close_.diff(length).notna()
+
+    if asint:
+        # 1.0 / 0.0, and NaN until the compared bars exist: it read 0 there
+        decreasing = decreasing.astype(float).where(known)
+
+    # Offset
+    decreasing = apply_offset(decreasing, offset)
+
+    decreasing = apply_fill(decreasing, **kwargs)
+
+    # Name and Categorize it
+    _percent = f"_{0.01 * percent}" if percent else ""
+    _props = f"{'S' if strict else ''}DEC{'p' if percent else ''}"
+    decreasing.name = f"{_props}_{length}{_percent}"
+    decreasing.category = "trend"
+
+    return decreasing
+
+
+decreasing.__doc__ = """Decreasing
+
+Returns True if the series is decreasing over a period, False otherwise.
+If the kwarg 'strict' is True, it returns True if it is continuously decreasing
+over the period. With 'asint' (the default) it returns 1.0 for True and 0.0
+for False as float64, NaN until the compared bars exist.
+
+Calculation:
+    if strict:
+        decreasing = all(i > j for i, j in zip(close[-length:], close[1:]))
+    else:
+        decreasing = close.diff(length) < 0
+
+    if asint:
+        decreasing = decreasing.astype(float)  # NaN until the compared bars exist
+
+Args:
+    close (pd.Series): Series of 'close's
+    length (int): It's period. Default: 1
+    strict (bool): If True, checks if the series is continuously decreasing over the period. Default: False
+    percent (float): Percent as an integer. Default: None
+    asint (bool): Return 1.0 / 0.0 (float64, NaN until the compared bars
+        exist) instead of booleans (False there). Default: True
+    drift (int): The difference period. Default: 1
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.Series: New feature generated.
+"""

@@ -56,7 +56,7 @@ def bars(n: int = 150) -> dict[str, tuple[float, ...]]:
 
 def test_catalog_batch2_fully_registered_with_mit_provenance() -> None:
     specs = {s.name: s for s in research_feature_specs()}
-    assert len(specs) == 214
+    assert len(specs) >= 214  # future source batches preserve this cohort
     for name in (*NUMERIC, *PATTERNS):
         assert name in specs, name
         spec = specs[name]

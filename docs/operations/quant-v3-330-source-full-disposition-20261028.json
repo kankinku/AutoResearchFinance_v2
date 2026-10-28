@@ -1,0 +1,4537 @@
+{
+  "schema": "quant-v3-330-source-candidate-disposition-v1",
+  "prior_source_name_candidates": 330,
+  "registered_new_source_candidate_groups": 103,
+  "registered_new_feature_outputs": 107,
+  "remaining_eligible_not_proven": 68,
+  "warning": "Semantic family duplicates are conservative exclusion decisions, not a proof of byte-for-byte formula equivalence. The remaining PENDING and QUARANTINED names are not active Quant features.",
+  "source_shas": [
+    {
+      "source": "pandas-ta-classic",
+      "url": "https://github.com/xgboosted/pandas-ta-classic",
+      "license": "MIT",
+      "sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "raw_entries": 284
+    },
+    {
+      "source": "stock-indicators",
+      "url": "https://github.com/DaveSkender/Stock.Indicators",
+      "license": "Apache-2.0",
+      "sha": "da428182d0e222339b662bc8ac645596102260bd",
+      "raw_entries": 85
+    },
+    {
+      "source": "ta-lib",
+      "url": "https://github.com/TA-Lib/ta-lib",
+      "license": "BSD-3-Clause",
+      "sha": "4334163d3a1f5019aa9051342316b936a4dfb994",
+      "raw_entries": 238
+    },
+    {
+      "source": "tulipindicators",
+      "url": "https://github.com/TulipCharts/tulipindicators",
+      "license": "LGPL-3.0",
+      "sha": "be18abb13e075ba866898dcc7cb52399603302a6",
+      "raw_entries": 104
+    }
+  ],
+  "states": {
+    "BLOCKED_EXTERNAL_ASOF_INPUTS": 1,
+    "EXCLUDED_DUPLICATE_CANDLE_SOURCE": 37,
+    "EXCLUDED_KNOWN_INDICATOR_FAMILY": 37,
+    "EXCLUDED_KNOWN_PATTERN_FAMILY": 19,
+    "EXCLUDED_MATH_OPERATOR": 41,
+    "EXCLUDED_SEMANTIC_OVERLAP": 18,
+    "PENDING_CSHARP_SOURCE_PORT": 12,
+    "PENDING_LGPL_COMPLIANCE_OR_FALLBACK": 6,
+    "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW": 12,
+    "PENDING_TALIB_C_SOURCE_PORT": 36,
+    "PENDING_UNRESOLVED_SOURCE": 2,
+    "PORTED_VERIFIED_INDEPENDENT_FORMULA": 8,
+    "PORTED_VERIFIED_SOURCE_ADAPTER": 95,
+    "QUARANTINED_POTENTIAL_LOOKAHEAD": 2,
+    "QUARANTINED_PROBE_FAILURE": 4
+  },
+  "dispositions": [
+    {
+      "canonical_candidate": "2crows",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_2crows",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "3linestrike",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_3linestrike",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3linestrike"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "3outside",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_3outside",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3outside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "3starsinsouth",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_3starsinsouth",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3starsinsouth"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "abandonedbaby",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_abandonedbaby",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_abandonedbaby"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "aberration",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_aberration",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "aberration"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "abs",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "abs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ac",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_ac",
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "ac"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "acos",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "acos"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "acos"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "acos"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ad",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ad"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ad"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ad"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "add",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "add"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "add"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "add"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adosc",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "adosc"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "adosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "adosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adr",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_adr",
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "adr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "advanceblock",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_advanceblock",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_advanceblock"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adx",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "adx"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Adx"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "adx"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "adx"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adxr",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "adxr"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "adxr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "adxr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "alligator",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_alligator_jaw",
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Alligator"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "alma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_alma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "alma"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Alma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "alma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "amat",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_amat",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "amat"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "aobv",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_aobv",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "aobv"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "aroonosc",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "aroonosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "aroonosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "asi",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "asi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "asin",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "asin"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "asin"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "asin"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "atan",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "atan"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "atan"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "atan"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "atr_stop",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "AtrStop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "avgdev",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "avgdev"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "avgprice",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "avgprice"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "avgprice"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "avgprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "avolume",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_avolume",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "avolume"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "awesome",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Awesome"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "bar_parts",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "BarParts"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "bbw",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "bbw"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "beta",
+      "state": "QUARANTINED_PROBE_FAILURE",
+      "reason": "ValueError: beta() requires a 'benchmark' Series; it has no default",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "beta"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Beta"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "beta"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "breakaway",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_breakaway",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_breakaway"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl2crows",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3blackcrows",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3blackcrows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3inside",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3inside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3linestrike",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3linestrike"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3outside",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3outside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3starsinsouth",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3starsinsouth"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3whitesoldiers",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3whitesoldiers"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlabandonedbaby",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlabandonedbaby"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdladvanceblock",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdladvanceblock"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlbelthold",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlbelthold"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlbreakaway",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlbreakaway"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlclosingmarubozu",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlclosingmarubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlconcealbabyswall",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlconcealbabyswall"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlcounterattack",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlcounterattack"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldarkcloudcover",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldarkcloudcover"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldoji",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldojistar",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldragonflydoji",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldragonflydoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlengulfing",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlengulfing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdleveningdojistar",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdleveningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdleveningstar",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdleveningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlgapsidesidewhite",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlgapsidesidewhite"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlgravestonedoji",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlgravestonedoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhammer",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhammer"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhangingman",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhangingman"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlharami",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlharami"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlharamicross",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlharamicross"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhighwave",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhighwave"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhikkake",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhikkake"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhikkakemod",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhikkakemod"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhomingpigeon",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhomingpigeon"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlidentical3crows",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlidentical3crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlinneck",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlinneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlinvertedhammer",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlinvertedhammer"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlkicking",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlkicking"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlkickingbylength",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlkickingbylength"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlladderbottom",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlladderbottom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdllongleggeddoji",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdllongleggeddoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdllongline",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdllongline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmarubozu",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmarubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmatchinglow",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmatchinglow"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmathold",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmathold"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmorningdojistar",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmorningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmorningstar",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmorningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlonneck",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlonneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlpiercing",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlpiercing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlrickshawman",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlrickshawman"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlrisefall3methods",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlrisefall3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlseparatinglines",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlseparatinglines"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlshootingstar",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlshootingstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlshortline",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlshortline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlspinningtop",
+      "state": "EXCLUDED_KNOWN_PATTERN_FAMILY",
+      "reason": "Already represented by native/first two batch pattern family",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlspinningtop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlstalledpattern",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlstalledpattern"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlsticksandwich",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlsticksandwich"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdltakuri",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdltakuri"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdltasukigap",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdltasukigap"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlthrusting",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlthrusting"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdltristar",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdltristar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlunique3river",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlunique3river"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlupsidegap2crows",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlupsidegap2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlxsidegap3methods",
+      "state": "EXCLUDED_DUPLICATE_CANDLE_SOURCE",
+      "reason": "Equivalent named TA-Lib candle family already backed by pinned MIT implementation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlxsidegap3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ceil",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ceil"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ceil"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ceil"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cg",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_CENTER_OF_GRAVITY",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cg"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cg"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "chaikin_osc",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "ChaikinOsc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "chandelier",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Chandelier"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "choptr",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "choptr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cksp",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cksp",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cksp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cksp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "closingmarubozu",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_closingmarubozu",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_closingmarubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cmou",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cmou"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "concealbabyswall",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_concealbabyswall",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_concealbabyswall"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "correl",
+      "state": "QUARANTINED_PROBE_FAILURE",
+      "reason": "ValueError: correl() requires a 'benchmark' Series; it has no default",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "correl"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "correl"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "correlation",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Correlation"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cos",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cos"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cos"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cos"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cosh",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cosh"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cosh"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cosh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "counterattack",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_counterattack",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_counterattack"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cpr",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cpr",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cpr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "crossany",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "crossany"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "crossover",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "crossover"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "crsi",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "crsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cumsum",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "cumsum"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cvi",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cvi",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cvi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cvi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cvi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "decay",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_decay",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "decay"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "decay"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "decreasing",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_decreasing",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "decreasing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "di",
+      "state": "PENDING_LGPL_COMPLIANCE_OR_FALLBACK",
+      "reason": "LGPL license and Python parity review required",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "di"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "div",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "div"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "div"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "div"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dm",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_dm",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dm"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "dm"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dojistar",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_dojistar",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_dojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dosc",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "dosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "drawdown",
+      "state": "PENDING_UNRESOLVED_SOURCE",
+      "reason": "No verified causal same-symbol adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "drawdown"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dsp",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_dsp",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dsp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dx",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_dx",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dx"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "dx"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "dx"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ebsw",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_ebsw",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ebsw"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "edecay",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_edecay",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "edecay"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "edecay"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "elder_ray",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_elder_bull",
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "ElderRay"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "emv",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "emv"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "emv"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "emv"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "epma",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Epma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "eri",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_eri",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "eri"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "eri"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "eveningdojistar",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_eveningdojistar",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_eveningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "eveningstar",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "SAME_PATTERN_FAMILY_AS_EVENING_STAR",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_eveningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "exp",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "exp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "exp"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "exp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fcb",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Fcb"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "floor",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "floor"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "floor"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "floor"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fosc",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_fosc",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "fosc"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "fosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "fosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "frama",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "frama"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fwma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_fwma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "fwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "gapsidesidewhite",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_gapsidesidewhite",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_gapsidesidewhite"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "gator",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Gator"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hikkake",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_hikkake",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_hikkake"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hikkakemod",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_hikkakemod",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_hikkakemod"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hilo",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_hilo",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hilo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hl2",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hl2"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hlc3",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hlc3"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "homingpigeon",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_homingpigeon",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_homingpigeon"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_dcperiod",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_DOMINANT_CYCLE",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_dcperiod"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_dcperiod"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_dcphase",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_HILBERT_PHASE",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_dcphase"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_dcphase"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_phasor",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_ht_phasor",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_phasor"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_phasor"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_sine",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_ht_sine",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_sine"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_sine"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_trendline",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_HILBERT_TRENDLINE",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_trendline"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "HtTrendline"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_trendline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_trendmode",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_ht_trendmode",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_trendmode"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_trendmode"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hvol",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hvol"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hwc",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_hwc",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hwc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hwma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_hwma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ibs",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "ibs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "identical3crows",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_identical3crows",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_identical3crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "imi",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_imi",
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "imi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "increasing",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_increasing",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "increasing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "inertia",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_inertia",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "inertia"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "inneck",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_inneck",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_inneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "inside",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "SAME_PATTERN_FAMILY_AS_INSIDE_BAR",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_inside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "jma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_jma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "jma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kicking",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_kicking",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_kicking"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kickingbylength",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_kickingbylength",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_kickingbylength"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kstext",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "kstext"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kurtosis",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kurtosis"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kurtosis"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kvo",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_kvo",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kvo"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Kvo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kvo"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "kvo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ladderbottom",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_ladderbottom",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_ladderbottom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "lag",
+      "state": "PENDING_LGPL_COMPLIANCE_OR_FALLBACK",
+      "reason": "LGPL license and Python parity review required",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "lag"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg_angle",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg_angle"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg_intercept",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg_intercept"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg_slope",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg_slope"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linregangle",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_linregangle",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "linregangle"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linregintercept",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_linregintercept",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "linregintercept"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "linregintercept"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linregslope",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_linregslope",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "linregslope"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "linregslope"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ln",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ln"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ln"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ln"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "log10",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "log10"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "log10"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "log10"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "log_return",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "log_return"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "long_run",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "long_run"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "longline",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_longline",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_longline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "lrsi",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_LAGUERRE_RSI",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "lrsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ma",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ma_envelopes",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "MaEnvelopes"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "macdext",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "macdext"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "macdext"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "macdfix",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "macdfix"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "macdfix"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mama",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_mama",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mama"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Mama"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mama"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "marubozu",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "SAME_PATTERN_FAMILY_AS_DETECT_MARUBOZU",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_marubozu"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Marubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mass",
+      "state": "PENDING_LGPL_COMPLIANCE_OR_FALLBACK",
+      "reason": "LGPL license and Python parity review required",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "mass"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mathold",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_mathold",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_mathold"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mavp",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mavp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mavp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "max",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "max"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "max"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "maxindex",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "maxindex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "maxindex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mcgd",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mcgd"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mcgd"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "md",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "SAME_MEAN_ABSOLUTE_DEVIATION_AS_MAD",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "md"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "md"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "median",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_median",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "median"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "median"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "medprice",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "medprice"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "medprice"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "medprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mg_dynamic",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "MgDynamic"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "midpoint",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "midpoint"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "midpoint"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "min",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "min"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "min"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minindex",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minindex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minindex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minmax",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minmax"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minmax"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minmaxindex",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minmaxindex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minmaxindex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minus_di",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "minus_di"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minus_dm",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_minus_dm",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minus_dm"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minus_dm"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mmar",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mmar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "morningdojistar",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_morningdojistar",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_morningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "morningstar",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "SAME_PATTERN_FAMILY_AS_MORNING_STAR",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_morningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "msw",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_msw",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "msw"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "msw"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mul",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "mul"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mult",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mult"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mult"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "npabs",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "npabs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "npround",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "npround"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ohlc4",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_ohlc4",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ohlc4"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "onneck",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_onneck",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_onneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pattern",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_pattern"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pdist",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_pdist",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pdist"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percent_return",
+      "state": "PENDING_UNRESOLVED_SOURCE",
+      "reason": "No verified causal same-symbol adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "percent_return"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percentb",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "percentb"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percentile",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "percentile"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percentrank",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "percentrank"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pivots",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Pivots"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "plus_di",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "plus_di"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "plus_dm",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_plus_dm",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "plus_dm"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "plus_dm"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pmax",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_pmax",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pmax"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pmo",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Pmo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "po",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_po",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "po"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "prs",
+      "state": "BLOCKED_EXTERNAL_ASOF_INPUTS",
+      "reason": "Additional benchmark/cross-asset point-in-time inputs unavailable",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Prs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pso",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "pso"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pvo",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_pvo",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pvo"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Pvo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "pvo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pvol",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_pvol",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pvol"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pwma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_pwma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "qqe",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_qqe",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "qqe"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "quantile",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_quantile",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "quantile"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rainbow",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_rainbow",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rainbow"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "renko_atr",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "RenkoAtr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rickshawman",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "SUBTYPE_EXISTING_LONG_LEGGED_DOJI_REVIEW",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_rickshawman"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "risefall3methods",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_risefall3methods",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_risefall3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rma",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "roc_wb",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "RocWb"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rocp",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rocp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rocp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rocr",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rocr"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rocr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "rocr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rocr100",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rocr100"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rocr100"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rogerssatchell",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_rogers_satchell",
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "rogerssatchell"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_max",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rolling_max"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_min",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rolling_min"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_pivots",
+      "state": "QUARANTINED_POTENTIAL_LOOKAHEAD",
+      "reason": "Repainting/forward-looking risk requires separately locked causal specification",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "RollingPivots"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_sum",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rolling_sum"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "round",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "round"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rvgi",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_rvgi",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rvgi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rvir",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "rvir"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rvol",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_rvol",
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "rvol"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sar",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "sar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sarext",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_PARABOLIC_SAR_EXTENDED_VARIANT",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sarext"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sarext"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "separatinglines",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_separatinglines",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_separatinglines"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "shootingstar",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "SAME_PATTERN_FAMILY_AS_SHOOTING_STAR",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_shootingstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "short_run",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "short_run"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "shortline",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_shortline",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_shortline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "si",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "si"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sin",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sin"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sin"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sin"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sinh",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sinh"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sinh"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sinh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sinwma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_sinwma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sinwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "skew",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "skew"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "slope",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_slope",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "slope"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Slope"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sma_analysis",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "SmaAnalysis"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "smc_sweep",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_smc_sweep",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "smc_sweep"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "smma",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Smma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sqrt",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sqrt"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sqrt"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sqrt"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "squeeze_pro",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_squeeze_pro",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "squeeze_pro"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sqzmom",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "sqzmom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ssf",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_ssf",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ssf"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stalledpattern",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_stalledpattern",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_stalledpattern"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "starc_bands",
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_starc_upper",
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "StarcBands"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stc",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_SCHAFF_TREND_CYCLE",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stc"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Stc"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "stc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "std_dev_channels",
+      "state": "PENDING_CSHARP_SOURCE_PORT",
+      "reason": ".NET indicator not yet ported/tested in Python research engine",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "StdDevChannels"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stddev",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "stddev"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "stddev"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stderr",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "LINEAR_RESCALE_OF_STANDARD_DEVIATION",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stderr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "stderr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stdev",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stdev"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sticksandwich",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_sticksandwich",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_sticksandwich"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stochf",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_stochf",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stochf"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "stochf"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stochrsi",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stochrsi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "stochrsi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "stochrsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sub",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sub"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sub"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sub"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sum",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic math operator or rolling reducer, not a standalone indicator",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "sum"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sum"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "super_trend",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "SuperTrend"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_2php",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_2php"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_bp",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_bp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_butter",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_butter"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_gauss",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_gauss"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_hp",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_hp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_swma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "swma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "t3",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_t3",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "t3"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "T3"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "t3"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "takuri",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_takuri",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_takuri"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tan",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tan"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "tan"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tan"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tanh",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tanh"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "tanh"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tanh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tasukigap",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_tasukigap",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_tasukigap"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "td_seq",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_td_seq",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "td_seq"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "thrusting",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_thrusting",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_thrusting"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "todeg",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "todeg"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "todeg"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "torad",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "torad"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "torad"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tos_stdevall",
+      "state": "QUARANTINED_PROBE_FAILURE",
+      "reason": "badlen 20",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tos_stdevall"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tr",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Tr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trange",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "trange"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trima",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "trima"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "trima"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "trima"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tristar",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_tristar",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_tristar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trixh",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_trixh",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "trixh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trunc",
+      "state": "EXCLUDED_MATH_OPERATOR",
+      "reason": "Generic mathematical transformer, not a separately verified trading feature",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "trunc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "trunc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tsignals",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tsignals"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ultimate",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Ultimate"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ultosc",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "ultosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ultosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "unique3river",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_unique3river",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_unique3river"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "uo",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "uo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "upsidegap2crows",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_upsidegap2crows",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_upsidegap2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "utility",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "utility"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "var",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "var"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "var"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "variance",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "DETERMINISTIC_SQUARE_OF_STANDARD_DEVIATION",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "variance"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "volatility",
+      "state": "PENDING_LGPL_COMPLIANCE_OR_FALLBACK",
+      "reason": "LGPL license and Python parity review required",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "volatility"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "volatility_stop",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "VolatilityStop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vp",
+      "state": "QUARANTINED_PROBE_FAILURE",
+      "reason": "badlen 10",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vwmacd",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "EXISTING_VW_MACD",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vwmacd"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wavetrend",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "wavetrend"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wclprice",
+      "state": "PENDING_TALIB_C_SOURCE_PORT",
+      "reason": "C function needs API/output parity and causal adapter",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "ta-lib",
+          "source_name": "wclprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wcp",
+      "state": "EXCLUDED_SEMANTIC_OVERLAP",
+      "reason": "PRICE_ONLY_WEIGHTING_VARIANT_REVIEW",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "wcp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wcprice",
+      "state": "PENDING_LGPL_COMPLIANCE_OR_FALLBACK",
+      "reason": "LGPL license and Python parity review required",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "wcprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wilders",
+      "state": "PENDING_LGPL_COMPLIANCE_OR_FALLBACK",
+      "reason": "LGPL license and Python parity review required",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "tulipindicators",
+          "source_name": "wilders"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "xsidegap3methods",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_cdl_xsidegap3methods",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_xsidegap3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "xsignals",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "xsignals"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "z",
+      "state": "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW",
+      "reason": "Source exists but probe did not demonstrate safe aligned calculation",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_z"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "zig_zag",
+      "state": "QUARANTINED_POTENTIAL_LOOKAHEAD",
+      "reason": "Repainting/forward-looking risk requires separately locked causal specification",
+      "registered_name": null,
+      "sources": [
+        {
+          "source": "stock-indicators",
+          "source_name": "ZigZag"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "zlma",
+      "state": "PORTED_VERIFIED_SOURCE_ADAPTER",
+      "reason": "Pinned MIT source; aligned numeric source output and prefix audit",
+      "registered_name": "pta_zlma",
+      "sources": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "zlma"
+        }
+      ]
+    }
+  ]
+}
