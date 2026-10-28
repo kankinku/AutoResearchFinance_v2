@@ -47,7 +47,7 @@ def pinned_specs() -> tuple[FeatureSpec, ...]:
                 "source_name": str(entry["source"]),
                 "output_index": int(entry["output_index"]),
             },
-            formula=f"pandas_ta_classic::{entry['source']}::0",
+            formula=f"pandas_ta_classic::{entry['source']}::{entry['output_index']}",
             status="REGISTERED",
             source_repositories=(source,),
             source_licenses=("MIT",),

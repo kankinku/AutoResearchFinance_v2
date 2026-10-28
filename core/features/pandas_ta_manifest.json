@@ -45,6 +45,19 @@
       "scope_note": "Require optional close series explicitly"
     },
     {
+      "name": "pta_amat_short",
+      "source": "amat",
+      "category": "trend",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "source_license": "MIT",
+      "scope_note": "AMAT short-run distinct output from the pinned two-signal dataframe"
+    },
+    {
       "name": "pta_aobv",
       "source": "aobv",
       "category": "volume",

@@ -1,4 +1,5 @@
 """Candid 330-name audit: every candidate must have a disposition, no silent promotion."""
+
 from __future__ import annotations
 
 import json
@@ -19,11 +20,12 @@ def test_330_source_names_have_exhaustive_dispositions() -> None:
     active = [r for r in report["dispositions"] if r["state"].startswith("PORTED_")]
     assert len(active) == report["registered_new_source_candidate_groups"]
     assert report["registered_new_feature_outputs"] == len(specs) - 214
-    assert len(specs) == 321
+    assert len(specs) == 335
     assert all(row["registered_name"] in specs for row in active)
     assert all(
         row["registered_name"] is None
-        for row in report["dispositions"] if not row["state"].startswith("PORTED_")
+        for row in report["dispositions"]
+        if not row["state"].startswith("PORTED_")
     )
 
 

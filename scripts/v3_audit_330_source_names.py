@@ -32,6 +32,15 @@ def audit(prior: dict[str, Any], port: dict[str, Any], root: Path) -> dict[str, 
         "alligator": "stock_alligator_jaw",
         "elder_ray": "stock_elder_bull",
         "starc_bands": "stock_starc_upper",
+        "ibs": "talib_ibs",
+        "si": "talib_si",
+        "asi": "talib_asi",
+        "frama": "talib_frama",
+        "gator": "stock_gator_upper",
+        "pmo": "stock_pmo",
+        "roc_wb": "stock_roc_wb_upper",
+        "fcb": "stock_fcb_upper",
+        "std_dev_channels": "stock_stddev_channel_upper_now",
     }
 
     existing_patterns = {
@@ -93,6 +102,7 @@ def audit(prior: dict[str, Any], port: dict[str, Any], root: Path) -> dict[str, 
         "ma",
         "macdext",
         "macdfix",
+        "crsi",  # Existing Quant connors_rsi: same Connors RSI family, no duplicate promotion.
         "mama",
         "mass",
         "medprice",
@@ -300,7 +310,7 @@ def audit(prior: dict[str, Any], port: dict[str, Any], root: Path) -> dict[str, 
             states.get("PORTED_VERIFIED_SOURCE_ADAPTER", 0)
             + states.get("PORTED_VERIFIED_INDEPENDENT_FORMULA", 0)
         ),
-        "registered_new_feature_outputs": len(port["entries"]) + 12,
+        "registered_new_feature_outputs": len(port["entries"]) + 12 + 13,
         "remaining_eligible_not_proven": sum(
             n for k, n in states.items() if k.startswith("PENDING_")
         ),

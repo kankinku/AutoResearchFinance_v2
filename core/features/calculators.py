@@ -35,6 +35,10 @@ def calculate_feature(
         from core.features.source_multi_backend import calculate_additional_source
 
         return calculate_additional_source(spec.name, inputs, spec.lookback)
+    if calculator == "verified_remaining_formula":
+        from core.features.source_remaining import calculate_remaining
+
+        return calculate_remaining(spec, inputs)
     from core.features.source_indicator_ports import SOURCE_PORTS, calculate_source_port
 
     if calculator in SOURCE_PORTS:

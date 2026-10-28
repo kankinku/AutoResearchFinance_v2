@@ -541,6 +541,9 @@ def imported_feature_catalog() -> FeatureCatalog:
                 duplicate_group=name,
             )
         )
+    from core.features.source_remaining import feature_specs as remaining_specs
+
+    features.extend(remaining_specs())
     return FeatureCatalog(tuple(features))
 
 

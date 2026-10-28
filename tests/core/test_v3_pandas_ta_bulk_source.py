@@ -12,6 +12,7 @@ from core.features.calculators import calculate_feature
 from core.features.catalog import imported_feature_catalog
 from core.features.registry import research_feature_specs
 from core.features.source_multi_backend import KNOWN
+from core.features.source_remaining import NAMES
 from research.llm.inherited_feature_compiler import _new_feature_vector
 from strategy_ir.schema import FeatureRef
 from tests.research.test_v3_inherited_audit_warmup import _warmup_fixture
@@ -46,7 +47,7 @@ def test_source_catalog_pins_license_identity_and_preserves_existing_specs() -> 
     assert "MIT License" in LICENSE.read_text()
     assert len({e["name"] for e in meta["entries"]}) == len(meta["entries"])
     features = {s.name: s for s in research_feature_specs()}
-    assert len(features) == 214 + len(meta["entries"]) + len(KNOWN)
+    assert len(features) == 214 + len(meta["entries"]) + len(KNOWN) + len(NAMES)
     for entry in meta["entries"]:
         spec = features[entry["name"]]
         assert spec.status == "REGISTERED"

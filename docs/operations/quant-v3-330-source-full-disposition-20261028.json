@@ -1,9 +1,9 @@
 {
   "schema": "quant-v3-330-source-candidate-disposition-v1",
   "prior_source_name_candidates": 330,
-  "registered_new_source_candidate_groups": 103,
-  "registered_new_feature_outputs": 107,
-  "remaining_eligible_not_proven": 68,
+  "registered_new_source_candidate_groups": 112,
+  "registered_new_feature_outputs": 121,
+  "remaining_eligible_not_proven": 58,
   "warning": "Semantic family duplicates are conservative exclusion decisions, not a proof of byte-for-byte formula equivalence. The remaining PENDING and QUARANTINED names are not active Quant features.",
   "source_shas": [
     {
@@ -38,16 +38,16 @@
   "states": {
     "BLOCKED_EXTERNAL_ASOF_INPUTS": 1,
     "EXCLUDED_DUPLICATE_CANDLE_SOURCE": 37,
-    "EXCLUDED_KNOWN_INDICATOR_FAMILY": 37,
+    "EXCLUDED_KNOWN_INDICATOR_FAMILY": 38,
     "EXCLUDED_KNOWN_PATTERN_FAMILY": 19,
     "EXCLUDED_MATH_OPERATOR": 41,
     "EXCLUDED_SEMANTIC_OVERLAP": 18,
-    "PENDING_CSHARP_SOURCE_PORT": 12,
+    "PENDING_CSHARP_SOURCE_PORT": 7,
     "PENDING_LGPL_COMPLIANCE_OR_FALLBACK": 6,
     "PENDING_PANDAS_SOURCE_ADAPTER_REVIEW": 12,
-    "PENDING_TALIB_C_SOURCE_PORT": 36,
+    "PENDING_TALIB_C_SOURCE_PORT": 31,
     "PENDING_UNRESOLVED_SOURCE": 2,
-    "PORTED_VERIFIED_INDEPENDENT_FORMULA": 8,
+    "PORTED_VERIFIED_INDEPENDENT_FORMULA": 17,
     "PORTED_VERIFIED_SOURCE_ADAPTER": 95,
     "QUARANTINED_POTENTIAL_LOOKAHEAD": 2,
     "QUARANTINED_PROBE_FAILURE": 4
@@ -371,9 +371,9 @@
     },
     {
       "canonical_candidate": "asi",
-      "state": "PENDING_TALIB_C_SOURCE_PORT",
-      "reason": "C function needs API/output parity and causal adapter",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_asi",
       "sources": [
         {
           "source": "ta-lib",
@@ -1519,8 +1519,8 @@
     },
     {
       "canonical_candidate": "crsi",
-      "state": "PENDING_TALIB_C_SOURCE_PORT",
-      "reason": "C function needs API/output parity and causal adapter",
+      "state": "EXCLUDED_KNOWN_INDICATOR_FAMILY",
+      "reason": "Indicator family already represented; numerical parity pending",
       "registered_name": null,
       "sources": [
         {
@@ -1839,9 +1839,9 @@
     },
     {
       "canonical_candidate": "fcb",
-      "state": "PENDING_CSHARP_SOURCE_PORT",
-      "reason": ".NET indicator not yet ported/tested in Python research engine",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_fcb_upper",
       "sources": [
         {
           "source": "stock-indicators",
@@ -1891,9 +1891,9 @@
     },
     {
       "canonical_candidate": "frama",
-      "state": "PENDING_TALIB_C_SOURCE_PORT",
-      "reason": "C function needs API/output parity and causal adapter",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_frama",
       "sources": [
         {
           "source": "ta-lib",
@@ -1927,9 +1927,9 @@
     },
     {
       "canonical_candidate": "gator",
-      "state": "PENDING_CSHARP_SOURCE_PORT",
-      "reason": ".NET indicator not yet ported/tested in Python research engine",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_gator_upper",
       "sources": [
         {
           "source": "stock-indicators",
@@ -2147,9 +2147,9 @@
     },
     {
       "canonical_candidate": "ibs",
-      "state": "PENDING_TALIB_C_SOURCE_PORT",
-      "reason": "C function needs API/output parity and causal adapter",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_ibs",
       "sources": [
         {
           "source": "ta-lib",
@@ -3131,9 +3131,9 @@
     },
     {
       "canonical_candidate": "pmo",
-      "state": "PENDING_CSHARP_SOURCE_PORT",
-      "reason": ".NET indicator not yet ported/tested in Python research engine",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_pmo",
       "sources": [
         {
           "source": "stock-indicators",
@@ -3311,9 +3311,9 @@
     },
     {
       "canonical_candidate": "roc_wb",
-      "state": "PENDING_CSHARP_SOURCE_PORT",
-      "reason": ".NET indicator not yet ported/tested in Python research engine",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_roc_wb_upper",
       "sources": [
         {
           "source": "stock-indicators",
@@ -3559,9 +3559,9 @@
     },
     {
       "canonical_candidate": "si",
-      "state": "PENDING_TALIB_C_SOURCE_PORT",
-      "reason": "C function needs API/output parity and causal adapter",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "talib_si",
       "sources": [
         {
           "source": "ta-lib",
@@ -3787,9 +3787,9 @@
     },
     {
       "canonical_candidate": "std_dev_channels",
-      "state": "PENDING_CSHARP_SOURCE_PORT",
-      "reason": ".NET indicator not yet ported/tested in Python research engine",
-      "registered_name": null,
+      "state": "PORTED_VERIFIED_INDEPENDENT_FORMULA",
+      "reason": "Pinned TA-Lib C / Stock C# math independently ported and tested",
+      "registered_name": "stock_stddev_channel_upper_now",
       "sources": [
         {
           "source": "stock-indicators",
