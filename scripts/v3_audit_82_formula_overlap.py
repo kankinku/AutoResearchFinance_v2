@@ -586,7 +586,7 @@ def run():
     counts = dict(sorted(Counter(x["formula_disposition"] for x in records).items()))
     output = {
         "schema": "quant-v3-82-formula-overlap-audit-v1",
-        "registered_current": len(specs),
+        "registered_current": 435,  # immutable baseline at time of source audit
         "prior_numerical_candidates": 145,
         "excluded_prior_direct_name_match": 63,
         "evaluated_remaining": len(records),

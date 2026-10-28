@@ -21,7 +21,7 @@ def test_bulk100_cohort_has_exactly_100_new_pinned_distinct_output_ids() -> None
     manifest = json.loads(MANIFEST.read_text())
     names = [entry["name"] for entry in manifest["entries"]]
     specs = {spec.name: spec for spec in research_feature_specs()}
-    assert len(specs) == 435
+    assert len(specs) == 447  # baseline 435 + 12 chart pattern outputs
     assert len(names) == len(set(names)) == 100
     assert sum(e["provider"] == "pta" for e in manifest["entries"]) == 43
     assert sum(e["provider"] == "ta" for e in manifest["entries"]) == 57

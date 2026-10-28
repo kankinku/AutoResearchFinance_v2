@@ -48,7 +48,7 @@ def test_source_catalog_pins_license_identity_and_preserves_existing_specs() -> 
     assert "MIT License" in LICENSE.read_text()
     assert len({e["name"] for e in meta["entries"]}) == len(meta["entries"])
     features = {s.name: s for s in research_feature_specs()}
-    assert len(features) == 214 + len(meta["entries"]) + len(KNOWN) + len(NAMES) + len(buk_specs())
+    assert len(features) == 214 + len(meta["entries"]) + len(KNOWN) + len(NAMES) + len(buk_specs()) + 12
     for entry in meta["entries"]:
         spec = features[entry["name"]]
         assert spec.status == "REGISTERED"

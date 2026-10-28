@@ -12,7 +12,7 @@ from application.services import create_application_services
 def test_feature_catalog_service_preserves_research_projection() -> None:
     features = FeatureCatalogService().research_features()
 
-    assert len(features) == 435
+    assert len(features) == 447
     assert set(features[0]) == {
         "name",
         "family",

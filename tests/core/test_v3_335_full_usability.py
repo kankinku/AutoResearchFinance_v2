@@ -14,12 +14,12 @@ from strategy_ir.schema import FeatureRef
 def test_every_ohlcv_scalar_has_executable_inherited_replay() -> None:
     source, market = synthetic()
     specs = research_feature_specs()
-    assert len(specs) == 435
+    assert len(specs) == 447  # 435 legacy + 12 causal chart patterns
     eligible = [
         spec for spec in specs if spec.data_contract == "scalar" and set(spec.inputs) <= AVAILABLE
     ]
     withheld = [spec for spec in specs if spec not in eligible]
-    assert len(eligible) == 409
+    assert len(eligible) == 421  # 409 legacy + 12 chart patterns
     assert len(withheld) == 26
     for spec in eligible:
         inputs = {key: source[key] for key in spec.inputs}

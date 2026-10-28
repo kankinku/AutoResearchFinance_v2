@@ -168,14 +168,14 @@ def test_restricted_source_rejected_before_candidate_evaluation() -> None:
 def test_legacy_catalog_distinguishes_registration_from_execution_readiness() -> None:
     service = FeatureCatalogService()
     values = service.research_features()
-    assert len(values) == 435
+    assert len(values) == 447
     assert set(values[0]) == {"name", "family", "inputs", "calculator", "lookback", "timeframe"}
     summary = service.capability_summary()
-    assert summary["registered_count"] == 435
-    assert summary["inherited_same_symbol_ohlcv_candidates"] == 409
+    assert summary["registered_count"] == 447
+    assert summary["inherited_same_symbol_ohlcv_candidates"] == 421
     assert len(summary["external_asof_not_ready"]) == 14
     assert len(summary["specialized_adapter_not_ready"]) == 12
-    assert 0 < summary["observed_scalar_calculation_count"] <= 409
+    assert 0 < summary["observed_scalar_calculation_count"] <= 421
     assert "volume_profile" in summary["not_bar_aligned"]
     assert "rsi.wilder" not in summary["no_observable_output_on_probe"]
 
@@ -202,7 +202,7 @@ def test_llm_research_context_explains_capability_gaps(tmp_path) -> None:
 
     context = ResearchService(tmp_path / "state").context()
     summary = context["feature_capability_summary"]
-    assert summary["registered_count"] == len(context["feature_catalog"]) == 435
+    assert summary["registered_count"] == len(context["feature_catalog"]) == 447
     assert "volume_profile" in summary["not_bar_aligned"]
     assert "Registered is not proof" in summary["usage_policy"]
     assert "sealed_oos" not in context

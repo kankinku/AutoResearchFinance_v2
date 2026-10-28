@@ -498,6 +498,27 @@ def imported_feature_catalog() -> FeatureCatalog:
     from core.features.pandas_ta_pinned import pinned_specs
 
     features.extend(pinned_specs())
+
+    # Opt-in causal chart-geometry research signals; immutable source rules,
+    # no hindsight pivot backfill, no order-capable implementation.
+    from core.features.chart_patterns import PATTERNS
+
+    features.extend(
+        _spec(
+            "chart_" + name,
+            "price_action",
+            "chart_geometry",
+            inputs=("high", "low", "close"),
+            lookback=160,
+            parameters={
+                "pattern_name": name,
+                "confirmation_bars": 2,
+                "minimum_swing": 0.015,
+            },
+            status="REGISTERED",
+        )
+        for name in PATTERNS
+    )
     source_group_specs: tuple[
         tuple[str, str, tuple[str, ...], int], ...
     ] = (
