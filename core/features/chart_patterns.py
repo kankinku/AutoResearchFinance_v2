@@ -114,7 +114,8 @@ def harmonic_xabcd(
         return 0
     beyond_x = d < x if signs[0] == 1 else d > x
     between_xa = min(x, a) < d < max(x, a)
-    near = lambda value, target: abs(value - target) <= tolerance
+    def near(value: float, target: float) -> bool:
+        return abs(value - target) <= tolerance
     if pattern == "harmonic_butterfly":
         valid = (
             beyond_x and near(br, 0.786) and near(abs(d - x) / xa, 0.27)
