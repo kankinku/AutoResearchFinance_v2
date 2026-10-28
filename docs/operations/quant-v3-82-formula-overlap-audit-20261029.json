@@ -1,0 +1,2387 @@
+{
+  "schema": "quant-v3-82-formula-overlap-audit-v1",
+  "registered_current": 435,
+  "prior_numerical_candidates": 145,
+  "excluded_prior_direct_name_match": 63,
+  "evaluated_remaining": 82,
+  "counts": {
+    "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY": 34,
+    "ALGEBRAIC_DUPLICATE": 16,
+    "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION": 26,
+    "UNREPRESENTED_FORMULA": 6
+  },
+  "caveat": "All 82 manually mapped to source-specific formulas and existing catalog names. ALGEBRAIC_DUPLICATE validated against native at same period on 480 synthetic bars, with <=1e-8 residual. EXISTING_FAMILY and ADDITIONAL_OUTPUT are formula-semantic classifications, not a proof of exact numeric equality. UNREPRESENTED means no named same-formula scalar in 435 names; not a proof of globally new mathematics. Differences can come from lookback, seeds, ddof and plotting. No registry changes.",
+  "items": [
+    {
+      "candidate": "ht_dcperiod:0",
+      "category": "cycles",
+      "index": 0,
+      "existing_catalog_formula": "dominant_cycle(close, 14)",
+      "existing_catalog_calculator": "dominant_cycle",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "ht_dcperiod",
+      "source_output_index": 0,
+      "output_label": "HT_DCPERIOD",
+      "source_path": "pandas_ta_classic/cycles/ht_dcperiod.py",
+      "source_definition_line": 14,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "dominant_cycle",
+      "formula_evidence": "Hilbert-transform dominant-cycle period; existing dominant_cycle is a simplified cycle estimator",
+      "numeric_reference_480": {
+        "compared_to": "dominant_cycle",
+        "same_period_n": 20,
+        "overlapping_finite": 448,
+        "raw_exact_max_abs_error": 53.611352338937294,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ht_dcphase:0",
+      "category": "cycles",
+      "index": 0,
+      "existing_catalog_formula": "hilbert_phase(close, 14)",
+      "existing_catalog_calculator": "hilbert_phase",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "ht_dcphase",
+      "source_output_index": 0,
+      "output_label": "HT_DCPHASE",
+      "source_path": "pandas_ta_classic/cycles/ht_dcphase.py",
+      "source_definition_line": 14,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "hilbert_phase",
+      "formula_evidence": "Hilbert dominant-cycle phase; existing hilbert_phase uses atan2 of price movement",
+      "numeric_reference_480": {
+        "compared_to": "hilbert_phase",
+        "same_period_n": 20,
+        "overlapping_finite": 417,
+        "raw_exact_max_abs_error": 311.6559051504018,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_doji:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "doji(open, high, low, close, 14)",
+      "existing_catalog_calculator": "doji",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "cdl_doji",
+      "source_output_index": 0,
+      "output_label": "CDL_DOJI_20_0.1",
+      "source_path": "pandas_ta_classic/candles/cdl_doji.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "doji",
+      "formula_evidence": "Candle body vs historical range-based threshold, rather than simple same-bar threshold",
+      "numeric_reference_480": {
+        "compared_to": "doji",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 100.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_engulfing:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "engulfing(open, high, low, close, 14)",
+      "existing_catalog_calculator": "engulfing",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "cdl_engulfing",
+      "source_output_index": 0,
+      "output_label": "CDL_ENGULFING",
+      "source_path": "pandas_ta_classic/candles/cdl_engulfing.py",
+      "source_definition_line": 43,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "engulfing",
+      "formula_evidence": "Signed bullish/bearish engulfing versus current one-sided simplified pattern",
+      "numeric_reference_480": {
+        "compared_to": "engulfing",
+        "same_period_n": 20,
+        "overlapping_finite": 479,
+        "raw_exact_max_abs_error": 100.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_harami:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "harami(open, high, low, close, 3)",
+      "existing_catalog_calculator": "harami",
+      "existing_catalog_default_lookback": 3,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "cdl_harami",
+      "source_output_index": 0,
+      "output_label": "CDL_HARAMI",
+      "source_path": "pandas_ta_classic/candles/cdl_harami.py",
+      "source_definition_line": 49,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "harami",
+      "formula_evidence": "TA candle body/range threshold and direction versus current harami signature",
+      "numeric_reference_480": {
+        "compared_to": "harami",
+        "same_period_n": 20,
+        "overlapping_finite": 479,
+        "raw_exact_max_abs_error": 100.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_highwave:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "high_wave(open, high, low, close, 1)",
+      "existing_catalog_calculator": "high_wave",
+      "existing_catalog_default_lookback": 1,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "cdl_highwave",
+      "source_output_index": 0,
+      "output_label": "CDL_HIGHWAVE",
+      "source_path": "pandas_ta_classic/candles/cdl_highwave.py",
+      "source_definition_line": 41,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "high_wave",
+      "formula_evidence": "Doji-like small body plus two long shadows; existing high_wave candle family",
+      "numeric_reference_480": {
+        "compared_to": "high_wave",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 99.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_inside:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "inside_bar(high, low, 14)",
+      "existing_catalog_calculator": "inside_bar",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "cdl_inside",
+      "source_output_index": 0,
+      "output_label": "CDL_INSIDE",
+      "source_path": "pandas_ta_classic/candles/cdl_inside.py",
+      "source_definition_line": 11,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "inside_bar",
+      "formula_evidence": "Inside bar direction/color and scalar vs existing 0/1 inside-bar detection",
+      "numeric_reference_480": {
+        "compared_to": "inside_bar",
+        "same_period_n": 20,
+        "overlapping_finite": 479,
+        "raw_exact_max_abs_error": 101.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_longleggeddoji:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "long_legged_doji(open, high, low, close, 1)",
+      "existing_catalog_calculator": "long_legged_doji",
+      "existing_catalog_default_lookback": 1,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "cdl_longleggeddoji",
+      "source_output_index": 0,
+      "output_label": "CDL_LONGLEGGEDDOJI",
+      "source_path": "pandas_ta_classic/candles/cdl_longleggeddoji.py",
+      "source_definition_line": 40,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "long_legged_doji",
+      "formula_evidence": "Doji body and long-shadow criteria, candle setting dependent",
+      "numeric_reference_480": {
+        "compared_to": "long_legged_doji",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 100.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_matchinglow:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "matching_low(open, high, low, close, 2)",
+      "existing_catalog_calculator": "matching_low",
+      "existing_catalog_default_lookback": 2,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "cdl_matchinglow",
+      "source_output_index": 0,
+      "output_label": "CDL_MATCHINGLOW",
+      "source_path": "pandas_ta_classic/candles/cdl_matchinglow.py",
+      "source_definition_line": 30,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "matching_low",
+      "formula_evidence": "Pattern of two bearish candles with nearly equal lows of body/close",
+      "numeric_reference_480": {
+        "compared_to": "matching_low",
+        "same_period_n": 20,
+        "overlapping_finite": 479,
+        "raw_exact_max_abs_error": 100.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_pattern:52",
+      "category": "candles",
+      "index": 52,
+      "existing_catalog_formula": "spinning_top(open, high, low, close, 3)",
+      "existing_catalog_calculator": "spinning_top",
+      "existing_catalog_default_lookback": 3,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "cdl_pattern",
+      "source_output_index": 52,
+      "output_label": "CDL_SPINNINGTOP",
+      "source_path": "pandas_ta_classic/candles/cdl_pattern.py",
+      "source_definition_line": 121,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "spinning_top",
+      "formula_evidence": "Output index 52 spinning-top candlestick pattern already named in catalog",
+      "numeric_reference_480": {
+        "compared_to": "spinning_top",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 101.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_z:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "zscore(close, 14)",
+      "existing_catalog_calculator": "zscore",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "cdl_z",
+      "source_output_index": 0,
+      "output_label": "open_Z_20_1",
+      "source_path": "pandas_ta_classic/candles/cdl_z.py",
+      "source_definition_line": 30,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "zscore",
+      "formula_evidence": "Rolling zscore of four OHLC legs (open, high, low, close), existing scalar uses close alone",
+      "numeric_reference_480": {
+        "compared_to": "zscore",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 1.1055045607685345,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_z:1",
+      "category": "candles",
+      "index": 1,
+      "existing_catalog_formula": "zscore(close, 14)",
+      "existing_catalog_calculator": "zscore",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "cdl_z",
+      "source_output_index": 1,
+      "output_label": "high_Z_20_1",
+      "source_path": "pandas_ta_classic/candles/cdl_z.py",
+      "source_definition_line": 30,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "zscore",
+      "formula_evidence": "Rolling zscore of four OHLC legs (open, high, low, close), existing scalar uses close alone",
+      "numeric_reference_480": {
+        "compared_to": "zscore",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 0.8234558465670709,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_z:2",
+      "category": "candles",
+      "index": 2,
+      "existing_catalog_formula": "zscore(close, 14)",
+      "existing_catalog_calculator": "zscore",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "cdl_z",
+      "source_output_index": 2,
+      "output_label": "low_Z_20_1",
+      "source_path": "pandas_ta_classic/candles/cdl_z.py",
+      "source_definition_line": 30,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "zscore",
+      "formula_evidence": "Rolling zscore of four OHLC legs (open, high, low, close), existing scalar uses close alone",
+      "numeric_reference_480": {
+        "compared_to": "zscore",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 0.7176035204533784,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cdl_z:3",
+      "category": "candles",
+      "index": 3,
+      "existing_catalog_formula": "zscore(close, 14)",
+      "existing_catalog_calculator": "zscore",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "cdl_z",
+      "source_output_index": 3,
+      "output_label": "close_Z_20_1",
+      "source_path": "pandas_ta_classic/candles/cdl_z.py",
+      "source_definition_line": 30,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "zscore",
+      "formula_evidence": "Rolling zscore of four OHLC legs (open, high, low, close), existing scalar uses close alone",
+      "numeric_reference_480": {
+        "compared_to": "zscore",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 0.06255262439307163,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ha:0",
+      "category": "candles",
+      "index": 0,
+      "existing_catalog_formula": "heikin_ashi(open, high, low, close, 14)",
+      "existing_catalog_calculator": "heikin_ashi",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "ha",
+      "source_output_index": 0,
+      "output_label": "HA_open",
+      "source_path": "pandas_ta_classic/candles/ha.py",
+      "source_definition_line": 25,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "heikin_ashi",
+      "formula_evidence": "HA_open recursive; HA_high=max(high,HA_open,HA_close); HA_low=min(low,HA_open,HA_close), existing HA_close component",
+      "numeric_reference_480": {
+        "compared_to": "heikin_ashi",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 1.688803670505166,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ha:1",
+      "category": "candles",
+      "index": 1,
+      "existing_catalog_formula": "heikin_ashi(open, high, low, close, 14)",
+      "existing_catalog_calculator": "heikin_ashi",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "ha",
+      "source_output_index": 1,
+      "output_label": "HA_high",
+      "source_path": "pandas_ta_classic/candles/ha.py",
+      "source_definition_line": 25,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "heikin_ashi",
+      "formula_evidence": "HA_open recursive; HA_high=max(high,HA_open,HA_close); HA_low=min(low,HA_open,HA_close), existing HA_close component",
+      "numeric_reference_480": {
+        "compared_to": "heikin_ashi",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 2.398366351357481,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ha:2",
+      "category": "candles",
+      "index": 2,
+      "existing_catalog_formula": "heikin_ashi(open, high, low, close, 14)",
+      "existing_catalog_calculator": "heikin_ashi",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "ha",
+      "source_output_index": 2,
+      "output_label": "HA_low",
+      "source_path": "pandas_ta_classic/candles/ha.py",
+      "source_definition_line": 25,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "heikin_ashi",
+      "formula_evidence": "HA_open recursive; HA_high=max(high,HA_open,HA_close); HA_low=min(low,HA_open,HA_close), existing HA_close component",
+      "numeric_reference_480": {
+        "compared_to": "heikin_ashi",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 2.3972739020186964,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "bias:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "bias_ratio(close, 26)",
+      "existing_catalog_calculator": "bias_ratio",
+      "existing_catalog_default_lookback": 26,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "bias",
+      "source_output_index": 0,
+      "output_label": "BIAS_SMA_20",
+      "source_path": "pandas_ta_classic/momentum/bias.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "bias_ratio",
+      "formula_evidence": "BIAS = close/MA(close)-1; bias_ratio family already present; verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "bias_ratio",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 4.440892098500626e-16,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "brar:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "brar_ar(open, high, low, 26)",
+      "existing_catalog_calculator": "brar_ar",
+      "existing_catalog_default_lookback": 26,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low"
+      ],
+      "source": "brar",
+      "source_output_index": 0,
+      "output_label": "AR_20",
+      "source_path": "pandas_ta_classic/momentum/brar.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "brar_ar",
+      "formula_evidence": "AR and BR from open-high/low and previous-close ranges; brar_ar and brar_br both exist; verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "brar_ar",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 1.4210854715202004e-14,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "brar:1",
+      "category": "momentum",
+      "index": 1,
+      "existing_catalog_formula": "brar_br(high, low, close, 26)",
+      "existing_catalog_calculator": "brar_br",
+      "existing_catalog_default_lookback": 26,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "brar",
+      "source_output_index": 1,
+      "output_label": "BR_20",
+      "source_path": "pandas_ta_classic/momentum/brar.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "brar_br",
+      "formula_evidence": "AR and BR from open-high/low and previous-close ranges; brar_ar and brar_br both exist; verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "brar_br",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 2.842170943040401e-14,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cg:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "center_of_gravity(close, 14)",
+      "existing_catalog_calculator": "center_of_gravity",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "cg",
+      "source_output_index": 0,
+      "output_label": "CG_20",
+      "source_path": "pandas_ta_classic/momentum/cg.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "center_of_gravity",
+      "formula_evidence": "Negative weighted rolling close sum divided by rolling close sum; sign and warmup differ",
+      "numeric_reference_480": {
+        "compared_to": "center_of_gravity",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 21.000000000000007,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "coppock:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "coppock_curve(close, 14)",
+      "existing_catalog_calculator": "coppock_curve",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "coppock",
+      "source_output_index": 0,
+      "output_label": "COPC_11_14_20",
+      "source_path": "pandas_ta_classic/momentum/coppock.py",
+      "source_definition_line": 14,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "coppock_curve",
+      "formula_evidence": "WMA of summed two rate-of-change paths; registered Coppock family",
+      "numeric_reference_480": {
+        "compared_to": "coppock_curve",
+        "same_period_n": 20,
+        "overlapping_finite": 447,
+        "raw_exact_max_abs_error": 2.689758879872463,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "cti:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "correlation_trend_indicator(close, 14)",
+      "existing_catalog_calculator": "correlation_trend_indicator",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "cti",
+      "source_output_index": 0,
+      "output_label": "CTI_20",
+      "source_path": "pandas_ta_classic/momentum/cti.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "correlation_trend_indicator",
+      "formula_evidence": "Pearson R of closes vs linear time trend; CTI already represented; verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "correlation_trend_indicator",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 5.352274179415417e-12,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "er:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "efficiency_ratio(close, 10)",
+      "existing_catalog_calculator": "efficiency_ratio",
+      "existing_catalog_default_lookback": 10,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "er",
+      "source_output_index": 0,
+      "output_label": "ER_20",
+      "source_path": "pandas_ta_classic/momentum/er.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "efficiency_ratio",
+      "formula_evidence": "Kaufman efficiency ratio abs net change/sum(abs close differences); verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "efficiency_ratio",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.0,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "kdj:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "kdj_j(high, low, close, 9)",
+      "existing_catalog_calculator": "kdj_j",
+      "existing_catalog_default_lookback": 9,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "kdj",
+      "source_output_index": 0,
+      "output_label": "K_20_3",
+      "source_path": "pandas_ta_classic/momentum/kdj.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "kdj_j",
+      "formula_evidence": "K,D,J of stochastic oscillator; J already present and K,D are associated lines",
+      "numeric_reference_480": {
+        "compared_to": "kdj_j",
+        "same_period_n": 20,
+        "overlapping_finite": 457,
+        "raw_exact_max_abs_error": 32.30099655849802,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "kdj:1",
+      "category": "momentum",
+      "index": 1,
+      "existing_catalog_formula": "kdj_j(high, low, close, 9)",
+      "existing_catalog_calculator": "kdj_j",
+      "existing_catalog_default_lookback": 9,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "kdj",
+      "source_output_index": 1,
+      "output_label": "D_20_3",
+      "source_path": "pandas_ta_classic/momentum/kdj.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "kdj_j",
+      "formula_evidence": "K,D,J of stochastic oscillator; J already present and K,D are associated lines",
+      "numeric_reference_480": {
+        "compared_to": "kdj_j",
+        "same_period_n": 20,
+        "overlapping_finite": 457,
+        "raw_exact_max_abs_error": 48.451494837747035,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "kdj:2",
+      "category": "momentum",
+      "index": 2,
+      "existing_catalog_formula": "kdj_j(high, low, close, 9)",
+      "existing_catalog_calculator": "kdj_j",
+      "existing_catalog_default_lookback": 9,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "kdj",
+      "source_output_index": 2,
+      "output_label": "J_20_3",
+      "source_path": "pandas_ta_classic/momentum/kdj.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "kdj_j",
+      "formula_evidence": "K,D,J of stochastic oscillator; J already present and K,D are associated lines; verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "kdj_j",
+        "same_period_n": 20,
+        "overlapping_finite": 457,
+        "raw_exact_max_abs_error": 8.526512829121202e-14,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "lrsi:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "laguerre_rsi(close, 14)",
+      "existing_catalog_calculator": "laguerre_rsi",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "lrsi",
+      "source_output_index": 0,
+      "output_label": "LRSI_20",
+      "source_path": "pandas_ta_classic/momentum/lrsi.py",
+      "source_definition_line": 29,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "laguerre_rsi",
+      "formula_evidence": "Four-filter Laguerre stage RSI; registered laguerre_rsi currently simplified",
+      "numeric_reference_480": {
+        "compared_to": "laguerre_rsi",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 64.67019650062323,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "mom:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "momentum(close, 14)",
+      "existing_catalog_calculator": "momentum",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "mom",
+      "source_output_index": 0,
+      "output_label": "MOM_20",
+      "source_path": "pandas_ta_classic/momentum/mom.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "momentum",
+      "formula_evidence": "MOM = close[t] - close[t-n], exactly native momentum at same n",
+      "numeric_reference_480": {
+        "compared_to": "momentum",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.0,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "pgo:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "pretty_good_oscillator(high, low, close, 14)",
+      "existing_catalog_calculator": "pretty_good_oscillator",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "pgo",
+      "source_output_index": 0,
+      "output_label": "PGO_20",
+      "source_path": "pandas_ta_classic/momentum/pgo.py",
+      "source_definition_line": 14,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "pretty_good_oscillator",
+      "formula_evidence": "PGO = (close-SMA) / EMA(ATR), same named oscillator",
+      "numeric_reference_480": {
+        "compared_to": "pretty_good_oscillator",
+        "same_period_n": 20,
+        "overlapping_finite": 441,
+        "raw_exact_max_abs_error": 0.000994060193377666,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "psl:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "psychological_line(close, 12)",
+      "existing_catalog_calculator": "psychological_line",
+      "existing_catalog_default_lookback": 12,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "psl",
+      "source_output_index": 0,
+      "output_label": "PSL_20",
+      "source_path": "pandas_ta_classic/momentum/psl.py",
+      "source_definition_line": 19,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "psychological_line",
+      "formula_evidence": "Percent-positive/negative closes sign sum vs psychological_line",
+      "numeric_reference_480": {
+        "compared_to": "psychological_line",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 50.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "rocp:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "returns(close, 14)",
+      "existing_catalog_calculator": "returns",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "rocp",
+      "source_output_index": 0,
+      "output_label": "ROCP_20",
+      "source_path": "pandas_ta_classic/momentum/rocp.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "returns",
+      "formula_evidence": "ROCP = close/close[n]-1 = native returns",
+      "numeric_reference_480": {
+        "compared_to": "returns",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 1.1102230246251565e-16,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "rocr:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "returns(close, 14)",
+      "existing_catalog_calculator": "returns",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "rocr",
+      "source_output_index": 0,
+      "output_label": "ROCR_20",
+      "source_path": "pandas_ta_classic/momentum/rocr.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "returns",
+      "formula_evidence": "ROCR = close/close[n] = native returns + 1",
+      "numeric_reference_480": {
+        "compared_to": "returns",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.0,
+        "match_mode": "plus_one"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "rocr100:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "returns(close, 14)",
+      "existing_catalog_calculator": "returns",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "rocr100",
+      "source_output_index": 0,
+      "output_label": "ROCR100_20",
+      "source_path": "pandas_ta_classic/momentum/rocr100.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "returns",
+      "formula_evidence": "ROCR100 = 100*close/close[n] = 100*(native returns+1)",
+      "numeric_reference_480": {
+        "compared_to": "returns",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.0,
+        "match_mode": "plus_one_times_100"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "squeeze:2",
+      "category": "momentum",
+      "index": 2,
+      "existing_catalog_formula": "squeeze_on(high, low, close, 20)",
+      "existing_catalog_calculator": "squeeze_on",
+      "existing_catalog_default_lookback": 20,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "squeeze",
+      "source_output_index": 2,
+      "output_label": "SQZ_OFF",
+      "source_path": "pandas_ta_classic/momentum/squeeze.py",
+      "source_definition_line": 94,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "squeeze_on",
+      "formula_evidence": "Squeeze release OFF boolean complements existing squeeze_on and bands",
+      "numeric_reference_480": {
+        "compared_to": "squeeze_on",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 1.0,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "stoch:1",
+      "category": "momentum",
+      "index": 1,
+      "existing_catalog_formula": "stochastic(high, low, close, 14)",
+      "existing_catalog_calculator": "stochastic",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "stoch",
+      "source_output_index": 1,
+      "output_label": "STOCHd_14_3_3",
+      "source_path": "pandas_ta_classic/momentum/stoch.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "stochastic",
+      "formula_evidence": "Slow stochastic %D signal-line from smoothed %K; existing main stochastic output",
+      "numeric_reference_480": {
+        "compared_to": "stochastic",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 13.356886168057656,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "willr:0",
+      "category": "momentum",
+      "index": 0,
+      "existing_catalog_formula": "williams_r(high, low, close, 14)",
+      "existing_catalog_calculator": "williams_r",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "willr",
+      "source_output_index": 0,
+      "output_label": "WILLR_20",
+      "source_path": "pandas_ta_classic/momentum/willr.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "williams_r",
+      "formula_evidence": "WILLIAMS %R = 100*((close-lowest)/(highest-lowest)-1)",
+      "numeric_reference_480": {
+        "compared_to": "williams_r",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 1.4210854715202004e-14,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ht_trendline:0",
+      "category": "overlap",
+      "index": 0,
+      "existing_catalog_formula": "hilbert_trendline(close, 14)",
+      "existing_catalog_calculator": "hilbert_trendline",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "ht_trendline",
+      "source_output_index": 0,
+      "output_label": "HT_TRENDLINE",
+      "source_path": "pandas_ta_classic/overlap/ht_trendline.py",
+      "source_definition_line": 14,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "hilbert_trendline",
+      "formula_evidence": "Hilbert-transform trendline differs from existing EMA approximation",
+      "numeric_reference_480": {
+        "compared_to": "hilbert_trendline",
+        "same_period_n": 20,
+        "overlapping_finite": 417,
+        "raw_exact_max_abs_error": 5.044984307566324,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "linreg:0",
+      "category": "overlap",
+      "index": 0,
+      "existing_catalog_formula": "linear_regression(close, 14)",
+      "existing_catalog_calculator": "linear_regression",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "linreg",
+      "source_output_index": 0,
+      "output_label": "LR_20",
+      "source_path": "pandas_ta_classic/overlap/linreg.py",
+      "source_definition_line": 92,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "linear_regression",
+      "formula_evidence": "Ordinary least-squares line endpoint; identical registered linear_regression with same period",
+      "numeric_reference_480": {
+        "compared_to": "linear_regression",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 3.979039320256561e-13,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "mcgd:0",
+      "category": "overlap",
+      "index": 0,
+      "existing_catalog_formula": "mcginley(close, 14)",
+      "existing_catalog_calculator": "mcginley",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "mcgd",
+      "source_output_index": 0,
+      "output_label": "MCGD_20",
+      "source_path": "pandas_ta_classic/overlap/mcgd.py",
+      "source_definition_line": 28,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "mcginley",
+      "formula_evidence": "McGinley Dynamic adaptive recursion; depends on seed/ratio floor details",
+      "numeric_reference_480": {
+        "compared_to": "mcginley",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 1.3470071983365415,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "midpoint:0",
+      "category": "overlap",
+      "index": 0,
+      "existing_catalog_formula": null,
+      "existing_catalog_calculator": null,
+      "existing_catalog_default_lookback": null,
+      "existing_catalog_inputs": null,
+      "source": "midpoint",
+      "source_output_index": 0,
+      "output_label": "MIDPOINT_20",
+      "source_path": "pandas_ta_classic/overlap/midpoint.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "existing_comparison_target": null,
+      "formula_evidence": "(rolling max(close,n)+rolling min(close,n))/2, no named same-close-window midpoint scalar",
+      "numeric_reference_480": {
+        "compared_to": "",
+        "same_period_n": 20,
+        "overlapping_finite": 0,
+        "raw_exact_max_abs_error": null,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "mmar:1",
+      "category": "overlap",
+      "index": 1,
+      "existing_catalog_formula": "guppy_mma(close, 14)",
+      "existing_catalog_calculator": "guppy_mma",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "mmar",
+      "source_output_index": 1,
+      "output_label": "MMAR_25",
+      "source_path": "pandas_ta_classic/overlap/mmar.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "guppy_mma",
+      "formula_evidence": "Five separately exposed EMA lines at multiple periods of Moving Average Rainbow",
+      "numeric_reference_480": {
+        "compared_to": "guppy_mma",
+        "same_period_n": 20,
+        "overlapping_finite": 456,
+        "raw_exact_max_abs_error": 0.824050322464899,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "mmar:2",
+      "category": "overlap",
+      "index": 2,
+      "existing_catalog_formula": "guppy_mma(close, 14)",
+      "existing_catalog_calculator": "guppy_mma",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "mmar",
+      "source_output_index": 2,
+      "output_label": "MMAR_30",
+      "source_path": "pandas_ta_classic/overlap/mmar.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "guppy_mma",
+      "formula_evidence": "Five separately exposed EMA lines at multiple periods of Moving Average Rainbow",
+      "numeric_reference_480": {
+        "compared_to": "guppy_mma",
+        "same_period_n": 20,
+        "overlapping_finite": 451,
+        "raw_exact_max_abs_error": 1.5221664241152553,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "mmar:3",
+      "category": "overlap",
+      "index": 3,
+      "existing_catalog_formula": "guppy_mma(close, 14)",
+      "existing_catalog_calculator": "guppy_mma",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "mmar",
+      "source_output_index": 3,
+      "output_label": "MMAR_35",
+      "source_path": "pandas_ta_classic/overlap/mmar.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "guppy_mma",
+      "formula_evidence": "Five separately exposed EMA lines at multiple periods of Moving Average Rainbow",
+      "numeric_reference_480": {
+        "compared_to": "guppy_mma",
+        "same_period_n": 20,
+        "overlapping_finite": 446,
+        "raw_exact_max_abs_error": 2.4066860041328937,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "mmar:4",
+      "category": "overlap",
+      "index": 4,
+      "existing_catalog_formula": "guppy_mma(close, 14)",
+      "existing_catalog_calculator": "guppy_mma",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "mmar",
+      "source_output_index": 4,
+      "output_label": "MMAR_40",
+      "source_path": "pandas_ta_classic/overlap/mmar.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "guppy_mma",
+      "formula_evidence": "Five separately exposed EMA lines at multiple periods of Moving Average Rainbow",
+      "numeric_reference_480": {
+        "compared_to": "guppy_mma",
+        "same_period_n": 20,
+        "overlapping_finite": 441,
+        "raw_exact_max_abs_error": 3.21586648764756,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "mmar:5",
+      "category": "overlap",
+      "index": 5,
+      "existing_catalog_formula": "guppy_mma(close, 14)",
+      "existing_catalog_calculator": "guppy_mma",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "mmar",
+      "source_output_index": 5,
+      "output_label": "MMAR_45",
+      "source_path": "pandas_ta_classic/overlap/mmar.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "guppy_mma",
+      "formula_evidence": "Five separately exposed EMA lines at multiple periods of Moving Average Rainbow",
+      "numeric_reference_480": {
+        "compared_to": "guppy_mma",
+        "same_period_n": 20,
+        "overlapping_finite": 436,
+        "raw_exact_max_abs_error": 3.429328593756736,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "rma:0",
+      "category": "overlap",
+      "index": 0,
+      "existing_catalog_formula": "rsi(close, 14)",
+      "existing_catalog_calculator": "rsi",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "rma",
+      "source_output_index": 0,
+      "output_label": "RMA_20",
+      "source_path": "pandas_ta_classic/overlap/rma.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "rsi.wilder",
+      "formula_evidence": "Wilder EMA alpha=1/n smoothing; existing smoothing primitive used within RSI but not direct standalone output",
+      "numeric_reference_480": {
+        "compared_to": "rsi.wilder",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 192.06238949420555,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "wcp:0",
+      "category": "overlap",
+      "index": 0,
+      "existing_catalog_formula": null,
+      "existing_catalog_calculator": null,
+      "existing_catalog_default_lookback": null,
+      "existing_catalog_inputs": null,
+      "source": "wcp",
+      "source_output_index": 0,
+      "output_label": "WCP",
+      "source_path": "pandas_ta_classic/overlap/wcp.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "existing_comparison_target": null,
+      "formula_evidence": "Weighted closing price (high+low+2*close)/4; differs from typical price HLC3 and OHLC4",
+      "numeric_reference_480": {
+        "compared_to": "",
+        "same_period_n": 20,
+        "overlapping_finite": 0,
+        "raw_exact_max_abs_error": null,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "drawdown:0",
+      "category": "performance",
+      "index": 0,
+      "existing_catalog_formula": null,
+      "existing_catalog_calculator": null,
+      "existing_catalog_default_lookback": null,
+      "existing_catalog_inputs": null,
+      "source": "drawdown",
+      "source_output_index": 0,
+      "output_label": "DD",
+      "source_path": "pandas_ta_classic/performance/drawdown.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "existing_comparison_target": null,
+      "formula_evidence": "Three wealth/price running-peak drawdown measures: peak-close, 1-close/peak and log(peak/close); portfolio max drawdown metric is not bar-level catalog scalar",
+      "numeric_reference_480": {
+        "compared_to": "",
+        "same_period_n": 20,
+        "overlapping_finite": 0,
+        "raw_exact_max_abs_error": null,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "drawdown:1",
+      "category": "performance",
+      "index": 1,
+      "existing_catalog_formula": null,
+      "existing_catalog_calculator": null,
+      "existing_catalog_default_lookback": null,
+      "existing_catalog_inputs": null,
+      "source": "drawdown",
+      "source_output_index": 1,
+      "output_label": "DD_PCT",
+      "source_path": "pandas_ta_classic/performance/drawdown.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "existing_comparison_target": null,
+      "formula_evidence": "Three wealth/price running-peak drawdown measures: peak-close, 1-close/peak and log(peak/close); portfolio max drawdown metric is not bar-level catalog scalar",
+      "numeric_reference_480": {
+        "compared_to": "",
+        "same_period_n": 20,
+        "overlapping_finite": 0,
+        "raw_exact_max_abs_error": null,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "drawdown:2",
+      "category": "performance",
+      "index": 2,
+      "existing_catalog_formula": null,
+      "existing_catalog_calculator": null,
+      "existing_catalog_default_lookback": null,
+      "existing_catalog_inputs": null,
+      "source": "drawdown",
+      "source_output_index": 2,
+      "output_label": "DD_LOG",
+      "source_path": "pandas_ta_classic/performance/drawdown.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "existing_comparison_target": null,
+      "formula_evidence": "Three wealth/price running-peak drawdown measures: peak-close, 1-close/peak and log(peak/close); portfolio max drawdown metric is not bar-level catalog scalar",
+      "numeric_reference_480": {
+        "compared_to": "",
+        "same_period_n": 20,
+        "overlapping_finite": 0,
+        "raw_exact_max_abs_error": null,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "log_return:0",
+      "category": "performance",
+      "index": 0,
+      "existing_catalog_formula": "log_returns(close, 14)",
+      "existing_catalog_calculator": "log_returns",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "log_return",
+      "source_output_index": 0,
+      "output_label": "LOGRET_20",
+      "source_path": "pandas_ta_classic/performance/log_return.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "log_returns",
+      "formula_evidence": "LOGRET_n = log(close[t]/close[t-n]), same input n as native log_returns",
+      "numeric_reference_480": {
+        "compared_to": "log_returns",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 6.938893903907228e-18,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "kurtosis:0",
+      "category": "statistics",
+      "index": 0,
+      "existing_catalog_formula": "rolling_kurtosis(close, 14)",
+      "existing_catalog_calculator": "rolling_kurtosis",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "kurtosis",
+      "source_output_index": 0,
+      "output_label": "KURT_20",
+      "source_path": "pandas_ta_classic/statistics/kurtosis.py",
+      "source_definition_line": 19,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "rolling_kurtosis",
+      "formula_evidence": "Fourth standardized central moment; pandas computes sample/excess conventions, native often population moment",
+      "numeric_reference_480": {
+        "compared_to": "rolling_kurtosis",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 0.3964993183517338,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "skew:0",
+      "category": "statistics",
+      "index": 0,
+      "existing_catalog_formula": "rolling_skewness(close, 14)",
+      "existing_catalog_calculator": "rolling_skewness",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "skew",
+      "source_output_index": 0,
+      "output_label": "SKEW_20",
+      "source_path": "pandas_ta_classic/statistics/skew.py",
+      "source_definition_line": 19,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "rolling_skewness",
+      "formula_evidence": "Third standardized central moment, sample vs population normalization",
+      "numeric_reference_480": {
+        "compared_to": "rolling_skewness",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 0.0911020025596796,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "stderr:0",
+      "category": "statistics",
+      "index": 0,
+      "existing_catalog_formula": "standard_deviation(close, 14)",
+      "existing_catalog_calculator": "standard_deviation",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "stderr",
+      "source_output_index": 0,
+      "output_label": "STDERR_20",
+      "source_path": "pandas_ta_classic/statistics/stderr.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "standard_deviation",
+      "formula_evidence": "Standard error = sample standard deviation/sqrt(window length), derived from existing stdev",
+      "numeric_reference_480": {
+        "compared_to": "standard_deviation",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 2.918715591554812,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "stdev:0",
+      "category": "statistics",
+      "index": 0,
+      "existing_catalog_formula": "standard_deviation(close, 14)",
+      "existing_catalog_calculator": "standard_deviation",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "stdev",
+      "source_output_index": 0,
+      "output_label": "STDEV_20",
+      "source_path": "pandas_ta_classic/statistics/stdev.py",
+      "source_definition_line": 15,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "standard_deviation",
+      "formula_evidence": "Rolling sample std(ddof=1) vs native population std(ddof=0); verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "standard_deviation",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 4.440892098500626e-16,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "variance:0",
+      "category": "statistics",
+      "index": 0,
+      "existing_catalog_formula": "standard_deviation(close, 14)",
+      "existing_catalog_calculator": "standard_deviation",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "variance",
+      "source_output_index": 0,
+      "output_label": "VAR_20",
+      "source_path": "pandas_ta_classic/statistics/variance.py",
+      "source_definition_line": 45,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "standard_deviation",
+      "formula_evidence": "Variance = square of sample stdev; directly derived from stdev with ddof agreement",
+      "numeric_reference_480": {
+        "compared_to": "standard_deviation",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 10.558745735984512,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "adxr:0",
+      "category": "trend",
+      "index": 0,
+      "existing_catalog_formula": "dmi_adx(high, low, close, 14)",
+      "existing_catalog_calculator": "dmi_adx",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "adxr",
+      "source_output_index": 0,
+      "output_label": "ADXR_20",
+      "source_path": "pandas_ta_classic/trend/adxr.py",
+      "source_definition_line": 13,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "dmi_adx",
+      "formula_evidence": "ADXR = (ADX[t]+ADX[t-period])/2 smoothed follow-up to existing ADX",
+      "numeric_reference_480": {
+        "compared_to": "dmi_adx",
+        "same_period_n": 20,
+        "overlapping_finite": 422,
+        "raw_exact_max_abs_error": 56.511099350966326,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "chop:0",
+      "category": "trend",
+      "index": 0,
+      "existing_catalog_formula": "choppiness_index(high, low, close, 14)",
+      "existing_catalog_calculator": "choppiness_index",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "chop",
+      "source_output_index": 0,
+      "output_label": "CHOP_20_1_100",
+      "source_path": "pandas_ta_classic/trend/chop.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "choppiness_index",
+      "formula_evidence": "Choppiness index log(sum ATR / high-low span)/log(n); verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "choppiness_index",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 2.842170943040401e-14,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "psar:0",
+      "category": "trend",
+      "index": 0,
+      "existing_catalog_formula": "parabolic_sar(high, low, 14)",
+      "existing_catalog_calculator": "parabolic_sar",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "psar",
+      "source_output_index": 0,
+      "output_label": "PSARl_0.02_0.2",
+      "source_path": "pandas_ta_classic/trend/psar.py",
+      "source_definition_line": 73,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "parabolic_sar",
+      "formula_evidence": "PSAR long, short, acceleration factor and reversal state; registered parabolic_sar scalar and Buk split markers",
+      "numeric_reference_480": {
+        "compared_to": "parabolic_sar",
+        "same_period_n": 20,
+        "overlapping_finite": 266,
+        "raw_exact_max_abs_error": 2.269211304988829,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "psar:1",
+      "category": "trend",
+      "index": 1,
+      "existing_catalog_formula": "parabolic_sar(high, low, 14)",
+      "existing_catalog_calculator": "parabolic_sar",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "psar",
+      "source_output_index": 1,
+      "output_label": "PSARs_0.02_0.2",
+      "source_path": "pandas_ta_classic/trend/psar.py",
+      "source_definition_line": 73,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "parabolic_sar",
+      "formula_evidence": "PSAR long, short, acceleration factor and reversal state; registered parabolic_sar scalar and Buk split markers",
+      "numeric_reference_480": {
+        "compared_to": "parabolic_sar",
+        "same_period_n": 20,
+        "overlapping_finite": 213,
+        "raw_exact_max_abs_error": 6.0061481447750396,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "psar:2",
+      "category": "trend",
+      "index": 2,
+      "existing_catalog_formula": "parabolic_sar(high, low, 14)",
+      "existing_catalog_calculator": "parabolic_sar",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "psar",
+      "source_output_index": 2,
+      "output_label": "PSARaf_0.02_0.2",
+      "source_path": "pandas_ta_classic/trend/psar.py",
+      "source_definition_line": 73,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "parabolic_sar",
+      "formula_evidence": "PSAR long, short, acceleration factor and reversal state; registered parabolic_sar scalar and Buk split markers",
+      "numeric_reference_480": {
+        "compared_to": "parabolic_sar",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 226.53271082153378,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "psar:3",
+      "category": "trend",
+      "index": 3,
+      "existing_catalog_formula": "parabolic_sar(high, low, 14)",
+      "existing_catalog_calculator": "parabolic_sar",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "psar",
+      "source_output_index": 3,
+      "output_label": "PSARr_0.02_0.2",
+      "source_path": "pandas_ta_classic/trend/psar.py",
+      "source_definition_line": 73,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "parabolic_sar",
+      "formula_evidence": "PSAR long, short, acceleration factor and reversal state; registered parabolic_sar scalar and Buk split markers",
+      "numeric_reference_480": {
+        "compared_to": "parabolic_sar",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 226.6001951305233,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "sarext:0",
+      "category": "trend",
+      "index": 0,
+      "existing_catalog_formula": "parabolic_sar(high, low, 14)",
+      "existing_catalog_calculator": "parabolic_sar",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "sarext",
+      "source_output_index": 0,
+      "output_label": "SAREXT",
+      "source_path": "pandas_ta_classic/trend/sarext.py",
+      "source_definition_line": 156,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "parabolic_sar",
+      "formula_evidence": "Extended acceleration factors of SAR, same family different acceleration/initialization",
+      "numeric_reference_480": {
+        "compared_to": "parabolic_sar",
+        "same_period_n": 20,
+        "overlapping_finite": 479,
+        "raw_exact_max_abs_error": 457.5656948396453,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "vhf:0",
+      "category": "trend",
+      "index": 0,
+      "existing_catalog_formula": "vertical_horizontal_filter(close, 28)",
+      "existing_catalog_calculator": "vertical_horizontal_filter",
+      "existing_catalog_default_lookback": 28,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "vhf",
+      "source_output_index": 0,
+      "output_label": "VHF_20",
+      "source_path": "pandas_ta_classic/trend/vhf.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ALGEBRAIC_DUPLICATE",
+      "existing_comparison_target": "vertical_horizontal_filter",
+      "formula_evidence": "(rolling max(close)-min(close))/sum(abs successive close changes), same VHF family; verified source and existing formula coincide after period alignment",
+      "numeric_reference_480": {
+        "compared_to": "vertical_horizontal_filter",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.0,
+        "match_mode": "identity"
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "accbands:0",
+      "category": "volatility",
+      "index": 0,
+      "existing_catalog_formula": "acceleration_band_upper(high, low, close, 20)",
+      "existing_catalog_calculator": "acceleration_band_upper",
+      "existing_catalog_default_lookback": 20,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "accbands",
+      "source_output_index": 0,
+      "output_label": "ACCBL_20",
+      "source_path": "pandas_ta_classic/volatility/accbands.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "acceleration_band_upper",
+      "formula_evidence": "Acceleration band lower or upper from low/high*(1±(high-low)/(high+low)) and MA",
+      "numeric_reference_480": {
+        "compared_to": "acceleration_band_upper",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 13.685425108048548,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "accbands:2",
+      "category": "volatility",
+      "index": 2,
+      "existing_catalog_formula": "acceleration_band_upper(high, low, close, 20)",
+      "existing_catalog_calculator": "acceleration_band_upper",
+      "existing_catalog_default_lookback": 20,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "accbands",
+      "source_output_index": 2,
+      "output_label": "ACCBU_20",
+      "source_path": "pandas_ta_classic/volatility/accbands.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "acceleration_band_upper",
+      "formula_evidence": "Acceleration band lower or upper from low/high*(1±(high-low)/(high+low)) and MA",
+      "numeric_reference_480": {
+        "compared_to": "acceleration_band_upper",
+        "same_period_n": 20,
+        "overlapping_finite": 461,
+        "raw_exact_max_abs_error": 5.948174837835467,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ce:0",
+      "category": "volatility",
+      "index": 0,
+      "existing_catalog_formula": "chandelier_exit_long(high, low, close, 22)",
+      "existing_catalog_calculator": "chandelier_exit_long",
+      "existing_catalog_default_lookback": 22,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "ce",
+      "source_output_index": 0,
+      "output_label": "CE_L_20_3.0",
+      "source_path": "pandas_ta_classic/volatility/ce.py",
+      "source_definition_line": 13,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "chandelier_exit_long",
+      "formula_evidence": "Chandelier long HH-N*ATR and short LL+N*ATR, one existing side",
+      "numeric_reference_480": {
+        "compared_to": "chandelier_exit_long",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.3544174521125001,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ce:1",
+      "category": "volatility",
+      "index": 1,
+      "existing_catalog_formula": "chandelier_exit_long(high, low, close, 22)",
+      "existing_catalog_calculator": "chandelier_exit_long",
+      "existing_catalog_default_lookback": 22,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "ce",
+      "source_output_index": 1,
+      "output_label": "CE_S_20_3.0",
+      "source_path": "pandas_ta_classic/volatility/ce.py",
+      "source_definition_line": 13,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "chandelier_exit_long",
+      "formula_evidence": "Chandelier long HH-N*ATR and short LL+N*ATR, one existing side",
+      "numeric_reference_480": {
+        "compared_to": "chandelier_exit_long",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 17.104429775335376,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "hvol:0",
+      "category": "volatility",
+      "index": 0,
+      "existing_catalog_formula": "historical_volatility(close, 14)",
+      "existing_catalog_calculator": "historical_volatility",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close"
+      ],
+      "source": "hvol",
+      "source_output_index": 0,
+      "output_label": "HVOL_20",
+      "source_path": "pandas_ta_classic/volatility/hvol.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "historical_volatility",
+      "formula_evidence": "Std of one-bar log returns times sqrt(annualization), source percent and ddof adjust",
+      "numeric_reference_480": {
+        "compared_to": "historical_volatility",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 3.218805103329861,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "kc:0",
+      "category": "volatility",
+      "index": 0,
+      "existing_catalog_formula": "ta.wrapper::volatility_kcl (pinned defaults)",
+      "existing_catalog_calculator": "bukosabino_pinned",
+      "existing_catalog_default_lookback": 1,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "source": "kc",
+      "source_output_index": 0,
+      "output_label": "KCLe_20_2",
+      "source_path": "pandas_ta_classic/volatility/kc.py",
+      "source_definition_line": 19,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "buk_volatility_kcl",
+      "formula_evidence": "Keltner lower/upper bands; existing registered Bukosabino kcl/kch, source uses range smoothing",
+      "numeric_reference_480": {
+        "compared_to": "buk_volatility_kcl",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 6.583258904596079,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "kc:2",
+      "category": "volatility",
+      "index": 2,
+      "existing_catalog_formula": "ta.wrapper::volatility_kcl (pinned defaults)",
+      "existing_catalog_calculator": "bukosabino_pinned",
+      "existing_catalog_default_lookback": 1,
+      "existing_catalog_inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "source": "kc",
+      "source_output_index": 2,
+      "output_label": "KCUe_20_2",
+      "source_path": "pandas_ta_classic/volatility/kc.py",
+      "source_definition_line": 19,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "buk_volatility_kcl",
+      "formula_evidence": "Keltner lower/upper bands; existing registered Bukosabino kcl/kch, source uses range smoothing",
+      "numeric_reference_480": {
+        "compared_to": "buk_volatility_kcl",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 14.060456493218908,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "massi:0",
+      "category": "volatility",
+      "index": 0,
+      "existing_catalog_formula": "mass_index(high, low, 14)",
+      "existing_catalog_calculator": "mass_index",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "massi",
+      "source_output_index": 0,
+      "output_label": "MASSI_9_25",
+      "source_path": "pandas_ta_classic/volatility/massi.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "mass_index",
+      "formula_evidence": "Mass Index double EMA of (high-low), two distinct fast and slow periods",
+      "numeric_reference_480": {
+        "compared_to": "mass_index",
+        "same_period_n": 20,
+        "overlapping_finite": 423,
+        "raw_exact_max_abs_error": 5.355239230648589,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "natr:0",
+      "category": "volatility",
+      "index": 0,
+      "existing_catalog_formula": "normalized_atr(high, low, close, 14)",
+      "existing_catalog_calculator": "normalized_atr",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "source": "natr",
+      "source_output_index": 0,
+      "output_label": "NATR_20",
+      "source_path": "pandas_ta_classic/volatility/natr.py",
+      "source_definition_line": 20,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "normalized_atr",
+      "formula_evidence": "Normalized ATR = 100*ATR/close; possible parameter and unit conventions differ",
+      "numeric_reference_480": {
+        "compared_to": "normalized_atr",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 1.9989828824221887,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "thermo:1",
+      "category": "volatility",
+      "index": 1,
+      "existing_catalog_formula": "thermometer(high, low, 2)",
+      "existing_catalog_calculator": "thermometer",
+      "existing_catalog_default_lookback": 2,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "thermo",
+      "source_output_index": 1,
+      "output_label": "THERMOma_20_2_0.5",
+      "source_path": "pandas_ta_classic/volatility/thermo.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "thermometer",
+      "formula_evidence": "Thermometer moving average and change-state side signal, original thermometer raw already registered",
+      "numeric_reference_480": {
+        "compared_to": "thermometer",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.51120228377261,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "thermo:3",
+      "category": "volatility",
+      "index": 3,
+      "existing_catalog_formula": "thermometer(high, low, 2)",
+      "existing_catalog_calculator": "thermometer",
+      "existing_catalog_default_lookback": 2,
+      "existing_catalog_inputs": [
+        "high",
+        "low"
+      ],
+      "source": "thermo",
+      "source_output_index": 3,
+      "output_label": "THERMOs_20_2_0.5",
+      "source_path": "pandas_ta_classic/volatility/thermo.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "thermometer",
+      "formula_evidence": "Thermometer moving average and change-state side signal, original thermometer raw already registered",
+      "numeric_reference_480": {
+        "compared_to": "thermometer",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 0.804280875968999,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "ad:0",
+      "category": "volume",
+      "index": 0,
+      "existing_catalog_formula": "adl(high, low, close, volume, 14)",
+      "existing_catalog_calculator": "adl",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "source": "ad",
+      "source_output_index": 0,
+      "output_label": "ADo",
+      "source_path": "pandas_ta_classic/volume/ad.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "adl",
+      "formula_evidence": "With open_ given, AD uses (close-open)*volume/(high-low); absent open it uses (2*close-high-low)*volume/(high-low) identical to native ADL",
+      "numeric_reference_480": {
+        "compared_to": "adl",
+        "same_period_n": 20,
+        "overlapping_finite": 480,
+        "raw_exact_max_abs_error": 10454.557058437525,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "adosc:0",
+      "category": "volume",
+      "index": 0,
+      "existing_catalog_formula": null,
+      "existing_catalog_calculator": null,
+      "existing_catalog_default_lookback": null,
+      "existing_catalog_inputs": null,
+      "source": "adosc",
+      "source_output_index": 0,
+      "output_label": "ADOSC_3_10",
+      "source_path": "pandas_ta_classic/volume/adosc.py",
+      "source_definition_line": 31,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "existing_comparison_target": null,
+      "formula_evidence": "Chaikin Accumulation/Distribution Oscillator = EMA_fast(ADL)-EMA_slow(ADL); different from Chaikin Volatility",
+      "numeric_reference_480": {
+        "compared_to": "",
+        "same_period_n": 20,
+        "overlapping_finite": 0,
+        "raw_exact_max_abs_error": null,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "efi:0",
+      "category": "volume",
+      "index": 0,
+      "existing_catalog_formula": "force_index(close, volume, 14)",
+      "existing_catalog_calculator": "force_index",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "close",
+        "volume"
+      ],
+      "source": "efi",
+      "source_output_index": 0,
+      "output_label": "EFI_20",
+      "source_path": "pandas_ta_classic/volume/efi.py",
+      "source_definition_line": 18,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "force_index",
+      "formula_evidence": "Force Index (close-change)*volume then smoothed MA; native scalar uses raw force index",
+      "numeric_reference_480": {
+        "compared_to": "force_index",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 1277.3922570171608,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "emv:0",
+      "category": "volume",
+      "index": 0,
+      "existing_catalog_formula": "ease_of_movement(high, low, volume, 14)",
+      "existing_catalog_calculator": "ease_of_movement",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "volume"
+      ],
+      "source": "emv",
+      "source_output_index": 0,
+      "output_label": "EMV",
+      "source_path": "pandas_ta_classic/volume/emv.py",
+      "source_definition_line": 17,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "ease_of_movement",
+      "formula_evidence": "One-bar ease of movement midpoint distance*(high-low)/volume with scale divisor",
+      "numeric_reference_480": {
+        "compared_to": "ease_of_movement",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 19.61941550280828,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "eom:0",
+      "category": "volume",
+      "index": 0,
+      "existing_catalog_formula": "ease_of_movement(high, low, volume, 14)",
+      "existing_catalog_calculator": "ease_of_movement",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "high",
+        "low",
+        "volume"
+      ],
+      "source": "eom",
+      "source_output_index": 0,
+      "output_label": "EOM_20_100000000",
+      "source_path": "pandas_ta_classic/volume/eom.py",
+      "source_definition_line": 19,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "existing_comparison_target": "ease_of_movement",
+      "formula_evidence": "Smoothed SMA of ease of movement; same raw source family",
+      "numeric_reference_480": {
+        "compared_to": "ease_of_movement",
+        "same_period_n": 20,
+        "overlapping_finite": 460,
+        "raw_exact_max_abs_error": 115652.30642029934,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    },
+    {
+      "candidate": "vosc:0",
+      "category": "volume",
+      "index": 0,
+      "existing_catalog_formula": "volume_oscillator(volume, 14)",
+      "existing_catalog_calculator": "volume_oscillator",
+      "existing_catalog_default_lookback": 14,
+      "existing_catalog_inputs": [
+        "volume"
+      ],
+      "source": "vosc",
+      "source_output_index": 0,
+      "output_label": "VOSC_14_28",
+      "source_path": "pandas_ta_classic/volume/vosc.py",
+      "source_definition_line": 12,
+      "source_sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "formula_disposition": "EXISTING_FAMILY_DIFFERENT_IMPLEMENTATION",
+      "existing_comparison_target": "volume_oscillator",
+      "formula_evidence": "100*(SMA(volume,fast)-SMA(volume,slow))/SMA(volume,slow), existing EMA-spread variant",
+      "numeric_reference_480": {
+        "compared_to": "volume_oscillator",
+        "same_period_n": 20,
+        "overlapping_finite": 441,
+        "raw_exact_max_abs_error": 55.72024515176821,
+        "match_mode": null
+      },
+      "novel_independent_formula_certified": false
+    }
+  ]
+}
