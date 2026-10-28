@@ -452,6 +452,49 @@ def imported_feature_catalog() -> FeatureCatalog:
         features.append(spec.model_copy(update={
             "source_repositories": (external_source,), "source_licenses": ("MIT",),
         }))
+    # Second batch: distinct outputs only; reference provenance matches first MIT batch.
+    second_numeric: tuple[
+        tuple[str, str, tuple[str, ...], int, dict[str, int | float | str | bool]], ...
+    ] = (
+        ("bias_ratio", "momentum", ("close",), 26, {}),
+        ("chande_forecast_oscillator", "momentum", ("close",), 9, {}),
+        ("absolute_price_oscillator", "momentum", ("close",), 26, {"fast":12}),
+        ("percentage_price_oscillator", "momentum", ("close",), 26, {"fast":12}),
+        ("psychological_line", "momentum", ("close",), 12, {}),
+        ("kdj_j", "momentum", ("high","low","close"), 9, {"signal":3}),
+        ("brar_ar", "momentum", ("open","high","low"), 26, {}),
+        ("brar_br", "momentum", ("high","low","close"), 26, {}),
+        ("ttm_trend", "trend", ("high","low","close"), 6, {}),
+        ("acceleration_band_upper", "volatility", ("high","low","close"), 20, {}),
+        ("market_facilitation_index", "volume", ("high","low","volume"), 1, {}),
+        ("williams_ad", "volume", ("high","low","close"), 2, {}),
+        ("price_volume_rank", "volume", ("close","volume"), 2, {}),
+        ("thermometer", "volatility", ("high","low"), 2, {}),
+        ("pretty_good_oscillator", "momentum", ("high","low","close"), 14, {}),
+    )
+    second_candles: tuple[tuple[str, int], ...] = (
+        ("hanging_man", 2),
+        ("inverted_hammer", 2),
+        ("belt_hold", 1),
+        ("harami_cross", 2),
+        ("matching_low", 2),
+        ("high_wave", 1),
+        ("long_legged_doji", 1),
+        ("three_inside", 3),
+    )
+    for name, family, inputs, lookback, params in second_numeric:
+        item = _spec(name, family, name, inputs=inputs, lookback=lookback,
+                     parameters=params, status="REGISTERED")
+        features.append(item.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
+    for name, lookback in second_candles:
+        item = _spec(name, "price_action", name,
+                     inputs=("open", "high", "low", "close"),
+                     lookback=lookback, status="REGISTERED")
+        features.append(item.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
     return FeatureCatalog(tuple(features))
 
 

@@ -31,6 +31,10 @@ def calculate_feature(
 
     if calculator in SOURCE_PORTS:
         return calculate_source_port(calculator, inputs, spec.lookback, spec.parameters)
+    from core.features.source_indicator_batch2 import BATCH2_PORTS, calculate_batch2
+
+    if calculator in BATCH2_PORTS:
+        return calculate_batch2(calculator, inputs, spec.lookback, spec.parameters)
     if calculator == "sma":
         return _single_rolling(series[0], spec.lookback, fmean)
     if calculator == "ema":
