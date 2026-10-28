@@ -536,6 +536,10 @@ class AcademicMCPCheckpointService:
         shortlist = shortlist_counted_generations(status["history"], per_lane=6)
         candidates: list[dict[str, Any]] = []
         p2_risk_rejections = 0
+        # One selection replays many candidates from the same signed ancestors.
+        # Share ONLY fully audited, immutable-evidence-bound compilation within
+        # this invocation; never persist or share it across sessions/requests.
+        verified_replays: dict[tuple[object, ...], CompiledAcademicStrategy] = {}
         for original in shortlist:
             generation = original["generation"]
             report = self._stored_experiment(db, status["session_id"], generation)
@@ -546,7 +550,12 @@ class AcademicMCPCheckpointService:
             ):
                 raise CycleStateError("counted parent is missing verified S7 evidence")
             parent = self._inherited_from_evidence(
-                catalog, data, original, history=status["history"], session_id=status["session_id"]
+                catalog,
+                data,
+                original,
+                history=status["history"],
+                session_id=status["session_id"],
+                verified_cache=verified_replays,
             )
             audit = audit_inherited_decisions(parent, data)
             metrics = audit.llm_packet["metrics"]
@@ -661,6 +670,7 @@ class AcademicMCPCheckpointService:
                     original,
                     history=status["history"],
                     session_id=status["session_id"],
+                    verified_cache=verified_replays,
                 )
             else:
                 inherited_parent = compile_algorithm_plan(
@@ -1264,6 +1274,7 @@ class AcademicMCPCheckpointService:
         *,
         history: list[dict[str, Any]] | None = None,
         session_id: str | None = None,
+        verified_cache: dict[tuple[object, ...], CompiledAcademicStrategy] | None = None,
     ) -> CompiledAcademicStrategy:
         """Replay a counted StrategyIR with its exact verified inherited feature source.
 
@@ -1273,6 +1284,27 @@ class AcademicMCPCheckpointService:
         Never alter stored Audit/Evidence; try provenance-bound ancestor only
         when a direct base replay fails its original immutable audit hash.
         """
+        # The cycle state has already verified each immutable evidence hash
+        # and predecessor link. The key binds ALL strategy, audit and market
+        # identities: even within one selection an altered row cannot hit.
+        # Cache entries are populated only AFTER full S2 audit/equity checks.
+        proof_key = (
+            original["generation"],
+            original["evidence_hash"],
+            original["strategy_hash"],
+            original["audit_hash"],
+            original["dataset_hash"],
+            original["measured_final_equity"],
+        )
+        if verified_cache is not None:
+            cached = verified_cache.get(proof_key)
+            if cached is not None:
+                if (
+                    cached.strategy_hash != original["strategy_hash"]
+                    or cached.dataset_hash != original["dataset_hash"]
+                ):
+                    raise CycleStateError("cached inherited S2 identity mismatch")
+                return cached
         base = compile_algorithm_plan(
             catalog,
             AlgorithmPlan.model_validate(original["base_algorithm_plan"]),
@@ -1291,6 +1323,8 @@ class AcademicMCPCheckpointService:
             audited.trace_hash == original["audit_hash"]
             and abs(audited.evaluation.final_equity - original["measured_final_equity"]) <= 1e-6
         ):
+            if verified_cache is not None:
+                verified_cache[proof_key] = compiled
             return compiled
 
         # Exact feature-vector evidence can be inherited from a prior COUNTED
@@ -1316,7 +1350,12 @@ class AcademicMCPCheckpointService:
                     and source.get("inherited_strategy_ir") is not None
                 ):
                     inherited_source = self._inherited_from_evidence(
-                        catalog, data, source, history=history, session_id=session_id
+                        catalog,
+                        data,
+                        source,
+                        history=history,
+                        session_id=session_id,
+                        verified_cache=verified_cache,
                     )
                     permitted_parents = []
                     if source.get("strategy_hash") == proof.get("parent_strategy_hash"):
@@ -1372,6 +1411,8 @@ class AcademicMCPCheckpointService:
                             )
                             <= 1e-6
                         ):
+                            if verified_cache is not None:
+                                verified_cache[proof_key] = candidate
                             return candidate
         raise CycleStateError("saved inherited S2 evidence cannot replay")
 
