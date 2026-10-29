@@ -9,9 +9,8 @@ a prediction guarantee or a proprietary harmonic implementation.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from math import isfinite
-from typing import cast
+
+from core.features.causal_pivots import CausalSwingConfig, CausalSwingTracker, ConfirmedPivot
 
 PATTERNS = (
     "elliott_impulse_5",
@@ -27,21 +26,6 @@ PATTERNS = (
     "head_shoulders",
     "inverse_head_shoulders",
 )
-
-
-@dataclass(frozen=True)
-class ConfirmedPivot:
-    index: int
-    value: float
-    kind: str
-    known_at: int
-
-
-def _valid_candle(high: float | None, low: float | None, close: float | None) -> bool:
-    if high is None or low is None or close is None:
-        return False
-    h, low_value, c = float(high), float(low), float(close)
-    return all(isfinite(v) for v in (h, low_value, c)) and h >= max(low_value, c) and low_value <= c
 
 
 def _signs(pivots: Sequence[ConfirmedPivot]) -> tuple[int, ...]:
@@ -193,47 +177,24 @@ def calculate_chart_pattern(
     """One -1/0/+1 event at the newly confirmed last pivot, never backfilled."""
     if pattern not in PATTERNS:
         raise ValueError(f"unknown chart pattern: {pattern}")
-    if not (32 <= lookback <= 252 and 1 <= confirmation_bars <= 6 and 0 < minimum_swing <= 0.25):
-        raise ValueError("bounded causal chart pattern parameters required")
+    config = CausalSwingConfig(
+        confirmation_bars=confirmation_bars,
+        lookback=lookback,
+        minimum_swing=minimum_swing,
+        mode="percent",
+    )
     high, low, close = (inputs[key] for key in ("high", "low", "close"))
     count = len(close)
     if len(high) != count or len(low) != count:
         raise ValueError("unaligned OHLC")
-    pivots: list[ConfirmedPivot] = []
+    tracker = CausalSwingTracker(config)
     output: list[float | None] = [0.0] * count
     for t in range(count):
-        candidate = t - confirmation_bars
-        if candidate < confirmation_bars:
-            continue
-        first = candidate - confirmation_bars
-        interval = range(first, t + 1)
-        if not all(_valid_candle(high[j], low[j], close[j]) for j in interval):
-            pivots.clear()
-            continue
-        highs = [float(cast(float, high[j])) for j in interval]
-        lows = [float(cast(float, low[j])) for j in interval]
-        center = confirmation_bars
-        is_high = highs[center] == max(highs) and highs.count(highs[center]) == 1
-        is_low = lows[center] == min(lows) and lows.count(lows[center]) == 1
-        if is_high == is_low:
-            continue
-        kind = "high" if is_high else "low"
-        price = highs[center] if is_high else lows[center]
-        pivot = ConfirmedPivot(candidate, price, kind, t)
-        pivots = [p for p in pivots if p.index >= t - lookback]
-        if pivots and pivots[-1].kind == kind:
-            before = pivots[-1]
-            more_extreme = price > before.value if is_high else price < before.value
-            if more_extreme:
-                pivots[-1] = pivot
-            continue
-        if (
-            pivots
-            and abs(price - pivots[-1].value) / max(abs(pivots[-1].value), 1e-9) < minimum_swing
-        ):
-            continue
-        pivots.append(pivot)
-        decision = _recognize(pattern, pivots)
-        if decision:
-            output[t] = float(decision)
+        decision = tracker.update(t, high[t], low[t], close[t])
+        # A more extreme replacement changes *current pivot state* but must
+        # NOT retroactively publish a newly recognized pattern at old time.
+        if decision is not None and decision.kind == "APPEND":
+            detected = _recognize(pattern, tracker.pivots)
+            if detected:
+                output[t] = float(detected)
     return tuple(output)
