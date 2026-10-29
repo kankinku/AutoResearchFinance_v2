@@ -90,11 +90,11 @@ def validate(*, save: bool = True) -> dict[str, Any]:
         for key in ("prefix_mismatches", "timestamp_violations", "runtime_errors")
     )
     assert a5["checks"]["historical_synthetic_output_parity"] == 48
-    assert len(research_feature_specs()) == 447
+    assert len(research_feature_specs()) == 487
     report: dict[str, Any] = {
         "schema": "quant-v3-chart-A6-elliott-structure-v1",
         "observed_at_kst": datetime.now(timezone(timedelta(hours=9))).isoformat(),
-        "feature_count": 447,
+        "feature_count": 487,
         "new_scalar_features": 0,
         "experimental_structure_api_only": True,
         "registered_calculator_changed": False,
@@ -151,7 +151,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             "# Quant V3 A6 · 엘리엇 파동 계층 검증 및 진행 상태 연구 모듈",
             "",
             f"- 실측: {report['observed_at_kst']}",
-            "- 범위: core/features/elliott_structure.py 추가, **기존 447개 등록 지표 불변**.",
+            "- 범위: core/features/elliott_structure.py 추가, **기존 487개 등록 지표 불변**.",
             "- 1~4파 단계는 DEVELOPING, 5파 외곽 조건 통과는 CONFIRMED이나",
             "  실제 5-3-5-3-5 세부파가 확인되지 않으면 structurally_verified=False.",
             "- 매 파동의 known_at과 차트 스윙 확정 시각을 구분하고, 다음 관측",

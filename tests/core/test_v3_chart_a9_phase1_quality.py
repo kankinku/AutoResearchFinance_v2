@@ -25,7 +25,8 @@ def test_a9_evidence_is_a_partial_not_market_release_gate() -> None:
     file = Path("docs/operations/quant-v3-chart-A9-phase1-synthetic-audit-20261029.json")
     report = json.loads(file.read_text())
     assert report["scope"] == "SYNTHETIC_ONLY_PHASE1_NOT_COMPLETE_A9"
-    assert report["registered_default"] == len(research_feature_specs()) == 447
+    assert report["registered_default"] == 447  # frozen A9-phase1 artifact
+    assert len(research_feature_specs()) == 487
     assert report["registered_research_opt_in"] == 491
     assert report["research_scalar_channels"] == 44
     assert report["pattern_families"] == 12
@@ -85,7 +86,7 @@ def test_all_research_scalar_channels_finite_and_prefix_stable(regime: str) -> N
 def test_synthetic_phase_audit_recomputes_without_writing_to_source() -> None:
     a = run_audit(n=72, save=False)
     b = run_audit(n=72, save=False)
-    assert a["registered_default"] == b["registered_default"] == 447
+    assert a["registered_default"] == b["registered_default"] == 487
     assert a["summary"]["prefix_mismatches"] == b["summary"]["prefix_mismatches"] == 0
     assert a["summary"]["scalar_vectors_evaluated"] == 264
     assert b["summary"]["scalar_vectors_evaluated"] == 264

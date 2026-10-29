@@ -65,8 +65,8 @@ def test_real_development_ref_and_default_disabled_and_sealed_guard() -> None:
         allow_chart_research=True,
     )
     assert delayed[0] is None and delayed[1:] == direct[:-1]
-    assert len(research_feature_specs()) == 447
-    assert len(research_feature_specs(chart_research_opt_in=True)) == 491
+    assert len(research_feature_specs()) == 487
+    assert len(research_feature_specs(chart_research_opt_in=True)) == 531
 
 
 def test_real_development_pattern_summary_is_reproducible_and_nonclairvoyant() -> None:

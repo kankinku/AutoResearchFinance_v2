@@ -94,7 +94,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
     )
     a4 = validate_a4(save=False)
     assert a4["oracle_exact"]["compared_outputs"] == 48
-    assert len(research_feature_specs()) == 447
+    assert len(research_feature_specs()) == 487
     retained_frozen = json.loads(
         (ROOT / "tests/core/fixtures/v3_chart_a5_harmonic_baseline_20261029.json").read_text()
     )
@@ -104,7 +104,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
         "schema": "quant-v3-chart-A5-sourced-harmonic-rules-v1",
         "observed_at_kst": datetime.now(timezone(timedelta(hours=9))).isoformat(),
         "registered_chart_features": 12,
-        "registered_total": 447,
+        "registered_total": 487,
         "new_registered_features": 0,
         "patterns": rows,
         "checks": {
@@ -141,7 +141,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             "# Quant V3 A5 · 하모닉 4종 정밀 수정 및 인과성 검증",
             "",
             f"- 실측 시각: {report['observed_at_kst']}",
-            "- 대상: 가틀리·버터플라이·배트·크랩 기존 등록 4종, 지표 수 증설 없음(447개 유지).",
+            "- 대상: 가틀리·버터플라이·배트·크랩 기존 등록 4종, 지표 수 증설 없음(487개 유지).",
             "- 공통 파동 계산: XABCD 가격 방향, AB/XA, BC/AB, CD/BC, CD/AB, AD/XA;",
             "  XA와 BC의 독립 목표 가격 구간 교집합(PRZ) 및 AB=CD 보조 조건.",
             "- 가틀리: B/XA .618±3%, XA .786 되돌림, CD/BC 1.13–1.618.",

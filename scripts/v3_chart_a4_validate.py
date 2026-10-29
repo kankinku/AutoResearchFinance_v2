@@ -73,7 +73,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
         for e in tracker.events
     ]
     registered = research_feature_specs()
-    assert len(registered) == 447
+    assert len(registered) == 487
     evidence = {
         "schema": "quant-v3-chart-A4-causal-pivot-v1",
         "observed_at_kst": datetime.now(timezone(timedelta(hours=9))).isoformat(),
@@ -84,7 +84,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             "minimum_swing": 0.015,
             "mode": "percent",
         },
-        "feature_counts": {"registered": 447, "chart": len(PATTERNS)},
+        "feature_counts": {"registered": 487, "chart": len(PATTERNS)},
         "oracle_exact": {
             "compared_outputs": exact,
             "mismatches": 0,
@@ -135,7 +135,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             "- threshold mode: percent(기존 기본값), absolute, ATR(과거 봉만 사용).",
             "  복수 스케일은 독립 tracker로 처리. 이벤트 로그는 증거 보존을 위해",
             "  누적 저장하며 활성 관측 창은 2*c+1 이내로 유지.",
-            "- 모든 기존 지표/원장 보존: 447개 등록 유지. 신규 지표 수 증가 없음.",
+            "- 모든 기존 지표/원장 보존: 487개 등록 유지. 신규 지표 수 증가 없음.",
             "",
             "## 후속 작업",
             "",
