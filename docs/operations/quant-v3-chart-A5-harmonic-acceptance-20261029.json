@@ -1,0 +1,338 @@
+{
+  "checks": {
+    "canonical_bearish_detected": 4,
+    "canonical_bullish_detected": 4,
+    "canonical_invalid_rejected": 4,
+    "historical_synthetic_output_parity": 48,
+    "historical_synthetic_path_changes": 0,
+    "legacy_crab_false_positive_fixed": true,
+    "legacy_gartley_false_positive_fixed": true,
+    "remaining_known_inverse_hs_bug": true,
+    "runtime_errors": 0,
+    "stream_prefix_checks": 4608,
+    "stream_prefix_mismatches": 0,
+    "timestamp_violations": 0
+  },
+  "copyright_and_license": [
+    "HarmonicTrader pattern names and commercial trademark use NOT CLEARED",
+    "Only mathematical ratios from credited public references; no proprietary code imported",
+    "Not licensed or certified full proprietary pattern detection; numeric thresholds are independent research choices"
+  ],
+  "new_registered_features": 0,
+  "observed_at_kst": "2026-10-29T12:42:43.679528+09:00",
+  "out_of_scope": [
+    "No OOS / 2026 market research, no paid/trademark clearance, no actual profitability claim",
+    "No live orders, no new strategy generations, no production data/config mutations",
+    "Pattern stage output remains scalar +/-1 or 0; PRZ diagnostic is separate research API"
+  ],
+  "patterns": [
+    {
+      "abcd_alternatives": [
+        1.0,
+        1.27
+      ],
+      "abcd_minimum_only": false,
+      "abcd_tolerance": 0.15,
+      "b_gate": [
+        0.59946,
+        0.63654
+      ],
+      "bc_extension": [
+        1.13,
+        1.618
+      ],
+      "bc_retracement": [
+        0.382,
+        0.886
+      ],
+      "commercial_license": "NOT_CLEARED",
+      "d_xa_target": 0.786,
+      "d_xa_tolerance": 0.035,
+      "invalid_series_events": 0,
+      "name": "harmonic_gartley",
+      "negative": {
+        "detected": false,
+        "failed_rules": [
+          "CD/BC",
+          "CD/AB",
+          "PRZ"
+        ],
+        "points": [
+          100.0,
+          120.0,
+          107.64,
+          112.4,
+          104.28
+        ]
+      },
+      "positive": {
+        "detected": true,
+        "points": [
+          100.0,
+          120.0,
+          107.64,
+          115.0,
+          104.28
+        ],
+        "prz": [
+          103.58,
+          104.98
+        ],
+        "ratios": {
+          "AB/XA": 0.618,
+          "AD/XA": 0.7859999999999999,
+          "BC/AB": 0.5954692556634305,
+          "CD/AB": 0.8673139158576051,
+          "CD/BC": 1.4565217391304348
+        }
+      },
+      "realized_scalar_events": {
+        "bearish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        },
+        "bullish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        }
+      },
+      "rule_source_parity_certified": false,
+      "source_url": "https://harmonictrader.com/harmonicpatternorigin/"
+    },
+    {
+      "abcd_alternatives": [
+        1.0,
+        1.27,
+        1.618
+      ],
+      "abcd_minimum_only": false,
+      "abcd_tolerance": 0.14,
+      "b_gate": [
+        0.751,
+        0.821
+      ],
+      "bc_extension": [
+        1.618,
+        2.618
+      ],
+      "bc_retracement": [
+        0.382,
+        0.886
+      ],
+      "commercial_license": "NOT_CLEARED",
+      "d_xa_target": 1.27,
+      "d_xa_tolerance": 0.035,
+      "invalid_series_events": 0,
+      "name": "harmonic_butterfly",
+      "negative": {
+        "detected": false,
+        "failed_rules": [
+          "BC/AB",
+          "CD/BC",
+          "PRZ"
+        ],
+        "points": [
+          100.0,
+          120.0,
+          104.28,
+          109.0,
+          94.6
+        ]
+      },
+      "positive": {
+        "detected": true,
+        "points": [
+          100.0,
+          120.0,
+          104.28,
+          114.0,
+          94.6
+        ],
+        "prz": [
+          93.89999999999999,
+          95.3
+        ],
+        "ratios": {
+          "AB/XA": 0.7859999999999999,
+          "AD/XA": 1.2700000000000002,
+          "BC/AB": 0.6183206106870228,
+          "CD/AB": 1.2340966921119598,
+          "CD/BC": 1.9958847736625522
+        }
+      },
+      "realized_scalar_events": {
+        "bearish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        },
+        "bullish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        }
+      },
+      "rule_source_parity_certified": false,
+      "source_url": "https://harmonictrader.com/harmonic-patterns/butterfly-pattern/"
+    },
+    {
+      "abcd_alternatives": [
+        1.0,
+        1.27,
+        1.618
+      ],
+      "abcd_minimum_only": false,
+      "abcd_tolerance": 0.18,
+      "b_gate": [
+        0.362,
+        0.52
+      ],
+      "bc_extension": [
+        1.618,
+        2.618
+      ],
+      "bc_retracement": [
+        0.382,
+        0.886
+      ],
+      "commercial_license": "NOT_CLEARED",
+      "d_xa_target": 0.886,
+      "d_xa_tolerance": 0.035,
+      "invalid_series_events": 0,
+      "name": "harmonic_bat",
+      "negative": {
+        "detected": false,
+        "failed_rules": [
+          "AB/XA",
+          "PRZ"
+        ],
+        "points": [
+          100.0,
+          120.0,
+          107.0,
+          113.5,
+          102.28
+        ]
+      },
+      "positive": {
+        "detected": true,
+        "points": [
+          100.0,
+          120.0,
+          110.0,
+          115.0,
+          102.28
+        ],
+        "prz": [
+          101.91,
+          102.98
+        ],
+        "ratios": {
+          "AB/XA": 0.5,
+          "AD/XA": 0.8859999999999999,
+          "BC/AB": 0.5,
+          "CD/AB": 1.2719999999999998,
+          "CD/BC": 2.5439999999999996
+        }
+      },
+      "realized_scalar_events": {
+        "bearish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        },
+        "bullish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        }
+      },
+      "rule_source_parity_certified": false,
+      "source_url": "https://harmonictrader.com/harmonic-patterns/bat-pattern/"
+    },
+    {
+      "abcd_alternatives": [],
+      "abcd_minimum_only": true,
+      "abcd_tolerance": 0.15,
+      "b_gate": [
+        0.362,
+        0.638
+      ],
+      "bc_extension": [
+        2.24,
+        3.618
+      ],
+      "bc_retracement": [
+        0.382,
+        0.886
+      ],
+      "commercial_license": "NOT_CLEARED",
+      "d_xa_target": 1.618,
+      "d_xa_tolerance": 0.035,
+      "invalid_series_events": 0,
+      "name": "harmonic_crab",
+      "negative": {
+        "detected": false,
+        "failed_rules": [
+          "CD/BC",
+          "PRZ"
+        ],
+        "points": [
+          100.0,
+          120.0,
+          110.0,
+          115.0,
+          87.64
+        ]
+      },
+      "positive": {
+        "detected": true,
+        "points": [
+          100.0,
+          120.0,
+          110.0,
+          118.86,
+          87.64
+        ],
+        "prz": [
+          86.94,
+          88.34
+        ],
+        "ratios": {
+          "AB/XA": 0.5,
+          "AD/XA": 1.6179999999999999,
+          "BC/AB": 0.8859999999999999,
+          "CD/AB": 3.122,
+          "CD/BC": 3.523702031602709
+        }
+      },
+      "realized_scalar_events": {
+        "bearish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        },
+        "bullish": {
+          "confirmed_after_right_bars": 2,
+          "nonzero_events": 1,
+          "observed_at": 26,
+          "pivot_d_index": 24
+        }
+      },
+      "rule_source_parity_certified": false,
+      "source_url": "https://harmonictrader.com/harmonic-patterns/crab-pattern/"
+    }
+  ],
+  "registered_chart_features": 12,
+  "registered_total": 447,
+  "schema": "quant-v3-chart-A5-sourced-harmonic-rules-v1"
+}

@@ -54,7 +54,7 @@ def test_original_harmonic_ratio_geometry():
     assert harmonic_xabcd(p([100, 120, 104.28, 114, 94.6]), "harmonic_butterfly") == 1
     assert harmonic_xabcd(p([100, 120, 107.64, 115, 104.28]), "harmonic_gartley") == 1
     assert harmonic_xabcd(p([100, 120, 110, 115, 102.28]), "harmonic_bat") == 1
-    assert harmonic_xabcd(p([100, 120, 110, 115, 87.64]), "harmonic_crab") == 1
+    assert harmonic_xabcd(p([100, 120, 110, 118.86, 87.64]), "harmonic_crab") == 1
     assert harmonic_xabcd(p([100, 120, 104.28, 114, 94.6]), "harmonic_bat") == 0
 
 

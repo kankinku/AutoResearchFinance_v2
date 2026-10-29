@@ -53,6 +53,5 @@ def test_known_defect_inverse_shoulders_equal_lows_must_be_rejected() -> None:
     assert classical_shape(_p([100, 110, 100, 110, 100]), "inverse_head_shoulders") == 0
 
 
-@pytest.mark.xfail(strict=True, reason="A2-F02 Gartley CD/BC projection outside range")
-def test_known_defect_gartley_cd_bc_ratio_outside_gate() -> None:
+def test_a5_gartley_cd_bc_ratio_outside_gate_now_rejected() -> None:
     assert harmonic_xabcd(_p([100, 120, 107.64, 112.4, 104.28]), "harmonic_gartley") == 0

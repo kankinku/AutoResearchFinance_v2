@@ -81,48 +81,24 @@ def complex_correction(points: Sequence[ConfirmedPivot], count: int) -> int:
     return 0
 
 
-def harmonic_xabcd(points: Sequence[ConfirmedPivot], pattern: str, tolerance: float = 0.09) -> int:
-    """Original approximate XA/AB/BC/CD ratio gates for four harmonic families."""
-    if len(points) != 5 or pattern not in {
-        "harmonic_butterfly",
-        "harmonic_gartley",
-        "harmonic_bat",
-        "harmonic_crab",
-    }:
-        return 0
-    signs = _signs(points)
-    if signs not in ((1, -1, 1, -1), (-1, 1, -1, 1)):
-        return 0
-    x, a, b, c, d = (point.value for point in points)
-    xa, ab, bc, cd = abs(a - x), abs(b - a), abs(c - b), abs(d - c)
-    if min(xa, ab, bc, cd) <= 1e-9:
-        return 0
-    br, cr = ab / xa, bc / ab
-    if not 0.382 - tolerance <= cr <= 0.886 + tolerance:
-        return 0
-    beyond_x = d < x if signs[0] == 1 else d > x
-    between_xa = min(x, a) < d < max(x, a)
+def harmonic_xabcd(
+    points: Sequence[ConfirmedPivot],
+    pattern: str,
+    tolerance: float = 0.09,
+) -> int:
+    """Signed scalar adapter to the provenance-tracked A5 harmonic validator.
 
-    def near(value: float, target: float) -> bool:
-        return abs(value - target) <= tolerance
+    The legacy default tolerance is retained for call compatibility.
+    A custom tolerance is rejected rather than silently changing/ignoring
+    source-grounded independent ratio gates.
+    """
+    from core.features.harmonic_geometry import RULES, assess_harmonic
 
-    if pattern == "harmonic_butterfly":
-        valid = beyond_x and near(br, 0.786) and near(abs(d - x) / xa, 0.27) and cd / bc >= 1.13
-    elif pattern == "harmonic_gartley":
-        valid = between_xa and near(br, 0.618) and near(abs(a - d) / xa, 0.786)
-    elif pattern == "harmonic_bat":
-        valid = (
-            between_xa
-            and 0.382 - tolerance <= br <= 0.5 + tolerance
-            and near(abs(a - d) / xa, 0.886)
-        )
-    else:
-        valid = (
-            beyond_x
-            and 0.382 - tolerance <= br <= 0.618 + tolerance
-            and near(abs(d - x) / xa, 0.618)
-        )
-    return signs[0] if valid else 0
+    if tolerance != 0.09:
+        raise ValueError("A5 source ratio rules do not support tolerance overrides")
+    if pattern not in RULES:
+        return 0
+    return assess_harmonic(points, pattern).direction
 
 
 def classical_shape(points: Sequence[ConfirmedPivot], pattern: str) -> int:
