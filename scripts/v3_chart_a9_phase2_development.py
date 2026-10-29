@@ -122,7 +122,7 @@ def summarize_development(market: MarketDataSet) -> dict[str, Any]:
     default = research_feature_specs()
     optional = research_feature_specs(chart_research_opt_in=True)
     specs = chart_research_feature_specs()
-    assert len(default) == 447 and len(optional) == 491 and len(specs) == 44
+    assert len(default) == 487 and len(optional) == 531 and len(specs) == 44
     source = _market_vectors(market)
     n = len(market.bars)
     outputs: dict[str, tuple[float, ...]] = {}
@@ -466,7 +466,7 @@ def run_audit(*, save: bool = True) -> dict[str, Any]:
             "**상태:** A9 부분 수행. 실제 정답 라벨·외부 시점별 원본·거래 경제성·최종 릴리스 미확인.",
             f"- 원본 SHA256: `{identity['parquet_sha256']}`, 읽기 전용·manifest hash 교차 검증.",
             "- 2026 봉인 OOS 미접근; 운영·G원장·실주문 설정 변경 없음.",
-            "- 기본 447개 / 선택형 44개: 직접 계산 + FeatureRef 패리티",
+            "- 기본 487개 / 선택형 44개: 직접 계산 + FeatureRef 패리티",
             f"  오류 {measurements['source_ref_parity_mismatches']}, 기본 OFF 접근 거부",
             f"  {measurements['default_off_rejections']}/44.",
             f"- 전체 44개 채널의 1508봉 prefix 감사 {measurements['prefix_checks']}회:",

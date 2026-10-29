@@ -22,8 +22,13 @@ def test_a0_a1_inventory_count_and_separate_uncommitted_work() -> None:
     a0 = json.loads((ROOT / "quant-v3-chart-A0-baseline-20261029.json").read_text())
     a1 = json.loads((ROOT / "quant-v3-chart-A1-feature-audit-20261029.json").read_text())
     features = research_feature_specs()
-    assert len(features) == len(a1["feature_rows"]) == 447
-    assert {r["name"] for r in a1["feature_rows"]} == {s.name for s in features}
+    # A0/A1 are frozen *historical* provenance and must not be overwritten.
+    assert len(a1["feature_rows"]) == 447
+    assert len(features) == 487
+    historical = {r["name"] for r in a1["feature_rows"]}
+    new = set(a0["local_bulk40"]["new_names"])
+    assert historical.isdisjoint(new)
+    assert historical | new == {s.name for s in features}
     assert a0["chart_branch"]["registered"] == 447
     assert a0["chart_branch"]["chart_patterns"] == 12
     assert a0["local_bulk40"]["registered"] == 475

@@ -1,0 +1,134 @@
+{
+  "adaptive_reparameterization": false,
+  "arms": [
+    {
+      "family": "LEGACY_BASE",
+      "filters": [],
+      "id": "B0_PARENT",
+      "optin": false,
+      "role": "fixed_parent_baseline"
+    },
+    {
+      "family": "CLASSICAL_PATTERN",
+      "filters": [
+        {
+          "alias": "a11_classical",
+          "feature_id": "chart_research_double_bottom_detected",
+          "lag_bars": 0,
+          "op": "greater_than",
+          "value": 0.5
+        }
+      ],
+      "id": "B1_CLASSICAL",
+      "optin": true,
+      "role": "classical_confirmed_bullish_event_gate"
+    },
+    {
+      "family": "ELLIOTT_PATTERN",
+      "filters": [
+        {
+          "alias": "a11_elliott",
+          "feature_id": "chart_research_elliott_abc_detected",
+          "lag_bars": 0,
+          "op": "greater_than",
+          "value": 0.5
+        }
+      ],
+      "id": "B2_ELLIOTT",
+      "optin": true,
+      "role": "elliott_outer_bullish_event_gate_unverified_subwaves"
+    },
+    {
+      "family": "COMBINED_THREE",
+      "filters": [
+        {
+          "alias": "a11_classical",
+          "feature_id": "chart_research_double_bottom_detected",
+          "lag_bars": 0,
+          "op": "greater_than",
+          "value": 0.5
+        },
+        {
+          "alias": "a11_elliott",
+          "feature_id": "chart_research_elliott_abc_detected",
+          "lag_bars": 0,
+          "op": "greater_than",
+          "value": 0.5
+        },
+        {
+          "alias": "a11_ta",
+          "feature_id": "pta_efi_out0",
+          "lag_bars": 0,
+          "op": "greater_than",
+          "value": 0.0
+        }
+      ],
+      "id": "B3_COMBINED",
+      "optin": true,
+      "role": "same_parents_conjunctive_all_three"
+    },
+    {
+      "family": "NEGATIVE_CONTROL",
+      "filters": [
+        {
+          "alias": "a11_classical",
+          "feature_id": "chart_research_double_bottom_detected",
+          "lag_bars": 35,
+          "op": "greater_than",
+          "value": 0.5
+        }
+      ],
+      "id": "B4_DELAYED_CONTROL",
+      "optin": true,
+      "role": "same_pattern_signal_delayed_35_bars_causally"
+    },
+    {
+      "family": "PINNED_TA_40",
+      "filters": [
+        {
+          "alias": "a11_ta",
+          "feature_id": "pta_efi_out0",
+          "lag_bars": 0,
+          "op": "greater_than",
+          "value": 0.0
+        }
+      ],
+      "id": "B40_PINNED",
+      "optin": false,
+      "role": "one_preselected_representative_of_40_not_full_40_search"
+    }
+  ],
+  "candidates_per_arm": 1,
+  "cost_model": "existing academic-research-cost-v1 (fee+slippage same for all)",
+  "dataset_sha": "f637bcf0a8098aa13ed1758308086e8bfb4c3ade264ecb003ae741095ba95f9e",
+  "entry_mutation": "append_and_conditions_only",
+  "exit_policy": "unchanged",
+  "freeze_hash": "31a038a6b324fd4ddba26d3c4b56f9e55a0eafd36cfaf2e288a49ea9aea3365b",
+  "limitations": [
+    "B1 tests one double-bottom signal only, not the entire harmonic/chart family",
+    "B2 tests outer Elliott ABC event only, not full 5-3-5 or 3-3-5 substructure",
+    "B40 tests only EFI representative of new 40, not group search",
+    "Each arm has one candidate budget but differing number of AND-gate rules",
+    "A11 full autonomous GPT/random allocation and statistical multiple hypothesis study remain blocked",
+    "No PIT provider confirmation, no 2026 sealed OOS or real trading, no strategy promotion"
+  ],
+  "market_bars": 1508,
+  "market_window": [
+    "2020-01-02",
+    "2025-12-31"
+  ],
+  "market_zone": "DEVELOPMENT_NON_PIT",
+  "maximum_arms": 6,
+  "model_calls": 0,
+  "new_counted_generations": 0,
+  "orders_enabled": false,
+  "parent_gateway_report_sha": "76373e562cd56efc492512d982094ca08a7406a069cd0400e95eed3457d6dfe4",
+  "parent_strategy_sha": "12be5bc19a1aaff9d70fd527e315a3e0a62f7bd7b6854d4addf4272f3453306b",
+  "risk_policy": "unchanged",
+  "scenario": "REAL_LEDGER_VERIFIED_G68_DEVELOPMENT_DIAGNOSTIC",
+  "schema": "quant-v3-A11-scripted-equal-budget-preregister-v1",
+  "sealed_2026_OOS_accessed": false,
+  "seed": 20261029,
+  "source_generation": 68,
+  "study_scope": "REUSED_DEVELOPMENT_NONPIT_SCRIPTED_MECHANISM_ONLY"
+}

@@ -52,13 +52,13 @@ def data_inputs(market: MarketDataSet) -> dict[str, tuple[float, ...]]:
     }
 
 
-def test_registry_447_unchanged_and_44_research_spec_outputs_opt_in_only() -> None:
+def test_registry_487_unchanged_and_44_research_spec_outputs_opt_in_only() -> None:
     vanilla = research_feature_specs()
     research = chart_research_feature_specs()
     enabled = research_feature_specs(chart_research_opt_in=True)
-    assert len(vanilla) == 447
+    assert len(vanilla) == 487
     assert len(research) == 44
-    assert len(enabled) == 491
+    assert len(enabled) == 531
     assert not set(s.name for s in research) & set(s.name for s in vanilla)
     assert all(s.status == "REGISTERED" and s.implementation_hash for s in research)
     assert all(s.source_licenses == ("original-research-only",) for s in research)

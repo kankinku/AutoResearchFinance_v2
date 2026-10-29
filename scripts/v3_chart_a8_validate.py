@@ -36,7 +36,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
     default = research_feature_specs()
     optin = research_feature_specs(chart_research_opt_in=True)
     specs = chart_research_feature_specs()
-    assert len(default) == 447 and len(specs) == 44 and len(optin) == 491
+    assert len(default) == 487 and len(specs) == 44 and len(optin) == 531
     assert len({spec.canonical_id for spec in specs}) == 44
     baseline = validate_a7(save=False)
     assert baseline["versioned_scalar_diff"]["non_whitelisted_changes"] == 0
@@ -173,8 +173,8 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             "# Quant V3 A8 · 선택형 StrategyIR FeatureRef · 차트 연구 화면 1차 연결",
             "",
             f"- 검증: {report['observed_at_kst']}",
-            "- 기본 카탈로그 447 지표 유지. chart_research_opt_in=True 에서만",
-            "  **연구용 scalar 44개(총 491개 출력)** 추가.",
+            "- 기본 카탈로그 487 지표 유지. chart_research_opt_in=True 에서만",
+            "  **연구용 scalar 44개(총 531개 출력)** 추가.",
             "- 구성: 4개 고전 × 6개 채널(탐지·단계·품질·넥라인 거리·",
             "  무효화 거리·확정 경과봉), 하모닉 4개×3개 채널(탐지·단계·PRZ 거리),",
             "  엘리엇 4개×2개 채널(외부 형태 탐지·외부 단계).",

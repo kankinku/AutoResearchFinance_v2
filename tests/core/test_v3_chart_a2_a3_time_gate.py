@@ -90,7 +90,7 @@ def test_a3_prefix_and_event_trace_over_one_bar_mutations(monkeypatch: pytest.Mo
 
 def test_feature_refs_remain_registered_without_any_new_live_order_paths() -> None:
     registered = {s.name: s for s in research_feature_specs()}
-    assert len(registered) == 447
+    assert len(registered) == 487
     for name in patterns.PATTERNS:
         spec = registered[f"chart_{name}"]
         assert spec.inputs == ("high", "low", "close")

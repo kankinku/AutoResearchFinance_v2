@@ -187,7 +187,7 @@ def run_audit(*, n: int = 144, save: bool = True) -> dict[str, Any]:
     standard = research_feature_specs()
     optin = research_feature_specs(chart_research_opt_in=True)
     extras = chart_research_feature_specs()
-    assert len(standard) == 447 and len(extras) == 44 and len(optin) == 491
+    assert len(standard) == 487 and len(extras) == 44 and len(optin) == 531
     assert set(s.name for s in extras).isdisjoint(s.name for s in standard)
     samples = synthetic_scenarios(n)
     by_name = {s.name: s for s in extras}

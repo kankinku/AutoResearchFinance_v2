@@ -30,7 +30,7 @@ LOCAL = Path("/shared/moon-workspace/AutoResearchFinance_v3-track1-strategy-2026
 
 def validate(*, save: bool = True) -> dict[str, Any]:
     a6 = validate_a6(save=False)
-    assert len(research_feature_specs()) == 447
+    assert len(research_feature_specs()) == 487
     assert a6["causal_gate"]["checkpoints"] == 4608
     assert a6["causal_gate"]["prefix_mismatches"] == 0
     assert a6["causal_gate"]["timestamp_violations"] == 0
@@ -91,7 +91,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
     report: dict[str, Any] = {
         "schema": "quant-v3-chart-A7-neckline-lifecycle-v1",
         "observed_at_kst": datetime.now(timezone(timedelta(hours=9))).isoformat(),
-        "registered_feature_count": 447,
+        "registered_feature_count": 487,
         "new_registered_feature_count": 0,
         "legacy_scalar_outputs": "unchanged on frozen baseline except targeted inverse H&S bug fix",
         "false_positive_fixes": [
@@ -151,7 +151,7 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             "  돌파도 일어났다면 **무효화 우선**: 낙관적 체결을 가정하지 않음.",
             f"- A7 4개 합성 완성 OHLC 경로 전체 {prefixes}개 prefix: 이벤트",
             "  변경 0, 올바른 순서(후보 후 확정) 4/4 검출.",
-            "- 기존 447개 지표 등록/12개 스칼라 기본 의미 유지. A7 이벤트는",
+            "- 기존 487개 지표 등록/12개 스칼라 기본 의미 유지. A7 이벤트는",
             "  A8까지 별도 연구용 API이며 거래 주문 신호로 등록하지 않음.",
             "- 구버전 A4 동결 48 시계열의 실제 차이: 44 동일, inverse H&S",
             "  4개 전용 오탐 수정으로 인한 출력 변경. 변경 전 SHA 유지하며 새",

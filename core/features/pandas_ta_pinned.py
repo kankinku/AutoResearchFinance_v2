@@ -86,6 +86,10 @@ def calculate_pinned(
         or tuple(entry["inputs"]) != tuple(spec.inputs)
         or spec.lookback < 1
         or spec.lookback > 252
+        or (
+            entry.get("fixed_source_lookback", False)
+            and spec.lookback != int(entry["lookback"])
+        )
     ):
         raise ValueError("unapproved pinned upstream feature parameters")
     n = len(next(iter(inputs.values())))
