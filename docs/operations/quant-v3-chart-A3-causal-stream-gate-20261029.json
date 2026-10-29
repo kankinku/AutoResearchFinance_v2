@@ -1,0 +1,472 @@
+{
+  "chart_branch": "research/v3-chart-audit-20261029",
+  "confirmation_bars": 2,
+  "gate_scope": "all 12 scalar patterns x full bar-by-bar prefix for 3 synthetic price regimes",
+  "lookback": 160,
+  "not_tested": [
+    "real-market price data, trading profit, independent OOS, actual next-open execution",
+    "alternative confirmation_bar values and intra-bar execution",
+    "named pattern label correctness and full PRZ formulas, known A1 false positives"
+  ],
+  "observed_at_kst": "2026-10-29T11:34:47.023094+09:00",
+  "pattern_names": [
+    "elliott_impulse_5",
+    "elliott_abc",
+    "elliott_wxy",
+    "elliott_wxyxz",
+    "harmonic_butterfly",
+    "harmonic_gartley",
+    "harmonic_bat",
+    "harmonic_crab",
+    "double_top",
+    "double_bottom",
+    "head_shoulders",
+    "inverse_head_shoulders"
+  ],
+  "regimes": [
+    {
+      "bars": 128,
+      "label": "oscillating",
+      "patterns": {
+        "double_bottom": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            37,
+            57,
+            98,
+            117
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 4,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "double_top": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            27,
+            47,
+            68,
+            87,
+            108
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 5,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_abc": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            57,
+            68,
+            87,
+            117
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 4,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_impulse_5": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_wxy": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            117
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 1,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_wxyxz": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_bat": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_butterfly": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_crab": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_gartley": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "head_shoulders": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "inverse_head_shoulders": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            57,
+            117
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 2,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        }
+      }
+    },
+    {
+      "bars": 128,
+      "label": "inverted",
+      "patterns": {
+        "double_bottom": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            27,
+            47,
+            68,
+            87,
+            108
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 5,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "double_top": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            37,
+            57,
+            77,
+            98,
+            117
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 5,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_abc": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            57,
+            68,
+            87,
+            117
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 4,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_impulse_5": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_wxy": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            117
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 1,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_wxyxz": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_bat": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_butterfly": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_crab": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_gartley": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "head_shoulders": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "inverse_head_shoulders": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            47,
+            68,
+            87,
+            108
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 4,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        }
+      }
+    },
+    {
+      "bars": 128,
+      "label": "flat_missing_invalid",
+      "patterns": {
+        "double_bottom": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            37,
+            57
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 2,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "double_top": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            47
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 1,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_abc": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            57
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 1,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_impulse_5": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_wxy": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "elliott_wxyxz": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_bat": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_butterfly": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_crab": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "harmonic_gartley": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "head_shoulders": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 0,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        },
+        "inverse_head_shoulders": {
+          "bars": 128,
+          "checkpoints": 128,
+          "event_times": [
+            57
+          ],
+          "min_eligible_signal_at": 4,
+          "nonzero_events": 1,
+          "prefix_mismatches": 0,
+          "runtime_error": null,
+          "timestamp_violations": 0
+        }
+      }
+    }
+  ],
+  "schema": "quant-v3-chart-A3-full-streaming-v1",
+  "source_code_sha256": "af00c02fdf9fa5b21e6d2cfa11476768e54460db257afc4abd6639df35831cec",
+  "summary": {
+    "checkpoints": 4608,
+    "patterns": 12,
+    "prefix_mismatches": 0,
+    "regimes": 3,
+    "runtime_errors": 0,
+    "timestamp_violations": 0,
+    "total_emitted_events": 40,
+    "zero_event_pattern_regime_pairs": 22
+  }
+}
