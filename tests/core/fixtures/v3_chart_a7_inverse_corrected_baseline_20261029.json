@@ -1,0 +1,58 @@
+{
+  "baseline": "v3-chart-pre-A4-output-oracle-v1",
+  "changed_only": "inverse_head_shoulders",
+  "differences": [
+    {
+      "new_nonzero": 0,
+      "old_nonzero": 4,
+      "pattern": "inverse_head_shoulders",
+      "scenario": "oscillating"
+    },
+    {
+      "new_nonzero": 0,
+      "old_nonzero": 8,
+      "pattern": "inverse_head_shoulders",
+      "scenario": "inverted"
+    },
+    {
+      "new_nonzero": 0,
+      "old_nonzero": 2,
+      "pattern": "inverse_head_shoulders",
+      "scenario": "flat_missing_invalid"
+    },
+    {
+      "new_nonzero": 0,
+      "old_nonzero": 5,
+      "pattern": "inverse_head_shoulders",
+      "scenario": "trend_wave"
+    }
+  ],
+  "known_old_code_sha": "1cdbcea8fe3c430907e38998d5087235866b4161",
+  "schema": "v3-chart-A7-approved-inverse-shape-fix-v1",
+  "signals": {
+    "flat_missing_invalid": {
+      "inverse_head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    },
+    "inverted": {
+      "inverse_head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    },
+    "oscillating": {
+      "inverse_head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    },
+    "trend_wave": {
+      "inverse_head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    }
+  }
+}

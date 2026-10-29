@@ -22,21 +22,29 @@ from scripts.v3_chart_a2_a3_stream_audit import build_scenarios
 from tests.core.test_v3_causal_chart_patterns import bars
 
 BASELINE = Path("tests/core/fixtures/v3_chart_pre_a4_baseline_20261029.json")
+A7 = Path("tests/core/fixtures/v3_chart_a7_inverse_corrected_baseline_20261029.json")
 
 
 @pytest.mark.parametrize("pattern", PATTERNS)  # type: ignore[untyped-decorator]
 def test_existing_12_chart_outputs_identical_to_frozen_pre_a4_oracle(pattern: str) -> None:
     reference = json.loads(BASELINE.read_text())
+    revised = json.loads(A7.read_text())
+    assert revised["changed_only"] == "inverse_head_shoulders"
     cases = build_scenarios(190)
     cases["trend_wave"] = {k: tuple(v) for k, v in bars(190).items()}
     for label, candles in cases.items():
         current = calculate_chart_pattern(candles, pattern)
         canonical = json.dumps(current, allow_nan=False, separators=(",", ":"))
-        assert (
-            hashlib.sha256(canonical.encode()).hexdigest()
-            == reference["signals"][label][pattern]["sha256"]
-        ), (pattern, label)
-        assert sum(v != 0.0 for v in current) == reference["signals"][label][pattern]["nonzero"]
+        expected = (
+            revised["signals"][label][pattern]
+            if pattern == "inverse_head_shoulders"
+            else reference["signals"][label][pattern]
+        )
+        assert hashlib.sha256(canonical.encode()).hexdigest() == expected["sha256"], (
+            pattern,
+            label,
+        )
+        assert sum(v != 0.0 for v in current) == expected["nonzero"]
 
 
 def test_tracker_append_replace_event_log_retains_prior_publications() -> None:

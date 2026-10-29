@@ -17,20 +17,36 @@ from tests.core.test_v3_causal_chart_patterns import bars
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs/operations"
 ORACLE = ROOT / "tests/core/fixtures/v3_chart_pre_a4_baseline_20261029.json"
+A7_OVERRIDE = ROOT / "tests/core/fixtures/v3_chart_a7_inverse_corrected_baseline_20261029.json"
 
 
 def validate(*, save: bool = True) -> dict[str, Any]:
     frozen = json.loads(ORACLE.read_text())
+    # Keep historical proof untouched; a versioned, strictly named exception
+    # permits only the known A7 inverse H&S false-positive correction.
+    override = json.loads(A7_OVERRIDE.read_text()) if A7_OVERRIDE.exists() else None
+    if override is not None:
+        assert override["changed_only"] == "inverse_head_shoulders"
+        assert override["baseline"] == frozen["schema"]
+        assert len(override["differences"]) == 4
+        assert all(x["pattern"] == "inverse_head_shoulders" for x in override["differences"])
     scenarios = build_scenarios(190)
     scenarios["trend_wave"] = {key: tuple(values) for key, values in bars(190).items()}
     exact = 0
+    versioned = 0
     for label, sample in scenarios.items():
         for pattern in PATTERNS:
             values = calculate_chart_pattern(sample, pattern)
             digest = hashlib.sha256(
                 json.dumps(values, allow_nan=False, separators=(",", ":")).encode()
             ).hexdigest()
-            assert digest == frozen["signals"][label][pattern]["sha256"], (label, pattern)
+            original = frozen["signals"][label][pattern]["sha256"]
+            expected = original
+            if pattern == "inverse_head_shoulders" and override is not None:
+                expected = override["signals"][label][pattern]["sha256"]
+                if expected != original:
+                    versioned += 1
+            assert digest == expected, (label, pattern)
             exact += 1
     gate = reproduce(strict=False)
     assert gate["summary"]["checkpoints"] == 4608
@@ -69,7 +85,13 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             "mode": "percent",
         },
         "feature_counts": {"registered": 447, "chart": len(PATTERNS)},
-        "oracle_exact": {"compared_outputs": exact, "mismatches": 0, "scenarios": list(scenarios)},
+        "oracle_exact": {
+            "compared_outputs": exact,
+            "mismatches": 0,
+            "unchanged_against_original": exact - versioned,
+            "approved_a7_correction": versioned,
+            "scenarios": list(scenarios),
+        },
         "causal_stream_replay": gate["summary"],
         "event_log_example": event_sample,
         "experimental_threshold_modes": ["percent", "absolute", "atr"],
@@ -100,7 +122,8 @@ def validate(*, save: bool = True) -> dict[str, Any]:
             f"- 실측일: {evidence['observed_at_kst']}",
             "- 코드: `core/features/causal_pivots.py` 새 공통 tracker + 기존",
             "  `chart_patterns.py`의 버전 호환 계산 어댑터.",
-            f"- 동결한 기존 차트 결과 {exact}개(12패턴×4합성경로) sha256 일치: **차이 0**",
+            f"- 기준선 12패턴×4경로 총 {exact}개 중 구버전 동일 {exact - versioned},",
+            f"  A7 inverse H&S 결함 수정으로 승인된 변경 {versioned}개. 비허용 변경 0.",
             f"- A3 봉별 전길이 prefix {gate['summary']['checkpoints']}회:",
             f"  과거값 변경 {gate['summary']['prefix_mismatches']},",
             f"  확정 시점 위반 {gate['summary']['timestamp_violations']},",

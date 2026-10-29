@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from core.features.chart_patterns import ConfirmedPivot, classical_shape, harmonic_xabcd
 from core.features.registry import research_feature_specs
 
@@ -48,7 +46,6 @@ def test_a2_matrix_is_complete_and_license_boundaries_visible() -> None:
     assert any("IP" in r["risk"] for r in a2["patterns"])
 
 
-@pytest.mark.xfail(strict=True, reason="A1-F01 inverse H&S equal lows false positive")
 def test_known_defect_inverse_shoulders_equal_lows_must_be_rejected() -> None:
     assert classical_shape(_p([100, 110, 100, 110, 100]), "inverse_head_shoulders") == 0
 

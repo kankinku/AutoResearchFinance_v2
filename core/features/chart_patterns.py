@@ -98,10 +98,17 @@ def harmonic_xabcd(
         raise ValueError("A5 source ratio rules do not support tolerance overrides")
     if pattern not in RULES:
         return 0
-    return assess_harmonic(points, pattern).direction
+    return int(assess_harmonic(points, pattern).direction)
 
 
 def classical_shape(points: Sequence[ConfirmedPivot], pattern: str) -> int:
+    if pattern == "inverse_head_shoulders":
+        # A7: negative-value mirroring in the old head comparison could
+        # accept equal-height shoulders/head as an inverse H&S pattern.
+        from core.features.classical_lifecycle import assess_classical_candidate
+
+        candidate = assess_classical_candidate(points, pattern)
+        return int(candidate.direction) if candidate else 0
     if pattern in {"double_top", "double_bottom"} and len(points) == 3:
         a, b, c = (p.value for p in points)
         if min(abs(a), abs(c)) <= 1e-9:
