@@ -57,6 +57,11 @@ def test_dashboard_has_no_remote_asset_dependency() -> None:
     for asset in STATIC.iterdir():
         if asset.is_file():
             content = asset.read_text(encoding="utf-8")
+            # Standard SVG namespace identifies DOM elements, not a remote
+            # network resource. Only the V3 chart renderer may contain it.
+            if asset.name == "chart-research.html":
+                assert content.count('"http://www.w3.org/2000/svg"') == 1
+                content = content.replace('"http://www.w3.org/2000/svg"', '"svg-namespace"')
             assert "cdn." not in content
             assert "http://" not in content
             assert "https://" not in content

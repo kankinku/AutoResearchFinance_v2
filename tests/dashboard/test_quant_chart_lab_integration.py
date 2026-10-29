@@ -49,7 +49,7 @@ def test_chart_page_is_inside_existing_dashboard_navigation() -> None:
     assert 'href="chart">매매 차트</a>' in chart
     assert 'href="./"' in chart
     assert 'href="backtest"' in chart
-    assert 'src="chart-assets/backtest-chart.js?v=d5"' in chart
+    assert 'src="chart-assets/backtest-chart.js?v=d7"' in chart
     assert 'src="chart-assets/vendor/lightweight-charts-5.2.1.standalone.production.js"' in chart
     assert "독립 OOS 검증 및 실거래는 포함되지 않습니다" in chart
     assert "확정된 매매 순손익" in chart
@@ -117,6 +117,14 @@ def test_strict_proxy_allowlist_and_no_arbitrary_paths() -> None:
 def test_real_48_run_audit_api_with_original_dashboard(
     connected_chart_dashboard: str,
 ) -> None:
+    # This is an external, read-only Lab integration check, not a hermetic
+    # unit test. An absent upstream must be reported as SKIPPED, never faked
+    # as a successful 48-run provenance check or an application regression.
+    try:
+        with urllib.request.urlopen(bridge.LAB_SERVICE + "/api/backtest", timeout=2) as upstream:
+            assert upstream.status == 200
+    except (urllib.error.URLError, TimeoutError, OSError):
+        pytest.skip("read-only 48-run Lab upstream unavailable; integration unverified")
     base = connected_chart_dashboard
     status, home = get(base, "/")
     assert status == 200 and b"chart" in home
