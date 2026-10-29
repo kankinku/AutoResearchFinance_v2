@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-29 KST V3 A15 P9 HERMETIC LAB · Q05/Q09/Q11/Q15/Q17/Q20 (실제 개발 원장 read-only 감사 PASS, 정식 릴리스 BLOCKED):** 별도 Lab 상시 8096 서비스 연결거부를 임의 재가동하지 않고 원본 Lab의 승인된 GET-only loopback 미리보기로 검증. 기존 P8은 33개 검증실행/131세대인 반면, 실제 P9 개발 원장 `lab-p9-original-G132-G146-20261027/preview`는 **48개 검증실행/146세대**로 in-process 원본 Lab API에서 확인. A15 코드 `b66860f` origin 연구 브랜치 Push 확인. 테스트 전용 OS 할당 127.0.0.1 임시 포트에 원본 Lab의 read-only preview를 제한된 자식 프로세스로 실행하여 실제 48개 원장의 검증·G94 1508개 봉·G94/G146 비교·GET-only/경로 차단을 종단 간 재현, 종료 때 프로세스 제거; 외부 Lab 코드/원장·글로벌 서비스 변경 0. 신규 1 PASS, contracts/dashboard/A11~A13 관련 **135 PASS·기존 8096 직접 의존 1 SKIP**, 전체 Ruff PASS, 신규 파일 스코프 Mypy PASS. Native Moon release 검증은 `uv: command not found` exit127 그대로, 기존 전체 Mypy 오류 및 full pytest 릴리스 미완료. 기존 Quant MCP 읽기 전용 상태는 ONLINE/PAPER_ONLY이나 workspace bootstrap PARTIAL, 과거 2026-10-27 batch 100/100은 이번 새 연구세대나 매 세대 독립 GPT 진단 검증으로 계산하지 않음. 신규 GPT 0·실주문 0·봉인 OOS 접근 0·main/OAuth/MCP URL/원본 G452 변경 0. [A15 상세](quant-v3-chart-A15-hermetic-p9-lab-20261029.md). 다음은 T4 실제 GPT 10→100과 native release/mypy의 분리 개선; V05→T4→V01~V04→V06→V07 최상위 고정 순서 유지.
+
+
 **2026-10-29 KST V3 A14 CHART RELEASE GATES · Q05/Q09/Q11/Q15/Q17/Q20 (연구용, RELEASE BLOCKED):** 이전 A10 기준 브랜치에서도 재현된 dashboard/API 5 FAIL을 A13 독립 branch 위에 TDD 교정. 기존 Phase0 API 목록과 read-only chart GET 3개 정확 allowlist 유지; 외부 Lab backtest-chart/styles d7 버전 대응; chart SVG namespace 1건만 오탐 면제. 결과 **다섯 기존 실패 중 4 PASS, 외부 실제 48-run Lab 8096 연결거부 1 SKIP**, 기존 dashboard 기능은 Lab OFF에서도 작동하고 차트 API만 503 fail-closed. Contracts+dashboard+A11~A13 관계 회귀 **134 PASS / 1 SKIP**, 격리 uv Ruff 전체 PASS, 수정 소스 3개 한정 Mypy PASS. 공식 release task_validate는 기존 PATH uv 미설치로 exit127, full mypy는 py310 대상과 설치 NumPy2.5 타입 정합성·기존 217~306 오류로 FAIL. full pytest 2478개 전체 완주 NOT RUN. **실제 GPT 세대 0/거래 0/봉인 OOS 접근 0/원장·OAuth·MCP URL·main 불변**, 독립 48-run 미검증, 운영 병합·릴리스 금지. 변경 코드 `2a8b170` origin/research/v3-chart-a14-release-gates-20261029 Push. [A14 보고](quant-v3-chart-A14-release-gates-20261029.md). 다음은 Lab 외부 연결성/타입 개발 환경/공식 native 검증 독립 해결, 상위 V05→T4 10→100→V01~V04→V06→V07 순서 우선.
 
 
@@ -287,6 +290,7 @@
 
 | ID | 작업 | 현황 (2026-10-15) | 남은 기능 / 검증 |
 |---|---|---|---|
+| V3-A15 verified P9 Lab read-only integration (Q05 Q09 Q11 Q15 Q17 Q20) | 외부 Lab 8096 중지 원인 분리, 기존 P9 원장 48개/146세대 실제 검증, 임시 GET-only loopback 서버 E2E | 135 PASS / 1 SKIP, 전체 Ruff PASS, 신규 파일 mypy PASS. 개발 아카이브 및 protected core/OAuth/OOS/주문 불변. | native Moon release exit127, full mypy 구형 의존성 및 기존 타입 오류, 전체 pytest release 미완료. 고정 운영 서비스 복구 및 실연결 GPT T4 증거 별도 필요. |
 | V3-A14 Chart release gates (Q05 Q09 Q11 Q15 Q17 Q20) | read-only chart GET 3개 API 동결 계약 및 Lab HTML d7 버전/표준 SVG namespace 검증 정합성 복구 (A10 기원 5 실패) | 134 PASS / 1 SKIP, 전체 Ruff PASS, 변경 소스 3-file Mypy PASS, main/OAuth/주문/OOS 유지 | 48-run Lab 8096 OFF -> 연결 검증 SKIP, native release uv exit127, full Mypy 기존 217+ 오류, full 2478 pytest 재실행/완주 필요. 운영 승인 없음. |
 | V3-A13 CI isolation (Q05 Q07 Q09 Q11 Q12 Q15 Q17 Q20) | 기존 개발 A12 연구 보조 테스트 환경 독립화 | import 시 실제 세션 파일 읽기 방지 및 독립 합성 lag35 end-to-end 검증, 관련 46 PASS, 전체 Ruff PASS, 변경 mypy PASS. **신규 GPT 0·OOS 0·주문 0.** | 전체 pytest 2478 수집 후 40%/180초 제한(기존 dashboard/API 5 FAIL), 전체 mypy 스텁/py310 불일치, Moon native uv PATH exit127 — RELEASE BLOCKED. main 미병합. |
 | V3-A12 research bridge (Q05/Q07/Q09/Q10/Q11/Q12/Q18/Q20) | 연구 후행 35봉 이중 지연 차단 및 증거 보존 | **분리 브랜치 연구 코드 Push·40 테스트 PASS**. 원본 A11 B4 실패 5/6 기록 그대로, 신규 A12 보완 6/6 비용 재생 / B4 -3.95%, MDD18.98%, 7거래. GPT 신규 세대 0, OOS/주문 접근 0. | 공식 native release FAIL(uv PATH), 전체 pytest 수집 오류(격리 세션 파일), 전체 mypy NOT RUN, 독립 PIT/OOS·동예산 GPT/random 실증·원본 OAuth 회복은 BLOCKED. main 미병합. |
@@ -321,6 +325,7 @@
 
 | 순서 | 작업 ID | 다음 실행 내용 |
 |---|---|---|
+| V3-A15 FOLLOWUP | Q02 Q06 Q15 Q17 Q20 | 연결된 Quant MCP 기존 read-only 상태 검증 뒤 T4 실제 GPT 계획→비용 테스트→LLM 원인→다음 계획의 10→100 세대 계보 확인. Native uv 경로/whole mypy는 별도 미통과 추적, Lab 8096 재기동·OAuth·원본 상태 변경 없이 운영 담당 검토. |
 | V3-A14 FOLLOWUP | Q05 Q09 Q11 Q15 Q17 Q20 | Lab 48-run 외부 read-only 원장 8096 연결 상태/증빙 사전 확인 및 회복은 별도 관리, 전체 Mypy의 NumPy/py310/stubs 버전 행렬과 217+ 기존 타입 오류 수리 계획, native Moon uv PATH 공식 구성 검증. T4 GPT 정식 인증 10→100 세대 검증 우선. |
 | V3-A13 FOLLOW-UP | Q05 Q09 Q11 Q15 Q17 | A10에서도 재현한 기존 대시보드 API/정적 자산/503 5 실패를 별도 비운영 브랜치에서 교정·테스트; 전체 mypy toolchain 및 native uv 탐지 별도 검증. 최상위 T4 실제 GPT 인증 연결 선행순서 불변. |
 | V3-A12-REVIEW | Q05/Q07/Q09/Q11/Q12/Q18 | 보완 B4 35봉 lag 브리지의 별도 연구 코드 리뷰·안전한 격리 릴리스 도구 경로 복구, 과거 A11 원본 증거 변경 금지. 사용자 동의 없는 main 반영 금지; 최상위 V05→T4 우선순위 변경 금지. |
@@ -376,6 +381,7 @@ T4/P0-3B 검증 순서(기능 구현 후): T0 정식 S7 전체 재생·해시/�
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-29 KST | V3-A15 P9 hermetic real-source read-only bridge | Lab P8 33개/131세대, P9 실제 저장 원장 48개/146세대 구별. 기존 Lab의 read-only loopback preview 임시 자식 프로세스, G94 fill/candles/compare 및 쓰기차단 확인. [상세](quant-v3-chart-A15-hermetic-p9-lab-20261029.md) | 관련 135 PASS/1 SKIP(상시 8096만), 신규 1 PASS, Ruff PASS, 신규 mypy PASS. native release uv exit127, whole mypy 기존 오류, full release pytest 미완료. | 코드 `b66860f` origin/A15 연구 브랜치 Push; main/G452/OAuth/MCP URL/봉인 OOS/실주문 보존. |
 | 2026-10-29 KST | V3-A14 chart contract reliability | A10 유래 5 실패 분류 후 Phase0 동결 원본+3 read-only V3 GET allowlist, 실제 Lab d7 자산 매칭, SVG XML namespace 허용. 48 Lab 8096 연결거부 확인. [상세](quant-v3-chart-A14-release-gates-20261029.md) | 134 PASS / 1 SKIP(실제 48-run), Ruff 전체 PASS, 변경 소스 mypy 3 PASS. whole mypy Python/NumPy/stubs 및 기존 오류 FAIL, native uv exit127 FAIL, full pytest not completed. | 코드 `2a8b170` origin 연구 A14 branch Push. main/실주문/OAuth/2026 OOS 변경 없음; 운영 릴리스 금지. |
 | 2026-10-29 KST | V3-A13 isolated CI synthetic replay | operator의 세션 파일 eager import → 사전검증 뒤 실행시 lazy import. 합성 75봉 lag35·B4 next-open audit/fill 재현, 외부 G452 fixture 없음. [상세](quant-v3-chart-A13-ci-isolation-20261029.md) | 선택 46 PASS, Ruff PASS, 변경 mypy PASS; 2478 collected, 3분 timeout (~40%) 및 기존 chart/dashboard 5 FAIL(A10도 동일); whole mypy FAIL(typing stubs), native release FAIL exit127 uv. | 별도 A12 연구 브랜치에만 반영. main/OAuth/MCP/원장/OOS/주문 유지, 운영 배포·공식 릴리스 불허. |
 | 2026-10-29 KST | V3-A12 B4 lag bridge (Q05 Q07 Q09 Q10 Q11 Q12 Q18 Q20) | 연구 adapter만 prelag 전달 보정; B4 -3.953%, MDD18.976%, 거래7, 다른 5군 결과 동일. 원본 A11 및 원장 보존. [상세](quant-v3-chart-A12-lag-control-report-20261029.md). GPT 0, OOS 0, 주문 0. | 40 선택 pytest PASS, 8 추가 PASS, Ruff 전체 PASS, 4파일 scoped mypy PASS. Full pytest **수집 오류** 세션 fixture 없음, whole mypy NOT RUN, native Moon release FAIL exit127 uv 없음; 운영 릴리스 불허. | 브랜치 research/v3-chart-a12-lag-provenance-20261029, 코드 101814d origin Push, docs 갱신 별도 커밋; main 미병합, 배포 없음. |
