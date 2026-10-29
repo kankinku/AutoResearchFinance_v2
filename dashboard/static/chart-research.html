@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quant V3 | 차트 패턴 연구</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;background:#0d1521;color:#e7eef8}
+*{box-sizing:border-box}body{margin:0}header,main{max-width:1400px;margin:auto;padding:20px 26px}
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #27354a}header a{color:#8dc8f4;text-decoration:none;margin-right:16px}
+h1{font-size:23px;margin:7px 0}h2{font-size:16px;margin:0 0 12px}p,small{color:#b0bed0;line-height:1.55}
+.panel{background:#142238;border:1px solid #2a405f;border-radius:12px;margin:16px 0;padding:16px}
+.controls{display:flex;gap:14px;align-items:end;flex-wrap:wrap}label{font-size:13px;color:#d6e1ef;display:flex;flex-direction:column;gap:5px}
+input,select,button{border-radius:7px;background:#0e1c2d;color:#e7eef8;border:1px solid #45617d;padding:8px;font:inherit}
+button{cursor:pointer}button:disabled{opacity:.5;cursor:default}button.primary{background:#1f5b89}
+#chart{width:100%;height:540px;display:block;outline:1px solid #354960;background:#0f1b2d;border-radius:9px}
+#status{min-height:22px;margin:8px 0;color:#aec5df}.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:#c8daef;margin:9px 0}
+.legend span:before{content:"";display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:50%;background:#64b5f6}
+.legend .pivot:before{background:#edb85b}.legend .candidate:before{background:#9b91ed}.legend .confirmed:before{background:#61d4a1}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid #2d3f58}th{color:#a8bbd3}
+section.note{border-left:3px solid #dbbd73;padding:7px 14px;margin:15px 0;color:#c8d4e4}
+</style>
+</head>
+<body>
+<header><div><small>QUANT V3 · 개발 데이터 한정</small><h1>차트 패턴 연구</h1></div><nav><a href="/">연구 운영</a><a href="/backtest">백테스트</a></nav></header>
+<main>
+<section class="panel"><h2>연구 데이터 연결</h2>
+<p>이 화면은 명시적으로 발행된 개발 데이터 오버레이만 읽습니다. 일반 전략 및 실거래와 분리되어 있습니다.</p>
+<div class="controls"><label>지표 패턴<select id="pattern"><option value="">전체 패턴</option></select></label>
+<label>시작 봉<input id="rangeStart" type="number" min="0" value="0"></label>
+<label>종료 봉<input id="rangeEnd" type="number" min="1" value="192"></label>
+<label><input id="allow" type="checkbox">연구 데이터 표시 활성화</label><label><input id="demo" type="checkbox">합성 예제 표시 (실제 가격 아님)</label>
+<button class="primary" id="reload">불러오기</button></div>
+<p id="status" role="status" aria-live="polite">기본 비활성화</p>
+</section>
+<section class="panel"><h2>종가 · 피벗 확정 시점 · 패턴 이벤트</h2>
+<svg id="chart" viewBox="0 0 1200 540" role="img" aria-label="차트 패턴 연구, 확인 당시 발생한 이벤트만 표시"></svg>
+<div class="legend"><span>종가</span><span class="pivot">피벗을 알게 된 봉</span><span class="candidate">후보</span><span class="confirmed">확정</span></div>
+<section class="note">피벗의 실제 극값 봉과 피벗을 확인할 수 있게 된 봉은 다릅니다. 마커는 항상 확인 봉에 표시합니다. 차트 신호는 체결 내역이 아니며 차트에서 종가 관측 직후 주문을 체결한 것으로 표시하지 않습니다.</section>
+</section>
+<section class="panel"><h2>확인된 이벤트 원장</h2><p id="meta">발행된 원장이 없습니다.</p>
+<div style="overflow-x:auto"><table><thead><tr><th>패턴</th><th>상태</th><th>관측 봉</th><th>원래 피벗 봉</th><th>사용 가능 봉</th><th>넥라인</th></tr></thead><tbody id="events"></tbody></table></div>
+</section>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id),svgNS="http://www.w3.org/2000/svg";
+let model=null,catalog=null;
+function setStatus(t){$("status").textContent=t}
+function mk(tag,attrs){const e=document.createElementNS(svgNS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,String(v));return e}
+function cell(tr,text){const x=document.createElement("td");x.textContent=String(text);tr.appendChild(x)}
+async function loadCatalog(){try{const r=await fetch("/api/chart-research/catalog",{cache:"no-store"});catalog=await r.json();for(const name of catalog.patterns){const o=document.createElement("option");o.value=name;o.textContent=name.replaceAll("_"," ");$("pattern").appendChild(o)}}catch{setStatus("연구 목록을 읽을 수 없습니다.")}}
+function redraw(){
+ const svg=$("chart");while(svg.firstChild)svg.removeChild(svg.firstChild);
+ const table=$("events");table.replaceChildren();
+ if(!model)return;
+ const origin=model.visible_window[0],end=model.visible_window[1],total=model.series.close.length;
+ const start=Math.max(origin,Math.min(end-1,Number($("rangeStart").value)||origin));
+ const finish=Math.max(start+1,Math.min(end,Number($("rangeEnd").value)||end));
+ const filter=$("pattern").value,barAt=i=>model.series.close[i-origin];
+ const selected=[];for(let t=start;t<finish;t++)selected.push(barAt(t));
+ const lo=Math.min(...selected),hi=Math.max(...selected),span=Math.max(hi-lo,1e-6);
+ const X=i=>54+(i-start)*1086/Math.max(finish-start-1,1);
+ const Y=v=>480-(v-lo)*415/span;
+ for(let i=0;i<5;i++){const y=50+i*107;svg.appendChild(mk("line",{x1:40,y1:y,x2:1160,y2:y,stroke:"#263c55"}))}
+ const closePoints=selected.map((v,i)=>X(start+i)+","+Y(v)).join(" ");
+ svg.appendChild(mk("polyline",{points:closePoints,fill:"none",stroke:"#64b5f6","stroke-width":"2.2"}));
+ const pivots=model.pivots.filter(p=>p.known_at>=start&&p.known_at<finish);
+ for(const p of pivots){
+  const y=Y(p.price);const mark=mk("circle",{cx:X(p.known_at),cy:y,r:4,fill:"#edb85b"});
+  const title=mk("title",{});title.textContent=`극값 봉 ${p.pivot_at}; 확인 봉 ${p.known_at} · ${p.type}`;mark.appendChild(title);svg.appendChild(mark)
+ }
+ const events=model.events.filter(e=>e.event_at>=start&&e.event_at<finish&&(!filter||e.name===filter));
+ for(const e of events){
+  const y=Y(barAt(e.event_at)),col=e.stage==="CONFIRMED"?"#61d4a1":e.stage==="CANDIDATE"?"#9b91ed":"#f18d89";
+  const mark=mk("rect",{x:X(e.event_at)-5,y:y-5,width:10,height:10,fill:col,transform:`rotate(45 ${X(e.event_at)} ${y})`});
+  const title=mk("title",{});title.textContent=`${e.name}: ${e.stage}, 발견 ${e.event_at}, 이용 가능 ${e.eligible_from}`;mark.appendChild(title);svg.appendChild(mark);
+  const tr=document.createElement("tr");
+  [e.name,e.stage,e.event_at,e.last_pivot_index,e.eligible_from,e.neckline??"해당없음"].forEach(v=>cell(tr,v));table.appendChild(tr)
+ }
+ const gid=model.generation||"미지정";$("meta").textContent=`${model.symbol} | 세대 ${gid} | ${start}–${finish-1}봉 | 패턴 이벤트 ${events.length}건 | 체결 기록: 제공되지 않음 | 검증 해시 ${model.overlay_hash.slice(0,12)}...`;
+}
+async function reload(){
+ if(!$("allow").checked){model=null;redraw();setStatus("연구 화면이 비활성화돼 있습니다.");return}
+ setStatus("연구용 개발 데이터 오버레이 확인 중");
+ try{const path=$("demo").checked?"/api/chart-research/overlay?enabled=true&demo=true":"/api/chart-research/overlay?enabled=true";
+ const r=await fetch(path,{cache:"no-store"}),payload=await r.json();
+ if(!r.ok || payload.status){model=null;redraw();setStatus(payload.status==="NOT_PUBLISHED"?"발행된 개발 데이터 오버레이가 없습니다.":("오버레이 차단: "+(payload.status||r.status)));return}
+ model=payload;$("rangeStart").value=model.visible_window[0];$("rangeEnd").value=model.visible_window[1];redraw();setStatus("연구 오버레이 읽기 완료 · "+(payload.data_kind==="SYNTHETIC"?"합성 예제, 실제 시장 데이터 아님 · ":"")+"주문 비활성화")}
+ catch{model=null;redraw();setStatus("읽기 실패. 차트 데이터는 제공되지 않습니다.")}}
+$("reload").addEventListener("click",reload);
+["rangeStart","rangeEnd","pattern"].forEach(k=>$(k).addEventListener("change",redraw));
+loadCatalog();
+</script></body></html>

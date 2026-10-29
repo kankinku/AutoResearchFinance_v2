@@ -1,10 +1,12 @@
 """Causal chart pattern rule tests: historical pivot is never traded before confirmation."""
+
 from __future__ import annotations
 
 import math
 
 import pytest
 
+from core.features.calculators import calculate_feature
 from core.features.chart_patterns import (
     PATTERNS,
     ConfirmedPivot,
@@ -14,19 +16,22 @@ from core.features.chart_patterns import (
     harmonic_xabcd,
     impulse_five,
 )
-from core.features.calculators import calculate_feature
 from core.features.registry import research_feature_specs
 
 
 def p(values: list[float]) -> list[ConfirmedPivot]:
-    return [ConfirmedPivot(i, float(x), "high" if i % 2 else "low", i + 2)
-            for i, x in enumerate(values)]
+    return [
+        ConfirmedPivot(i, float(x), "high" if i % 2 else "low", i + 2) for i, x in enumerate(values)
+    ]
 
 
 def bars(n: int = 175) -> dict[str, tuple[float, ...]]:
-    close = tuple(100 + .08*i + 8*math.sin(i/4) for i in range(n))
-    return {"high": tuple(x+1.5 for x in close),
-            "low": tuple(x-1.5 for x in close), "close": close}
+    close = tuple(100 + 0.08 * i + 8 * math.sin(i / 4) for i in range(n))
+    return {
+        "high": tuple(x + 1.5 for x in close),
+        "low": tuple(x - 1.5 for x in close),
+        "close": close,
+    }
 
 
 def test_elliott_five_rules():
@@ -49,7 +54,7 @@ def test_original_harmonic_ratio_geometry():
     assert harmonic_xabcd(p([100, 120, 104.28, 114, 94.6]), "harmonic_butterfly") == 1
     assert harmonic_xabcd(p([100, 120, 107.64, 115, 104.28]), "harmonic_gartley") == 1
     assert harmonic_xabcd(p([100, 120, 110, 115, 102.28]), "harmonic_bat") == 1
-    assert harmonic_xabcd(p([100, 120, 110, 115, 87.64]), "harmonic_crab") == 1
+    assert harmonic_xabcd(p([100, 120, 110, 118.86, 87.64]), "harmonic_crab") == 1
     assert harmonic_xabcd(p([100, 120, 104.28, 114, 94.6]), "harmonic_bat") == 0
 
 
@@ -62,12 +67,14 @@ def test_every_pattern_has_registered_inherited_scalar_and_is_prefix_stable(patt
     data = bars()
     result = calculate_feature(spec, data)
     assert len(result) == len(data["close"])
-    assert all(x in (-1., 0., 1.) for x in result)
+    assert all(x in (-1.0, 0.0, 1.0) for x in result)
     for cutoff in (40, 80, 140, 174):
         part = calculate_feature(spec, {k: v[:cutoff] for k, v in data.items()})
         assert result[:cutoff] == part
     assert result == calculate_chart_pattern(
-        data, pattern, lookback=spec.lookback,
+        data,
+        pattern,
+        lookback=spec.lookback,
         confirmation_bars=int(spec.parameters["confirmation_bars"]),
         minimum_swing=float(spec.parameters["minimum_swing"]),
     )
@@ -79,11 +86,9 @@ def test_bad_input_and_no_future_backfill():
     values["close"][76] = None
     signal = calculate_chart_pattern(values, "elliott_abc")
     assert len(signal) == len(data["close"])
-    assert all(x in (-1., 0., 1.) for x in signal)
+    assert all(x in (-1.0, 0.0, 1.0) for x in signal)
     for cutoff in (80, 120, 174):
-        prefix = calculate_chart_pattern(
-            {k: v[:cutoff] for k, v in values.items()}, "elliott_abc"
-        )
+        prefix = calculate_chart_pattern({k: v[:cutoff] for k, v in values.items()}, "elliott_abc")
         assert signal[:cutoff] == prefix
     with pytest.raises(ValueError):
         calculate_chart_pattern(data, "unknown_unreviewed_name")
