@@ -5,11 +5,13 @@ are emitted at bar close on that later confirmation bar; historical signals
 are never backfilled. Interpretations are original bounded heuristics, not
 a prediction guarantee or a proprietary harmonic implementation.
 """
+
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import isfinite
-from typing import Mapping, Sequence, cast
+from typing import cast
 
 PATTERNS = (
     "elliott_impulse_5",
@@ -35,13 +37,11 @@ class ConfirmedPivot:
     known_at: int
 
 
-def _valid_candle(
-    high: float | None, low: float | None, close: float | None
-) -> bool:
+def _valid_candle(high: float | None, low: float | None, close: float | None) -> bool:
     if high is None or low is None or close is None:
         return False
-    h, l, c = float(high), float(low), float(close)
-    return all(isfinite(v) for v in (h, l, c)) and h >= max(l, c) and l <= c
+    h, low_value, c = float(high), float(low), float(close)
+    return all(isfinite(v) for v in (h, low_value, c)) and h >= max(low_value, c) and low_value <= c
 
 
 def _signs(pivots: Sequence[ConfirmedPivot]) -> tuple[int, ...]:
@@ -57,10 +57,7 @@ def impulse_five(points: Sequence[ConfirmedPivot]) -> int:
         return 0
     for direction in (1, -1):
         p = [direction * x.value for x in points]
-        if not (
-            p[1] > p[0] and p[2] < p[1] and p[3] > p[2]
-            and p[4] < p[3] and p[5] > p[4]
-        ):
+        if not (p[1] > p[0] and p[2] < p[1] and p[3] > p[2] and p[4] < p[3] and p[5] > p[4]):
             continue
         if not (p[2] > p[0] and p[3] > p[1] and p[4] > p[1] and p[5] > p[3]):
             continue
@@ -92,23 +89,21 @@ def complex_correction(points: Sequence[ConfirmedPivot], count: int) -> int:
     """W-X-Y or W-X-Y-X-Z, with each named unit restricted to an ABC zigzag."""
     if count not in (3, 5) or len(points) != 3 * count + 1:
         return 0
-    directions = [
-        abc_three(points[3 * i : 3 * i + 4]) for i in range(count)
-    ]
+    directions = [abc_three(points[3 * i : 3 * i + 4]) for i in range(count)]
     if directions[0] and all(
-        directions[i] == directions[0] * (1 if i % 2 == 0 else -1)
-        for i in range(count)
+        directions[i] == directions[0] * (1 if i % 2 == 0 else -1) for i in range(count)
     ):
         return directions[0]
     return 0
 
 
-def harmonic_xabcd(
-    points: Sequence[ConfirmedPivot], pattern: str, tolerance: float = 0.09
-) -> int:
+def harmonic_xabcd(points: Sequence[ConfirmedPivot], pattern: str, tolerance: float = 0.09) -> int:
     """Original approximate XA/AB/BC/CD ratio gates for four harmonic families."""
     if len(points) != 5 or pattern not in {
-        "harmonic_butterfly", "harmonic_gartley", "harmonic_bat", "harmonic_crab"
+        "harmonic_butterfly",
+        "harmonic_gartley",
+        "harmonic_bat",
+        "harmonic_crab",
     }:
         return 0
     signs = _signs(points)
@@ -123,23 +118,24 @@ def harmonic_xabcd(
         return 0
     beyond_x = d < x if signs[0] == 1 else d > x
     between_xa = min(x, a) < d < max(x, a)
+
     def near(value: float, target: float) -> bool:
         return abs(value - target) <= tolerance
+
     if pattern == "harmonic_butterfly":
-        valid = (
-            beyond_x and near(br, 0.786) and near(abs(d - x) / xa, 0.27)
-            and cd / bc >= 1.13
-        )
+        valid = beyond_x and near(br, 0.786) and near(abs(d - x) / xa, 0.27) and cd / bc >= 1.13
     elif pattern == "harmonic_gartley":
         valid = between_xa and near(br, 0.618) and near(abs(a - d) / xa, 0.786)
     elif pattern == "harmonic_bat":
         valid = (
-            between_xa and 0.382 - tolerance <= br <= 0.5 + tolerance
+            between_xa
+            and 0.382 - tolerance <= br <= 0.5 + tolerance
             and near(abs(a - d) / xa, 0.886)
         )
     else:
         valid = (
-            beyond_x and 0.382 - tolerance <= br <= 0.618 + tolerance
+            beyond_x
+            and 0.382 - tolerance <= br <= 0.618 + tolerance
             and near(abs(d - x) / xa, 0.618)
         )
     return signs[0] if valid else 0
@@ -163,7 +159,8 @@ def classical_shape(points: Sequence[ConfirmedPivot], pattern: str) -> int:
         if (
             c > max(a, e) * 1.03
             and abs(a - e) / max(abs(a), abs(e)) <= 0.05
-            and b < min(a, c) and d < min(c, e)
+            and b < min(a, c)
+            and d < min(c, e)
             and abs(b - d) / max(abs(b), abs(d), 1) <= 0.06
         ):
             return -direction
@@ -196,10 +193,7 @@ def calculate_chart_pattern(
     """One -1/0/+1 event at the newly confirmed last pivot, never backfilled."""
     if pattern not in PATTERNS:
         raise ValueError(f"unknown chart pattern: {pattern}")
-    if not (
-        32 <= lookback <= 252 and 1 <= confirmation_bars <= 6
-        and 0 < minimum_swing <= 0.25
-    ):
+    if not (32 <= lookback <= 252 and 1 <= confirmation_bars <= 6 and 0 < minimum_swing <= 0.25):
         raise ValueError("bounded causal chart pattern parameters required")
     high, low, close = (inputs[key] for key in ("high", "low", "close"))
     count = len(close)
@@ -233,9 +227,10 @@ def calculate_chart_pattern(
             if more_extreme:
                 pivots[-1] = pivot
             continue
-        if pivots and abs(price - pivots[-1].value) / max(
-            abs(pivots[-1].value), 1e-9
-        ) < minimum_swing:
+        if (
+            pivots
+            and abs(price - pivots[-1].value) / max(abs(pivots[-1].value), 1e-9) < minimum_swing
+        ):
             continue
         pivots.append(pivot)
         decision = _recognize(pattern, pivots)
