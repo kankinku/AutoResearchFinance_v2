@@ -27,6 +27,14 @@ def calculate_feature(
 
     series = _validate_inputs(spec, inputs)
     calculator = spec.calculator.lower()
+    if calculator == "chart_research":
+        from research.chart_pattern_bridge import (
+            calculate_chart_research,
+            validate_optin_parameters,
+        )
+
+        pattern, channel = validate_optin_parameters(spec.parameters)
+        return calculate_chart_research(pattern, channel, inputs)
     if calculator == "chart_geometry":
         from core.features.chart_patterns import calculate_chart_pattern
 
