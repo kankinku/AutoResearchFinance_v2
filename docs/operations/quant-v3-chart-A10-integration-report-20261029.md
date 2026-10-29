@@ -1,6 +1,9 @@
 # Quant V3 A10 · 별도 브랜치 40개 소스 출력 통합 감사
 
 **상태:** 연구용 통합 브랜치에만 반영. 운영 main/2026 OOS/실거래 변경 없음.
+- 구현 커밋 `1e60790eaf189b6ce5d848dc2076f80272c39ec4` / [Draft PR #4](https://github.com/kankinku/AutoResearchFinance_v2/pull/4) (target: `research/v3-chart-audit-20261029`).
+- 선택 회귀 248 PASS, Ruff 전체 PASS, 제한 mypy PASS. 공식 릴리스 검사 uv 미설치(exit127)로 FAILED.
+- GitHub API mergeable=false 보고: 리뷰/릴리스 승인 없이는 병합하지 않음.
 - 원본 미커밋 소스 파일 해시 확인: 4/4 PASS.
 - 등록: 기존 447 → 487; 차트 opt-in 기존 491 → 531.
 - Cohort 유형: 추가 출력 채널 34 + 신규 수식 채널 6.
