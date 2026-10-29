@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-29 KST A16 V05+T4 ONLY · 사용자 승인 실행 우선순위 V05→T4 / 다른 V단계 보류:** 2026-10-29 사용자 지시로 V01~V04/V06/V07은 `DEFERRED_BY_USER` (영구 폐기 아님), 현재 V05와 T4만 수행. [승인 ADR](../decisions/2026-10-29-v05-t4-now-other-v-stages-deferred.md). **V05 TDD 결함 재현:** 매수 1건 수량·명목액·수수료를 반으로 조작하고 비용합을 맞춰도 기존 검사에선 위조 원장 통과. V05 연구 진단기에서 독립적인 매 봉 현금·주식 수량·자산곡선 자기금융 재현 및 조작 거부 추가(보호된 core/backtest/costs 불변), 수정 전 2 FAIL→수정 후 V05 전체 **18 PASS**. **T4 현재 인증 Academic MCP 실체 280/280 COMPLETED**, full 280개 원장 번호 연속, 279 인접 해시 링크 일치, 알고리즘 의미 해시 280개 상이, 진단 기록 280/280, S7 제안/측정 280/280, dataset 불일치·비안전 flag 0. [280세대 read-only 대조 JSON](quant-t4-g280-readonly-chain-audit-20261029.json). 기존 ChatGPT MCP 채팅 주도 GPT 계획/진단 완료임을 증명하는 간접 원장 근거이나 **독립 provider 모델 호출/무인 자동진화는 false, GPT 우월성·경제적 알파·실현 가능한 용량 미입증**. 본 A16은 실제 신규 GPT 세대 0, 실주문 0, 봉인 OOS 접근 0. V05+T4·원본 scope governance 및 prior T4 3군 테스트 묶음 **36 PASS**, 격리 uv Ruff 전체 PASS, 수정 V05 source scoped mypy PASS; 기존 테스트 source의 선행 타입 annotation 9개 때문에 테스트 파일까지 전수 mypy하면 FAIL, 공식 native Moon release는 `uv: command not found` exit127. 기존 인증 URL/OAuth/G452/운영 main 상태 변경 0; release 미승인. [A16 보고](quant-v3-A16-v05-t4-priority-20261029.md). 다음은 V05에서 공식 trial completeness/슬리피지 재평가 가능성 검토와 T4 GPT 대 random/local 동일 예산 비편향 재검증, 다른 V단계 시작 금지.
+
+
 **2026-10-29 KST V3 A15 P9 HERMETIC LAB · Q05/Q09/Q11/Q15/Q17/Q20 (실제 개발 원장 read-only 감사 PASS, 정식 릴리스 BLOCKED):** 별도 Lab 상시 8096 서비스 연결거부를 임의 재가동하지 않고 원본 Lab의 승인된 GET-only loopback 미리보기로 검증. 기존 P8은 33개 검증실행/131세대인 반면, 실제 P9 개발 원장 `lab-p9-original-G132-G146-20261027/preview`는 **48개 검증실행/146세대**로 in-process 원본 Lab API에서 확인. A15 코드 `b66860f` origin 연구 브랜치 Push 확인. 테스트 전용 OS 할당 127.0.0.1 임시 포트에 원본 Lab의 read-only preview를 제한된 자식 프로세스로 실행하여 실제 48개 원장의 검증·G94 1508개 봉·G94/G146 비교·GET-only/경로 차단을 종단 간 재현, 종료 때 프로세스 제거; 외부 Lab 코드/원장·글로벌 서비스 변경 0. 신규 1 PASS, contracts/dashboard/A11~A13 관련 **135 PASS·기존 8096 직접 의존 1 SKIP**, 전체 Ruff PASS, 신규 파일 스코프 Mypy PASS. Native Moon release 검증은 `uv: command not found` exit127 그대로, 기존 전체 Mypy 오류 및 full pytest 릴리스 미완료. 기존 Quant MCP 읽기 전용 상태는 ONLINE/PAPER_ONLY이나 workspace bootstrap PARTIAL, 과거 2026-10-27 batch 100/100은 이번 새 연구세대나 매 세대 독립 GPT 진단 검증으로 계산하지 않음. 신규 GPT 0·실주문 0·봉인 OOS 접근 0·main/OAuth/MCP URL/원본 G452 변경 0. [A15 상세](quant-v3-chart-A15-hermetic-p9-lab-20261029.md). 다음은 T4 실제 GPT 10→100과 native release/mypy의 분리 개선; V05→T4→V01~V04→V06→V07 최상위 고정 순서 유지.
 
 
@@ -290,6 +293,7 @@
 
 | ID | 작업 | 현황 (2026-10-15) | 남은 기능 / 검증 |
 |---|---|---|---|
+| A16 V05+T4 only (Q02 Q04 Q06 Q07 Q09 Q15 Q17 Q20) | V05 비용 일치·체결 현금/보유수량/자산곡선 독립 재현 버그 수정. T4 280/280 원본 FULL MCP 읽기, 번호 280/280/해시 279/279 검증. | V05 18 PASS, V05/T4/거버넌스 관련 36 PASS, Ruff PASS, 변경 소스 mypy PASS. 다른 V 단계 보류(사용자 승인). | GPT 독립 모델 호출 provenance=false, 재연구 우월성·공정 랜덤 대조 미입증. Native uv PATH release fail, whole mypy 미통과, PIT/OOS/실주문 미실행. |
 | V3-A15 verified P9 Lab read-only integration (Q05 Q09 Q11 Q15 Q17 Q20) | 외부 Lab 8096 중지 원인 분리, 기존 P9 원장 48개/146세대 실제 검증, 임시 GET-only loopback 서버 E2E | 135 PASS / 1 SKIP, 전체 Ruff PASS, 신규 파일 mypy PASS. 개발 아카이브 및 protected core/OAuth/OOS/주문 불변. | native Moon release exit127, full mypy 구형 의존성 및 기존 타입 오류, 전체 pytest release 미완료. 고정 운영 서비스 복구 및 실연결 GPT T4 증거 별도 필요. |
 | V3-A14 Chart release gates (Q05 Q09 Q11 Q15 Q17 Q20) | read-only chart GET 3개 API 동결 계약 및 Lab HTML d7 버전/표준 SVG namespace 검증 정합성 복구 (A10 기원 5 실패) | 134 PASS / 1 SKIP, 전체 Ruff PASS, 변경 소스 3-file Mypy PASS, main/OAuth/주문/OOS 유지 | 48-run Lab 8096 OFF -> 연결 검증 SKIP, native release uv exit127, full Mypy 기존 217+ 오류, full 2478 pytest 재실행/완주 필요. 운영 승인 없음. |
 | V3-A13 CI isolation (Q05 Q07 Q09 Q11 Q12 Q15 Q17 Q20) | 기존 개발 A12 연구 보조 테스트 환경 독립화 | import 시 실제 세션 파일 읽기 방지 및 독립 합성 lag35 end-to-end 검증, 관련 46 PASS, 전체 Ruff PASS, 변경 mypy PASS. **신규 GPT 0·OOS 0·주문 0.** | 전체 pytest 2478 수집 후 40%/180초 제한(기존 dashboard/API 5 FAIL), 전체 mypy 스텁/py310 불일치, Moon native uv PATH exit127 — RELEASE BLOCKED. main 미병합. |
@@ -325,6 +329,9 @@
 
 | 순서 | 작업 ID | 다음 실행 내용 |
 |---|---|---|
+| 사용자 승인 현재 1 | V05 | 비용/현금/주식/종가 equity가 일관되게 재현되는지 실제 GPT candidate 학술 원장으로 반복 감사. Full trials 누락·슬리피지 용량은 승인 불가로 유지. |
+| 사용자 승인 현재 2 | T4 | 기존 280/280 ChatGPT 연결 GPT 연구 원장 증거 연속성 확인 완료; 후속 매 세대 독립 provider 인증과 GPT/random/local 동등 정보·시간 예산 통제의 진화 성과 대조. |
+| 보류 | V01~V04/V06/V07 | 사용자 요청 전 신규 단계 실행 금지. 기존 원래 최종 목표에서 삭제하지 않음. |
 | V3-A15 FOLLOWUP | Q02 Q06 Q15 Q17 Q20 | 연결된 Quant MCP 기존 read-only 상태 검증 뒤 T4 실제 GPT 계획→비용 테스트→LLM 원인→다음 계획의 10→100 세대 계보 확인. Native uv 경로/whole mypy는 별도 미통과 추적, Lab 8096 재기동·OAuth·원본 상태 변경 없이 운영 담당 검토. |
 | V3-A14 FOLLOWUP | Q05 Q09 Q11 Q15 Q17 Q20 | Lab 48-run 외부 read-only 원장 8096 연결 상태/증빙 사전 확인 및 회복은 별도 관리, 전체 Mypy의 NumPy/py310/stubs 버전 행렬과 217+ 기존 타입 오류 수리 계획, native Moon uv PATH 공식 구성 검증. T4 GPT 정식 인증 10→100 세대 검증 우선. |
 | V3-A13 FOLLOW-UP | Q05 Q09 Q11 Q15 Q17 | A10에서도 재현한 기존 대시보드 API/정적 자산/503 5 실패를 별도 비운영 브랜치에서 교정·테스트; 전체 mypy toolchain 및 native uv 탐지 별도 검증. 최상위 T4 실제 GPT 인증 연결 선행순서 불변. |
@@ -381,6 +388,7 @@ T4/P0-3B 검증 순서(기능 구현 후): T0 정식 S7 전체 재생·해시/�
 
 | UTC 날짜 | ID | 변경 및 실측 | 테스트 | 브랜치·코드 커밋·배포 |
 |---|---|---|---|---|
+| 2026-10-29 KST | A16 V05+T4-only | 경제성 V05 fill/cost 자체 동등이어도 자산곡선 위조 통과하는 취약점 TDD 재현 후 self-financing 전 봉 검증. 원래 MCP 280/280 history 전체 조사, 279 인접 증거 해시·280 전략 의미 해시·280 GPT 텍스트 진단 확인. 다른 V단계 보류 ADR. [A16](quant-v3-A16-v05-t4-priority-20261029.md). | 기존 V05 18 PASS, 범위/T4 비교 포함 36 PASS, 전체 Ruff PASS, 변경 source mypy PASS. Moon native release uv PATH exit127, whole mypy 미통과. 독립 GPT provider/무인 자동화 인증 NO. | A16 branch 연구 코드+문서 commit/push 예정. main/OAuth/기존 원장/OOS/주문 변경 0. |
 | 2026-10-29 KST | V3-A15 P9 hermetic real-source read-only bridge | Lab P8 33개/131세대, P9 실제 저장 원장 48개/146세대 구별. 기존 Lab의 read-only loopback preview 임시 자식 프로세스, G94 fill/candles/compare 및 쓰기차단 확인. [상세](quant-v3-chart-A15-hermetic-p9-lab-20261029.md) | 관련 135 PASS/1 SKIP(상시 8096만), 신규 1 PASS, Ruff PASS, 신규 mypy PASS. native release uv exit127, whole mypy 기존 오류, full release pytest 미완료. | 코드 `b66860f` origin/A15 연구 브랜치 Push; main/G452/OAuth/MCP URL/봉인 OOS/실주문 보존. |
 | 2026-10-29 KST | V3-A14 chart contract reliability | A10 유래 5 실패 분류 후 Phase0 동결 원본+3 read-only V3 GET allowlist, 실제 Lab d7 자산 매칭, SVG XML namespace 허용. 48 Lab 8096 연결거부 확인. [상세](quant-v3-chart-A14-release-gates-20261029.md) | 134 PASS / 1 SKIP(실제 48-run), Ruff 전체 PASS, 변경 소스 mypy 3 PASS. whole mypy Python/NumPy/stubs 및 기존 오류 FAIL, native uv exit127 FAIL, full pytest not completed. | 코드 `2a8b170` origin 연구 A14 branch Push. main/실주문/OAuth/2026 OOS 변경 없음; 운영 릴리스 금지. |
 | 2026-10-29 KST | V3-A13 isolated CI synthetic replay | operator의 세션 파일 eager import → 사전검증 뒤 실행시 lazy import. 합성 75봉 lag35·B4 next-open audit/fill 재현, 외부 G452 fixture 없음. [상세](quant-v3-chart-A13-ci-isolation-20261029.md) | 선택 46 PASS, Ruff PASS, 변경 mypy PASS; 2478 collected, 3분 timeout (~40%) 및 기존 chart/dashboard 5 FAIL(A10도 동일); whole mypy FAIL(typing stubs), native release FAIL exit127 uv. | 별도 A12 연구 브랜치에만 반영. main/OAuth/MCP/원장/OOS/주문 유지, 운영 배포·공식 릴리스 불허. |

@@ -118,6 +118,34 @@ def audit_development_economics(
     ):
         raise ResearchCatalogError("canonical total cost evidence mismatch")
 
+    # Independently replay the canonical single-symbol cash/share book from
+    # validated next-open fills and compare EVERY bar-close equity observation.
+    # An internally cost-consistent edited fill can otherwise retain the old
+    # equity hash and falsely pass the V05 fee/capacity audit.
+    cash = result.initial_cash
+    units = 0.0
+    next_fill = 0
+    for index, bar in enumerate(market.bars):
+        stamp = bar.timestamp.isoformat()
+        while next_fill < len(result.trades) and result.trades[next_fill].timestamp == stamp:
+            fill = result.trades[next_fill]
+            if fill.side == "buy":
+                cash -= fill.notional + fill.cost
+                units += fill.quantity
+            else:
+                if fill.quantity > units + 1e-9:
+                    raise ResearchCatalogError("V05 self-financing fill oversells position")
+                units -= fill.quantity
+                cash += fill.notional - fill.cost
+            if cash < -1e-6 or units < -1e-9:
+                raise ResearchCatalogError("V05 self-financing cash/position invalid")
+            next_fill += 1
+        marked = cash + units * bar.close
+        if not isclose(marked, result.equity_curve[index], rel_tol=1e-9, abs_tol=1e-6):
+            raise ResearchCatalogError("V05 self-financing equity vs fill ledger mismatch")
+    if next_fill != len(result.trades):
+        raise ResearchCatalogError("V05 self-financing fill timestamps not chronological")
+
     missing_liquidity = [
         key for key, quantity in volume_by_date.items()
         if bars[key].volume <= 0 or not isfinite(quantity)
@@ -169,6 +197,7 @@ def audit_development_economics(
         "equity_hash": result.equity_hash,
         "cost_model_version": cost_model.version,
         "fills_verified": len(result.trades),
+        "self_financing_trade_equity_reconciled": True,
         "existing_costed_net_pnl_usd": result.final_equity - result.initial_cash,
         "baseline_paid_cost_usd": initial_total,
         "stress_multiplier": stress_multiplier,

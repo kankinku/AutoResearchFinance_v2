@@ -54,6 +54,39 @@ def test_v05_real_cost_model_reconciles_fills_and_illustrative_cost_stress(tmp_p
     )
 
 
+def test_v05_rejects_cost_consistent_fill_tampering_against_equity(tmp_path: Path) -> None:
+    """A forged trade can conserve the fee sum yet not finance the equity."""
+    market, actual = _evaluated(tmp_path)
+    first = actual.trades[0]
+    assert first.side == "buy"
+    # All individual fill price, cost, quantity and notional checks pass.
+    # The original equity hash is unchanged, so only independent cash/position
+    # replay can detect that the buys no longer fund the claimed equity.
+    smaller = replace(
+        first, quantity=first.quantity / 2,
+        notional=first.notional / 2, cost=first.cost / 2,
+    )
+    forged = replace(
+        actual, trades=(smaller, *actual.trades[1:]),
+        total_paid_costs=actual.total_paid_costs - first.cost / 2,
+    )
+    with pytest.raises(ResearchCatalogError, match="self-financing"):
+        audit_development_economics(
+            market, forged, cost_model=_COST, max_daily_participation=0.01,
+            stress_multiplier=2, attempted_trials=10,
+        )
+
+
+def test_v05_replay_audit_is_explicit_in_report(tmp_path: Path) -> None:
+    market, actual = _evaluated(tmp_path)
+    report = audit_development_economics(
+        market, actual, cost_model=_COST, max_daily_participation=0.01,
+        stress_multiplier=2, attempted_trials=10,
+    )
+    assert report["self_financing_trade_equity_reconciled"] is True
+    assert report["broker_executable"] is False
+
+
 def test_cost_stress_higher_adds_cost_without_changing_backtest(tmp_path: Path):
     market, result = _evaluated(tmp_path)
     kwargs = dict(cost_model=_COST, max_daily_participation=0.01, attempted_trials=10)
