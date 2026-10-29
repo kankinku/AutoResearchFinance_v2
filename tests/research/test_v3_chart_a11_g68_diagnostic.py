@@ -153,7 +153,7 @@ def test_duplicate_lag_is_a_real_canonical_boundary_bug_not_alpha() -> None:
     assert executed["a"] != list(prelagged)
 
 
-def test_A11_evidence_replays_without_changing_committed_results() -> None:
+def test_A11_original_evidence_preserved_and_five_arms_replay_after_A12() -> None:
     needed = ("cycles.sqlite", "gateway.sqlite", "catalog-s6-v2.sqlite")
     if (
         not all((a11.ORIGINAL / f).is_file() for f in needed)
@@ -162,13 +162,17 @@ def test_A11_evidence_replays_without_changing_committed_results() -> None:
         pytest.skip("G452 source checkpoint is an intentionally external, non-CI data fixture")
     reported = json.loads(REPORT.read_text())
     replayed = a11.run_a11(save=False)
-    for key in (
-        "preregistration_hash",
-        "arm_count",
-        "valid_costed_arm_count",
-        "blocked_arm_count",
-        "candidate_arms",
-        "result_content_hash",
-        "parent_source",
-    ):
+    # The historical 5+1 failure must not be overwritten after A12 repairs
+    # the execution boundary. Only B4's post-fix result differs.
+    for key in ("preregistration_hash", "arm_count", "parent_source"):
         assert replayed[key] == reported[key]
+    assert reported["valid_costed_arm_count"] == 5
+    assert reported["blocked_arm_count"] == 1
+    assert replayed["valid_costed_arm_count"] == 6
+    assert replayed["blocked_arm_count"] == 0
+    old = {arm["arm"]: arm for arm in reported["candidate_arms"]}
+    new = {arm["arm"]: arm for arm in replayed["candidate_arms"]}
+    for name in ("B0_PARENT", "B1_CLASSICAL", "B2_ELLIOTT", "B3_COMBINED", "B40_PINNED"):
+        assert new[name] == old[name]
+    assert old["B4_DELAYED_CONTROL"]["status"] == "BLOCKED_DOUBLE_LAG_PROVENANCE"
+    assert new["B4_DELAYED_CONTROL"]["status"] == "VALID_COSTED_DEVELOPMENT_REPLAY"

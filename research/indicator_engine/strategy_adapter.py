@@ -141,6 +141,32 @@ def compile_research_hypothesis(
     )
 
 
+def _raw_feature_inputs_for_core(
+    strategy: StrategyIR,
+    effective: dict[str, tuple[float | None, ...]],
+) -> dict[str, tuple[float | None, ...]]:
+    """Adapt research effective vectors to the core's one-time FeatureRef lag.
+
+    Inherited research replay stores lag-applied, decision-time effective
+    vectors. The protected backtester expects *raw* supplied series and
+    applies StrategyIR.lag_bars itself. Reversing the already-applied prefix
+    at this boundary prevents double lag without modifying either contract,
+    hashes, or a single historical replay observation.
+    """
+    raw: dict[str, tuple[float | None, ...]] = {}
+    if set(effective) != set(strategy.features):
+        raise ResearchCatalogError("research replay feature aliases disagree with StrategyIR")
+    for alias, series in effective.items():
+        lag = strategy.features[alias].lag_bars
+        if lag == 0:
+            raw[alias] = series
+            continue
+        if lag >= len(series) or any(value is not None for value in series[:lag]):
+            raise ResearchCatalogError("lagged research feature prefix is inconsistent")
+        raw[alias] = series[lag:] + (None,) * lag
+    return raw
+
+
 def evaluate_compiled_development(
     compiled: CompiledAcademicStrategy,
     dataset: MarketDataSet,
@@ -192,7 +218,7 @@ def evaluate_compiled_development(
             initial_cash=initial_cash,
             strategy=compiled.strategy,
             cost_model=_COST,
-            feature_values=compiled.feature_values,
+            feature_values=_raw_feature_inputs_for_core(compiled.strategy, compiled.feature_values),
             signal_start_at=signal_start_at,
         )
     )
