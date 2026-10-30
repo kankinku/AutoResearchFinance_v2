@@ -157,15 +157,24 @@ class CodexMCPServer:
             "get_guided_research",
             "submit_guided_generation",
             "reconcile_guided_research",
+            "suggest_guided_thresholds",
         }:
             guided = GPTGuidedResearchService(
                 project_root=self.project_root, state_dir=self.state_dir
             )
             if name == "start_guided_research":
                 return guided.start(arguments)
+            if name == "suggest_guided_thresholds":
+                return guided.suggest_thresholds(arguments)
             if name == "get_guided_research":
-                if set(arguments) != {"session_id"}:
-                    raise ValueError("get_guided_research requires session_id")
+                if set(arguments) - {"session_id","controlled_generation"} or "session_id" not in arguments:
+                    raise ValueError("get_guided_research accepts session_id and optional controlled_generation")
+                if "controlled_generation" in arguments:
+                    report=guided.training_control({
+                        "session_id":arguments["session_id"],
+                        "generation":arguments["controlled_generation"],
+                    })
+                    return {**guided.get(arguments["session_id"]),"controlled_generation_report":report}
                 return guided.get(arguments["session_id"])
             if name == "reconcile_guided_research":
                 if set(arguments) != {"session_id"}:
@@ -239,14 +248,33 @@ class CodexMCPServer:
                 raise ValueError("unexpected evidence arguments")
             return self.services.research.evidence(run_id)
         if name == "get_research_brief":
-            if arguments:
-                raise ValueError("research brief does not take arguments")
+            if set(arguments) - {"response_mode"} or arguments.get("response_mode","summary") not in {"summary","full"}:
+                raise ValueError("research brief accepts only response_mode=summary/full")
             from integrations.chatgpt_mcp_sdk import chatgpt_tools
             from memory.evidence_store import digest
             from research.llm.execution_policy import research_execution_policy
 
             schema = chatgpt_tools()
+            guided = GPTGuidedResearchService(
+                project_root=self.project_root, state_dir=self.state_dir
+            )
+            with guided._connect() as db:
+                latest = db.execute(
+                    "SELECT id FROM sessions WHERE completed>0 ORDER BY rowid DESC LIMIT 1"
+                ).fetchone()
+            guided_learning = {}
+            if latest is not None:
+                checkpoint = guided.get(latest[0])
+                guided_learning = {
+                    "latest_session_id":checkpoint["session_id"],
+                    "completed_generations":checkpoint["completed_generations"],
+                    "current_session_feedback":checkpoint["learning_feedback"],
+                    "prior_session_feedback":checkpoint["cross_session_learning"],
+                    "training_parent_child_controls":checkpoint["controlled_training_memory"],
+                    "guidance_only_not_automatic_model_or_strategy_approval":True,
+                }
             return {
+                "guided_all_outcome_learning":guided_learning,
                 "mcp_capabilities": {
                     "server_tool_count": len(schema),
                     "schema_sha256": digest(schema),

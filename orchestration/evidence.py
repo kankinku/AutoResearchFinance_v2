@@ -87,6 +87,7 @@ def freeze_manifest(
     source: StrategyIR,
     dataset: MarketDataSet,
     series: SeriesDataSet | None,
+    benchmark_mode: str | None = None,
     funnel: FunnelConfig,
     cost_model: CostModel,
 ) -> str:
@@ -108,6 +109,9 @@ def freeze_manifest(
         "timeframe": dataset.timeframe,
         "calendar": dataset.calendar,
         "series_hash": series.dataset_hash if series else None,
+        "benchmark_mode": benchmark_mode,
+        "benchmark_dataset_hash": dataset.dataset_hash if benchmark_mode else None,
+        "benchmark_scope": "REUSED_DEVELOPMENT_NON_PIT_PRICE_ONLY" if benchmark_mode else None,
         "series_zone": DataZone(series.zone).value if series else None,
         "series_version": series.version if series else None,
         "date_start": min(timestamps).isoformat() if timestamps else None,

@@ -7,14 +7,14 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class BenchmarkData:
     qqq_prices: tuple[float, ...]
-    nasdaq_prices: tuple[float, ...]
+    nasdaq_prices: tuple[float, ...] | None = None
     qqq_distributions: tuple[float, ...] | None = None
     nasdaq_distributions: tuple[float, ...] | None = None
 
     def slice(self, width: int) -> BenchmarkData:
         return BenchmarkData(
             self.qqq_prices[:width],
-            self.nasdaq_prices[:width],
+            self.nasdaq_prices[:width] if self.nasdaq_prices is not None else None,
             self.qqq_distributions[:width] if self.qqq_distributions is not None else None,
             self.nasdaq_distributions[:width]
             if self.nasdaq_distributions is not None
@@ -25,7 +25,8 @@ class BenchmarkData:
         selected = tuple(indices)
         return BenchmarkData(
             tuple(self.qqq_prices[index] for index in selected),
-            tuple(self.nasdaq_prices[index] for index in selected),
+            (tuple(self.nasdaq_prices[index] for index in selected)
+             if self.nasdaq_prices is not None else None),
             (
                 tuple(self.qqq_distributions[index] for index in selected)
                 if self.qqq_distributions is not None
@@ -43,52 +44,57 @@ class BenchmarkData:
 class BenchmarkComparison:
     strategy_total_return: float
     qqq_total_return: float
-    nasdaq_total_return: float
+    nasdaq_total_return: float | None
     qqq_excess_return: float
-    nasdaq_excess_return: float
+    nasdaq_excess_return: float | None
     strategy_cagr: float
     qqq_cagr: float
-    nasdaq_cagr: float
+    nasdaq_cagr: float | None
     qqq_cagr_delta: float
-    nasdaq_cagr_delta: float
+    nasdaq_cagr_delta: float | None
     qqq_outperformed: bool
-    nasdaq_outperformed: bool
+    nasdaq_outperformed: bool | None
 
 
 def compare_benchmarks(
     strategy_equity: Sequence[float],
     qqq_prices: Sequence[float],
-    nasdaq_prices: Sequence[float],
+    nasdaq_prices: Sequence[float] | None,
     *,
     qqq_distributions: Sequence[float] | None = None,
     nasdaq_distributions: Sequence[float] | None = None,
     periods_per_year: float = 252,
 ) -> BenchmarkComparison:
-    curves = (strategy_equity, qqq_prices, nasdaq_prices)
+    curves = (strategy_equity, qqq_prices) + ((nasdaq_prices,) if nasdaq_prices is not None else ())
     if not strategy_equity or len({len(curve) for curve in curves}) != 1:
         raise ValueError("strategy and benchmark curves must have the same length")
     if periods_per_year <= 0:
         raise ValueError("periods_per_year must be positive")
     qqq_return = _total_return(qqq_prices, qqq_distributions)
-    nasdaq_return = _total_return(nasdaq_prices, nasdaq_distributions)
+    if nasdaq_prices is None and nasdaq_distributions is not None:
+        raise ValueError("nasdaq distributions require nasdaq prices")
+    nasdaq_return = (
+        _total_return(nasdaq_prices, nasdaq_distributions)
+        if nasdaq_prices is not None else None
+    )
     strategy_return = _total_return(strategy_equity)
     years = max((len(strategy_equity) - 1) / periods_per_year, 0.0)
     strategy_cagr = _cagr(strategy_return, years)
     qqq_cagr = _cagr(qqq_return, years)
-    nasdaq_cagr = _cagr(nasdaq_return, years)
+    nasdaq_cagr = _cagr(nasdaq_return, years) if nasdaq_return is not None else None
     return BenchmarkComparison(
         strategy_return,
         qqq_return,
         nasdaq_return,
         strategy_return - qqq_return,
-        strategy_return - nasdaq_return,
+        strategy_return - nasdaq_return if nasdaq_return is not None else None,
         strategy_cagr,
         qqq_cagr,
         nasdaq_cagr,
         strategy_cagr - qqq_cagr,
-        strategy_cagr - nasdaq_cagr,
+        strategy_cagr - nasdaq_cagr if nasdaq_cagr is not None else None,
         strategy_return > qqq_return,
-        strategy_return > nasdaq_return,
+        strategy_return > nasdaq_return if nasdaq_return is not None else None,
     )
 
 

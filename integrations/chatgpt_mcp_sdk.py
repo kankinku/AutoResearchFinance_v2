@@ -59,6 +59,7 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
     "run_research_step": "EXECUTION_LIFECYCLE",
     "start_guided_research": "EXECUTION_LIFECYCLE",
     "get_guided_research": "EVIDENCE_STATUS",
+    "suggest_guided_thresholds": "CATALOG_VALIDATION",
     "reconcile_guided_research": "EXECUTION_LIFECYCLE",
     "submit_guided_generation": "EXECUTION_LIFECYCLE",
     "start_research_batch": "EXECUTION_LIFECYCLE",
@@ -128,7 +129,33 @@ def chatgpt_tools() -> list[dict[str, object]]:
             "checkpoint_token": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
             "generation": {"type": "integer", "minimum": 1, "maximum": MAX_GENERATIONS},
             "source_path": {"type": "string"},
+            "inherit_from_generation": {
+                "type":"integer", "minimum":1,
+                "description":"Use a prior same-session train-only selected, policy-passing immutable child as actual next parent; forbidden without session opt-in.",
+            },
+            "crossover_donor_generation": {
+                "type":"integer", "minimum":1,
+                "description":"Opt-in exact second verified development parent for StrategyIR exit crossover; must match signed GPT CONTRAST_PARENTS decision and be in same session. No live orders or OOS approval.",
+            },
+            "research_parent_generation": {
+                "type":"integer", "minimum":1,
+                "description":"Opt-in development research parent from a previous completed generation, including a failed candidate, ONLY when exact precommitted StrategyIR, immutable run Evidence, training-fold provenance and costed execution identity agree. Not champion promotion or OOS approval.",
+            },
             "intent": step_properties["intent"],
+            "research_decision": {
+                "type":"object", "additionalProperties":False,
+                "description":"Required in opt-in adaptive sessions. Bind a newly GPT-authored hypothesis and optional development research parent(s) to the exact current feedback/checkpoint digest.",
+                "properties":{
+                    "schema":{"type":"string","const":"guided-research-director-decision-v1"},
+                    "context_digest":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+                    "research_mode":{"type":"string","enum":["EXPLORE","DIAGNOSE_FAILURE","REFINE_PARENT","CONTRAST_PARENTS","TEST_SINGLE_FACTOR"]},
+                    "hypothesis":{"type":"string","minLength":12,"maxLength":1500},
+                    "competing_explanation":{"type":"string","minLength":12,"maxLength":1500},
+                    "research_parent_generation":{"type":["integer","null"],"minimum":1},
+                    "contrast_parent_generation":{"type":["integer","null"],"minimum":1},
+                },
+                "required":["schema","context_digest","research_mode","hypothesis","competing_explanation","research_parent_generation","contrast_parent_generation"],
+            },
         },
         "required": ["session_id", "checkpoint_token", "generation", "source_path", "intent"],
     }
@@ -153,17 +180,51 @@ def chatgpt_tools() -> list[dict[str, object]]:
                         "min_trades": {"type": "integer", "minimum": 30},
                         "min_annual_trades": {"type": "integer", "minimum": 30},
                         "min_qqq_cagr_delta": {"type": "number", "minimum": 0.1},
+                        "benchmark_mode": {
+                            "type":"string", "enum":["QQQ_COSTED_NEXT_OPEN_DEV_V1"],
+                            "description":"Opt-in single-symbol QQQ development-only costed next-open buy-and-hold comparison. NASDAQ and dividends remain missing.",
+                        },
+                        "allow_two_parent_crossover": {
+                            "type":"boolean","default":False,
+                            "description":"Explicit enablement of dependency-checked two-parent StrategyIR exit-rule crossover; requires adaptive controller, research-only parent mode and strict execution-change guard.",
+                        },
+                        "adaptive_research_controller": {
+                            "type":"boolean","default":False,
+                            "description":"Opt-in GPT-authored plan per generation, bound to exact signed feedback digest. Requires research-parent/strict fill-change opt-in. Disabled in historical sessions.",
+                        },
+                        "allow_research_parent_inheritance": {
+                            "type":"boolean","default":False,
+                            "description":"Enable exact hash-verified DEVELOPMENT-ONLY parent reuse from signed prior proposals, INCLUDING failed candidates; strict execution change required. Does not alter champion approval gates.",
+                        },
+                        "allow_verified_parent_inheritance": {
+                            "type":"boolean", "default":False,
+                            "description":"Opt-in same-session successor inheritance only after signed train-only selection and all policy gates pass; development only. Requires strict execution change.",
+                        },
+                        "require_execution_change": {
+                            "type": "boolean", "default": False,
+                            "description": (
+                                "Opt-in, session-pinned costed fill-identity guard. "
+                                "Reject zero-trade or unchanged-fill mutations BEFORE counting a "
+                                "generation; existing sessions remain backward compatible."
+                            ),
+                        },
                     },
                     "required": ["data_path", "generations"],
                 },
             },
             {
                 "name": "get_guided_research",
-                "description": "Read immutable Evidence-based GPT checkpoint; never auto-advance.",
+                "description": "Read immutable Evidence-based GPT checkpoint PLUS bounded full-history success-and-failure feedback, training-only development parent alternatives and new research direction. Never auto-advance or promote.",
                 "inputSchema": {
                     "type": "object",
                     "additionalProperties": False,
-                    "properties": {"session_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"}},
+                    "properties": {
+                        "session_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+                        "controlled_generation": {
+                            "type":"integer", "minimum":1,"maximum":100,
+                            "description":"Optional exact training-only parent/child costed controlled replay for one completed generation; returns immutable evidence and previous full success/failure feedback; no OOS, no promotion.",
+                        },
+                    },
                     "required": ["session_id"],
                 },
             },
@@ -175,6 +236,20 @@ def chatgpt_tools() -> list[dict[str, object]]:
                     "additionalProperties": False,
                     "properties": {"session_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"}},
                     "required": ["session_id"],
+                },
+            },
+            {
+                "name": "suggest_guided_thresholds",
+                "description": "Training-only entry-gated quantiles for a registered indicator; no OOS, no generation consumed.",
+                "inputSchema": {
+                    "type":"object","additionalProperties":False,
+                    "properties":{
+                        "session_id":{"type":"string","pattern":"^[0-9a-f]{32}$"},
+                        "source_path":{"type":"string"},
+                        "feature_id":{"type":"string"},
+                        "op":{"type":"string","enum":["greater_than","less_than"],"default":"greater_than"},
+                    },
+                    "required":["session_id","source_path","feature_id"],
                 },
             },
             {
@@ -522,8 +597,8 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
                 schema,
                 format_checker=FormatChecker(),
             )
-        if len(self._input_validators) != 32:
-            raise TypeError("unexpected ChatGPT tool contract count")
+        if set(self._input_validators) != (_CHATGPT_CANONICAL | _CHATGPT_CUSTOM.keys()):
+            raise TypeError("unexpected ChatGPT tool contract inventory")
 
     async def list_tools(
         self,

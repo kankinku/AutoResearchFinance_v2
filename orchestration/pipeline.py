@@ -87,6 +87,7 @@ class GenerationPipeline:
         funnel: FunnelConfig,
         observations: list[BayesianObservation] | None = None,
         benchmark_data: BenchmarkData | None = None,
+        benchmark_dataset_hash: str | None = None,
         feature_values: Mapping[str, Sequence[float | None]] | None = None,
         feature_specs: Mapping[str, FeatureSpec] | None = None,
         feature_inputs: Mapping[str, Sequence[float | None]] | None = None,
@@ -260,7 +261,9 @@ class GenerationPipeline:
                         ),
                         candidate.parameters,
                         dataset.dataset_hash,
-                        external_series.dataset_hash if external_series is not None else None,
+                        (benchmark_dataset_hash or (
+                            external_series.dataset_hash if external_series is not None else None
+                        )),
                         item.validation_folds,
                         item.yearly_metrics,
                         _feature_lineage(candidate.strategy, feature_specs),

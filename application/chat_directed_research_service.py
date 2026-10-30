@@ -21,6 +21,9 @@ from research.llm.gpt_context import record_intent
 from research.llm.intent_bridge import apply_intent, intent_to_operations
 from runtime.evidence_session import EvidenceSession
 from strategy_ir.normalizer import normalize_source
+from strategy_ir.schema import StrategyIR
+from research.llm.guided_crossover import crossover_exit
+from experiments.identity import semantic_strategy_hash
 
 
 class ChatDirectedResearchService:
@@ -46,6 +49,7 @@ class ChatDirectedResearchService:
         min_annual_trades: int = 30,
         min_qqq_cagr_delta: float | None = None,
         series_data_path: str | None = None,
+        benchmark_mode: str | None = None,
         previous_research_run_id: str | None = None,
         guided_session_id: str | None = None,
         guided_generation: int | None = None,
@@ -53,6 +57,12 @@ class ChatDirectedResearchService:
         reserved_attempt_id: str | None = None,
         expected_semantic_hashes: tuple[str, ...] = (),
         source_sha256: str | None = None,
+        parent_override: StrategyIR | None = None,
+        inherited_parent_run_id: str | None = None,
+        inherited_parent_semantic_hash: str | None = None,
+        guided_proposal_hash: str | None = None,
+        crossover_donor: StrategyIR | None = None,
+        crossover_donor_run_id: str | None = None,
     ) -> dict[str, object]:
         if method not in {"grid", "random", "bayesian"}:
             raise ValueError("invalid experiment method")
@@ -65,7 +75,21 @@ class ChatDirectedResearchService:
         imported = normalize_source(source)
         if imported.strategy is None:
             raise ValueError("strategy source is unsupported")
-        parent = imported.strategy
+        parent = parent_override or imported.strategy
+        if parent_override is not None:
+            if not inherited_parent_run_id or not inherited_parent_semantic_hash:
+                raise ValueError("inherited parent provenance missing")
+            if semantic_strategy_hash(parent_override) != inherited_parent_semantic_hash:
+                raise ValueError("inherited parent evidence hash mismatch")
+        donor_semantic_hash=None
+        if crossover_donor is not None:
+            if (parent_override is None or not inherited_parent_run_id
+                    or not crossover_donor_run_id or not guided_proposal_hash):
+                raise ValueError("CROSSOVER_PARENT_EVIDENCE_REQUIRED")
+            donor_semantic_hash=semantic_strategy_hash(crossover_donor)
+            parent,_crossover_proof=crossover_exit(parent,crossover_donor)
+        elif crossover_donor_run_id is not None:
+            raise ValueError("CROSSOVER_UNBOUND_DONOR_RUN")
         intent = ResearchIntent.model_validate(intent_payload)
         if len(intent.parent_ids) != 1:
             raise ValueError("exactly one source parent is required; crossover is not supported")
@@ -112,6 +136,11 @@ class ChatDirectedResearchService:
                 "guided_generation": guided_generation,
                 "expected_semantic_hashes": list(expected_semantic_hashes),
                 "source_sha256": source_sha256,
+                "inherited_parent_run_id": inherited_parent_run_id,
+                "inherited_parent_semantic_hash": inherited_parent_semantic_hash,
+                "guided_proposal_hash":guided_proposal_hash,
+                "crossover_donor_run_id":crossover_donor_run_id,
+                "crossover_donor_semantic_hash":donor_semantic_hash,
             },
             reserved_run_id=reserved_run_id,
             reserved_attempt_id=reserved_attempt_id,
@@ -130,6 +159,7 @@ class ChatDirectedResearchService:
                 min_annual_trades=min_annual_trades,
                 min_qqq_cagr_delta=min_qqq_cagr_delta,
                 series_data_path=series_data_path,
+                benchmark_mode=benchmark_mode,
                 operations=operations,
                 strategy_override=parent,
             )

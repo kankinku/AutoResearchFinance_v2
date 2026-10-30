@@ -62,6 +62,7 @@ def run_local_evaluation(
     strategy_override: StrategyIR | None = None,
     generation: int | None = None,
     series_data_path: object | None = None,
+    benchmark_mode: str | None = None,
     min_qqq_cagr_delta: float | None = None,
     min_annual_trades: int | None = 30,
     research_run_id: str | None = None,
@@ -81,6 +82,10 @@ def run_local_evaluation(
         raise ValueError("generation must be positive")
     if min_annual_trades is not None and min_annual_trades < 0:
         raise ValueError("minimum annual trades cannot be negative")
+    if benchmark_mode not in (None, "QQQ_COSTED_NEXT_OPEN_DEV_V1"):
+        raise ValueError("unsupported benchmark mode")
+    if benchmark_mode is not None and series_data_path is not None:
+        raise ValueError("cannot mix local QQQ and externally sourced benchmark data")
     if min_qqq_cagr_delta is not None and not isfinite(min_qqq_cagr_delta):
         raise ValueError("QQQ CAGR target must be finite")
     domains = tuple(parameter_domains)
@@ -103,7 +108,11 @@ def run_local_evaluation(
     series = _read_series_input(project_root, series_data_path)
     feature_specs = {spec.name: spec for spec in research_feature_specs()}
     feature_inputs = _market_feature_inputs(dataset)
-    benchmark = _benchmark_data(dataset, series) if series is not None else None
+    benchmark = (
+        _local_qqq_benchmark(dataset, GenerationPipeline().cost_model)
+        if benchmark_mode == "QQQ_COSTED_NEXT_OPEN_DEV_V1"
+        else _benchmark_data(dataset, series) if series is not None else None
+    )
     standalone = research_run_id is None
     research_run_id = research_run_id or uuid4().hex
     attempt_id = attempt_id or uuid4().hex
@@ -146,6 +155,7 @@ def run_local_evaluation(
         source=original,
         dataset=dataset,
         series=series,
+        benchmark_mode=benchmark_mode,
         funnel=funnel_config,
         cost_model=pipeline.cost_model,
     )
@@ -162,6 +172,7 @@ def run_local_evaluation(
         feature_specs=feature_specs,
         feature_inputs=feature_inputs,
         external_series=series,
+        benchmark_dataset_hash=(dataset.dataset_hash if benchmark_mode is not None else None),
         prior_trials=previous_trials,
         excluded_semantic_hashes=excluded_semantic_hashes,
         cpcv_label_end_indices=cpcv_label_end_indices,
@@ -390,6 +401,27 @@ def _market_feature_inputs(dataset: MarketDataSet) -> dict[str, tuple[float, ...
         field: tuple(float(getattr(bar, field)) for bar in dataset.bars)
         for field in ("open", "high", "low", "close", "volume")
     }
+
+
+def _local_qqq_benchmark(dataset: MarketDataSet, cost_model: object) -> BenchmarkData:
+    """Costed QQQ buy-and-hold executed at next open after first completed bar.
+
+    The reference curve has the same initial capital, bar count, fee model and
+    calendar as the strategy. No NASDAQ proxy is fabricated. Price-only data
+    do not support dividend-inclusive returns or PIT approval.
+    """
+    from core.data.contracts import DataZone
+    if (dataset.zone is not DataZone.DEVELOPMENT or dataset.timeframe != "1d"
+        or dataset.calendar != "us_equities" or len(dataset.bars) < 3
+        or any(bar.symbol != "QQQ" for bar in dataset.bars)):
+        raise ValueError("QQQ local benchmark requires single-symbol daily development QQQ data")
+    capital = 100_000.0
+    purchase_cost = cost_model.calculate(capital, side="buy", stress_multiplier=1.0).total
+    if purchase_cost >= capital:
+        raise ValueError("QQQ benchmark costs exceed capital")
+    shares = (capital - purchase_cost) / dataset.bars[1].open
+    curve = (capital,) + tuple(shares * bar.close for bar in dataset.bars[1:])
+    return BenchmarkData(qqq_prices=curve, nasdaq_prices=None)
 
 
 def _benchmark_data(dataset: MarketDataSet, series: SeriesDataSet | None) -> BenchmarkData | None:
