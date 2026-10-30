@@ -10,6 +10,7 @@ from application.evaluation_service import EvaluationService
 from core.data.parquet import ParquetDataProvider
 from core.features.registry import research_feature_specs
 from core.integrity.hashes import content_hash
+from experiments.identity import semantic_strategy_hash
 from memory.evidence_store import EvidenceIntegrityError, EvidenceStore
 from memory.research_evidence import research_evidence
 from orchestration.evaluation_runner import (
@@ -18,12 +19,11 @@ from orchestration.evaluation_runner import (
 )
 from research.llm.director import ResearchIntent
 from research.llm.gpt_context import record_intent
+from research.llm.guided_crossover import crossover_exit
 from research.llm.intent_bridge import apply_intent, intent_to_operations
 from runtime.evidence_session import EvidenceSession
 from strategy_ir.normalizer import normalize_source
 from strategy_ir.schema import StrategyIR
-from research.llm.guided_crossover import crossover_exit
-from experiments.identity import semantic_strategy_hash
 
 
 class ChatDirectedResearchService:
@@ -81,13 +81,17 @@ class ChatDirectedResearchService:
                 raise ValueError("inherited parent provenance missing")
             if semantic_strategy_hash(parent_override) != inherited_parent_semantic_hash:
                 raise ValueError("inherited parent evidence hash mismatch")
-        donor_semantic_hash=None
+        donor_semantic_hash = None
         if crossover_donor is not None:
-            if (parent_override is None or not inherited_parent_run_id
-                    or not crossover_donor_run_id or not guided_proposal_hash):
+            if (
+                parent_override is None
+                or not inherited_parent_run_id
+                or not crossover_donor_run_id
+                or not guided_proposal_hash
+            ):
                 raise ValueError("CROSSOVER_PARENT_EVIDENCE_REQUIRED")
-            donor_semantic_hash=semantic_strategy_hash(crossover_donor)
-            parent,_crossover_proof=crossover_exit(parent,crossover_donor)
+            donor_semantic_hash = semantic_strategy_hash(crossover_donor)
+            parent, _crossover_proof = crossover_exit(parent, crossover_donor)
         elif crossover_donor_run_id is not None:
             raise ValueError("CROSSOVER_UNBOUND_DONOR_RUN")
         intent = ResearchIntent.model_validate(intent_payload)
@@ -138,9 +142,9 @@ class ChatDirectedResearchService:
                 "source_sha256": source_sha256,
                 "inherited_parent_run_id": inherited_parent_run_id,
                 "inherited_parent_semantic_hash": inherited_parent_semantic_hash,
-                "guided_proposal_hash":guided_proposal_hash,
-                "crossover_donor_run_id":crossover_donor_run_id,
-                "crossover_donor_semantic_hash":donor_semantic_hash,
+                "guided_proposal_hash": guided_proposal_hash,
+                "crossover_donor_run_id": crossover_donor_run_id,
+                "crossover_donor_semantic_hash": donor_semantic_hash,
             },
             reserved_run_id=reserved_run_id,
             reserved_attempt_id=reserved_attempt_id,

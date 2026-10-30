@@ -14,8 +14,8 @@ from dataclasses import asdict
 
 from core.backtest.engine import BacktestEngine, BacktestRequest
 from core.data.contracts import DataZone, MarketDataSet
-from core.integrity.hashes import content_hash
 from core.features.registry import research_feature_specs
+from core.integrity.hashes import content_hash
 from experiments.candidate_generator import Candidate
 from experiments.identity import semantic_strategy_hash
 from orchestration.evaluation_runner import _market_feature_inputs

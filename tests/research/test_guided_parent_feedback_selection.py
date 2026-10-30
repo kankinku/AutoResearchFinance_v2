@@ -1,4 +1,5 @@
 """Regression: signed parent-child training outcomes must affect research parent ranks."""
+
 from __future__ import annotations
 
 import copy
@@ -21,20 +22,24 @@ def _entry(generation: int, train_return: float, parent: int | None = None) -> d
         "attempt": {
             "train_only_selection": {
                 "sealed_oos_evaluated": False,
-                "folds": [{
-                    "selected_candidate_hash": candidate,
-                    "selection_applied": True,
-                    "train_total_return": train_return,
-                    "train_end_at": "2022-12-28T00:00:00+00:00",
-                    "test_start_at": "2022-12-29T00:00:00+00:00",
-                }],
+                "folds": [
+                    {
+                        "selected_candidate_hash": candidate,
+                        "selection_applied": True,
+                        "train_total_return": train_return,
+                        "train_end_at": "2022-12-28T00:00:00+00:00",
+                        "test_start_at": "2022-12-29T00:00:00+00:00",
+                    }
+                ],
             },
-            "candidates": [{
-                "candidate_hash": candidate,
-                "semantic_strategy_hash": f"{generation:064x}",
-                "family": "trend" if generation < 3 else "momentum",
-                "failed_gates": ["validation"],
-            }],
+            "candidates": [
+                {
+                    "candidate_hash": candidate,
+                    "semantic_strategy_hash": f"{generation:064x}",
+                    "family": "trend" if generation < 3 else "momentum",
+                    "failed_gates": ["validation"],
+                }
+            ],
         },
     }
 

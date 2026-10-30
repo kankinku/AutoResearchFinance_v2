@@ -4,23 +4,31 @@ All completed outcomes are admissible as explanatory evidence, even failures.
 This module only prepares a research decision and validates a GPT-authored next
 hypothesis; it does not impersonate a model or silently submit generations.
 """
+
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from hashlib import sha256
 from math import isfinite
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from core.integrity.hashes import content_hash
 from research.llm.guided_research_feedback import training_outcome
 
-RESEARCH_MODES = frozenset({
-    "EXPLORE", "DIAGNOSE_FAILURE", "REFINE_PARENT",
-    "CONTRAST_PARENTS", "TEST_SINGLE_FACTOR",
-})
+RESEARCH_MODES = frozenset(
+    {
+        "EXPLORE",
+        "DIAGNOSE_FAILURE",
+        "REFINE_PARENT",
+        "CONTRAST_PARENTS",
+        "TEST_SINGLE_FACTOR",
+    }
+)
 
 
-def summarize_parent_outcomes(*, history: Sequence[Mapping[str, Any]],
-                              controls: Sequence[Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
+def summarize_parent_outcomes(
+    *, history: Sequence[Mapping[str, Any]], controls: Sequence[Mapping[str, Any]]
+) -> dict[str, dict[str, Any]]:
     """Attribute verified child training deltas to exact, earlier signed parents.
 
     The caller supplies already hash-checked controlled reports; this routine
@@ -34,12 +42,16 @@ def summarize_parent_outcomes(*, history: Sequence[Mapping[str, Any]],
     for generation, (record, control) in enumerate(zip(history, controls, strict=True), 1):
         run_id = record.get("run_id")
         proposal = record.get("proposal")
-        if (record.get("proposal_verified") is not True or not isinstance(run_id, str)
-                or run_id in run_to_generation or not isinstance(proposal, Mapping)
-                or control.get("generation") != generation
-                or control.get("run_id") != run_id
-                or control.get("sealed_oos_evaluated") is not False
-                or control.get("orders_enabled") is not False):
+        if (
+            record.get("proposal_verified") is not True
+            or not isinstance(run_id, str)
+            or run_id in run_to_generation
+            or not isinstance(proposal, Mapping)
+            or control.get("generation") != generation
+            or control.get("run_id") != run_id
+            or control.get("sealed_oos_evaluated") is not False
+            or control.get("orders_enabled") is not False
+        ):
             raise ValueError("PARENT_OUTCOME_RUN_INTEGRITY_MISMATCH")
         comparisons = control.get("comparisons")
         if not isinstance(comparisons, list) or len(comparisons) != 1:
@@ -59,11 +71,15 @@ def summarize_parent_outcomes(*, history: Sequence[Mapping[str, Any]],
     return outcomes
 
 
-def build_director_brief(*, session_id: str, generation: int,
-                         checkpoint_token: str | None,
-                         history: Sequence[Mapping[str, Any]],
-                         learning: Mapping[str, Any],
-                         controlled: Mapping[str, Any]) -> dict[str, Any]:
+def build_director_brief(
+    *,
+    session_id: str,
+    generation: int,
+    checkpoint_token: str | None,
+    history: Sequence[Mapping[str, Any]],
+    learning: Mapping[str, Any],
+    controlled: Mapping[str, Any],
+) -> dict[str, Any]:
     """Pareto-aware lanes: positive, defensive, failure diagnostic and novelty.
 
     Scores for ranking parents are strictly from training fold returns, never
@@ -72,7 +88,11 @@ def build_director_brief(*, session_id: str, generation: int,
     """
     if type(generation) is not int or generation < 1:
         raise ValueError("DIRECTOR_INVALID_GENERATION")
-    if len(session_id) != 32 or checkpoint_token is not None and not isinstance(checkpoint_token, str):
+    if (
+        len(session_id) != 32
+        or checkpoint_token is not None
+        and not isinstance(checkpoint_token, str)
+    ):
         raise ValueError("DIRECTOR_INVALID_SESSION_OR_TOKEN")
     pool: list[dict[str, Any]] = []
     for index, record in enumerate(history, 1):
@@ -85,15 +105,18 @@ def build_director_brief(*, session_id: str, generation: int,
             parent_hash = candidate.get("semantic_strategy_hash")
             if not isinstance(parent_hash, str) or len(parent_hash) != 64:
                 continue
-            pool.append({
-                "generation": index, "semantic_strategy_hash": parent_hash,
-                "family": candidate.get("family") or "UNCLASSIFIED",
-                "train_return": train["training_only_return_mean"],
-                "train_folds": train["train_folds_observed"],
-                "failed_final_gates": list(candidate.get("failed_gates") or []),
-                "production_approved": False,
-                "exact_ir_required": True,
-            })
+            pool.append(
+                {
+                    "generation": index,
+                    "semantic_strategy_hash": parent_hash,
+                    "family": candidate.get("family") or "UNCLASSIFIED",
+                    "train_return": train["training_only_return_mean"],
+                    "train_folds": train["train_folds_observed"],
+                    "failed_final_gates": list(candidate.get("failed_gates") or []),
+                    "production_approved": False,
+                    "exact_ir_required": True,
+                }
+            )
     unique: dict[str, dict[str, Any]] = {}
     for entry in pool:
         unique.setdefault(entry["semantic_strategy_hash"], entry)
@@ -101,6 +124,7 @@ def build_director_brief(*, session_id: str, generation: int,
     # A high historical train score is not evidence of a productive parent
     # after multiple failed, immutable same-cost offspring comparisons.
     lineage = controlled.get("parent_outcomes") or {}
+
     def offspring_stats(entry: Mapping[str, Any]) -> tuple[int, int]:
         stats = lineage.get(str(entry["generation"]), {})
         return int(stats.get("gains", 0)), int(stats.get("losses", 0))
@@ -116,8 +140,10 @@ def build_director_brief(*, session_id: str, generation: int,
         return -(entry["train_return"] * (0.5 + success_rate)), entry["generation"]
 
     by_return = sorted((x for x in pool if not exhausted(x)), key=research_priority)
-    negative = sorted((p for p in pool if p["failed_final_gates"]),
-                      key=lambda x: (exhausted(x), x["train_return"], x["generation"]))
+    negative = sorted(
+        (p for p in pool if p["failed_final_gates"]),
+        key=lambda x: (exhausted(x), x["train_return"], x["generation"]),
+    )
     # Distinct families and distinct strategies remain eligible, even if losing.
     diverse: list[dict[str, Any]] = []
     seen_families: set[str] = set()
@@ -136,37 +162,47 @@ def build_director_brief(*, session_id: str, generation: int,
     for first in by_return:
         for other in diverse:
             if first["semantic_strategy_hash"] != other["semantic_strategy_hash"]:
-                pairs.append({
-                    "first_generation": first["generation"],
-                    "alternative_generation": other["generation"],
-                    "comparison_only": True,
-                    "crossed_strategy_constructed": False,
-                })
+                pairs.append(
+                    {
+                        "first_generation": first["generation"],
+                        "alternative_generation": other["generation"],
+                        "comparison_only": True,
+                        "crossed_strategy_constructed": False,
+                    }
+                )
                 break
         if len(pairs) == 2:
             break
-    digest = content_hash({
-        "schema": "guided-director-context-v1",
-        "session_id": session_id,
-        "generation": generation,
-        "checkpoint_token_sha256": (sha256(checkpoint_token.encode()).hexdigest()
-                                    if checkpoint_token is not None else None),
-        "feedback_digest": learning.get("evidence_digest"),
-        "training_controls": controlled.get("last_three_control_results", []),
-        "parent_outcomes": lineage,
-        "parent_pool": [{"generation":x["generation"],
-                         "semantic_strategy_hash":x["semantic_strategy_hash"],
-                         "train_return":x["train_return"]} for x in pool],
-    })
+    digest = content_hash(
+        {
+            "schema": "guided-director-context-v1",
+            "session_id": session_id,
+            "generation": generation,
+            "checkpoint_token_sha256": (
+                sha256(checkpoint_token.encode()).hexdigest()
+                if checkpoint_token is not None
+                else None
+            ),
+            "feedback_digest": learning.get("evidence_digest"),
+            "training_controls": controlled.get("last_three_control_results", []),
+            "parent_outcomes": lineage,
+            "parent_pool": [
+                {
+                    "generation": x["generation"],
+                    "semantic_strategy_hash": x["semantic_strategy_hash"],
+                    "train_return": x["train_return"],
+                }
+                for x in pool
+            ],
+        }
+    )
     return {
         "schema": "guided-director-context-v1",
         "context_digest": digest,
         "next_generation": generation,
         "available_research_modes": sorted(RESEARCH_MODES),
         "parent_lanes": lanes,
-        "repeated_loss_parent_generations": sorted(
-            x["generation"] for x in pool if exhausted(x)
-        ),
+        "repeated_loss_parent_generations": sorted(x["generation"] for x in pool if exhausted(x)),
         "contrast_parent_pairs": pairs,
         "failed_candidates_considered": learning.get("failed_candidates_included", 0),
         "controlled_experiment_priority": controlled.get("next_experiment_priority"),
@@ -180,17 +216,24 @@ def build_director_brief(*, session_id: str, generation: int,
     }
 
 
-def validate_director_decision(*, decision: Mapping[str, Any],
-                               brief: Mapping[str, Any],
-                               requested_parent_generation: int | None) -> dict[str, Any]:
+def validate_director_decision(
+    *,
+    decision: Mapping[str, Any],
+    brief: Mapping[str, Any],
+    requested_parent_generation: int | None,
+) -> dict[str, Any]:
     """Fail closed if a GPT plan is stale, unsupported or unproven.
 
     Parent choices remain optional. Selecting two comparison sources never
     authorizes applying a genetic crossover to an unverified child strategy.
     """
     if not isinstance(decision, dict) or set(decision) != {
-        "schema", "context_digest", "research_mode", "hypothesis",
-        "competing_explanation", "research_parent_generation",
+        "schema",
+        "context_digest",
+        "research_mode",
+        "hypothesis",
+        "competing_explanation",
+        "research_parent_generation",
         "contrast_parent_generation",
     }:
         raise ValueError("DIRECTOR_DECISION_SCHEMA_MISMATCH")
@@ -205,16 +248,20 @@ def validate_director_decision(*, decision: Mapping[str, Any],
         if not isinstance(value, str) or not (12 <= len(value.strip()) <= 1500):
             raise ValueError("DIRECTOR_UNTESTABLE_HYPOTHESIS")
     claimed = decision["research_parent_generation"]
-    if claimed is not None and (type(claimed) is not int or not 1 <= claimed < brief["next_generation"]):
+    if claimed is not None and (
+        type(claimed) is not int or not 1 <= claimed < brief["next_generation"]
+    ):
         raise ValueError("DIRECTOR_INVALID_PARENT")
     if claimed != requested_parent_generation:
         raise ValueError("DIRECTOR_PARENT_SELECTION_DISAGREES_WITH_EXECUTION")
     alternative = decision["contrast_parent_generation"]
     if alternative is not None:
-        if (decision["research_mode"] != "CONTRAST_PARENTS"
+        if (
+            decision["research_mode"] != "CONTRAST_PARENTS"
             or type(alternative) is not int
             or not 1 <= alternative < brief["next_generation"]
-            or alternative == claimed):
+            or alternative == claimed
+        ):
             raise ValueError("DIRECTOR_INVALID_CONTRAST")
     if decision["research_mode"] == "CONTRAST_PARENTS" and (alternative is None or claimed is None):
         raise ValueError("DIRECTOR_CONTRAST_REQUIRES_TWO_PRIOR_PARENTS")

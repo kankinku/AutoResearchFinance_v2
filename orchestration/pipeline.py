@@ -261,9 +261,14 @@ class GenerationPipeline:
                         ),
                         candidate.parameters,
                         dataset.dataset_hash,
-                        (benchmark_dataset_hash or (
-                            external_series.dataset_hash if external_series is not None else None
-                        )),
+                        (
+                            benchmark_dataset_hash
+                            or (
+                                external_series.dataset_hash
+                                if external_series is not None
+                                else None
+                            )
+                        ),
                         item.validation_folds,
                         item.yearly_metrics,
                         _feature_lineage(candidate.strategy, feature_specs),
@@ -312,14 +317,14 @@ class GenerationPipeline:
             train_end_at = selection.folds[-1].train_end_at
             cutoff = datetime.fromisoformat(train_end_at)
             training_bars = sum(
-                time <= cutoff
-                for time in equity_timestamps(dataset, len(evaluated[0].full_equity))
+                time <= cutoff for time in equity_timestamps(dataset, len(evaluated[0].full_equity))
             )
             training_returns = tuple(
                 item.returns[: max(0, training_bars - 1)] for item in evaluated
             )
             dependence = estimate_cohort_dependence(
-                training_returns, training_cutoff_at=train_end_at,
+                training_returns,
+                training_cutoff_at=train_end_at,
             )
             if training_bars >= 2 and evaluated:
                 times = equity_timestamps(dataset, len(evaluated[0].full_equity))

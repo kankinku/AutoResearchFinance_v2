@@ -16,17 +16,18 @@ class BenchmarkData:
             self.qqq_prices[:width],
             self.nasdaq_prices[:width] if self.nasdaq_prices is not None else None,
             self.qqq_distributions[:width] if self.qqq_distributions is not None else None,
-            self.nasdaq_distributions[:width]
-            if self.nasdaq_distributions is not None
-            else None,
+            self.nasdaq_distributions[:width] if self.nasdaq_distributions is not None else None,
         )
 
     def select(self, indices: Sequence[int]) -> BenchmarkData:
         selected = tuple(indices)
         return BenchmarkData(
             tuple(self.qqq_prices[index] for index in selected),
-            (tuple(self.nasdaq_prices[index] for index in selected)
-             if self.nasdaq_prices is not None else None),
+            (
+                tuple(self.nasdaq_prices[index] for index in selected)
+                if self.nasdaq_prices is not None
+                else None
+            ),
             (
                 tuple(self.qqq_distributions[index] for index in selected)
                 if self.qqq_distributions is not None
@@ -74,8 +75,7 @@ def compare_benchmarks(
     if nasdaq_prices is None and nasdaq_distributions is not None:
         raise ValueError("nasdaq distributions require nasdaq prices")
     nasdaq_return = (
-        _total_return(nasdaq_prices, nasdaq_distributions)
-        if nasdaq_prices is not None else None
+        _total_return(nasdaq_prices, nasdaq_distributions) if nasdaq_prices is not None else None
     )
     strategy_return = _total_return(strategy_equity)
     years = max((len(strategy_equity) - 1) / periods_per_year, 0.0)

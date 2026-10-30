@@ -111,7 +111,9 @@ def run_local_evaluation(
     benchmark = (
         _local_qqq_benchmark(dataset, GenerationPipeline().cost_model)
         if benchmark_mode == "QQQ_COSTED_NEXT_OPEN_DEV_V1"
-        else _benchmark_data(dataset, series) if series is not None else None
+        else _benchmark_data(dataset, series)
+        if series is not None
+        else None
     )
     standalone = research_run_id is None
     research_run_id = research_run_id or uuid4().hex
@@ -411,9 +413,14 @@ def _local_qqq_benchmark(dataset: MarketDataSet, cost_model: object) -> Benchmar
     do not support dividend-inclusive returns or PIT approval.
     """
     from core.data.contracts import DataZone
-    if (dataset.zone is not DataZone.DEVELOPMENT or dataset.timeframe != "1d"
-        or dataset.calendar != "us_equities" or len(dataset.bars) < 3
-        or any(bar.symbol != "QQQ" for bar in dataset.bars)):
+
+    if (
+        dataset.zone is not DataZone.DEVELOPMENT
+        or dataset.timeframe != "1d"
+        or dataset.calendar != "us_equities"
+        or len(dataset.bars) < 3
+        or any(bar.symbol != "QQQ" for bar in dataset.bars)
+    ):
         raise ValueError("QQQ local benchmark requires single-symbol daily development QQQ data")
     capital = 100_000.0
     purchase_cost = cost_model.calculate(capital, side="buy", stress_multiplier=1.0).total
