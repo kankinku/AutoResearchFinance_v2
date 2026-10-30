@@ -1,5 +1,7 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-30 T4-PONYTAIL-PARENT-FEEDBACK (Q02/Q06/Q07/Q08/Q14/Q17/Q20) — 개발 브랜치 / release 미승인:** Moon `skills/ponytail-moon/SKILL.md` full 원칙에 따라 원래 G1–G110 연구를 **읽기 전용**으로 감사. 부모 G64 후속 훈련 대조 0승/14패, G39 0승/12패/동률1에 비해 고정 train 수익률 선정은 G64/G92/G39을 성과 우선 부모로 계속 선정. 서명/원장 일치하는 부모·자식 동일비용 훈련 결과로 반복 실패(3회 이상 전패) 부모의 성과 개선 우선순위를 억제하고 성공 후손을 반영하는 정책 도입. G1–G110 재적용 결과 성과 후보 G47/G59/G93, 반복 손실 G22/G39/G64 표시. 신설 TDD 3 PASS, 기존 Guided/보안/교배/원장 통합 25 PASS, 거버넌스/복구 포함 16 PASS, 신규 룰 2파일 집중 Ruff/mypy PASS, `git diff --check` PASS. 실제 독립 GPT/장기 진화 효익·PIT/OOS·실주문은 미검증; 기존 110 레코드·OAuth/MCP URL/운영 프로세스·실주문 OFF 불변. 핵심 개발 코드 `98aa5d9` 브랜치 `fix/quant-v3-parent-feedback-ponytail-20261030` GitHub push, **배포 NOT RUN / 정식 Moon release 차단:** `uv` 미설치로 task_validate exit 127, 복제 WIP 전체 Ruff/mypy 및 전체 pytest 미승인. [상세](quant-v3-ponytail-parent-feedback-20261030.md). 다음 T4 공식 릴리스 게이트와 GPT 실제 세대별 피드백·동일 예산 랜덤 대조 후 V01~V04→V06→V07.
+
 **2026-10-27 KST T4-CHAT-CONTEXT-CACHE-COMPAT (Q02/Q06/Q08/Q15/Q16/Q17/Q20) — 운영 MCP 단일 소스 배포·연결 실측:** 사용자 승인 [ADR](../decisions/2026-10-27-quant-compact-default-cached-client.md)·[세션 재개 절차](quant-t4-context-handoff-20261027.md). 기존 채팅 캐시에 `response_mode` 선택 인자 없어도 세 학술 GET/PLAN/DIAG의 **전송 응답 기본만 compact**로 변경, `full` 요청 시 canonical 전체 이력 이용 가능. 운영 기존 32도구/필수 인자, Quant 고정 URL·OAuth 등록, 개발 연구 원장/부모/해시, 봉인 OOS 및 orders OFF 불변. 운영 백업 `state/moon-http/operator-backups/quant-context-20261027-predeploy` 내부 3개 SQLite online backup integrity 3/3 PASS와 원본 어댑터 사본 확보; Quant MCP만 PID 3314→167970 재기동, Dashboard/다른 시스템 재시작 없음. 실제 인증 MCP `get_algorithm_research` 인자 생략 응답: 기존 세션 **146/150 `AWAITING_DIAGNOSIS`**, 최신 증거 head `a2c9a81afd77...455ff8fbf0c` 동일, full-source 1,282,859 bytes vs compact 44,369 bytes(**약 96.5% 축소**)·history 146개에서 전송 1개, 새 세대/실거래 호출 0. Health ONLINE, online_workers 0, paper. 개발 코드 커밋 `a847140`, 운영 코드 `1d5ec9d`, 두 브랜치 Push. 확대 테스트 67 PASS, 전체 Ruff PASS, 수정 소스 mypy PASS. **전체 mypy FAIL**(기존 무관한 16파일·51 오류), **전체 pytest 수집 ERROR**(개발 상태파일 부재); 그 파일 제외 광범위 pytest는 31% 시점 2 FAIL 발생 후 INTERRUPTED, 실패 원인 미분류. 따라서 전체 릴리스 게이트 PASS는 주장하지 않으며 OOS/PIT, 진짜 GPT 100세대 완결·실제 토큰 누적량 및 32KB 목표는 미달/미측정. 고정 순서 V05→T4 실제 모델 10~100→V01–V04→V06→V07 유지.
 
 
@@ -195,6 +197,8 @@
 
 ## 1. 전체 작업 상태
 
+**최신 별도 T4 연구 작업:** `T4-PONYTAIL-PARENT-FEEDBACK` 개발 브랜치 코드는 push 완료(`98aa5d9`), 110세대 실측 읽기 전용 리플레이/41개 테스트 묶음 통과. 정식 release(`uv` 없음)·실제 세대 성능 비교 미통과로 **IN_PROGRESS / NOT_DEPLOYED**. 다음 작업은 환경 보완→정식 회귀/보안 검토→실제 GPT 학습 효익을 같은 연구 예산 대조로 측정; 운영 OAuth/OOS/주문 변경 금지.
+
 | ID | 작업 | 현황 (2026-10-15) | 남은 기능 / 검증 |
 |---|---|---|---|
 | T4-ORIGINAL-OAUTH-HOST-LOCATOR (Q02/Q06/Q15/Q17) | 새 등록 없이 원본 Quant OAuth 파일 소재 발견 | **읽기 전용 호스트 탐색기 코드 완료** `49f9fb3` Push; 현재 Linux Moon에서 원본 파일 확인 실패, Quant MCP internal error, 정식 GPT 0/10. 26 관련 Pytest PASS·Ruff PASS, Windows 실제 실행 NOT RUN. | 사용자의 기존 Windows Docker Desktop 호스트에서 탐색기 실행하여 state/moon-http 아래 original key+pin+client/grant SQLite 완전체 위치 확인 및 비공개 진정성 확인. 새 인증 발급 금지; 복구 전 운영 MCP 재기동 금지. |
@@ -225,6 +229,8 @@
 | 5-3 | 최종 목표 대비 승인 평가 | 대기 | 기능·안정성·독립 성과 GO/NO-GO |
 
 ## 2. 앞으로의 진행 순서
+
+**T4 보완:** 부모 피드백 선택 코드(개발 `98aa5d9`)의 release 차단 해제와 독립 검증을 수행한 뒤 실제 GPT 의사결정/동일 예산 무작위 대조를 이어간다. V05→T4→V01~V04→V06→V07의 승인 순서는 변경하지 않는다.
 
 | 순서 | 작업 ID | 다음 실행 내용 |
 |---|---|---|
