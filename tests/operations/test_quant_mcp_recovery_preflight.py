@@ -133,8 +133,14 @@ def test_checked_in_restore_template_points_to_existing_runner():
     root = Path(__file__).resolve().parents[2]
     template = (root / "deployment/moon/quant-mcp.supervisor.conf").read_text()
     runner = root / "scripts/run_quant_moon_http.sh"
-    assert f"command=/bin/bash {runner}" in template
-    assert f"directory={root}" in template
+    # This is a host installation template, not an instruction to point the
+    # live OAuth-bound service at a temporary research Git worktree.
+    pinned_root = Path(
+        "/shared/moon-workspace/AutoResearchFinance_v2-fresh-research-20261021"
+    )
+    assert f"command=/bin/bash {pinned_root}/scripts/run_quant_moon_http.sh" in template
+    assert f"directory={pinned_root}" in template
+    assert f"command=/bin/bash {runner}" not in template
     assert runner.is_file()
     assert "user-explicitly-provisioned NEW identity" in template
     assert "Never generate credentials from a supervisor startup" in template

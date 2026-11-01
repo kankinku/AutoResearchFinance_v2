@@ -323,16 +323,20 @@ def overlay_payload(
     pivot_engine = CausalSwingTracker(CausalSwingConfig())
     pivots = []
     for t, bar in enumerate(market.bars):
-        event = pivot_engine.update(t, bar.high, bar.low, bar.close)
-        if event is not None and event.pivot is not None and start <= event.known_at < end:
+        pivot_event = pivot_engine.update(t, bar.high, bar.low, bar.close)
+        if (
+            pivot_event is not None
+            and pivot_event.pivot is not None
+            and start <= pivot_event.known_at < end
+        ):
             pivots.append(
                 {
-                    "event_id": event.event_id,
-                    "kind": event.kind,
-                    "type": event.pivot.kind,
-                    "pivot_at": event.pivot.index,
-                    "known_at": event.known_at,
-                    "price": event.pivot.value,
+                    "event_id": pivot_event.event_id,
+                    "kind": pivot_event.kind,
+                    "type": pivot_event.pivot.kind,
+                    "pivot_at": pivot_event.pivot.index,
+                    "known_at": pivot_event.known_at,
+                    "price": pivot_event.pivot.value,
                 }
             )
     events.sort(key=lambda e: (e["event_at"], e["name"], e["event_id"]))

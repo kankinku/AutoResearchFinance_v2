@@ -138,7 +138,7 @@ def summarize_development(market: MarketDataSet) -> dict[str, Any]:
         timings.append((perf_counter() - start) * 1000)
         if len(values) != n or not all(v is not None and math.isfinite(v) for v in values):
             raise ValueError("A8 real development emitted unaligned or nonfinite vector")
-        results = tuple(float(v) for v in values)
+        results = tuple(float(v) for v in values if v is not None)
         outputs[spec.name] = results
         ref = FeatureRef(feature_id=spec.name, timeframe="1d")
         try:

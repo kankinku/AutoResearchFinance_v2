@@ -11,12 +11,15 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from core.features.calculators import calculate_feature
+from core.features.contracts import FeatureSpec
 from core.features.pandas_ta_pinned import _callable
 from core.features.registry import research_feature_specs
 from scripts.v3_audit_335_features import synthetic
@@ -422,11 +425,11 @@ def normalized(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
-def overlap82():
+def overlap82() -> tuple[list[dict[str, Any]], tuple[FeatureSpec, ...]]:
     all_entries = json.loads(ROOT.read_text())["approved"]
     specs = research_feature_specs()
 
-    def direct(entry):
+    def direct(entry: dict[str, Any]) -> list[str]:
         key = normalized(entry["source"])
         return [
             s.name
@@ -442,15 +445,17 @@ def overlap82():
     return remaining, specs
 
 
-def source_callable(cat: str, name: str):
+def source_callable(cat: str, name: str) -> tuple[Callable[..., Any], frozenset[str]]:
     method, signature = _callable(name, cat == "candles")
     return method, signature
 
 
-def get_source_output(entry, data):
+def get_source_output(
+    entry: dict[str, Any], data: dict[str, tuple[float, ...]]
+) -> np.ndarray[Any, np.dtype[np.float64]]:
     source = entry["source"]
     func, names = source_callable(entry["category"], source)
-    kwargs = {}
+    kwargs: dict[str, Any] = {}
     for key in ("open_", "open", "high", "low", "close", "volume"):
         source_key = "open" if key in ("open", "open_") else key
         if key in names:
@@ -465,23 +470,28 @@ def get_source_output(entry, data):
     output = func(**kwargs)
     if isinstance(output, pd.DataFrame):
         output = output.iloc[:, entry["index"]]
-    return np.asarray(pd.to_numeric(output, errors="coerce"), dtype=float)
+    numeric: np.ndarray[Any, np.dtype[np.float64]] = np.asarray(
+        pd.to_numeric(output, errors="coerce"), dtype=float
+    )
+    return numeric
 
 
-def numerical_checks(entries, specs):
+def numerical_checks(
+    entries: list[dict[str, Any]], specs: tuple[FeatureSpec, ...]
+) -> dict[str, dict[str, Any]]:
     test_data, _ = synthetic(480)
     spec_by_name = {s.name: s for s in specs}
-    by_source = {}
+    by_source: dict[str, list[dict[str, Any]]] = {}
     for e in entries:
         by_source.setdefault(e["source"], []).append(e)
-    evidence = {}
+    evidence: dict[str, dict[str, Any]] = {}
     for source, rows in sorted(by_source.items()):
         try:
             for entry in rows:
                 out = get_source_output(entry, test_data)
                 config = MATCH[source]
                 target = OUTPUT_TARGET.get(source + ":" + str(entry["index"]), config[1])
-                ev = {
+                ev: dict[str, Any] = {
                     "compared_to": target,
                     "same_period_n": 20,
                     "overlapping_finite": 0,
@@ -529,7 +539,7 @@ def numerical_checks(entries, specs):
     return evidence
 
 
-def run():
+def run() -> dict[str, Any]:
     remaining, specs = overlap82()
     numeric = numerical_checks(remaining, specs)
     records = []

@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-11-01 KST V3-CHART A18 FULL SUITE QA · Q05/Q09/Q11/Q12/Q16/Q20 (Draft PR #5, RELEASE NO-GO):** Python3.12에서 전체 Pytest **2,483건 수집, 2,452 PASS/13 FAIL/18 SKIP (770.36초)** 실측. 13실패 중 4건은 487개 지표/MCP 32툴 full·compact 분리/OAuth 키 재생성 금지/고정 Supervisor 경로에 맞춘 회귀 수정 후 개별 PASS. 나머지 9건은 원본 G33 snapshot-manifest 및 SQLite 자료 부재로 동일 실패, 원본 생성·검사 우회 금지. Python3.10 `tomllib` 실패에 기존 `tomli` 호환성 적용 및 SDK 3 PASS. 수식/차트 감사 변수·타입 코드 개선으로 전체 Mypy **309/35파일 → 283/28파일**, 여전히 공식 Mypy FAIL. 수정 영향 범위 **131 PASS**, 전체 Ruff PASS. **전체 Pytest는 수정 후 일괄 재실행하지 않았으므로 PASS 아님**. [A18 실제 전수 테스트·차단 보고](quant-v3-chart-a18-full-qa-20261101.md). 최우선 다음: G33 원본 hash-검증 복구, 283 Mypy 실제 수정 및 전체 QA, main/운영 배포는 차단.
+
+
 **2026-11-01 KST V3-CHART A17 RELEASE PREFLIGHT (Q05/Q09/Q11/Q12/Q16/Q20):** 기존 integration 브랜치의 후속 릴리스 검증. 기존 `uv 0.13.6` 파일을 Moon host PATH에 설치해 `uv: command not found` 제거, `uv --locked Ruff` 및 Moon 공식 Ruff PASS. 공식 MyPy는 3.12 NumPy 타입 / `python_version=3.10` 충돌에서 중단. 격리 Python3.10 전체 MyPy 309오류/35파일; Python3.12 308오류/35파일. 변경 코드의 타입 표기 개선. 3.10 차트 원장 결합/거버넌스 13 PASS. 전체 Pytest ~40%/300초 timeout → INTERRUPTED, 정식 Release·main 배포·OOS/실거래 승인 BLOCKED. 원장/운영 서비스 불변. [증거 보고](quant-v3-chart-release-preflight-20261101.md). 다음은 기존 타입 오차의 비완화 수정, 전체 Pytest 종료 및 독립 CI, [Draft PR #5](https://github.com/kankinku/AutoResearchFinance_v2/pull/5) 생성(65커밋/477파일의 선행 연구 계보 포함, 아직 병합 금지); 전체 검증과 독립 PR 보안 리뷰 순서.
 
 

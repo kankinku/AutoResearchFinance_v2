@@ -114,8 +114,8 @@ def goldens() -> dict[str, Any]:
     classical_positive = {}
     classical_negative = {}
     for name, outer in SHAPES.items():
-        positive = assess_classical_candidate(outer, name)
-        assert positive is not None
+        classical_candidate = assess_classical_candidate(outer, name)
+        assert classical_candidate is not None
         path = classical_ohlc(EXAMPLES[name])
         events = calculate_classical_events(path, name)
         assert [e.stage for e in events] == ["CANDIDATE", "CONFIRMED"]
@@ -169,8 +169,8 @@ def goldens() -> dict[str, Any]:
     }
     assert all(elliott_positive.values())
     wrong = elliott_points([100, 110, 105, 111, 109, 128])
-    negative = analyze_impulse(wrong)
-    assert negative.stage == "INVALIDATED" and "WAVE3_SHORTEST" in negative.violations
+    invalid_impulse = analyze_impulse(wrong)
+    assert invalid_impulse.stage == "INVALIDATED" and "WAVE3_SHORTEST" in invalid_impulse.violations
     return {
         "harmonic_positive": harmonic_positive,
         "harmonic_negative": harmonic_negative,
@@ -178,7 +178,7 @@ def goldens() -> dict[str, Any]:
         "classical_negative": classical_negative,
         "elliott_structure_positive": elliott_positive,
         "elliott_structure_negative": {
-            "impulse_wave3_shortest": negative.stage,
+            "impulse_wave3_shortest": invalid_impulse.stage,
         },
     }
 

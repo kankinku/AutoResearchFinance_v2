@@ -18,9 +18,9 @@ from typing import Any
 
 from core.features.calculators import calculate_feature
 from core.features.catalog import semantic_feature_id
+from core.features.causal_pivots import ConfirmedPivot
 from core.features.chart_patterns import (
     PATTERNS,
-    ConfirmedPivot,
     classical_shape,
     harmonic_xabcd,
 )
