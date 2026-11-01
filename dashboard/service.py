@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal, Protocol, cast
+from typing import Any, Literal, Protocol
 
 from core.features.registry import research_feature_specs
 from dashboard.contracts import (
@@ -202,7 +202,8 @@ class DashboardService:
         from memory.research_evidence import research_evidence
 
         try:
-            return cast(dict[str, Any], research_evidence(self.state_dir, run_id=run_id))
+            result: dict[str, Any] = research_evidence(self.state_dir, run_id=run_id)
+            return result
         except (OSError, ValueError):
             return {
                 "schema_version": 1,

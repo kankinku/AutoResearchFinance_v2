@@ -14,7 +14,7 @@ import os
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 from urllib.parse import urlsplit
 
 from core.data.contracts import Bar, DataZone, MarketDataSet
@@ -101,10 +101,10 @@ def collect_verified_p9_overlay(origin: str) -> dict[str, Any]:
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("P9 candles failed strict OHLCV validation") from error
     # Do not label generic market-derived patterns as G94's trading signals.
-    overlay = cast(dict[str, Any], overlay_payload(
+    overlay: dict[str, Any] = overlay_payload(
         market, patterns=("double_top", "double_bottom", "elliott_abc"),
         allow_research=True, data_kind="RESEARCH_DEVELOPMENT",
-    ))
+    )
     overlay["external_verification"] = {
         "original_trace": P9_RUN,
         "original_dataset_hash": P9_DATASET,
