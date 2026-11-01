@@ -32,6 +32,13 @@ section.note{border-left:3px solid #dbbd73;padding:7px 14px;margin:15px 0;color:
 <button class="primary" id="reload">불러오기</button></div>
 <p id="status" role="status" aria-live="polite">기본 비활성화</p>
 </section>
+<section class="panel" id="indicatorPanel"><h2>지표 통합 카탈로그</h2>
+<p id="catalogSummary">지표 목록 읽기 전 · 등록이 수익성·실사용을 보증하지 않습니다.</p>
+<div class="controls"><label>지표 검색<input id="indicatorSearch" type="search" placeholder="지표명 또는 계열" autocomplete="off"></label>
+<label>등록된 지표 선택<select id="indicatorList" size="6" aria-label="등록 지표 목록"></select></label></div>
+<p id="indicatorInfo" aria-live="polite">지표 시계열은 검증·발행 전 표시하지 않습니다.</p>
+<section class="note">현재 선택 화면은 지표의 등록 정보만 읽기 전용으로 표시합니다. 별도 검증된 시계열이 없는 지표를 가격 차트 위에 임의 계산하거나 표시하지 않습니다. 확인된 체결·성과는 <a href="/backtest">백테스트 원장</a>에서 조회합니다.</section>
+</section>
 <section class="panel"><h2>종가 · 피벗 확정 시점 · 패턴 이벤트</h2>
 <svg id="chart" viewBox="0 0 1200 540" role="img" aria-label="차트 패턴 연구, 확인 당시 발생한 이벤트만 표시"></svg>
 <div class="legend"><span>종가</span><span class="pivot">피벗을 알게 된 봉</span><span class="candidate">후보</span><span class="confirmed">확정</span></div>
@@ -44,11 +51,42 @@ section.note{border-left:3px solid #dbbd73;padding:7px 14px;margin:15px 0;color:
 <script>
 "use strict";
 const $=id=>document.getElementById(id),svgNS="http://www.w3.org/2000/svg";
-let model=null,catalog=null;
+let model=null,catalog=null,indicators=[];
 function setStatus(t){$("status").textContent=t}
 function mk(tag,attrs){const e=document.createElementNS(svgNS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,String(v));return e}
 function cell(tr,text){const x=document.createElement("td");x.textContent=String(text);tr.appendChild(x)}
 async function loadCatalog(){try{const r=await fetch("/api/chart-research/catalog",{cache:"no-store"});catalog=await r.json();for(const name of catalog.patterns){const o=document.createElement("option");o.value=name;o.textContent=name.replaceAll("_"," ");$("pattern").appendChild(o)}}catch{setStatus("연구 목록을 읽을 수 없습니다.")}}
+function showIndicator(){
+ const chosen=indicators.find(x=>x.canonical_id===$("indicatorList").value);
+ $("indicatorInfo").textContent=chosen
+  ? `${chosen.canonical_name} | 계열: ${chosen.family} | 출력: ${chosen.output_name||"기본값"} | 등록 상태: ${chosen.verification_status} | 데이터 계약: ${chosen.data_contract} | 지표 시계열은 검증·발행 전 표시하지 않습니다.`
+  : "지표 시계열은 검증·발행 전 표시하지 않습니다.";
+}
+function filterIndicators(){
+ const word=$("indicatorSearch").value.toLowerCase().trim();
+ const selected=$("indicatorList").value;
+ const list=$("indicatorList");list.replaceChildren();
+ for(const item of indicators.filter(x=>(x.canonical_name+" "+x.family).toLowerCase().includes(word)).slice(0,80)){
+  const option=document.createElement("option");option.value=item.canonical_id;
+  option.textContent=`${item.canonical_name} · ${item.family}`;list.appendChild(option);
+ }
+ if(Array.from(list.options).some(x=>x.value===selected))list.value=selected;
+ showIndicator();
+}
+async function loadIndicators(){
+ try{
+  const responses=await Promise.all([fetch("/api/features/catalog",{cache:"no-store"}),fetch("/api/chart-research/catalog",{cache:"no-store"})]);
+  if(responses.some(r=>!r.ok))throw Error("catalog HTTP failure");
+  const baseline=await responses[0].json(),summary=await responses[1].json();
+  if(!Array.isArray(baseline)||summary.baseline_feature_count!==baseline.length||summary.combined_feature_count!==baseline.length+summary.feature_count)throw Error("catalog count mismatch");
+  indicators=baseline;
+  $("catalogSummary").textContent=`기본 등록 ${baseline.length}개 · 차트 연구 opt-in ${summary.feature_count}개 · 총 ${summary.combined_feature_count}개 출력 · ${summary.published_development_overlay?"검증된 개발 오버레이 발행됨":"개발 오버레이 미발행"} · 등록이 수익성·실사용을 보증하지 않습니다.`;
+  filterIndicators();
+ }catch{
+  indicators=[];$("indicatorList").replaceChildren();
+  $("catalogSummary").textContent="지표 카탈로그를 검증하지 못했습니다. 오류 상태에서는 목록을 표시하지 않습니다.";
+ }
+}
 function redraw(){
  const svg=$("chart");while(svg.firstChild)svg.removeChild(svg.firstChild);
  const table=$("events");table.replaceChildren();
@@ -89,5 +127,7 @@ async function reload(){
  catch{model=null;redraw();setStatus("읽기 실패. 차트 데이터는 제공되지 않습니다.")}}
 $("reload").addEventListener("click",reload);
 ["rangeStart","rangeEnd","pattern"].forEach(k=>$(k).addEventListener("change",redraw));
-loadCatalog();
+$("indicatorSearch").addEventListener("input",filterIndicators);
+$("indicatorList").addEventListener("change",showIndicator);
+loadCatalog();loadIndicators();
 </script></body></html>

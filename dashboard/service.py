@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, cast
 
 from core.features.registry import research_feature_specs
 from dashboard.contracts import (
@@ -124,10 +124,20 @@ class DashboardService:
         from research.chart_pattern_bridge import chart_research_feature_specs
 
         features = chart_research_feature_specs()
+        baseline_count = len(research_feature_specs())
+        # A registered research output is not automatically runnable on the
+        # current dataset, nor validated for economic value or OOS use.
+        overlay = self.chart_research_overlay(enabled=True)
         return {
             "schema": "chart-research-catalog-a8-v1",
             "enabled_by_default": False,
             "research_only": True,
+            "baseline_feature_count": baseline_count,
+            "combined_feature_count": len(research_feature_specs(chart_research_opt_in=True)),
+            "registration_is_profitability_proof": False,
+            "published_development_overlay": (
+                overlay.get("schema") == "chart-research-overlay-a8-v1"
+            ),
             "feature_count": len(features),
             "patterns": list(PATTERNS),
             "features": [
@@ -183,7 +193,7 @@ class DashboardService:
                 return {"status": "RESEARCH_SCOPE_DENIED"}
             if demo and value.get("data_kind") != "SYNTHETIC":
                 return {"status": "RESEARCH_SCOPE_DENIED"}
-            return dict(value)
+            return {str(key): item for key, item in value.items()}
         except (OSError, ValueError, TypeError):
             return {"status": "INTEGRITY_ERROR"}
 
@@ -192,7 +202,7 @@ class DashboardService:
         from memory.research_evidence import research_evidence
 
         try:
-            return research_evidence(self.state_dir, run_id=run_id)
+            return cast(dict[str, Any], research_evidence(self.state_dir, run_id=run_id))
         except (OSError, ValueError):
             return {
                 "schema_version": 1,
