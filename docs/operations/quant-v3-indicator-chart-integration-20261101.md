@@ -1,5 +1,7 @@
 # Quant V3 지표 확장·차트 통합 A16 — 개발 기능 통합 및 실제 P9 미리보기 검증
 
+**커밋/원격:** `5d5adb6ff6071856620f5fb09f9c0b8e1b4ae309` / `origin/integration/v3-indicators-chart-20261101` push PASS. 운영 main 병합/배포 안 함.
+
 **기준일:** 2026-11-01 KST. 사용자 우선순위 승인: [ADR](../decisions/2026-11-01-v3-indicator-chart-priority.md). **상태: INTEGRATION_DEVELOPMENT_VERIFIED / FORMAL_RELEASE_BLOCKED / NOT_DEPLOYED.**
 
 ## 무엇을 실제로 완료했는가
