@@ -1,0 +1,244 @@
+# Moving Average Convergence Divergence (MACD)
+from typing import Any
+
+import numpy as np
+from pandas import DataFrame, Series, concat
+
+from pandas_ta_classic import Imports
+from pandas_ta_classic.overlap.ema import ema
+from pandas_ta_classic.utils import (
+    apply_fill,
+    apply_offset,
+    get_offset,
+    signals,
+    verify_series,
+)
+from pandas_ta_classic.utils._core import _bool_param, _on_valid_rows, _pos_int, nan_on_short_input, skip_leading_nan
+from pandas_ta_classic.utils._njit import njit
+from pandas_ta_classic.utils._signals import _require_number
+
+
+def _ema_aligned(arr, period, seed_end):
+    """EMA with SMA seed at *seed_end*, matching TA-Lib behaviour.
+
+    The seed SMA is computed over the *period* bars ending at *seed_end*; the
+    EMA is then propagated forward from that point.
+
+    Args:
+        arr (np.ndarray): 1-D float array of price values.
+        period (int): EMA smoothing period.
+        seed_end (int): Index at which the SMA seed is placed.
+
+    Returns:
+        np.ndarray: EMA array as long as *arr*; positions before *seed_end* are
+            ``NaN``.
+    """
+    m = arr.shape[0]
+    result = np.full(m, np.nan)
+    k = 2.0 / (period + 1)
+    start = seed_end - period + 1
+    if start < 0 or seed_end >= m:
+        return result
+    # The seed stays a numpy mean: numba's mean sums in another order.
+    result[seed_end] = arr[start : seed_end + 1].mean()
+    return _ema_loop(arr, result, seed_end, k)
+
+
+@njit(cache=True)
+def _ema_loop(arr, result, seed_end, k):
+    for i in range(seed_end + 1, arr.shape[0]):
+        result[i] = k * arr[i] + (1 - k) * result[i - 1]
+    return result
+
+
+@nan_on_short_input
+@skip_leading_nan("close", interior=True)
+def macd(
+    close: Series,
+    fast: int | None = None,
+    slow: int | None = None,
+    signal: int | None = None,
+    talib: bool | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> DataFrame | None:
+    """Indicator: Moving Average, Convergence/Divergence (MACD)"""
+    # Validate arguments
+    fast = _pos_int(fast, 12, "fast")
+    slow = _pos_int(slow, 26, "slow")
+    signal = _pos_int(signal, 9, "signal")
+    if slow < fast:
+        fast, slow = slow, fast
+    close = verify_series(close, max(fast, slow, signal))
+    offset = get_offset(offset)
+    mode_talib = _bool_param(talib, False, "talib")
+
+    if close is None:
+        return None
+
+    as_mode = kwargs.setdefault("asmode", False)
+
+    # Calculate Result
+    if Imports["talib"] and mode_talib:
+        from talib import MACD
+
+        macd, signalma, histogram = MACD(close, fast, slow, signal)
+    else:
+        c_arr = close.to_numpy(dtype=float)
+        # TA-Lib seeds the fast EMA at its own lookback (fast-1) and the slow
+        # EMA at slow-1; by slow-1 the fast EMA has already been running for
+        # (slow - fast) additional bars, not reseeded with a fresh SMA.
+        fast_start = fast - 1
+        slow_start = slow - 1
+        fast_ema = _ema_aligned(c_arr, fast, fast_start)
+        slow_ema = _ema_aligned(c_arr, slow, slow_start)
+        macd_arr = fast_ema - slow_ema
+        sig_start = slow_start + signal - 1
+        sig_ema = _ema_aligned(macd_arr, signal, sig_start)
+
+        macd = Series(macd_arr, index=close.index)
+        signalma = Series(sig_ema, index=close.index)
+        histogram = macd - signalma
+
+    if as_mode:
+        macd = macd - signalma
+        signalma = _on_valid_rows(macd, lambda s: ema(close=s, length=signal))
+        if signalma is None:
+            return None
+        histogram = macd - signalma
+
+    # Name them here: the signals below take their column names from these, and
+    # `.name` survives the shift while a custom attribute such as `.category`
+    # does not.
+    _asmode = "AS" if as_mode else ""
+    _props = f"_{fast}_{slow}_{signal}"
+    macd.name = f"MACD{_asmode}{_props}"
+    histogram.name = f"MACD{_asmode}h{_props}"
+    signalma.name = f"MACD{_asmode}s{_props}"
+
+    # The signals read the unoffset, unfilled lines and are offset once, inside
+    # signals(). Reading the shifted lines shifted them a second time.
+    signal_indicators = _bool_param(kwargs.pop("signal_indicators", None), False, "signal_indicators")
+    # Read each option once and give it to both signal sets. Popping it inside
+    # the first signals() call left the MACD-line signals with the defaults.
+    # Every option is validated whether or not the signals are wanted, as
+    # attach_signals() does: a bad value is a caller error, not a request to
+    # skip the signals.
+    signal_kwargs = {
+        "xa": kwargs.pop("xa", 0),
+        "xb": kwargs.pop("xb", None),
+        "xserie": kwargs.pop("xserie", None),
+        "xserie_a": kwargs.pop("xserie_a", None),
+        "xserie_b": kwargs.pop("xserie_b", None),
+        "cross_series": _bool_param(kwargs.pop("cross_series", None), True, "cross_series"),
+        "offset": offset,
+    }
+    for label in ("xa", "xb"):
+        if signal_kwargs[label] is not None:
+            _require_number(signal_kwargs[label], label)
+    cross_values = kwargs.pop("cross_values", None)
+    # cross_values defaults differ: crossings for the histogram, levels for the MACD line
+    cross_values_hist, cross_values_macd = (
+        _bool_param(cross_values, True, "cross_values"),
+        _bool_param(cross_values, False, "cross_values"),
+    )
+    signal_frames = []
+    if signal_indicators:
+        signal_frames = [
+            signals(indicator=histogram, cross_values=cross_values_hist, **signal_kwargs),
+            signals(indicator=macd, cross_values=cross_values_macd, **signal_kwargs),
+        ]
+
+    # Offset
+    macd, histogram, signalma = apply_offset([macd, histogram, signalma], offset)
+
+    # Categorize it
+    macd.category = histogram.category = signalma.category = "momentum"
+
+    # Prepare DataFrame to return
+    data = {macd.name: macd, histogram.name: histogram, signalma.name: signalma}
+    df = DataFrame(data)
+    df.name = f"MACD{_asmode}{_props}"
+    df.category = macd.category
+
+    if signal_frames:
+        # The fill runs last. fillna fills the three lines with the caller's
+        # value; the 0/1 signal columns fill with 0 (their "no signal" value)
+        # instead. fill_method runs over every column, after the concat.
+        apply_fill(df, **kwargs)
+        signal_kwargs = {"fillna": 0} if "fillna" in kwargs else {}
+        if "fill_method" in kwargs:
+            signal_kwargs["fill_method"] = kwargs["fill_method"]
+        for frame in signal_frames:
+            apply_fill(frame, **signal_kwargs)
+        name, category = df.name, df.category
+        df = concat([df, *signal_frames], axis=1)
+        # concat builds a new frame, so the name and category are set on it
+        df.name, df.category = name, category
+    else:
+        apply_fill(df, **kwargs)
+
+    return df
+
+
+macd.__doc__ = """Moving Average Convergence Divergence (MACD)
+
+The MACD is a popular indicator to that is used to identify a security's trend.
+While APO and MACD are the same calculation, MACD also returns two more series
+called Signal and Histogram. The Signal is an EMA of MACD and the Histogram is
+the difference of MACD and Signal.
+
+Sources:
+    https://www.tradingview.com/wiki/MACD_(Moving_Average_Convergence/Divergence)
+    AS Mode: https://tr.tradingview.com/script/YFlKXHnP/
+
+Calculation:
+    Default Inputs:
+        fast=12, slow=26, signal=9
+    EMA = Exponential Moving Average
+    MACD = EMA(close, fast) - EMA(close, slow)
+    Signal = EMA(MACD, signal)
+    Histogram = MACD - Signal
+
+    if asmode:
+        MACD = MACD - Signal
+        Signal = EMA(MACD, signal)
+        Histogram = MACD - Signal
+
+Args:
+    close (pd.Series): Series of 'close's
+    fast (int): The short period. Default: 12
+    slow (int): The long period. Default: 26
+    signal (int): The signal period. Default: 9
+    talib (bool): If TA Lib is installed and talib is True, Returns the TA Lib
+        version. Default: False
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    asmode (value, optional): When True, enables AS version of MACD.
+        Default: False
+    signal_indicators (bool): When True, threshold and comparison signal
+        columns for both the MACD line and the histogram are appended. The
+        options below take effect only when it is True, but are validated
+        either way. Default: False
+    xa (float): Upper threshold. Default: 0
+    xb (float): Lower threshold; no lower column is produced when it is None.
+        Default: None
+    cross_values (bool): When True, the xa/xb columns mark the bars that cross
+        the threshold instead of flagging every bar on one side of it. When it
+        is not given, the histogram uses crossings and the MACD line uses
+        levels. Default: None
+    xserie (pd.Series): Comparison series; used for both xserie_a and xserie_b
+        unless one of them is given. Default: None
+    xserie_a (pd.Series): Comparison series for the "above" column.
+        Default: None
+    xserie_b (pd.Series): Comparison series for the "below" column.
+        Default: None
+    cross_series (bool): When True, the xserie columns mark crossings instead
+        of flagging every bar on one side of the series. Default: True
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.DataFrame: macd, histogram, signal columns.
+"""

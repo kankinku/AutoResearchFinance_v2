@@ -1,0 +1,80 @@
+{
+  "legacy_changes": [],
+  "length": 190,
+  "schema": "v3-chart-A5-harmonic-output-contract-v1",
+  "signals": {
+    "flat_missing_invalid": {
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    },
+    "inverted": {
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    },
+    "oscillating": {
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    },
+    "trend_wave": {
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      }
+    }
+  },
+  "source_sha": "868100927dc0fec134410a930bf3bd81d50a4023"
+}

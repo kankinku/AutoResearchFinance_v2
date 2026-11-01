@@ -413,6 +413,161 @@ def imported_feature_catalog() -> FeatureCatalog:
         )
         for feature in features
     ]
+    # V3 source-verified additive ports: do not shadow existing features.
+    external_source = (
+        "https://github.com/xgboosted/pandas-ta-classic"
+        "@7c669b033582d53b70aa68b6388796d19ce33979"
+    )
+    new_numeric: tuple[
+        tuple[str, str, tuple[str, ...], int, dict[str, int | float | str | bool]], ...
+    ] = (
+        ("choppiness_index", "trend", ("high", "low", "close"), 14, {}),
+        ("squeeze_on", "volatility", ("high", "low", "close"), 20,
+         {"bb_mult": 2.0, "kc_mult": 1.5}),
+        ("chandelier_exit_long", "volatility", ("high", "low", "close"), 22,
+         {"atr_multiplier": 3.0}),
+        ("awesome_oscillator", "momentum", ("high", "low"), 34, {"fast": 5}),
+        ("kst", "momentum", ("close",), 30, {}),
+        ("coppock_curve", "momentum", ("close",), 14,
+         {"fast": 11, "slow": 14, "smoothing": 10}),
+        ("efficiency_ratio", "trend", ("close",), 10, {}),
+        ("vertical_horizontal_filter", "trend", ("close",), 28, {}),
+        ("correlation_trend_indicator", "momentum", ("close",), 14, {}),
+        ("balance_of_power", "momentum", ("open", "high", "low", "close"), 1, {}),
+    )
+    new_candles = (
+        "harami", "piercing_pattern", "dark_cloud_cover", "three_white_soldiers",
+        "three_black_crows", "spinning_top", "dragonfly_doji", "gravestone_doji",
+    )
+    for name, family, inputs, lookback, params in new_numeric:
+        spec = _spec(name, family, name, inputs=inputs, lookback=lookback,
+                     parameters=params, status="REGISTERED")
+        features.append(spec.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
+    for name in new_candles:
+        spec = _spec(name, "price_action", name,
+                     inputs=("open", "high", "low", "close"),
+                     lookback=3, status="REGISTERED")
+        features.append(spec.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
+    # Second batch: distinct outputs only; reference provenance matches first MIT batch.
+    second_numeric: tuple[
+        tuple[str, str, tuple[str, ...], int, dict[str, int | float | str | bool]], ...
+    ] = (
+        ("bias_ratio", "momentum", ("close",), 26, {}),
+        ("chande_forecast_oscillator", "momentum", ("close",), 9, {}),
+        ("absolute_price_oscillator", "momentum", ("close",), 26, {"fast":12}),
+        ("percentage_price_oscillator", "momentum", ("close",), 26, {"fast":12}),
+        ("psychological_line", "momentum", ("close",), 12, {}),
+        ("kdj_j", "momentum", ("high","low","close"), 9, {"signal":3}),
+        ("brar_ar", "momentum", ("open","high","low"), 26, {}),
+        ("brar_br", "momentum", ("high","low","close"), 26, {}),
+        ("ttm_trend", "trend", ("high","low","close"), 6, {}),
+        ("acceleration_band_upper", "volatility", ("high","low","close"), 20, {}),
+        ("market_facilitation_index", "volume", ("high","low","volume"), 1, {}),
+        ("williams_ad", "volume", ("high","low","close"), 2, {}),
+        ("price_volume_rank", "volume", ("close","volume"), 2, {}),
+        ("thermometer", "volatility", ("high","low"), 2, {}),
+        ("pretty_good_oscillator", "momentum", ("high","low","close"), 14, {}),
+    )
+    second_candles: tuple[tuple[str, int], ...] = (
+        ("hanging_man", 2),
+        ("inverted_hammer", 2),
+        ("belt_hold", 1),
+        ("harami_cross", 2),
+        ("matching_low", 2),
+        ("high_wave", 1),
+        ("long_legged_doji", 1),
+        ("three_inside", 3),
+    )
+    for name, family, inputs, lookback, params in second_numeric:
+        item = _spec(name, family, name, inputs=inputs, lookback=lookback,
+                     parameters=params, status="REGISTERED")
+        features.append(item.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
+    for name, lookback in second_candles:
+        item = _spec(name, "price_action", name,
+                     inputs=("open", "high", "low", "close"),
+                     lookback=lookback, status="REGISTERED")
+        features.append(item.model_copy(update={
+            "source_repositories": (external_source,), "source_licenses": ("MIT",),
+        }))
+    from core.features.pandas_ta_pinned import pinned_specs
+
+    features.extend(pinned_specs())
+
+    # Opt-in causal chart-geometry research signals; immutable source rules,
+    # no hindsight pivot backfill, no order-capable implementation.
+    from core.features.chart_patterns import PATTERNS
+
+    features.extend(
+        _spec(
+            "chart_" + name,
+            "price_action",
+            "chart_geometry",
+            inputs=("high", "low", "close"),
+            lookback=160,
+            parameters={
+                "pattern_name": name,
+                "confirmation_bars": 2,
+                "minimum_swing": 0.015,
+            },
+            status="REGISTERED",
+        )
+        for name in PATTERNS
+    )
+    source_group_specs: tuple[
+        tuple[str, str, tuple[str, ...], int], ...
+    ] = (
+        ("talib_adr", "volatility", ("high", "low"), 20),
+        ("talib_rvol", "volume", ("volume",), 20),
+        ("talib_imi", "momentum", ("open", "close"), 14),
+        ("talib_ac", "momentum", ("high", "low"), 34),
+        ("talib_rogers_satchell", "volatility", ("open", "high", "low", "close"), 20),
+        ("stock_elder_bull", "momentum", ("high", "close"), 13),
+        ("stock_elder_bear", "momentum", ("low", "close"), 13),
+        ("stock_starc_upper", "volatility", ("high", "low", "close"), 20),
+        ("stock_starc_lower", "volatility", ("high", "low", "close"), 20),
+        ("stock_alligator_jaw", "trend", ("high", "low"), 13),
+        ("stock_alligator_teeth", "trend", ("high", "low"), 8),
+        ("stock_alligator_lips", "trend", ("high", "low"), 5),
+    )
+    for name, family, inputs, lookback in source_group_specs:
+        if name.startswith("talib_"):
+            origin = (
+                "https://github.com/TA-Lib/ta-lib"
+                "@4334163d3a1f5019aa9051342316b936a4dfb994"
+            )
+            license_name = "BSD-3-Clause"
+        else:
+            origin = (
+                "https://github.com/DaveSkender/Stock.Indicators"
+                "@da428182d0e222339b662bc8ac645596102260bd"
+            )
+            license_name = "Apache-2.0"
+        features.append(
+            FeatureSpec(
+                name=name,
+                family=family,
+                inputs=inputs,
+                calculator="external_formula_verified",
+                lookback=lookback,
+                formula=f"{name}({', '.join(inputs)}, {lookback})",
+                source_repositories=(origin,),
+                source_licenses=(license_name,),
+                status="REGISTERED",
+                duplicate_group=name,
+            )
+        )
+    from core.features.source_remaining import feature_specs as remaining_specs
+
+    features.extend(remaining_specs())
+    from core.features.bulk100_ta import buk_specs
+
+    features.extend(buk_specs())
     return FeatureCatalog(tuple(features))
 
 

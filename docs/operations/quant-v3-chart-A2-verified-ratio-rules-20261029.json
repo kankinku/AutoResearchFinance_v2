@@ -1,0 +1,354 @@
+{
+  "counts": {
+    "deferred_unimplemented": 18,
+    "harmonic_require_permission_review": 4,
+    "newly_imported": 0,
+    "registered_audited": 12
+  },
+  "notes": [
+    "Source web docs verified for specified ratio interpretations; this is a documentary rule audit, not independent computational parity",
+    "Harmonic pattern naming/trademark and commercial use may require formal permission. Never assume permission from publicly viewable pages.",
+    "Elliott wave correctives require internal 5-3-5 / 3-3-5 subwaves not inferred from outer four pivots.",
+    "A3 future-leak gate does not prove correct market pattern labeling or actual trading profitability."
+  ],
+  "proposed_not_implemented": [
+    "harmonic_deep_crab",
+    "harmonic_alternate_bat",
+    "harmonic_shark",
+    "harmonic_cypher",
+    "harmonic_5_0",
+    "harmonic_abcd",
+    "elliott_leading_diagonal",
+    "elliott_ending_diagonal",
+    "elliott_flat_regular",
+    "elliott_flat_expanded",
+    "elliott_flat_running",
+    "elliott_triangle",
+    "elliott_double_zigzag",
+    "elliott_triple_zigzag",
+    "classical_triangle",
+    "classical_wedge",
+    "classical_flag",
+    "classical_pennant"
+  ],
+  "registered_rules": [
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "partial_count": {
+          "current": "full 5 only",
+          "source": "intermediate labeling alternatives",
+          "status": "NOT_IMPLEMENTED"
+        },
+        "subwaves": {
+          "current": "outer 6 pivot extrema only",
+          "source": "substructure 5-3-5-3-5",
+          "status": "NOT_VERIFIED"
+        }
+      },
+      "name": "elliott_impulse_5",
+      "reference_constraints": {
+        "count": "five actionary/reactionary alternating waves",
+        "substructure": "5-3-5-3-5",
+        "wave_2": "not beyond wave 1 origin",
+        "wave_3": "not shortest actionary wave",
+        "wave_4": "not into wave 1 price territory for ordinary impulse"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://www.elliottwave.com/waveopedia/impulse/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "subwaves": {
+          "current": "4 outer pivots",
+          "source": "5-3-5 vs 3-3-5 depending family",
+          "status": "NOT_VERIFIED"
+        },
+        "trend_context": {
+          "current": "no higher-degree context",
+          "source": "corrective direction",
+          "status": "NOT_VERIFIED"
+        }
+      },
+      "name": "elliott_abc",
+      "reference_constraints": {
+        "direction": "counter-trend relative to higher degree",
+        "flat": "A-B-C 3-3-5, distinct from zigzag",
+        "zigzag": "A-B-C 5-3-5"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://www.elliottwave.com/waveopedia/zigzags/",
+        "https://www.elliottwave.com/waveopedia/flats/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "structure": {
+          "current": "3 alternating outer ABC zigzag groups",
+          "source": "group W and Y connected by X, subwaves needed",
+          "status": "OVERSIMPLIFIED"
+        }
+      },
+      "name": "elliott_wxy",
+      "reference_constraints": {
+        "WXY": "two correction groups W and Y, linked by corrective X",
+        "subwaves": "corrective group internal structure must be verified"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://www.elliottwave.com/waveopedia/zigzags/",
+        "https://www.elliottwave.com/waveopedia/corrective-waves/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "structure": {
+          "current": "5 alternating ABC outer groups",
+          "source": "two X connectors and proper degree decomposition",
+          "status": "OVERSIMPLIFIED"
+        }
+      },
+      "name": "elliott_wxyxz",
+      "reference_constraints": {
+        "WXYXZ": "three correction groups W/Y/Z separated by two X corrections",
+        "subwaves": "corrective group internal structures verified separately"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://www.elliottwave.com/waveopedia/zigzags/",
+        "https://www.elliottwave.com/waveopedia/corrective-waves/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "NOT_CLEARED_TRADEMARK_AND_SOURCE_REVIEW_REQUIRED",
+      "formula_deltas": {
+        "PRZ": {
+          "current": "unchecked",
+          "source": "multi-leg confluence",
+          "status": "MISSING_SOURCE_GATE"
+        },
+        "cd_to_ab": {
+          "current": "unchecked",
+          "source": "AB=CD or alternate",
+          "status": "MISSING_SOURCE_GATE"
+        },
+        "cd_to_bc": {
+          "current": ">=1.13",
+          "source": "1.618..2.24 typical",
+          "status": "TOO_PERMISSIVE"
+        }
+      },
+      "name": "harmonic_butterfly",
+      "reference_constraints": {
+        "AB/XA": "0.786 retracement mandatory",
+        "CD/AB": "AB=CD or alternate 1.27/1.618 pattern",
+        "CD/BC": "typically 1.618..2.24 extension",
+        "PRZ": "XA 1.27 with BC and AB=CD zone confluence",
+        "XD/XA": "0.27 beyond X (equivalent 1.27 XA measured from A)"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://harmonictrader.com/harmonic-patterns/butterfly-pattern/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "NOT_CLEARED_TRADEMARK_AND_SOURCE_REVIEW_REQUIRED",
+      "formula_deltas": {
+        "PRZ": {
+          "current": "unchecked",
+          "source": "multi-leg confluence",
+          "status": "MISSING_SOURCE_GATE"
+        },
+        "cd_to_ab": {
+          "current": "unchecked",
+          "source": "AB=CD/1.27",
+          "status": "MISSING_SOURCE_GATE"
+        },
+        "cd_to_bc": {
+          "current": "unchecked",
+          "source": "1.13..1.618",
+          "status": "MISSING_SOURCE_GATE"
+        }
+      },
+      "name": "harmonic_gartley",
+      "reference_constraints": {
+        "AB/XA": "0.618, tight ±3% of ratio as source describes",
+        "AD/XA": "0.786 retracement",
+        "BC/AB": "C retracement approximately 0.382..0.886",
+        "CD/AB": "AB=CD or 1.27 AB=CD in PRZ",
+        "CD/BC": "1.13..1.618 extension",
+        "PRZ": "0.786 XA, BC extension and AB=CD confluence"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://harmonictrader.com/harmonic-patterns/gartley-pattern/",
+        "https://harmonictrader.com/harmonicpatternorigin/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "NOT_CLEARED_TRADEMARK_AND_SOURCE_REVIEW_REQUIRED",
+      "formula_deltas": {
+        "b_range": {
+          "current": "0.382..0.50 with ±0.09",
+          "source": "B <0.618, typical 0.382/0.50",
+          "status": "RESTRICTIVE_SUBTYPE"
+        },
+        "cd_to_bc": {
+          "current": "unchecked",
+          "source": ">=1.618",
+          "status": "MISSING_SOURCE_GATE"
+        }
+      },
+      "name": "harmonic_bat",
+      "reference_constraints": {
+        "AB/XA": "less than 0.618, preferred 0.382 or 0.50",
+        "AD/XA": "0.886 retracement",
+        "CD/BC": "at least 1.618",
+        "PRZ": "0.886 XA with BC extension and AB=CD"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://harmonictrader.com/harmonic-patterns/bat-pattern/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "NOT_CLEARED_TRADEMARK_AND_SOURCE_REVIEW_REQUIRED",
+      "formula_deltas": {
+        "PRZ": {
+          "current": "unchecked",
+          "source": "multi-leg confluence",
+          "status": "MISSING_SOURCE_GATE"
+        },
+        "cd_to_bc": {
+          "current": "unchecked",
+          "source": "extreme BC extension",
+          "status": "MISSING_SOURCE_GATE"
+        }
+      },
+      "name": "harmonic_crab",
+      "reference_constraints": {
+        "AB/XA": "typically 0.382..0.618",
+        "CD/BC": "extreme 2.618, 3.14, 3.618 source examples",
+        "PRZ": "1.618 XA with extreme BC extension",
+        "XD/XA": "0.618 beyond X (equivalent XA 1.618 extension)"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://harmonictrader.com/harmonic-patterns/crab-pattern/"
+      ]
+    },
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "invalidation": {
+          "current": "no lifecycle",
+          "source": "separate canceled stage",
+          "status": "NOT_IMPLEMENTED"
+        },
+        "neckline": {
+          "current": "shape event only",
+          "source": "pattern confirmation required by A7",
+          "status": "NOT_IMPLEMENTED"
+        }
+      },
+      "name": "double_top",
+      "reference_constraints": {
+        "candidate": "swing geometry only",
+        "confirmation": "neckline break not implemented",
+        "status": "in-house geometric heuristic, NOT externally validated rule standard"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://github.com/kankinku/AutoResearchFinance_v2/blob/d88b197a7f707dc443ee70b4fd4408f9a3be1d3a/core/features/chart_patterns.py"
+      ]
+    },
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "invalidation": {
+          "current": "no lifecycle",
+          "source": "separate canceled stage",
+          "status": "NOT_IMPLEMENTED"
+        },
+        "neckline": {
+          "current": "shape event only",
+          "source": "pattern confirmation required by A7",
+          "status": "NOT_IMPLEMENTED"
+        }
+      },
+      "name": "double_bottom",
+      "reference_constraints": {
+        "candidate": "swing geometry only",
+        "confirmation": "neckline break not implemented",
+        "status": "in-house geometric heuristic, NOT externally validated rule standard"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://github.com/kankinku/AutoResearchFinance_v2/blob/d88b197a7f707dc443ee70b4fd4408f9a3be1d3a/core/features/chart_patterns.py"
+      ]
+    },
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "invalidation": {
+          "current": "no lifecycle",
+          "source": "separate canceled stage",
+          "status": "NOT_IMPLEMENTED"
+        },
+        "neckline": {
+          "current": "shape event only",
+          "source": "pattern confirmation required by A7",
+          "status": "NOT_IMPLEMENTED"
+        }
+      },
+      "name": "head_shoulders",
+      "reference_constraints": {
+        "candidate": "swing geometry only",
+        "confirmation": "neckline break not implemented",
+        "status": "in-house geometric heuristic, NOT externally validated rule standard"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://github.com/kankinku/AutoResearchFinance_v2/blob/d88b197a7f707dc443ee70b4fd4408f9a3be1d3a/core/features/chart_patterns.py"
+      ]
+    },
+    {
+      "commercial_license_verdict": "IN_HOUSE_RULE_NOT_EXTERNAL_LICENSE_GRANT",
+      "formula_deltas": {
+        "invalidation": {
+          "current": "no lifecycle",
+          "source": "separate canceled stage",
+          "status": "NOT_IMPLEMENTED"
+        },
+        "mirror_symmetry": {
+          "current": "flat shoulders equal head -> +1",
+          "source": "must not assert head dominance with equal-price troughs",
+          "status": "CONFIRMED_BUG"
+        },
+        "neckline": {
+          "current": "shape event only",
+          "source": "pattern confirmation required by A7",
+          "status": "NOT_IMPLEMENTED"
+        }
+      },
+      "name": "inverse_head_shoulders",
+      "reference_constraints": {
+        "candidate": "swing geometry only",
+        "confirmation": "neckline break not implemented",
+        "status": "in-house geometric heuristic, NOT externally validated rule standard"
+      },
+      "research_status": "HEURISTIC_AUDIT_PENDING_SOURCE_PARITY",
+      "source_urls": [
+        "https://github.com/kankinku/AutoResearchFinance_v2/blob/d88b197a7f707dc443ee70b4fd4408f9a3be1d3a/core/features/chart_patterns.py"
+      ]
+    }
+  ],
+  "schema": "quant-v3-chart-A2-deep-source-gate-v1",
+  "source_code_sha256": "af00c02fdf9fa5b21e6d2cfa11476768e54460db257afc4abd6639df35831cec"
+}

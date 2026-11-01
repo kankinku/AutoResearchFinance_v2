@@ -57,6 +57,30 @@ def create_app(service: DashboardService | None = None) -> FastAPI:
     def dashboard() -> DashboardSnapshot:
         return dashboard_service.snapshot()
 
+    @app.get("/chart-research", include_in_schema=False, response_model=None)
+    def chart_research_page() -> Response:
+        page_path = static_dir / "chart-research.html"
+        if page_path.is_file():
+            return FileResponse(page_path)
+        raise HTTPException(status_code=404, detail="research chart assets unavailable")
+
+    @app.get("/api/chart-research/catalog")
+    def chart_research_catalog() -> JSONResponse:
+        return JSONResponse(
+            dashboard_service.chart_research_catalog(), headers={"Cache-Control": "no-store"}
+        )
+
+    @app.get("/api/chart-research/overlay")
+    def chart_research_overlay(enabled: bool = False, demo: bool = False) -> JSONResponse:
+        payload = dashboard_service.chart_research_overlay(enabled=enabled, demo=demo)
+        status = payload.get("status")
+        code = (
+            403
+            if status == "RESEARCH_SCOPE_DENIED"
+            else (409 if status == "INTEGRITY_ERROR" else 200)
+        )
+        return JSONResponse(payload, status_code=code, headers={"Cache-Control": "no-store"})
+
     @app.get("/api/features/catalog")
     def feature_catalog() -> JSONResponse:
         return JSONResponse(

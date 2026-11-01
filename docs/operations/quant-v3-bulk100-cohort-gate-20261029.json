@@ -1,0 +1,716 @@
+{
+  "schema": "quant-v3-bulk100-cohort-gate-v1",
+  "registered_total": 435,
+  "new_cohort_size": 100,
+  "verified_new_distinct_default_outputs": 100,
+  "rejected_count": 0,
+  "previous_registered_count": 335,
+  "external_or_special_inputs_not_checked": 26,
+  "source_shas": {
+    "pandas-ta-classic": "7c669b033582d53b70aa68b6388796d19ce33979",
+    "bukosabino-ta": "a890410710a6e483c9ba08da7f3dd5089e4b9dff"
+  },
+  "screening_scope": "Single 480-bar deterministic developmental synthetic market; unique output signatures on that path, not mathematical formula uniqueness or independent OOS/profitability proof. Four bar-prefix lengths tested.",
+  "rows": [
+    {
+      "name": "buk_momentum_kama",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 471,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_ppo",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_ppo_hist",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_ppo_signal",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_pvo",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_pvo_hist",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_pvo_signal",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_stoch_rsi",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 454,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_stoch_rsi_d",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 450,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_stoch_rsi_k",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 452,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_stoch_signal",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 465,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_tsi",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 443,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_momentum_uo",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 452,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_others_cr",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_adx",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_adx_neg",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_adx_pos",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_aroon_down",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_aroon_ind",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_aroon_up",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_cci",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_dpo",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_ichimoku_a",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_ichimoku_b",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_ichimoku_base",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_ichimoku_conv",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 472,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_macd",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_macd_diff",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_macd_signal",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_mass_index",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 440,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_psar_down",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 214,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_psar_down_indicator",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_psar_up",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 264,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_psar_up_indicator",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_stc",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 409,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_trix",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 437,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_vortex_ind_neg",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 466,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_trend_vortex_ind_pos",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 466,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_bbh",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_bbhi",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_bbl",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_bbli",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_bbp",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_bbw",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_dch",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_dcl",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_dcm",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_dcp",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_dcw",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_kcc",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 471,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_kch",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_kcl",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_kcp",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_kcw",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 471,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volatility_ui",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 467,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volume_em",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "buk_volume_sma_em",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 466,
+      "reason": "",
+      "lookback": 1
+    },
+    {
+      "name": "pta_aberration_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_aberration_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_aobv_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_aobv_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_aobv_out3",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 477,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_aobv_out4",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 469,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_aobv_out5",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 467,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_aobv_out6",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 467,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cksp_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 462,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out10",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out3",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out4",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out5",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out6",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out7",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_cpr_out8",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 479,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_eri_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 461,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_hilo_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 293,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_hilo_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 293,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_ht_phasor_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 448,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_ht_sine_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 417,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_hwc_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_hwc_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 480,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_kvo_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 413,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_mama_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 448,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_msw_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 475,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_pvo_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_pvo_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 447,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_qqe_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 456,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_qqe_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 204,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_qqe_out3",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 175,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_qqe_out6",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 379,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_rainbow_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 281,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_rvgi_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 458,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_rvgi_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 455,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_squeeze_pro_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 460,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_squeeze_pro_out3",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 460,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_stochf_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 474,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_td_seq_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 230,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_trixh_out1",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 414,
+      "reason": "",
+      "lookback": 20
+    },
+    {
+      "name": "pta_trixh_out2",
+      "status": "VERIFIED_DISTINCT_DEFAULT",
+      "nonmissing": 414,
+      "reason": "",
+      "lookback": 20
+    }
+  ]
+}

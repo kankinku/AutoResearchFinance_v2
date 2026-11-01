@@ -1,0 +1,1203 @@
+import inspect
+import logging
+import os
+import re
+from collections.abc import Hashable, Iterator
+from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from multiprocessing import cpu_count, current_process, get_context
+from numbers import Integral
+from threading import Lock
+from time import perf_counter
+from typing import Any, NoReturn
+from warnings import catch_warnings, simplefilter, warn
+
+import pandas as pd
+from pandas.core.base import PandasObject
+
+import pandas_ta_classic
+from pandas_ta_classic._indicator_loader import (
+    _COLUMN_KWARG_KEYS,
+    _COLUMN_PARAM_TO_COL_KEY,
+    _DEFAULT_COLUMN_NAMES,
+    _find_indicator_func,
+    _make_ta_wrapper,
+)
+from pandas_ta_classic._meta import _MATH_ALIASES, Category, Imports, version
+from pandas_ta_classic.utils import final_time, is_datetime_ordered, total_time
+from pandas_ta_classic.utils._core import _bool_param, _pos_int
+from pandas_ta_classic.utils._time import TIME_RANGE_UNITS
+
+logger = logging.getLogger(__name__)
+
+# Set while strategy() is running tasks on worker processes.  A spawned child
+# re-imports the caller's __main__, so an unguarded script that calls strategy()
+# at module level would recurse until the machine stalls.  The variable is
+# inherited by the children, so seeing it means we are that recursion.
+_STRATEGY_GUARD_ENV = "_PANDAS_TA_CLASSIC_STRATEGY_PID"
+
+# os.environ is process-global but the guard is entered per call, so concurrent
+# calls in one process are counted: the first to finish must not clear the marker
+# while another is still starting children.
+_STRATEGY_GUARD_LOCK = Lock()
+_STRATEGY_GUARD_DEPTH = 0
+
+_TO_UTC_REMOVED = (
+    "df.ta.to_utc was removed in 0.9.0: reading the attribute converted df's index, so hasattr() and IDE "
+    "introspection did too. Use df = ta.to_utc(df), which returns a converted copy"
+)
+
+# What last_run writes into df.attrs: datetime.now(UTC).isoformat(), so +00:00.
+_UTC_ISO = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?\+00:00")
+
+_EXCHANGE_REMOVED = (
+    "df.ta.exchange was removed in 0.9.0: last_run is a UTC datetime now; convert it "
+    "with df.ta.last_run.astimezone(zoneinfo.ZoneInfo('America/New_York')) or another time zone"
+)
+
+_MAIN_GUARD_HINT = (
+    "df.ta.strategy() ran indicators on worker processes from a script that does "
+    "not guard its top level. Wrap the calling code in `if __name__ == \"__main__\":`, "
+    "or run serially with df.ta.cores = 0 and no executor=."
+)
+
+# BrokenProcessPool says a worker died, not why, and the child's own traceback
+# went to its stderr -- lost in a notebook or a GUI process.  The unguarded
+# __main__ is by far the most common cause, so name it first without claiming it.
+_BROKEN_POOL_HINT = (
+    "df.ta.strategy(): a worker process died. If this script calls strategy() at "
+    "module level, wrap it in `if __name__ == \"__main__\":` -- spawn re-imports the "
+    "caller, and the child's error goes to its own stderr. Otherwise the worker was "
+    "killed from outside (out of memory, segfault). Run serially with "
+    "df.ta.cores = 0 and no executor= to see the real error."
+)
+
+
+@contextmanager
+def _worker_recursion_guard() -> Iterator[None]:
+    """Refuse to start workers from inside workers this call already started.
+
+    Compares the pid it stores rather than only testing for the variable: a
+    spawned child inherits the parent's pid here, which never matches its own, so
+    the recursion is caught, while a second *thread* in the parent sees its own
+    pid and is left alone -- its ``__main__`` is not the problem.
+    """
+    # One process-wide counter, only ever touched under the lock.  Every increment
+    # has exactly one matching decrement in the finally below, so the depth cannot
+    # go negative however the calls interleave -- the marker is cleared by the last
+    # call out, not the first.
+    global _STRATEGY_GUARD_DEPTH
+    with _STRATEGY_GUARD_LOCK:
+        owner = os.environ.get(_STRATEGY_GUARD_ENV)
+        if owner and owner != str(os.getpid()):
+            raise RuntimeError(_MAIN_GUARD_HINT)
+        os.environ[_STRATEGY_GUARD_ENV] = str(os.getpid())
+        _STRATEGY_GUARD_DEPTH += 1
+    try:
+        yield
+    finally:
+        with _STRATEGY_GUARD_LOCK:
+            _STRATEGY_GUARD_DEPTH -= 1
+            if _STRATEGY_GUARD_DEPTH == 0:
+                os.environ.pop(_STRATEGY_GUARD_ENV, None)
+
+
+# Strategy DataClass
+@dataclass
+class Strategy:
+    """Strategy DataClass
+    A way to name and group your favorite indicators
+
+    Args:
+        name (str): Some short memorable string. Only a label: a name such as
+            "All" or "momentum" does not select indicators.
+        ta (list of dicts): A list of dicts containing keyword arguments where "kind" is the indicator.
+            None runs every indicator.
+        description (str): A more detailed description of what the Strategy tries to capture. Default: None
+        created (datetime): When the Strategy was created, in UTC. Default: Automatically generated.
+
+    Example TA:
+    ta = [
+        {"kind": "sma", "length": 200},
+        {"kind": "sma", "close": "volume", "length": 50},
+        {"kind": "bbands", "length": 20},
+        {"kind": "rsi"},
+        {"kind": "macd", "fast": 8, "slow": 21},
+        {"kind": "sma", "close": "volume", "length": 20, "prefix": "VOLUME"},
+    ]
+    """
+
+    name: str  # = None # Required.
+    ta: list | None = field(default_factory=list)  # Required. None means every indicator.
+    # Helpful. More descriptive version or notes or w/e.
+    description: str = "TA Description"
+    # Optional. When the Strategy was created, in UTC.
+    created: datetime | None = field(default_factory=lambda: datetime.now(UTC))
+
+    def __post_init__(self):
+        required_args = ["[X] Strategy requires the following argument(s):"]
+
+        name_is_str = isinstance(self.name, str)
+        ta_is_list = isinstance(self.ta, list)
+
+        if self.name is None or not name_is_str:
+            required_args.append(' - name. Must be a string. Example: "My TA".')
+
+        if self.ta is not None and not ta_is_list:
+            s = " - ta. Format is a list of dicts. Example: [{'kind': 'sma', 'length': 10}]"
+            s += "\n       Check the indicator for the correct arguments if you receive this error."
+            required_args.append(s)
+
+        if len(required_args) > 1:
+            raise ValueError("\n".join(required_args))
+
+        # Entries used to be checked only when the Strategy ran, and then by
+        # whatever happened to fail first: a missing "kind" surfaced as
+        # KeyError: 'kind' and a plain string entry as "'str' object is not a
+        # mapping", neither naming the entry.  Check the shape here, where the
+        # entry was written.  Whether the indicator exists is checked at run
+        # time, because custom indicators may be loaded after this point.
+        for position, entry in enumerate(self.ta or []):
+            if not isinstance(entry, dict):
+                raise TypeError(
+                    f"Strategy {self.name!r} entry {position}: expected a dict like {{'kind': 'sma', 'length': 10}}, got {type(entry).__name__} {entry!r}"
+                )
+            if "kind" not in entry:
+                raise ValueError(f"Strategy {self.name!r} entry {position} has no 'kind': {entry!r}")
+            if not isinstance(entry["kind"], str):
+                raise TypeError(
+                    f"Strategy {self.name!r} entry {position}: 'kind' must be an indicator name, got {type(entry['kind']).__name__} {entry['kind']!r}"
+                )
+
+    def total_ta(self):
+        return len(self.ta) if self.ta is not None else 0
+
+
+# All Default Strategy
+AllStrategy = Strategy(
+    name="All",
+    description="All the indicators with their default settings. Pandas TA default.",
+    ta=None,
+)
+
+# Default (Example) Strategy.
+CommonStrategy = Strategy(
+    name="Common Price and Volume SMAs",
+    description="Common Price SMAs: 10, 20, 50, 200 and Volume SMA: 20.",
+    ta=[
+        {"kind": "sma", "length": 10},
+        {"kind": "sma", "length": 20},
+        {"kind": "sma", "length": 50},
+        {"kind": "sma", "length": 200},
+        {"kind": "sma", "close": "volume", "length": 20, "prefix": "VOL"},
+    ],
+)
+
+
+def _append_dataframe(df, result, kwargs):
+    """Append a DataFrame *result* to *df*, honouring optional col_names in *kwargs*."""
+    if "col_names" in kwargs and isinstance(kwargs["col_names"], tuple):
+        if len(kwargs["col_names"]) != len(result.columns):
+            # too few used to be logged and nothing appended; extras were ignored
+            raise ValueError(f"col_names has {len(kwargs['col_names'])} name(s) for {len(result.columns)} column(s): {list(result.columns)}")
+        for col, ind_name in zip(result.columns, kwargs["col_names"]):
+            df[ind_name] = result.loc[:, col]
+    else:
+        for i, column in enumerate(result.columns):
+            df[column] = result.iloc[:, i]
+
+
+def _strategy_params(ind: dict) -> tuple:
+    """Positional arguments of a custom Strategy entry.
+
+    A ``params`` value that is not a tuple (``[10]``, ``10``) was silently
+    replaced by ``()``, so the indicator ran with its defaults.
+    """
+    params = ind.get("params", ())
+    if not isinstance(params, tuple):
+        raise TypeError(f"Strategy entry {ind.get('kind')!r}: params must be a tuple, got {type(params).__name__} {params!r}")
+    return params
+
+
+def _executor_workers(executor: Executor) -> int:
+    """How many tasks *executor* can run at once.
+
+    Executor exposes no public width, but every stdlib implementation carries
+    '_max_workers'. A third-party one that does not gets one group per worker
+    at cpu_count(), which is only a batching hint: correctness does not depend
+    on the number being right.
+    """
+    workers = getattr(executor, "_max_workers", None)
+    return workers if isinstance(workers, int) and workers > 0 else cpu_count()
+
+
+def _run_task_group(df: pd.DataFrame, group: list[tuple]) -> list[tuple]:
+    """Run a group of strategy tasks and return (order, result, error) triples.
+
+    Runs in a worker process.  The tasks of a group are independent by
+    construction (see AnalysisIndicators._next_stage), so nothing here appends
+    to *df*; the parent appends in task order.
+    """
+    # Chain mode would make every indicator return the whole frame.
+    df.attrs.pop("_ta_chain", None)
+    accessor = df.ta
+    out: list[tuple[int, Any, Exception | None]] = []
+    for order, kind, params, kwargs in group:
+        try:
+            out.append((order, getattr(accessor, kind)(*params, **{**kwargs, "append": False}), None))
+        except Exception as exc:  # noqa: BLE001 - re-raised in the parent with the indicator name
+            out.append((order, None, exc))
+    return out
+
+
+def _custom_kinds(kinds: list[str]) -> list[str]:
+    """The *kinds* whose df.ta method was bound by user code (custom.import_dir, custom.bind).
+
+    A worker process is a fresh interpreter that never ran that code, so it
+    either has no such method or, for a custom module that reuses a built-in
+    name (trend/sma.py), would silently run the built-in one instead.
+
+    The test is the method's module, so a method built with the package's own
+    private wrapper helpers counts as built-in and is not caught here.
+    """
+    custom = []
+    for kind in dict.fromkeys(kinds):
+        method = AnalysisIndicators.__dict__.get(kind)  # None: built-in, resolved lazily by __getattr__
+        module = getattr(method, "__module__", None) or ""
+        if method is not None and module != "pandas_ta_classic" and not module.startswith("pandas_ta_classic."):
+            custom.append(kind)
+    return custom
+
+
+# Pandas TA - DataFrame Analysis Indicators
+@pd.api.extensions.register_dataframe_accessor("ta")
+class AnalysisIndicators(PandasObject):
+    """
+    This Pandas Extension is named 'ta' for Technical Analysis. In other words,
+    it is a Numerical Time Series Feature Generator where the Time Series data
+    is biased towards Financial Market data; typical data includes columns
+    named :"open", "high", "low", "close", "volume".
+
+    This TA Library hopefully allows you to apply familiar and unique Technical
+    Analysis Indicators easily with the DataFrame Extension named 'ta'. Even
+    though 'ta' is a Pandas DataFrame Extension, you can still call Technical
+    Analysis indicators individually if you are more comfortable with that
+    approach or it allows you to easily and automatically apply the indicators
+    with the strategy method. See: help(ta.strategy).
+
+    By default, the 'ta' extension uses lower case column names: open, high,
+    low, close, and volume. You can override the defaults by providing the it's
+    replacement name when calling the indicator. For example, to call the
+    indicator hl2().
+
+    With 'default' columns: open, high, low, close, and volume.
+    >>> df.ta.hl2()
+    >>> df.ta(kind="hl2")
+
+    With DataFrame columns: Open, High, Low, Close, and Volume.
+    >>> df.ta.hl2(high="High", low="Low")
+    >>> df.ta(kind="hl2", high="High", low="Low")
+
+    If you do not want to use a DataFrame Extension, just call it normally.
+    >>> sma10 = ta.sma(df["Close"]) # Default length=10
+    >>> sma50 = ta.sma(df["Close"], length=50)
+    >>> ichimoku = ta.ichimoku(df["High"], df["Low"], df["Close"])
+
+    Args:
+        kind (str, optional): Default: None. Kind is the 'name' of the indicator.
+            It converts kind to lowercase before calling.
+        timed (bool, optional): Default: False. Curious about the execution
+            speed?
+        kwargs: Extension specific modifiers.
+            append (bool, optional): Default: False. When True, it appends the
+            resultant column(s) to the DataFrame.
+
+    Returns:
+        Most Indicators will return a Pandas Series. Others like MACD, BBANDS,
+        KC, et al will return a Pandas DataFrame. Ichimoku returns a single
+        DataFrame for the known period; pass ``append_span=True`` to also get
+        the forward-looking Span rows.
+
+    Let's get started!
+
+    1. Loading the 'ta' module:
+    >>> import pandas as pd
+    >>> import pandas_ta_classic as ta
+
+    2. Load some data:
+    >>> df = pd.read_csv("AAPL.csv", index_col="date", parse_dates=True)
+
+    3. Help!
+    3a. General Help:
+    >>> help(df.ta)
+    >>> df.ta()
+    3b. Indicator Help:
+    >>> help(ta.apo)
+    3c. Indicator Extension Help:
+    >>> help(df.ta.apo)
+
+    4. Ways of calling an indicator.
+    4a. Standard: Calling just the APO indicator without "ta" DataFrame extension.
+    >>> ta.apo(df["close"])
+    4b. DataFrame Extension: Calling just the APO indicator with "ta" DataFrame extension.
+    >>> df.ta.apo()
+    4c. DataFrame Extension (kind): Calling APO using 'kind'
+    >>> df.ta(kind="apo")
+    4d. Strategy:
+    >>> df.ta.strategy("All") # Default
+    >>> df.ta.strategy(ta.Strategy("My Strat", ta=[{"kind": "apo"}])) # Custom
+
+    5. Working with kwargs
+    5a. Append the result to the working df.
+    >>> df.ta.apo(append=True)
+    5b. Timing an indicator.
+    >>> apo = df.ta(kind="apo", timed=True)
+    >>> print(apo.timed)
+    """
+
+    _adjusted = None
+    _cores = 0
+    _df = pd.DataFrame()
+    _time_range = "years"
+
+    def __init__(self, pandas_obj):
+        self._validate(pandas_obj)
+        self._df = pandas_obj
+        # pandas 3 dropped accessor caching: 'df.ta' builds a new instance on
+        # every access, so settable state lives in df.attrs (like '_ta_chain')
+        # instead of on the instance, which would be discarded immediately.
+        # Nothing is written here: merely accessing df.ta must not mutate the
+        # caller's DataFrame.
+
+    @staticmethod
+    def _validate(obj: tuple[pd.DataFrame, pd.Series]):
+        if not isinstance(obj, pd.DataFrame) and not isinstance(obj, pd.Series):
+            # pandas accessor contract: _validate raises AttributeError
+            raise AttributeError("[X] Must be either a Pandas Series or DataFrame.")  # noqa: TRY004
+
+    # DataFrame Behavioral Methods
+    def __call__(
+        self,
+        kind: str | None = None,
+        timed: bool = False,
+        show_version: bool = False,
+        **kwargs,
+    ):
+        show_version = _bool_param(show_version, False, "show_version")
+        timed = _bool_param(timed, False, "timed")
+        if "version" in kwargs:
+            # the alias was removed in 0.9.0; the indicator's **kwargs would swallow it
+            raise TypeError("df.ta() no longer accepts 'version': use show_version=True")
+        if show_version:
+            logger.info(f"Pandas TA - Technical Analysis Indicators - v{self.version}")
+        if kind is None:
+            # "General Help": list the indicators (this called a missing help() method)
+            return self.indicators()
+        if not isinstance(kind, str):
+            raise TypeError(f"df.ta() kind must be an indicator name, got {kind!r}")
+        kind = kind.lower()
+        fn = getattr(self, kind, None)
+        if fn is None or not callable(fn):
+            # an unknown name used to log an error and return None
+            raise ValueError(f"df.ta() kind={kind!r} is not an indicator; see df.ta.indicators()")
+
+        if timed:
+            stime = perf_counter()
+
+        # Run the indicator
+        result = fn(**kwargs)
+        # Save when it completed its run, as a string: attrs must stay JSON-serialisable for to_parquet().
+        self._df.attrs["_ta_last_run"] = datetime.now(UTC).isoformat()
+
+        if timed:
+            if result is not None:
+                result.timed = final_time(stime)
+                logger.info("%s: %s", kind, result.timed)
+            else:
+                logger.warning("%s: returned None, timed run produced no result", kind)
+
+        return result
+
+    # Public Get/Set DataFrame Properties
+    @property
+    def adjusted(self) -> str | None:
+        """property: df.ta.adjusted"""
+        return self._df.attrs.get("_ta_adjusted", self._adjusted)
+
+    @adjusted.setter
+    def adjusted(self, value: str) -> None:
+        """property: df.ta.adjusted = 'adj_close'"""
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"df.ta.adjusted must be a column name or None, got {value!r}")
+        self._df.attrs["_ta_adjusted"] = value
+
+    @property
+    def cores(self) -> int:
+        """Returns the categories."""
+        return self._df.attrs.get("_ta_cores", self._cores)
+
+    @cores.setter
+    def cores(self, value: int) -> None:
+        """property: df.ta.cores = integer (0, the default, runs serially; capped at cpu_count(); None resets)"""
+        cpus = cpu_count()
+        if value is None:
+            self._df.attrs["_ta_cores"] = self._cores
+            return
+        if not isinstance(value, Integral) or isinstance(value, bool) or value < 0:
+            # -1, 1.0 and "2" used to become cpu_count() and switch multiprocessing on
+            raise ValueError(f"df.ta.cores must be an integer >= 0 or None, got {value!r}")
+        self._df.attrs["_ta_cores"] = min(int(value), cpus)
+
+    @property
+    def exchange(self) -> NoReturn:
+        """Removed in 0.9.0: it only chose the exchange clock shown in last_run."""
+        # AttributeError, so hasattr() is False and getattr(..., default) works.
+        # __getattr__ re-runs this getter, so the message survives the fallback.
+        raise AttributeError(_EXCHANGE_REMOVED)
+
+    @exchange.setter
+    def exchange(self, value: str) -> NoReturn:
+        # Without this setter, pandas 3 would store the value on a throwaway
+        # accessor instance and the assignment would silently do nothing.
+        raise AttributeError(_EXCHANGE_REMOVED)
+
+    @property
+    def last_run(self) -> datetime | None:
+        """Returns when df.ta(kind=...) or df.ta.strategy() last ran on the DataFrame (UTC), or None.
+
+        df.attrs holds it as an ISO string: to_parquet() and to_feather() serialise
+        attrs as JSON, and a datetime there made to_parquet() raise and to_feather()
+        drop every df.ta setting.
+        """
+        stamp = self._df.attrs.get("_ta_last_run")
+        if stamp is None:
+            return None
+        # A frame saved by 0.8.x carries get_time()'s display string here, which
+        # fromisoformat() rejects without naming last_run.
+        if not isinstance(stamp, str) or not _UTC_ISO.fullmatch(stamp):
+            raise ValueError(
+                f"df.ta.last_run: df.attrs['_ta_last_run'] holds {stamp!r}, not a UTC ISO timestamp (a frame saved by "
+                "0.8.x stored a display string); run an indicator through df.ta(kind=...) or strategy() to overwrite "
+                "it, or remove the key"
+            )
+        return datetime.fromisoformat(stamp)
+
+    # Public Get DataFrame Properties
+    @property
+    def categories(self) -> list[str]:
+        """Returns the categories."""
+        return list(Category.keys())
+
+    @property
+    def datetime_ordered(self) -> bool:
+        """Returns True if the index is a datetime and ordered."""
+        hasdf = hasattr(self, "_df")
+        if hasdf:
+            return is_datetime_ordered(self._df)
+        return hasdf
+
+    @property
+    def reverse(self) -> pd.DataFrame:
+        """Reverses the DataFrame. Simply: df.iloc[::-1]"""
+        return self._df.iloc[::-1]
+
+    @property
+    def time_range(self) -> float:
+        """Returns the time ranges of the DataFrame as a float. Default is in "years". help(ta.toal_time)"""
+        return total_time(self._df, self._df.attrs.get("_ta_time_range", self._time_range))
+
+    @time_range.setter
+    def time_range(self, value: str) -> None:
+        """property: df.ta.time_range = "years" (Default; None resets)"""
+        if value is not None and value not in TIME_RANGE_UNITS:
+            # an unknown unit used to be stored and then computed as years
+            raise ValueError(f"df.ta.time_range must be one of {list(TIME_RANGE_UNITS)} or None, got {value!r}")
+        self._df.attrs["_ta_time_range"] = "years" if value is None else value
+
+    @property
+    def to_utc(self) -> NoReturn:
+        """Removed in 0.9.0: reading it converted df's index, so hasattr() did too."""
+        # AttributeError, so hasattr() is False and getattr(..., default) works.
+        # __getattr__ re-runs this getter, so the message survives the fallback.
+        raise AttributeError(_TO_UTC_REMOVED)
+
+    @property
+    def version(self) -> str:
+        """Returns the version."""
+        return version
+
+    # Fluent API chaining (Issue #36)
+    def chain(self, append: bool = True):
+        """Activate fluent chaining mode.
+
+        When chain mode is active, every indicator call auto-appends its result
+        to the DataFrame and returns the DataFrame itself (which has ``.ta``),
+        so you can chain multiple indicators without repeating ``df.ta``::
+
+            df.ta.chain().sma(10).ta.rsi(14).ta.macd()
+
+        Args:
+            append (bool): When True (default), each indicator is appended to
+                the DataFrame.
+
+        Returns:
+            AnalysisIndicators: self (the accessor) with chain mode active.
+        """
+        # pandas copies attrs into df.copy() and slices; storing this frame's
+        # id keeps chain mode on the frame that asked for it.
+        # ponytail: id() can be reused after the chained frame is freed; key by a weakref if that ever matters (attrs must stay picklable for strategy()).
+        self._df.attrs["_ta_chain"] = id(self._df)
+        self._df.attrs["_ta_chain_append"] = append
+        return self
+
+    def unchain(self):
+        """Deactivate fluent chaining mode.
+
+        Returns:
+            pd.DataFrame: The working DataFrame (so ``.ta`` is available for
+            non-chained calls).
+        """
+        self._df.attrs.pop("_ta_chain", None)
+        self._df.attrs.pop("_ta_chain_append", None)
+        return self._df
+
+    # Private DataFrame Methods
+    def _add_prefix_suffix(self, result=None, **kwargs) -> None:
+        """Add prefix and/or suffix to the result columns"""
+        if result is None:
+            return
+        prefix = suffix = ""
+        delimiter = kwargs.setdefault("delimiter", "_")
+
+        if "prefix" in kwargs:
+            prefix = f"{kwargs['prefix']}{delimiter}"
+        if "suffix" in kwargs:
+            suffix = f"{delimiter}{kwargs['suffix']}"
+
+        if isinstance(result, pd.Series):
+            result.name = prefix + result.name + suffix
+        else:
+            result.columns = [prefix + column + suffix for column in result.columns]
+
+    def _append(self, result=None, **kwargs) -> None:
+        """Appends a Pandas Series or DataFrame columns to self._df."""
+        if not _bool_param(kwargs.get("append"), False, "append"):
+            return
+        df = self._df
+        if df is None or result is None:
+            return
+        if "col_names" in kwargs and not isinstance(kwargs["col_names"], tuple):
+            kwargs["col_names"] = (kwargs["col_names"],)
+        # Appending column by column fragments the frame, and pandas says so once
+        # it holds more than 100 blocks. Silence that here only: a bare
+        # simplefilter() used to switch PerformanceWarning off for the rest of
+        # the caller's process.
+        with catch_warnings():
+            simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+            if isinstance(result, pd.DataFrame):
+                _append_dataframe(df, result, kwargs)
+            else:
+                if "col_names" in kwargs and len(kwargs["col_names"]) != 1:
+                    raise ValueError(f"col_names has {len(kwargs['col_names'])} names for one column ({result.name})")
+                ind_name = kwargs["col_names"][0] if "col_names" in kwargs else result.name
+                df[ind_name] = result
+
+    def _default_column(self, name: str) -> str:
+        """The column an indicator reads when the caller names none.
+
+        'close' resolves to df.ta.adjusted when that is set; every other
+        column name is returned unchanged.
+        """
+        if name == "close" and self.adjusted is not None:
+            # A copy or slice inherits _ta_adjusted from df.attrs but may lack
+            # the adjusted column. Computing on 'close' instead would silently
+            # swap adjusted prices for unadjusted ones.
+            if self.adjusted not in self._df.columns:
+                raise KeyError(f"df.ta.adjusted is {self.adjusted!r}, but the DataFrame has no such column; set df.ta.adjusted = None to use 'close'")
+            return self.adjusted
+        return name
+
+    def _get_column(self, series):
+        """Attempts to get the correct series or 'column' and return it."""
+        df = self._df
+        if df is None:
+            return
+
+        # Explicitly passing a pd.Series to override default.
+        if isinstance(series, pd.Series):
+            return series
+        # None means "not provided" (an optional input). It used to return the
+        # adjusted column, so open=None could read adjusted close as open.
+        if series is None:
+            return None
+        # Ok.  So it's a str.
+        if isinstance(series, str):
+            # Return the df column since it's in there.
+            if series in df.columns:
+                return df[series]
+            # Attempt to match the 'series' because it was likely misspelled:
+            # case-insensitive exact match only.  A prefix match (str.match)
+            # resolved 'open' to a leading 'Open time' column on Binance-style
+            # frames, silently returning the epoch-milliseconds column.
+            matches = [col for col in df.columns if isinstance(col, str) and col.lower() == series.lower()]
+            if matches:
+                return df[matches[0]]
+            cols = ", ".join(str(c) for c in df.columns)
+            raise KeyError(f"Column {series!r} not found. Available columns: {cols}")
+        # Anything else (a numpy array, a list, a DataFrame) is passed through
+        # unchanged so verify_series() can warn about it; returning None here
+        # made df.ta.sma(close=df.close.values) a silent no-op.
+        return series
+
+    def _matching_column(self, name: str) -> Hashable | None:
+        """The column '_get_column' would resolve *name* to, or None.
+
+        Mirrors _get_column()'s lookup order: the exact name first, then the
+        case-insensitive exact match.
+        """
+        columns = self._df.columns
+        if name in columns:
+            return name
+        # Case-insensitive exact match, mirroring _get_column()'s fallback.
+        matches = [col for col in columns if isinstance(col, str) and col.lower() == name.lower()]
+        return matches[0] if matches else None
+
+    def _worker_columns(self, kwarg_sources: list[dict]) -> list:
+        """The columns a Multiprocessing worker can actually reach for.
+
+        An indicator only ever sees the default OHLCV columns, whatever a
+        ``close="my_col"``-style kwarg points at, and ``df.ta.adjusted``.
+        Everything else — a previous strategy() run's output, unrelated user
+        columns — would be pickled onto the Pool task pipe for nothing.
+
+        Args:
+            kwarg_sources (list of dict): Every kwargs mapping that will reach
+                an indicator call, i.e. the shared strategy kwargs plus each
+                per-indicator dict of a Custom Strategy.
+
+        Returns:
+            list: Column labels, in DataFrame order.
+        """
+        requested = set(_DEFAULT_COLUMN_NAMES)
+        if self.adjusted is not None:
+            requested.add(self.adjusted)
+        for source in kwarg_sources:
+            for key in _COLUMN_KWARG_KEYS:
+                value = source.get(key)
+                if isinstance(value, str):
+                    requested.add(value)
+
+        resolved = {column for column in (self._matching_column(name) for name in requested) if column is not None}
+        return [column for column in self._df.columns if column in resolved]
+
+    def _indicators_by_category(self, name: str) -> list | None:
+        """Returns indicators by Categorical name."""
+        return Category[name] if name in self.categories else None
+
+    def _missing_column(self, task_kwargs: dict) -> str | None:
+        """The column *task_kwargs* points an indicator at that does not exist yet.
+
+        A strategy entry such as ``{"kind": "ema", "close": "SMA_10"}`` can only
+        run once ``SMA_10`` is on the frame.
+
+        Resolution goes through _matching_column(), so a name the indicator will
+        resolve case-insensitively (``close="sma_10"`` against ``SMA_10``) counts
+        as present: _worker_columns() ships the column it resolves to, under the
+        name the frame carries.  Only a name no column answers to starts a new
+        stage.
+        """
+        for key in _COLUMN_KWARG_KEYS:
+            value = task_kwargs.get(key)
+            if isinstance(value, str) and self._matching_column(value) is None:
+                return value
+        return None
+
+    def _next_stage(self, remaining: list[tuple]) -> list[tuple]:
+        """Take the next run of mutually independent tasks off *remaining*.
+
+        A task that reads a column the frame does not have yet starts a new
+        stage, so everything it depends on has been appended by the time it
+        runs.  Within a stage the order does not matter, which is what makes
+        parallel execution safe: the previous chunked Pool ran a producer and
+        its consumer in different workers unless they happened to land in the
+        same chunk, and the consumer then silently produced no column at all.
+
+        Called once per stage rather than up front, because where the next
+        boundary falls depends on the columns the finished stages added.
+
+        A chain of entries that each read the previous one's output is one task
+        per stage, which is what it is -- they cannot run at the same time.  An
+        entry naming a column nothing ever produces costs a stage of its own
+        too; it also warns (see _warn_no_result), so the cause is visible.
+        """
+        stage = [remaining.pop(0)]
+        while remaining and self._missing_column(remaining[0][3]) is None:
+            stage.append(remaining.pop(0))
+        return stage
+
+    def _warn_no_result(self, kind: str, task_kwargs: dict, stacklevel: int = 4) -> None:
+        """Report an indicator that ran but added no column.
+
+        Both halves of this used to be invisible: _get_column() logged its
+        "Column not found" warning through the package NullHandler -- in a Pool
+        worker, where even a configured handler could not show it -- and
+        _post_process() then dropped the result.  A chained custom strategy
+        quietly produced fewer columns than it was given entries.
+
+        *stacklevel* counts from here to the caller's own strategy() line, which
+        the parallel path reaches one frame later than the serial one -- so the
+        two must pass different depths or the warning blames core.py.
+        """
+        missing = self._missing_column(task_kwargs)
+        detail = f" It reads {missing!r}, which the DataFrame does not have." if missing else ""
+        warn(f"strategy(): {kind}() returned no result, so no column was added.{detail}", UserWarning, stacklevel=stacklevel)
+
+    def _run_serially(self, tasks: list[tuple], verbose: bool) -> None:
+        """Run every task in order, appending each result before the next runs."""
+        iterator: Any = tasks
+        if Imports["tqdm"] and verbose:
+            from tqdm import tqdm  # type: ignore[import-untyped]  # optional; ships no stubs
+
+            iterator = tqdm(tasks, "[i] Progress")
+        for _order, kind, params, task_kwargs in iterator:
+            if getattr(self, kind)(*params, **task_kwargs) is None:
+                self._warn_no_result(kind, task_kwargs)
+
+    def _run_stages(self, tasks: list[tuple], executor: Executor, workers: int, verbose: bool) -> None:
+        """Run *tasks* stage by stage on *executor*, appending between stages."""
+        remaining = list(tasks)
+        stage_number = 0
+        while remaining:
+            stage = self._next_stage(remaining)
+            stage_number += 1
+            if verbose:
+                logger.info(f"Stage {stage_number}: {len(stage)} indicators over {workers} workers.")
+            self._run_stage(stage, executor, workers)
+
+    def _run_stage(self, stage: list[tuple], executor: Executor, workers: int) -> None:
+        """Run one stage of independent tasks and append the results in order."""
+        groups = min(len(stage), workers)
+        # Send only the columns an indicator in this stage can reach.  The frame
+        # grows with every appended result: after one strategy("momentum") run
+        # on 100,000 rows it pickles to 79.4 MB against 4.6 MB for the five
+        # columns the next stage can actually read.  df.ta settings travel with
+        # it, because pandas carries DataFrame.attrs through the selection.
+        slim = self._df[self._worker_columns([task_kwargs for _, _, _, task_kwargs in stage])].copy()
+
+        # Round robin, so one group per worker holds a spread of cheap and
+        # expensive indicators, and the frame is pickled once per group.
+        futures = [executor.submit(_run_task_group, slim, stage[start::groups]) for start in range(groups)]
+        finished: dict[int, tuple] = {}
+        try:
+            for future in futures:
+                finished.update({order: (result, error) for order, result, error in future.result()})
+        except BrokenProcessPool as exc:
+            raise RuntimeError(_BROKEN_POOL_HINT) from exc
+
+        # Append by task order, not by the order the workers finished.
+        for order, kind, _params, task_kwargs in stage:
+            result, error = finished[order]
+            if error is not None:
+                # Re-raise what the indicator raised: the exception type is part
+                # of the contract, so a caller catching ValueError must not start
+                # seeing RuntimeError when it opts into workers.  The traceback
+                # does not survive pickling, hence the note (PEP 678).
+                error.add_note(f"strategy(): raised by {kind}() in a worker process")
+                raise error
+            if result is None:
+                self._warn_no_result(kind, task_kwargs, stacklevel=5)
+                continue
+            self._append(result, **task_kwargs)
+
+    def _post_process(self, result, **kwargs) -> pd.Series | pd.DataFrame | None:
+        """Applies any additional modifications to the DataFrame
+        * Applies prefixes and/or suffixes
+        * Appends the result to main DataFrame
+        * In chain mode, auto-appends and returns the DataFrame for fluent chaining.
+        """
+        verbose = _bool_param(kwargs.pop("verbose", None), False, "verbose")
+        chain_mode = self._df.attrs.get("_ta_chain") == id(self._df)
+
+        if not isinstance(result, (pd.Series, pd.DataFrame)):
+            # Returning the whole DataFrame here made "no result" indistinguishable
+            # from a real one without an identity check, and df.ta.sma(close="typo")
+            # handed back the frame it was called on. Chain mode is no exception:
+            # continuing the chain on a frame that gained no column would hide the
+            # failure for the rest of it, so the chain ends here instead.
+            if verbose:
+                logger.error("The result was not a Series or DataFrame.")
+            return None
+        # Append only specific columns to the dataframe (via
+        # 'col_numbers':(0,1,3) for example)
+        result = (
+            result.iloc[:, [int(n) for n in kwargs["col_numbers"]]]
+            if isinstance(result, pd.DataFrame) and "col_numbers" in kwargs and kwargs["col_numbers"] is not None
+            else result
+        )
+        # Add prefix/suffix and append to the dataframe
+        self._add_prefix_suffix(result=result, **kwargs)
+        # In chain mode, auto-append results to the DataFrame
+        if chain_mode:
+            kwargs["append"] = self._df.attrs.get("_ta_chain_append", True)
+        self._append(result=result, **kwargs)
+
+        # In chain mode, return the DataFrame (which has .ta) for fluent chaining
+        if chain_mode:
+            return self._df
+        return result
+
+    def _strategy_mode(self, *args) -> tuple:
+        """Helper method to determine the mode and name of the strategy. Returns tuple: (name:str, mode:dict)"""
+        if len(args) == 0:
+            return "All", {"all": True, "category": False, "custom": False}
+        return self._resolve_strategy_args(args[0])
+
+    def _resolve_strategy_args(self, arg) -> tuple:
+        """Resolve (name, mode) from a single strategy argument (str or Strategy)."""
+        name = "All"
+        mode = {"all": False, "category": False, "custom": False}
+        if isinstance(arg, str):
+            if arg.lower() == "all":
+                mode["all"] = True
+            elif arg.lower() in self.categories:
+                name, mode["category"] = arg, True
+            else:
+                # A Strategy's *name* never selected anything here, so
+                # df.ta.strategy("CommonStrategy") logged an invisible error and
+                # added no columns.  Pass the Strategy object itself.
+                categories = ", ".join(sorted(self.categories))
+                raise ValueError(f"strategy() got {arg!r}, which is neither 'all' nor a category ({categories}). Pass a Strategy to run a named one.")
+            return name, mode
+        if isinstance(arg, Strategy):
+            # The name is a label: a name equal to "all" or a category used to
+            # discard the ta list and run that whole set instead.
+            if arg.ta is None:
+                mode["all"] = True
+            else:
+                name, mode["custom"] = arg.name, True
+            return name, mode
+        raise TypeError(f"strategy() expected a category name or a Strategy, got {type(arg).__name__}")
+
+    def _validate_exclude(self, exclude, caller: str) -> list:
+        """Return *exclude* as a list of known indicator names; raise for anything else."""
+        if not isinstance(exclude, (list, tuple, set)) or not all(isinstance(x, str) for x in exclude):
+            raise TypeError(f"{caller}() exclude must be a list of indicator names, got {exclude!r}")
+        unknown = sorted(set(exclude) - {i for names in Category.values() for i in names})
+        if unknown:
+            raise ValueError(f"{caller}() exclude has unknown indicator name(s): {unknown}")
+        return list(exclude)
+
+    def _missing_required_column(self, name: str, kwargs: dict) -> bool:
+        """True when indicator *name* needs a column (no default) that the DataFrame does not have."""
+        # custom.import_dir() binds its function onto the package and lists the
+        # name in Category, but the loader only knows the package's own modules,
+        # so strategy("all") raised "unknown indicator" once one was loaded. The
+        # package attribute is also what replaces a built-in of the same name.
+        bound = vars(pandas_ta_classic).get(name)
+        func = bound if callable(bound) else _find_indicator_func(name)
+        if func is None:
+            raise ValueError(f"unknown indicator {name!r}")
+        sig = inspect.signature(func)
+        for param, spec in sig.parameters.items():
+            col_key = _COLUMN_PARAM_TO_COL_KEY.get(param)
+            if col_key is None or spec.default is not inspect.Parameter.empty:
+                continue
+            column = kwargs.get(col_key, self._default_column(col_key))
+            if isinstance(column, str) and self._matching_column(column) is None:
+                return True
+        return False
+
+    # Public DataFrame Methods
+    def indicators(self, **kwargs):
+        """List of Indicators
+
+        kwargs:
+            as_list (bool, optional): When True, it returns a list of the
+                indicators. Default: False.
+            exclude (list, optional): The passed in list will be excluded
+                from the indicators list. Default: None.
+
+        Returns:
+            Prints the list of indicators. If as_list=True, then a list.
+        """
+        as_list = _bool_param(kwargs.get("as_list"), False, "as_list")
+        # Public non-indicator methods
+        helper_methods = [
+            "chain",
+            "indicators",
+            "strategy",
+            "unchain",
+        ]
+        # Public df.ta.properties
+        ta_properties = [
+            "adjusted",
+            "categories",
+            "cores",
+            "datetime_ordered",
+            "last_run",
+            "reverse",
+            "time_range",
+            "version",
+        ]
+
+        # Build indicator list from Category (works with lazy __getattr__)
+        # Also include explicitly-defined methods (math operators) that are not
+        # in Category but are available on the accessor.
+        from pandas_ta_classic._meta import Category as _Category
+
+        _category_indicators = [ind for inds in _Category.values() for ind in inds]
+        ta_indicators = sorted(set(_category_indicators))
+
+        # Add Pandas TA methods and properties to be removed
+        removed = helper_methods + ta_properties
+
+        # Add user excluded methods to be removed
+        # a tuple or a misspelled name used to be ignored silently
+        removed += self._validate_exclude(kwargs.get("exclude", []), "indicators")
+
+        # Remove the unwanted indicators (only if present)
+        for x in removed:
+            if x in ta_indicators:
+                ta_indicators.remove(x)
+
+        # If as a list, immediately return
+        if as_list:
+            return ta_indicators
+
+        total_indicators = len(ta_indicators)
+        header = f"Pandas TA - Technical Analysis Indicators - v{self.version}"
+        from pandas_ta_classic.candles.cdl_pattern import ALL_PATTERNS
+
+        s = f"{header}\nTotal Indicators & Utilities: {total_indicators + len(ALL_PATTERNS)}\n"
+        if total_indicators > 0:
+            print(f"{s}Abbreviations:\n    {', '.join(ta_indicators)}\n\nCandle Patterns:\n    {', '.join(ALL_PATTERNS)}")
+        else:
+            print(s)
+
+    def strategy(self, *args, **kwargs):
+        """Strategy Method
+
+        An experimental method that by default runs all applicable indicators.
+        Future implementations will allow more specific indicator generation
+        with possibly as json, yaml config file or an sqlite3 table.
+
+        Runs serially by default. Parallel execution is opt-in and worth it from
+        roughly 100,000 rows per frame upwards; below that, starting worker
+        processes costs more than the indicators do. See docs/strategies.rst.
+
+        Kwargs:
+            cores (int): Run this call on that many worker processes, 0 for
+                serially. Capped at cpu_count(), like the df.ta.cores setter.
+                Default: df.ta.cores, itself 0 unless set.
+            executor (concurrent.futures.Executor): Run this call on a pool the
+                caller owns and reuses, which avoids paying for process start-up
+                per call. Takes precedence over 'cores'. Default: None
+                A strategy with a custom indicator (custom.import_dir,
+                custom.bind) raises ValueError when 'cores' > 0 or 'executor'
+                is anything but a ThreadPoolExecutor.
+            exclude (list): List of indicator names to leave out of an "all" or
+                category run; an unknown name raises. Some are excluded by
+                default for various reasons; they require additional sources,
+                performance (td_seq), not a ohlcv chart (vp) etc. A custom
+                Strategy lists its own entries, so passing 'exclude' with one
+                raises.
+            name (str): Not a selector: the first positional argument picks
+                "all", a category or a Strategy. Like any other keyword, name
+                is passed to every indicator the run calls; it is the moving
+                average ma() dispatches to, so ma runs only when name is given.
+                Default: None
+            timed (bool): Show the process time of the strategy().
+                Default: False
+            verbose (bool): Provide some additional insight on the progress of
+                the strategy() execution. Default: False
+
+        Note: ``chunksize`` and ``ordered`` steered the Multiprocessing Pool that
+        ordered stages replaced; they were removed in 0.9.0 and passing either
+        raises TypeError.
+        """
+        # If True, it returns the resultant DataFrame. Default: False
+        returns = _bool_param(kwargs.pop("returns", None), False, "returns")
+        # Ensure indicators are appended to the DataFrame
+        kwargs["append"] = True
+        executor = kwargs.pop("executor", None)
+        if executor is not None and not isinstance(executor, Executor):
+            raise TypeError(f"strategy() executor must be a concurrent.futures.Executor or None, got {type(executor).__name__}")
+        # 'cores' used to be read off the accessor only; the kwarg was accepted
+        # and dropped, so strategy(cores=0) still started a pool.
+        # Capped like the df.ta.cores setter: the same knob through two doors must
+        # not have two limits, or strategy(cores=10000) opens 10000 processes
+        # where df.ta.cores = 10000 gives cpu_count().
+        cores = min(_pos_int(kwargs.pop("cores", None), self.cores, "cores", gt=None, ge=0), cpu_count())
+        # Removed in 0.9.0 with the Pool they steered. strategy() broadcasts
+        # unknown keywords to the indicators, whose **kwargs would swallow them.
+        for removed in ("chunksize", "ordered"):
+            if removed in kwargs:
+                raise TypeError(
+                    f"strategy() no longer accepts {removed!r}: entries run in ordered stages, serially unless cores= or executor= "
+                    "is given; remove the argument"
+                )
+
+        # Initialize
+        initial_column_count = len(self._df.columns)
+        excluded = [
+            "long_run",
+            "mavp",  # Requires a per-bar 'periods' Series
+            "short_run",
+            "td_seq",  # Performance exclusion
+            "tsignals",
+            "vp",
+            "xsignals",
+        ]
+        # These need an argument the frame cannot supply, and now raise without
+        # it rather than returning nothing.  Leave them in when the caller
+        # broadcasts one, so df.ta.strategy("all", benchmark=other) keeps
+        # computing beta and correl as it did.
+        if "benchmark" not in kwargs:
+            excluded += ["beta", "correl"]
+        if "name" not in kwargs:
+            # A dispatcher, and its 'source' maps to the close column, so without
+            # a name it would publish a second EMA_10 next to the run's own ema.
+            excluded.append("ma")
+
+        # Get the Strategy Name and mode
+        name, mode = self._strategy_mode(*args)
+
+        # If All or a Category, exclude user list if any
+        if not isinstance(self._df.index, pd.DatetimeIndex):
+            excluded.append("vwap")  # anchors by calendar period; raises without a DatetimeIndex
+        user_excluded = kwargs.pop("exclude", None)
+        if user_excluded is not None:
+            # A string extended the list character by character, so exclude="rsi"
+            # removed 'r', 's' and 'i' -- that is, nothing; an unknown name was ignored.
+            user_excluded = self._validate_exclude(user_excluded, "strategy")
+            if mode["custom"]:
+                # It was popped and dropped here, so it silently did nothing.
+                # A custom Strategy lists its entries, so leave them out there.
+                raise ValueError(f"strategy() exclude does not apply to the custom Strategy {name!r}; leave the entries out of its 'ta' list instead")
+            excluded += user_excluded
+
+        # Collect the indicators, remove excluded or include kwarg["append"].
+        # Work on copies: `Category` lists and the caller's Strategy.ta are shared
+        # objects, and removing from them would leak into later runs.
+        ta: list
+        if mode["category"]:
+            ta = [x for x in Category[name.lower()] if x not in excluded]
+        elif mode["custom"]:
+            # custom mode implies a list: _resolve_strategy_args routes ta=None to "all"
+            ta = [{**kwds, "append": True} for kwds in args[0].ta]
+        else:  # mode["all"]; _resolve_strategy_args() raises on anything else
+            ta = self.indicators(as_list=True, exclude=excluded)
+
+        if mode["all"] or mode["category"]:
+            # Skip, and report, indicators needing a column this DataFrame does
+            # not have (volume on OHLC-only data): each would raise KeyError.
+            unavailable = [x for x in ta if self._missing_required_column(x, kwargs)]
+            ta = [x for x in ta if x not in unavailable]
+            excluded += unavailable
+
+        verbose = _bool_param(kwargs.pop("verbose", None), False, "verbose")
+        if verbose:
+            logger.info(f"Strategy: {name}\nIndicator arguments: {kwargs}")
+            if mode["all"] or mode["category"]:
+                excluded_str = ", ".join(excluded)
+                logger.info(f"Excluded[{len(excluded)}]: {excluded_str}")
+
+        timed = _bool_param(kwargs.pop("timed", None), False, "timed")
+
+        # The plan: one (order, kind, params, kwargs) task per indicator, in the
+        # order the caller asked for. Pure data -- nothing has run yet.
+        if mode["custom"]:
+            # Otherwise the first entry to run fails with a bare
+            # "'AnalysisIndicators' object has no attribute 'rsi_'", which names
+            # neither the Strategy nor the entry. Checked here rather than in
+            # Strategy(), because custom indicators may be loaded later.
+            known = set(self.indicators(as_list=True))
+            for position, ind in enumerate(ta):
+                if ind["kind"] not in known:
+                    raise ValueError(f"Strategy {name!r} entry {position}: {ind['kind']!r} is not an indicator")
+            tasks = [(i, ind["kind"], _strategy_params(ind), {**ind, **kwargs}) for i, ind in enumerate(ta)]
+        else:
+            tasks = [(i, ind, (), dict(kwargs)) for i, ind in enumerate(ta)]
+
+        # A daemonic worker cannot start children of its own ('daemonic
+        # processes are not allowed to have children'), so a strategy() inside
+        # someone else's pool runs serially instead of failing.
+        if (executor is not None or cores > 0) and current_process().daemon:
+            if verbose:
+                logger.info("Running serially: strategy() was called inside a worker process.")
+            executor, cores = None, 0
+
+        # The pool strategy() opens spawns its workers, so every one raised
+        # AttributeError for a custom indicator after the parent had accepted it;
+        # refuse before any worker starts. A thread shares this interpreter and
+        # its custom methods, so it may run them. Any other executor is refused
+        # too: whether its workers started after the custom code was loaded (a
+        # fork pool on Linux) cannot be checked.
+        if (executor is None and cores > 0) or (executor is not None and not isinstance(executor, ThreadPoolExecutor)):
+            custom = _custom_kinds([kind for _, kind, _, _ in tasks])
+            if custom:
+                leave_out = "leave them out of the Strategy's 'ta' list" if mode["custom"] else "leave them out with exclude=[...]"
+                raise ValueError(
+                    f"strategy() runs the custom indicators {custom} only serially or on a ThreadPoolExecutor: a worker "
+                    "process has them only if it started after they were loaded, which cannot be checked. Run this "
+                    f"strategy with cores=0 or a ThreadPoolExecutor, or {leave_out}."
+                )
+
+        if timed:
+            stime = perf_counter()
+
+        # A caller-supplied executor needs the guard as much as one we open: an
+        # unguarded script that builds its own pool recurses the same way, and
+        # ProcessPoolExecutor only spawns on the first submit, so the recursion
+        # starts inside strategy() either way.
+        if executor is not None:
+            with _worker_recursion_guard():
+                self._run_stages(tasks, executor, _executor_workers(executor), verbose)
+        elif cores > 0:
+            # Python 3.12 warns when forking from a multi-threaded process, so
+            # spawn explicitly rather than inheriting the platform default.  The
+            # guard is entered first, so it is armed before any child exists.
+            with _worker_recursion_guard(), ProcessPoolExecutor(cores, mp_context=get_context("spawn")) as own_executor:
+                self._run_stages(tasks, own_executor, cores, verbose)
+        else:
+            self._run_serially(tasks, verbose)
+
+        self._df.attrs["_ta_last_run"] = datetime.now(UTC).isoformat()
+
+        if verbose:
+            logger.info(f"Total indicators: {len(ta)}")
+            logger.info(f"Columns added: {len(self._df.columns) - initial_column_count}")
+            logger.info(f"Last Run: {self.last_run}")
+        if timed:
+            logger.info(f"Runtime: {final_time(stime)}")
+
+        if returns:
+            return self._df
+
+    def __getattr__(self, name: str) -> Any:
+        # Avoid infinite recursion for private/dunder attributes
+        if name.startswith("_"):
+            raise AttributeError(name)
+        func = _find_indicator_func(name)
+        if func is None:
+            # A property getter raising AttributeError lands here too: Python
+            # cannot tell "no such attribute" from "the descriptor failed", so
+            # reporting a missing attribute would replace the real error (and
+            # its traceback) with a false one.  Re-run the descriptor directly
+            # -- that path bypasses __getattr__ -- to surface the actual cause.
+            descriptor = getattr(type(self), name, None)
+            if descriptor is not None:
+                return descriptor.__get__(self, type(self))
+            raise AttributeError(f"'AnalysisIndicators' object has no attribute '{name}'")
+        wrapper = _make_ta_wrapper(func)
+        wrapper.__name__ = name
+        wrapper.__qualname__ = f"AnalysisIndicators.{name}"
+        # Cache on the class so future calls bypass __getattr__.
+        # Aliases (max/min/sum) are intentionally excluded: caching them on
+        # the class would permanently shadow Python builtins at the class level.
+        if name not in _MATH_ALIASES:
+            setattr(type(self), name, wrapper)
+        return wrapper.__get__(self, type(self))

@@ -116,7 +116,13 @@ def test_mcp_server_exposes_full_registered_feature_catalog(tmp_path: Path) -> N
 
     catalog = features["features"]
     assert isinstance(catalog, list)
-    assert len(catalog) == 173
+    # Default registry is the expanded causal/indicator baseline; 44 chart
+    # research channels remain an explicit opt-in and must not leak here.
+    assert len(catalog) == 487
+    assert not any(
+        str(item.get("name", "")).startswith("chart_research_")
+        for item in catalog if isinstance(item, dict)
+    )
     assert any(item.get("name") == "rsi" for item in catalog if isinstance(item, dict))
     assert any(
         item.get("name") == "us_20y_change" for item in catalog if isinstance(item, dict)

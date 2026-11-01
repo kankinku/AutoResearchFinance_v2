@@ -1,0 +1,73 @@
+{
+  "causal_stream_replay": {
+    "checkpoints": 4608,
+    "patterns": 12,
+    "prefix_mismatches": 0,
+    "regimes": 3,
+    "runtime_errors": 0,
+    "timestamp_violations": 0,
+    "total_emitted_events": 40,
+    "zero_event_pattern_regime_pairs": 22
+  },
+  "defaults": {
+    "confirmation_bars": 2,
+    "lookback": 160,
+    "minimum_swing": 0.015,
+    "mode": "percent"
+  },
+  "event_log_example": [
+    {
+      "event_id": "causal-pivot-v1:4:APPEND:2",
+      "event_time": 4,
+      "previous_index": null,
+      "stage": "APPEND",
+      "swing_index": 2,
+      "swing_price": 14.0
+    },
+    {
+      "event_id": "causal-pivot-v1:8:REPLACE:6",
+      "event_time": 8,
+      "previous_index": 2,
+      "stage": "REPLACE",
+      "swing_index": 6,
+      "swing_price": 17.0
+    }
+  ],
+  "experimental_threshold_modes": [
+    "percent",
+    "absolute",
+    "atr"
+  ],
+  "feature_counts": {
+    "chart": 12,
+    "registered": 447
+  },
+  "frozen_reference_sha": "1cdbcea8fe3c430907e38998d5087235866b4161",
+  "history_limitations": [
+    "audit event ledger intentionally grows with event count",
+    "Provisional developing swing is neither confirmed nor exposed as an order signal",
+    "absolute/atr modes currently tracker-only; StrategyIR uses baseline percent output",
+    "No actual market/OOS performance, numeric source parity or next-open trading gate",
+    "Two known pattern false positives (Gartley and inverse H&S) still under A5/A7",
+    "Official release checker uv is not installed; no release approval"
+  ],
+  "independent_multi_scale": true,
+  "known_at_for_confirmed_pivot": "index + confirmation_bars",
+  "live_orders": "NOT_RUN",
+  "lookback_window_bound": "2*confirmation_bars+1",
+  "observed_at_kst": "2026-10-29T12:17:33.198150+09:00",
+  "oracle_exact": {
+    "compared_outputs": 48,
+    "mismatches": 0,
+    "scenarios": [
+      "oscillating",
+      "inverted",
+      "flat_missing_invalid",
+      "trend_wave"
+    ]
+  },
+  "provisional_is_trade_eligible": false,
+  "same_kind_supersession": "REPLACE current pivot, append immutable event record",
+  "schema": "quant-v3-chart-A4-causal-pivot-v1",
+  "separate_bulk40": "UNTOUCHED"
+}

@@ -1,0 +1,2113 @@
+{
+  "excluded": [
+    [
+      "pta",
+      "cpr",
+      9,
+      "CPR_WIDTH_CLASS",
+      "constant"
+    ],
+    [
+      "pta",
+      "dm",
+      1,
+      "MINUS_DM_20",
+      "duplicate:pta_minus_dm"
+    ],
+    [
+      "pta",
+      "squeeze_pro",
+      1,
+      "SQZPRO_ON_WIDE",
+      "constant"
+    ],
+    [
+      "pta",
+      "squeeze_pro",
+      4,
+      "SQZPRO_OFF",
+      "constant"
+    ],
+    [
+      "pta",
+      "squeeze_pro",
+      5,
+      "SQZPRO_NO",
+      "constant"
+    ],
+    [
+      "ta",
+      "volume",
+      -1,
+      "volume_adi",
+      "duplicate:adl"
+    ],
+    [
+      "ta",
+      "volume",
+      -1,
+      "volume_nvi",
+      "duplicate:nvi"
+    ],
+    [
+      "ta",
+      "volume",
+      -1,
+      "volume_obv",
+      "duplicate:pta_aobv"
+    ],
+    [
+      "ta",
+      "volume",
+      -1,
+      "volume_vpt",
+      "duplicate:pvt"
+    ],
+    [
+      "ta",
+      "volatility",
+      -1,
+      "volatility_bbm",
+      "duplicate:pta_rainbow"
+    ],
+    [
+      "ta",
+      "volatility",
+      -1,
+      "volatility_kchi",
+      "constant"
+    ],
+    [
+      "ta",
+      "volatility",
+      -1,
+      "volatility_kcli",
+      "constant"
+    ],
+    [
+      "ta",
+      "trend",
+      -1,
+      "trend_kst",
+      "noncausal"
+    ],
+    [
+      "ta",
+      "trend",
+      -1,
+      "trend_kst_diff",
+      "noncausal"
+    ],
+    [
+      "ta",
+      "trend",
+      -1,
+      "trend_kst_sig",
+      "noncausal"
+    ],
+    [
+      "ta",
+      "trend",
+      -1,
+      "trend_visual_ichimoku_a",
+      "chart_backfill_risk"
+    ],
+    [
+      "ta",
+      "trend",
+      -1,
+      "trend_visual_ichimoku_b",
+      "chart_backfill_risk"
+    ],
+    [
+      "ta",
+      "trend",
+      -1,
+      "trend_vortex_ind_diff",
+      "duplicate:vortex"
+    ],
+    [
+      "ta",
+      "momentum",
+      -1,
+      "momentum_ao",
+      "duplicate:awesome_oscillator"
+    ],
+    [
+      "ta",
+      "momentum",
+      -1,
+      "momentum_stoch",
+      "duplicate:ultimate_oscillator"
+    ],
+    [
+      "ta",
+      "momentum",
+      -1,
+      "momentum_wr",
+      "duplicate:williams_r"
+    ]
+  ],
+  "counts": {
+    "pta": 54,
+    "ta": 70
+  },
+  "selected": [
+    {
+      "provider": "pta",
+      "name": "pta_aberration_out1",
+      "source": "aberration",
+      "category": "volatility",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "ABER_SG_20_15",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_aberration_out2",
+      "source": "aberration",
+      "category": "volatility",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "ABER_XG_20_15",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_aobv_out1",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "OBV_min_2",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_aobv_out2",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "OBV_max_2",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_aobv_out3",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "OBVe_4",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_aobv_out4",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 4,
+      "output_label": "OBVe_12",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_aobv_out5",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 5,
+      "output_label": "AOBV_LR_2",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_aobv_out6",
+      "source": "aobv",
+      "category": "volume",
+      "inputs": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 6,
+      "output_label": "AOBV_SR_2",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cksp_out1",
+      "source": "cksp",
+      "category": "trend",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "CKSPs_10_1_9",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out1",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "CPR_PIVOT",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out2",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "CPR_BC",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out3",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "CPR_R1",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out4",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 4,
+      "output_label": "CPR_R2",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out5",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 5,
+      "output_label": "CPR_S1",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out6",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 6,
+      "output_label": "CPR_S2",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out7",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 7,
+      "output_label": "CPR_WIDTH",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out8",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 8,
+      "output_label": "CPR_WIDTH_PCT",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_cpr_out10",
+      "source": "cpr",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 10,
+      "output_label": "CPR_POSITION",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_eri_out1",
+      "source": "eri",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "BEARP_20",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_hilo_out1",
+      "source": "hilo",
+      "category": "overlap",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HILOl_13_21",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_hilo_out2",
+      "source": "hilo",
+      "category": "overlap",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "HILOs_13_21",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_ht_phasor_out1",
+      "source": "ht_phasor",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HT_PHASOR_QUAD",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_ht_sine_out1",
+      "source": "ht_sine",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HT_LEADSINE",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_hwc_out1",
+      "source": "hwc",
+      "category": "volatility",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "HWU",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_hwc_out2",
+      "source": "hwc",
+      "category": "volatility",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "HWL",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_kvo_out1",
+      "source": "kvo",
+      "category": "volume",
+      "inputs": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "KVOs_34_55_13",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_mama_out1",
+      "source": "mama",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "FAMA_0.5_0.05",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_msw_out1",
+      "source": "msw",
+      "category": "cycles",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "MSW_LEAD_5",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_pvo_out1",
+      "source": "pvo",
+      "category": "momentum",
+      "inputs": [
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "PVOh_12_26_9",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_pvo_out2",
+      "source": "pvo",
+      "category": "momentum",
+      "inputs": [
+        "volume"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "PVOs_12_26_9",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_qqe_out1",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "QQE_20_5_4.236_RSIMA",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_qqe_out2",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "QQEl_20_5_4.236",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_qqe_out3",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "QQEs_20_5_4.236",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_qqe_out6",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 6,
+      "output_label": "QQEd_20_5_4.236",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out1",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "RAINBOW_2",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rvgi_out1",
+      "source": "rvgi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "RVGI_20_4",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rvgi_out2",
+      "source": "rvgi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "RVGIs_20_4",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_squeeze_pro_out2",
+      "source": "squeeze_pro",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "SQZPRO_ON_NORMAL",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_squeeze_pro_out3",
+      "source": "squeeze_pro",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "SQZPRO_ON_NARROW",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_stochf_out1",
+      "source": "stochf",
+      "category": "momentum",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "STOCHFd_5_3",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_td_seq_out1",
+      "source": "td_seq",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "TD_SEQ_DNa",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_trixh_out1",
+      "source": "trixh",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 1,
+      "output_label": "TRIXs_20_9",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_trixh_out2",
+      "source": "trixh",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "TRIXh_20_9",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volume_em",
+      "source": "volume_em",
+      "category": "volume",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volume_em",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volume_sma_em",
+      "source": "volume_sma_em",
+      "category": "volume",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volume_sma_em",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_bbh",
+      "source": "volatility_bbh",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_bbh",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_bbhi",
+      "source": "volatility_bbhi",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_bbhi",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_bbl",
+      "source": "volatility_bbl",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_bbl",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_bbli",
+      "source": "volatility_bbli",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_bbli",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_bbp",
+      "source": "volatility_bbp",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_bbp",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_bbw",
+      "source": "volatility_bbw",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_bbw",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_dch",
+      "source": "volatility_dch",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_dch",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_dcl",
+      "source": "volatility_dcl",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_dcl",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_dcm",
+      "source": "volatility_dcm",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_dcm",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_dcp",
+      "source": "volatility_dcp",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_dcp",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_dcw",
+      "source": "volatility_dcw",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_dcw",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_kcc",
+      "source": "volatility_kcc",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_kcc",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_kch",
+      "source": "volatility_kch",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_kch",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_kcl",
+      "source": "volatility_kcl",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_kcl",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_kcp",
+      "source": "volatility_kcp",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_kcp",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_kcw",
+      "source": "volatility_kcw",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_kcw",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_ui",
+      "source": "volatility_ui",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_ui",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_adx",
+      "source": "trend_adx",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_adx",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_adx_neg",
+      "source": "trend_adx_neg",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_adx_neg",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_adx_pos",
+      "source": "trend_adx_pos",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_adx_pos",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_aroon_down",
+      "source": "trend_aroon_down",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_aroon_down",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_aroon_ind",
+      "source": "trend_aroon_ind",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_aroon_ind",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_aroon_up",
+      "source": "trend_aroon_up",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_aroon_up",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_cci",
+      "source": "trend_cci",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_cci",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_dpo",
+      "source": "trend_dpo",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_dpo",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_ichimoku_a",
+      "source": "trend_ichimoku_a",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_ichimoku_a",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_ichimoku_b",
+      "source": "trend_ichimoku_b",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_ichimoku_b",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_ichimoku_base",
+      "source": "trend_ichimoku_base",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_ichimoku_base",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_ichimoku_conv",
+      "source": "trend_ichimoku_conv",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_ichimoku_conv",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_macd",
+      "source": "trend_macd",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_macd",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_macd_diff",
+      "source": "trend_macd_diff",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_macd_diff",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_macd_signal",
+      "source": "trend_macd_signal",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_macd_signal",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_mass_index",
+      "source": "trend_mass_index",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_mass_index",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_psar_down",
+      "source": "trend_psar_down",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_psar_down",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_psar_down_indicator",
+      "source": "trend_psar_down_indicator",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_psar_down_indicator",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_psar_up",
+      "source": "trend_psar_up",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_psar_up",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_psar_up_indicator",
+      "source": "trend_psar_up_indicator",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_psar_up_indicator",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_stc",
+      "source": "trend_stc",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_stc",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_trix",
+      "source": "trend_trix",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_trix",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_vortex_ind_neg",
+      "source": "trend_vortex_ind_neg",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_vortex_ind_neg",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_vortex_ind_pos",
+      "source": "trend_vortex_ind_pos",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_vortex_ind_pos",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_kama",
+      "source": "momentum_kama",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_kama",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_ppo",
+      "source": "momentum_ppo",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_ppo",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_ppo_hist",
+      "source": "momentum_ppo_hist",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_ppo_hist",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_ppo_signal",
+      "source": "momentum_ppo_signal",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_ppo_signal",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_pvo",
+      "source": "momentum_pvo",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_pvo",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_pvo_hist",
+      "source": "momentum_pvo_hist",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_pvo_hist",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_pvo_signal",
+      "source": "momentum_pvo_signal",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_pvo_signal",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_stoch_rsi",
+      "source": "momentum_stoch_rsi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_stoch_rsi",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_stoch_rsi_d",
+      "source": "momentum_stoch_rsi_d",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_stoch_rsi_d",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_stoch_rsi_k",
+      "source": "momentum_stoch_rsi_k",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_stoch_rsi_k",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_stoch_signal",
+      "source": "momentum_stoch_signal",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_stoch_signal",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_tsi",
+      "source": "momentum_tsi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_tsi",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_uo",
+      "source": "momentum_uo",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_uo",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_others_cr",
+      "source": "others_cr",
+      "category": "others",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "others_cr",
+      "license": "MIT"
+    }
+  ],
+  "deferred_validated_not_selected": [
+    {
+      "provider": "pta",
+      "name": "pta_aberration_out3",
+      "source": "aberration",
+      "category": "volatility",
+      "inputs": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "ABER_ATR_20_15",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_qqe_out4",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 4,
+      "output_label": "QQEb_l_20_5_4.236",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_qqe_out5",
+      "source": "qqe",
+      "category": "momentum",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 5,
+      "output_label": "QQEb_s_20_5_4.236",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out2",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 2,
+      "output_label": "RAINBOW_3",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out3",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 3,
+      "output_label": "RAINBOW_4",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out4",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 4,
+      "output_label": "RAINBOW_5",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out5",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 5,
+      "output_label": "RAINBOW_6",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out6",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 6,
+      "output_label": "RAINBOW_7",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out7",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 7,
+      "output_label": "RAINBOW_8",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out8",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 8,
+      "output_label": "RAINBOW_9",
+      "license": "MIT"
+    },
+    {
+      "provider": "pta",
+      "name": "pta_rainbow_out9",
+      "source": "rainbow",
+      "category": "overlap",
+      "inputs": [
+        "close"
+      ],
+      "lookback": 20,
+      "output_index": 9,
+      "output_label": "RAINBOW_10",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volume_cmf",
+      "source": "volume_cmf",
+      "category": "volume",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volume_cmf",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volume_fi",
+      "source": "volume_fi",
+      "category": "volume",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volume_fi",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volume_mfi",
+      "source": "volume_mfi",
+      "category": "volume",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volume_mfi",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volume_vwap",
+      "source": "volume_vwap",
+      "category": "volume",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volume_vwap",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_volatility_atr",
+      "source": "volatility_atr",
+      "category": "volatility",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "volatility_atr",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_ema_fast",
+      "source": "trend_ema_fast",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_ema_fast",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_ema_slow",
+      "source": "trend_ema_slow",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_ema_slow",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_sma_fast",
+      "source": "trend_sma_fast",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_sma_fast",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_trend_sma_slow",
+      "source": "trend_sma_slow",
+      "category": "trend",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "trend_sma_slow",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_roc",
+      "source": "momentum_roc",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_roc",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_momentum_rsi",
+      "source": "momentum_rsi",
+      "category": "momentum",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "momentum_rsi",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_others_dlr",
+      "source": "others_dlr",
+      "category": "others",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "others_dlr",
+      "license": "MIT"
+    },
+    {
+      "provider": "ta",
+      "name": "buk_others_dr",
+      "source": "others_dr",
+      "category": "others",
+      "inputs": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 1,
+      "output_index": 0,
+      "output_label": "others_dr",
+      "license": "MIT"
+    }
+  ]
+}

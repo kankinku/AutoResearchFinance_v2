@@ -1,0 +1,2919 @@
+{
+  "inventory": [
+    {
+      "category": "cycles",
+      "source": "_hilbert"
+    },
+    {
+      "category": "cycles",
+      "source": "ht_dcperiod"
+    },
+    {
+      "category": "cycles",
+      "source": "ht_dcphase"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_3blackcrows"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_3inside"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_3whitesoldiers"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_belthold"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_darkcloudcover"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_doji"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_dragonflydoji"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_engulfing"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_eveningstar"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_gravestonedoji"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_hammer"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_hangingman"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_harami"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_haramicross"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_highwave"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_inside"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_invertedhammer"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_longleggeddoji"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_marubozu"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_matchinglow"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_morningstar"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_piercing"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_rickshawman"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_shootingstar"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_spinningtop"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_z"
+    },
+    {
+      "category": "candles",
+      "source": "ha"
+    },
+    {
+      "category": "momentum",
+      "source": "ao"
+    },
+    {
+      "category": "momentum",
+      "source": "apo"
+    },
+    {
+      "category": "momentum",
+      "source": "bias"
+    },
+    {
+      "category": "momentum",
+      "source": "bop"
+    },
+    {
+      "category": "momentum",
+      "source": "brar"
+    },
+    {
+      "category": "momentum",
+      "source": "cci"
+    },
+    {
+      "category": "momentum",
+      "source": "cfo"
+    },
+    {
+      "category": "momentum",
+      "source": "cg"
+    },
+    {
+      "category": "momentum",
+      "source": "cmo"
+    },
+    {
+      "category": "momentum",
+      "source": "coppock"
+    },
+    {
+      "category": "momentum",
+      "source": "cti"
+    },
+    {
+      "category": "momentum",
+      "source": "er"
+    },
+    {
+      "category": "momentum",
+      "source": "fisher"
+    },
+    {
+      "category": "momentum",
+      "source": "kdj"
+    },
+    {
+      "category": "momentum",
+      "source": "kst"
+    },
+    {
+      "category": "momentum",
+      "source": "lrsi"
+    },
+    {
+      "category": "momentum",
+      "source": "macd"
+    },
+    {
+      "category": "momentum",
+      "source": "macdext"
+    },
+    {
+      "category": "momentum",
+      "source": "macdfix"
+    },
+    {
+      "category": "momentum",
+      "source": "mom"
+    },
+    {
+      "category": "momentum",
+      "source": "pgo"
+    },
+    {
+      "category": "momentum",
+      "source": "ppo"
+    },
+    {
+      "category": "momentum",
+      "source": "psl"
+    },
+    {
+      "category": "momentum",
+      "source": "roc"
+    },
+    {
+      "category": "momentum",
+      "source": "rocp"
+    },
+    {
+      "category": "momentum",
+      "source": "rocr"
+    },
+    {
+      "category": "momentum",
+      "source": "rocr100"
+    },
+    {
+      "category": "momentum",
+      "source": "rsi"
+    },
+    {
+      "category": "momentum",
+      "source": "rsx"
+    },
+    {
+      "category": "momentum",
+      "source": "smi"
+    },
+    {
+      "category": "momentum",
+      "source": "squeeze"
+    },
+    {
+      "category": "momentum",
+      "source": "stc"
+    },
+    {
+      "category": "momentum",
+      "source": "stoch"
+    },
+    {
+      "category": "momentum",
+      "source": "stochrsi"
+    },
+    {
+      "category": "momentum",
+      "source": "trix"
+    },
+    {
+      "category": "momentum",
+      "source": "tsi"
+    },
+    {
+      "category": "momentum",
+      "source": "uo"
+    },
+    {
+      "category": "momentum",
+      "source": "vwmacd"
+    },
+    {
+      "category": "momentum",
+      "source": "willr"
+    },
+    {
+      "category": "overlap",
+      "source": "avgprice"
+    },
+    {
+      "category": "overlap",
+      "source": "dema"
+    },
+    {
+      "category": "overlap",
+      "source": "ema"
+    },
+    {
+      "category": "overlap",
+      "source": "hl2"
+    },
+    {
+      "category": "overlap",
+      "source": "hlc3"
+    },
+    {
+      "category": "overlap",
+      "source": "hma"
+    },
+    {
+      "category": "overlap",
+      "source": "ht_trendline"
+    },
+    {
+      "category": "overlap",
+      "source": "ichimoku"
+    },
+    {
+      "category": "overlap",
+      "source": "kama"
+    },
+    {
+      "category": "overlap",
+      "source": "linreg"
+    },
+    {
+      "category": "overlap",
+      "source": "ma"
+    },
+    {
+      "category": "overlap",
+      "source": "mavp"
+    },
+    {
+      "category": "overlap",
+      "source": "mcgd"
+    },
+    {
+      "category": "overlap",
+      "source": "medprice"
+    },
+    {
+      "category": "overlap",
+      "source": "midpoint"
+    },
+    {
+      "category": "overlap",
+      "source": "midprice"
+    },
+    {
+      "category": "overlap",
+      "source": "mmar"
+    },
+    {
+      "category": "overlap",
+      "source": "rma"
+    },
+    {
+      "category": "overlap",
+      "source": "sma"
+    },
+    {
+      "category": "overlap",
+      "source": "supertrend"
+    },
+    {
+      "category": "overlap",
+      "source": "tema"
+    },
+    {
+      "category": "overlap",
+      "source": "trima"
+    },
+    {
+      "category": "overlap",
+      "source": "tsf"
+    },
+    {
+      "category": "overlap",
+      "source": "typprice"
+    },
+    {
+      "category": "overlap",
+      "source": "vidya"
+    },
+    {
+      "category": "overlap",
+      "source": "vwap"
+    },
+    {
+      "category": "overlap",
+      "source": "vwma"
+    },
+    {
+      "category": "overlap",
+      "source": "wcp"
+    },
+    {
+      "category": "overlap",
+      "source": "wma"
+    },
+    {
+      "category": "performance",
+      "source": "drawdown"
+    },
+    {
+      "category": "performance",
+      "source": "log_return"
+    },
+    {
+      "category": "performance",
+      "source": "percent_return"
+    },
+    {
+      "category": "statistics",
+      "source": "beta"
+    },
+    {
+      "category": "statistics",
+      "source": "correl"
+    },
+    {
+      "category": "statistics",
+      "source": "entropy"
+    },
+    {
+      "category": "statistics",
+      "source": "kurtosis"
+    },
+    {
+      "category": "statistics",
+      "source": "mad"
+    },
+    {
+      "category": "statistics",
+      "source": "md"
+    },
+    {
+      "category": "statistics",
+      "source": "skew"
+    },
+    {
+      "category": "statistics",
+      "source": "stderr"
+    },
+    {
+      "category": "statistics",
+      "source": "stdev"
+    },
+    {
+      "category": "statistics",
+      "source": "tos_stdevall"
+    },
+    {
+      "category": "statistics",
+      "source": "variance"
+    },
+    {
+      "category": "statistics",
+      "source": "zscore"
+    },
+    {
+      "category": "trend",
+      "source": "adx"
+    },
+    {
+      "category": "trend",
+      "source": "adxr"
+    },
+    {
+      "category": "trend",
+      "source": "aroon"
+    },
+    {
+      "category": "trend",
+      "source": "chop"
+    },
+    {
+      "category": "trend",
+      "source": "dpo"
+    },
+    {
+      "category": "trend",
+      "source": "long_run"
+    },
+    {
+      "category": "trend",
+      "source": "psar"
+    },
+    {
+      "category": "trend",
+      "source": "qstick"
+    },
+    {
+      "category": "trend",
+      "source": "sarext"
+    },
+    {
+      "category": "trend",
+      "source": "short_run"
+    },
+    {
+      "category": "trend",
+      "source": "tsignals"
+    },
+    {
+      "category": "trend",
+      "source": "ttm_trend"
+    },
+    {
+      "category": "trend",
+      "source": "vhf"
+    },
+    {
+      "category": "trend",
+      "source": "vortex"
+    },
+    {
+      "category": "trend",
+      "source": "xsignals"
+    },
+    {
+      "category": "volatility",
+      "source": "accbands"
+    },
+    {
+      "category": "volatility",
+      "source": "atr"
+    },
+    {
+      "category": "volatility",
+      "source": "bbands"
+    },
+    {
+      "category": "volatility",
+      "source": "ce"
+    },
+    {
+      "category": "volatility",
+      "source": "donchian"
+    },
+    {
+      "category": "volatility",
+      "source": "hvol"
+    },
+    {
+      "category": "volatility",
+      "source": "kc"
+    },
+    {
+      "category": "volatility",
+      "source": "massi"
+    },
+    {
+      "category": "volatility",
+      "source": "natr"
+    },
+    {
+      "category": "volatility",
+      "source": "rvi"
+    },
+    {
+      "category": "volatility",
+      "source": "thermo"
+    },
+    {
+      "category": "volatility",
+      "source": "true_range"
+    },
+    {
+      "category": "volatility",
+      "source": "ui"
+    },
+    {
+      "category": "volume",
+      "source": "ad"
+    },
+    {
+      "category": "volume",
+      "source": "adosc"
+    },
+    {
+      "category": "volume",
+      "source": "cmf"
+    },
+    {
+      "category": "volume",
+      "source": "efi"
+    },
+    {
+      "category": "volume",
+      "source": "emv"
+    },
+    {
+      "category": "volume",
+      "source": "eom"
+    },
+    {
+      "category": "volume",
+      "source": "marketfi"
+    },
+    {
+      "category": "volume",
+      "source": "mfi"
+    },
+    {
+      "category": "volume",
+      "source": "nvi"
+    },
+    {
+      "category": "volume",
+      "source": "obv"
+    },
+    {
+      "category": "volume",
+      "source": "pvi"
+    },
+    {
+      "category": "volume",
+      "source": "pvr"
+    },
+    {
+      "category": "volume",
+      "source": "pvt"
+    },
+    {
+      "category": "volume",
+      "source": "vfi"
+    },
+    {
+      "category": "volume",
+      "source": "vosc"
+    },
+    {
+      "category": "volume",
+      "source": "vp"
+    },
+    {
+      "category": "volume",
+      "source": "wad"
+    }
+  ],
+  "approved": [
+    {
+      "category": "cycles",
+      "source": "ht_dcperiod",
+      "index": 0,
+      "label": "HT_DCPERIOD",
+      "finite_count": 448,
+      "signature": "61cda56010c5736fb38c4dee5ddb215152d3aaf01e9692527551d7238aaf1472"
+    },
+    {
+      "category": "cycles",
+      "source": "ht_dcphase",
+      "index": 0,
+      "label": "HT_DCPHASE",
+      "finite_count": 417,
+      "signature": "491022cc06c65305a8b5ffab37327488fb74e8db83c7c0f25ccf56ea11987cf1"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_doji",
+      "index": 0,
+      "label": "CDL_DOJI_20_0.1",
+      "finite_count": 480,
+      "signature": "06274cbec113109c0703582820879114f2f04d7cc35f2bcf446290c7ce939206"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_engulfing",
+      "index": 0,
+      "label": "CDL_ENGULFING",
+      "finite_count": 480,
+      "signature": "adafbc90973e84e1565603aa8df92378727009c6f01fb107a30e04070900662e"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_harami",
+      "index": 0,
+      "label": "CDL_HARAMI",
+      "finite_count": 480,
+      "signature": "fea9e551729359c438fc49ed287815caa0380a6f574805570e668aee4cdb8086"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_highwave",
+      "index": 0,
+      "label": "CDL_HIGHWAVE",
+      "finite_count": 480,
+      "signature": "c26fe87c1a305ec6080c3a509a9ceb6056e2f6aa89507ad66015a4baa5a184b9"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_inside",
+      "index": 0,
+      "label": "CDL_INSIDE",
+      "finite_count": 480,
+      "signature": "ceead1a7dabe9b973c0c34a4adf2930feb6843b9d294fe624e8840b10d2bf8f3"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_longleggeddoji",
+      "index": 0,
+      "label": "CDL_LONGLEGGEDDOJI",
+      "finite_count": 480,
+      "signature": "9855a01133ece33c23c844512078e12f812e6400246d93632757fc89d6112354"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_matchinglow",
+      "index": 0,
+      "label": "CDL_MATCHINGLOW",
+      "finite_count": 480,
+      "signature": "bbeb4d875052f3f64fd9a99429615def6d2adabe657c703b62fbace150412c68"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 52,
+      "label": "CDL_SPINNINGTOP",
+      "finite_count": 480,
+      "signature": "de3efa54605f9aa66fd0f365af55ef4897d7ab2fc097d8d52227731ed46255b0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_z",
+      "index": 0,
+      "label": "open_Z_20_1",
+      "finite_count": 461,
+      "signature": "403be73b168c908e2311f00ba9b4fba298880bf2e89df6b3c8663e3e78fb0424"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_z",
+      "index": 1,
+      "label": "high_Z_20_1",
+      "finite_count": 461,
+      "signature": "8f9285f50d5d67f0e5e658f3d6dc2625f4af03491147d3f4c5b90918756bb1f5"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_z",
+      "index": 2,
+      "label": "low_Z_20_1",
+      "finite_count": 461,
+      "signature": "90a2e61c83e2b90c2815702a7e713baeb1b00e588af71a6dad09a5adb44018c7"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_z",
+      "index": 3,
+      "label": "close_Z_20_1",
+      "finite_count": 461,
+      "signature": "0c6ebcfca5c8637f56eb6ecda700e3d5d01b1ca2a90a61ed896e8c1ad3e1c21b"
+    },
+    {
+      "category": "candles",
+      "source": "ha",
+      "index": 0,
+      "label": "HA_open",
+      "finite_count": 480,
+      "signature": "2768607eacb385a3237d3c00af542c01764955c9c859f37ce550a247b4d64a1a"
+    },
+    {
+      "category": "candles",
+      "source": "ha",
+      "index": 1,
+      "label": "HA_high",
+      "finite_count": 480,
+      "signature": "3758f0bc185c64a56f0a6774e15c1893530833b8fbfc262bacc6d61370971629"
+    },
+    {
+      "category": "candles",
+      "source": "ha",
+      "index": 2,
+      "label": "HA_low",
+      "finite_count": 480,
+      "signature": "4cd6dd8549977a212373a02bd9d605f83f3c14859acab659d315fc3c9507f8d3"
+    },
+    {
+      "category": "momentum",
+      "source": "bias",
+      "index": 0,
+      "label": "BIAS_SMA_20",
+      "finite_count": 461,
+      "signature": "c4073151cba1f4f3be17dcd7826572f1ea2f449979361f203c27707361ffd431"
+    },
+    {
+      "category": "momentum",
+      "source": "brar",
+      "index": 0,
+      "label": "AR_20",
+      "finite_count": 461,
+      "signature": "06d206695f4d0b0ee36863f7916dba64ff33e2e0afa1af1bdbbc480dc9e3b85c"
+    },
+    {
+      "category": "momentum",
+      "source": "brar",
+      "index": 1,
+      "label": "BR_20",
+      "finite_count": 460,
+      "signature": "d11085662692387afa997b9a758cd4f891b5e7032e09428b94c4cbf4c956ee76"
+    },
+    {
+      "category": "momentum",
+      "source": "cg",
+      "index": 0,
+      "label": "CG_20",
+      "finite_count": 461,
+      "signature": "4e4adffcd4300fe04405599f769f9c3e3ee6d81d3d7f944789f0a698595055ef"
+    },
+    {
+      "category": "momentum",
+      "source": "cmo",
+      "index": 0,
+      "label": "CMO_20",
+      "finite_count": 460,
+      "signature": "dcfc8d30d52862a4254e9ad1e9c067071f5ef3a8cb532832e71c9f0094b54567"
+    },
+    {
+      "category": "momentum",
+      "source": "coppock",
+      "index": 0,
+      "label": "COPC_11_14_20",
+      "finite_count": 447,
+      "signature": "ef7005b7dc81bd91618eaeb972acc519be563c2f8f693b3dc5d8f5acea9bdee0"
+    },
+    {
+      "category": "momentum",
+      "source": "cti",
+      "index": 0,
+      "label": "CTI_20",
+      "finite_count": 461,
+      "signature": "0f80a504847be056f520360bae8ca50edb13c4805ba0566668ef73e4fa3e1319"
+    },
+    {
+      "category": "momentum",
+      "source": "er",
+      "index": 0,
+      "label": "ER_20",
+      "finite_count": 460,
+      "signature": "f9603067daf676cc92772d750ddec00068e4dc5db6d2a779b72d94ce36018f6e"
+    },
+    {
+      "category": "momentum",
+      "source": "fisher",
+      "index": 0,
+      "label": "FISHERT_20_1",
+      "finite_count": 460,
+      "signature": "ff611fa21f12eb724fad295fe380e0f26e0424f53ea3fa29dfe2347df99260e1"
+    },
+    {
+      "category": "momentum",
+      "source": "fisher",
+      "index": 1,
+      "label": "FISHERTs_20_1",
+      "finite_count": 459,
+      "signature": "18f9fd5a56b996cf9c0562ebcbcaaef94449d279744b0ffd7135906a7b1871f2"
+    },
+    {
+      "category": "momentum",
+      "source": "kdj",
+      "index": 0,
+      "label": "K_20_3",
+      "finite_count": 459,
+      "signature": "3011d4a60bec5b31da096f15689659bab3664b7c84aa606fa3dd2b102bd73466"
+    },
+    {
+      "category": "momentum",
+      "source": "kdj",
+      "index": 1,
+      "label": "D_20_3",
+      "finite_count": 457,
+      "signature": "a73d5213a3153a9a0f9bacba70bb6cee75eae5a9c1dd32845292c2aef93a90bb"
+    },
+    {
+      "category": "momentum",
+      "source": "kdj",
+      "index": 2,
+      "label": "J_20_3",
+      "finite_count": 457,
+      "signature": "b9064fe34b8bc57695eab7ff41d3ffc6ea5ba5d26a4691678e66b0e5697ece6f"
+    },
+    {
+      "category": "momentum",
+      "source": "kst",
+      "index": 1,
+      "label": "KSTs_9",
+      "finite_count": 428,
+      "signature": "8a486a2937442edbc2e792975bf0c82f47e8512f80c9eb5e0643cb7e8deb3787"
+    },
+    {
+      "category": "momentum",
+      "source": "lrsi",
+      "index": 0,
+      "label": "LRSI_20",
+      "finite_count": 479,
+      "signature": "5e8560f519fe9da6c923e28ad9c0ec888185a4603d6a316265d2fdb0ce23ed05"
+    },
+    {
+      "category": "momentum",
+      "source": "macd",
+      "index": 0,
+      "label": "MACD_12_26_9",
+      "finite_count": 455,
+      "signature": "08d795daa3c61cd5741607337914b719656b59a1719c861e16d206f49075b35a"
+    },
+    {
+      "category": "momentum",
+      "source": "macd",
+      "index": 1,
+      "label": "MACDh_12_26_9",
+      "finite_count": 447,
+      "signature": "a315acc5f4e6b2967e408a143493c4fcaf8101d750c4867b11f53c2b97ef8948"
+    },
+    {
+      "category": "momentum",
+      "source": "macd",
+      "index": 2,
+      "label": "MACDs_12_26_9",
+      "finite_count": 447,
+      "signature": "6c5eee1e1737b90295a26f395d9d6a6406eb5ff269fbbe14d0ba17a0b80c7189"
+    },
+    {
+      "category": "momentum",
+      "source": "mom",
+      "index": 0,
+      "label": "MOM_20",
+      "finite_count": 460,
+      "signature": "40dc81d53d817e74ace93a5a111c8f63bcf6fe80c9e0fc9bcf6952096034cdf7"
+    },
+    {
+      "category": "momentum",
+      "source": "pgo",
+      "index": 0,
+      "label": "PGO_20",
+      "finite_count": 441,
+      "signature": "05a440e8492468e223df5a482fc8800e858603a57a2d3a22c8bb4f125b0fdb9a"
+    },
+    {
+      "category": "momentum",
+      "source": "ppo",
+      "index": 1,
+      "label": "PPOh_12_26_9",
+      "finite_count": 447,
+      "signature": "9438e9a3b82efbdccc85c3fb0918745408e03d33ff7f798236e5b1e75f35f1bf"
+    },
+    {
+      "category": "momentum",
+      "source": "ppo",
+      "index": 2,
+      "label": "PPOs_12_26_9",
+      "finite_count": 447,
+      "signature": "2e0fc34595c45447ce7eb5021eae78abe24be292b28a3f9d3aef9957582a1213"
+    },
+    {
+      "category": "momentum",
+      "source": "psl",
+      "index": 0,
+      "label": "PSL_20",
+      "finite_count": 461,
+      "signature": "4b6adda1b851b00bbc2aa13251cadbbfb1bc37152b9f012fa6218ded654c1b0a"
+    },
+    {
+      "category": "momentum",
+      "source": "roc",
+      "index": 0,
+      "label": "ROC_20",
+      "finite_count": 460,
+      "signature": "24bcbd09ce2f559bcdef9952faed8187b8b33919dc465828d065f39a87454162"
+    },
+    {
+      "category": "momentum",
+      "source": "rocp",
+      "index": 0,
+      "label": "ROCP_20",
+      "finite_count": 460,
+      "signature": "b19cce9581bd6aac2dced8d9f6d8ca31a81b3d7254fc68b3144434ebeb514ca5"
+    },
+    {
+      "category": "momentum",
+      "source": "rocr",
+      "index": 0,
+      "label": "ROCR_20",
+      "finite_count": 460,
+      "signature": "d509fe9d12012baebc9327c2e3bf16e7e90c61c1671d0e5d06756ada6c61a2ed"
+    },
+    {
+      "category": "momentum",
+      "source": "rocr100",
+      "index": 0,
+      "label": "ROCR100_20",
+      "finite_count": 460,
+      "signature": "a29e18159bfc9a9d26418fffb3935ca3b0e9a680abb4c2d720c74badb3520e4d"
+    },
+    {
+      "category": "momentum",
+      "source": "rsi",
+      "index": 0,
+      "label": "RSI_20",
+      "finite_count": 460,
+      "signature": "4e04a96ad8e0aa407d93c67596a2f017c955155c9e6d8f5f9d2a28125cf56b3b"
+    },
+    {
+      "category": "momentum",
+      "source": "rsx",
+      "index": 0,
+      "label": "RSX_20",
+      "finite_count": 441,
+      "signature": "cd798f3bb4760cce33d5af8979083489e124f0325d39182fc97259898270d6ae"
+    },
+    {
+      "category": "momentum",
+      "source": "smi",
+      "index": 0,
+      "label": "SMI_5_20_5",
+      "finite_count": 456,
+      "signature": "75ad27bff4c86343cb5f2e092663bbac8c2dce1c8d5fdc30c6fc9b7a456184fe"
+    },
+    {
+      "category": "momentum",
+      "source": "smi",
+      "index": 1,
+      "label": "SMIs_5_20_5",
+      "finite_count": 452,
+      "signature": "015d67dc1ed6b2536aedd3ef2a445e6062ac6185d51bfdb4264cb3ff233ce22d"
+    },
+    {
+      "category": "momentum",
+      "source": "smi",
+      "index": 2,
+      "label": "SMIo_5_20_5",
+      "finite_count": 452,
+      "signature": "1f44bcff3ffd13255df2cb6ea159712ba02632304620faf29cf12613fce4ba7a"
+    },
+    {
+      "category": "momentum",
+      "source": "squeeze",
+      "index": 2,
+      "label": "SQZ_OFF",
+      "finite_count": 460,
+      "signature": "d616d8fa9260ca82b83104de62d12c22e7494c431a9e579a1eef34ed1fb257c3"
+    },
+    {
+      "category": "momentum",
+      "source": "stc",
+      "index": 0,
+      "label": "STC_10_12_26_0.5",
+      "finite_count": 437,
+      "signature": "9db519979c2e51f4386dc33768bdc3a78eeb1c914c697e7db235a74cb154e448"
+    },
+    {
+      "category": "momentum",
+      "source": "stc",
+      "index": 2,
+      "label": "STCstoch_10_12_26_0.5",
+      "finite_count": 446,
+      "signature": "aa7be450d9573b250505ba272b5654570e41caa75f14f8e635c115b20fc7af9a"
+    },
+    {
+      "category": "momentum",
+      "source": "stoch",
+      "index": 1,
+      "label": "STOCHd_14_3_3",
+      "finite_count": 463,
+      "signature": "16074c9f6c6af178a47c7fddbe65f923231613f09963b36c4269eb58f8c07b37"
+    },
+    {
+      "category": "momentum",
+      "source": "stochrsi",
+      "index": 0,
+      "label": "STOCHRSIk_20_14_3_3",
+      "finite_count": 445,
+      "signature": "6be3ad58a128b8d8f21c45b91ad2118278f4fc03beb13397449fd55ce051b5ab"
+    },
+    {
+      "category": "momentum",
+      "source": "stochrsi",
+      "index": 1,
+      "label": "STOCHRSId_20_14_3_3",
+      "finite_count": 443,
+      "signature": "8c0d1fc5725d5efe2fc9b6cbd42904f6070b5f105997feb6394e759374a6fa7a"
+    },
+    {
+      "category": "momentum",
+      "source": "tsi",
+      "index": 0,
+      "label": "TSI_13_25_13",
+      "finite_count": 443,
+      "signature": "c9c6773e66afd1d62c192099d96947e19b1b47a4a9450295e14e6a1c9e06d7b1"
+    },
+    {
+      "category": "momentum",
+      "source": "tsi",
+      "index": 1,
+      "label": "TSIs_13_25_13",
+      "finite_count": 431,
+      "signature": "b838fa1750cd8d912e8f25d3b313e23c307b067ec70d91be529a2093841dbf89"
+    },
+    {
+      "category": "momentum",
+      "source": "vwmacd",
+      "index": 0,
+      "label": "VWMACD_12_26_9",
+      "finite_count": 455,
+      "signature": "769f973c371c5490afed8a8f6a30923408b510f64bce158d57d4a22509e8d791"
+    },
+    {
+      "category": "momentum",
+      "source": "vwmacd",
+      "index": 1,
+      "label": "VWMACDh_12_26_9",
+      "finite_count": 447,
+      "signature": "b97a8dd13474768afe291b1286a165a8aa611a9772c137b434717b335bf022d9"
+    },
+    {
+      "category": "momentum",
+      "source": "vwmacd",
+      "index": 2,
+      "label": "VWMACDs_12_26_9",
+      "finite_count": 447,
+      "signature": "a7c9990ceb1c9b0274cbc630015f73e62cf9a8cedff3d5e132ae64ebc8940994"
+    },
+    {
+      "category": "momentum",
+      "source": "willr",
+      "index": 0,
+      "label": "WILLR_20",
+      "finite_count": 461,
+      "signature": "ebec506b778ae017b478f9375b78a5626f87dd516b89830bb18e2ebb4cb636b6"
+    },
+    {
+      "category": "overlap",
+      "source": "dema",
+      "index": 0,
+      "label": "DEMA_20",
+      "finite_count": 442,
+      "signature": "a016d75e7fa48cc92b5dffec16a47753434ed6cd1926d2671ecb2160c138068e"
+    },
+    {
+      "category": "overlap",
+      "source": "ema",
+      "index": 0,
+      "label": "EMA_20",
+      "finite_count": 461,
+      "signature": "fe6b85dc04bd21eb99bd9a826a9628d84fcc48dc5f45e1593cfa2aad028ffd15"
+    },
+    {
+      "category": "overlap",
+      "source": "hma",
+      "index": 0,
+      "label": "HMA_20",
+      "finite_count": 458,
+      "signature": "e75409c775120c475bd84bce3f59338b4d2d503c54680792ff3f69e63ecedf9a"
+    },
+    {
+      "category": "overlap",
+      "source": "ht_trendline",
+      "index": 0,
+      "label": "HT_TRENDLINE",
+      "finite_count": 417,
+      "signature": "687abde418d37e321fcadc8e3dc8e2a359a3113ff3c5dfc698a5c2de12f1bb13"
+    },
+    {
+      "category": "overlap",
+      "source": "ichimoku",
+      "index": 0,
+      "label": "ISA_9",
+      "finite_count": 429,
+      "signature": "bad191ae71f0af62241860eaee96573057f35e84b060ea42c00af72723481706"
+    },
+    {
+      "category": "overlap",
+      "source": "ichimoku",
+      "index": 1,
+      "label": "ISB_26",
+      "finite_count": 403,
+      "signature": "64287cc3828a874f43f2228a253bd8658e256086ba3d50335d2db4989c41dbe8"
+    },
+    {
+      "category": "overlap",
+      "source": "kama",
+      "index": 0,
+      "label": "KAMA_20_2_30",
+      "finite_count": 461,
+      "signature": "b4e58a58268bc9e6fea8d566be5adc592d69b451621ffef5ee7f15e2bb1238f1"
+    },
+    {
+      "category": "overlap",
+      "source": "linreg",
+      "index": 0,
+      "label": "LR_20",
+      "finite_count": 461,
+      "signature": "c6a4ccd8e324b8b25289e30da8c1ff27abd9909313aaa61657ec8d858d3216f5"
+    },
+    {
+      "category": "overlap",
+      "source": "mcgd",
+      "index": 0,
+      "label": "MCGD_20",
+      "finite_count": 480,
+      "signature": "77f875b43245e1df835be8e47e9b74ff20c788e89c8e4bf5e9fe8c823dde0b9f"
+    },
+    {
+      "category": "overlap",
+      "source": "midpoint",
+      "index": 0,
+      "label": "MIDPOINT_20",
+      "finite_count": 461,
+      "signature": "13ac66c91afa381e44c245f0c418d9b62d09c6a242ecb21db75cafcc03676532"
+    },
+    {
+      "category": "overlap",
+      "source": "mmar",
+      "index": 1,
+      "label": "MMAR_25",
+      "finite_count": 456,
+      "signature": "e762f6a82603f2882ff708cadfe9d37e67a05703fd9fa60469775abec571c089"
+    },
+    {
+      "category": "overlap",
+      "source": "mmar",
+      "index": 2,
+      "label": "MMAR_30",
+      "finite_count": 451,
+      "signature": "ecf1890ad581f4832a57463323b63d3baa530e6d0e6d510f9d0c0b3e602a8d03"
+    },
+    {
+      "category": "overlap",
+      "source": "mmar",
+      "index": 3,
+      "label": "MMAR_35",
+      "finite_count": 446,
+      "signature": "4ed423270ad0b82e150b2973e3714fae4350a57d776fd123ac579106c23073e4"
+    },
+    {
+      "category": "overlap",
+      "source": "mmar",
+      "index": 4,
+      "label": "MMAR_40",
+      "finite_count": 441,
+      "signature": "be3a572aed2b15f4ffc93eabbe275d9723fa158e8d8bd73d2b736a76f2ce481d"
+    },
+    {
+      "category": "overlap",
+      "source": "mmar",
+      "index": 5,
+      "label": "MMAR_45",
+      "finite_count": 436,
+      "signature": "ec18ea0d77df64006c1f7d04438e3e7f07cdb85ba75ea9171a91c050665fab34"
+    },
+    {
+      "category": "overlap",
+      "source": "rma",
+      "index": 0,
+      "label": "RMA_20",
+      "finite_count": 461,
+      "signature": "2e03a662c478ec0a1706be3f8737c83edeeb207223b039816199865bb630309c"
+    },
+    {
+      "category": "overlap",
+      "source": "sma",
+      "index": 0,
+      "label": "SMA_20",
+      "finite_count": 461,
+      "signature": "1e1ea003f81d2c2e544f01d4cfd7a6621b359d85119a567042f7e634a2fe4979"
+    },
+    {
+      "category": "overlap",
+      "source": "supertrend",
+      "index": 0,
+      "label": "SUPERT_20_3.0",
+      "finite_count": 460,
+      "signature": "04bdc627f76aa0a5abcabdfcb28b8e05e2d2284c0eca31267a8f4130429a0a0c"
+    },
+    {
+      "category": "overlap",
+      "source": "supertrend",
+      "index": 1,
+      "label": "SUPERTd_20_3.0",
+      "finite_count": 460,
+      "signature": "fad83a4f66dc329453d277833b38d186ab70f84e14fe3eb98b331df8d3777adc"
+    },
+    {
+      "category": "overlap",
+      "source": "supertrend",
+      "index": 2,
+      "label": "SUPERTl_20_3.0",
+      "finite_count": 390,
+      "signature": "90aa3347c6b2b2d13f673166e1dd7d6744e3349ca7176c86b3cf50b6589090fb"
+    },
+    {
+      "category": "overlap",
+      "source": "supertrend",
+      "index": 3,
+      "label": "SUPERTs_20_3.0",
+      "finite_count": 70,
+      "signature": "fd259c5fed5880be533cb1e7b222005a509e0f901db0e11ce3564f5871d58538"
+    },
+    {
+      "category": "overlap",
+      "source": "tema",
+      "index": 0,
+      "label": "TEMA_20",
+      "finite_count": 423,
+      "signature": "67d488cab3786b6df7b28a5b2d92bc19e6494aa61b398070c2f4dafeb317438d"
+    },
+    {
+      "category": "overlap",
+      "source": "tsf",
+      "index": 0,
+      "label": "TSF_20",
+      "finite_count": 461,
+      "signature": "3d06e6f5d0c6b06b0a8dcc07ef499ecb2cc350fe249060c2971f5a6ed42de16b"
+    },
+    {
+      "category": "overlap",
+      "source": "vidya",
+      "index": 0,
+      "label": "VIDYA_20",
+      "finite_count": 461,
+      "signature": "1e5f515fc79757eca0b265d2757ff9467601d744d74dd4120ac8bc1f300d4418"
+    },
+    {
+      "category": "overlap",
+      "source": "vwma",
+      "index": 0,
+      "label": "VWMA_20",
+      "finite_count": 461,
+      "signature": "4f759fe9ce050bb09730922abe5c954880a1f5ec3b31f3313b560cec8b10556a"
+    },
+    {
+      "category": "overlap",
+      "source": "wcp",
+      "index": 0,
+      "label": "WCP",
+      "finite_count": 480,
+      "signature": "d42ba4f419d67ffc088b2934fc96a6cafe19e03f47109ab87203c3821965984e"
+    },
+    {
+      "category": "overlap",
+      "source": "wma",
+      "index": 0,
+      "label": "WMA_20",
+      "finite_count": 461,
+      "signature": "401d98410b1ae0f0bdceea00bf31530b68d6c28c4ca1aff080ea5232b610956e"
+    },
+    {
+      "category": "performance",
+      "source": "drawdown",
+      "index": 0,
+      "label": "DD",
+      "finite_count": 480,
+      "signature": "b0d4b876fc34377eb3550a34802269f7b3eb64eb8807f1beed556cc8b31a6e1b"
+    },
+    {
+      "category": "performance",
+      "source": "drawdown",
+      "index": 1,
+      "label": "DD_PCT",
+      "finite_count": 480,
+      "signature": "cf447d1d811228455fdadd9ac5ca36644fd92ca63b66c78631a621f48664c009"
+    },
+    {
+      "category": "performance",
+      "source": "drawdown",
+      "index": 2,
+      "label": "DD_LOG",
+      "finite_count": 480,
+      "signature": "c53c5fd4bec55a8a79d0fda8913f3bd54f98b077f63f5132fd8f4dee0375be13"
+    },
+    {
+      "category": "performance",
+      "source": "log_return",
+      "index": 0,
+      "label": "LOGRET_20",
+      "finite_count": 460,
+      "signature": "04a7fc86d26facf3a57dfd19f824c012825a11ddb70a3d465908afd1fc451b55"
+    },
+    {
+      "category": "statistics",
+      "source": "entropy",
+      "index": 0,
+      "label": "ENTP_20",
+      "finite_count": 461,
+      "signature": "581cecc29602c8cb22532aeb4a407964781bcf000c48814ef4d17009d5432d51"
+    },
+    {
+      "category": "statistics",
+      "source": "kurtosis",
+      "index": 0,
+      "label": "KURT_20",
+      "finite_count": 461,
+      "signature": "032f88451886a302444bc73ea38f60fe148b4f21bb907bb8753a07551d686319"
+    },
+    {
+      "category": "statistics",
+      "source": "mad",
+      "index": 0,
+      "label": "MAD_20",
+      "finite_count": 461,
+      "signature": "c34191ddc2e8f21ba66e2e73ec5811a4986592082aea9a6fbe5d9dfd18247e1c"
+    },
+    {
+      "category": "statistics",
+      "source": "skew",
+      "index": 0,
+      "label": "SKEW_20",
+      "finite_count": 461,
+      "signature": "7cedc54c8f00b347a9e8f4b921866cb5b70bd05e85066de6119e1918888b9d42"
+    },
+    {
+      "category": "statistics",
+      "source": "stderr",
+      "index": 0,
+      "label": "STDERR_20",
+      "finite_count": 461,
+      "signature": "a5020feaf25072672d6170145c5aff1b7c98c1b26d14e7eb16bf5f730a1ebcd4"
+    },
+    {
+      "category": "statistics",
+      "source": "stdev",
+      "index": 0,
+      "label": "STDEV_20",
+      "finite_count": 461,
+      "signature": "30307da379cfc009390a6ff4a9d1f41a81ee179eb72c326443ab4a69f87ff550"
+    },
+    {
+      "category": "statistics",
+      "source": "variance",
+      "index": 0,
+      "label": "VAR_20",
+      "finite_count": 461,
+      "signature": "c6733ff74bbeb6c8b651b7b0647707640c5d8c69d22c39322cd671f9b3e676fb"
+    },
+    {
+      "category": "trend",
+      "source": "adx",
+      "index": 0,
+      "label": "ADX_20",
+      "finite_count": 441,
+      "signature": "a52abeaed26a0c63f694abc145e7037bfd695f4cf4919d5785699fde464bf72b"
+    },
+    {
+      "category": "trend",
+      "source": "adx",
+      "index": 1,
+      "label": "DMP_20",
+      "finite_count": 460,
+      "signature": "4c312ea3952313dbfd67c278dccd75fc7adb09cf2241670559fb6eed80cf3d78"
+    },
+    {
+      "category": "trend",
+      "source": "adx",
+      "index": 2,
+      "label": "DMN_20",
+      "finite_count": 460,
+      "signature": "e8f8606afda8e0bdad163a4321ddfa2cb7a6112a34090bcc80ad4fc789d5222f"
+    },
+    {
+      "category": "trend",
+      "source": "adxr",
+      "index": 0,
+      "label": "ADXR_20",
+      "finite_count": 422,
+      "signature": "c6e6cbb76e4f27f93bf870b24b48c94b1e8e48e23ad5456790552a41aeb3aec4"
+    },
+    {
+      "category": "trend",
+      "source": "aroon",
+      "index": 0,
+      "label": "AROOND_20",
+      "finite_count": 460,
+      "signature": "75a79d73d1fb055672f04af32a385b5eba06ec5a0d3bfec1e9acaeae2d1b011c"
+    },
+    {
+      "category": "trend",
+      "source": "aroon",
+      "index": 1,
+      "label": "AROONU_20",
+      "finite_count": 460,
+      "signature": "579e510928ced943f3191f2d5615e3d8391cc7a511d69127054cf687d6def8f8"
+    },
+    {
+      "category": "trend",
+      "source": "aroon",
+      "index": 2,
+      "label": "AROONOSC_20",
+      "finite_count": 460,
+      "signature": "9ab0b26feb1c43121156ea66037d6180b9343eeba038c194e5bfc58dd41aac94"
+    },
+    {
+      "category": "trend",
+      "source": "chop",
+      "index": 0,
+      "label": "CHOP_20_1_100",
+      "finite_count": 460,
+      "signature": "19d64a13fe0adfe3da677263c2f9c3ee6004541f9b7a8f83c1ea62d426e12a30"
+    },
+    {
+      "category": "trend",
+      "source": "dpo",
+      "index": 0,
+      "label": "DPO_20",
+      "finite_count": 450,
+      "signature": "17f370a3c6be1b634b6c8f50965f6597978f16d8b9e703b79d7f0a1be7688008"
+    },
+    {
+      "category": "trend",
+      "source": "psar",
+      "index": 0,
+      "label": "PSARl_0.02_0.2",
+      "finite_count": 266,
+      "signature": "b2fe84c41f7f03b0265a9d8b1de31ffbec0d0a53d7258caf2f78b4ac125b67c7"
+    },
+    {
+      "category": "trend",
+      "source": "psar",
+      "index": 1,
+      "label": "PSARs_0.02_0.2",
+      "finite_count": 213,
+      "signature": "c559f72512f44828a3bbe392fcda097df5cb19e060a39dacb18ffccf10fb71b4"
+    },
+    {
+      "category": "trend",
+      "source": "psar",
+      "index": 2,
+      "label": "PSARaf_0.02_0.2",
+      "finite_count": 480,
+      "signature": "ec9e21327d8fccd68f035ab56c34ef2c4e7889ea41b8b2aa05bbc80af9df8221"
+    },
+    {
+      "category": "trend",
+      "source": "psar",
+      "index": 3,
+      "label": "PSARr_0.02_0.2",
+      "finite_count": 480,
+      "signature": "c383df5d588165f9f3fcd873f0802579de580f3b45759225c0e5cca2c50835bc"
+    },
+    {
+      "category": "trend",
+      "source": "qstick",
+      "index": 0,
+      "label": "QS_20",
+      "finite_count": 461,
+      "signature": "3071030b43f197d4e0ac360147584d257849fb0a7c0e44d90ac8cbe3cf3c4e2a"
+    },
+    {
+      "category": "trend",
+      "source": "sarext",
+      "index": 0,
+      "label": "SAREXT",
+      "finite_count": 479,
+      "signature": "6d2e07111b39a74ad650e21faf9eb02b9ff28fc2ac7ddddaecf1cb39c757653e"
+    },
+    {
+      "category": "trend",
+      "source": "ttm_trend",
+      "index": 0,
+      "label": "TTM_TRND_20",
+      "finite_count": 460,
+      "signature": "f0f7b1735c1124979c26fed29ae006ce9a501c4fbae4d70e650601aef71daa1f"
+    },
+    {
+      "category": "trend",
+      "source": "vhf",
+      "index": 0,
+      "label": "VHF_20",
+      "finite_count": 460,
+      "signature": "b3c7e45e2cc09b9775c9ea16a689e759ac81b80ebba324afaf0b4870fe7fc93d"
+    },
+    {
+      "category": "trend",
+      "source": "vortex",
+      "index": 0,
+      "label": "VTXP_20",
+      "finite_count": 460,
+      "signature": "e7dea12082f6272f809b8b9de3106cceea32fc8bf4ea4ac94a77e1c1c377fab0"
+    },
+    {
+      "category": "trend",
+      "source": "vortex",
+      "index": 1,
+      "label": "VTXM_20",
+      "finite_count": 460,
+      "signature": "fd61ef1f8436d157551c9287460889213bc037190fee4e45977f0daa981958d7"
+    },
+    {
+      "category": "volatility",
+      "source": "accbands",
+      "index": 0,
+      "label": "ACCBL_20",
+      "finite_count": 461,
+      "signature": "b951417e0a1f00f5a5e01faf4df2c7356782a4d3917ac5886bf6051922ad0b14"
+    },
+    {
+      "category": "volatility",
+      "source": "accbands",
+      "index": 2,
+      "label": "ACCBU_20",
+      "finite_count": 461,
+      "signature": "95a8938cd5e33ee0613afe2ecf8b13c82913ae39ccdfb71d462c367f8c42bd8d"
+    },
+    {
+      "category": "volatility",
+      "source": "atr",
+      "index": 0,
+      "label": "ATRr_20",
+      "finite_count": 460,
+      "signature": "d56edf3663ff90502e626d8759069dc32c36b089a395849bbdef75f10f9d4bf6"
+    },
+    {
+      "category": "volatility",
+      "source": "ce",
+      "index": 0,
+      "label": "CE_L_20_3.0",
+      "finite_count": 460,
+      "signature": "8dd1ffb5b34c74ee7fc6b984ef5336ae6a2b15b29df807dcfb9b729e887a0bab"
+    },
+    {
+      "category": "volatility",
+      "source": "ce",
+      "index": 1,
+      "label": "CE_S_20_3.0",
+      "finite_count": 460,
+      "signature": "2f413ad19d18016ee842d0d637dd76aabb0cef8fea5311c178b73462e88b5134"
+    },
+    {
+      "category": "volatility",
+      "source": "hvol",
+      "index": 0,
+      "label": "HVOL_20",
+      "finite_count": 460,
+      "signature": "c191f779c1b9b64e2bbc9072f23e59118df8062059b87137484e0e65f1368ad5"
+    },
+    {
+      "category": "volatility",
+      "source": "kc",
+      "index": 0,
+      "label": "KCLe_20_2",
+      "finite_count": 460,
+      "signature": "103bcd4899d09760a65eab21109649dad8affc32558804af8a9891a2ea3f4c3d"
+    },
+    {
+      "category": "volatility",
+      "source": "kc",
+      "index": 2,
+      "label": "KCUe_20_2",
+      "finite_count": 460,
+      "signature": "2b8dcf9f723bafe62df3091ef5afdf7b55199f378fe341e8e3bb39475bbd9c42"
+    },
+    {
+      "category": "volatility",
+      "source": "massi",
+      "index": 0,
+      "label": "MASSI_9_25",
+      "finite_count": 440,
+      "signature": "8d685e4c2742585cb8aa9ab473b06598eefa3494dac2886a194001cbe3325bb3"
+    },
+    {
+      "category": "volatility",
+      "source": "natr",
+      "index": 0,
+      "label": "NATR_20",
+      "finite_count": 460,
+      "signature": "0c6c4a3b81baf46c9b1e09d447b453627a998f4612da20fe71c9b4d605575b42"
+    },
+    {
+      "category": "volatility",
+      "source": "rvi",
+      "index": 0,
+      "label": "RVI_20",
+      "finite_count": 442,
+      "signature": "04bf1122671902624dd0f02bbd0fc6f7f5342d0d374098f9cd6baae3e5e2d29e"
+    },
+    {
+      "category": "volatility",
+      "source": "thermo",
+      "index": 1,
+      "label": "THERMOma_20_2_0.5",
+      "finite_count": 460,
+      "signature": "4503a030ef7867c6663e5c86e2a473a539d8973ba8ec253e26a168a64728a58a"
+    },
+    {
+      "category": "volatility",
+      "source": "thermo",
+      "index": 3,
+      "label": "THERMOs_20_2_0.5",
+      "finite_count": 460,
+      "signature": "f37ce92a9edfd79fd9b946a7b6d72c3625eb84557baf01a9e8e218ad5ff72975"
+    },
+    {
+      "category": "volatility",
+      "source": "true_range",
+      "index": 0,
+      "label": "TRUERANGE_1",
+      "finite_count": 479,
+      "signature": "bd8aa658232f5ca3314902fe2bed5445c8cc2c84330de5c3b4d7669e9d5536bf"
+    },
+    {
+      "category": "volatility",
+      "source": "ui",
+      "index": 0,
+      "label": "UI_20",
+      "finite_count": 442,
+      "signature": "08dc9ffe835722dd850391d34da288c744706b99658c4046bf942d2c4f58229a"
+    },
+    {
+      "category": "volume",
+      "source": "ad",
+      "index": 0,
+      "label": "ADo",
+      "finite_count": 480,
+      "signature": "0aaecb54f8c30481bb8d274a86206bfb98ef200cdf6bc959fcf84843dc8d9297"
+    },
+    {
+      "category": "volume",
+      "source": "adosc",
+      "index": 0,
+      "label": "ADOSC_3_10",
+      "finite_count": 471,
+      "signature": "5d4f492c36105dc4a4aa7b7deae34efc87930ac521cb4416fe35a630c8047c52"
+    },
+    {
+      "category": "volume",
+      "source": "cmf",
+      "index": 0,
+      "label": "CMF_20",
+      "finite_count": 461,
+      "signature": "65cc4a3c873c5c2339527d06dcd8c85fad1457b29674190f438c504f3591304b"
+    },
+    {
+      "category": "volume",
+      "source": "efi",
+      "index": 0,
+      "label": "EFI_20",
+      "finite_count": 460,
+      "signature": "15a212bcbecce13978d91cf34cd7b0434d108290b7d150f217ef052b913690ed"
+    },
+    {
+      "category": "volume",
+      "source": "emv",
+      "index": 0,
+      "label": "EMV",
+      "finite_count": 479,
+      "signature": "3ad1942cecf12ecb053ff9c49acdfd1a51a3bcdf8f1c74641e296cf5e940badc"
+    },
+    {
+      "category": "volume",
+      "source": "eom",
+      "index": 0,
+      "label": "EOM_20_100000000",
+      "finite_count": 460,
+      "signature": "b59fa87ebfd0e2e268ec1de1e1d23cb7222574cb7c7d9e5f4a3477d520fb3199"
+    },
+    {
+      "category": "volume",
+      "source": "mfi",
+      "index": 0,
+      "label": "MFI_20",
+      "finite_count": 460,
+      "signature": "0f99d31258ac79cb0328c5a849190493709f6d865a7e7aaccb36a741db5bb45e"
+    },
+    {
+      "category": "volume",
+      "source": "nvi",
+      "index": 0,
+      "label": "NVI_20",
+      "finite_count": 480,
+      "signature": "8b19253ceb3393d0ced76588582a59514a5caef19208e9c5e9ab69f367ac6d53"
+    },
+    {
+      "category": "volume",
+      "source": "pvi",
+      "index": 0,
+      "label": "PVI_20",
+      "finite_count": 480,
+      "signature": "8f2509c1b5f7dce5f7034157ce4064debfccd18d965d5f65154c033efff3570a"
+    },
+    {
+      "category": "volume",
+      "source": "pvt",
+      "index": 0,
+      "label": "PVT",
+      "finite_count": 479,
+      "signature": "1688b3e789a2923aa88e20e37967a8c4aaa322a181639fc57f5177155a18ec24"
+    },
+    {
+      "category": "volume",
+      "source": "vfi",
+      "index": 0,
+      "label": "VFI_20",
+      "finite_count": 429,
+      "signature": "b3d768cef90df37dafbb7b8ddf5ed3c7f0a10ffcb87b11fed6bd5831b4edfde3"
+    },
+    {
+      "category": "volume",
+      "source": "vosc",
+      "index": 0,
+      "label": "VOSC_14_28",
+      "finite_count": 453,
+      "signature": "ff7e0577739860cdf21864c8f89b19ff02ac527cfc5c37d2f4deeb6b19c84222"
+    }
+  ],
+  "excluded": [
+    {
+      "category": "cycles",
+      "source": "_hilbert",
+      "status": "AttributeError",
+      "detail": "module 'pandas_ta_classic' has no attribute '_hilbert'"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_3blackcrows",
+      "index": 0,
+      "label": "CDL_3BLACKCROWS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_3inside",
+      "index": 0,
+      "label": "CDL_3INSIDE",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_3whitesoldiers",
+      "index": 0,
+      "label": "CDL_3WHITESOLDIERS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_belthold",
+      "index": 0,
+      "label": "CDL_BELTHOLD",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_darkcloudcover",
+      "index": 0,
+      "label": "CDL_DARKCLOUDCOVER",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_dragonflydoji",
+      "index": 0,
+      "label": "CDL_DRAGONFLYDOJI",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_eveningstar",
+      "index": 0,
+      "label": "CDL_EVENINGSTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_gravestonedoji",
+      "index": 0,
+      "label": "CDL_GRAVESTONEDOJI",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_hammer",
+      "index": 0,
+      "label": "CDL_HAMMER",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_hangingman",
+      "index": 0,
+      "label": "CDL_HANGINGMAN",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_haramicross",
+      "index": 0,
+      "label": "CDL_HARAMICROSS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_invertedhammer",
+      "index": 0,
+      "label": "CDL_INVERTEDHAMMER",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_marubozu",
+      "index": 0,
+      "label": "CDL_MARUBOZU",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_morningstar",
+      "index": 0,
+      "label": "CDL_MORNINGSTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 0,
+      "label": "CDL_2CROWS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 1,
+      "label": "CDL_3BLACKCROWS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 2,
+      "label": "CDL_3INSIDE",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 3,
+      "label": "CDL_3LINESTRIKE",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 4,
+      "label": "CDL_3OUTSIDE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_cdl_3outside"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 5,
+      "label": "CDL_3STARSINSOUTH",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 6,
+      "label": "CDL_3WHITESOLDIERS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 7,
+      "label": "CDL_ABANDONEDBABY",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 8,
+      "label": "CDL_ADVANCEBLOCK",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_cdl_advanceblock"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 9,
+      "label": "CDL_BELTHOLD",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 10,
+      "label": "CDL_BREAKAWAY",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 11,
+      "label": "CDL_CLOSINGMARUBOZU",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 12,
+      "label": "CDL_CONCEALBABYSWALL",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 13,
+      "label": "CDL_COUNTERATTACK",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 14,
+      "label": "CDL_DARKCLOUDCOVER",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 15,
+      "label": "CDL_DOJI_10_0.1",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_longleggeddoji:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 16,
+      "label": "CDL_DOJISTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 17,
+      "label": "CDL_DRAGONFLYDOJI",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 18,
+      "label": "CDL_ENGULFING",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_engulfing:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 19,
+      "label": "CDL_EVENINGDOJISTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 20,
+      "label": "CDL_EVENINGSTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 21,
+      "label": "CDL_GAPSIDESIDEWHITE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_cdl_gapsidesidewhite"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 22,
+      "label": "CDL_GRAVESTONEDOJI",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 23,
+      "label": "CDL_HAMMER",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 24,
+      "label": "CDL_HANGINGMAN",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 25,
+      "label": "CDL_HARAMI",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_harami:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 26,
+      "label": "CDL_HARAMICROSS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 27,
+      "label": "CDL_HIGHWAVE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_highwave:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 28,
+      "label": "CDL_HIKKAKE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_cdl_hikkake"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 29,
+      "label": "CDL_HIKKAKEMOD",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 30,
+      "label": "CDL_HOMINGPIGEON",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_cdl_homingpigeon"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 31,
+      "label": "CDL_IDENTICAL3CROWS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 32,
+      "label": "CDL_INNECK",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 33,
+      "label": "CDL_INSIDE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_inside:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 34,
+      "label": "CDL_INVERTEDHAMMER",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 35,
+      "label": "CDL_KICKING",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 36,
+      "label": "CDL_KICKINGBYLENGTH",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 37,
+      "label": "CDL_LADDERBOTTOM",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 38,
+      "label": "CDL_LONGLEGGEDDOJI",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_longleggeddoji:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 39,
+      "label": "CDL_LONGLINE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_cdl_longline"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 40,
+      "label": "CDL_MARUBOZU",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 41,
+      "label": "CDL_MATCHINGLOW",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_matchinglow:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 42,
+      "label": "CDL_MATHOLD",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 43,
+      "label": "CDL_MORNINGDOJISTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 44,
+      "label": "CDL_MORNINGSTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 45,
+      "label": "CDL_ONNECK",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 46,
+      "label": "CDL_PIERCING",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 47,
+      "label": "CDL_RICKSHAWMAN",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_longleggeddoji:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 48,
+      "label": "CDL_RISEFALL3METHODS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 49,
+      "label": "CDL_SEPARATINGLINES",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 50,
+      "label": "CDL_SHOOTINGSTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 51,
+      "label": "CDL_SHORTLINE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_cdl_shortline"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 53,
+      "label": "CDL_STALLEDPATTERN",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 54,
+      "label": "CDL_STICKSANDWICH",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 55,
+      "label": "CDL_TAKURI",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 56,
+      "label": "CDL_TASUKIGAP",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 57,
+      "label": "CDL_THRUSTING",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 58,
+      "label": "CDL_TRISTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 59,
+      "label": "CDL_UNIQUE3RIVER",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 60,
+      "label": "CDL_UPSIDEGAP2CROWS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_pattern",
+      "index": 61,
+      "label": "CDL_XSIDEGAP3METHODS",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_piercing",
+      "index": 0,
+      "label": "CDL_PIERCING",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_rickshawman",
+      "index": 0,
+      "label": "CDL_RICKSHAWMAN",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_longleggeddoji:0"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_shootingstar",
+      "index": 0,
+      "label": "CDL_SHOOTINGSTAR",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "candles",
+      "source": "cdl_spinningtop",
+      "index": 0,
+      "label": "CDL_SPINNINGTOP",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_pattern:52"
+    },
+    {
+      "category": "candles",
+      "source": "ha",
+      "index": 3,
+      "label": "HA_close",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_ohlc4"
+    },
+    {
+      "category": "momentum",
+      "source": "ao",
+      "index": 0,
+      "label": "AO_5_34",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "awesome_oscillator"
+    },
+    {
+      "category": "momentum",
+      "source": "apo",
+      "index": 0,
+      "label": "APO_12_26",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "absolute_price_oscillator"
+    },
+    {
+      "category": "momentum",
+      "source": "bop",
+      "index": 0,
+      "label": "BOP",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "balance_of_power"
+    },
+    {
+      "category": "momentum",
+      "source": "cci",
+      "index": 0,
+      "label": "CCI_20_0.015",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_trend_cci"
+    },
+    {
+      "category": "momentum",
+      "source": "cfo",
+      "index": 0,
+      "label": "CFO_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_fosc"
+    },
+    {
+      "category": "momentum",
+      "source": "kst",
+      "index": 0,
+      "label": "KST_10_15_20_30_10_10_10_15",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "kst"
+    },
+    {
+      "category": "momentum",
+      "source": "macdext",
+      "index": 0,
+      "label": "MACDEXT_12_26_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "macd:0"
+    },
+    {
+      "category": "momentum",
+      "source": "macdext",
+      "index": 1,
+      "label": "MACDEXTs_12_26_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "macd:2"
+    },
+    {
+      "category": "momentum",
+      "source": "macdext",
+      "index": 2,
+      "label": "MACDEXTh_12_26_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "macd:1"
+    },
+    {
+      "category": "momentum",
+      "source": "macdfix",
+      "index": 0,
+      "label": "MACDFIX_9_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "macd:0"
+    },
+    {
+      "category": "momentum",
+      "source": "macdfix",
+      "index": 1,
+      "label": "MACDFIXh_9_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "macd:1"
+    },
+    {
+      "category": "momentum",
+      "source": "macdfix",
+      "index": 2,
+      "label": "MACDFIXs_9_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "macd:2"
+    },
+    {
+      "category": "momentum",
+      "source": "ppo",
+      "index": 0,
+      "label": "PPO_12_26_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "percentage_price_oscillator"
+    },
+    {
+      "category": "momentum",
+      "source": "squeeze",
+      "index": 0,
+      "label": "SQZ_20_2.0_20_1.5",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_squeeze_pro"
+    },
+    {
+      "category": "momentum",
+      "source": "squeeze",
+      "index": 1,
+      "label": "SQZ_ON",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_squeeze_pro_out2"
+    },
+    {
+      "category": "momentum",
+      "source": "squeeze",
+      "index": 3,
+      "label": "SQZ_NO",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "momentum",
+      "source": "stc",
+      "index": 1,
+      "label": "STCmacd_10_12_26_0.5",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "macd:0"
+    },
+    {
+      "category": "momentum",
+      "source": "stoch",
+      "index": 0,
+      "label": "STOCHk_14_3_3",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_momentum_stoch_signal"
+    },
+    {
+      "category": "momentum",
+      "source": "trix",
+      "index": 0,
+      "label": "TRIX_20_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_trixh"
+    },
+    {
+      "category": "momentum",
+      "source": "trix",
+      "index": 1,
+      "label": "TRIXs_20_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_trixh_out1"
+    },
+    {
+      "category": "momentum",
+      "source": "uo",
+      "index": 0,
+      "label": "UO_7_14_28",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_momentum_uo"
+    },
+    {
+      "category": "overlap",
+      "source": "avgprice",
+      "index": 0,
+      "label": "AVGPRICE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_ohlc4"
+    },
+    {
+      "category": "overlap",
+      "source": "hl2",
+      "index": 0,
+      "label": "HL2",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "median_price"
+    },
+    {
+      "category": "overlap",
+      "source": "hlc3",
+      "index": 0,
+      "label": "HLC3",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "typical_price"
+    },
+    {
+      "category": "overlap",
+      "source": "ichimoku",
+      "index": 2,
+      "label": "ITS_9",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_trend_ichimoku_conv"
+    },
+    {
+      "category": "overlap",
+      "source": "ichimoku",
+      "index": 3,
+      "label": "IKS_26",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_trend_ichimoku_base"
+    },
+    {
+      "category": "overlap",
+      "source": "ichimoku",
+      "index": 4,
+      "label": "ICS_26",
+      "status": "NONCAUSAL_PREFIX"
+    },
+    {
+      "category": "overlap",
+      "source": "ma",
+      "status": "NON_SERIES",
+      "type": "<class 'list'>"
+    },
+    {
+      "category": "overlap",
+      "source": "mavp",
+      "status": "EXTRA_REQUIRED",
+      "required": [
+        "close",
+        "periods"
+      ]
+    },
+    {
+      "category": "overlap",
+      "source": "medprice",
+      "index": 0,
+      "label": "MEDPRICE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "median_price"
+    },
+    {
+      "category": "overlap",
+      "source": "midprice",
+      "index": 0,
+      "label": "MIDPRICE_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_dcm"
+    },
+    {
+      "category": "overlap",
+      "source": "mmar",
+      "index": 0,
+      "label": "MMAR_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "ema:0"
+    },
+    {
+      "category": "overlap",
+      "source": "trima",
+      "index": 0,
+      "label": "TRIMA_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_swma"
+    },
+    {
+      "category": "overlap",
+      "source": "typprice",
+      "index": 0,
+      "label": "TYPPRICE",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "typical_price"
+    },
+    {
+      "category": "overlap",
+      "source": "vwap",
+      "status": "TypeError",
+      "detail": "vwap() needs a DatetimeIndex to anchor by 'D', got RangeIndex"
+    },
+    {
+      "category": "performance",
+      "source": "percent_return",
+      "index": 0,
+      "label": "PCTRET_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "rocp:0"
+    },
+    {
+      "category": "statistics",
+      "source": "beta",
+      "status": "ValueError",
+      "detail": "beta() requires a 'benchmark' Series; it has no default"
+    },
+    {
+      "category": "statistics",
+      "source": "correl",
+      "status": "ValueError",
+      "detail": "correl() requires a 'benchmark' Series; it has no default"
+    },
+    {
+      "category": "statistics",
+      "source": "md",
+      "index": 0,
+      "label": "MD_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "mad:0"
+    },
+    {
+      "category": "statistics",
+      "source": "tos_stdevall",
+      "status": "BAD_LENGTH"
+    },
+    {
+      "category": "statistics",
+      "source": "zscore",
+      "index": 0,
+      "label": "ZS_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "cdl_z:3"
+    },
+    {
+      "category": "trend",
+      "source": "adxr",
+      "index": 1,
+      "label": "DMP_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "adx:1"
+    },
+    {
+      "category": "trend",
+      "source": "adxr",
+      "index": 2,
+      "label": "DMN_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "adx:2"
+    },
+    {
+      "category": "trend",
+      "source": "long_run",
+      "status": "EXTRA_REQUIRED",
+      "required": [
+        "fast",
+        "slow"
+      ]
+    },
+    {
+      "category": "trend",
+      "source": "short_run",
+      "status": "EXTRA_REQUIRED",
+      "required": [
+        "fast",
+        "slow"
+      ]
+    },
+    {
+      "category": "trend",
+      "source": "tsignals",
+      "status": "EXTRA_REQUIRED",
+      "required": [
+        "trend"
+      ]
+    },
+    {
+      "category": "trend",
+      "source": "xsignals",
+      "status": "EXTRA_REQUIRED",
+      "required": [
+        "signal",
+        "xa",
+        "xb"
+      ]
+    },
+    {
+      "category": "volatility",
+      "source": "accbands",
+      "index": 1,
+      "label": "ACCBM_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "sma:0"
+    },
+    {
+      "category": "volatility",
+      "source": "bbands",
+      "index": 0,
+      "label": "BBL_20_2.0",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_bbl"
+    },
+    {
+      "category": "volatility",
+      "source": "bbands",
+      "index": 1,
+      "label": "BBM_20_2.0",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "sma:0"
+    },
+    {
+      "category": "volatility",
+      "source": "bbands",
+      "index": 2,
+      "label": "BBU_20_2.0",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_bbh"
+    },
+    {
+      "category": "volatility",
+      "source": "bbands",
+      "index": 3,
+      "label": "BBB_20_2.0",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_bbw"
+    },
+    {
+      "category": "volatility",
+      "source": "bbands",
+      "index": 4,
+      "label": "BBP_20_2.0",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_bbp"
+    },
+    {
+      "category": "volatility",
+      "source": "donchian",
+      "index": 0,
+      "label": "DCL_20_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_dcl"
+    },
+    {
+      "category": "volatility",
+      "source": "donchian",
+      "index": 1,
+      "label": "DCM_20_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_dcm"
+    },
+    {
+      "category": "volatility",
+      "source": "donchian",
+      "index": 2,
+      "label": "DCU_20_20",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "buk_volatility_dch"
+    },
+    {
+      "category": "volatility",
+      "source": "kc",
+      "index": 1,
+      "label": "KCBe_20_2",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "ema:0"
+    },
+    {
+      "category": "volatility",
+      "source": "thermo",
+      "index": 0,
+      "label": "THERMO_20_2_0.5",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "thermometer"
+    },
+    {
+      "category": "volatility",
+      "source": "thermo",
+      "index": 2,
+      "label": "THERMOl_20_2_0.5",
+      "status": "CONSTANT_SYNTHETIC"
+    },
+    {
+      "category": "volume",
+      "source": "marketfi",
+      "index": 0,
+      "label": "MARKETFI",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "market_facilitation_index"
+    },
+    {
+      "category": "volume",
+      "source": "obv",
+      "index": 0,
+      "label": "OBV",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "pta_aobv"
+    },
+    {
+      "category": "volume",
+      "source": "pvr",
+      "index": 0,
+      "label": "PVR",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "price_volume_rank"
+    },
+    {
+      "category": "volume",
+      "source": "vp",
+      "status": "BAD_LENGTH"
+    },
+    {
+      "category": "volume",
+      "source": "wad",
+      "index": 0,
+      "label": "WAD",
+      "status": "DUPLICATE_BASELINE",
+      "duplicate": "williams_ad"
+    }
+  ],
+  "counts": {
+    "registered_existing_features": 435,
+    "registered_existing_pandas_source_families": 95,
+    "unregistered_source_func_inventory": 159,
+    "screened_additional_distinct_causal_outputs": 145,
+    "excluded": 145,
+    "category_passes": {
+      "unregistered_source": 159,
+      "already_registered_source": 95,
+      "approved_cycles": 2,
+      "approved_candles": 15,
+      "approved_momentum": 44,
+      "approved_overlap": 27,
+      "approved_performance": 4,
+      "approved_statistics": 7,
+      "approved_trend": 19,
+      "approved_volatility": 15,
+      "approved_volume": 12
+    },
+    "excluded_reasons": {
+      "AttributeError": 1,
+      "CONSTANT_SYNTHETIC": 64,
+      "DUPLICATE_BASELINE": 68,
+      "NONCAUSAL_PREFIX": 1,
+      "NON_SERIES": 1,
+      "EXTRA_REQUIRED": 5,
+      "TypeError": 1,
+      "ValueError": 2,
+      "BAD_LENGTH": 2
+    }
+  }
+}

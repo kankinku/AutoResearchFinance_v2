@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
 from core.backtest.p2_policy import ChildRiskBudget
@@ -130,7 +130,7 @@ def prioritize_untried_operations(
 def iter_feedback_adjusted_designs(
     designs: Sequence[list[dict[str, Any]]],
     current_feedback: list[dict[str, Any]],
-):
+) -> Iterator[list[dict[str, Any]]]:
     """Re-prioritize pending candidates only when a verified rejection arrives."""
     remaining = list(designs)
     last_digest = None

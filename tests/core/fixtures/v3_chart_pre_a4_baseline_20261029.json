@@ -1,0 +1,207 @@
+{
+  "length": 190,
+  "schema": "v3-chart-pre-A4-output-oracle-v1",
+  "signals": {
+    "flat_missing_invalid": {
+      "double_bottom": {
+        "nonzero": 4,
+        "sha256": "b87fe34f86d95bd5e11a2cf7119b4accac04cb405f49dfe50ce10d6674877134"
+      },
+      "double_top": {
+        "nonzero": 5,
+        "sha256": "4eb6b4a4e3d80aa7a15c42166b6bd89951fa5eac3758c75ad15391a97d0c1f5a"
+      },
+      "elliott_abc": {
+        "nonzero": 4,
+        "sha256": "a487da3831094a778f3883d6b6d09495a401f89bd549636e53241dd6a1de3df6"
+      },
+      "elliott_impulse_5": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "elliott_wxy": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "elliott_wxyxz": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "inverse_head_shoulders": {
+        "nonzero": 2,
+        "sha256": "224ffe14c91cafcf721ee0572c6ec9dba033dddaf13cb708225fab04dd64d008"
+      }
+    },
+    "inverted": {
+      "double_bottom": {
+        "nonzero": 9,
+        "sha256": "25a1d670b4ebaaa054f056b5fa540235cb3ad700fece7db125df33f071168bba"
+      },
+      "double_top": {
+        "nonzero": 8,
+        "sha256": "adf85f611167fbecc12300944351eed648581b722dc7f64af4a9d69c88d42858"
+      },
+      "elliott_abc": {
+        "nonzero": 8,
+        "sha256": "d6b26601d8d2df38342ab9c3304bcc572941e261f1bde9a721e54aa050d0418f"
+      },
+      "elliott_impulse_5": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "elliott_wxy": {
+        "nonzero": 3,
+        "sha256": "d13379954bec9f6f40e20076e064c083c1a9ec8dc5851060b3c3cb9040061e31"
+      },
+      "elliott_wxyxz": {
+        "nonzero": 1,
+        "sha256": "c1f43003bda3a8d2ee29100624f8db93f01660e01f459827ee6db5cff27b2ef4"
+      },
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "inverse_head_shoulders": {
+        "nonzero": 8,
+        "sha256": "cfeeb14d2270d35e3f3d9b447d3b076e153d2c0d7c2388fe6bca7f80a632e15c"
+      }
+    },
+    "oscillating": {
+      "double_bottom": {
+        "nonzero": 6,
+        "sha256": "33cfd86cd5a0efa0726c2870c0ee2ffc1f13d1f481b92855514d7ee3570148dc"
+      },
+      "double_top": {
+        "nonzero": 9,
+        "sha256": "b137f016d04bcd4fb1e4512f61236b41f10fbdc867df514ccfbbfc705c6b4922"
+      },
+      "elliott_abc": {
+        "nonzero": 8,
+        "sha256": "d74227feefaba6c1b9d3f977ce5664b4d6524c2ffe32a9dfad8caa2c319df79a"
+      },
+      "elliott_impulse_5": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "elliott_wxy": {
+        "nonzero": 3,
+        "sha256": "df8d4355a8a27301efaec5c46143226571dacebcefdede43cb9e23573a469a51"
+      },
+      "elliott_wxyxz": {
+        "nonzero": 1,
+        "sha256": "28d1823a3c911526ba0635b047463fbc93b704e012554e8d892201ce3d4a3500"
+      },
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "inverse_head_shoulders": {
+        "nonzero": 4,
+        "sha256": "48dfe851d6dad1b6c1a475b58a69a6197fd5cd5cd69a031d5b5d6d248a7d76e5"
+      }
+    },
+    "trend_wave": {
+      "double_bottom": {
+        "nonzero": 6,
+        "sha256": "3dc17d925a5c03dfead49ceb859a755e633f3488837eef7af1952981a4156565"
+      },
+      "double_top": {
+        "nonzero": 7,
+        "sha256": "2103f62da98cc145bdd14a08f86a1b7517ebc7b8c0d8fc9c411d38134a08932f"
+      },
+      "elliott_abc": {
+        "nonzero": 6,
+        "sha256": "95e62cbfb4c1bc38de12581c0d2217643dc3fdec1003df0aaa6b1eb29633720b"
+      },
+      "elliott_impulse_5": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "elliott_wxy": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "elliott_wxyxz": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_bat": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_butterfly": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_crab": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "harmonic_gartley": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "head_shoulders": {
+        "nonzero": 0,
+        "sha256": "b9ecf39a372830b10ca706d7bef8cf8ea29da60fc934142a60d835be3f39e110"
+      },
+      "inverse_head_shoulders": {
+        "nonzero": 5,
+        "sha256": "f9b397aabe71478e12a91cbf465075a64de47c6fd4e2d6106647fa3302c548b7"
+      }
+    }
+  },
+  "source_sha": "1cdbcea8fe3c430907e38998d5087235866b4161"
+}

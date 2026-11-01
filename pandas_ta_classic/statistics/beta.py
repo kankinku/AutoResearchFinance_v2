@@ -1,0 +1,90 @@
+# Beta (BETA)
+from typing import Any
+
+from pandas import Series
+
+from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
+from pandas_ta_classic.utils._core import _pos_int, nan_on_short_input
+
+
+@nan_on_short_input
+def beta(
+    close: Series,
+    benchmark: Series | None = None,
+    length: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Indicator: Beta"""
+    # Validate Arguments
+    length = _pos_int(length, 30, "length", gt=1)
+    min_periods = _pos_int(kwargs.get("min_periods"), length, "min_periods", gt=None, ge=0)
+    close = verify_series(close, max(length, min_periods))
+    # Not given at all is a caller error, like mavp's 'periods': returning None
+    # made df.ta.beta() indistinguishable from a short-input result. A
+    # benchmark that is too short still returns None, under the short-input
+    # contract. strategy("all") leaves beta out unless a benchmark= is passed.
+    if benchmark is None:
+        raise ValueError("beta() requires a 'benchmark' Series; it has no default")
+    benchmark = verify_series(benchmark, max(length, min_periods))
+    offset = get_offset(offset)
+
+    if close is None or benchmark is None:
+        return None
+
+    # Calculate Result
+    # Beta uses returns (pct_change), not raw prices.
+    # Standard financial beta = Cov(close_ret, bench_ret) / Var(bench_ret)
+    close_ret = close / close.shift(1) - 1
+    bench_ret = benchmark / benchmark.shift(1) - 1
+
+    cov = close_ret.rolling(length, min_periods=min_periods).cov(bench_ret)
+    var = bench_ret.rolling(length, min_periods=min_periods).var()
+    # A benchmark that does not move has zero variance, so this divides 0/0.
+    # It reads 0.0, the convention TA-Lib's BETA applies for the same input;
+    # see tests/test_degenerate_input.py.
+    result = (cov / var).mask(var == 0, 0.0)
+
+    # Offset
+    result = apply_offset(result, offset)
+
+    result = apply_fill(result, **kwargs)
+
+    # Name and Categorize it
+    result.name = f"BETA_{length}"
+    result.category = "statistics"
+
+    return result
+
+
+beta.__doc__ = """Beta (BETA)
+
+Beta measures the sensitivity of a security's returns to the returns of a
+benchmark.  A beta of 1 means the security moves with the benchmark;
+above 1 means more volatile, below 1 means less volatile.
+
+Sources:
+    https://www.investopedia.com/terms/b/beta.asp
+
+Calculation:
+    Default Inputs:
+        length=30
+    BETA = COV(close_ret, bench_ret, length) / VAR(bench_ret, length)
+
+Args:
+    close (pd.Series): Series of 'close's
+    benchmark (pd.Series): Series of benchmark 'close's
+    length (int): The period. Default: 30
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    min_periods (int): Minimum observations required. Default: length
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.Series: New feature generated.
+    None: If close or benchmark is shorter than the window (short-input contract).
+        A missing benchmark raises ValueError; strategy("all") excludes this
+        indicator unless a benchmark= is broadcast.
+"""

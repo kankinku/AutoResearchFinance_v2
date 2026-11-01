@@ -1,0 +1,138 @@
+# Fisher Transform (FISHER)
+from typing import Any
+
+import numpy as np
+from pandas import DataFrame, Series
+
+from pandas_ta_classic.overlap.hl2 import hl2
+from pandas_ta_classic.utils import (
+    apply_fill,
+    apply_offset,
+    get_offset,
+    verify_series,
+)
+from pandas_ta_classic.utils._core import _pos_int, nan_on_short_input, skip_leading_nan
+from pandas_ta_classic.utils._njit import njit
+
+
+@njit(cache=True)
+def _fisher_loop(pos_arr, m, length):
+    result = np.full(m, np.nan)
+    v = 0.0
+    previous = 0.0  # the recursion's seed, as in the source; not a value of bar length - 1
+    for i in range(length, m):
+        v = 0.66 * pos_arr[i] + 0.67 * v
+        if v < -0.99:
+            v = -0.999
+        elif v > 0.99:
+            v = 0.999
+        previous = 0.5 * (np.log((1 + v) / (1 - v)) + previous)
+        result[i] = previous
+    return result
+
+
+@nan_on_short_input
+@skip_leading_nan("high", "low", interior=True)
+def fisher(
+    high: Series,
+    low: Series,
+    length: int | None = None,
+    signal: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> DataFrame | None:
+    """Indicator: Fisher Transform (FISHT)"""
+    # Validate Arguments
+    length = _pos_int(length, 9, "length")
+    signal = _pos_int(signal, 1, "signal")
+    _length = max(length, signal)
+    high = verify_series(high, _length)
+    low = verify_series(low, _length)
+    offset = get_offset(offset)
+
+    if high is None or low is None:
+        return None
+
+    # Calculate Result
+    hl2_ = hl2(high, low)
+    highest_hl2 = hl2_.rolling(length).max()
+    lowest_hl2 = hl2_.rolling(length).min()
+
+    # The floor below already keeps a flat window off a zero divisor.
+    hlr = highest_hl2 - lowest_hl2
+    hlr[hlr < 0.001] = 0.001
+
+    hl_range = hlr
+    m = high.size
+
+    pos_arr = ((hl2_ - lowest_hl2) / hl_range - 0.5).to_numpy()
+    fisher_arr = _fisher_loop(pos_arr, m, length)
+    fisher = Series(fisher_arr, index=high.index)
+    signalma = fisher.shift(signal)
+
+    # Offset
+    fisher, signalma = apply_offset([fisher, signalma], offset)
+
+    fisher, signalma = apply_fill([fisher, signalma], **kwargs)
+
+    # Name and Categorize it
+    _props = f"_{length}_{signal}"
+    fisher.name = f"FISHERT{_props}"
+    signalma.name = f"FISHERTs{_props}"
+    fisher.category = signalma.category = "momentum"
+
+    # Prepare DataFrame to return
+    data = {fisher.name: fisher, signalma.name: signalma}
+    df = DataFrame(data)
+    df.name = f"FISHERT{_props}"
+    df.category = fisher.category
+
+    return df
+
+
+fisher.__doc__ = """Fisher Transform (FISHT)
+
+Attempts to identify significant price reversals by normalizing prices over a
+user-specified number of periods. A reversal signal is suggested when the the
+two lines cross.
+
+Sources:
+    TradingView (Correlation >99%)
+
+Calculation:
+    Default Inputs:
+        length=9, signal=1
+    HL2 = hl2(high, low)
+    HHL2 = HL2.rolling(length).max()
+    LHL2 = HL2.rolling(length).min()
+
+    HLR = HHL2 - LHL2
+    HLR[HLR < 0.001] = 0.001
+
+    position = ((HL2 - LHL2) / HLR) - 0.5
+
+    v = 0
+    m = high.size
+    FISHER = [np.nan for _ in range(0, length - 1)] + [0]
+    for i in range(length, m):
+        v = 0.66 * position[i] + 0.67 * v
+        if v < -0.99: v = -0.999
+        if v >  0.99: v =  0.999
+        FISHER.append(0.5 * (nplog((1 + v) / (1 - v)) + FISHER[i - 1]))
+
+    SIGNAL = FISHER.shift(signal)
+
+Args:
+    high (pd.Series): Series of 'high's
+    low (pd.Series): Series of 'low's
+    length (int): Fisher period. Default: 9
+    signal (int): Fisher Signal period. Default: 1
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.Series: New feature generated.
+"""

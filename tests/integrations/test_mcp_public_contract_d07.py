@@ -84,6 +84,11 @@ def test_all_32_valid_calls_route_exactly_once_with_public_contract(tmp_path: Pa
         for item in chatgpt_tools():
             name = item["name"]
             arguments = _example(item["inputSchema"])
+            # Compact checkpoint retrieval correctly refuses absent historical
+            # state. Full mode exercises the 32-tool schema/dispatcher contract.
+            if name == "get_algorithm_research":
+                assert isinstance(arguments, dict)
+                arguments["response_mode"] = "full"
             answer = await adapter.call_tool(
                 ctx, types.CallToolRequestParams(name=name, arguments=arguments)
             )
@@ -93,11 +98,51 @@ def test_all_32_valid_calls_route_exactly_once_with_public_contract(tmp_path: Pa
             assert result["orders_enabled"] is False
             assert result["_contract"]["orders_enabled"] is False
             assert result["_contract"]["tool"] == name
-            assert invocations[-1] == (name, arguments)
+            # response_mode is a validated presentation option handled by
+            # the SDK adapter and intentionally not a dispatcher argument.
+            forwarded = (
+                {k: v for k, v in arguments.items() if k != "response_mode"}
+                if name == "get_algorithm_research"
+                else arguments
+            )
+            assert invocations[-1] == (name, forwarded)
         assert len(invocations) == 32
         assert {name for name, _ in invocations} == {
             tool["name"] for tool in chatgpt_tools()
         }
+
+    asyncio.run(verify())
+
+
+def test_compact_checkpoint_absence_fails_closed_without_order_side_effects(
+    tmp_path: Path,
+) -> None:
+    adapter = create_chatgpt_sdk_adapter(
+        project_root=tmp_path, state_dir=tmp_path / "state"
+    )
+    observed: list[str] = []
+
+    def sandbox_dispatch(name: str, arguments: dict) -> dict:
+        observed.append(name)
+        return {"status": "D07_ISOLATED_DISPATCH", "orders_enabled": False}
+
+    adapter.dispatcher._dispatch = sandbox_dispatch  # type: ignore[method-assign]
+
+    async def verify() -> None:
+        result = await adapter.call_tool(
+            cast(ServerRequestContext[Any], None),
+            types.CallToolRequestParams(
+                name="get_algorithm_research",
+                arguments={"session_id": "a" * 32, "response_mode": "compact"},
+            ),
+        )
+        assert result.is_error is True
+        assert isinstance(result.content[0], types.TextContent)
+        payload = json.loads(result.content[0].text)
+        assert payload["error_code"] == "COMPACT_CHECKPOINT_UNAVAILABLE"
+        assert payload["orders_enabled"] is False
+        assert payload["retry_same_checkpoint"] is False
+        assert observed == ["get_algorithm_research"]
 
     asyncio.run(verify())
 

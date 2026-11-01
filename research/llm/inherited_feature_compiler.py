@@ -25,12 +25,20 @@ class InheritedFeatureBindingError(ValueError):
     """Missing/unreviewed features cannot enter the inherited replay."""
 
 
-def _new_feature_vector(ref: FeatureRef, market: MarketDataSet) -> tuple[float | None, ...]:
+def _new_feature_vector(
+    ref: FeatureRef,
+    market: MarketDataSet,
+    *,
+    allow_chart_research: bool = False,
+) -> tuple[float | None, ...]:
     if ref.timeframe != "1d" or ref.lag_bars > 252:
         raise InheritedFeatureBindingError(
             "INHERITED_FEATURE_UNSUPPORTED_TIMEFRAME: daily bounded replay required"
         )
-    specs = {spec.name: spec for spec in research_feature_specs()}
+    specs = {
+        spec.name: spec
+        for spec in research_feature_specs(chart_research_opt_in=allow_chart_research)
+    }
     feature = specs.get(ref.feature_id)
     if feature is None:
         feature = next(
@@ -49,6 +57,23 @@ def _new_feature_vector(ref: FeatureRef, market: MarketDataSet) -> tuple[float |
         raise InheritedFeatureBindingError(
             "INHERITED_FEATURE_NOT_EXECUTABLE: source permission review required"
         )
+    if feature.family == "chart_research":
+        if not allow_chart_research or market.zone != DataZone.DEVELOPMENT:
+            raise InheritedFeatureBindingError(
+                "A8_RESEARCH_ONLY: explicit opt-in and DEVELOPMENT required"
+            )
+        if ref.parameters and ref.parameters != feature.parameters:
+            raise InheritedFeatureBindingError(
+                "A8_RESEARCH_ONLY: reviewed feature parameters are immutable"
+            )
+        if ref.lookback is not None and ref.lookback != feature.lookback:
+            raise InheritedFeatureBindingError(
+                "A8_RESEARCH_ONLY: reviewed lookback cannot be overridden"
+            )
+        if ref.inputs and ref.inputs != feature.inputs:
+            raise InheritedFeatureBindingError(
+                "A8_RESEARCH_ONLY: OHLC input contract cannot be overridden"
+            )
     inputs = ref.inputs or feature.inputs
     if (
         not inputs
@@ -91,6 +116,8 @@ def bind_inherited_features(
     parent: CompiledAcademicStrategy,
     child: StrategyIR,
     market: MarketDataSet,
+    *,
+    allow_chart_research: bool = False,
 ) -> CompiledAcademicStrategy:
     """Compile effective vectors for one inherited mutation, replaying full S2."""
     if (
@@ -117,7 +144,9 @@ def bind_inherited_features(
         if alias in child.features and alias not in changed
     }
     for alias in sorted(changed):
-        vectors[alias] = _new_feature_vector(child.features[alias], market)
+        vectors[alias] = _new_feature_vector(
+            child.features[alias], market, allow_chart_research=allow_chart_research
+        )
     if set(vectors) != set(child.features):
         raise InheritedFeatureBindingError(
             "INHERITED_FEATURE_BINDING_MISSING: incomplete replay source vectors"

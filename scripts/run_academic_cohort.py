@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
-from scripts.fresh_development_cohort_controller_20261021 import main as run_generations
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "state/moon-http/fresh-20261021"
@@ -182,6 +181,13 @@ def run(cohort_id: str, expected_start: int, additional: int) -> None:
         atomic_json(record_path, record)
         print("RESUMING", current["completed_generations"], "OF", target, flush=True)
         try:
+            # Keep the session-reading research controller out of import-time
+            # paths. Only load it after cohort ID, sealed checkpoint and
+            # execution permissions have been validated above.
+            from scripts.fresh_development_cohort_controller_20261021 import (
+                main as run_generations,
+            )
+
             run_generations(target - current["completed_generations"])
         except BaseException as exc:
             record["state"] = "BLOCKED"

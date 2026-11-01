@@ -1,0 +1,104 @@
+# True Range (TRUE_RANGE)
+from typing import Any
+
+import numpy as np
+from pandas import Series
+
+from pandas_ta_classic import Imports
+from pandas_ta_classic.utils import (
+    apply_fill,
+    apply_offset,
+    get_drift,
+    get_offset,
+    verify_series,
+)
+from pandas_ta_classic.utils._core import _bool_param, nan_on_short_input
+
+
+@nan_on_short_input
+def true_range(
+    high: Series,
+    low: Series,
+    close: Series,
+    talib: bool | None = None,
+    drift: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Indicator: True Range"""
+    # Validate arguments
+    high = verify_series(high)
+    low = verify_series(low)
+    close = verify_series(close)
+    if high is None or low is None or close is None:
+        return None
+    drift = get_drift(drift)
+    offset = get_offset(offset)
+    mode_talib = _bool_param(talib, False, "talib")
+
+    # Calculate Result
+    if Imports["talib"] and mode_talib:
+        from talib import TRANGE
+
+        true_range = TRANGE(high, low, close)
+    else:
+        # A flat bar's true range is 0.0, which is what TA-Lib's TRANGE returns
+        # (measured: 0.0 for every bar of a flat series, and ATR/NATR follow).
+        # non_zero_range() substituted an epsilon here, so a flat bar read
+        # 2.2e-16 and every consumer inherited it -- see the entry in
+        # CHANGELOG.md for the indicators that did.
+        high_low_range = high - low
+        prev_close = close.shift(drift)
+        # fmax skips NaN like max(axis=1) did: the first bar, with no previous
+        # close, still reads its high - low.
+        true_range = np.fmax(np.fmax(high_low_range.abs(), (high - prev_close).abs()), (prev_close - low).abs())
+        # True range needs a previous close. max(axis=1) skips NaN, so the
+        # first bar after a leading NaN run silently became high - low; blank
+        # it like row 0, as TA-Lib does. A NaN mid-series is left as before.
+        finite = (high.notna() & low.notna() & close.notna()).to_numpy()
+        start = int(finite.argmax()) if finite.any() else len(finite)
+        true_range.iloc[: start + drift] = np.nan
+
+    # Offset
+    true_range = apply_offset(true_range, offset)
+
+    true_range = apply_fill(true_range, **kwargs)
+
+    # Name and Categorize it
+    true_range.name = f"TRUERANGE_{drift}"
+    true_range.category = "volatility"
+
+    return true_range
+
+
+true_range.__doc__ = """True Range
+
+An method to expand a classical range (high minus low) to include
+possible gap scenarios.
+
+Sources:
+    https://www.macroption.com/true-range/
+
+Calculation:
+    Default Inputs:
+        drift=1
+    ABS = Absolute Value
+    prev_close = close.shift(drift)
+    TRUE_RANGE = ABS([high - low, high - prev_close, low - prev_close])
+
+Args:
+    high (pd.Series): Series of 'high's
+    low (pd.Series): Series of 'low's
+    close (pd.Series): Series of 'close's
+    talib (bool): If TA Lib is installed and talib is True, Returns the TA Lib
+        version. Default: False
+    drift (int): The shift period. Default: 1
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.Series: New feature
+"""

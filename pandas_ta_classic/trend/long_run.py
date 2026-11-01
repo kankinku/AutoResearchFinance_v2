@@ -1,0 +1,89 @@
+# Long Run (LONG_RUN)
+from typing import Any
+
+from pandas import Series
+
+from pandas_ta_classic.utils import apply_fill, apply_offset, get_offset, verify_series
+from pandas_ta_classic.utils._core import _pos_int, nan_on_short_input
+
+from .decreasing import decreasing
+from .increasing import increasing
+
+
+@nan_on_short_input
+def long_run(
+    fast: Series,
+    slow: Series,
+    length: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Indicator: Long Run"""
+    # Validate Arguments
+    length = _pos_int(length, 2, "length")
+    if fast is None or slow is None:
+        raise ValueError("long_run() requires 'fast' and 'slow' Series; they have no default")
+    fast = verify_series(fast, length)
+    slow = verify_series(slow, length)
+    offset = get_offset(offset)
+
+    if fast is None or slow is None:
+        return None
+
+    # Calculate Result
+    pb = increasing(fast, length, asint=False) & decreasing(slow, length, asint=False)  # potential bottom or bottom
+    bi = increasing(fast, length, asint=False) & increasing(slow, length, asint=False)  # fast and slow are increasing
+    # NaN until both averages have `length` bars to compare: it read 0 there
+    known = fast.diff(length).notna() & slow.diff(length).notna()
+    long_run = (pb | bi).astype(float).where(known)
+
+    # Offset
+    long_run = apply_offset(long_run, offset)
+
+    long_run = apply_fill(long_run, **kwargs)
+
+    # Name and Categorize it
+    long_run.name = f"LR_{length}"
+    long_run.category = "trend"
+
+    return long_run
+
+
+long_run.__doc__ = """Long Run
+
+Identifies potential long (bullish) trend conditions by detecting when the fast 
+moving average is increasing while the slow moving average is either decreasing 
+(potential bottom) or also increasing (confirmed uptrend).
+
+Sources:
+    Used in AMAT (Archer Moving Averages Trends) indicator
+
+Calculation:
+    Default Inputs:
+        length=2
+    
+    PB = INCREASING(fast, length) AND DECREASING(slow, length)  # Potential bottom
+    BI = INCREASING(fast, length) AND INCREASING(slow, length)  # Both increasing
+    LONG_RUN = PB OR BI
+
+Args:
+    fast (pd.Series): Fast moving average Series (e.g. EMA(5)). Pre-computed,
+        not a period length.
+    slow (pd.Series): Slow moving average Series (e.g. EMA(20)). Pre-computed,
+        not a period length.
+    length (int): Lookback period. Default: 2
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Example:
+    fast_ma = df.ta.ema(length=5)
+    slow_ma = df.ta.ema(length=20)
+    lr = ta.long_run(fast_ma, slow_ma)
+
+Returns:
+    pd.Series: 1.0 / 0.0 (float64), NaN until both averages have the
+        bars the comparison needs.
+"""

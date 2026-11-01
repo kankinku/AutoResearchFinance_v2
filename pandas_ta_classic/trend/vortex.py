@@ -1,0 +1,109 @@
+# Vortex Indicator (VORTEX)
+from typing import Any
+
+from pandas import DataFrame, Series
+
+from pandas_ta_classic.utils import (
+    apply_fill,
+    apply_offset,
+    degenerate_div,
+    get_drift,
+    get_offset,
+    verify_series,
+)
+from pandas_ta_classic.utils._core import _pos_int, nan_on_short_input
+from pandas_ta_classic.volatility.true_range import true_range
+
+
+@nan_on_short_input
+def vortex(
+    high: Series,
+    low: Series,
+    close: Series,
+    length: int | None = None,
+    drift: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> DataFrame | None:
+    """Indicator: Vortex"""
+    # Validate arguments
+    length = _pos_int(length, 14, "length")
+    min_periods = _pos_int(kwargs.get("min_periods"), length, "min_periods", gt=None, ge=0)
+    _length = max(length, min_periods)
+    high = verify_series(high, _length)
+    low = verify_series(low, _length)
+    close = verify_series(close, _length)
+    drift = get_drift(drift)
+    offset = get_offset(offset)
+
+    if high is None or low is None or close is None:
+        return None
+
+    # Calculate Result
+    tr = true_range(high=high, low=low, close=close)
+    tr_sum = tr.rolling(length, min_periods=min_periods).sum()
+
+    vmp = (high - low.shift(drift)).abs()
+    vmm = (low - high.shift(drift)).abs()
+
+    # A window with no true range divides 0/0: its bars are flat, so VM+ and
+    # VM- are zero across it too. degenerate_div masks only that to 0.0; a
+    # nonzero VM over a zero true range is a real x/0 and reads inf.
+    vip = degenerate_div(vmp.rolling(length, min_periods=min_periods).sum(), tr_sum)
+    vim = degenerate_div(vmm.rolling(length, min_periods=min_periods).sum(), tr_sum)
+
+    # Offset
+    vip, vim = apply_offset([vip, vim], offset)
+
+    vip, vim = apply_fill([vip, vim], **kwargs)
+
+    # Name and Categorize it
+    vip.name = f"VTXP_{length}"
+    vim.name = f"VTXM_{length}"
+    vip.category = vim.category = "trend"
+
+    # Prepare DataFrame to return
+    data = {vip.name: vip, vim.name: vim}
+    vtxdf = DataFrame(data)
+    vtxdf.name = f"VTX_{length}"
+    vtxdf.category = "trend"
+
+    return vtxdf
+
+
+vortex.__doc__ = """Vortex
+
+Two oscillators that capture positive and negative trend movement.
+
+Sources:
+    https://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:vortex_indicator
+
+Calculation:
+    Default Inputs:
+        length=14, drift=1
+    TR = True Range
+    SMA = Simple Moving Average
+    tr = TR(high, low, close)
+    tr_sum = tr.rolling(length).sum()
+
+    vmp = (high - low.shift(drift)).abs()
+    vmn = (low - high.shift(drift)).abs()
+
+    VIP = vmp.rolling(length).sum() / tr_sum
+    VIM = vmn.rolling(length).sum() / tr_sum
+
+Args:
+    high (pd.Series): Series of 'high's
+    low (pd.Series): Series of 'low's
+    close (pd.Series): Series of 'close's
+    length (int): ROC 1 period. Default: 14
+    drift (int): The difference period. Default: 1
+    offset (int): How many periods to offset the result. Default: 0
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.DataFrame: vip and vim columns
+"""

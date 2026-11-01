@@ -1,0 +1,154 @@
+# Cross Signals (XSIGNALS)
+from typing import Any
+
+import numpy as np
+from pandas import DataFrame, Series
+
+from pandas_ta_classic.utils import apply_fill, get_offset, verify_series
+from pandas_ta_classic.utils._core import _bool_param, nan_on_short_input
+from pandas_ta_classic.utils._signals import _require_number, cross_value
+
+from .tsignals import _reject_trend_reset, tsignals
+
+
+@nan_on_short_input
+def xsignals(
+    signal: Series,
+    xa: float,
+    xb: float,
+    above: bool | None = None,
+    long: bool | None = None,
+    asbool: bool | None = None,
+    *,
+    trade_offset: int | None = None,
+    offset: int | None = None,
+    **kwargs: Any,
+) -> DataFrame | None:
+    """Indicator: Cross Signals"""
+    # Validate Arguments
+    if signal is None:
+        raise ValueError("xsignals() requires a 'signal' Series; it has no default")
+    signal = verify_series(signal)
+    if signal is None:
+        return None
+    offset = get_offset(offset)
+    above = _bool_param(above, True, "above")
+    long = _bool_param(long, True, "long")
+    _reject_trend_reset("xsignals", kwargs)
+    # Validate the thresholds here so an invalid value names xsignals and the
+    # argument, not cross_value (rule 2).
+    _require_number(xa, "xa")
+    _require_number(xb, "xb")
+
+    # Calculate Result. Crossings are taken over the observed values only: a
+    # missing bar compared NaN with the threshold on both sides of it, so a
+    # crossing that fell on the gap was lost, and the whole trade with it.
+    # Written back by position: a label reindex fails on a duplicated index.
+    is_observed = signal.notna().to_numpy()
+    observed = signal[is_observed]
+    if above:
+        entries = cross_value(observed, xa)
+        exits = -cross_value(observed, xb, above=False)
+    else:
+        entries = cross_value(observed, xa, above=False)
+        exits = -cross_value(observed, xb)
+    trades = Series(0, index=signal.index, dtype=(entries + exits).dtype)
+    trades.iloc[is_observed] = (entries + exits).to_numpy()
+
+    # Modify trades to fill gaps for trends
+    trades.replace({0: np.nan}, inplace=True)
+    trades.ffill(inplace=True)
+    trades.fillna(0, inplace=True)
+
+    trends = (trades > 0).astype(int)
+    if not long:
+        trends = 1 - trends
+
+    df = tsignals(
+        trends,
+        asbool=asbool,
+        trade_offset=trade_offset,
+        offset=offset,
+    )
+
+    # Offset handled by tsignals
+    df = apply_fill(df, **kwargs)
+
+    # Name & Category
+    df.name = "XS"
+    df.category = "trend"
+
+    return df
+
+
+xsignals.__doc__ = """Cross Signals (XSIGNALS)
+
+Cross Signals returns Trend Signal (TSIGNALS) results for Signal Crossings. This
+is useful for indicators like RSI, ZSCORE, et al where one wants trade Entries
+and Exits (and Trends).
+
+Cross Signals has two kinds of modes: above and long.
+
+The first mode 'above', default True, xsignals determines if the signal first
+crosses above 'xa' and then below 'xb'. If 'above' is False, xsignals determines
+if the signal first crosses below 'xa' and then above 'xb'.
+
+The second mode 'long', default True, passes the long trend result into
+tsignals so it can determine the appropriate Entries and Exits. When 'long' is
+False, it does the same but for the short side.
+
+Example:
+# These are two different outcomes and depends on the indicator and it's
+# characteristics. Please check BOTH outcomes BEFORE making an Issue.
+rsi = df.ta.rsi()
+# Returns tsignal DataFrame when RSI crosses above 20 and then below 80
+ta.xsignals(rsi, 20, 80, above=True)
+# Returns tsignal DataFrame when RSI crosses below 20 and then above 80
+ta.xsignals(rsi, 20, 80, above=False)
+
+Source: Kevin Johnson
+
+Calculation:
+    Default Inputs:
+        asbool=False, trade_offset=0, drift=1
+        (xa, xb: no defaults — required)
+
+    trades = trends.diff().shift(trade_offset).fillna(0).astype(int)
+    entries = (trades > 0).astype(int)
+    exits = (trades < 0).abs().astype(int)
+
+Args:
+    signal (pd.Series): Oscillator or signal Series to evaluate. A missing value
+        is skipped: a crossing is found between the observed values around it,
+        and the trend holds through it.
+    xa (float): Entry threshold. Choose based on indicator range.
+        RSI/Stoch/KDJ (0-100): typical 20-30 (oversold) or 70-80 (overbought).
+        Unbounded indicators (MACD, CCI): must match their actual value range.
+        WARNING: xa=80 with MACD (range ~-5 to +5) will never trigger.
+    xb (float): Exit threshold, opposite side of xa (e.g. if xa=20 use xb=80).
+    above (bool): When the signal crosses above 'xa' first and then 'xb'. When
+        False, then when the signal crosses below 'xa' first and then 'xb'.
+        Default: True
+    long (bool): Passes the long trend into tsignals' trend argument. When
+        False, it passes the short trend into tsignals trend argument.
+        Default: True
+    offset (int): How many periods to offset the result. Default: 0
+
+    # TSIGNAL Passthrough arguments
+    asbool (bool): If True, it converts the Trends, Entries and Exits columns to
+        booleans. When boolean, it is also useful for backtesting with
+        vectorbt's Portfolio.from_signal(close, entries, exits) Default: False
+    trade_offset (value): Value used shift the trade entries/exits Use 1 for
+        backtesting and 0 for live. Default: 0
+    Note: ``trend_reset`` was removed; it never had an effect, and passing it
+    raises TypeError. ``trade_offset`` and ``offset`` are keyword-only.
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.DataFrame with columns:
+    Trends (trend: 1, no trend: 0), Trades (Enter: 1, Exit: -1, Otherwise: 0),
+    Entries (entry: 1, nothing: 0), Exits (exit: 1, nothing: 0)
+"""

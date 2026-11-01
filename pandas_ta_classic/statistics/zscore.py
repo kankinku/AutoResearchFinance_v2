@@ -1,0 +1,93 @@
+# Z Score (ZSCORE)
+from typing import Any
+
+import numpy as np
+from pandas import Series
+
+from pandas_ta_classic.utils import apply_fill, apply_offset, degenerate_zero, get_offset, verify_series
+from pandas_ta_classic.utils._core import _pos_float, _pos_int, nan_on_short_input
+
+
+@nan_on_short_input
+def zscore(
+    close: Series,
+    length: int | None = None,
+    std: float | None = None,
+    offset: int | None = None,
+    ddof: int | None = None,
+    **kwargs: Any,
+) -> Series | None:
+    """Indicator: Z Score"""
+    # Validate Arguments
+    length = _pos_int(length, 30, "length", gt=1)
+    std = _pos_float(std, 1, "std", gt=0)
+    # ddof sits after offset so an existing positional offset keeps its meaning.
+    # cdl_z has always forwarded it; without this parameter it landed in
+    # **kwargs and was dropped, so cdl_z(ddof=0) and cdl_z(ddof=1) returned
+    # identical values under different column names.
+    ddof = _pos_int(ddof, 1, "ddof", gt=None, ge=0, lt=length)
+    close = verify_series(close, length)
+    offset = get_offset(offset)
+
+    if close is None:
+        return None
+
+    # Pure numpy for cross-version determinism.
+    values = close.values.astype(np.float64)
+    n = len(values)
+    result_arr = np.full(n, np.nan, dtype=np.float64)
+    if n >= length:
+        windows = np.lib.stride_tricks.sliding_window_view(values, length)
+        window_mean = windows.mean(axis=1)
+        window_std = windows.std(axis=1, ddof=ddof)
+        # A window with zero variance divides 0/0. TA-Lib reads 0.0 for the
+        # degenerate case throughout, and this follows it; see
+        # tests/test_degenerate_input.py. degenerate_zero, not ``== 0``, so a
+        # flat 0.3's ~1e-17 std residue is still recognised as flat.
+        denominator = std * window_std
+        with np.errstate(divide="ignore", invalid="ignore"):
+            scores = (values[length - 1 :] - window_mean) / denominator
+        result_arr[length - 1 :] = np.where(degenerate_zero(denominator), 0.0, scores)
+    zscore = Series(result_arr, index=close.index, dtype=np.float64)
+
+    # Offset
+    zscore = apply_offset(zscore, offset)
+
+    zscore = apply_fill(zscore, **kwargs)
+
+    # Name & Category
+    zscore.name = f"ZS_{length}"
+    zscore.category = "statistics"
+
+    return zscore
+
+
+zscore.__doc__ = """Rolling Z Score
+
+Sources:
+
+Calculation:
+    Default Inputs:
+        length=30, std=1, ddof=1
+    SMA = Simple Moving Average
+    STDEV = Standard Deviation
+    std = std * STDEV(close, length, ddof)
+    mean = SMA(close, length)
+    ZSCORE = (close - mean) / std
+
+Args:
+    close (pd.Series): Series of 'close's
+    length (int): It's period. Default: 30
+    std (float): It's period. Default: 1
+    offset (int): How many periods to offset the result. Default: 0
+    ddof (int): Delta Degrees of Freedom. The divisor used in the standard
+        deviation is ``length - ddof``; 1 is the sample deviation, 0 the
+        population one. Must be < length. Default: 1
+
+Kwargs:
+    fillna (value, optional): pd.DataFrame.fillna(value)
+    fill_method (value, optional): Type of fill method
+
+Returns:
+    pd.Series: New feature generated.
+"""

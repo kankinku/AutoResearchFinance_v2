@@ -1,0 +1,141 @@
+{
+  "causal_gate": {
+    "checkpoints": 4608,
+    "patterns": 12,
+    "prefix_mismatches": 0,
+    "regimes": 3,
+    "runtime_errors": 0,
+    "timestamp_violations": 0,
+    "total_emitted_events": 40,
+    "zero_event_pattern_regime_pairs": 22
+  },
+  "developing_wave_1_5": [
+    {
+      "known_at": 22,
+      "stage": "DEVELOPING",
+      "structurally_verified": false,
+      "wave": 1
+    },
+    {
+      "known_at": 42,
+      "stage": "DEVELOPING",
+      "structurally_verified": false,
+      "wave": 2
+    },
+    {
+      "known_at": 62,
+      "stage": "DEVELOPING",
+      "structurally_verified": false,
+      "wave": 3
+    },
+    {
+      "known_at": 82,
+      "stage": "DEVELOPING",
+      "structurally_verified": false,
+      "wave": 4
+    },
+    {
+      "known_at": 102,
+      "stage": "CONFIRMED",
+      "structurally_verified": false,
+      "wave": 5
+    }
+  ],
+  "existing_dirty_bulk40_modified": false,
+  "experimental_structure_api_only": true,
+  "feature_count": 447,
+  "limitations": [
+    "Full scalar chart feature names/outputs unchanged; diagnostics are opt-in API only until A8",
+    "Multi-scale structural verification requires fine-scale confirmed pivots with exact matching endpoints, otherwise no structural verification",
+    "Outer five-pivot count confirmed is only geometric unless verified 5-3-5-3-5 fine subwaves are supplied",
+    "WXY groups use verified ABC zigzag or flat components; no diagonals, triangles, running flats, alternate wave degrees or perfect count claims",
+    "Competing count names are bounded hypotheses, not confidence probabilities",
+    "Synthetic cases only; no QQQ actual data/OOS, no financial signal quality, next-open order checks",
+    "A7 inverse H&S false positive still pending; production main, OAuth, MCP URL, G ledger and live order settings unchanged",
+    "Moon official release gate uv not installed"
+  ],
+  "main_branch_modified": false,
+  "new_scalar_features": 0,
+  "observed_at_kst": "2026-10-29T12:54:10.637317+09:00",
+  "original_scalar_frozen_parity": 48,
+  "registered_calculator_changed": false,
+  "rejects": {
+    "future_subwave_knowledge": "SUBWAVE_NOT_KNOWN",
+    "subwave_count": "SUBWAVE_TOPOLOGY",
+    "wave2_origin": "WAVE2_RETRACE_ORIGIN",
+    "wave3_shortest": "WAVE3_SHORTEST",
+    "wave4_overlap": "WAVE4_OVERLAPS_1",
+    "wxy_connector_mismatch": "CONNECTOR_MISMATCH"
+  },
+  "sample_causal_stream": [
+    {
+      "candidate_alternatives": [],
+      "known_at": 2,
+      "pivot_index": 0,
+      "stage": "INSUFFICIENT"
+    },
+    {
+      "candidate_alternatives": [
+        "OUTER_IMPULSE"
+      ],
+      "known_at": 22,
+      "pivot_index": 20,
+      "stage": "DEVELOPING"
+    },
+    {
+      "candidate_alternatives": [
+        "OUTER_IMPULSE"
+      ],
+      "known_at": 42,
+      "pivot_index": 40,
+      "stage": "DEVELOPING"
+    },
+    {
+      "candidate_alternatives": [
+        "OUTER_IMPULSE",
+        "ZIGZAG_ABC_POSSIBLE"
+      ],
+      "known_at": 62,
+      "pivot_index": 60,
+      "stage": "DEVELOPING"
+    },
+    {
+      "candidate_alternatives": [
+        "OUTER_IMPULSE",
+        "ZIGZAG_ABC_POSSIBLE"
+      ],
+      "known_at": 82,
+      "pivot_index": 80,
+      "stage": "DEVELOPING"
+    },
+    {
+      "candidate_alternatives": [
+        "OUTER_IMPULSE",
+        "ZIGZAG_ABC_POSSIBLE"
+      ],
+      "known_at": 102,
+      "pivot_index": 100,
+      "stage": "CONFIRMED"
+    }
+  ],
+  "schema": "quant-v3-chart-A6-elliott-structure-v1",
+  "source_urls": [
+    "https://www.elliottwave.com/waveopedia/impulse/",
+    "https://www.elliottwave.com/waveopedia/zigzags/",
+    "https://www.elliottwave.com/waveopedia/flats/",
+    "https://www.elliottwave.com/waveopedia/corrective-waves/"
+  ],
+  "structurally_verified": {
+    "flat": true,
+    "impulse_5": true,
+    "impulse_from_dual_scale": true,
+    "wxy": true,
+    "wxyxz": true,
+    "zigzag": true
+  },
+  "verified_subwave_topologies": {
+    "flat": "3-3-5",
+    "impulse": "5-3-5-3-5",
+    "zigzag": "5-3-5"
+  }
+}

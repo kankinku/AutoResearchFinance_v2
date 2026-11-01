@@ -1,0 +1,806 @@
+{
+  "base_branch": "research/v3-chart-audit-20261029",
+  "channel_metrics": [
+    {
+      "canonical_id": "",
+      "family": "accbands",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_accbands_out0",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "6e5729d2768743a9935286780dc78f35c5f5e3522be2a89c03bcf42c9bfc55c4"
+    },
+    {
+      "canonical_id": "",
+      "family": "accbands",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_accbands_out2",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "9797ecfed62069b4f3fd7809ba7bce544645b5acadf69cd8d0ec54aefb8d921b"
+    },
+    {
+      "canonical_id": "",
+      "family": "adosc",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "name": "pta_adosc_out0",
+      "nonmissing_count": 471,
+      "observed_distinct_values": 471,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "8ca235dd7d99cb9dbeac26c2a0a4052d44a27315881f4b8ba67d3b90ee3bd4f9"
+    },
+    {
+      "canonical_id": "",
+      "family": "adxr",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_adxr_out0",
+      "nonmissing_count": 422,
+      "observed_distinct_values": 422,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "ac80b9e341100e10f44a261302a3d14e03bbdbb1f2ae57e8c81e5fdb5b71a1c9"
+    },
+    {
+      "canonical_id": "",
+      "family": "cdl_z",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_cdl_z_out0",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "99865b90df6a913cf40a8d46e738f0ccf6553fe018a8a3b81a97a64ae35b0a62"
+    },
+    {
+      "canonical_id": "",
+      "family": "cdl_z",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_cdl_z_out1",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "12e25c57fb2e71b409be8902737876e4440692cd3239ead64e2ea40b8f88f6c4"
+    },
+    {
+      "canonical_id": "",
+      "family": "cdl_z",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_cdl_z_out2",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "3f7420153347569899e51ee598f88df4b83a444de4aacc0df493b5fa26d3fbc3"
+    },
+    {
+      "canonical_id": "",
+      "family": "cdl_z",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_cdl_z_out3",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 3,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "ae972f16e1c9381afbe10f3d230a27043cd22c944261d15007f7d5ca6a6d500c"
+    },
+    {
+      "canonical_id": "",
+      "family": "ce",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_ce_out0",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 460,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "4f7a6782612a27eae4e2de6859b2bb3ee31fae289f4dd751f2192785f7297aad"
+    },
+    {
+      "canonical_id": "",
+      "family": "ce",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_ce_out1",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 460,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "0cc0b6f6af8d6860dc0a1257f910c04275b4f7fc0024472e1eb4cdfad854fa3e"
+    },
+    {
+      "canonical_id": "",
+      "family": "drawdown",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_drawdown_out0",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 412,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "13b0181f0bc246e6fa0a382969b24f11905ee398b81ea4d4255e2a0daf6be5c1"
+    },
+    {
+      "canonical_id": "",
+      "family": "drawdown",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_drawdown_out1",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 412,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "d3e02cf2fdb8ad1467432d9edd007d97d249aeb60e7462cc719e766b0b976a22"
+    },
+    {
+      "canonical_id": "",
+      "family": "drawdown",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_drawdown_out2",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 412,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "6aeaffd17d356b384cde7cbc2096adee09e1e03c6421cb61ba3657f18e3272dc"
+    },
+    {
+      "canonical_id": "",
+      "family": "efi",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "name": "pta_efi_out0",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 460,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "d9869a2e411f9e14a905aeafb7d01153ae212dc9b0ab3dbb6eaab272d8e4adaf"
+    },
+    {
+      "canonical_id": "",
+      "family": "eom",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "lookback": 20,
+      "name": "pta_eom_out0",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 460,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "29ce3ff5e5ccd64f9a55863c71de58d28a7ed3c14d51a83598d5b85a92ac7c07"
+    },
+    {
+      "canonical_id": "",
+      "family": "ha",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_ha_out0",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 480,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "344e0ada6de351cf5afa44624a8342d59e08c11f176d0e6b9e4f1d76b08415fd"
+    },
+    {
+      "canonical_id": "",
+      "family": "ha",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_ha_out1",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 480,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "c7d61f313f87ab00dfcc196212546efa5fbceb2c4086f3f57834b5e1791dc3e4"
+    },
+    {
+      "canonical_id": "",
+      "family": "ha",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_ha_out2",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 480,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "f7ab29bdfa11dd995f2d40e58dc3ded6eddbd2d55ddce938b0d5e49ae95852ea"
+    },
+    {
+      "canonical_id": "",
+      "family": "kc",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_kc_out0",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 460,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "406d8bfa97adc248b14769fe95e7d14e56257a8182c102918540ca7e7d7796ca"
+    },
+    {
+      "canonical_id": "",
+      "family": "kc",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_kc_out2",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 460,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "d744468ca69839fa59afe31569fc29c928f4584557141c6294fedd212e3d86a0"
+    },
+    {
+      "canonical_id": "",
+      "family": "kdj",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_kdj_out0",
+      "nonmissing_count": 459,
+      "observed_distinct_values": 459,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "02bcaaac757dadc336f26f3c3abf54b725d662883ce96ce3103c01f6fd3023db"
+    },
+    {
+      "canonical_id": "",
+      "family": "kdj",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_kdj_out1",
+      "nonmissing_count": 457,
+      "observed_distinct_values": 457,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "52967c3954edb235d03af8591af52a79a9d4a111fab46dd508290b3d261cdd26"
+    },
+    {
+      "canonical_id": "",
+      "family": "midpoint",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_midpoint_out0",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "9b04ba36556f6b07a12e95f0f8bb760623aba0e7192636f68ab22cd11375e3c8"
+    },
+    {
+      "canonical_id": "",
+      "family": "mmar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_mmar_out1",
+      "nonmissing_count": 456,
+      "observed_distinct_values": 456,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "94bda9fcda56052501b232e97755ac6ce1415d949372d7426dab40077c1f62b0"
+    },
+    {
+      "canonical_id": "",
+      "family": "mmar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_mmar_out2",
+      "nonmissing_count": 451,
+      "observed_distinct_values": 451,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "4109ef4387ba3b84cb45de946beaec0ae1a2d8ff9b6d3e8eee4a80faa7ffeae9"
+    },
+    {
+      "canonical_id": "",
+      "family": "mmar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_mmar_out3",
+      "nonmissing_count": 446,
+      "observed_distinct_values": 446,
+      "output_index": 3,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "3981524e7edef4cd2363704c2eb308314c9460144e51064a06aee3e2175b64d0"
+    },
+    {
+      "canonical_id": "",
+      "family": "mmar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_mmar_out4",
+      "nonmissing_count": 441,
+      "observed_distinct_values": 441,
+      "output_index": 4,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "d5e32e7fcf4f9532ba761d6fb074c4cb8937a86fddf3ced411666e0e68902a17"
+    },
+    {
+      "canonical_id": "",
+      "family": "mmar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_mmar_out5",
+      "nonmissing_count": 436,
+      "observed_distinct_values": 436,
+      "output_index": 5,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "d481454282cd48adb9eed99e85a6bc859df604b848a88ec2093af3fe2fea685d"
+    },
+    {
+      "canonical_id": "",
+      "family": "psar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_psar_out0",
+      "nonmissing_count": 266,
+      "observed_distinct_values": 257,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "b472f56bb77226a7abf1410c99a4e4e0d92727e881201032f5bd94b46a44224e"
+    },
+    {
+      "canonical_id": "",
+      "family": "psar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_psar_out1",
+      "nonmissing_count": 213,
+      "observed_distinct_values": 210,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "2f6cf5551e1e90c97d4f58ae59ed032591904223578ffe0a5ea70654c1cdcfcd"
+    },
+    {
+      "canonical_id": "",
+      "family": "psar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_psar_out2",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 10,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "20f421f175805a1d28026b9b8087998d97f07f395ebb49c73f9a68d4107ca5b8"
+    },
+    {
+      "canonical_id": "",
+      "family": "psar",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_psar_out3",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 2,
+      "output_index": 3,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "b1a964f66b4a3da363a3d279baa56a1b3b785a7f8e69610668c7915a6d728c33"
+    },
+    {
+      "canonical_id": "",
+      "family": "rma",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_rma_out0",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "ddef203c1d540895cc040edd28ae6035eaeca0bc27a24880c0aa8ca74928c5d3"
+    },
+    {
+      "canonical_id": "",
+      "family": "squeeze",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_squeeze_out2",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 2,
+      "output_index": 2,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "ff4aab66082acfe059d040b0b4ce55698e2c421a1c75e051324115730222c325"
+    },
+    {
+      "canonical_id": "",
+      "family": "stderr",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_stderr_out0",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "0ef2e761013286f54f2d493393fd6a05f942d67db22fa2f5fd39ea6fd2db3d9e"
+    },
+    {
+      "canonical_id": "",
+      "family": "stoch",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_stoch_out1",
+      "nonmissing_count": 463,
+      "observed_distinct_values": 463,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "26e28d5f123f2fc24f44746c37620270d282c29b73da20c80bb9d216b5c0a6d0"
+    },
+    {
+      "canonical_id": "",
+      "family": "thermo",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low"
+      ],
+      "lookback": 20,
+      "name": "pta_thermo_out1",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 460,
+      "output_index": 1,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "7245d741c4a1c04365022ac25a826cfa465f22d074412193a696ad7d1e41bf05"
+    },
+    {
+      "canonical_id": "",
+      "family": "thermo",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low"
+      ],
+      "lookback": 20,
+      "name": "pta_thermo_out3",
+      "nonmissing_count": 460,
+      "observed_distinct_values": 2,
+      "output_index": 3,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "f3304af5fa57d9ee013ea3fa95babe0983c46592e7be4e661f7d7ee7cf4e970b"
+    },
+    {
+      "canonical_id": "",
+      "family": "variance",
+      "formula_disposition": "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_variance_out0",
+      "nonmissing_count": 461,
+      "observed_distinct_values": 461,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "f6a0de9fa3c8c12b55e75e85df82775a70b2809792cd592a93499002313062db"
+    },
+    {
+      "canonical_id": "",
+      "family": "wcp",
+      "formula_disposition": "UNREPRESENTED_FORMULA",
+      "inherited_replay_equal": true,
+      "input_fields": [
+        "high",
+        "low",
+        "close"
+      ],
+      "lookback": 20,
+      "name": "pta_wcp_out0",
+      "nonmissing_count": 480,
+      "observed_distinct_values": 480,
+      "output_index": 0,
+      "prefix_checks": 4,
+      "source_sha256": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+      "synthetic_vector_sha256": "958f9dbaeb9fb14c8aca6e1d88ff1809c24320b088152df27b7852bd762a0c1b"
+    }
+  ],
+  "counts": {
+    "integrated_base": 487,
+    "integrated_chart_optin": 531,
+    "new_channels": 40,
+    "prior_base": 447,
+    "prior_chart_optin": 491
+  },
+  "full_source_oracle_40": "TESTED_BY_tests/core/test_v3_selected_bulk40.py",
+  "historical_A0_A9_evidence_untouched": true,
+  "integration_branch": "research/v3-chart-a10-bulk40-integration-20261029",
+  "legacy_canonical_changed": [],
+  "limitations": [
+    "40 scalar channels: 34 additional outputs + 6 formulas; NOT 40 independent mathematical inventions",
+    "Existing prior tests and provenance unchanged; catalog in separate research worktree only",
+    "Source upstream MIT license and SHA pinned; predictive performance not established",
+    "Historical 447/491 evidence from A0-A9 is preserved and not retroactively updated",
+    "A9 market precision and autonomous G replay unverified; 2026 OOS remains sealed",
+    "Release gate and integration PR require review before any protected main merge"
+  ],
+  "main_merged": false,
+  "name_collisions": [],
+  "observed_at_kst": "2026-10-29T14:49:59.917853+09:00",
+  "original_dirty_source_hashes": {
+    "core/features/bulk40_manifest.json": "21145427607103ec6ce6a02ad6ae8a2a9b78015467020a92915370b1e1888edf",
+    "core/features/pandas_ta_manifest.json": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+    "core/features/pandas_ta_pinned.py": "ad75554e7573e8d884324ffb010068a4ada56802cd905ba74080e9913d75aacb",
+    "tests/core/test_v3_selected_bulk40.py": "370464f19ed5ccfb926200f42b708e0b200a1f698cb2bcd643f24a16a589b47c"
+  },
+  "original_dirty_worktree_untouched": true,
+  "prefix_checks": 160,
+  "prefix_mismatches": 0,
+  "question_ids": [
+    "Q05",
+    "Q10",
+    "Q11",
+    "Q12",
+    "Q18"
+  ],
+  "registry_premerge_snapshot_sha256": "5565ab17438b02a5404f0a236ad49ba21ce5349aaa065a14a8d10ab1df640bab",
+  "release_authorized": false,
+  "schema": "quant-v3-chart-A10-bulk40-staged-integration-v1",
+  "scope": "A10_STAGING_BRANCH_NO_MAIN_NO_OOS",
+  "sealed_2026_OOS_accessed": false,
+  "source_files_verified": 4,
+  "source_provenance": {
+    "formula_dispositions": {
+      "ADDITIONAL_OUTPUT_OF_EXISTING_FAMILY": 34,
+      "UNREPRESENTED_FORMULA": 6
+    },
+    "license": "MIT",
+    "sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+    "source_manifest_after_count": 475,
+    "source_manifest_base_count": 435
+  },
+  "stage": "A10",
+  "strategyir_replay_checks": 40,
+  "strategyir_replay_mismatches": 0,
+  "synthetic_samples": 480
+}

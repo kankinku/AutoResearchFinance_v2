@@ -189,6 +189,13 @@ def test_phase0_mcp_tool_surface_is_frozen() -> None:
         }
 
 
+APPROVED_RESEARCH_READONLY_EXTENSION = {
+    ("GET", "/chart-research"),
+    ("GET", "/api/chart-research/catalog"),
+    ("GET", "/api/chart-research/overlay"),
+}
+
+
 def test_phase0_dashboard_http_surface_is_frozen() -> None:
     app = create_app()
     routes = {
@@ -200,7 +207,9 @@ def test_phase0_dashboard_http_surface_is_frozen() -> None:
         for method in (getattr(route, "methods", set()) or set())
         if method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
     }
-    assert routes == EXPECTED_DASHBOARD_ROUTES
+    # Original Phase0 route names stay frozen. The approved opt-in V3 chart
+    # extension has exactly three GET-only, research-only endpoints.
+    assert routes == EXPECTED_DASHBOARD_ROUTES | APPROVED_RESEARCH_READONLY_EXTENSION
 
 
 def test_phase0_strategy_ir_shape_is_frozen() -> None:

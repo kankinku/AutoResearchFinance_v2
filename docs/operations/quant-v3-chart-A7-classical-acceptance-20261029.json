@@ -1,0 +1,131 @@
+{
+  "existing_local_bulk40_sha256_unchanged": {
+    "core/features/bulk40_manifest.json": "21145427607103ec6ce6a02ad6ae8a2a9b78015467020a92915370b1e1888edf",
+    "core/features/pandas_ta_manifest.json": "44f0ce1c38a95be89b1a028a076082e50d6ae1d1b747379e9a0ac2b7df2b897b",
+    "core/features/pandas_ta_pinned.py": "ad75554e7573e8d884324ffb010068a4ada56802cd905ba74080e9913d75aacb",
+    "tests/core/test_v3_selected_bulk40.py": "370464f19ed5ccfb926200f42b708e0b200a1f698cb2bcd643f24a16a589b47c"
+  },
+  "false_positive_fixes": [
+    {
+      "expected": 0,
+      "invalid_equal_low_prices": [
+        100.0,
+        110.0,
+        100.0,
+        110.0,
+        100.0
+      ],
+      "name": "inverse_head_shoulders",
+      "observed_after_fix": 0
+    }
+  ],
+  "legacy_scalar_outputs": "unchanged on frozen baseline except targeted inverse H&S bug fix",
+  "limitations": [
+    "Breakout confirmation is a research-only API, not yet a registered StrategyIR signal",
+    "Legacy 12 scalar features use shape only; they must not be interpreted as neckline-confirmed",
+    "Synthetic OHLC fixtures do not demonstrate real market precision, recall, profitability or next-open execution",
+    "No volume confirmation, false breakout statistical calibration or volatility-adaptive neckline tolerance",
+    "Source code and mathematical thresholds are independent heuristics with no proprietary chart pattern licensing assertion",
+    "Existing +40 local dirty worktree, 2026 sealed OOS, OAuth, MCP URL, G ledger, main and live orders unchanged"
+  ],
+  "new_registered_feature_count": 0,
+  "new_research_component": "core/features/classical_lifecycle.py",
+  "next_open_not_guaranteed_by_this_code": true,
+  "observed_at_kst": "2026-10-29T13:25:46.914833+09:00",
+  "pattern_evidence": [
+    {
+      "candidate_at": 17,
+      "candidate_pivot_index": 15,
+      "confirmation_reason": "NECKLINE_CLOSE_BREAK",
+      "neckline_break_confirmed_at": 21,
+      "order_eligible_not_before_bar": 22,
+      "pattern": "double_top",
+      "repainted_historical_events": 0,
+      "shape_is_not_breakout": true,
+      "source": "independent research-only geometric heuristics"
+    },
+    {
+      "candidate_at": 17,
+      "candidate_pivot_index": 15,
+      "confirmation_reason": "NECKLINE_CLOSE_BREAK",
+      "neckline_break_confirmed_at": 21,
+      "order_eligible_not_before_bar": 22,
+      "pattern": "double_bottom",
+      "repainted_historical_events": 0,
+      "shape_is_not_breakout": true,
+      "source": "independent research-only geometric heuristics"
+    },
+    {
+      "candidate_at": 27,
+      "candidate_pivot_index": 25,
+      "confirmation_reason": "NECKLINE_CLOSE_BREAK",
+      "neckline_break_confirmed_at": 29,
+      "order_eligible_not_before_bar": 30,
+      "pattern": "head_shoulders",
+      "repainted_historical_events": 0,
+      "shape_is_not_breakout": true,
+      "source": "independent research-only geometric heuristics"
+    },
+    {
+      "candidate_at": 27,
+      "candidate_pivot_index": 25,
+      "confirmation_reason": "NECKLINE_CLOSE_BREAK",
+      "neckline_break_confirmed_at": 29,
+      "order_eligible_not_before_bar": 30,
+      "pattern": "inverse_head_shoulders",
+      "repainted_historical_events": 0,
+      "shape_is_not_breakout": true,
+      "source": "independent research-only geometric heuristics"
+    }
+  ],
+  "prefix_gate": {
+    "end_to_end_cutoff_checks": 124,
+    "event_history_changes": 0
+  },
+  "production_feature_route_changed": false,
+  "registered_feature_count": 447,
+  "schema": "quant-v3-chart-A7-neckline-lifecycle-v1",
+  "shared_existing_gate": {
+    "A4_frozen_chart_output_hash_matches": 48,
+    "A6_A3_mismatches": 0,
+    "A6_A3_streaming_checks": 4608,
+    "A6_A3_timestamp_violations": 0
+  },
+  "status_lifecycle": [
+    "CANDIDATE",
+    "CONFIRMED",
+    "INVALIDATED",
+    "EXPIRED"
+  ],
+  "versioned_scalar_diff": {
+    "approved_inverse_HS_corrections": 4,
+    "non_whitelisted_changes": 0,
+    "observed_synthetic_difference_rows": [
+      {
+        "new_nonzero": 0,
+        "old_nonzero": 4,
+        "pattern": "inverse_head_shoulders",
+        "scenario": "oscillating"
+      },
+      {
+        "new_nonzero": 0,
+        "old_nonzero": 8,
+        "pattern": "inverse_head_shoulders",
+        "scenario": "inverted"
+      },
+      {
+        "new_nonzero": 0,
+        "old_nonzero": 2,
+        "pattern": "inverse_head_shoulders",
+        "scenario": "flat_missing_invalid"
+      },
+      {
+        "new_nonzero": 0,
+        "old_nonzero": 5,
+        "pattern": "inverse_head_shoulders",
+        "scenario": "trend_wave"
+      }
+    ],
+    "unchanged_against_A4_original": 44
+  }
+}

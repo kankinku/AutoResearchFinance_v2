@@ -1,0 +1,5543 @@
+{
+  "schema": "v3-source-indicator-inventory-v1",
+  "warning": "Name-level dedup only; implementation/formula/output equivalence not proven.",
+  "source_manifest": [
+    {
+      "source": "pandas-ta-classic",
+      "url": "https://github.com/xgboosted/pandas-ta-classic",
+      "license": "MIT",
+      "sha": "7c669b033582d53b70aa68b6388796d19ce33979",
+      "raw_entries": 284
+    },
+    {
+      "source": "stock-indicators",
+      "url": "https://github.com/DaveSkender/Stock.Indicators",
+      "license": "Apache-2.0",
+      "sha": "da428182d0e222339b662bc8ac645596102260bd",
+      "raw_entries": 85
+    },
+    {
+      "source": "ta-lib",
+      "url": "https://github.com/TA-Lib/ta-lib",
+      "license": "BSD-3-Clause",
+      "sha": "4334163d3a1f5019aa9051342316b936a4dfb994",
+      "raw_entries": 238
+    },
+    {
+      "source": "tulipindicators",
+      "url": "https://github.com/TulipCharts/tulipindicators",
+      "license": "LGPL-3.0",
+      "sha": "be18abb13e075ba866898dcc7cb52399603302a6",
+      "raw_entries": 104
+    }
+  ],
+  "registered_before": 173,
+  "registered_now": 214,
+  "new_registered_features": 41,
+  "note": "A source-name group may yield multiple registered outputs; ported mappings do not imply complete source numerical parity.",
+  "entries_total": 711,
+  "name_level_candidates": 442,
+  "states": {
+    "PORTED_VERIFIED_UNIT_TESTS": 40,
+    "EXISTING_NAME_OR_ALIAS_REVIEW": 72,
+    "NEW_NOT_YET_PORTED": 330
+  },
+  "candidates": [
+    {
+      "canonical_candidate": "2crows",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "3linestrike",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3linestrike"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "3outside",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3outside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "3starsinsouth",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3starsinsouth"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "abandonedbaby",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_abandonedbaby"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "aberration",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "aberration"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "abs",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "abs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "absolute_price_oscillator",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "apo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "apo"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "apo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ac",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "ac"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "acceleration_band_upper",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "accbands"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "accbands"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "acos",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "acos"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "acos"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "acos"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ad",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ad"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ad"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ad"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "add",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "add"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "add"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "add"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adl",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Adl"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adosc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "adosc"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "adosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "adosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "adr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "advanceblock",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_advanceblock"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adx",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "adx"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Adx"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "adx"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "adx"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "adxr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "adxr"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "adxr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "adxr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "alligator",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Alligator"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "alma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "alma"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Alma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "alma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "amat",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "amat"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "aobv",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "aobv"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "aroon",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "aroon"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Aroon"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "aroon"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "aroon"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "aroonosc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "aroonosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "aroonosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "asi",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "asi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "asin",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "asin"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "asin"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "asin"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "atan",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "atan"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "atan"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "atan"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "atr",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "atr"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Atr"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "atr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "atr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "atr_stop",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "AtrStop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "avgdev",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "avgdev"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "avgprice",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "avgprice"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "avgprice"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "avgprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "avolume",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "avolume"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "awesome",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Awesome"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "awesome_oscillator",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ao"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ao"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ao"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "balance_of_power",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "bop"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Bop"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "bop"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "bop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "bar_parts",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "BarParts"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "bbw",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "bbw"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "belt_hold",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_belthold"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "beta",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "beta"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Beta"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "beta"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "bias_ratio",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "bias"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "bollinger",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "bbands"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "bbands"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "bbands"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "bollinger_bands",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "BollingerBands"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "brar_ar",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "brar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "breakaway",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_breakaway"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cci",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cci"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Cci"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cci"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cci"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl2crows",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3blackcrows",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3blackcrows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3inside",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3inside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3linestrike",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3linestrike"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3outside",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3outside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3starsinsouth",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3starsinsouth"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdl3whitesoldiers",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdl3whitesoldiers"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlabandonedbaby",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlabandonedbaby"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdladvanceblock",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdladvanceblock"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlbelthold",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlbelthold"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlbreakaway",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlbreakaway"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlclosingmarubozu",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlclosingmarubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlconcealbabyswall",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlconcealbabyswall"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlcounterattack",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlcounterattack"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldarkcloudcover",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldarkcloudcover"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldoji",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldojistar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdldragonflydoji",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdldragonflydoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlengulfing",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlengulfing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdleveningdojistar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdleveningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdleveningstar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdleveningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlgapsidesidewhite",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlgapsidesidewhite"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlgravestonedoji",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlgravestonedoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhammer",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhammer"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhangingman",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhangingman"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlharami",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlharami"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlharamicross",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlharamicross"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhighwave",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhighwave"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhikkake",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhikkake"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhikkakemod",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhikkakemod"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlhomingpigeon",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlhomingpigeon"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlidentical3crows",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlidentical3crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlinneck",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlinneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlinvertedhammer",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlinvertedhammer"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlkicking",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlkicking"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlkickingbylength",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlkickingbylength"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlladderbottom",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlladderbottom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdllongleggeddoji",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdllongleggeddoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdllongline",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdllongline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmarubozu",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmarubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmatchinglow",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmatchinglow"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmathold",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmathold"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmorningdojistar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmorningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlmorningstar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlmorningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlonneck",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlonneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlpiercing",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlpiercing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlrickshawman",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlrickshawman"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlrisefall3methods",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlrisefall3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlseparatinglines",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlseparatinglines"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlshootingstar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlshootingstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlshortline",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlshortline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlspinningtop",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlspinningtop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlstalledpattern",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlstalledpattern"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlsticksandwich",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlsticksandwich"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdltakuri",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdltakuri"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdltasukigap",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdltasukigap"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlthrusting",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlthrusting"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdltristar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdltristar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlunique3river",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlunique3river"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlupsidegap2crows",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlupsidegap2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cdlxsidegap3methods",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cdlxsidegap3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ceil",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ceil"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ceil"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ceil"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cg",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cg"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cg"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "chaikin_osc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "ChaikinOsc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "chande_forecast_oscillator",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cfo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "chandelier",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Chandelier"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "chandelier_exit_long",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ce"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "choppiness_index",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "chop"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Chop"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "chop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "choptr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "choptr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cksp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cksp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cksp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "closingmarubozu",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_closingmarubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cmf",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cmf"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Cmf"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cmf"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cmo",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cmo"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Cmo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cmo"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cmo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cmou",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cmou"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "concealbabyswall",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_concealbabyswall"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "connors_rsi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "ConnorsRsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "coppock_curve",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "coppock"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "coppock"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "correl",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "correl"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "correl"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "correlation",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Correlation"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "correlation_trend_indicator",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cti"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cti"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cos",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cos"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cos"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cos"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cosh",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cosh"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cosh"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cosh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "counterattack",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_counterattack"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cpr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cpr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "crossany",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "crossany"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "crossover",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "crossover"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "crsi",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "crsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cumsum",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "cumsum"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "cvi",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cvi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "cvi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "cvi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dark_cloud_cover",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_darkcloudcover"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "decay",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "decay"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "decay"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "decreasing",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "decreasing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dema",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dema"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Dema"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "dema"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "dema"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "di",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "di"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "div",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "div"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "div"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "div"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dm",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dm"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "dm"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "doji",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_doji"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Doji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dojistar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_dojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "donchian",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "donchian"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Donchian"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "donchian"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dosc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "dosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dpo",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dpo"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Dpo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "dpo"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "dpo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dragonfly_doji",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_dragonflydoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "drawdown",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "drawdown"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dsp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dsp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "dx",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "dx"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "dx"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "dx"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ease_of_movement",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "eom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ebsw",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ebsw"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "edecay",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "edecay"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "edecay"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "efficiency_ratio",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "er"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "er"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "elder_ray",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "ElderRay"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ema",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ema"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Ema"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ema"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ema"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "emv",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "emv"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "emv"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "emv"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "engulfing",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_engulfing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "entropy",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "entropy"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "epma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Epma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "eri",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "eri"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "eri"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "eveningdojistar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_eveningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "eveningstar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_eveningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "exp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "exp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "exp"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "exp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fcb",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Fcb"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fisher",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "fisher"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "fisher"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "fisher"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fisher_transform",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "FisherTransform"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "floor",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "floor"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "floor"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "floor"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "force_index",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "efi"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "ForceIndex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "efi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fosc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "fosc"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "fosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "fosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fractal",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Fractal"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "fractal"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "frama",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "frama"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "fwma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "fwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "gapsidesidewhite",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_gapsidesidewhite"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "gator",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Gator"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "gravestone_doji",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_gravestonedoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hammer",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_hammer"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hanging_man",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_hangingman"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "harami",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_harami"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "harami_cross",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_haramicross"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "heikin_ashi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ha"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "HeikinAshi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ha"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "high_wave",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_highwave"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hikkake",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_hikkake"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hikkakemod",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_hikkakemod"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hilo",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hilo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hl2",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hl2"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hlc3",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hlc3"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hma",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hma"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Hma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "hma"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "hma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "homingpigeon",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_homingpigeon"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_dcperiod",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_dcperiod"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_dcperiod"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_dcphase",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_dcphase"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_dcphase"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_phasor",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_phasor"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_phasor"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_sine",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_sine"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_sine"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_trendline",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_trendline"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "HtTrendline"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_trendline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ht_trendmode",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ht_trendmode"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ht_trendmode"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hurst",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Hurst"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hvol",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hvol"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hwc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hwc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "hwma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "hwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ibs",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "ibs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ichimoku",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ichimoku"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Ichimoku"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ichimoku"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "identical3crows",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_identical3crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "imi",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "imi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "increasing",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "increasing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "inertia",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "inertia"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "inneck",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_inneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "inside",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_inside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "inverted_hammer",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_invertedhammer"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "jma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "jma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kama",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kama"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Kama"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kama"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "kama"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kdj_j",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kdj"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kdj"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "keltner",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kc"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Keltner"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kicking",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_kicking"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kickingbylength",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_kickingbylength"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kst",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kst"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kst"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kstext",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "kstext"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kurtosis",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kurtosis"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kurtosis"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "kvo",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "kvo"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Kvo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "kvo"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "kvo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ladderbottom",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_ladderbottom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "lag",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "lag"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linear_regression",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "linreg"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "linreg"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg_angle",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg_angle"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg_intercept",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg_intercept"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linearreg_slope",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "linearreg_slope"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linregangle",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "linregangle"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linregintercept",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "linregintercept"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "linregintercept"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "linregslope",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "linregslope"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "linregslope"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ln",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ln"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ln"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ln"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "log10",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "log10"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "log10"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "log10"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "log_return",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "log_return"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "long_legged_doji",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_longleggeddoji"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "long_run",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "long_run"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "longline",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_longline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "lrsi",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "lrsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ma_envelopes",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "MaEnvelopes"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "macd",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "macd"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Macd"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "macd"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "macd"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "macdext",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "macdext"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "macdext"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "macdfix",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "macdfix"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "macdfix"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mad",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mad"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mama",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mama"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Mama"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mama"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "market_facilitation_index",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "marketfi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "marketfi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "marketfi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "marubozu",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_marubozu"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Marubozu"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mass",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "mass"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mass_index",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "massi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "massi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "matching_low",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_matchinglow"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mathold",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_mathold"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mavp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mavp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mavp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "max",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "max"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "max"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "maxindex",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "maxindex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "maxindex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mcgd",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mcgd"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mcgd"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "md",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "md"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "md"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "median",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "median"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "median"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "median_price",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "midprice"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "midprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "medprice",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "medprice"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "medprice"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "medprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mfi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mfi"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Mfi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mfi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "mfi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mg_dynamic",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "MgDynamic"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "midpoint",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "midpoint"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "midpoint"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "min",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "min"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "min"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minindex",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minindex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minindex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minmax",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minmax"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minmax"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minmaxindex",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minmaxindex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minmaxindex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minus_di",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "minus_di"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "minus_dm",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "minus_dm"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "minus_dm"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mmar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mmar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "momentum",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mom"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mom"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "mom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "morningdojistar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_morningdojistar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "morningstar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_morningstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "msw",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "msw"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "msw"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mul",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "mul"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "mult",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "mult"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "mult"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "normalized_atr",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "natr"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "natr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "natr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "npabs",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "npabs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "npround",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "npround"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "nvi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "nvi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "nvi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "nvi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "obv",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "obv"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Obv"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "obv"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "obv"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ohlc4",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ohlc4"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "onneck",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_onneck"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "parabolic_sar",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "psar"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "ParabolicSar"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "psar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pattern",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_pattern"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pdist",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pdist"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percent_return",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "percent_return"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percentage_price_oscillator",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ppo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "ppo"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ppo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percentb",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "percentb"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percentile",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "percentile"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "percentrank",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "percentrank"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "piercing_pattern",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_piercing"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pivot_points",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "PivotPoints"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pivots",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Pivots"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "plus_di",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "plus_di"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "plus_dm",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "plus_dm"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "plus_dm"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pmax",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pmax"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pmo",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Pmo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "po",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "po"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pretty_good_oscillator",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pgo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "price_volume_rank",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pvr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "prs",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Prs"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pso",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "pso"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "psychological_line",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "psl"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pvi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pvi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "pvi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "pvi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pvo",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pvo"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Pvo"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "pvo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pvol",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pvol"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pvt",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pvt"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "pvt"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "pwma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "pwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "qqe",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "qqe"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "qstick",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "qstick"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "qstick"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "qstick"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "quantile",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "quantile"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rainbow",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rainbow"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "renko",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Renko"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "renko_atr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "RenkoAtr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rickshawman",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_rickshawman"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "risefall3methods",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_risefall3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "roc",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "roc"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Roc"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "roc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "roc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "roc_wb",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "RocWb"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rocp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rocp"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rocp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rocr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rocr"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rocr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "rocr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rocr100",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rocr100"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rocr100"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rogerssatchell",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "rogerssatchell"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_max",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rolling_max"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_min",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rolling_min"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_pivots",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "RollingPivots"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rolling_sum",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rolling_sum"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "round",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "round"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rsi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rsi"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Rsi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rsi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "rsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rsx",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rsx"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rvgi",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rvgi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rvi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "rvi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "rvi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rvir",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "rvir"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "rvol",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "rvol"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "sar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sarext",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sarext"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sarext"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "separatinglines",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_separatinglines"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "shootingstar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_shootingstar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "short_run",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "short_run"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "shortline",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_shortline"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "si",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "si"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sin",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sin"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sin"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sin"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sinh",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sinh"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sinh"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sinh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sinwma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sinwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "skew",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "skew"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "slope",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "slope"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Slope"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sma",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sma"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Sma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sma"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sma_analysis",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "SmaAnalysis"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "smc_sweep",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "smc_sweep"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "smi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "smi"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Smi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "smi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "smma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Smma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "spinning_top",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_spinningtop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sqrt",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sqrt"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sqrt"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sqrt"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "squeeze_on",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "squeeze"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "squeeze_pro",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "squeeze_pro"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sqzmom",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "sqzmom"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ssf",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ssf"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stalledpattern",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_stalledpattern"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "starc_bands",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "StarcBands"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stc"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Stc"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "stc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "std_dev",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "StdDev"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "std_dev_channels",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "StdDevChannels"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stddev",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "stddev"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "stddev"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stderr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stderr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "stderr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stdev",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stdev"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sticksandwich",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_sticksandwich"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stoch_rsi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "StochRsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stochastic",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stoch"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Stoch"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "stoch"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "stoch"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stochf",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stochf"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "stochf"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "stochrsi",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "stochrsi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "stochrsi"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "stochrsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sub",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "sub"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "sub"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sub"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "sum",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "sum"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "sum"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "super_trend",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "SuperTrend"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "supertrend",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "supertrend"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "supertrend"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_2php",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_2php"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_bp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_bp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_butter",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_butter"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_gauss",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_gauss"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swak_hp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "swak_hp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "swma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "swma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "t3",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "t3"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "T3"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "t3"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "takuri",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_takuri"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tan",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tan"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "tan"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tan"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tanh",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tanh"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "tanh"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tanh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tasukigap",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_tasukigap"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "td_seq",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "td_seq"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tema",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tema"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Tema"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "tema"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tema"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "thermometer",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "thermo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "three_black_crows",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3blackcrows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "three_inside",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3inside"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "three_white_soldiers",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_3whitesoldiers"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "thrusting",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_thrusting"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "todeg",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "todeg"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "todeg"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "torad",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "torad"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "torad"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tos_stdevall",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tos_stdevall"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tr",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Tr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trange",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "trange"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trima",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "trima"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "trima"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "trima"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tristar",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_tristar"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trix",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "trix"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Trix"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "trix"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "trix"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trixh",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "trixh"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "true_range",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "true_range"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "trunc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "trunc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "trunc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tsf",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tsf"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "tsf"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "tsf"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tsi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tsi"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Tsi"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "tsi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "tsignals",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "tsignals"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ttm_trend",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ttm_trend"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "typical_price",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "typprice"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "typprice"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "typprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ulcer_index",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "ui"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "UlcerIndex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ultimate",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "Ultimate"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "ultosc",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "ultosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "ultosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "unique3river",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_unique3river"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "uo",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "uo"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "upsidegap2crows",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_upsidegap2crows"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "utility",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "utility"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "var",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "var"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "var"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "variance",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "variance"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vertical_horizontal_filter",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vhf"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "vhf"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "vhf"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vfi",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vfi"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vidya",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vidya"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "vidya"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "vidya"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "volatility",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "volatility"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "volatility_stop",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "VolatilityStop"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "volume_oscillator",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vosc"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "vosc"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vortex",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vortex"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Vortex"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "vortex"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vwap",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vwap"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Vwap"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "vwap"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vwma",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vwma"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Vwma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "vwma"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "vwma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "vwmacd",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "vwmacd"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wavetrend",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "wavetrend"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wclprice",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "wclprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wcp",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "wcp"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wcprice",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "wcprice"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wilders",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "tulipindicators",
+          "source_name": "wilders"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "williams_ad",
+      "status": "PORTED_VERIFIED_UNIT_TESTS",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "wad"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "wad"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "wad"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "williams_r",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "willr"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "WilliamsR"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "willr"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "willr"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "wma",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "wma"
+        },
+        {
+          "source": "stock-indicators",
+          "source_name": "Wma"
+        },
+        {
+          "source": "ta-lib",
+          "source_name": "wma"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "wma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "xsidegap3methods",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_xsidegap3methods"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "xsignals",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "xsignals"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "z",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "cdl_z"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "zero_lag_ema",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "zlema"
+        },
+        {
+          "source": "tulipindicators",
+          "source_name": "zlema"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "zig_zag",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "stock-indicators",
+          "source_name": "ZigZag"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "zigzag",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "ta-lib",
+          "source_name": "zigzag"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "zlma",
+      "status": "NEW_NOT_YET_PORTED",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "zlma"
+        }
+      ]
+    },
+    {
+      "canonical_candidate": "zscore",
+      "status": "EXISTING_NAME_OR_ALIAS_REVIEW",
+      "occurrences": [
+        {
+          "source": "pandas-ta-classic",
+          "source_name": "zscore"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,400 @@
+{
+  "counts": {
+    "candidate_count_is_independent_math_count": false,
+    "registered_heuristic": 12,
+    "unimplemented_research_candidates": 18
+  },
+  "patterns": [
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "subwaves, interim counts, invalidation, diagonals excluded",
+      "name": "elliott_impulse_5",
+      "next_stage": "A6",
+      "reference": "IFTA/elliottwave.com",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "6 pivots; wave 2 retracement and wave 3 shortest, wave 4 no overlap",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "flat/triangle/running variants missing",
+      "name": "elliott_abc",
+      "next_stage": "A6",
+      "reference": "IFTA",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "4 pivots; B 0.236-1.05, C/A 0.618-1.90, zigzag-style",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "no internal X type/staging/alternate corrections",
+      "name": "elliott_wxy",
+      "next_stage": "A6",
+      "reference": "IFTA",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "10 pivots; alternating 3 ABC zigzag units",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "no alternate ABC/flat/triangle subdivisions",
+      "name": "elliott_wxyxz",
+      "next_stage": "A6",
+      "reference": "IFTA",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "16 pivots; alternating 5 ABC zigzag units",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "AB=CD minimum and per-leg PRZ crossing absent; commercial IP review",
+      "name": "harmonic_butterfly",
+      "next_stage": "A5",
+      "reference": "harmonictrader.com",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "IP/TRADEMARK/COMMERCIAL_LICENSE_REVIEW",
+      "rules": "B/XA ~0.786, D projection beyond X by 0.27 XA, CD/BC >=1.13",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "CD/BC 1.13-1.618 missing, PRZ confluence missing",
+      "name": "harmonic_gartley",
+      "next_stage": "A5",
+      "reference": "Titan FX",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "IP/TRADEMARK/COMMERCIAL_LICENSE_REVIEW",
+      "rules": "B/XA ~0.618, AD/XA ~0.786",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "CD/BC projection missing",
+      "name": "harmonic_bat",
+      "next_stage": "A5",
+      "reference": "Titan FX",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "IP/TRADEMARK/COMMERCIAL_LICENSE_REVIEW",
+      "rules": "B/XA ~0.382-0.5, AD/XA ~0.886",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "CD/BC 2.24-3.618 missing",
+      "name": "harmonic_crab",
+      "next_stage": "A5",
+      "reference": "Titan FX",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "IP/TRADEMARK/COMMERCIAL_LICENSE_REVIEW",
+      "rules": "B/XA ~0.382-0.618, D beyond X by ~0.618 XA",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "neckline break confirmation missing",
+      "name": "double_top",
+      "next_stage": "A7",
+      "reference": "independent geometric heuristic",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "equal peaks within 3.5%; trough depth >=2.5%",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "neckline break confirmation missing",
+      "name": "double_bottom",
+      "next_stage": "A7",
+      "reference": "independent geometric heuristic",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "equal troughs within 3.5%; middle height >=2.5%",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "neckline break and volume confirmation missing",
+      "name": "head_shoulders",
+      "next_stage": "A7",
+      "reference": "independent geometric heuristic",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "5 pivots; head > 1.03 * shoulder peak, similar shoulders",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": "core/features/chart_patterns.py",
+      "missing_formula_or_contract": "false positive A1-F01; need correction",
+      "name": "inverse_head_shoulders",
+      "next_stage": "A7",
+      "reference": "independent geometric heuristic",
+      "required_evidence": "source formula matrix, positive/negative oracle, prefix/decision_time, quantitative output coverage",
+      "risk": "CAUSALITY/HEURISTIC_NOT_VALIDATED",
+      "rules": "mirror transform direction -1; wrong head comparison with negative numbers",
+      "status": "REGISTERED_HEURISTIC"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "needs origin ratios and multi-leg oracle",
+      "name": "harmonic_deep_crab",
+      "next_stage": "A5",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "IP_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "needs origin ratios and multi-leg oracle",
+      "name": "harmonic_alternate_bat",
+      "next_stage": "A5",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "IP_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "different multi-swing order; cannot repurpose XABCD",
+      "name": "harmonic_shark",
+      "next_stage": "A5",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "IP_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "needs source-specific ratio/licensing verification",
+      "name": "harmonic_cypher",
+      "next_stage": "A5",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "IP_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "needs source and AB=CD-style confluence validation",
+      "name": "harmonic_5_0",
+      "next_stage": "A5",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "IP_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "AB=CD and BC/CD extensions; no distinct current detector",
+      "name": "harmonic_abcd",
+      "next_stage": "A5",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "IP_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "can overlap wave1/4; different inner subdivision rules",
+      "name": "elliott_leading_diagonal",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "special overlapping diagonal; not standard impulse",
+      "name": "elliott_ending_diagonal",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "ABC subwave topology 3-3-5; distinguish zigzag",
+      "name": "elliott_flat_regular",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "B exceeds A start; C exceeds A end, own oracle",
+      "name": "elliott_flat_expanded",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "B exceeds A start; C shortfalls, own oracle",
+      "name": "elliott_flat_running",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "ABCDE contracting/expanding; 5 swing groups not simple ABC",
+      "name": "elliott_triangle",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "WXY with distinct internal structure; avoid formula alias",
+      "name": "elliott_double_zigzag",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "WXYXZ with distinct structure; avoid formula alias",
+      "name": "elliott_triple_zigzag",
+      "next_stage": "A6",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "must define converging slopes and breakout confirmation",
+      "name": "classical_triangle",
+      "next_stage": "A7",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "separate trend continuation vs reversal; breakout confirmation",
+      "name": "classical_wedge",
+      "next_stage": "A7",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "pole and channel with duration/volume conditions",
+      "name": "classical_flag",
+      "next_stage": "A7",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    },
+    {
+      "code_source": null,
+      "missing_formula_or_contract": "pole and converging sides; validate breakout without future look",
+      "name": "classical_pennant",
+      "next_stage": "A7",
+      "reference": "source review pending",
+      "required_evidence": "full public source rule oracle, independent safe implementation, non-hindsight recognition and license clearance before import",
+      "risk": "FUTURE_LEAKAGE_AND_FORMULA_REVIEW_REQUIRED",
+      "rules": "NOT_VERIFIED_OR_IMPLEMENTED",
+      "status": "CANDIDATE_NOT_IMPORTED"
+    }
+  ],
+  "restrictions": [
+    "Harmonic pattern labels and specific implementations may have trademark/commercial use restrictions; do not copy proprietary code",
+    "These references establish a comparison review, not per-candidate implementation parity or permission",
+    "No new candidate may become registered without fixed source/evidence/license and deterministic causal oracle"
+  ],
+  "schema": "quant-v3-chart-A2-source-formula-matrix-v1",
+  "source_references": [
+    {
+      "license_note": "citation only",
+      "source": "Elliott Wave International Waveopedia",
+      "type": "reference, not copied code",
+      "url": "https://www.elliottwave.com/waveopedia/impulse/"
+    },
+    {
+      "license_note": "citation only",
+      "source": "International Federation of Technical Analysts, Elliott Wave",
+      "type": "reference, not copied code",
+      "url": "https://www.ifta.org/assets/docs/d_ifta_update_vol21-iss3.pdf"
+    },
+    {
+      "license_note": "trademark & commercial usage review needed",
+      "source": "Harmonic Trader, pattern taxonomy",
+      "type": "reference, not copied code",
+      "url": "https://harmonictrader.com/harmonic-patterns/"
+    },
+    {
+      "license_note": "Butterfly trademark/commercial licensing caution; never copy code",
+      "source": "Harmonic Trader, Butterfly pattern",
+      "type": "reference, not copied code",
+      "url": "https://harmonictrader.com/harmonic-patterns/butterfly-pattern/"
+    },
+    {
+      "license_note": "citation only",
+      "source": "Titan FX XABCD ratio overview",
+      "type": "comparison, not authoritative original code",
+      "url": "https://research.titanfx.com/technical-analysis/fibonacci/what-is-harmonic-patterns"
+    }
+  ],
+  "verified_defects": [
+    {
+      "formula_constraint_status": "MISSING",
+      "id": "A2-F01",
+      "observed_ratio_cd_over_bc": 1.7058823529411755,
+      "pattern": "harmonic_gartley",
+      "source": "https://research.titanfx.com/technical-analysis/fibonacci/what-is-harmonic-patterns"
+    },
+    {
+      "expected": 0,
+      "id": "A2-F02",
+      "input": [
+        100,
+        110,
+        100,
+        110,
+        100
+      ],
+      "observed": 1,
+      "pattern": "inverse_head_shoulders",
+      "source": "core/features/chart_patterns.py"
+    }
+  ]
+}

@@ -118,12 +118,92 @@ class DashboardService:
             degraded = self._with_warning(current, "KIS_REFRESH_FAILED")
             return self._save(self._with_health(degraded, kis_status="OFFLINE"))
 
+    def chart_research_catalog(self) -> dict[str, Any]:
+        """Return opt-in research catalog metadata, never enable it by reading."""
+        from core.features.chart_patterns import PATTERNS
+        from research.chart_pattern_bridge import chart_research_feature_specs
+
+        features = chart_research_feature_specs()
+        baseline_count = len(research_feature_specs())
+        # A registered research output is not automatically runnable on the
+        # current dataset, nor validated for economic value or OOS use.
+        overlay = self.chart_research_overlay(enabled=True)
+        return {
+            "schema": "chart-research-catalog-a8-v1",
+            "enabled_by_default": False,
+            "research_only": True,
+            "baseline_feature_count": baseline_count,
+            "combined_feature_count": len(research_feature_specs(chart_research_opt_in=True)),
+            "registration_is_profitability_proof": False,
+            "published_development_overlay": (
+                overlay.get("schema") == "chart-research-overlay-a8-v1"
+            ),
+            "feature_count": len(features),
+            "patterns": list(PATTERNS),
+            "features": [
+                {
+                    "name": s.name,
+                    "family": s.family,
+                    "version": s.version,
+                    "output_name": s.output_name,
+                    "implementation_hash": s.implementation_hash,
+                    "canonical_id": s.canonical_id,
+                }
+                for s in features
+            ],
+        }
+
+    def chart_research_overlay(
+        self, *, enabled: bool = False, demo: bool = False
+    ) -> dict[str, Any]:
+        """Read one explicitly published DEVELOPMENT artifact, no user-chosen paths."""
+        if not enabled:
+            return {"status": "DISABLED", "opt_in_required": True}
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "docs/operations/quant-v3-chart-A8-synthetic-overlay-20261029.json"
+            if demo
+            else self.state_dir / "chart-research-overlay-a8.json"
+        )
+        if not source.is_file():
+            return {"status": "NOT_PUBLISHED", "message": "No approved development overlay"}
+        try:
+            if source.stat().st_size > 2_000_000:
+                return {"status": "INTEGRITY_ERROR"}
+            value = json.loads(source.read_text(encoding="utf8"))
+            if not isinstance(value, dict) or value.get("source") != "DEVELOPMENT_ONLY":
+                return {"status": "RESEARCH_SCOPE_DENIED"}
+            if (
+                value.get("schema") != "chart-research-overlay-a8-v1"
+                or value.get("opt_in") is not True
+            ):
+                return {"status": "INTEGRITY_ERROR"}
+            from core.integrity.hashes import content_hash
+
+            checksum = value.get("overlay_hash")
+            if not isinstance(checksum, str) or checksum != content_hash(
+                {k: v for k, v in value.items() if k != "overlay_hash"}
+            ):
+                return {"status": "INTEGRITY_ERROR"}
+            if not isinstance(value.get("events"), list) or not isinstance(
+                value.get("pivots"), list
+            ):
+                return {"status": "INTEGRITY_ERROR"}
+            if value.get("execution_trades") != []:
+                return {"status": "RESEARCH_SCOPE_DENIED"}
+            if demo and value.get("data_kind") != "SYNTHETIC":
+                return {"status": "RESEARCH_SCOPE_DENIED"}
+            return {str(key): item for key, item in value.items()}
+        except (OSError, ValueError, TypeError):
+            return {"status": "INTEGRITY_ERROR"}
+
     def research_evidence(self, run_id: str | None = None) -> dict[str, Any]:
         """Read attributable evidence without exposing corrupt source details."""
         from memory.research_evidence import research_evidence
 
         try:
-            return research_evidence(self.state_dir, run_id=run_id)
+            result: dict[str, Any] = research_evidence(self.state_dir, run_id=run_id)
+            return result
         except (OSError, ValueError):
             return {
                 "schema_version": 1,

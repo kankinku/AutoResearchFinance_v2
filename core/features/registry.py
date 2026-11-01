@@ -101,10 +101,19 @@ def default_feature_registry() -> FeatureRegistry:
     return registry
 
 
-def research_feature_specs() -> tuple[FeatureSpec, ...]:
-    """Return imported indicators plus optional macro and benchmark features."""
+def research_feature_specs(*, chart_research_opt_in: bool = False) -> tuple[FeatureSpec, ...]:
+    """Return frozen normal catalog unless explicit research-only chart opt-in."""
 
     imported = imported_feature_catalog().all()
     existing = {spec.name for spec in imported}
     optional = tuple(spec for spec in default_feature_registry().all() if spec.name not in existing)
-    return tuple(sorted((*imported, *optional), key=lambda spec: spec.name))
+    selected = (*imported, *optional)
+    if chart_research_opt_in:
+        from research.chart_pattern_bridge import chart_research_feature_specs
+
+        additions = chart_research_feature_specs()
+        overlap = {spec.name for spec in selected} & {spec.name for spec in additions}
+        if overlap:
+            raise FeatureRegistrationError(f"A8 optional namespace collision: {sorted(overlap)}")
+        selected = (*selected, *additions)
+    return tuple(sorted(selected, key=lambda spec: spec.name))
