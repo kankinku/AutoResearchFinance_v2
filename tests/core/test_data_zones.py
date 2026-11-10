@@ -72,3 +72,50 @@ def test_nondefault_timebase_is_part_of_dataset_hash() -> None:
     )
 
     assert intraday.dataset_hash != daily.dataset_hash
+
+
+@pytest.mark.parametrize(("zone", "role"), [
+    ("sealed_oos", "research"),
+    ("sealed_oos", "promotion_validation"),
+    ("validation", "research"),
+    ("validation", "unknown"),
+])
+def test_string_encoded_data_zone_cannot_bypass_access_control(zone: str, role: str):
+    provider = InMemoryDataProvider(
+        development=MarketDataSet("dev", DataZone.DEVELOPMENT, bars()),
+        validation=MarketDataSet("val", DataZone.VALIDATION, bars()),
+        sealed_oos=MarketDataSet("oos", DataZone.SEALED_OOS, bars()),
+    )
+    with pytest.raises(DataAccessDenied):
+        provider.read(zone, role=role)  # type: ignore[arg-type]
+
+
+def test_oos_gate_accepts_same_zone_in_enum_or_serialized_string_form():
+    provider = InMemoryDataProvider(
+        development=MarketDataSet("dev", DataZone.DEVELOPMENT, bars()),
+        validation=MarketDataSet("val", DataZone.VALIDATION, bars()),
+        sealed_oos=MarketDataSet("oos", DataZone.SEALED_OOS, bars()),
+    )
+    assert provider.read(DataZone.SEALED_OOS, role="promotion_gate").version == "oos"
+    assert provider.read("sealed_oos", role="promotion_gate").version == "oos"  # type: ignore[arg-type]
+
+
+def test_mislabeled_sealed_dataset_cannot_be_returned_under_promotion_gate():
+    provider = InMemoryDataProvider(
+        development=MarketDataSet("dev", DataZone.DEVELOPMENT, bars()),
+        validation=MarketDataSet("val", DataZone.VALIDATION, bars()),
+        sealed_oos=MarketDataSet("wrong", DataZone.DEVELOPMENT, bars()),
+    )
+    with pytest.raises(DataAccessDenied, match="zone|mismatch"):
+        provider.read(DataZone.SEALED_OOS, role="promotion_gate")
+
+
+@pytest.mark.parametrize("zone", ["bogus", "", None, 0])
+def test_invalid_zone_values_fail_closed_without_keyerror(zone):
+    provider = InMemoryDataProvider(
+        development=MarketDataSet("dev", DataZone.DEVELOPMENT, bars()),
+        validation=MarketDataSet("val", DataZone.VALIDATION, bars()),
+        sealed_oos=MarketDataSet("oos", DataZone.SEALED_OOS, bars()),
+    )
+    with pytest.raises(DataAccessDenied):
+        provider.read(zone, role="research")
