@@ -84,6 +84,15 @@ class EvidenceStore:
                         f"BEFORE {action} ON events BEGIN "
                         "SELECT RAISE(ABORT, 'immutable evidence'); END"
                     )
+                # Composite expression index supports both a fast per-run
+                # lookup and a global malformed-run-ID check. Index creation
+                # on legacy files fails closed if stored JSON is invalid.
+                # No event row or immutable trigger is migrated or replaced.
+                connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_events_run_identity ON events "
+                    "(json_type(payload, '$.research_run_id'), "
+                    "json_extract(payload, '$.research_run_id'), kind)"
+                )
                 connection.execute("BEGIN IMMEDIATE")
                 prior = connection.execute(
                     "SELECT kind, payload, checksum FROM events WHERE id=?", (event_id,)
@@ -94,18 +103,30 @@ class EvidenceStore:
                         raise EvidenceIntegrityError("event identity conflict")
                     return
                 _validate(kind, payload)
-                history = [
-                    (k, json.loads(p))
-                    for k, p in connection.execute("SELECT kind, payload FROM events")
+                # Never ignore corrupt legacy identities, including rows in
+                # another run. This uses the index rather than decoding every
+                # historical payload in Python on every append.
+                if connection.execute(
+                    "SELECT 1 FROM events WHERE "
+                    "json_type(payload, '$.research_run_id') IS NOT 'text' "
+                    "LIMIT 1"
+                ).fetchone() is not None:
+                    raise EvidenceIntegrityError("invalid stored run identity")
+                related_kinds = [
+                    existing_kind
+                    for (existing_kind,) in connection.execute(
+                        "SELECT kind FROM events WHERE "
+                        "json_type(payload, '$.research_run_id')='text' "
+                        "AND json_extract(payload, '$.research_run_id')=? "
+                        "AND kind IN ('run', 'manifest', 'end')",
+                        (payload["research_run_id"],),
+                    )
                 ]
-                related = [
-                    (k, p) for k, p in history if p["research_run_id"] == payload["research_run_id"]
-                ]
-                if any(k == "end" for k, _ in related):
+                if "end" in related_kinds:
                     raise EvidenceIntegrityError("research run is closed")
-                if kind != "run" and not any(k == "run" for k, _ in related):
+                if kind != "run" and "run" not in related_kinds:
                     raise EvidenceIntegrityError("research run must be registered")
-                if kind in {"run", "manifest"} and any(k == kind for k, _ in related):
+                if kind in {"run", "manifest"} and kind in related_kinds:
                     raise EvidenceIntegrityError("event identity conflict")
                 connection.execute(
                     "INSERT INTO events(id, kind, payload, checksum) VALUES (?, ?, ?, ?)",

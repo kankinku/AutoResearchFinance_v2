@@ -1,0 +1,199 @@
+{
+  "environment": {
+    "cpu_count": 12,
+    "os": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "sqlite": "3.45.1",
+    "temp_root": "/shared"
+  },
+  "fixture": {
+    "initial_sizes": [
+      150,
+      1000,
+      10000
+    ],
+    "not_claimed": "10,000 sequential EvidenceStore.append operations",
+    "pad_bytes_per_row": 256,
+    "seed_method": "one transaction SQL bulk setup + public append benchmark",
+    "source": "SYNTHETIC_NOT_EXISTING_G150_OR_LIVE_MARKET"
+  },
+  "predeclared_thresholds_ms": {
+    "1000": {
+      "append": 60.0,
+      "read": 150.0
+    },
+    "10000": {
+      "append": 100.0,
+      "read": 800.0
+    },
+    "150": {
+      "append": 30.0,
+      "read": 70.0
+    }
+  },
+  "read_memory_limit_mib": 128.0,
+  "result_hash": "e352af06c12d1642801d038fe7e6729d2f3d095526f80ea6a87be66ac412f3c3",
+  "schema": "QUANT_T15_SYNTHETIC_SCALING_V1",
+  "seconds_total": 11.64,
+  "sizes": {
+    "1000": {
+      "append_count_before": 1000,
+      "append_ms_samples": [
+        43.928,
+        44.724,
+        45.066,
+        44.987,
+        45.519,
+        45.406,
+        48.062,
+        45.743,
+        45.928,
+        44.919,
+        43.681
+      ],
+      "append_p50_ms": 45.066,
+      "append_p95_ms": 48.062,
+      "append_repeats": 11,
+      "contention": {
+        "completed": true,
+        "error_count": 0,
+        "held_lock_ms": 150,
+        "waiting_append_ms": 236.809
+      },
+      "count_after": 1012,
+      "db_size_bytes": 610304,
+      "integrity": {
+        "checksums_all_verified": true,
+        "delete_prohibited": true,
+        "integrity_check": "ok",
+        "invalid_append_rolled_back": true,
+        "update_prohibited": true
+      },
+      "read_ms_samples": [
+        39.752,
+        33.875,
+        34.223,
+        36.867,
+        34.652
+      ],
+      "read_p50_ms": 34.652,
+      "read_p95_ms": 39.752,
+      "read_repeats": 5,
+      "read_tracemalloc_current_mib": 0.017,
+      "read_tracemalloc_peak_mib": 1.198,
+      "thresholds_passed": {
+        "append_p95": true,
+        "integrity": true,
+        "lock_completed": true,
+        "read_p95": true,
+        "read_peak_memory": true
+      }
+    },
+    "10000": {
+      "append_count_before": 10000,
+      "append_ms_samples": [
+        282.582,
+        293.508,
+        289.283,
+        288.042,
+        292.674,
+        285.099,
+        290.452,
+        281.651,
+        287.557,
+        280.515,
+        284.187
+      ],
+      "append_p50_ms": 287.557,
+      "append_p95_ms": 293.508,
+      "append_repeats": 11,
+      "contention": {
+        "completed": true,
+        "error_count": 0,
+        "held_lock_ms": 150,
+        "waiting_append_ms": 461.121
+      },
+      "count_after": 10012,
+      "db_size_bytes": 6565888,
+      "integrity": {
+        "checksums_all_verified": true,
+        "delete_prohibited": true,
+        "integrity_check": "ok",
+        "invalid_append_rolled_back": true,
+        "update_prohibited": true
+      },
+      "read_ms_samples": [
+        357.006,
+        345.936,
+        341.428,
+        392.563,
+        322.162
+      ],
+      "read_p50_ms": 345.936,
+      "read_p95_ms": 392.563,
+      "read_repeats": 5,
+      "read_tracemalloc_current_mib": 0.017,
+      "read_tracemalloc_peak_mib": 11.916,
+      "thresholds_passed": {
+        "append_p95": false,
+        "integrity": true,
+        "lock_completed": true,
+        "read_p95": true,
+        "read_peak_memory": true
+      }
+    },
+    "150": {
+      "append_count_before": 150,
+      "append_ms_samples": [
+        25.056,
+        25.446,
+        26.193,
+        25.948,
+        25.54,
+        26.178,
+        25.509,
+        25.32,
+        25.902,
+        26.129,
+        26.104
+      ],
+      "append_p50_ms": 25.902,
+      "append_p95_ms": 26.193,
+      "append_repeats": 11,
+      "contention": {
+        "completed": true,
+        "error_count": 0,
+        "held_lock_ms": 150,
+        "waiting_append_ms": 216.695
+      },
+      "count_after": 162,
+      "db_size_bytes": 110592,
+      "integrity": {
+        "checksums_all_verified": true,
+        "delete_prohibited": true,
+        "integrity_check": "ok",
+        "invalid_append_rolled_back": true,
+        "update_prohibited": true
+      },
+      "read_ms_samples": [
+        10.971,
+        10.373,
+        9.504,
+        9.396,
+        9.497
+      ],
+      "read_p50_ms": 9.504,
+      "read_p95_ms": 10.971,
+      "read_repeats": 5,
+      "read_tracemalloc_current_mib": 0.017,
+      "read_tracemalloc_peak_mib": 0.191,
+      "thresholds_passed": {
+        "append_p95": true,
+        "integrity": true,
+        "lock_completed": true,
+        "read_p95": true,
+        "read_peak_memory": true
+      }
+    }
+  }
+}
