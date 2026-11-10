@@ -74,6 +74,46 @@ _CHATGPT_CUSTOM: dict[str, PublicToolPlane] = {
 }
 
 
+# User-approved public ChatGPT ABI. Keep independent of mutable tool registries:
+# a new helper cannot silently become a 33rd MCP tool or replace an old one.
+_APPROVED_CHATGPT_TOOL_NAMES = frozenset(
+    {
+        "audit_market_data",
+        "cancel_algorithm_research",
+        "cancel_research_batch",
+        "download_market_data",
+        "evaluate_algorithm_experiments",
+        "get_algorithm_research",
+        "get_dashboard_status",
+        "get_guided_research",
+        "get_research_batch_report",
+        "get_research_batch_status",
+        "get_research_brief",
+        "get_research_evidence",
+        "get_workspace_status",
+        "import_strategies",
+        "initialize_research_state",
+        "list_features",
+        "list_market_data",
+        "list_strategies",
+        "preflight_research_batch",
+        "reconcile_algorithm_research",
+        "reconcile_guided_research",
+        "resume_algorithm_research",
+        "resume_research_batch",
+        "run_research_step",
+        "start_algorithm_research",
+        "start_guided_research",
+        "start_research_batch",
+        "submit_algorithm_diagnosis",
+        "submit_algorithm_plan",
+        "submit_guided_generation",
+        "validate_market_data",
+        "validate_strategy",
+    }
+)
+
+
 def chatgpt_tools() -> list[dict[str, object]]:
     """Advertise no autonomous Codex start/stop and no broker/order operations."""
     canonical = [dict(item) for item in _tools() if item["name"] in _CHATGPT_CANONICAL]
@@ -480,7 +520,15 @@ def chatgpt_tools() -> list[dict[str, object]]:
             ),
         ]
     )
-    return canonical + custom
+    published = canonical + custom
+    names = [item["name"] for item in published]
+    if (
+        (_CHATGPT_CANONICAL | _CHATGPT_CUSTOM.keys()) != _APPROVED_CHATGPT_TOOL_NAMES
+        or len(names) != len(_APPROVED_CHATGPT_TOOL_NAMES)
+        or set(names) != _APPROVED_CHATGPT_TOOL_NAMES
+    ):
+        raise TypeError("unapproved ChatGPT public tool inventory")
+    return published
 
 
 class _OAuthTool(types.Tool):
@@ -552,7 +600,7 @@ class ChatGPTMCPAdapter(SDKMCPServerAdapter):
         _context: ServerRequestContext[Any],
         params: types.CallToolRequestParams,
     ) -> types.CallToolResult:
-        if params.name not in (_CHATGPT_CANONICAL | _CHATGPT_CUSTOM.keys()):
+        if params.name not in self._input_validators:
             if self.audit is not None:
                 self.audit.emit(
                     "tool_call", tool="unknown", result="ERROR", error_code="UNKNOWN_TOOL"
