@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from core.integrity.hashes import content_hash
 from research.llm.parent_portfolio_v2 import (
     choose_parent_lane,
     shortlist_counted_generations,
@@ -28,6 +29,8 @@ def _verified(row):
     return {
         "source_generation": row["generation"],
         "effective_signal_hash": row["effective_signal_hash"],
+        # Signed costed fill identity in production; synthetic for selection-only tests.
+        "executed_fill_hash": content_hash(row["effective_signal_hash"]),
         "replay_verified": True,
         "parent_quality": {
             "total_return": row["metrics"]["total_return"],
@@ -87,3 +90,38 @@ def test_counted_s7_child_can_win_mixed_verified_portfolio():
     assert lanes[0]["source_generation"] == 304
     assert lanes[0]["source_kind"] == "COUNTED_S7_CHILD"
     assert choose_parent_lane([*counted, s7], 453)[0]["source_kind"] == "COUNTED_S7_CHILD"
+
+
+def test_verification_must_have_observed_fill_trace_not_just_distinct_strategy_ir():
+    candidates = [
+        _verified(_history(94, 1.70, 0.33)),
+        _verified(_history(96, 1.56, 0.26)),
+        _verified(_history(106, 0.70, 0.10)),
+    ]
+    # Different entry rule vectors, but the canonical fill trace is identical.
+    candidates[1]["executed_fill_hash"] = candidates[0]["executed_fill_hash"]
+    lanes = verified_parent_lanes(candidates)
+    assert {c["source_generation"] for c in lanes} == {94, 106}
+    assert len({c["executed_fill_hash"] for c in lanes}) == len(lanes)
+    assert choose_parent_lane(candidates, 127)[0]["source_generation"] in (94, 106)
+
+
+@pytest.mark.parametrize("bad_hash", [None, "", "strategy-hash", "g" * 64])
+def test_parent_without_proven_costed_fill_hash_fails_closed(bad_hash):
+    row = _verified(_history(94, 1.7, 0.33))
+    row["executed_fill_hash"] = bad_hash
+    with pytest.raises(ValueError, match="fill"):
+        verified_parent_lanes([row])
+
+
+def test_duplicate_fill_choice_is_stable_under_input_order_and_insertion():
+    a = _verified(_history(94, 1.70, 0.33))
+    b = _verified(_history(96, 1.56, 0.26))
+    c = _verified(_history(106, 0.70, 0.10))
+    b["executed_fill_hash"] = a["executed_fill_hash"]
+    first = choose_parent_lane([a, b, c], 128)[0]
+    other = choose_parent_lane([c, b, a], 128)[0]
+    assert first == other
+    assert {x["executed_fill_hash"] for x in verified_parent_lanes([a,b,c])} == {
+        a["executed_fill_hash"], c["executed_fill_hash"]
+    }
