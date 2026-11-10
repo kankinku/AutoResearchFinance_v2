@@ -132,3 +132,140 @@ def test_refuse_invalid_budget_and_does_not_override_interrupted(tmp_path: Path)
     with pytest.raises(AutonomousLoopError, match='checkpoint'):
         runner.run(sid, max_generations=10)
     assert not model.calls
+
+
+class _ProxyService:
+    """Wrap real DEVELOPMENT fixture, injecting only one compromised return."""
+
+    def __init__(self, delegate, *, corrupt_s7=None, privilege=None):
+        self.delegate = delegate
+        self.corrupt_s7 = corrupt_s7
+        self.privilege = privilege
+
+    def get(self, args):
+        state = self.delegate.get(args)
+        if self.privilege is not None:
+            return {**state, **self.privilege}
+        return state
+
+    def submit_plan(self, args):
+        return self.delegate.submit_plan(args)
+
+    def submit_diagnosis(self, args):
+        return self.delegate.submit_diagnosis(args)
+
+    def evaluate_experiments(self, args):
+        from copy import deepcopy
+
+        proof = deepcopy(self.delegate.evaluate_experiments(args))
+        if self.corrupt_s7 == "missing_trials":
+            proof["report"]["experiments"] = []
+        elif self.corrupt_s7 == "other_hypothesis":
+            proof["report"]["experiments"][0]["hypothesis_id"] = "fake_alternative"
+        elif self.corrupt_s7 == "wrong_session":
+            proof["session_id"] = "f" * 32
+        elif self.corrupt_s7 == "wrong_report_hash":
+            proof["record_hash"] = "f" * 64
+        return proof
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    ["missing_trials", "other_hypothesis", "wrong_session", "wrong_report_hash"],
+)
+def test_autopilot_blocks_forged_s7_before_reporting_completion(
+    tmp_path: Path, corruption: str,
+):
+    svc, sid = _service(tmp_path, generations=1)
+    provider = TenGenerationScriptedProvider()
+    proxied = _ProxyService(svc, corrupt_s7=corruption)
+    with pytest.raises(AutonomousLoopError, match="S7|paired|integrity"):
+        AcademicCheckpointAutopilot(proxied, provider).run(sid, max_generations=1)
+    state = svc.get({"session_id": sid})
+    assert state["completed_generations"] == 1
+    assert len(state["history"]) == 1
+    assert provider.calls == 1 and provider.diagnoses == 1
+    # The canonical saved report stays intact and a safe retry makes no
+    # additional provider calls or duplicated generation.
+    restored = AcademicCheckpointAutopilot(svc, provider).run(sid, max_generations=1)
+    assert restored["completed_generations"] == 1
+    assert restored["advanced_generations_this_call"] == 0
+    assert provider.calls == 1 and provider.diagnoses == 1
+
+
+@pytest.mark.parametrize(
+    "privilege", [{"orders_enabled": True}, {"independent_oos_approved": True}],
+)
+def test_autopilot_rejects_promoted_privilege_before_model_or_cycle(
+    tmp_path: Path, privilege: dict,
+):
+    svc, sid = _service(tmp_path, generations=1)
+    provider = TenGenerationScriptedProvider()
+    with pytest.raises(AutonomousLoopError, match="order|OOS|research.only"):
+        AcademicCheckpointAutopilot(
+            _ProxyService(svc, privilege=privilege), provider,
+        ).run(sid, max_generations=1)
+    assert provider.calls == 0 and provider.diagnoses == 0
+    assert svc.get({"session_id": sid})["completed_generations"] == 0
+
+
+def test_autopilot_does_not_attest_real_model_from_scripted_provider(tmp_path: Path):
+    svc, sid = _service(tmp_path, generations=1)
+    result = AcademicCheckpointAutopilot(
+        svc, TenGenerationScriptedProvider(),
+    ).run(sid, max_generations=1)
+    assert result["actual_model_invocation_attested"] is False
+    assert result["model_transport_tested"] == "CALLER_SUPPLIED_PROVIDER_ONLY"
+    assert result["broker_executable"] is False
+
+
+def test_missing_s7_after_completed_checkpoint_is_repaired_before_new_plan(
+    tmp_path: Path,
+):
+    svc, sid = _service(tmp_path, generations=2)
+    model = TenGenerationScriptedProvider()
+    runner = AcademicCheckpointAutopilot(svc, model)
+    first = runner.run(sid, max_generations=1)
+    assert first["completed_generations"] == 1
+    original = svc.get({"session_id": sid})["history"][0]["evidence_hash"]
+    with svc._connect() as db:
+        db.execute(
+            "DELETE FROM experiment_reports WHERE session_id=? AND generation=1",
+            (sid,),
+        )
+    assert svc.get({"session_id": sid})["completed_generations"] == 1
+    completed = runner.run(sid, max_generations=1)
+    assert completed["completed_generations"] == 2
+    assert completed["advanced_generations_this_call"] == 1
+    assert model.calls == 2 and model.diagnoses == 2
+    history = svc.get({"session_id": sid})["history"]
+    assert len(history) == 2 and history[0]["evidence_hash"] == original
+    proof = svc.evaluate_experiments({"session_id": sid, "generation": 1})
+    assert proof["original_generation_evidence_hash"] == original
+    replay = runner.run(sid, max_generations=1)
+    assert replay["advanced_generations_this_call"] == 0
+    assert model.calls == 2
+
+
+def test_running_state_requires_operator_reconciliation_no_spontaneous_replay(
+    tmp_path: Path,
+):
+    svc, sid = _service(tmp_path, generations=1)
+    state = svc.get({"session_id": sid})
+    with svc._connect() as db:
+        db.execute(
+            "UPDATE stages SET phase='RUNNING' WHERE session_id=?", (sid,),
+        )
+    provider = TenGenerationScriptedProvider()
+    with pytest.raises(AutonomousLoopError, match="reconcile"):
+        AcademicCheckpointAutopilot(svc, provider).run(sid, max_generations=1)
+    assert provider.calls == 0 and provider.diagnoses == 0
+    after = svc.reconcile({"session_id": sid})
+    assert after["completed_generations"] == 0
+    assert after["checkpoint_token"] != state["checkpoint_token"]
+    assert len(after["history"]) == 0
+    resumed = AcademicCheckpointAutopilot(svc, provider).run(
+        sid, max_generations=1,
+    )
+    assert resumed["completed_generations"] == 1
+    assert resumed["actual_model_invocation_attested"] is False
