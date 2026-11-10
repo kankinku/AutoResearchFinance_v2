@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from integrations.kis.client import (
+    KISAPIError,
     KISPaperClient,
     KISTransport,
     _account_parts,
@@ -38,6 +39,12 @@ class PaperRoundTripResult:
     sell: PaperOrderReceipt | None
     filled_sell_quantity: int
     final_position_quantity: float | None
+
+
+@dataclass(frozen=True)
+class _OrderProgress:
+    filled: int
+    pending: int | None
 
 
 class KISPaperOrderClient:
@@ -110,14 +117,30 @@ class KISPaperOrderClient:
         symbol = _symbol(symbol)
         initial_position = self._position_quantity(symbol, exchange=exchange)
         buy = self.place_market_order(symbol, "buy", quantity=quantity, exchange=exchange)
-        filled_buy = self._wait_for_fill(buy, timeout_seconds, poll_seconds)
-        if filled_buy <= 0:
-            return PaperRoundTripResult("BUY_NOT_FILLED", buy, 0, None, 0, initial_position)
+        buy_progress, buy_settled = self._settle_order(buy, timeout_seconds, poll_seconds)
+        filled_buy = buy_progress.filled
+        if not buy_settled:
+            return PaperRoundTripResult("UNSETTLED", buy, filled_buy, None, 0, None)
+
+        buy_position = self._position_quantity(symbol, exchange=exchange)
+        if abs(buy_position - initial_position - filled_buy) > 1e-9:
+            return PaperRoundTripResult(
+                "UNSETTLED", buy, filled_buy, None, 0, buy_position
+            )
+        if filled_buy == 0:
+            return PaperRoundTripResult(
+                "BUY_NOT_FILLED", buy, 0, None, 0, buy_position
+            )
 
         sell = self.place_market_order(
             symbol, "sell", quantity=filled_buy, exchange=exchange
         )
-        filled_sell = self._wait_for_fill(sell, timeout_seconds, poll_seconds)
+        sell_progress, sell_settled = self._settle_order(sell, timeout_seconds, poll_seconds)
+        filled_sell = sell_progress.filled
+        if not sell_settled:
+            return PaperRoundTripResult(
+                "UNSETTLED", buy, filled_buy, sell, filled_sell, None
+            )
         final_position = self._position_quantity(symbol, exchange=exchange)
         if filled_sell < filled_buy:
             status = "SELL_NOT_FILLED"
@@ -126,25 +149,74 @@ class KISPaperOrderClient:
         else:
             status = "FLAT"
         return PaperRoundTripResult(
-            status,
-            buy,
-            filled_buy,
-            sell,
-            filled_sell,
-            final_position,
+            status, buy, filled_buy, sell, filled_sell, final_position,
         )
+
+    def _settle_order(
+        self, receipt: PaperOrderReceipt, timeout_seconds: float, poll_seconds: float
+    ) -> tuple[_OrderProgress, bool]:
+        progress = self._wait_for_fill(receipt, timeout_seconds, poll_seconds)
+        if progress.pending == 0 or (
+            progress.filled == receipt.requested_quantity and progress.pending is None
+        ):
+            return progress, True
+
+        # A partial or not-yet-visible fill cannot trigger an opposite order.
+        # A successful cancel response alone is not proof of cancellation.
+        try:
+            self._cancel_remaining(receipt)
+        except KISAPIError:
+            return progress, False
+        deadline = self._monotonic() + timeout_seconds
+        while True:
+            progress = self._order_progress(receipt)
+            if progress.pending == 0 or (
+                progress.filled == receipt.requested_quantity
+                and progress.pending is None
+            ):
+                return progress, True
+            if self._monotonic() >= deadline:
+                return progress, False
+            self._sleep(poll_seconds)
+
+    def _cancel_remaining(self, receipt: PaperOrderReceipt) -> None:
+        cano, product = _account_parts(self.config.account_number, self.config.product_code)
+        result = self._read_only._call(  # noqa: SLF001 - paper-only capability
+            "POST",
+            "/uapi/overseas-stock/v1/trading/order-rvsecncl",
+            tr_id="VTTT1004U",
+            body={
+                "CANO": cano,
+                "ACNT_PRDT_CD": product,
+                "OVRS_EXCG_CD": receipt.exchange,
+                "PDNO": receipt.symbol,
+                "ORGN_ODNO": receipt.order_id,
+                "RVSE_CNCL_DVSN_CD": "02",
+                "ORD_QTY": "0",
+                "OVRS_ORD_UNPR": "0",
+                "QTY_ALL_ORD_YN": "Y",
+                "MGCO_APTM_ODNO": "",
+                "ORD_SVR_DVSN_CD": "0",
+            },
+        )
+        if result.get("rt_cd") != "0":
+            raise PaperOrderError("paper order cancel was not acknowledged")
 
     def _wait_for_fill(
         self, receipt: PaperOrderReceipt, timeout_seconds: float, poll_seconds: float
-    ) -> int:
+    ) -> _OrderProgress:
         deadline = self._monotonic() + timeout_seconds
         while True:
-            filled = self._filled_quantity(receipt)
-            if filled > 0 or self._monotonic() >= deadline:
-                return filled
+            progress = self._order_progress(receipt)
+            if (
+                progress.filled > 0
+                or progress.pending == 0
+                or self._monotonic() >= deadline
+            ):
+                return progress
             self._sleep(poll_seconds)
 
-    def _filled_quantity(self, receipt: PaperOrderReceipt) -> int:
+    def _order_progress(self, receipt: PaperOrderReceipt) -> _OrderProgress:
         cano, product = _account_parts(self.config.account_number, self.config.product_code)
         now = self._clock().strftime("%Y%m%d")
         payload = self._read_only._call(  # noqa: SLF001
@@ -168,7 +240,8 @@ class KISPaperOrderClient:
                 "CTX_AREA_FK200": "",
             },
         )
-        total = 0
+        fills: list[int] = []
+        remaining: list[int | None] = []
         for record in _records(payload.get("output")):
             if _order_id(record) != receipt.order_id:
                 continue
@@ -176,16 +249,37 @@ class KISPaperOrderClient:
                 continue
             record_side = str(record.get("sll_buy_dvsn", record.get("SLL_BUY_DVSN", "")))
             expected_side = "02" if receipt.side == "buy" else "01"
-            if record_side and record_side != expected_side:
+            if record_side != expected_side:
                 continue
-            total += int(
-                _number(
-                    record,
-                    ("ft_ccld_qty", "ft_ccld_qty2", "ccld_qty", "filled_quantity"),
-                )
-                or 0
+            filled = _number(
+                record, ("ft_ccld_qty", "ft_ccld_qty2", "ccld_qty", "filled_quantity")
             )
-        return total
+            pending = _number(record, ("nccs_qty", "NCCS_QTY", "unfilled_quantity"))
+            if (
+                filled is None or filled < 0 or not filled.is_integer()
+                or (pending is not None and (pending < 0 or not pending.is_integer()))
+            ):
+                raise PaperOrderError("unverifiable paper order quantities")
+            fills.append(int(filled))
+            remaining.append(int(pending) if pending is not None else None)
+
+        # Inquiry responses may repeat cumulative rows. Summing them would
+        # fabricate extra fills and could lead to an unsafe opposite order.
+        filled_count = max(fills, default=0)
+        outstanding = (
+            max(item for item in remaining if item is not None)
+            if remaining and all(item is not None for item in remaining)
+            else None
+        )
+        if (
+            filled_count > receipt.requested_quantity
+            or (
+                outstanding is not None
+                and filled_count + outstanding > receipt.requested_quantity
+            )
+        ):
+            raise PaperOrderError("paper order fill totals exceed requested quantity")
+        return _OrderProgress(filled_count, outstanding)
 
     def _position_quantity(self, symbol: str, *, exchange: str) -> float:
         snapshot = self._read_only.account_snapshot(exchange=exchange, currency="USD")
