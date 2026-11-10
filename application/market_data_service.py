@@ -36,7 +36,7 @@ _MARKET_FILENAME = re.compile(
     r"(?P<end>\d{4}-\d{2}-\d{2})_"
     r"(?P<policy>raw|total_return_adjusted)\.parquet\Z"
 )
-_SUPPORTED = ("tiingo", "kis")
+_SUPPORTED = ("tiingo", "kis", "nasdaq")
 _ALLOWED_POLICIES = {"raw", "total_return_adjusted"}
 
 
@@ -132,6 +132,103 @@ class TiingoDailyProvider:
         return tuple(sorted(bars, key=lambda bar: bar.timestamp))
 
 
+class NasdaqDailyProvider:
+    """Keyless Nasdaq.com public quote endpoint, development data only.
+
+    This website JSON endpoint is not a contracted historical/PIT API. It may
+    change, be restricted or return source-corrected values without revisions.
+    Never confuse the result with independent vintage/OOS evidence.
+    """
+
+    def __init__(self, *, transport: httpx.BaseTransport | None = None) -> None:
+        self._transport = transport
+
+    def daily_bars(self, symbol: str, start: date, end: date, *, adjusted: bool) -> tuple[Bar, ...]:
+        if adjusted:
+            raise MarketDataError(
+                "POLICY_UNSUPPORTED",
+                "Nasdaq historical quote endpoint has no dividend-adjusted series.",
+            )
+        endpoint = f"https://api.nasdaq.com/api/quote/{symbol}/historical"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; ResearchReadOnly/1.0)",
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Origin": "https://www.nasdaq.com",
+        }
+        try:
+            with httpx.Client(
+                timeout=25, transport=self._transport, follow_redirects=False,
+                headers=headers,
+            ) as client:
+                response = client.get(
+                    endpoint,
+                    params={
+                        "assetclass": "etf" if symbol == "QQQ" else "stocks",
+                        "limit": "5000",
+                        "fromdate": start.isoformat(),
+                        "todate": end.isoformat(),
+                    },
+                )
+            if response.status_code == 429:
+                raise MarketDataError("PROVIDER_RATE_LIMITED", "Nasdaq quote rate limit.")
+            if response.status_code != 200:
+                raise MarketDataError("PROVIDER_UNAVAILABLE", "Nasdaq quote fetch failed.")
+            payload = response.json()
+        except MarketDataError:
+            raise
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            raise MarketDataError(
+                "PROVIDER_UNAVAILABLE", "Nasdaq quote response is unavailable."
+            ) from exc
+
+        try:
+            record = payload["data"]
+            if record["symbol"] != symbol:
+                raise ValueError("wrong returned symbol")
+            raw_rows = record["tradesTable"]["rows"]
+            total = record["totalRecords"]
+            if not isinstance(raw_rows, list) or type(total) is not int or total < 0:
+                raise ValueError("invalid pagination metadata")
+            if len(raw_rows) != total:
+                raise MarketDataError(
+                    "INCOMPLETE_RANGE", "Nasdaq quote history was truncated."
+                )
+
+            def price(row: dict[str, object], field: str) -> float:
+                value = row[field]
+                if not isinstance(value, (int, float, str)) or isinstance(value, bool):
+                    raise ValueError("invalid quote price")
+                return float(str(value).replace("$", "").replace(",", "").strip())
+
+            bars = []
+            for row in raw_rows:
+                if not isinstance(row, dict):
+                    raise ValueError("invalid quote record")
+                stamp = datetime.strptime(row["date"], "%m/%d/%Y").replace(
+                    tzinfo=timezone.utc
+                )
+                if not start <= stamp.date() <= end:
+                    raise ValueError("vendor returned outside requested range")
+                bars.append(
+                    Bar(
+                        stamp, symbol,
+                        price(row, "open"), price(row, "high"),
+                        price(row, "low"), price(row, "close"),
+                        price(row, "volume"),
+                    )
+                )
+            if len({bar.timestamp for bar in bars}) != len(bars):
+                raise ValueError("duplicate returned quote dates")
+        except MarketDataError:
+            raise
+        except (KeyError, ValueError, TypeError, OverflowError, DataContractError) as exc:
+            raise MarketDataError(
+                "INVALID_VENDOR_DATA", "Nasdaq returned invalid daily OHLCV data."
+            ) from exc
+        return tuple(sorted(bars, key=lambda bar: bar.timestamp))
+
+
 class KISDailyProvider:
     """Uses the existing paper/read-only quote client; never an order client."""
 
@@ -184,6 +281,7 @@ class MarketDataService:
             configured = {
                 "tiingo": bool(self._tiingo_token()),
                 "kis": kis_configured,
+                "nasdaq": True,
             }
         return {
             "providers": [
@@ -217,6 +315,8 @@ class MarketDataService:
             return self._providers[name]
         if name == "tiingo":
             return TiingoDailyProvider(self._tiingo_token())
+        if name == "nasdaq":
+            return NasdaqDailyProvider()
         if name == "kis":
             try:
                 config = PaperKISConfig.from_env(self.root / ".env")
@@ -337,14 +437,14 @@ class MarketDataService:
         price_policy: str = "raw",
     ) -> dict[str, object]:
         if provider not in _SUPPORTED:
-            raise MarketDataError("UNKNOWN_PROVIDER", "Choose tiingo or kis.")
+            raise MarketDataError("UNKNOWN_PROVIDER", "Choose tiingo, kis, or nasdaq.")
         if not isinstance(symbol, str) or not _SYMBOL_RE.fullmatch(symbol):
             raise MarketDataError(
                 "INVALID_SYMBOL", "Symbol must be an uppercase US equity/ETF ticker."
             )
         if price_policy not in _ALLOWED_POLICIES:
             raise MarketDataError("INVALID_POLICY", "Choose raw or total_return_adjusted.")
-        if provider == "kis" and price_policy != "raw":
+        if provider in {"kis", "nasdaq"} and price_policy != "raw":
             raise MarketDataError(
                 "POLICY_UNSUPPORTED", "KIS adapter currently supports raw prices."
             )

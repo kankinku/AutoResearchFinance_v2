@@ -1,5 +1,13 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+
+**2026-11-10 KST T4-QQQ-REAL40 — [준비중 / G0/40] 사용자의 신규 40세대 연구 테스트 요청 (Q02/Q06/Q08/Q09/Q13/Q15/Q17).**
+- **입력 자료 확보·검증:** 인증키 없는 Nasdaq ETF 시세 API에서 실측된 QQQ 2020-01-02~2025-12-31 1,508 일봉을 `data/market/nasdaq/QQQ_2020-01-02_2025-12-31_raw.parquet`에 개발 구역으로 배타 생성하여 저장. 파일 SHA256 `1cf8a0439b4ffa1c475b5a2473abf773d145de391286c4370cbb4f031b949b93`, 데이터 내용 해시 `ffcb2401f7bdb2b5195a38326b9c44b12d3b3e62e1e69e270d0e719263acf8f5`. Yahoo QQQ API 원시 종가와 독립 읽기 비교: 1,508 날짜 교집합 전부 일치, 0.05 USD 초과 종가 차이 0개; 거래량 반올림 차이 존재. 미상표 거래일 달력/기업행동·실시간 역사 수정본 검증이 아니며 감사 `RESEARCH_ONLY_NOT_PIT_VERIFIED`, 거래 금지/OOS 승격 금지.
+- **신규 키 없는 공급자 코드:** 기존 32 MCP 도구 목록·전송 JSON 스키마·OAuth URL/키 무변경. `application/market_data_service.py`에 별도 Nasdaq 공개 웹 quote JSON을 읽는 개발 전용 `NasdaqDailyProvider` 추가, raw 가격만 허용, 정확한 symbol/date/전체 페이지 건수/중복·OHLCV 엄격 검증, 기존 exclusive-write 무결성 유지. 테스트 `tests/integrations/test_market_data_nasdaq_keyless.py` + 기존 provider 상태 테스트 업데이트. 웹사이트 API의 변경·사용 제한 가능성 있고 모든 자료는 '최신 수정본'이며 PIT 증거가 아님. MCP `download_market_data`의 공급자 enum은 호환성 잠금에 따라 `tiingo/kis` 그대로 유지, 검증된 신규 Parquet은 기존 `start_algorithm_research(data_path=...)`에 직접 전달 예정.
+- **확인된 테스트/차단:** 직접 Nasdaq 제공자 2020~2025 전 구간 1,508바 실수집 PASS, 39개 공급자/ABI/범위 거버넌스 테스트 PASS, Ruff PASS, `git diff --check` PASS. 수정 파일 mypy 직접 검사는 기존 numpy stubs Python 버전 인식 차이로 FAIL (품질 합격 주장 금지). `start_algorithm_research` 실제 신규 세션은 배포 이후 생성하며, 이전 G150 전략·연구 기억을 새 GPT 연구 근거로 사용하지 않음. 40세대/실모델의 실제 완료 수는 증거 원장 기록에 근거해 별도로 보고.
+- **남은 동작:** 수정 제공자 반영을 위한 기존 Quant loopback 서비스 무중단 수단 점검 후 재시작/URL+OAuth 보존, Quant MCP `validate_market_data`·`audit_market_data(pin_snapshot=true)` 성공 확인, 신규 40 세션 시작, 실제 GPT 별 Plan→평가→Diagnosis→S7 반복. 완료 숫자와 단순 세션 생성은 구별. 실주문 OFF 유지.
+
+
 **2026-11-10 KST T4-QQQ-G1-ENV-PREP — [진행중: 공급자 인증 대기] 실제 GPT 10→100세대의 실데이터 준비 (Q02/Q06/Q13/Q15/Q17).**
 - **[완료] 실제 OAuth/연구 MCP 연결:** 새 Quant MCP 도구 `get_workspace_status`, `list_market_data`, `get_research_brief`, `get_dashboard_status`의 인증된 호출 성공. 실제 서비스 상태에서 새 운영 연구 데이터 0개, 신규 G1 시작 이력 0. 원래 개발 기록·옛 G150은 신규 세대의 부모·평가/기억으로 사용하지 않는다.
 - **[완료] 연구 기본 환경 준비:** 기존 공개 MCP의 `initialize_research_state` 정상 수행. 신규 `state/moon-http/research/`에 `champion`, `frontier`, `knowledge`, `rescue_pool`, `mode` 5개만 생성. 이후 `get_workspace_status` 결과 **READY**, `paper`, `orders_enabled=false`, `champion=EMPTY`, `frontier_families=0`, `validated_manifests=0`; 과거 상태 삭제·OAuth 변경·실주문 없음.

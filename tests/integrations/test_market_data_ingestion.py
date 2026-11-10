@@ -264,7 +264,7 @@ def test_tiingo_only_dotenv_does_not_claim_kis_configured(
     (tmp_path / ".env").write_text("TIINGO_API_KEY=test-placeholder\n", encoding="utf-8")
     status = MarketDataService(tmp_path).provider_status()
     by_name = {item["name"]: item["configured"] for item in status["providers"]}
-    assert by_name == {"tiingo": True, "kis": False}
+    assert by_name == {"tiingo": True, "kis": False, "nasdaq": True}
 
 
 def test_validate_market_data_denies_sealed_before_reading_rows(
