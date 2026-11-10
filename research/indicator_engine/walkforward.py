@@ -191,6 +191,7 @@ def run_development_walkforward(
                 strategy_hash=compiled.strategy_hash, dataset=run_data,
                 initial_cash=initial_cash, strategy=compiled.strategy,
                 cost_model=_RESEARCH_COST, feature_values=compiled.feature_values,
+                feature_values_pre_lagged=True,
                 signal_start_at=start,
             ))
             if evaluated.exit_status != "SUCCEEDED":
