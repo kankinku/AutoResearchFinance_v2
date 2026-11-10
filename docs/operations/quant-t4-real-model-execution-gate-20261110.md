@@ -32,6 +32,16 @@
 - 기존 세션·S7·중복 제출·복구·거버넌스와 신규 부정 테스트: **66 PASS** (모의 연구 전용). `ruff check .` PASS, 수정 `checkpoint_autopilot.py`에 대한 mypy PASS, `git diff --check` PASS.
 - 전체 pytest 성공은 미확인(기존 구형 대시보드 자료 부재). 실제 GPT 10/100 미실행.
 
+## 실측 테스트 결과
+
+- 변경 전 기본 계약: 학술 자동연구·게이트웨이 복구·토큰 중복 재생·세션 확장·거버넌스 중심 **57 PASS**.
+- 새 TDD: 빈 S7 실험 목록을 완료로 인정하는 실패를 RED로 재현, 구현 후 `tests/integrations/test_academic_autopilot.py` 신규/기존 **13 PASS**. 확대 MCP/OAuth/세션·코어 연구 재개·거버넌스 **68 PASS**.
+- 실제 시스템 기본 명령: `python -m scripts.run_academic_autopilot --execution-mode mcp ...` → `USE_EXISTING_CHATGPT_MCP_CONNECTOR` / 세션 미생성 / 모델 호출 0.
+- `ruff check .` **PASS**, `mypy --follow-imports=silent research/llm/checkpoint_autopilot.py` **PASS**, `git diff --check` PASS.
+- 전체 `pytest -q -x -p no:cacheprovider` → **448 PASS, 1 FAIL 이후 중단**. 기존 `tests/dashboard/test_fresh_original_dashboard.py::test_readonly_sqlite_bridge_matches_original_contracts`가 마운트되지 않은 `state/moon-http/fresh-20261021/session-id.txt`에 접근함. **전체 pytest PASS 아님**, 변경 전부터 반복되던 환경 차단.
+- 전체 `python -m mypy .` → **51 ERRORS / 16 FILES / 338 소스**, 수정 전 단계에서도 동일 51건이 확인됐고 수정한 `checkpoint_autopilot.py` 직접 오류는 0건. **전체 mypy PASS 아님**.
+- 서명/자원·코드의 별도 독립 리뷰어 **NOT_RUN**. 이 테스트에서 `ScriptedResearcher`와 `TenGenerationScriptedProvider`의 10세대는 실제 백테스트를 쓰는 **합성 입력 기반 인터페이스 시험**이며 라이브 GPT 관여·새 실제 G1 10/100세대의 증거가 아님.
+
 ## 완료·미완료 및 다음
 
 - [ ] 운영 실제 신규 QQQ 자료의 SHA/기간/평가 정책·데이터 소유자 검증, 실제 OAuth Quant MCP 앱 접속 및 Plan/Diagnosis 제출.
