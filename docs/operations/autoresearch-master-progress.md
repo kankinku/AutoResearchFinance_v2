@@ -1,5 +1,14 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-11-10 KST T4-PAPER-ORDER-SETTLEMENT-20261110 — [5/16] 모의주문 부분 체결·미체결 취소 확인 (T0, Q04/Q09/Q11/Q15/Q20).**
+- **티켓/범위:** 승인된 16단계 계획 Task 4. KIS paper-only 주문의 매수·매도 부분 체결 및 잔여 주문이 있는데도 반대 주문·`FLAT` 성공을 선언할 위험 제거. 기존 `PaperRoundTripResult` 반환 계약·종목 주문 식별자·OAuth·기존 MCP 32개·주문 OFF/실거래 endpoint 차단 유지. 사용자 승인 시점의 과거 G1~G150 및 다른 실험 신규 연구 계승 금지와 V05→T4→V01~V04→V06→V07 보존.
+- **RED→GREEN:** 새 회귀 `test_partial_buy_must_cancel_and_confirm_before_selling`: 10주 매수/2주 체결/미체결 8주에서 기존 경로가 취소 요청 없이 매도한 후 `SELL_NOT_FILLED`로 끝나는 결함 재현(RED) → 취소·체결량 재조회·잔고 2주 확인 후 매도 2주, 잔고 0 확인으로 GREEN. 모의 체결 지연/중복, 매수·매도 취소 거절, 취소 확인 누락/미체결 지속, 부분 매도 추가 체결, 보유량 불일치, 무체결 취소, 라이브 도메인 금지, CLI 실패 코드 재검증.
+- **수정:** `integrations/kis/paper_orders.py`는 `_OrderProgress(filled,pending)`로 완료 여부를 구분한다. 주문이 전부 체결되지 않으면 미국 모의취소 경로 `/uapi/overseas-stock/v1/trading/order-rvsecncl`, 모의 `VTTT1004U`에 잔량 취소를 요청하고 `inquire-ccnl`로 최종 잔여 0(또는 전체 수량 체결)을 재확인한다. 취소 응답 자체는 증명이 아니며 불확실하면 `UNSETTLED`로 중단하고 반대 주문을 생성하지 않는다. 기존 동일 주문 체결내역 중복 합산을 방지하고 매도 직전·마지막 보유 수량을 비교한다. CLI `UNSETTLED` 종료 2 확인.
+- **검증:** 관련 paper 주문+CLI **18 PASS**. KIS 클라이언트·KIS 격리·paper adapter·paper orders·paper CLI·거버넌스 6파일 **38 PASS**. `ruff check .` **PASS**, `mypy integrations/kis/paper_orders.py` **PASS**, `git diff --check` **PASS**. 광역 `pytest tests/integrations tests/cli tests/governance`는 200초 제한 내 약 26% 실행 중 실패 마커 1건을 관측한 뒤 **TIMEOUT/INTERRUPTED**, 구체 실패 파일·원인 미확인, 통합 PASS 판정 불가. 전체 suite 별도 완주 **NOT RUN**(선행 단계에는 구형 dashboard session-id 누락 첫 실패 이력). 테스트에는 `RecordingTransport` 주입만 사용, 실제 가상 KIS 요청 0.
+- **감사/근거:** [상세 안전성 명세·테스트 결과](quant-paper-order-settlement-20261110.md), 한국투자증권 [공개 해외주식 정정취소 샘플](https://github.com/koreainvestment/open-trading-api/blob/main/legacy/Sample01/kis_ovrseastk.py)의 paper TR/URL 참조. 실제 모의 KIS 서버의 잔량 필드 및 취소 수락, 페이징·종단 검증 **NOT_VERIFIED**. `nccs_qty` 등이 없으면 성공 추측 대신 명시적인 미정산으로 분류. 실거래 계좌/키/주문 기능 사용하지 않음.
+- **소스/리뷰/진행:** 격리 브랜치 `feat/quant-t4-paper-order-settlement-20261110`에서 오류 재현·최소 수정·코드 자체 검사 후 `fccfd87` 커밋, `impl/quant-improvement-20261110`에 FF 통합. 자체 Ponytail 호출자·상태·반복·오류 경로 검토, 별도 독립 코드 리뷰어 수행 **NOT_RUN**. 단계 판정 **[5/16] 코드/직접 연관 검증 PASS, 운영 종단 검증 BLOCKED**. 다음 **[6/16] Task 5** V05 비용 스트레스·선택 편향 평가 정합성. 150세대 원본 물리 삭제·신규 G1 실 모델 실행·독립 OOS·실주문·배포 **NOT_RUN**. PR #6은 draft, main/master 미병합.
+
+
 **2026-11-10 KST T3-CAPTURE-ATOMIC-20261110 — [4/16] Nasdaq QQQ 원시 시세 번들 동시 수집 원자성 (T0; Q04/Q09/Q11/Q13/Q17/Q20).**
 - **티켓/가치:** 승인된 16단계 개선 계획 Task 3. 같은 세 경로(raw, Parquet, manifest)를 동시에 수집하는 두 작업 중 늦게 실패한 호출이 성공자의 결과를 삭제하는 실제 경쟁 조건 제거. 수집 결과의 무손실·해시 추적을 보호하며 실 모델 연구·시장 수익 검증은 아님.
 - **RED→GREEN:** 신규 `test_concurrent_capture_preserves_winning_bundle`은 첫 호출의 존재 검사 이후 두 번째 호출이 완전 번들을 만든 경우를 재현해, 구 코드가 `FileExistsError` 예외 정리 중 성공자 3개 파일을 지우는 **실패 재현** → 변경 후 PASS. 독립 OS 프로세스 2개 × 12회 `spawn` 경합 검증: 매회 승자 1·충돌 1, 최종 세 파일 및 SHA-256·원본 재파싱 검증 PASS. 최종 manifest 생성 시 외부 파일 충돌·Parquet 쓰기 중단·기존 파일 보존·숨은 임시 파일 정리 테스트도 PASS.
