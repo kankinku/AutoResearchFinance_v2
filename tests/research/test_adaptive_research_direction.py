@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import pytest
 
+from core.integrity.hashes import content_hash
 from research.llm.adaptive_direction import ResearchBudgetError, build_research_direction
 
 
@@ -17,14 +18,16 @@ def _history(n: int = 1):
 
 
 def _report(history, *, state='NO_OBSERVED_EFFECT', added=0, resized=0, multi=False):
-    return {
+    row = {
         'original_generation_evidence_hash': history[-1]['evidence_hash'],
-        'record_hash': 'd' * 64,
+        'study_scope': 'REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF',
         'report': {
+            'out_of_sample_approved': False,
+            'broker_executable': False,
             'causal_status': 'NOT_ESTABLISHED',
             'multiple_comparison_notice': multi,
             'experiments': [{
-                'hypothesis_id': 'test_1',
+                'hypothesis_id': f"test_{history[-1]['generation']}",
                 'status': state, 'causal_status': 'NOT_ESTABLISHED',
                 'execution_delta': {
                     'added_event_count': added,
@@ -34,6 +37,7 @@ def _report(history, *, state='NO_OBSERVED_EFFECT', added=0, resized=0, multi=Fa
             }],
         },
     }
+    return {**row, "record_hash": content_hash(row)}
 
 
 def test_first_generation_recommends_exploration_not_fake_alpha():
@@ -77,6 +81,7 @@ def test_timing_change_recommends_further_evolution_but_without_profit_claim():
     assert not r['real_trading_enabled']
     record = deepcopy(record)
     record['report']['multiple_comparison_notice'] = True
+    record['record_hash'] = content_hash({k: v for k, v in record.items() if k != 'record_hash'})
     assert build_research_direction(h, {1: record})['recommended_mode'] == 'TEST_HYPOTHESIS'
 
 
@@ -96,10 +101,12 @@ def test_forged_evidence_rejected_not_promoted_to_guidance():
     h = _history()
     altered = _report(h)
     altered['original_generation_evidence_hash'] = 'f' * 64
+    altered['record_hash'] = content_hash({k: v for k, v in altered.items() if k != 'record_hash'})
     with pytest.raises(ResearchBudgetError, match='original generation'):
         build_research_direction(h, {1: altered})
     altered = _report(h)
     altered['report']['experiments'][0]['execution_delta']['added_event_count'] = -1
+    altered['record_hash'] = content_hash({k: v for k, v in altered.items() if k != 'record_hash'})
     with pytest.raises(ResearchBudgetError, match='counts'):
         build_research_direction(h, {1: altered})
     with pytest.raises(ResearchBudgetError, match='completed generation'):
@@ -117,6 +124,7 @@ def test_prior_persisted_matched_zero_fill_result_cannot_direct_evolve():
     result_row = stored["report"]["experiments"][0]
     result_row["parent_fill_count"] = 75
     result_row["child_fill_count"] = 0
+    stored["record_hash"] = content_hash({k: v for k, v in stored.items() if k != "record_hash"})
     outcome = build_research_direction(h, {1: stored})
     assert outcome["recommended_mode"] == "EXPLORE"
     assert outcome["reason_code"] == "LAST_CONTROL_INACTIVE_CHILD"
@@ -133,3 +141,55 @@ def test_new_inactive_child_status_routes_to_explore():
     result = build_research_direction(h, {1: report})
     assert result["recommended_mode"] == "EXPLORE"
     assert result["reason_code"] == "LAST_CONTROL_INACTIVE_CHILD"
+
+
+def test_direction_rejects_tampered_s7_status_even_with_matching_ancestor() -> None:
+    h = _history()
+    signed = _report(h, state="NO_OBSERVED_EFFECT")
+    signed["report"]["experiments"][0]["status"] = "DIRECTION_MATCHED_DEVELOPMENT_ONLY"
+    signed["report"]["experiments"][0]["execution_delta"]["added_event_count"] = 1
+    # Attacker can edit the report, but cannot make its immutable hash agree.
+    with pytest.raises(ResearchBudgetError, match="integrity"):
+        build_research_direction(h, {1: signed})
+
+
+def test_direction_rejects_resealed_report_with_wrong_hypothesis_id() -> None:
+    h = _history()
+    signed = _report(h)
+    signed["report"]["experiments"][0]["hypothesis_id"] = "invented-llm-claim"
+    body = {k: v for k, v in signed.items() if k != "record_hash"}
+    signed["record_hash"] = content_hash(body)
+    with pytest.raises(ResearchBudgetError, match="hypothesis"):
+        build_research_direction(h, {1: signed})
+
+
+def test_direction_must_not_evolve_same_fill_trace_with_claimed_signal_change() -> None:
+    h = _history()
+    signed = _report(h, state="DIRECTION_MATCHED_DEVELOPMENT_ONLY", added=2)
+    signed["report"]["experiments"][0]["same_fill_trace"] = True
+    body = {k: v for k, v in signed.items() if k != "record_hash"}
+    signed["record_hash"] = content_hash(body)
+    result = build_research_direction(h, {1: signed})
+    assert result["recommended_mode"] != "EVOLVE"
+    assert result["execution_change_counts"]["UNCHANGED_EXECUTIONS"] == 1
+    assert result["last_generation_observations"][0]["execution_change"] == (
+        "UNCHANGED_EXECUTIONS"
+    )
+
+
+@pytest.mark.parametrize(("key", "value"), [
+    ("out_of_sample_approved", True),
+    ("broker_executable", True),
+    ("causal_status", "ESTABLISHED"),
+])
+def test_resealed_prohibited_promotion_is_not_valid_direction_evidence(
+    key: str, value: object,
+) -> None:
+    h = _history()
+    altered = _report(h, state="DIRECTION_MATCHED_DEVELOPMENT_ONLY", added=1)
+    altered["report"][key] = value
+    altered["record_hash"] = content_hash(
+        {k: v for k, v in altered.items() if k != "record_hash"}
+    )
+    with pytest.raises(ResearchBudgetError, match="unverified"):
+        build_research_direction(h, {1: altered})
