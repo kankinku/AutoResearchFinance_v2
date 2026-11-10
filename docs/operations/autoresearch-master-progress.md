@@ -1,5 +1,13 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-11-10 KST T4-QQQ-G1-ENV-PREP — [진행중: 공급자 인증 대기] 실제 GPT 10→100세대의 실데이터 준비 (Q02/Q06/Q13/Q15/Q17).**
+- **[완료] 실제 OAuth/연구 MCP 연결:** 새 Quant MCP 도구 `get_workspace_status`, `list_market_data`, `get_research_brief`, `get_dashboard_status`의 인증된 호출 성공. 실제 서비스 상태에서 새 운영 연구 데이터 0개, 신규 G1 시작 이력 0. 원래 개발 기록·옛 G150은 신규 세대의 부모·평가/기억으로 사용하지 않는다.
+- **[완료] 연구 기본 환경 준비:** 기존 공개 MCP의 `initialize_research_state` 정상 수행. 신규 `state/moon-http/research/`에 `champion`, `frontier`, `knowledge`, `rescue_pool`, `mode` 5개만 생성. 이후 `get_workspace_status` 결과 **READY**, `paper`, `orders_enabled=false`, `champion=EMPTY`, `frontier_families=0`, `validated_manifests=0`; 과거 상태 삭제·OAuth 변경·실주문 없음.
+- **[진행전/외부 입력 대기] QQQ 실제 벤더 데이터:** 초기 공통 자산/기간 `QQQ` 2020-01-02~2025-12-31, 개발구역, `raw` 데이터 획득 준비. Quant `list_market_data`가 **count=0**, `tiingo.configured=false`, `kis.configured=false`로 확인; `download_market_data(provider=tiingo,symbol=QQQ,start=2020-01-02,end=2025-12-31,price_policy=raw)`를 실제 요청했으나 **PROVIDER_NOT_CONFIGURED**로 거절, 파일·증거·세션 생성 없음. 인증되지 않은 새 시세 벤더나 합성/과거 지표값으로 QQQ 데이터 위조 금지. `TIINGO_API_KEY`를 사용자 보유 비밀 저장소/무로그 환경에서 설정하거나 기존 허가된 KIS 읽기전용 계정 연결 후 재요청 필요.
+- **[진행전] 데이터 파일 다운로드 성공 후 필수 검증:** Quant `validate_market_data`로 원본 단일 심볼·봉수·기간·품질·공급자 provenance 확인, `audit_market_data`로 자료 SHA/거래일 결손·PIT 한계 명시, 새 연구의 개발 평가정책/매니페스트 사전잠금. 실제 GPT가 만든 계획·진단/평가·S7이 10세대 완료될 때까지 100세대 실제 성공이라고 기록하지 않는다. 독립 OOS/매매 승인 **NO-GO**, 원본 연구 원장 변경 없음.
+- **안전/버전:** 본 작업은 운영 서버 설정·URL/OAuth·코드 변경 없이 기존 MCP API 기능만 사용, 사용자가 제공하지 않은 Tiingo 토큰/키는 생성하거나 로그에 남기지 않았다. 다음 차단 해제 전 신규 `start_algorithm_research` **NOT_RUN**. 통합 소스 SHA `cf03b00` 기반, 원본 PR #6 Draft 유지.
+
+
 **2026-11-10 KST QUANT-100-SYNTHETIC-RECOVERY-STRESS — 사용자 요청 '100세대 테스트' 별도 실행.**
 - **실제 연구 BLOCKED:** 연결된 Quant AutoResearch의 읽기 전용 `list_market_data`, `get_workspace_status`, `get_dashboard_status` 모두 `The tool failed internally.`. 현재 Moon 실행 환경에 신규 실제 QQQ Parquet/운영 연구 SQLite 및 해당 환경의 모델/API 환경 변수 미확인. 따라서 **실제 GPT 모델 호출 0, 새로운 실제 100세대 0/100, 실거래 0, 독립 OOS 0**. 기존 G150을 신규 부모/학습 기억으로 사용하거나 과거 연구 DB를 변경하지 않았다.
 - **합성 통합 100/100 PASS (실제 GPT 아님):** 기존 `AcademicMCPCheckpointService` + `AcademicCheckpointAutopilot` + 정본 백테스터/진단+S7 경로에 **합성 QQQ 650봉**, 사전 선택한 중복 없는 **모의 계획 100개(108개 후보 선별)**를 전달. 2/100, 40/100 저장 후 각각 3·41세대 진단 단계에서 강제 장애 발생, **`AWAITING_DIAGNOSIS`에서 새로운 프로세스로 복구**. 세대 2→10→40→50→60→70→80→90→100를 이어서 완료, 계획 중복 재제출 없음. 최초 비체결 샘플만 가정한 모의 제공자의 `IndexError`는 **시험용 제공자에 비체결 결정 ID 사용**을 추가해 해결(생산 코드 미변경). 100개 정본 증거·전략 의미·효과 신호 해시 각각 전부 고유, 원본 S7 100건 검증, 완료 후 재실행에서 새로운 계획/세대 **0건**, 주문·독립 OOS 권한 False.
