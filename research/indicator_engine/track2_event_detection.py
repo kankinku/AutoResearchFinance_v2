@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import date
 from math import isfinite
-from statistics import median, pstdev
+from statistics import mean, median, pstdev
 from typing import Literal
 
 from core.features.calculators import calculate_feature
@@ -223,10 +223,29 @@ def _warning_stats(
         "event_recall": hits / len(labels_onsets) if labels_onsets else None,
         "confirmed_lead_times_bars": tuple(leads),
         "median_confirmed_lead_bars": median(leads) if leads else None,
+        "mean_confirmed_lead_bars": mean(leads) if leads else None,
         "false_warnings_per_252_eligible_bars": (
             false * 252.0 / eligible_count if eligible_count else None
         ),
     }
+
+
+def require_purged_train_test_boundary(
+    train_last_issue_index: int, test_first_issue_index: int, study: EventStudy,
+) -> None:
+    """Prevent a train label horizon from reaching a held-out test fold.
+
+    This verifies one boundary only; it DOES NOT establish a complete
+    purged walk-forward experiment or independent OOS provenance.
+    """
+    if (
+        type(train_last_issue_index) is not int
+        or type(test_first_issue_index) is not int
+        or train_last_issue_index < 0
+        or test_first_issue_index <= train_last_issue_index
+        or train_last_issue_index + study.max_lead_bars >= test_first_issue_index
+    ):
+        raise EventStudyError("purged walk-forward needs an embargo after label horizon")
 
 
 def evaluate_development_events(
@@ -295,6 +314,8 @@ def evaluate_development_events(
             "issued_at_index": i, "issued_at_date": days[i].isoformat(),
             "score_available_at": days[i].isoformat(),
             "score": risk[i], "protocol_hash": protocol_hash,
+            "warning_reason": "REGISTERED_QQQ_RETURNS_20_BAR",
+            "feature_semantic_id": feature.canonical_id,
             "observed_prefix_hash": content_hash({
                 "dates": [d.isoformat() for d in days[:i + 1]],
                 "closes": [float(p) for p in prices[:i + 1]],
@@ -337,6 +358,10 @@ def evaluate_development_events(
         "evidence_origin_attested": False,
         "causal_status": "NOT_ESTABLISHED",
         "economic_superiority_established": False,
+        "brier_score": None,
+        "calibration_status": "NOT_CALIBRATED_NO_PROSPECTIVE_PROBABILITY",
+        "purged_walk_forward_validated": False,
+        "champion_candidate_selected": False,
         "evaluation_type": "RETROSPECTIVE_EVENT_DIAGNOSTIC_NOT_PROSPECTIVE",
     }
     return {**body, "report_hash": content_hash(body)}

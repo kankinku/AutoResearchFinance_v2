@@ -13,6 +13,7 @@ from research.indicator_engine.track2_event_detection import (
     evaluate_development_events,
     historical_risk_scores,
     label_event_onsets,
+    require_purged_train_test_boundary,
     select_budgeted_warnings,
 )
 
@@ -234,4 +235,32 @@ def test_lead_time_and_one_to_one_matching_do_not_double_count_one_crash():
     assert stats["false_warning_count"] == 1
     assert stats["confirmed_lead_times_bars"] == (3,)
     assert stats["median_confirmed_lead_bars"] == 3
+    assert stats["mean_confirmed_lead_bars"] == 3
     assert stats["event_recall"] == 1
+
+
+
+def test_fold_embargo_rejects_shared_labels_and_future_test_in_training():
+    policy = study("CRASH", max_lead_bars=4)
+    with pytest.raises(EventStudyError, match="purged"):
+        require_purged_train_test_boundary(25, 29, policy)
+    with pytest.raises(EventStudyError, match="purged"):
+        require_purged_train_test_boundary(25, 25, policy)
+    require_purged_train_test_boundary(25, 30, policy)
+
+
+def test_alerts_mark_uncalibrated_and_do_not_promote_champion():
+    days = calendar(70)
+    prices = tuple(100.0 for _ in range(35)) + tuple(95.0 for _ in range(35))
+    report = evaluate_development_events(
+        prices, days, study("CRASH", min_confirmed_events=1, alert_score_threshold=0.002),
+    )
+    assert report["brier_score"] is None
+    assert report["calibration_status"].startswith("NOT_CALIBRATED")
+    assert report["purged_walk_forward_validated"] is False
+    assert report["champion_candidate_selected"] is False
+    assert all(
+        item["warning_reason"] == "REGISTERED_QQQ_RETURNS_20_BAR"
+        and item["feature_semantic_id"] == report["registered_feature_semantic_id"]
+        for item in report["warnings"]
+    )

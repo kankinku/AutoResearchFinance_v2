@@ -4,9 +4,9 @@
 **상태:** SYNTHETIC_PROTOTYPE_ONLY / REAL_MARKET_BLOCKED / NOT_RELEASED
 **범위 기록:** 2026-11-10 Track2 분리 연구 착수 ADR
 
-## 기존 문서 결손
+## 원본 V3 계획 확보
 
-16단계 계획이 참조한 v3-track2-event-detection-20261027.md 파일은 현재 main/통합 브랜치에서 **찾지 못했다**. 이전 승인의 상세 조건을 복원한 것으로 주장하지 않으며, 이 명세는 현재 확인된 요구사항만 기초로 새로 작성했다.
+16단계 계획이 참조한 v3-track2-event-detection-20261027.md 파일은 main 및 14단계 통합 브랜치에는 없었으나 **원격 research/v3-event-detection 브랜치의 기존 커밋 950bd49에서 발견해 원문을 보존했다**. 해당 계획을 기준으로 T2-01~T2-04를 읽고, 이 문서는 검증 가능한 초기 구현의 정보 경계와 미달사항을 별도로 명시한다. 실제 가격/OOS·Champion 후보/확률 보정이 완료됐다는 뜻이 아니다.
 
 ## 시장 이벤트 레이블과 경고 시점
 
@@ -26,7 +26,7 @@
 
 ## 평가·비교 기준
 
-**필수 수치:** 사건 발생 기저빈도(평가 가능한 시점별 양성 비율), 경고 리드타임(최소·최대 봉 수), 경고 예산, 이벤트 단위 recall, warning precision, PR-AUC(tie-group Average Precision), **252개 평가 가능 봉당 거짓 경고 수**(연간 환산을 위한 *근사치*), 누적 신호 반복/경고 쿨다운.
+**필수 수치:** 사건 발생 기저빈도(평가 가능한 시점별 양성 비율), 경고 리드타임(평균·중앙 및 사건별 봉 수), 경고 예산, 이벤트 단위 recall, warning precision, PR-AUC(tie-group Average Precision), **252개 평가 가능 봉당 거짓 경고 수**(연간 환산을 위한 *근사치*), 누적 신호 반복/경고 쿨다운. **Brier/확률 보정과 purged walk-forward**는 실제 예측 확률 및 독립 실데이터가 없어 미검증이며, 반환값은 NOT_CALIBRATED와 purged_walk_forward_validated=false. 훈련-평가 경계 사이 사건 리드타임만큼 embargo를 요구하는 사전 조건은 단위 테스트.
 
 **기준선:** 무경고(0건)와 항상경고(같은 연도별 경고 예산·같은 쿨다운) 비교. PR-AUC는 전체 평가 가능 기회의 점수 순위로 계산한 별도 진단 값이며, 실제 예산 하의 경고 precision·recall을 대체하지 않는다.
 
@@ -34,6 +34,7 @@
 
 ## 구현·분리·데이터 전제
 
+- 기존 원본 계획의 T2-01 사건 레이블·T2-02 빈도 기준·T2-03 PR-AUC/경고 예산·T2-04 기록 형식을 따라 별도 설계했으나, **Champion 선정과 확률 보정, 실제 purged walk-forward는 아직 구현/실증하지 않았다**.
 - 기존 FeatureRegistry에 이미 등록된 qqq_returns(등록된 QQQ close returns, 20봉) 및 계산기만 사용. 새 피처 등록·연구 엔진 StrategyIR·세대 커밋·백테스터 변경 없음.
 - 독립 코드 파일 research/indicator_engine/track2_event_detection.py, 테스트 tests/research/test_track2_event_detection.py. **core, evaluation, application, integrations, runtime, 기존 MCP 32도구, 주문 권한 변경 없음**.
 - 데이터 구역은 DEVELOPMENT만 허용. SEALED_OOS/VALIDATION 요청은 거부. 경고 보고서에 오프라인 사후 레이블, PIT 미확인, 인과성 불성립, Track1 미연결, 거래 비허가를 명시.
