@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -47,7 +48,12 @@ class FeatureTransform(BaseModel):
 def resample_completed(
     observations: tuple[SeriesObservation, ...], timeframe: TimeFrame
 ) -> tuple[SeriesObservation, ...]:
-    """Collapse observations to the last completed point in each calendar period."""
+    """Publish a period's final point only after the next period is observed.
+
+    The newest period is always provisional: treating its last available
+    observation as a completed week/month would leak future within-period
+    revisions into earlier as-of decisions.
+    """
 
     ordered = tuple(sorted(observations, key=lambda item: to_utc(item.timestamp)))
     if not ordered:
@@ -76,9 +82,13 @@ def resample_completed(
         else:
             key = (timestamp.year, timestamp.month)
         if current is not None and key != current_key:
-            collapsed.append(current)
+            # The next period's first published point confirms closure; a
+            # delayed release of either observation delays usability.
+            released_at = max(
+                to_utc(current.available_at or current.timestamp),
+                to_utc(observation.available_at or observation.timestamp),
+            )
+            collapsed.append(replace(current, available_at=released_at))
         current = observation
         current_key = key
-    if current is not None:
-        collapsed.append(current)
     return tuple(collapsed)
