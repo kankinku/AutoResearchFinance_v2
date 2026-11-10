@@ -1,5 +1,14 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-11-10 KST T3-CAPTURE-ATOMIC-20261110 — [4/16] Nasdaq QQQ 원시 시세 번들 동시 수집 원자성 (T0; Q04/Q09/Q11/Q13/Q17/Q20).**
+- **티켓/가치:** 승인된 16단계 개선 계획 Task 3. 같은 세 경로(raw, Parquet, manifest)를 동시에 수집하는 두 작업 중 늦게 실패한 호출이 성공자의 결과를 삭제하는 실제 경쟁 조건 제거. 수집 결과의 무손실·해시 추적을 보호하며 실 모델 연구·시장 수익 검증은 아님.
+- **RED→GREEN:** 신규 `test_concurrent_capture_preserves_winning_bundle`은 첫 호출의 존재 검사 이후 두 번째 호출이 완전 번들을 만든 경우를 재현해, 구 코드가 `FileExistsError` 예외 정리 중 성공자 3개 파일을 지우는 **실패 재현** → 변경 후 PASS. 독립 OS 프로세스 2개 × 12회 `spawn` 경합 검증: 매회 승자 1·충돌 1, 최종 세 파일 및 SHA-256·원본 재파싱 검증 PASS. 최종 manifest 생성 시 외부 파일 충돌·Parquet 쓰기 중단·기존 파일 보존·숨은 임시 파일 정리 테스트도 PASS.
+- **수정:** `research/indicator_engine/nasdaq_capture.py`: 세 결과 파일 각각의 대상 디렉터리에 고유 임시 파일을 먼저 완성하고 Parquet 왕복 해시 검사. `os.link()`로 **덮어쓰기 불가능한 배타적 공개**, 완료 표시인 manifest를 마지막에 링크. 실패 시 해당 호출이 실제 링크한 경로만 역순 삭제; 다른 호출의 성공 결과는 삭제하지 않음. 기존 함수 시그니처, 보고서 스키마, 원시 바이트 digest, non-PIT 표기 유지. 별도 DB·락/워커 계층 도입 없음. 관련 계획 `docs/operations/quant-capture-atomicity-20261110.md`.
+- **검증:** 대상 수집 테스트 **16 PASS**, 수집·원장/재검증·시장 데이터/핵심 및 범위 거버넌스 통합 **418 PASS**. 전체 `pytest -q -x -p no:cacheprovider`는 **447 PASS, 1 FAIL, 첫 실패에서 중단**. 기존 `tests/dashboard/test_fresh_original_dashboard.py::test_readonly_sqlite_bridge_matches_original_contracts`가 구 2026-10 연구 `session-id.txt` 파일 누락으로 실패(이번 코드와 별도). `ruff check .` PASS, `mypy research/indicator_engine/nasdaq_capture.py` PASS, diff whitespace PASS. 별도 독립 리뷰어·전면 mypy·실 Nasdaq 호출·실 연구 DB 무결성·OOS·주문 NOT_RUN.
+- **코드/상태:** 자체 Ponytail 기반 실제 호출 경로·충돌·저장/해제 diff 검토, 수정 커밋 `556192b`을 `impl/quant-improvement-20261110`에 fast-forward 통합. **새 G1 실험/과거 G150 원본 물리 삭제/운영 배포/실주문 0건**. 구 실험 성과·부모·S7/S8 기억의 신규 계승 금지 ADR 유지. 하드링크 미지원 파일시스템에서는 배타적 생성 실패하며 운영 성공으로 위장하지 않음; 프로세스 강제 종료 시 manifest 없는 미완료 조각은 수동 점검 대상.
+- **판정/다음:** [4/16] Task 3 **코드/대상 검증 완료**, 전체 스위트는 기존 세션 의존 BLOCKED. 다음 **[5/16] Task 4** 모의주문 부분 체결·잔여 주문 정리. V05→T4→V01~V04→V06→V07, 20문답·32 MCP·OAuth·실주문 OFF 불변. PR #6은 계속 draft, 병합/배포 금지.
+
+
 **2026-11-10 KST T2-CLOSED-PERIOD-ASOF-20261110 — [3/16] 주봉·월봉 시점 확정/PIT 누출 방지 (T0, Q04/Q09/Q11/Q13/Q20).**
 - **구현 계약:** 사용자 승인 계획 Task 2. `core/features/series.py`의 `resample_completed()`는 주봉 ISO UTC 주·월봉 UTC 월 단위로 **다음 기간의 첫 관측이 공개된 경우에만** 직전 기간의 마지막 관측을 완결로 반환. 반환된 `available_at=max(이전 기간 마지막 관측 공개 시각, 다음 기간 첫 관측 공개 시각)`로 설정. 직전 기간도 아직 다음 기간 관측이 없으면 포함하지 않음. 원시 일봉/분봉/시봉과 `align_as_of()`의 기존 API/행동 변경 없음. 핵심 실시간 투자 신호, 원본 평가기 이력이나 주문 설정 변경 없음.
 - **TDD 재현(RED):** 신규 4개 테스트가 기존 코드에서 각각 실패: 미완료 주봉 접두 불변/주내 수정, 월말·발표 지연, ISO 연도 경계, 미완결 주봉을 사용한 백테스트의 조기 매수(기존 2024-01-13 체결; 허용될 다음 주 신호의 2024-01-16 뒤로 지연해야 함). GREEN 테스트는 주간·월간 공개 지연, 휴장일(월요일 다음 관측 없음), 첫/마지막 관측, 일/시/분봉 passthrough, 원래 백테스트 RSI 워밍업을 포함하도록 수정한 뒤 16 PASS.
