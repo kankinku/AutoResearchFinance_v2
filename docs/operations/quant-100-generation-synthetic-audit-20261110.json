@@ -1,0 +1,48 @@
+{
+  "actual_gpt_calls": 0,
+  "assessment": "SYNTHETIC_EXECUTION_ONLY_NOT_REAL_GPT",
+  "checkpoint_phase": "COMPLETED",
+  "completed": 100,
+  "generation_target": 100,
+  "history_hashes": {
+    "algorithm_semantic_hash": 100,
+    "effective_signal_hash": 100,
+    "evidence_hash": 100
+  },
+  "independent_oos_approved": false,
+  "live_market_data_used": false,
+  "orders_enabled": false,
+  "postcompletion_replay_new_generations": 0,
+  "report_hash": "969634d79246507ee959375da88da8a096180b4f06a09a200cac8a14596ff0fd",
+  "scenario": {
+    "environment": "MOON_LOCAL_TMP_ONLY",
+    "interrupted_next_generation": [
+      3,
+      41
+    ],
+    "preselected_candidates_screened": 108,
+    "provider": "DETERMINISTIC_PRESELECTED_SYNTHETIC_PLANS_NO_GPT",
+    "restart_batch_boundaries": [
+      2,
+      10,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ],
+    "simulated_disconnects_after_completed": [
+      2,
+      40
+    ],
+    "source_commit_under_test": "2bd687d",
+    "staged_first_plan_resumed_without_reproposal": true
+  },
+  "schema": "QUANT_100_GENERATION_SYNTHETIC_CHECKPOINT_STRESS_V1",
+  "status": "COMPLETED",
+  "test_acceptance_pass": true,
+  "test_only": true,
+  "verified_S7_generations": 100
+}
