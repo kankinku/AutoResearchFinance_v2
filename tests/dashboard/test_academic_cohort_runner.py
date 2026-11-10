@@ -67,3 +67,15 @@ def test_controller_target_is_dynamic() -> None:
     assert 'target = result["requested_generations"]' in src
     assert 'result["completed_generations"] < target' in src
     assert 'result["requested_generations"] == 152' not in src
+
+
+def test_missing_legacy_session_fails_before_creating_job_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import scripts.run_academic_cohort as operator
+
+    monkeypatch.setattr(operator, "STATE", tmp_path / "absent-history")
+    monkeypatch.setattr(operator, "JOBS", tmp_path / "old-cohorts")
+    with pytest.raises(FileNotFoundError):
+        operator.run("old-history", 1, 1)
+    assert not (tmp_path / "old-cohorts").exists()
