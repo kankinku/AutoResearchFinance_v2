@@ -1,5 +1,8 @@
 # Quant Autoresearch — 상시 진행 현황 및 잔여 작업표
 
+**2026-10-27 TRACK2-V3 (Q05/Q07/Q09/Q10/Q12/Q14/Q18/Q20): 사건 조기경보 신규 연구 브랜치 준비. T2-01~T2-04 [사건 탐지 연구 계획](../plans/v3-track2-event-detection-20261027.md) 작성. 정밀도/재현율/PR-AUC/오경보/lead-time 및 시점 누출 방지 계약만 정리, 모델 학습 NOT RUN. 원본 수익 연구 계보/트랙3 봉인 OOS/주문 변경 0.**
+
+
 **2026-10-27 KST V3-RELEASE-SPLIT (Q02/Q05/Q06/Q07/Q08/Q09/Q13/Q14/Q15/Q17/Q18/Q20):** 사용자 명시 요청으로 현행 Quant 연구 150/150 COMPLETED 및 S7 150건을 V3 체크포인트로 고정하고 Git main 신설, Track1 기존 전략 발전 / Track2 특수상황 예측·탐지 / Track3 독립 OOS 검증의 세 별도 브랜치로 분리. [V3 릴리스 기록](../releases/quant-v3.0.0-checkpoint-20261027.md)과 [승인 ADR](../decisions/2026-10-27-quant-v3-three-lanes-approved.md). 원격에는 기존 main이 없고 master가 기본 브랜치였으므로 master 강제변경·무관한 Git 이력 결합 없이 현 운영 cda8e7695ea9... 기반으로 main을 신설. 운영 3개 SQLite 온라인 백업 생성 및 integrity_check 3/3 PASS, G150 마지막 증거 23925180a366..., 오리지널 연구/인증/OAuth/고정 MCP URL/orders OFF/sealed OOS 불변. Track3의 최종 검증 결과를 Track1/2 훈련 데이터로 되돌리지 않음. 3개 브랜치는 문서화·준비만 진행; 별도 새로운 실험/실주문/독립 OOS 검증은 이 작업에서 실행하지 않음. 원래 V05→T4→V01–V04→V06→V07 승인 순서는 변경하지 않음. Git tag/branch refs 검증 후 결과 보고.
 
 
