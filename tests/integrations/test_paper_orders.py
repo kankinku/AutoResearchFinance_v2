@@ -414,3 +414,17 @@ def test_sell_cancel_rejection_is_unsettled_not_flat(tmp_path: Path) -> None:
     assert result.status == "UNSETTLED"
     assert result.sell is not None
     assert result.filled_sell_quantity == 1
+
+
+@pytest.mark.parametrize("bad_url", [
+    "http://paper.example",
+    "http://openapivts.koreainvestment.com:29443",
+    "https://openapivts.koreainvestment.com:9443",
+])
+def test_order_client_rejects_insecure_or_misrouted_endpoint_even_with_mock(
+    tmp_path: Path, bad_url: str,
+) -> None:
+    transport = RecordingTransport([])
+    with pytest.raises((PaperOrderError, ValueError), match="paper|HTTPS|virtual"):
+        KISPaperOrderClient(_config(tmp_path, base_url=bad_url), transport=transport)
+    assert transport.calls == []

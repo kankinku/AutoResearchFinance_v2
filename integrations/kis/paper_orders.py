@@ -4,7 +4,6 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from urllib.parse import urlparse
 
 from integrations.kis.client import (
     KISAPIError,
@@ -15,7 +14,7 @@ from integrations.kis.client import (
     _records,
     _symbol,
 )
-from integrations.kis.config import PaperKISConfig
+from integrations.kis.config import KISConfigError, PaperKISConfig, validate_paper_endpoint
 
 
 class PaperOrderError(RuntimeError):
@@ -290,15 +289,10 @@ class KISPaperOrderClient:
 
 
 def _validate_paper_endpoint(config: PaperKISConfig, *, transport_is_injected: bool) -> None:
-    if config.mode not in {"", "paper", "demo"}:
-        raise PaperOrderError("paper order client rejects non-paper mode")
-    host = (urlparse(config.base_url).hostname or "").lower()
-    if host in {"openapi.koreainvestment.com", "openapi.koreainvestment.com:9443"}:
-        raise PaperOrderError(
-            "paper order client rejects the live KIS endpoint; virtual endpoint required"
-        )
-    if not transport_is_injected and host != "openapivts.koreainvestment.com":
-        raise PaperOrderError("paper order client requires the KIS virtual-trading endpoint")
+    try:
+        validate_paper_endpoint(config, transport_is_injected=transport_is_injected)
+    except KISConfigError as exc:
+        raise PaperOrderError("paper order client requires a safe virtual endpoint") from exc
 
 
 def _order_id(value: object) -> str:

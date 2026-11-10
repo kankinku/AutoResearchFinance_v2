@@ -10,7 +10,7 @@ class ResearchPermissions:
 
 
 def validate_research_permissions(permissions: ResearchPermissions) -> None:
-    if permissions.order_permission:
+    if permissions.order_permission is not False:
         raise PermissionError("research process cannot have order permission")
     if permissions.credential_ref is not None:
         raise PermissionError("research process cannot receive KIS credentials")
