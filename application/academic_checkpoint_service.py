@@ -604,6 +604,9 @@ class AcademicMCPCheckpointService:
                     "successor_strategy_hash": parent.strategy_hash,
                     "strategy_equity_hash": audit.evaluation.equity_hash,
                     "effective_signal_hash": original["effective_signal_hash"],
+                    "executed_fill_hash": content_hash(
+                        [asdict(trade) for trade in audit.evaluation.trades]
+                    ),
                     "parent_quality": {
                         "total_return": metrics["total_return"],
                         "max_drawdown": metrics["max_drawdown"],
@@ -720,6 +723,7 @@ class AcademicMCPCheckpointService:
                 {
                     **s7_candidate,
                     "effective_signal_hash": s7_signal,
+                    "executed_fill_hash": s7_candidate["executed_fill_hash"],
                     **({"p2_risk_review": s7_risk_review} if s7_risk_review is not None else {}),
                     "parent_quality": {
                         "total_return": s7_candidate["successor_total_return"],

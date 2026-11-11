@@ -81,6 +81,13 @@ def verified_parent_lanes(candidates: Sequence[Mapping[str, Any]]) -> list[dict[
     items = list(candidates)
     if any(c.get("replay_verified") is not True for c in items):
         raise ValueError("unverified parent was supplied")
+    if any(
+        not isinstance(c.get("executed_fill_hash"), str)
+        or len(c["executed_fill_hash"]) != 64
+        or any(ch not in "0123456789abcdef" for ch in c["executed_fill_hash"])
+        for c in items
+    ):
+        raise ValueError("verified parent must include a canonical executed fill hash")
     # True two-objective Pareto frontier: no candidate with at least as much
     # development return AND no greater drawdown is sacrificed to a dominated
     # strategy. Identical return/drawdown candidates resolve deterministically.
@@ -134,11 +141,14 @@ def verified_parent_lanes(candidates: Sequence[Mapping[str, Any]]) -> list[dict[
     )
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
+    seen_fills: set[str] = set()
     for lane in ranks:
         for row in lane:
             key = str(row["effective_signal_hash"])
-            if key not in seen:
+            fill = str(row["executed_fill_hash"])
+            if key not in seen and fill not in seen_fills:
                 seen.add(key)
+                seen_fills.add(fill)
                 out.append(dict(row))
                 break
     return out

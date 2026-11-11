@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
+from core.integrity.hashes import content_hash
 from research.indicator_engine.algorithm_plan import AlgorithmPlan
 from research.llm.diagnostic_research import DiagnosticResponse
 
@@ -39,6 +40,48 @@ class AcademicCheckpointAutopilot:
         self.service = service
         self.provider = provider
 
+    @staticmethod
+    def _research_only(state: dict[str, Any]) -> None:
+        if (
+            state.get("orders_enabled") is not False
+            or state.get("independent_oos_approved") is not False
+        ):
+            raise AutonomousLoopError("research-only checkpoint: order/OOS promotion blocked")
+
+    @staticmethod
+    def _verify_s7(
+        session_id: str,
+        state: dict[str, Any],
+        measured: dict[str, Any],
+    ) -> int:
+        """Fail closed before counting a measured generation as complete."""
+        try:
+            generation = state["completed_generations"]
+            original = state["history"][-1]
+            experiments = measured["report"]["experiments"]
+            declared = original["hypothesis_ids"]
+            if (
+                measured.get("session_id") != session_id
+                or measured.get("generation") != generation
+                or measured.get("original_generation_evidence_hash")
+                != original["evidence_hash"]
+                or measured.get("study_scope")
+                != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+                or measured.get("record_hash")
+                != content_hash({k: v for k, v in measured.items() if k != "record_hash"})
+                or not isinstance(declared, list)
+                or not isinstance(experiments, list)
+                or not declared
+                or len(experiments) != len(declared)
+                or len(set(declared)) != len(declared)
+                or sorted(item["hypothesis_id"] for item in experiments)
+                != sorted(declared)
+            ):
+                raise AutonomousLoopError("S7 paired experiment integrity mismatch")
+            return len(experiments)
+        except (KeyError, TypeError, IndexError) as exc:
+            raise AutonomousLoopError("S7 paired experiment evidence is incomplete") from exc
+
     def run(self, session_id: str, *, max_generations: int) -> dict[str, Any]:
         if type(max_generations) is not int or not 1 <= max_generations <= 100:
             raise AutonomousLoopError("max_generations must be 1..100")
@@ -50,11 +93,13 @@ class AcademicCheckpointAutopilot:
         trial_count = 0
         last_measured_generation = 0
         state = self.service.get({"session_id": session_id})
+        self._research_only(state)
         if state["status"] in ("INTERRUPTED", "CANCELLED"):
             raise AutonomousLoopError("explicit reconciliation required for stopped session")
         if state["checkpoint_phase"] == "RUNNING":
             raise AutonomousLoopError("existing runner in progress; reconcile after exit")
         while True:
+            self._research_only(state)
             if state["completed_generations"]:
                 # Separate state store: a process can die after committing the
                 # generation but before measuring its hypotheses. Always fill
@@ -63,12 +108,9 @@ class AcademicCheckpointAutopilot:
                     "session_id": session_id,
                     "generation": state["completed_generations"],
                 })
-                if measured["original_generation_evidence_hash"] != state["history"][-1][
-                    "evidence_hash"
-                ]:
-                    raise AutonomousLoopError("paired experiment evidence mismatch")
+                verified_trials = self._verify_s7(session_id, state, measured)
                 paired_count += 1
-                trial_count += len(measured["report"]["experiments"])
+                trial_count += verified_trials
                 last_measured_generation = state["completed_generations"]
                 # The planning context returned by submit_diagnosis was built
                 # before S7 measurement. Refresh it after persisting feedback.
@@ -112,13 +154,19 @@ class AcademicCheckpointAutopilot:
             final_report = self.service.evaluate_experiments({
                 "session_id": session_id, "generation": state["completed_generations"],
             })
-            if final_report["original_generation_evidence_hash"] != state["history"][-1][
-                "evidence_hash"
-            ]:
-                raise AutonomousLoopError("last paired experiment did not match")
+            verified_trials = self._verify_s7(session_id, state, final_report)
             paired_count += 1
-            trial_count += len(final_report["report"]["experiments"])
+            trial_count += verified_trials
         latest = self.service.get({"session_id": session_id})
+        self._research_only(latest)
+        if (
+            latest["status"] == "COMPLETED"
+            and (
+                not isinstance(latest.get("final_report"), dict)
+                or latest["final_report"].get("all_proposed_hypotheses_measured") is not True
+            )
+        ):
+            raise AutonomousLoopError("S7 final report is not fully measured")
         if latest["history"] != state["history"]:
             raise AutonomousLoopError("generation history changed during report")
         return {
@@ -135,6 +183,7 @@ class AcademicCheckpointAutopilot:
             ),
             "final_report": latest["final_report"],
             "model_transport_tested": "CALLER_SUPPLIED_PROVIDER_ONLY",
+            "actual_model_invocation_attested": False,
             "broker_executable": False,
             "independent_oos_approved": False,
         }

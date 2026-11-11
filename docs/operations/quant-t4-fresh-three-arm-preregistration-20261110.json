@@ -1,0 +1,56 @@
+{
+  "approved_entry_indicators": [
+    "dual_sma_trend_50",
+    "ema_direction_20",
+    "previous_range_breakout",
+    "range_low_reclaim_20",
+    "sma_pullback_20",
+    "time_series_momentum"
+  ],
+  "approved_regime_indicators": [
+    "parkinson_variance",
+    "sma_direction"
+  ],
+  "arms": [
+    "GPT_S7_S8",
+    "FIXED_RULE",
+    "RANDOM_SEEDED"
+  ],
+  "budget_per_arm": {
+    "canonical_backtests": 20,
+    "model_call_ceiling": 20,
+    "model_token_ceiling": 200000,
+    "plan_attempts": 10,
+    "s7_trials": 10
+  },
+  "common_long_flat_next_open_cost_model": true,
+  "common_symbol": "QQQ",
+  "generation_start": 1,
+  "immutable_manifest_requires_external_commit_before_first_outcome": true,
+  "independent_oos_approved": false,
+  "methods": {
+    "FIXED_RULE": "EXISTING_DETERMINISTIC_RULES_NO_OUTCOME_TUNING",
+    "GPT_S7_S8": "GPT_PLAN_DIAGNOSIS_S7_S8_FRESH_SESSION",
+    "RANDOM_SEEDED": "PREREGISTERED_SEEDED_RANDOM_NO_OUTCOME_TUNING"
+  },
+  "model_resource_policy": "LOG_ACTUAL_REQUESTS_INPUT_OUTPUT_TOKENS_AND_DURATION_BY_ARM; EXPOSURE_UNBALANCED_IF_USAGE_DIFFERS; NEVER_INFER_EQUAL_MODEL_BUDGET",
+  "no_parent_promotion": true,
+  "observation_and_submission_receipts_require_external_sha256_anchors": true,
+  "orders_enabled": false,
+  "past_cohort_reused": false,
+  "protocol_hash": "45a446476150784b92da958ffb78f280d406fe12d5dafa1be82f1c0334695daa",
+  "risk_gates": {
+    "max_drawdown": 0.3,
+    "minimum_closed_trades": 30,
+    "require_positive_net_return": true
+  },
+  "schema": "T4_FRESH_EQUAL_BUDGET_PROTOCOL_V2",
+  "seed": 20261110,
+  "selection_metric": "UNIQUE_COSTED_FILL_TRACE_WITH_RISK_GATES",
+  "statistics": {
+    "claim_of_superiority": "NOT_PERMITTED_WITHOUT_INDEPENDENT_TRIALS",
+    "one_seed_insufficient_for_statistical_significance": true,
+    "reused_development_data_not_independent_oos": true
+  },
+  "status": "BLOCKED_UNTIL_FRESH_MARKET_AND_SESSIONS"
+}

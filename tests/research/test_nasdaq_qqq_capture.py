@@ -124,3 +124,142 @@ def test_changed_capture_bytes_must_be_rejected(tmp_path: Path):
     raw.write_bytes(raw.read_bytes() + b" ")
     with pytest.raises(ResearchCatalogError, match="digest"):
         verify_nasdaq_capture(outfile, raw, manifest)
+
+
+def test_concurrent_capture_preserves_winning_bundle(tmp_path: Path) -> None:
+    """A late loser must not unlink files written after its existence precheck."""
+    outfile = tmp_path / "data" / "qqq.parquet"
+    rawfile = tmp_path / "state" / "raw.json"
+    manifest = tmp_path / "state" / "capture.json"
+    winner = None
+
+    def competing_fetch(_: str) -> bytes:
+        nonlocal winner
+        # The outer capture already passed its initial exists check. This
+        # simulates another process finishing the same bundle before the
+        # original capture resumes publishing its raw bytes.
+        winner = capture_nasdaq_qqq(
+            _START, _END, outfile, rawfile, manifest,
+            fetch_bytes=lambda _: _body(), captured_at=_CAPTURED,
+        )
+        return _body()
+
+    with pytest.raises((ResearchCatalogError, FileExistsError), match="exists"):
+        capture_nasdaq_qqq(
+            _START, _END, outfile, rawfile, manifest,
+            fetch_bytes=competing_fetch, captured_at=_CAPTURED,
+        )
+
+    assert winner is not None
+    assert all(path.is_file() for path in (outfile, rawfile, manifest))
+    assert rawfile.read_bytes() == _body()
+    assert verify_nasdaq_capture(outfile, rawfile, manifest).dataset_hash == winner.dataset_hash
+
+
+def _competing_capture_worker(
+    paths: tuple[str, str, str], barrier: object, results: object
+) -> None:
+    from pathlib import Path
+
+    output, raw, manifest = (Path(value) for value in paths)
+    try:
+        barrier.wait(timeout=20)  # type: ignore[attr-defined]
+        report = capture_nasdaq_qqq(
+            _START, _END, output, raw, manifest,
+            fetch_bytes=lambda _: _body(), captured_at=_CAPTURED,
+        )
+        results.put(("winner", report.dataset_hash))  # type: ignore[attr-defined]
+    except (FileExistsError, ResearchCatalogError) as exc:
+        results.put(("collision", str(exc)))  # type: ignore[attr-defined]
+    except BaseException as exc:
+        results.put(("unexpected", repr(exc)))  # type: ignore[attr-defined]
+
+
+def test_two_process_capture_contention_retains_one_complete_bundle(
+    tmp_path: Path,
+) -> None:
+    import multiprocessing
+
+    # Spawn avoids forking pytest's already-threaded process.
+    context = multiprocessing.get_context("spawn")
+    for trial in range(12):
+        folder = tmp_path / str(trial)
+        paths = (
+            folder / "data" / "qqq.parquet",
+            folder / "state" / "raw.json",
+            folder / "state" / "capture.json",
+        )
+        barrier = context.Barrier(2)
+        queue = context.Queue()
+        processes = [
+            context.Process(
+                target=_competing_capture_worker,
+                args=(tuple(str(path) for path in paths), barrier, queue),
+            )
+            for _ in range(2)
+        ]
+        for process in processes:
+            process.start()
+        outcomes = [queue.get(timeout=35) for _ in processes]
+        for process in processes:
+            process.join(timeout=10)
+            assert process.exitcode == 0
+        assert sorted(kind for kind, _ in outcomes) == ["collision", "winner"]
+        assert verify_nasdaq_capture(*paths).dataset_hash == next(
+            value for kind, value in outcomes if kind == "winner"
+        )
+        assert all(path.is_file() for path in paths)
+        assert not list(folder.rglob(".nasdaq-capture-*"))
+        queue.close()
+
+
+def test_late_manifest_collision_never_deletes_competitor_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+
+    from research.indicator_engine import nasdaq_capture
+
+    output = tmp_path / "data" / "qqq.parquet"
+    raw = tmp_path / "state" / "raw.json"
+    manifest = tmp_path / "state" / "capture.json"
+    original_link = os.link
+    owner_bytes = b"another capture already owns this manifest"
+
+    def competing_manifest(source: str, destination: str) -> None:
+        if Path(destination) == manifest:
+            manifest.write_bytes(owner_bytes)
+        original_link(source, destination)
+
+    monkeypatch.setattr(nasdaq_capture.os, "link", competing_manifest)
+    with pytest.raises(FileExistsError):
+        capture_nasdaq_qqq(
+            _START, _END, output, raw, manifest,
+            fetch_bytes=lambda _: _body(), captured_at=_CAPTURED,
+        )
+    assert manifest.read_bytes() == owner_bytes
+    assert not raw.exists() and not output.exists()
+    assert not list(tmp_path.rglob(".nasdaq-capture-*"))
+
+
+def test_parquet_stage_error_does_not_publish_any_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from research.indicator_engine import nasdaq_capture
+
+    output = tmp_path / "data" / "qqq.parquet"
+    raw = tmp_path / "state" / "raw.json"
+    manifest = tmp_path / "state" / "capture.json"
+
+    def failed_parquet(destination: Path, market: object) -> None:
+        destination.write_bytes(b"partial data")
+        raise OSError("disk write stopped")
+
+    monkeypatch.setattr(nasdaq_capture.ParquetDataProvider, "write", failed_parquet)
+    with pytest.raises(OSError, match="disk write stopped"):
+        capture_nasdaq_qqq(
+            _START, _END, output, raw, manifest,
+            fetch_bytes=lambda _: _body(), captured_at=_CAPTURED,
+        )
+    assert not any(path.exists() for path in (output, raw, manifest))
+    assert not list(tmp_path.rglob(".nasdaq-capture-*"))

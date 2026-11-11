@@ -492,6 +492,7 @@ def replay_counted_s7_child(
         "lineage_report_hash": content_hash(lineage_body),
         "successor_strategy_hash": digest,
         "strategy_equity_hash": child.equity_hash,
+        "executed_fill_hash": content_hash([asdict(trade) for trade in child.trades]),
         "child_total_return": parent_metrics.total_return,
         "child_max_drawdown": parent_metrics.max_drawdown,
         "successor_total_return": child_metrics.total_return,

@@ -35,6 +35,8 @@ class BacktestRequest:
     signal_start_at: datetime | None = None
     # Opt-in. Historical StrategyIR serialization, hashes and runs unchanged.
     p2_policy: P2ResearchPolicy | None = None
+    # S2-reviewed feature vectors already include StrategyIR lag; raw supplied inputs do not.
+    feature_values_pre_lagged: bool = False
 
 
 @dataclass(frozen=True)
@@ -178,6 +180,7 @@ class BacktestEngine:
                     request.feature_specs,
                     _slice_mapping(request.feature_inputs, indices, full_width),
                     request.external_series,
+                    supplied_already_lagged=request.feature_values_pre_lagged,
                 )
             )
             states[symbol] = _SymbolState(
@@ -341,6 +344,7 @@ class BacktestEngine:
                 request.feature_specs,
                 request.feature_inputs,
                 request.external_series,
+                supplied_already_lagged=request.feature_values_pre_lagged,
             )
         )
         strategy_hash = content_hash(strategy.model_dump(mode="json", by_alias=True))
@@ -478,6 +482,8 @@ def _feature_values(
     specs: Mapping[str, FeatureSpec] | None,
     inputs: Mapping[str, Sequence[float | None]] | None,
     external_series: SeriesDataSet | None = None,
+    *,
+    supplied_already_lagged: bool = False,
 ) -> dict[str, list[float | None]]:
     if not strategy.features:
         return {}
@@ -534,7 +540,10 @@ def _feature_values(
         lag = reference.lag_bars
         if specs is not None and reference.feature_id in specs:
             lag += specs[reference.feature_id].lag_bars
-        result[alias] = _lag(values, lag)
+        result[alias] = (
+            values if supplied_already_lagged and supplied is not None and alias in supplied
+            else _lag(values, lag)
+        )
     return result
 
 

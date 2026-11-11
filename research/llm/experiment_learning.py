@@ -144,6 +144,23 @@ def build_experiment_learning(
             child_hash = item["child_strategy_hash"]
             duplicate = child_hash in seen_child_hashes
             seen_child_hashes.add(child_hash)
+            # A historically signed decision-event change can coexist
+            # with identical executed fills. Preserve raw counts, but flag
+            # the discrepancy and prevent claiming new executed behavior.
+            same_fills_with_reported_change = (
+                item.get("same_fill_trace") is True
+                and any(execution[key] for key in (
+                    "added_event_count", "removed_event_count", "resized_event_count"
+                ))
+            )
+            if same_fills_with_reported_change:
+                reason = "UNCHANGED_FILLS_DESPITE_REPORTED_DECISION_CHANGES"
+                suggested_design = "RULE_STRUCTURE"
+            elif item.get("same_fill_trace") is True and status == (
+                "DIRECTION_MATCHED_DEVELOPMENT_ONLY"
+            ):
+                reason = "UNCHANGED_OBSERVED_TRACE"
+                suggested_design = "RULE_STRUCTURE"
             counts[reason] += 1
             changes = {
                 "added": execution["added_event_count"],
@@ -166,16 +183,51 @@ def build_experiment_learning(
                 "observed_delta": delta,
                 "execution_changes": changes,
                 "same_fill_trace": item.get("same_fill_trace") is True,
+                "same_fill_trace_despite_decision_changes": bool(
+                    same_fills_with_reported_change
+                ),
                 "repeated_child_strategy": duplicate,
                 "original_hypothesis_not_verified": True,
                 "suggested_test_design": suggested_design,
             })
+    # Outcome metrics describe verified DEVELOPMENT evidence, not model
+    # superiority or independent executions across distinct child strategies.
+    failures = {"NO_OBSERVED_EFFECT", "DIRECTION_NOT_MATCHED_DEVELOPMENT_ONLY",
+                "METRIC_UNAVAILABLE", "DEGENERATE_INACTIVE_CHILD"}
+    matched = sum(
+        item["status"] == "DIRECTION_MATCHED_DEVELOPMENT_ONLY" for item in results
+    )
+    comparable = sum(item["status"] in {
+        "DIRECTION_MATCHED_DEVELOPMENT_ONLY",
+        "DIRECTION_NOT_MATCHED_DEVELOPMENT_ONLY",
+    } for item in results)
+    changed = sum(
+        not item["same_fill_trace"] and any(item["execution_changes"].values())
+        for item in results
+    )
+    failed = [item for item in results if item["status"] in failures]
+    repeated_failures = sum(item["repeated_child_strategy"] for item in failed)
+    measured_metrics = {
+        "measured_trials": len(results),
+        "execution_change_trials": changed,
+        "same_fill_or_no_execution_change_trials": len(results) - changed,
+        "failure_trials": len(failed),
+        "repeated_failure_trials": repeated_failures,
+        "repeated_failure_rate": (
+            repeated_failures / len(failed) if failed else None
+        ),
+        "direction_comparable_trials": comparable,
+        "direction_matched_trials": matched,
+        "direction_match_rate": matched / comparable if comparable else None,
+        "unobserved_hypotheses_not_counted": True,
+        "development_only_not_oos_or_alpha": True,
+    }
     recent = results[-max_recent:]
     avoid = list(dict.fromkeys(
         event["child_strategy_hash"] for event in results
         if event["finding_code"] in {
             "UNCHANGED_OBSERVED_TRACE", "PREDICTION_CONTRADICTED",
-            "NO_ACTIVE_CHILD_TRADES",
+            "NO_ACTIVE_CHILD_TRADES", "UNCHANGED_FILLS_DESPITE_REPORTED_DECISION_CHANGES",
         }
     ))[-20:]
     latest_generation = len(history)
@@ -190,8 +242,9 @@ def build_experiment_learning(
     elif any(event["finding_code"] == "UNREPLICATED_DEVELOPMENT_MATCH"
              for event in actionable):
         priority = "ABLATE_ONE_RULE_BEFORE_ANY_EVOLUTION"
-    elif any(event["finding_code"] == "UNCHANGED_OBSERVED_TRACE"
-             for event in actionable):
+    elif any(event["finding_code"] in {
+        "UNCHANGED_OBSERVED_TRACE", "UNCHANGED_FILLS_DESPITE_REPORTED_DECISION_CHANGES"
+    } for event in actionable):
         priority = "EXPLORE_NEW_CAUSAL_MECHANISM"
     elif history:
         priority = "RECONCILE_MISSING_MEASUREMENTS_OR_EXPLORE"
@@ -205,6 +258,7 @@ def build_experiment_learning(
         "unmeasured_generation_count": len(history) - len(records),
         "failure_and_uncertainty_counts": dict(sorted(counts.items())),
         "recent_evidence": recent,
+        "measured_outcome_metrics": measured_metrics,
         "avoid_retesting_identical_child_hashes": avoid,
         "next_test_priority": priority,
         "evidence_hash": content_hash({

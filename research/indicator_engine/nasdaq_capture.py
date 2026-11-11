@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -139,19 +141,40 @@ def capture_nasdaq_qqq(
         source_url=url,
         output_path=str(output), raw_path=str(raw_path), manifest_path=str(manifest_path),
     )
+    # Stage each artifact on its destination filesystem. Hard-link publication
+    # is exclusive: a competing capture cannot be overwritten or removed.
+    staged: list[Path] = []
+    owned: list[Path] = []
     try:
         for path in paths:
             path.parent.mkdir(parents=True, exist_ok=True)
-        with raw_path.open("xb") as file:
-            file.write(raw)
-        ParquetDataProvider.write(output, market)
-        with manifest_path.open("x", encoding="utf-8") as file:
-            json.dump(asdict(report), file, indent=2, sort_keys=True)
-            file.write("\n")
-        if ParquetDataProvider.read(output).dataset_hash != report.dataset_hash:
+            with tempfile.NamedTemporaryFile(
+                prefix=".nasdaq-capture-", dir=path.parent, delete=False
+            ) as temporary:
+                staged.append(Path(temporary.name))
+        staged_output, staged_raw, staged_manifest = staged
+        staged_raw.write_bytes(raw)
+        ParquetDataProvider.write(staged_output, market)
+        if ParquetDataProvider.read(staged_output).dataset_hash != report.dataset_hash:
             raise ResearchCatalogError("Nasdaq parquet round-trip mismatch")
-    except Exception:
-        for path in paths:
-            path.unlink(missing_ok=True)
+        staged_manifest.write_text(
+            json.dumps(asdict(report), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        # Manifest is published last, as the completed-bundle marker.
+        for source, destination in (
+            (staged_raw, raw_path),
+            (staged_output, output),
+            (staged_manifest, manifest_path),
+        ):
+            os.link(source, destination)
+            owned.append(destination)
+    except BaseException:
+        # Only paths created by this invocation may be rolled back.
+        for destination in reversed(owned):
+            destination.unlink(missing_ok=True)
         raise
+    finally:
+        for staged_path in staged:
+            staged_path.unlink(missing_ok=True)
     return report

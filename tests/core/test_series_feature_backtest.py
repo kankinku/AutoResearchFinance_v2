@@ -46,9 +46,12 @@ def _feature_spec() -> FeatureSpec:
 
 
 def test_backtest_can_calculate_weekly_rsi_from_us10y_as_of_close() -> None:
-    bars = tuple(_bar(day, float(day + 10)) for day in range(1, 11))
+    # Three completed weeks provide enough data for RSI warmup. The current
+    # last week remains provisional until the following Monday is published.
+    bars = tuple(_bar(day, float(day + 10)) for day in range(1, 30))
     observations = tuple(
-        SeriesObservation("US10Y", bars[index].timestamp, float(index + 1)) for index in (4, 9)
+        SeriesObservation("US10Y", bars[index].timestamp, float(index + 1))
+        for index in (4, 11, 18, 25, 28)
     )
     request = BacktestRequest(
         run_id="weekly-series-run",
@@ -117,3 +120,51 @@ def test_feature_reference_can_select_source_series_and_lookback() -> None:
     )
 
     assert result.exit_status == "SUCCEEDED"
+
+
+def test_weekly_external_macro_signal_trades_only_after_period_closes() -> None:
+    from strategy_ir.schema import Condition, FeatureRef
+
+    # January 15 is a missing observation (holiday); closure must wait
+    # for the following week's first reported bar, January 16.
+    bars = tuple(_bar(day, float(day + 10)) for day in range(1, 18) if day != 15)
+    market = MarketDataSet("week-close-gate", DataZone.DEVELOPMENT, bars)
+    source = SeriesDataSet(
+        "weekly-inputs",
+        DataZone.DEVELOPMENT,
+        tuple(
+            SeriesObservation("US10Y", _bar(day, float(day + 10)).timestamp, value)
+            for day, value in ((5, 1.0), (10, 100.0), (12, 100.0), (16, 1.0))
+        ),
+    )
+    strategy = _strategy().model_copy(deep=True)
+    strategy.features = {"macro_rsi": FeatureRef(feature_id="weekly_sma", timeframe="1w")}
+    strategy.entry.conditions = [
+        Condition(op="greater_than", left="macro_rsi", value=50),
+    ]
+    strategy.exit.conditions = []
+    spec = FeatureSpec(
+        name="weekly_sma",
+        family="macro",
+        inputs=("US10Y.close",),
+        calculator="sma",
+        timeframe="1w",
+        lookback=1,
+        formula="sma(US10Y.close, 1)",
+        status="REGISTERED",
+    )
+
+    result = BacktestEngine().run(
+        BacktestRequest(
+            run_id="weekly-no-partial-leak",
+            strategy_hash="not-hashed",
+            dataset=market,
+            initial_cash=1000.0,
+            strategy=strategy,
+            feature_specs={"weekly_sma": spec},
+            external_series=source,
+        )
+    )
+
+    assert [trade.side for trade in result.trades] == ["buy"]
+    assert result.trades[0].timestamp == bars[-1].timestamp.isoformat()
