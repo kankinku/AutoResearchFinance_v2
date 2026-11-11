@@ -12,6 +12,7 @@ from application.market_data_audit import MarketDataAuditService
 from application.market_data_service import MarketDataService
 from application.mcp_contracts import PublicToolContractMetadata, PublicToolPlane
 from application.research_batch_service import ResearchBatchService
+from application.research_handoff_brief import research_handoff_brief
 from application.services import ApplicationServices, create_application_services
 from memory.trial_inventory import research_trial_inventory
 from orchestration.evaluation_runner import parse_parameter_domains
@@ -274,6 +275,9 @@ class CodexMCPServer:
                 },
                 **self.services.research.brief(),
                 "bounded_batch_research_memory": recent_batch_learning(self.state_dir),
+                "algorithm_research_handoff": research_handoff_brief(
+                    root=self.project_root, state_dir=self.state_dir
+                ),
                 "research_execution_policy": research_execution_policy(),
                 "research_inputs": ResearchBatchService(
                     project_root=self.project_root, state_dir=self.state_dir
