@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 class KISConfigError(ValueError):
@@ -70,3 +71,32 @@ def _read_dotenv(path: Path) -> dict[str, str]:
         if name:
             values[name] = value.strip().strip('"').strip("'")
     return values
+
+
+
+def validate_paper_endpoint(
+    config: PaperKISConfig, *, transport_is_injected: bool,
+) -> None:
+    """Fail closed before a paper-only client can send KIS credentials."""
+    if config.mode not in {"", "paper", "demo"}:
+        raise KISConfigError("paper-only client rejects non-paper trading mode")
+    url = urlsplit(config.base_url)
+    try:
+        host, port = (url.hostname or "").lower(), url.port
+    except ValueError as exc:
+        raise KISConfigError("invalid paper endpoint port") from exc
+    if (
+        url.scheme != "https" or not host or url.username is not None
+        or url.password is not None or url.path not in {"", "/"}
+        or url.query or url.fragment
+    ):
+        raise KISConfigError("paper endpoint requires HTTPS without URL credentials or paths")
+    if host != "openapivts.koreainvestment.com":
+        # Test hosts are allowed only with an explicitly injected transport.
+        # Production network clients must never send KIS tokens elsewhere.
+        if not transport_is_injected or not host.endswith((".example", ".test", ".invalid")):
+            raise KISConfigError("paper client requires the virtual KIS endpoint")
+        if port is not None:
+            raise KISConfigError("test paper endpoint must not specify a port")
+    elif port not in {None, 29443}:
+        raise KISConfigError("unexpected virtual paper endpoint port")

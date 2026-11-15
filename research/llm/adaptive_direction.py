@@ -59,14 +59,37 @@ def build_research_direction(
     comparisons = 0
     for generation in sorted(controlled_reports):
         row = controlled_reports[generation]
+        record_hash = row.get("record_hash")
+        if (
+            not isinstance(record_hash, str)
+            or len(record_hash) != 64
+            or content_hash({k: v for k, v in row.items() if k != "record_hash"})
+            != record_hash
+        ):
+            raise ResearchBudgetError("controlled report integrity mismatch")
         if row.get("original_generation_evidence_hash") != history[generation - 1]["evidence_hash"]:
             raise ResearchBudgetError("control is not bound to original generation")
         report = row.get("report")
-        if not isinstance(report, dict) or report.get("causal_status") != "NOT_ESTABLISHED":
+        if (
+            row.get("study_scope") != "REUSED_DEVELOPMENT_NON_PIT_NOT_CAUSAL_PROOF"
+            or not isinstance(report, dict)
+            or report.get("causal_status") != "NOT_ESTABLISHED"
+            or report.get("out_of_sample_approved") is not False
+            or report.get("broker_executable") is not False
+        ):
             raise ResearchBudgetError("unverified controlled experiment report")
         experiments = report.get("experiments")
         if not isinstance(experiments, (list, tuple)) or len(experiments) > 5:
             raise ResearchBudgetError("unexpected hypothesis comparison count")
+        declared = history[generation - 1].get("hypothesis_ids", [])
+        if not isinstance(declared, list) or (
+            declared and (
+                len(declared) != len(experiments)
+                or {item.get("hypothesis_id") for item in experiments
+                    if isinstance(item, dict)} != set(declared)
+            )
+        ):
+            raise ResearchBudgetError("controlled hypothesis identity mismatch")
         recent: list[dict[str, Any]] = []
         for observation in experiments:
             if not isinstance(observation, dict):
@@ -95,7 +118,12 @@ def build_research_direction(
                 "added_event_count", "removed_event_count", "resized_event_count"
             )):
                 raise ResearchBudgetError("invalid measured execution counts")
-            if delta["added_event_count"] or delta["removed_event_count"]:
+            # Historical S7 decision-event deltas can be nonzero even
+            # when the actual order/fill trace is unchanged. Prefer measured
+            # fill identity; never auto-EVOLVE a same-fill variation.
+            if observation.get("same_fill_trace") is True:
+                kind = "UNCHANGED_EXECUTIONS"
+            elif delta["added_event_count"] or delta["removed_event_count"]:
                 kind = "SIGNAL_TIMING_CHANGED"
             elif delta["resized_event_count"]:
                 kind = "SIZE_ONLY_CHANGED"

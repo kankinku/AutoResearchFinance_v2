@@ -40,6 +40,14 @@ part of T0/T1 whenever changing the roadmap, policies, or target workflows.
 - Generated Python/Lean is an execution artifact, never the strategy source.
 - `docs/architecture/quant-autoresearch-architecture-v1.0.md` is the approved architecture source and is preserved byte-for-byte.
 
+## Cross-chat GPT research continuation (user approved 2026-11-11)
+
+- On an explicit user request to resume/report Quant research in a new or compacted conversation, first call the existing MCP `get_research_brief({})` to discover the active academic session. Do NOT guess an ID, progress or strategy from ChatGPT memory.
+- If exactly one active session: use `algorithm_research_handoff.next_read` to fetch the current `get_algorithm_research({session_id, response_mode:'compact'})` only when detailed planning/diagnosis is required. Never reuse previous chat's checkpoint token.
+- Multiple active sessions: choose only an explicitly identified one; no merging across sessions. `RUNNING`/`INTERRUPTED` requires safe operator reconciliation before continuation.
+- Brief is an on-demand, read-only locator: only three recent generation summaries and two S7 outcomes. Full history remains exclusively in immutable SQLite; the 32 MCP tool ABI, OAuth/URL, development-only/PIT/OOS gates, old G150 non-inheritance and orders OFF remain unchanged.
+- Corresponding user-approved ADR: `docs/decisions/2026-11-11-quant-cross-chat-resume-context.md`.
+
 ## Protected paths
 
 The Research Director and generated strategy artifacts must not write to or mutate:

@@ -41,3 +41,13 @@ def test_live_gate_requires_current_human_approval_and_exact_champion() -> None:
     expired = LiveApproval("champion-1", "human", datetime.now(timezone.utc) - timedelta(seconds=1))
     with pytest.raises(PermissionError, match="expired"):
         validate_live_approval(expired, champion_hash="champion-1")
+
+
+@pytest.mark.parametrize("bad_order_flag", [None, 0, "", [], "false"])
+def test_research_permission_does_not_accept_untyped_order_flag(
+    bad_order_flag,
+) -> None:
+    with pytest.raises(PermissionError, match="order"):
+        validate_research_permissions(
+            ResearchPermissions(order_permission=bad_order_flag, credential_ref=None)
+        )

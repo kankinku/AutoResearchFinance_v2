@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from application.academic_checkpoint_service import AcademicMCPCheckpointService
-from scripts.fresh_development_cohort_controller_20261021 import main as run_generations
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "state/moon-http/fresh-20261021"
@@ -91,6 +90,9 @@ def run(cohort_id: str, expected_start: int, additional: int) -> None:
     target = expected_start + additional
     if target > 1000:
         raise ValueError("academic checkpoint upper bound is G1000")
+    # A historical controller is optional for import, but mandatory before any write.
+    from scripts.fresh_development_cohort_controller_20261021 import main as run_generations
+
     JOBS.mkdir(parents=True, exist_ok=True)
     # Held for extension AND generation execution; a second invoker cannot
     # race or double-extend the same research state.

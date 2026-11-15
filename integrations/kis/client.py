@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
 from core.data.contracts import Bar
-from integrations.kis.config import PaperKISConfig
+from integrations.kis.config import PaperKISConfig, validate_paper_endpoint
 
 _PAPER_REQUEST_INTERVAL_SECONDS = 1.1
 
@@ -112,6 +112,7 @@ class KISPaperClient:
         transport: KISTransport | None = None,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
+        validate_paper_endpoint(config, transport_is_injected=transport is not None)
         self.config = config
         transport_was_injected = transport is not None
         self._transport = transport or URLTransport()

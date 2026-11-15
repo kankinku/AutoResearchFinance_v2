@@ -1,21 +1,28 @@
 """V05: DEVELOPMENT-only trade capacity and multiple-search evidence audit.
 
 Reconciles existing canonical costed fills to actual historical daily volume.
-Stress PnL is a *fixed-fill linear proxy*, not a re-run or executable forecast.
+The original V05 report is a *fixed-fill proxy*. Explicit opt-in separately
+replays the canonical engine; neither result is an executable forecast.
 Full-day market volume was unavailable at open; this is ex-post diagnostics.
 """
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import asdict
 from math import isclose, isfinite
 from typing import Any
 
+from core.backtest.engine import BacktestEngine, BacktestRequest
 from core.costs.model import CostModel
 from core.data.contracts import DataZone, MarketDataSet
 from core.integrity.hashes import content_hash
 from evaluation.trial_dependence import estimate_cohort_dependence
 from research.indicator_engine.catalog import ResearchCatalogError
-from research.indicator_engine.strategy_adapter import AcademicDevelopmentResult
+from research.indicator_engine.strategy_adapter import (
+    AcademicDevelopmentResult,
+    CompiledAcademicStrategy,
+    evaluate_compiled_development,
+)
 
 
 def audit_development_economics(
@@ -200,6 +207,145 @@ def audit_development_economics(
         "realizable_net_profit_verified": False,
         "broker_executable": False,
         "next_stage": "T4_REAL_CHATGPT_MCP_10_THEN_100_GENERATIONS",
+    }
+    report["report_hash"] = content_hash(report)
+    return report
+
+
+def audit_replayed_development_cost_stress(
+    market: MarketDataSet,
+    result: AcademicDevelopmentResult,
+    compiled: CompiledAcademicStrategy,
+    *,
+    cost_model: CostModel,
+    max_daily_participation: float,
+    stress_multiplier: float,
+    attempted_trials: int,
+    trial_returns: tuple[tuple[float, ...], ...] | None = None,
+) -> dict[str, Any]:
+    """Re-run the exact verified DEVELOPMENT strategy with stressed execution costs.
+
+    The existing fixed-fill V05 report remains unchanged. This separate report
+    measures executed trades and equity from the canonical engine, not a
+    subtraction from the original result. Neither is a PIT/OOS certificate.
+    """
+    proxy = audit_development_economics(
+        market,
+        result,
+        cost_model=cost_model,
+        max_daily_participation=max_daily_participation,
+        stress_multiplier=stress_multiplier,
+        attempted_trials=attempted_trials,
+        trial_returns=trial_returns,
+    )
+    if not proxy["trade_volume_capacity_passed"]:
+        raise ResearchCatalogError("V05 replay blocked by unverified daily liquidity")
+    if compiled.strategy_hash != result.strategy_hash:
+        raise ResearchCatalogError("V05 replay strategy hash mismatch")
+
+    # Verify that the supplied historic result is a true evaluation of this
+    # exact compiled strategy, dataset, initial cash and canonical cost model.
+    baseline = evaluate_compiled_development(
+        compiled, market, initial_cash=result.initial_cash,
+    )
+    if baseline != result:
+        raise ResearchCatalogError("V05 baseline differs from canonical compiled replay")
+
+    try:
+        replay = BacktestEngine().run(
+            BacktestRequest(
+                run_id="v05-cost-replay-" + compiled.strategy_hash[:16],
+                strategy_hash=compiled.strategy_hash,
+                dataset=market,
+                initial_cash=result.initial_cash,
+                strategy=compiled.strategy,
+                cost_model=cost_model,
+                feature_values=compiled.feature_values,
+                feature_values_pre_lagged=True,
+                cost_stress_multiplier=stress_multiplier,
+            )
+        )
+    except ValueError as exc:
+        raise ResearchCatalogError("V05 stressed execution rejected by canonical engine") from exc
+    if (
+        replay.exit_status != "SUCCEEDED"
+        or replay.data_hash != market.dataset_hash
+        or replay.strategy_hash != compiled.strategy_hash
+        or len(replay.equity_curve) != len(market.bars)
+        or content_hash(replay.equity_curve) != replay.equity_curve_hash
+        or not all(isfinite(value) and value > 0 for value in replay.equity_curve)
+    ):
+        raise ResearchCatalogError("V05 stressed canonical result integrity failure")
+
+    bars = {bar.timestamp.isoformat(): bar for bar in market.bars}
+    volume_by_date: dict[str, float] = defaultdict(float)
+    stressed_total_costs = 0.0
+    for trade in replay.trades:
+        bar = bars.get(trade.timestamp)
+        if (
+            bar is None or trade.symbol != bar.symbol
+            or trade.side not in ("buy", "sell")
+            or trade.quantity <= 0
+            or not isclose(trade.price, bar.open, rel_tol=1e-9)
+            or not isfinite(trade.cost) or trade.cost < 0
+        ):
+            raise ResearchCatalogError("V05 stressed fill is not a canonical next-open trade")
+        volume_by_date[trade.timestamp] += trade.quantity
+        stressed_total_costs += trade.cost
+    if (
+        not volume_by_date
+        or any(
+            bars[key].volume <= 0
+            or quantity / bars[key].volume > max_daily_participation
+            for key, quantity in volume_by_date.items()
+        )
+    ):
+        raise ResearchCatalogError("V05 stressed replay failed volume capacity gate")
+
+    peak = result.initial_cash
+    max_drawdown = 0.0
+    for equity in replay.equity_curve:
+        peak = max(peak, equity)
+        max_drawdown = max(max_drawdown, 100.0 * (peak - equity) / peak)
+    net_pnl = replay.equity_curve[-1] - result.initial_cash
+    report: dict[str, Any] = {
+        "schema": "v05-canonical-cost-stress-replay-v1",
+        "status": "DEVELOPMENT_ONLY_REPLAY",
+        "canonical_backtest_rerun": True,
+        "market_hash": market.dataset_hash,
+        "strategy_hash": compiled.strategy_hash,
+        "baseline_equity_hash": result.equity_hash,
+        "replay_equity_hash": replay.equity_curve_hash,
+        "replay_fill_trace_hash": content_hash([asdict(trade) for trade in replay.trades]),
+        "cost_model_version": cost_model.version,
+        "cost_policy_hash": content_hash({
+            "version": cost_model.version,
+            "commission_bps": cost_model.commission_bps,
+            "spread_bps": cost_model.spread_bps,
+            "slippage": {"basis_points": cost_model.slippage.basis_points},
+            "multiplier": stress_multiplier,
+        }),
+        "stress_multiplier": stress_multiplier,
+        "baseline_report_hash": proxy["report_hash"],
+        "baseline_trade_count": result.trades_count,
+        "replay_trade_count": len(replay.trades),
+        "replay_total_paid_costs_usd": stressed_total_costs,
+        "replay_net_pnl_usd": net_pnl,
+        "replay_max_drawdown_pct": max_drawdown,
+        "proxy_net_pnl_usd": proxy["stressed_net_pnl_proxy_usd"],
+        "replay_minus_proxy_usd": net_pnl - proxy["stressed_net_pnl_proxy_usd"],
+        "replay_trade_volume_capacity_passed": True,
+        "trials_declared_unattested": attempted_trials,
+        "cohort_dependence_status": proxy["cohort_dependence_status"],
+        "iid_equivalent_trials_proxy": proxy["iid_equivalent_trials_proxy"],
+        "full_trial_count_proven": False,
+        "multiple_trial_statistical_significance_approved": False,
+        "volume_known_at_next_open": False,
+        "point_in_time_verified": False,
+        "out_of_sample_approved": False,
+        "realizable_net_profit_verified": False,
+        "candidate_promotable": False,
+        "broker_executable": False,
     }
     report["report_hash"] = content_hash(report)
     return report

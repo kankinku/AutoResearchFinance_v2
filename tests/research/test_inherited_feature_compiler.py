@@ -206,3 +206,32 @@ def test_counted_descendant_replays_ancestor_feature_signature_without_rewriting
     }
     with pytest.raises(CycleStateError, match="cannot replay"):
         svc._inherited_from_evidence(None, market, altered, history=[source_record, altered])
+
+
+def test_precomputed_atr_lag_is_applied_once_in_costed_execution():
+    """A signal known at close[3] must be actionable at open[4], not open[6]."""
+    from strategy_ir.schema import RuleSet
+
+    original, market, _, ref = _atr_mutation(lag=2)
+    strategy = original.strategy.model_copy(
+        update={
+            "features": {"lagged_atr": ref},
+            "entry": RuleSet(
+                logic="AND",
+                conditions=[Condition(op="greater_than", left="lagged_atr", value=0)],
+            ),
+            "exit": RuleSet(
+                logic="AND",
+                conditions=[Condition(op="less_equal", left="lagged_atr", value=0)],
+            ),
+            "regime_filters": [],
+        }
+    )
+    compiled = bind_inherited_features(original, strategy, market)
+    assert compiled.feature_values["lagged_atr"][2] is None
+    assert compiled.feature_values["lagged_atr"][3] is not None
+
+    evaluated = evaluate_compiled_development(compiled, market)
+    assert [trade.side for trade in evaluated.trades] == ["buy"]
+    assert evaluated.trades[0].timestamp == market.bars[4].timestamp.isoformat()
+    assert audit_inherited_decisions(compiled, market).evaluation == evaluated

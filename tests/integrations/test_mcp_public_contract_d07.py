@@ -84,6 +84,11 @@ def test_all_32_valid_calls_route_exactly_once_with_public_contract(tmp_path: Pa
         for item in chatgpt_tools():
             name = item["name"]
             arguments = _example(item["inputSchema"])
+            # The isolated dispatcher returns no real checkpoint to compact.
+            # Request the existing full transport mode; the compacter's
+            # fail-closed behavior is covered by dedicated checkpoint tests.
+            if name == "get_algorithm_research":
+                arguments["response_mode"] = "full"
             answer = await adapter.call_tool(
                 ctx, types.CallToolRequestParams(name=name, arguments=arguments)
             )
@@ -93,7 +98,11 @@ def test_all_32_valid_calls_route_exactly_once_with_public_contract(tmp_path: Pa
             assert result["orders_enabled"] is False
             assert result["_contract"]["orders_enabled"] is False
             assert result["_contract"]["tool"] == name
-            assert invocations[-1] == (name, arguments)
+            expected = (
+                {key: value for key, value in arguments.items() if key != "response_mode"}
+                if name == "get_algorithm_research" else arguments
+            )
+            assert invocations[-1] == (name, expected)
         assert len(invocations) == 32
         assert {name for name, _ in invocations} == {
             tool["name"] for tool in chatgpt_tools()

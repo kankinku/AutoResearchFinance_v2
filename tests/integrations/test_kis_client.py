@@ -155,6 +155,13 @@ def test_token_is_cached_for_multiple_read_only_calls(tmp_path: Path) -> None:
 def test_client_throttles_live_paper_transport_requests(tmp_path: Path, monkeypatch) -> None:
     env_path = tmp_path / ".env"
     _env(env_path)
+    # This test patches the network transport, but constructor validation still
+    # requires the actual paper API host when no transport is injected.
+    env_path.write_text(
+        env_path.read_text().replace(
+            "https://paper.example", "https://openapivts.koreainvestment.com:29443"
+        ), encoding="utf-8",
+    )
     transport = RecordingTransport(
         [
             KISResponse(
@@ -327,3 +334,50 @@ def test_client_preserves_kis_error_message(tmp_path: Path) -> None:
 
     with pytest.raises(KISAPIError, match="주문 거부"):
         client.quote("QQQ")
+
+
+@pytest.mark.parametrize("bad_url", [
+    "https://openapi.koreainvestment.com:9443",
+    "http://openapivts.koreainvestment.com:29443",
+    "https://openapivts.koreainvestment.com:9443",
+    "https://openapivts.koreainvestment.com@openapi.koreainvestment.com:9443",
+    "https://openapivts.koreainvestment.com:29443/unexpected/path",
+    "https://openapivts.koreainvestment.com:29443?redirect=live",
+    "https://openapivts.koreainvestment.com:29443#fragment",
+])
+def test_paper_readonly_client_never_sends_credentials_to_unsafe_endpoint(
+    tmp_path: Path, bad_url: str,
+) -> None:
+    env_path = tmp_path / ".env"
+    _env(env_path)
+    env_path.write_text(
+        env_path.read_text().replace(
+            "KIS_PAPER_BASE_URL=https://paper.example", f"KIS_PAPER_BASE_URL={bad_url}"
+        )
+    )
+    transport = RecordingTransport([])
+    with pytest.raises(KISConfigError, match="paper|endpoint|HTTPS|virtual"):
+        KISPaperClient(PaperKISConfig.from_env(env_path), transport=transport)
+    assert transport.calls == []
+
+
+def test_nonmock_paper_client_never_accepts_custom_host_even_with_https(
+    tmp_path: Path,
+) -> None:
+    env_path = tmp_path / ".env"
+    _env(env_path)
+    with pytest.raises(KISConfigError, match="virtual|paper"):
+        KISPaperClient(PaperKISConfig.from_env(env_path))
+
+
+def test_directly_created_live_mode_config_cannot_bypass_paper_client_guard() -> None:
+    from integrations.kis.config import PaperKISConfig
+
+    transport = RecordingTransport([])
+    with pytest.raises(KISConfigError, match="paper"):
+        KISPaperClient(
+            PaperKISConfig("fake", "fake", "https://openapivts.koreainvestment.com:29443",
+                           mode="live"),
+            transport=transport,
+        )
+    assert transport.calls == []

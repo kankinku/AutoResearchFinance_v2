@@ -193,6 +193,7 @@ def evaluate_compiled_development(
             strategy=compiled.strategy,
             cost_model=_COST,
             feature_values=compiled.feature_values,
+            feature_values_pre_lagged=True,
             signal_start_at=signal_start_at,
         )
     )

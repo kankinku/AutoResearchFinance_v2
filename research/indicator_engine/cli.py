@@ -26,7 +26,10 @@ from research.indicator_engine.corporate_actions import verify_dividend_snapshot
 from research.indicator_engine.corporate_asof_gate import audit_qqq_corporate_asof
 from research.indicator_engine.databento_cutover_audit import compare_condition_vintages
 from research.indicator_engine.databento_metadata_preflight import probe_qqq_xnas_metadata
-from research.indicator_engine.development_economics_v05 import audit_development_economics
+from research.indicator_engine.development_economics_v05 import (
+    audit_development_economics,
+    audit_replayed_development_cost_stress,
+)
 from research.indicator_engine.formula_calculator import FormulaCalculatorError, FormulaPreviewStore
 from research.indicator_engine.literature_discovery import (
     DEFAULT_LITERATURE_TOPICS,
@@ -168,6 +171,10 @@ def main() -> int:
     economics.add_argument("--attempted-trials", type=int, required=True)
     economics.add_argument("--max-participation", type=float, required=True)
     economics.add_argument("--stress-multiplier", type=float, required=True)
+    economics.add_argument(
+        "--canonical-replay", action="store_true",
+        help="Opt in to a distinct real backtest cost replay report (not a fixed-fill proxy)",
+    )
     parallel = subs.add_parser(
         "preview-parallel-algorithm",
         help="Offline bounded multi-ETF typed StrategyIR comparison; no portfolio orders",
@@ -470,12 +477,20 @@ def main() -> int:
             evaluated = evaluate_algorithm_plan(
                 db, economic_candidate, development_market,
             )
-            economics_report = audit_development_economics(
-                development_market, evaluated, cost_model=_COST,
-                attempted_trials=args.attempted_trials,
+            common_args = dict(
+                cost_model=_COST, attempted_trials=args.attempted_trials,
                 max_daily_participation=args.max_participation,
                 stress_multiplier=args.stress_multiplier,
             )
+            if args.canonical_replay:
+                economics_report = audit_replayed_development_cost_stress(
+                    development_market, evaluated, economic_candidate.compiled,
+                    **common_args,
+                )
+            else:
+                economics_report = audit_development_economics(
+                    development_market, evaluated, **common_args,
+                )
         except (OSError, ValueError, ResearchCatalogError) as exc:
             print(json.dumps({
                 "status": "DEVELOPMENT_ECONOMICS_REJECTED",

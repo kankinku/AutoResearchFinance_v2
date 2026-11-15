@@ -73,3 +73,40 @@ def test_paper_order_smoke_is_paper_only_and_does_not_change_mode(
     assert payload["status"] == "FLAT"
     assert payload["mode"] == "paper"
     assert json.loads(mode_path.read_text(encoding="utf-8"))["orders_enabled"] is False
+
+
+def test_paper_smoke_unsettled_is_nonzero_and_never_claims_flat(
+    tmp_path: Path, monkeypatch, capsys,
+) -> None:
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "\n".join(
+            (
+                "KIS_PAPER_APP_KEY=placeholder",
+                "KIS_PAPER_APP_SECRET=placeholder",
+                "KIS_PAPER_BASE_URL=https://paper.example",
+                "KIS_ACCOUNT_NO=12345678-01",
+                "KIS_PRODUCT_CODE=01",
+                "QUANT_TRADING_MODE=paper",
+            )
+        ),
+        encoding="utf-8",
+    )
+    receipt = PaperOrderReceipt("QQQ", "buy", "NASD", 10, "100")
+
+    class FakeOrderClient:
+        def __init__(self, config) -> None:
+            assert config.mode == "paper"
+
+        def run_buy_then_sell(
+            self, symbol, *, quantity, exchange, timeout_seconds, poll_seconds
+        ):
+            return PaperRoundTripResult("UNSETTLED", receipt, 2, None, 0, None)
+
+    monkeypatch.setattr(cli, "KISPaperOrderClient", FakeOrderClient)
+    assert cli.main([
+        "paper-order-smoke", "--env-file", str(env_path), "--confirm-paper-order",
+    ]) == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "UNSETTLED"
+    assert payload["final_position_quantity"] is None

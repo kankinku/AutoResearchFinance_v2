@@ -14,12 +14,17 @@ import statistics
 from pathlib import Path
 from typing import Any
 
+from core.integrity.hashes import content_hash as _fresh_hash
 from research.indicator_engine.algorithm_plan import AlgorithmPlan
 from scripts.preregister_t4_equal_plan_comparison import (
+    FRESH_ARMS,
+    FRESH_MANIFEST_SCHEMA,
     MARKET_HASH,
     SCHEMA,
     digest,
     freeze,
+    freeze_fresh_manifest,
+    fresh_three_arm_protocol,
 )
 
 SCHEMA_RESULT = "T4_THREE_ARM_DEVELOPMENT_COMPARISON_V1"
@@ -201,34 +206,361 @@ def validate_and_score(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", required=True, type=Path)
-    parser.add_argument("--observed", required=True, type=Path)
-    parser.add_argument("--prior-gpt", required=True, type=Path)
-    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--observed", type=Path)
+    parser.add_argument("--prior-gpt", type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--fresh-manifest", type=Path)
+    parser.add_argument("--fresh-receipts", type=Path)
+    parser.add_argument("--fresh-observations", type=Path)
+    parser.add_argument("--expected-manifest-hash")
+    parser.add_argument("--expected-receipts-hash")
+    parser.add_argument("--expected-observations-hash")
+    parser.add_argument("--fresh-output", type=Path)
     args = parser.parse_args()
-    result = validate_and_score(
-        json.loads(args.manifest.read_text()),
-        json.loads(args.observed.read_text()),
-        json.loads(args.prior_gpt.read_text()),
-    )
-    with args.output.open("x") as stream:
+    if args.fresh_manifest is not None:
+        fields = (
+            args.fresh_receipts, args.fresh_observations, args.fresh_output,
+            args.expected_manifest_hash, args.expected_receipts_hash,
+            args.expected_observations_hash,
+        )
+        if any(v is None for v in fields) or any((
+            args.manifest, args.observed, args.prior_gpt, args.output
+        )):
+            parser.error("fresh scoring requires three independent pinned SHA hashes")
+        result = validate_fresh_equal_budget_score(
+            json.loads(args.fresh_manifest.read_text(encoding="utf-8")),
+            json.loads(args.fresh_receipts.read_text(encoding="utf-8")),
+            json.loads(args.fresh_observations.read_text(encoding="utf-8")),
+            expected_manifest_hash=args.expected_manifest_hash,
+            expected_receipts_hash=args.expected_receipts_hash,
+            expected_observations_hash=args.expected_observations_hash,
+        )
+        target = args.fresh_output
+    else:
+        if any((args.fresh_receipts, args.fresh_observations, args.fresh_output,
+                args.expected_manifest_hash, args.expected_receipts_hash,
+                args.expected_observations_hash)):
+            parser.error("fresh scoring requires --fresh-manifest")
+        if any(v is None for v in (
+            args.manifest, args.observed, args.prior_gpt, args.output
+        )):
+            parser.error("historical scoring requires four legacy arguments")
+        result = validate_and_score(
+            json.loads(args.manifest.read_text()),
+            json.loads(args.observed.read_text()),
+            json.loads(args.prior_gpt.read_text()),
+        )
+        target = args.output
+    with target.open("x", encoding="utf-8") as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2, sort_keys=True)
         stream.write("\n")
-    print(
-        "VERIFIED", result["report_hash"], "evaluations", result["original_plan_evaluations_total"]
-    )
-    for arm in result["arm_summaries"]:
+    if args.fresh_manifest is not None:
+        print("DESCRIPTIVE_ONLY", result["report_hash"])
+    else:
         print(
-            arm["arm"],
-            "median return",
-            f"{arm['median_total_return'] * 100:.3f}%",
-            "median MDD",
-            f"{arm['median_mdd'] * 100:.3f}%",
-            "pass",
-            arm["pass_count"],
-            "zero trade",
-            arm["zero_trade_count"],
+            "VERIFIED", result["report_hash"],
+            "evaluations", result["original_plan_evaluations_total"],
         )
+        for arm in result["arm_summaries"]:
+            print(
+                arm["arm"],
+                "median return", f"{arm['median_total_return'] * 100:.3f}%",
+                "median MDD", f"{arm['median_mdd'] * 100:.3f}%",
+                "pass", arm["pass_count"],
+                "zero trade", arm["zero_trade_count"],
+            )
+
+
+class FreshComparisonError(ValueError):
+    """A new cohort cannot be scored using tampered/unanchored evidence."""
+
+
+def _valid_sha(value: object) -> bool:
+    return (
+        isinstance(value, str) and len(value) == 64
+        and all(c in "0123456789abcdef" for c in value)
+    )
+
+
+def _value(value: object, *, low: float | None = None, high: float | None = None) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise FreshComparisonError("missing numeric measured metric")
+    number = float(value)
+    if not math.isfinite(number) or (low is not None and number < low) or (
+        high is not None and number > high
+    ):
+        raise FreshComparisonError("nonfinite or out-of-bounds measured metric")
+    return number
+
+
+def _anchored(payload: dict[str, Any], key: str, expected: str) -> None:
+    if (
+        not _valid_sha(expected) or payload.get(key) != expected
+        or _fresh_hash({k: v for k, v in payload.items() if k != key}) != expected
+    ):
+        raise FreshComparisonError(f"{key}: external immutable anchor mismatch")
+
+
+def _check_costed_fill_trace(row: dict[str, Any]) -> None:
+    """Require internally consistent canonical Trade-shaped evidence.
+
+    This cannot prove market prices or canonical replay; it only rejects
+    fabricated accounting contradictions before descriptive aggregation.
+    """
+    held = False
+    closed = 0
+    paid = 0.0
+    previous_time = ""
+    fields = {"timestamp", "side", "price", "quantity", "notional", "cost", "symbol"}
+    for trade in row["fills"]:
+        if not isinstance(trade, dict) or set(trade) != fields:
+            raise FreshComparisonError("malformed executed trade trace")
+        when = trade["timestamp"]
+        side = trade["side"]
+        if (
+            not isinstance(when, str) or not when or when <= previous_time
+            or trade["symbol"] != "QQQ"
+            or side not in ("buy", "sell")
+        ):
+            raise FreshComparisonError("unsupported executed trade provenance or order")
+        price = _value(trade["price"], low=0.0000000001)
+        qty = _value(trade["quantity"], low=0.0000000001)
+        notional = _value(trade["notional"], low=0)
+        cost = _value(trade["cost"], low=0)
+        if not math.isclose(price * qty, notional, rel_tol=1e-9, abs_tol=1e-6):
+            raise FreshComparisonError("executed trade notional inconsistent")
+        if (side == "buy" and held) or (side == "sell" and not held):
+            raise FreshComparisonError("unpaired executed trade sequence")
+        held = side == "buy"
+        closed += side == "sell"
+        paid += cost
+        previous_time = when
+    if (
+        closed != row["closed_trades"]
+        or not math.isclose(paid, row["paid_cost_usd"], rel_tol=1e-9, abs_tol=1e-6)
+    ):
+        raise FreshComparisonError("executed trade count or paid cost mismatch")
+
+
+def validate_fresh_equal_budget_score(
+    manifest: dict[str, Any],
+    receipts: dict[str, Any],
+    observations: dict[str, Any],
+    *,
+    expected_manifest_hash: str,
+    expected_receipts_hash: str,
+    expected_observations_hash: str,
+) -> dict[str, Any]:
+    """Descriptive-only v2 scorer: three independently anchored, fresh G1 arms.
+
+    NOTE: a hash-signed user-supplied observation is NOT independent canonical
+    replay. Save manifest BEFORE trials and each receipt BEFORE its execution;
+    separately commit each SHA to a trusted append-only evidence location.
+    """
+    try:
+        if manifest.get("schema") != FRESH_MANIFEST_SCHEMA:
+            raise FreshComparisonError("only the NEW G1 manifest is supported")
+        _anchored(manifest, "freeze_hash", expected_manifest_hash)
+        protocol = fresh_three_arm_protocol()
+        baseline = freeze_fresh_manifest(
+            protocol,
+            market_hash=manifest["dataset_hash"],
+            evaluator_version=manifest["evaluator_version"],
+            cost_policy_hash=manifest["cost_policy_hash"],
+            feature_policy_hash=manifest["feature_policy_hash"],
+            cohort_id=manifest["cohort_id"],
+            session_ids=manifest["session_ids"],
+            market_start=manifest["market_window"]["start"],
+            market_end=manifest["market_window"]["end"],
+            source_code_hash=manifest["source_code_hash"],
+        )
+        if manifest != baseline:
+            raise FreshComparisonError("frozen fresh policy contract was modified")
+        if not isinstance(receipts, dict) or not isinstance(observations, dict):
+            raise FreshComparisonError("submission and observation records required")
+        _anchored(receipts, "receipts_hash", expected_receipts_hash)
+        _anchored(observations, "observations_hash", expected_observations_hash)
+        if (
+            receipts.get("schema") != "T4_FRESH_SUBMISSIONS_V2"
+            or observations.get("schema") != "T4_FRESH_MEASUREMENTS_V2"
+            or receipts.get("manifest_hash") != expected_manifest_hash
+            or observations.get("manifest_hash") != expected_manifest_hash
+        ):
+            raise FreshComparisonError("submitted evidence does not belong to the new G1 study")
+        expected_slots = {(arm, i) for arm in FRESH_ARMS for i in range(1, 11)}
+        submitted = receipts["rows"]
+        measured = observations["rows"]
+        if not isinstance(submitted, list) or not isinstance(measured, list) or (
+            len(submitted) != len(measured) or len(submitted) != len(expected_slots)
+        ):
+            raise FreshComparisonError("unequal candidate or S7 observation budget")
+        by_slot: dict[tuple[str, int], dict[str, Any]] = {}
+        for record in submitted:
+            if not isinstance(record, dict):
+                raise FreshComparisonError("untyped submitted plan")
+            key = (record["arm"], record["slot"])
+            if key not in expected_slots or key in by_slot:
+                raise FreshComparisonError("duplicate or invalid submitted plan slot")
+            _anchored(record, "receipt_hash", record["receipt_hash"])
+            if (
+                record.get("submitted_before_execution") is not True
+                or record.get("session_id") != manifest["session_ids"][record["arm"]]
+                or record.get("dataset_hash") != manifest["dataset_hash"]
+                or not isinstance(record.get("plan"), dict)
+                or not record["plan"].get("plan_id")
+                or AlgorithmPlan.model_validate(record["plan"]).model_dump(mode="json")
+                != record["plan"]
+                or record.get("plan_hash") != _fresh_hash(record["plan"])
+                or not _valid_sha(record.get("strategy_hash"))
+            ):
+                raise FreshComparisonError("unsigned or unmatched strategy/plan submission")
+            by_slot[key] = record
+        if set(by_slot) != expected_slots:
+            raise FreshComparisonError("submitted plan budget is incomplete")
+
+        by_arm: dict[str, list[dict[str, Any]]] = {arm: [] for arm in FRESH_ARMS}
+        measured_slots: set[tuple[str, int]] = set()
+        for row in measured:
+            if not isinstance(row, dict):
+                raise FreshComparisonError("untyped measured result")
+            key = (row["arm"], row["slot"])
+            if key not in expected_slots or key in measured_slots:
+                raise FreshComparisonError("duplicate or invalid measured slot")
+            measured_slots.add(key)
+            _anchored(row, "row_hash", row["row_hash"])
+            receipt = by_slot[key]
+            if (
+                row.get("session_id") != receipt["session_id"]
+                or row.get("dataset_hash") != manifest["dataset_hash"]
+                or row.get("evaluator_version") != manifest["evaluator_version"]
+                or row.get("cost_policy_hash") != manifest["cost_policy_hash"]
+                or row.get("plan_hash") != receipt["plan_hash"]
+                or row.get("strategy_hash") != receipt["strategy_hash"]
+                or not isinstance(row.get("fills"), list)
+                or row.get("fill_trace_hash") != _fresh_hash(row["fills"])
+                or type(row.get("failed")) is not bool
+            ):
+                raise FreshComparisonError("costed observation/strategy/checkpoint mismatch")
+            if (
+                row.get("s7_predicted_direction") not in ("UP", "DOWN", "UNCHANGED", "UNKNOWN")
+                or row.get("s7_observed_direction") not in ("UP", "DOWN", "UNCHANGED", "UNKNOWN")
+            ):
+                raise FreshComparisonError("invalid S7 hypothesis direction")
+            _value(row["costed_net_return"], low=-1)
+            _value(row["max_drawdown"], low=0, high=1)
+            _value(row["paid_cost_usd"], low=0)
+            if type(row["closed_trades"]) is not int or row["closed_trades"] < 0:
+                raise FreshComparisonError("unverified closed trades count")
+            _check_costed_fill_trace(row)
+            by_arm[row["arm"]].append(row)
+        if measured_slots != expected_slots:
+            raise FreshComparisonError("unmeasured generation slot")
+        resources = observations["resources"]
+        if not isinstance(resources, dict) or set(resources) != set(FRESH_ARMS):
+            raise FreshComparisonError("arm resource ledger missing")
+        budget = manifest["budget_per_arm"]
+        actual_resource_signatures = []
+        for arm in FRESH_ARMS:
+            usage = resources[arm]
+            if not isinstance(usage, dict) or any(
+                type(usage.get(k)) is not int or usage[k] < 0
+                for k in ("plan_attempts", "s7_trials", "canonical_backtests",
+                          "model_calls", "model_input_tokens",
+                          "model_output_tokens", "elapsed_ms")
+            ):
+                raise FreshComparisonError("unverified model/backtest resources")
+            if (
+                usage["plan_attempts"] != budget["plan_attempts"]
+                or usage["s7_trials"] != budget["s7_trials"]
+                or usage["canonical_backtests"] != budget["canonical_backtests"]
+                or usage["model_calls"] > budget["model_call_ceiling"]
+                or usage["model_input_tokens"] + usage["model_output_tokens"]
+                > budget["model_token_ceiling"]
+            ):
+                raise FreshComparisonError("candidate, trial, model or backtest budget bypass")
+            actual_resource_signatures.append((
+                usage["model_calls"],
+                usage["model_input_tokens"] + usage["model_output_tokens"],
+            ))
+        risk = manifest["risk_gates"]
+        summaries: list[dict[str, Any]] = []
+        global_fills: set[str] = set()
+        for arm in FRESH_ARMS:
+            rows = sorted(by_arm[arm], key=lambda r: r["slot"])
+            distinct_fills: set[str] = set()
+            passed: set[str] = set()
+            match = 0
+            comparable = 0
+            for row in rows:
+                fills = row["fill_trace_hash"]
+                if row["fills"]:
+                    distinct_fills.add(fills)
+                    global_fills.add(fills)
+                if (
+                    row["fills"] and not row["failed"]
+                    and row["closed_trades"] >= risk["minimum_closed_trades"]
+                    and row["max_drawdown"] <= risk["max_drawdown"]
+                    and row["costed_net_return"] > 0
+                ):
+                    passed.add(fills)
+                if row["s7_predicted_direction"] != "UNKNOWN" and (
+                    row["s7_observed_direction"] != "UNKNOWN"
+                ):
+                    comparable += 1
+                    match += row["s7_predicted_direction"] == row["s7_observed_direction"]
+            summaries.append({
+                "arm": arm,
+                "sample_size": len(rows),
+                "unique_executed_fill_traces": len(distinct_fills),
+                "duplicate_fill_trace_count": sum(bool(row["fills"]) for row in rows)
+                - len(distinct_fills),
+                "risk_gate_passed_unique_signals": len(passed),
+                "failed_trials": sum(row["failed"] for row in rows),
+                "s7_direction_comparable": comparable,
+                "s7_direction_matched": match,
+                "s7_direction_match_rate": match / comparable if comparable else None,
+                "median_costed_net_return": statistics.median(
+                    row["costed_net_return"] for row in rows
+                ),
+                "median_max_drawdown": statistics.median(
+                    row["max_drawdown"] for row in rows
+                ),
+                "canonical_backtests_declared": resources[arm]["canonical_backtests"],
+                "model_calls_declared": resources[arm]["model_calls"],
+                "model_tokens_declared": resources[arm]["model_input_tokens"]
+                + resources[arm]["model_output_tokens"],
+                "elapsed_ms_declared": resources[arm]["elapsed_ms"],
+            })
+        body: dict[str, Any] = {
+            "schema": "T4_FRESH_EQUAL_BUDGET_DESCRIPTIVE_SCORE_V2",
+            "status": "DESCRIPTIVE_NOT_INDEPENDENTLY_REPLAYED",
+            "protocol_hash": protocol["protocol_hash"],
+            "manifest_hash": expected_manifest_hash,
+            "receipts_hash": expected_receipts_hash,
+            "observations_hash": expected_observations_hash,
+            "primary_metric": protocol["selection_metric"],
+            "study_cohort_id": manifest["cohort_id"],
+            "arm_summaries": summaries,
+            "same_market_and_evaluator": True,
+            "equal_declared_plan_s7_backtest_budgets": True,
+            "actual_model_budget_equalized": len(set(actual_resource_signatures)) == 1,
+            "global_distinct_executed_fill_hashes": len(global_fills),
+            "number_of_independent_random_seeds": 1,
+            "canonical_replay_independently_verified": False,
+            "external_commit_timing_independently_verified": False,
+            "actual_data_and_model_connection_independently_verified": False,
+            "statistical_superiority_established": False,
+            "independent_oos_approved": False,
+            "broker_executable": False,
+            "no_old_cohort_data_reused": True,
+            "no_strategy_promoted": True,
+        }
+        return {**body, "report_hash": _fresh_hash(body)}
+    except FreshComparisonError:
+        raise
+    except (KeyError, TypeError, ValueError, AttributeError, IndexError) as exc:
+        raise FreshComparisonError("malformed fresh research evidence") from exc
 
 
 if __name__ == "__main__":

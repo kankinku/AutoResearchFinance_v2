@@ -1,0 +1,44 @@
+{
+  "actual_backtests_executed": 0,
+  "actual_model_token_cost_usd": null,
+  "actual_new_replayed_signals": null,
+  "candidate_count_each_arm": 4,
+  "candidate_fixture_hash": "3761bd3f697553fca2bfe07715160c017274ec7348383b3af873cd27ac99d19f",
+  "candidate_scoring_slots_each_arm": 100,
+  "default_parent_portfolio_v2_unchanged": true,
+  "fixed_random_seed": 20261110,
+  "hypothesis_direction_match_rate": null,
+  "independent_oos_approved": false,
+  "lane_count": 3,
+  "legacy": {
+    "distinct_executed_fill_hashes": 1,
+    "lowest_selected_development_drawdown": 0.23,
+    "max_parent_concentration": 1.0,
+    "parent_counts": {
+      "94": 25
+    },
+    "selection_count": 25
+  },
+  "llm_calls": 0,
+  "not_historical_g94_g96_g106_evidence": true,
+  "observed_backtest_cost_usd": null,
+  "opt_in": {
+    "distinct_executed_fill_hashes": 3,
+    "lowest_selected_development_drawdown": 0.09,
+    "max_parent_concentration": 0.36,
+    "parent_counts": {
+      "106": 9,
+      "94": 8,
+      "96": 8
+    },
+    "selection_count": 25
+  },
+  "past_experiments_used_as_parent_or_memory": false,
+  "report_hash": "c4664ac6b2c89367253b0293fc69d4df65d57b34de2ffd49dd843757792a5c14",
+  "schema": "t4-synthetic-parent-selector-equal-budget-v1",
+  "selection_opportunities_each_arm": 25,
+  "status": "EXPERIMENTAL_SELECTION_ONLY",
+  "superiority_demonstrated": false,
+  "synthetic_only": true,
+  "verified_replay_assumed_not_executed": true
+}

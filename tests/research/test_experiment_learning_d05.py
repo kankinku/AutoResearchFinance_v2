@@ -79,6 +79,8 @@ def test_no_evidence_is_bounded_exploration() -> None:
     a = build_experiment_learning([], {})
     assert a["next_test_priority"] == "EXPLORE_UNTESTED_HYPOTHESIS"
     assert a["measured_experiment_count"] == 0
+    assert a["measured_outcome_metrics"]["direction_match_rate"] is None
+    assert a["measured_outcome_metrics"]["repeated_failure_rate"] is None
     assert a["automatic_strategy_execution"] is False
     assert a["independent_oos_approved"] is False
     assert a == build_experiment_learning([], {})
@@ -218,3 +220,84 @@ def test_live_mcp_two_generation_context_exposes_evidence_bound_memory(tmp_path:
     assert result["status"] == "COMPLETED"
     assert result["history"][0]["evidence_hash"] == finished["history"][0]["evidence_hash"]
     assert result["orders_enabled"] is False
+
+
+def test_learning_measures_execution_change_repeat_failures_and_direction_match() -> None:
+    history, records = [], {}
+    for generation, (state, hash_value, effect) in enumerate((
+        ("NO_OBSERVED_EFFECT", "c" * 64, 0),
+        ("NO_OBSERVED_EFFECT", "c" * 64, 0),
+        ("DIRECTION_NOT_MATCHED_DEVELOPMENT_ONLY", "d" * 64, 1),
+        ("DIRECTION_MATCHED_DEVELOPMENT_ONLY", "e" * 64, 1),
+    ), 1):
+        h, row = _example(
+            generation=generation, evidence=f"{generation:064x}",
+            status=state, child_hash=hash_value,
+        )
+        trial = row[generation]["report"]["experiments"][0]
+        trial["execution_delta"]["added_event_count"] = effect
+        row[generation] = _repair(row[generation])
+        history.extend(h)
+        records.update(row)
+
+    learning = build_experiment_learning(history, records)
+    counters = learning["measured_outcome_metrics"]
+    assert counters["measured_trials"] == 4
+    assert counters["execution_change_trials"] == 2
+    assert counters["same_fill_or_no_execution_change_trials"] == 2
+    assert counters["repeated_failure_trials"] == 1
+    assert counters["failure_trials"] == 3
+    assert counters["repeated_failure_rate"] == pytest.approx(1 / 3)
+    assert counters["direction_comparable_trials"] == 2
+    assert counters["direction_matched_trials"] == 1
+    assert counters["direction_match_rate"] == 0.5
+    assert counters["unobserved_hypotheses_not_counted"] is True
+    assert learning["automatic_strategy_execution"] is False
+    assert learning["independent_oos_approved"] is False
+
+
+def test_learning_rejects_same_fill_trace_claiming_new_executed_signals() -> None:
+    h, records = _example(status="DIRECTION_MATCHED_DEVELOPMENT_ONLY")
+    trial = records[1]["report"]["experiments"][0]
+    trial["same_fill_trace"] = True
+    trial["execution_delta"]["added_event_count"] = 1
+    records[1] = _repair(records[1])
+    feedback = build_experiment_learning(h, records)
+    assert feedback["recent_evidence"][0]["same_fill_trace_despite_decision_changes"]
+    assert feedback["recent_evidence"][0]["finding_code"] == (
+        "UNCHANGED_FILLS_DESPITE_REPORTED_DECISION_CHANGES"
+    )
+    assert feedback["measured_outcome_metrics"]["execution_change_trials"] == 0
+    assert feedback["next_test_priority"] != "ABLATE_ONE_RULE_BEFORE_ANY_EVOLUTION"
+
+
+def test_older_failures_still_contribute_when_recent_context_is_truncated() -> None:
+    history, records = [], {}
+    for generation in range(1, 16):
+        h, report = _example(
+            generation=generation,
+            evidence=f"{generation:064x}",
+            child_hash=f"{generation:064x}",
+            status=(
+                "DIRECTION_NOT_MATCHED_DEVELOPMENT_ONLY"
+                if generation == 1 else "NO_OBSERVED_EFFECT"
+            ),
+        )
+        history.extend(h)
+        records.update(report)
+    learning = build_experiment_learning(history, records, max_recent=5)
+    assert len(learning["recent_evidence"]) == 5
+    assert learning["recent_evidence"][0]["generation"] == 11
+    assert learning["measured_outcome_metrics"]["measured_trials"] == 15
+    assert learning["measured_outcome_metrics"]["failure_trials"] == 15
+    assert learning["failure_and_uncertainty_counts"]["PREDICTION_CONTRADICTED"] == 1
+
+
+def test_same_fill_matched_metric_without_decision_change_is_not_new_signal() -> None:
+    history, reports = _example(status="DIRECTION_MATCHED_DEVELOPMENT_ONLY")
+    reports[1]["report"]["experiments"][0]["same_fill_trace"] = True
+    reports[1] = _repair(reports[1])
+    memory = build_experiment_learning(history, reports)
+    assert memory["recent_evidence"][0]["finding_code"] == "UNCHANGED_OBSERVED_TRACE"
+    assert memory["measured_outcome_metrics"]["execution_change_trials"] == 0
+    assert memory["next_test_priority"] == "EXPLORE_NEW_CAUSAL_MECHANISM"

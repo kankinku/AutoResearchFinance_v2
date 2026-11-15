@@ -129,6 +129,7 @@ def test_round_trip_sells_only_the_confirmed_buy_fill(tmp_path: Path) -> None:
                     ],
                 },
             ),
+            _holding(1),  # Filled buy must be reflected in the account before selling.
             KISResponse(200, {"rt_cd": "0", "output": {"ODNO": "101"}}),
             KISResponse(
                 200,
@@ -175,6 +176,9 @@ def test_round_trip_does_not_sell_when_buy_is_unfilled(tmp_path: Path) -> None:
             _account(),
             KISResponse(200, {"rt_cd": "0", "output": {"ODNO": "100"}}),
             KISResponse(200, {"rt_cd": "0", "output": []}),
+            _ack("100"),
+            _fill("100", "buy", 0, 0),
+            _holding(0),
         ]
     )
     client = KISPaperOrderClient(_config(tmp_path), transport=transport, sleeper=lambda _: None)
@@ -193,4 +197,234 @@ def test_live_configuration_is_rejected_before_order_request(tmp_path: Path) -> 
     with pytest.raises(PaperOrderError, match="virtual"):
         KISPaperOrderClient(config, transport=transport)
 
+    assert transport.calls == []
+
+
+def _fill(
+    order_id: str, side: str, quantity: int, pending: int | None = None,
+) -> KISResponse:
+    record = {
+        "odno": order_id,
+        "pdno": "QQQ",
+        "sll_buy_dvsn": "02" if side == "buy" else "01",
+        "ft_ccld_qty": str(quantity),
+    }
+    if pending is not None:
+        record["nccs_qty"] = str(pending)
+    return KISResponse(200, {"rt_cd": "0", "output": [record]})
+
+
+def _holding(quantity: float) -> KISResponse:
+    return KISResponse(
+        200, {
+            "rt_cd": "0",
+            "output1": (
+                [{"ovrs_pdno": "QQQ", "ovrs_cblc_qty": str(quantity)}]
+                if quantity else []
+            ),
+            "output2": {
+                "ovrs_tot_evlu_amt": "10000",
+                "frcr_pchs_amt": "10000",
+                "frcr_buy_psbl_amt": "10000",
+            },
+        },
+    )
+
+
+def _ack(order_id: str) -> KISResponse:
+    return KISResponse(200, {"rt_cd": "0", "output": {"ODNO": order_id}})
+
+
+def _paper_client(tmp_path: Path, transport: RecordingTransport) -> KISPaperOrderClient:
+    return KISPaperOrderClient(
+        _config(tmp_path), transport=transport,
+        clock=lambda: datetime(2026, 9, 2, 12, tzinfo=timezone.utc),
+        sleeper=lambda _: None,
+    )
+
+
+def test_partial_buy_must_cancel_and_confirm_before_selling(tmp_path: Path) -> None:
+    # Ten shares were requested; two filled and eight remain live.
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 8),
+        _ack("100"), _fill("100", "buy", 2, 0), _holding(2),
+        _ack("101"), _fill("101", "sell", 2, 0), _holding(0),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=10, timeout_seconds=0,
+    )
+    assert result.status == "FLAT"
+    assert (result.filled_buy_quantity, result.filled_sell_quantity) == (2, 2)
+    order_requests = [
+        call for call in transport.calls if call["method"] == "POST"
+        and "/trading/" in call["url"]
+    ]
+    assert [call["headers"]["tr_id"] for call in order_requests] == [
+        "VTTT1002U", "VTTT1004U", "VTTT1006U",
+    ]
+    assert order_requests[1]["url"].endswith("/trading/order-rvsecncl")
+    assert order_requests[1]["body"]["ORGN_ODNO"] == "100"
+    assert order_requests[1]["body"]["RVSE_CNCL_DVSN_CD"] == "02"
+    assert order_requests[2]["body"]["ORD_QTY"] == "2"
+
+
+def test_cancel_failure_blocks_any_opposite_order(tmp_path: Path) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 8),
+        KISResponse(200, {"rt_cd": "1", "msg_cd": "DENIED"}),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=10, timeout_seconds=0,
+    )
+    assert result.status == "UNSETTLED"
+    assert result.sell is None
+    assert not any(
+        c["headers"].get("tr_id") == "VTTT1006U" for c in transport.calls
+    )
+
+
+def test_acknowledged_cancel_still_pending_blocks_selling(tmp_path: Path) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 8),
+        _ack("100"), _fill("100", "buy", 2, 8),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=10, timeout_seconds=0,
+    )
+    assert result.status == "UNSETTLED"
+    assert result.sell is None
+    assert not any(c["headers"].get("tr_id") == "VTTT1006U" for c in transport.calls)
+
+
+def test_late_fill_during_buy_cancel_is_sold_at_updated_quantity(
+    tmp_path: Path,
+) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 8),
+        _ack("100"), _fill("100", "buy", 3, 0), _holding(3),
+        _ack("101"), _fill("101", "sell", 3, 0), _holding(0),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=10, timeout_seconds=0,
+    )
+    assert result.status == "FLAT"
+    assert result.filled_buy_quantity == 3
+    sell_call = next(
+        c for c in transport.calls if c["headers"].get("tr_id") == "VTTT1006U"
+    )
+    assert sell_call["body"]["ORD_QTY"] == "3"
+
+
+def test_partial_sell_requires_cancel_and_terminal_balance(
+    tmp_path: Path,
+) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 0),
+        _holding(2), _ack("101"), _fill("101", "sell", 1, 1),
+        _ack("101"), _fill("101", "sell", 2, 0), _holding(0),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=2, timeout_seconds=0,
+    )
+    assert result.status == "FLAT"
+    assert result.filled_sell_quantity == 2
+    assert [
+        c["headers"]["tr_id"] for c in transport.calls
+        if c["method"] == "POST" and "/trading/" in c["url"]
+    ] == ["VTTT1002U", "VTTT1006U", "VTTT1004U"]
+
+
+def test_partial_sell_still_open_cannot_be_flat(tmp_path: Path) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 0),
+        _holding(2), _ack("101"), _fill("101", "sell", 1, 1),
+        _ack("101"), _fill("101", "sell", 1, 1),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=2, timeout_seconds=0,
+    )
+    assert result.status == "UNSETTLED"
+
+
+def test_duplicate_fill_rows_do_not_fake_full_fill(tmp_path: Path) -> None:
+    duplicate = _fill("100", "buy", 1, 1).payload["output"][0]
+    duplicate_response = KISResponse(
+        200, {"rt_cd": "0", "output": [duplicate, duplicate]},
+    )
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), duplicate_response,
+        _ack("100"), _fill("100", "buy", 1, 0), _holding(1),
+        _ack("101"), _fill("101", "sell", 1, 0), _holding(0),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=2, timeout_seconds=0,
+    )
+    assert result.status == "FLAT"
+    assert result.filled_buy_quantity == 1
+    assert result.sell is not None and result.sell.requested_quantity == 1
+
+
+def test_post_buy_position_mismatch_must_not_sell(tmp_path: Path) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 0),
+        _holding(1),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=2, timeout_seconds=0,
+    )
+    assert result.status == "UNSETTLED"
+    assert result.sell is None
+
+
+def test_final_balance_mismatch_is_never_flat(tmp_path: Path) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 1, 0),
+        _holding(1), _ack("101"), _fill("101", "sell", 1, 0),
+        _holding(1),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=1, timeout_seconds=0,
+    )
+    assert result.status != "FLAT"
+
+
+def test_cancel_confirm_without_remaining_quantity_is_not_settled(
+    tmp_path: Path,
+) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 8),
+        _ack("100"), _fill("100", "buy", 2),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=10, timeout_seconds=0,
+    )
+    assert result.status == "UNSETTLED"
+    assert result.sell is None
+
+
+def test_sell_cancel_rejection_is_unsettled_not_flat(tmp_path: Path) -> None:
+    transport = RecordingTransport([
+        _token(), _holding(0), _ack("100"), _fill("100", "buy", 2, 0),
+        _holding(2), _ack("101"), _fill("101", "sell", 1, 1),
+        KISResponse(200, {"rt_cd": "1", "msg_cd": "CANCEL_DENIED"}),
+    ])
+    result = _paper_client(tmp_path, transport).run_buy_then_sell(
+        "QQQ", quantity=2, timeout_seconds=0,
+    )
+    assert result.status == "UNSETTLED"
+    assert result.sell is not None
+    assert result.filled_sell_quantity == 1
+
+
+@pytest.mark.parametrize("bad_url", [
+    "http://paper.example",
+    "http://openapivts.koreainvestment.com:29443",
+    "https://openapivts.koreainvestment.com:9443",
+])
+def test_order_client_rejects_insecure_or_misrouted_endpoint_even_with_mock(
+    tmp_path: Path, bad_url: str,
+) -> None:
+    transport = RecordingTransport([])
+    with pytest.raises((PaperOrderError, ValueError), match="paper|HTTPS|virtual"):
+        KISPaperOrderClient(_config(tmp_path, base_url=bad_url), transport=transport)
     assert transport.calls == []
